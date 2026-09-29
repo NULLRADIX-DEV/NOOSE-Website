@@ -3,14 +3,18 @@
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
-COPY NOOSE-Website/NOOSE-Website.csproj NOOSE-Website/
-RUN dotnet restore NOOSE-Website/NOOSE-Website.csproj
+# Restore erst zusammen mit allen Quellen, NICHT vorab nur mit der .csproj: Das Web-SDK entscheidet
+# anhand der .razor-Dateien, ob die Blazor-Framework-Skripte (_framework/blazor.web.js) dazukommen.
+# Ohne sie startet Blazor im Browser nicht (Navbar & Co. reagieren nicht).
 COPY NOOSE-Website/ NOOSE-Website/
-RUN dotnet publish NOOSE-Website/NOOSE-Website.csproj -c Release -o /app --no-restore --nologo
+# BuildNumber.txt ist gitignored; die Version (Einstellungen -> Status) setzt deshalb die GitHub Action.
+ARG BUILD_VERSION=
+RUN dotnet publish NOOSE-Website/NOOSE-Website.csproj -c Release -o /app --nologo ${BUILD_VERSION:+-p:Version=$BUILD_VERSION}
 
-# Selbst gehostete Quill-/Tabellen-Assets müssen im Artefakt liegen, sonst fehlt im Editor der
-# Tabellen-Button bzw. die Lese-Ansicht bricht (vorher Schritt 1b in scripts/deploy.ps1).
-RUN for f in quill.min.js quill.snow.css table-module.js table-module.css quill-global.mjs; do \
+# Pflicht-Assets im Artefakt pruefen: Blazor-Skript und die selbst gehosteten Quill-/Tabellen-Assets
+# (sonst fehlt im Editor der Tabellen-Button bzw. die Lese-Ansicht bricht).
+RUN test -f /app/wwwroot/_framework/blazor.web.js || { echo "Publish-Output unvollstaendig: wwwroot/_framework/blazor.web.js fehlt"; exit 1; } \
+ && for f in quill.min.js quill.snow.css table-module.js table-module.css quill-global.mjs; do \
         test -f "/app/wwwroot/lib/quill/$f" || { echo "Publish-Output unvollstaendig: wwwroot/lib/quill/$f fehlt"; exit 1; }; \
     done
 

@@ -184,7 +184,7 @@ Behörde schreiben. Was nach außen geht, entscheidet immer ein ausdrücklicher 
 - **OnlyReader** (TeamLead ohne Admin) - liest alles, schreibt nichts, sieht nie Klarnamen.
 - **Kill-Switch** - Sperrung/Rangänderung beendet Sessions in ≤30 s (Security-Stamp-Rotation).
 - **Demo-Instanz** (demo.noose.info) - read-only, anonym browsbar als Demo-Agent, idempotenter Demo-Daten-Seed.
-- **Deploy/Backup-Skripte** (`scripts/`) - `deploy.ps1` (tar → scp → Service-Swap → Health-Check, mit Demo-Schutz) und `backup-db.ps1` (mysqldump + Download, Retention).
+- **Deploy/Backup** - `scripts/deploy.ps1` (Image aus GHCR ziehen → Container neu erstellen → Health-Check, mit Demo-Schutz), `backup-db.ps1` (manueller Dump + Download auf den PC) und `deploy/backup.sh` (täglicher Server-Backup per Cron, 30 Tage Aufbewahrung).
 
 ### Öffentlicher Bereich
 
@@ -296,7 +296,7 @@ Vollständig gebaut (Phase 1–18). Ab Werk ist fast alles **aus** - ein Deploy 
 **Self-hosted Frontend-Libs** (unter `wwwroot/lib`, lazy via JS-Interop): Quill 1.3.7, vis-network 9.1.9, FullCalendar 6.1.15, ECharts.
 Lazy geladene JS-Module unter `wwwroot/js`: `graph.js`, `kalender.js`, `richtext.js`, `statistik-charts.js`, `pruefung.js` (Test-Countdown) - dazu `app.js` als einziges global geladenes Modul.
 
-**DB:** lokal MariaDB/XAMPP, Produktion MySQL 8.0 / MariaDB - Engine via `ServerVersion.AutoDetect()`.
+**DB:** lokal MariaDB/XAMPP, Produktion MariaDB 10.11 (Container) - Engine via `ServerVersion.AutoDetect()`.
 
 > ⚠️ **EF/Identity bewusst auf der 9.0.x-Linie.** Pomelo 9.0.0 unterstützt nur EF Core 9; ein Upgrade auf 10.0.x würde EF Core 10 ziehen und mit Pomelo kollidieren. Die 9.0.x-Pakete laufen sauber auf der .NET-10-Runtime.
 
@@ -469,19 +469,22 @@ sortiert wird über den Zeitstempel im Dateinamen.
 Deploy aus **64-bit Windows PowerShell** (sonst OpenSSH WOW64-Redirect):
 
 ```powershell
-.\scripts\deploy.ps1                # publish → tar → scp → Service-Swap → /health-Check
-.\scripts\deploy.ps1 -SkipPublish   # vorhandenen .\scripts\publish-Ordner wiederverwenden
+.\scripts\deploy.ps1                # Prod: aktueller origin/master → Image ziehen → Container neu → /health-Check
+.\scripts\deploy.ps1 -Target demo   # Demo-Instanz (noose-demo)
+.\scripts\deploy.ps1 -Tag <sha>     # bestimmter Commit / Rollback (kurze SHA geht)
 .\scripts\deploy.ps1 -NoPause       # ohne Pause (CI/Terminal)
 ```
 
-Ziel: `root@62.169.28.155`, systemd-Service `noose`, App-Dir `/var/www/noose`. Publish wird mit `tar` gepackt (nie `Compress-Archive`), per `scp` hochgeladen, Service getauscht, `/health` geprüft.
+Ziel: `root@62.169.28.155`, Docker-Container `noose` (Prod) bzw. `noose-demo`, Verzeichnis `/opt/noose`. Das Image `ghcr.io/nullradix-dev/noose-website:<commit-sha>` baut GitHub Actions (`.github/workflows/image.yml`, Push auf `master`); vor dem Deploy muss die Action für den Commit fertig sein. `deploy.ps1` baut nichts lokal: Es lädt `deploy/compose.yml` hoch, zieht das Image, setzt den Tag in `/opt/noose/.env`, erstellt den Container neu (nie zwei Instanzen gleichzeitig) und prüft `/health`. Die DB (Container `noose-db`, MariaDB 10.11) startet das Skript nie neu. Der Server braucht einmalig `docker login ghcr.io` (Classic-PAT, nur `read:packages`); läuft der PAT ab, scheitert der Deploy mit „unauthorized“.
 
 **Prod-Gotchas**
-- **`App_Data` beim Deploy nie löschen** - enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `deploy.ps1` schließt `App_Data` explizit aus.
-- **`TZ=Europe/Berlin`** in `/etc/noose/noose.env` nötig - sonst sind alle `ToLocalTime()`-Zeiten verschoben. `TimeZoneInfo.Local` ist prozess-gecached → Restart nach Änderung.
+- **`App_Data` beim Deploy nie löschen** - enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `App_Data` ist nicht im Image, sondern ein Volume (`/opt/noose/data/prod`, Demo `data/demo`) und überlebt jeden Deploy.
+- **`TZ=Europe/Berlin`** in `/etc/noose/noose.env` nötig - sonst sind alle `ToLocalTime()`-Zeiten verschoben. `TimeZoneInfo.Local` ist prozess-gecached → Container neu erstellen (`restart` liest die Env-Datei nicht neu): `cd /opt/noose && docker compose up -d --force-recreate --no-deps noose`.
 - **Discord-Redirect** `https://noose.info/signin-discord` muss im Developer-Portal registriert sein.
 - **Prod-Secrets** in `/etc/noose/noose.env` mit Doppel-Unterstrich: `ConnectionStrings__ProductionConnection`, `Authentication__Discord__ClientId`/`__ClientSecret`, `Bootstrap__AdminDiscordId`, `Llm__ApiKey` (OpenRouter) und `Llm__DeepSeek__ApiKey` (DeepSeek direkt).
 - **Health-Check:** `GET /health` (anonym, prüft DB-Konnektivität) → `200 Healthy`.
+- **Logs:** `docker logs -f noose` / `docker logs -f noose-demo` / `docker logs noose-db` (statt `journalctl`; `journalctl -u noose` zeigt nur noch alte Logs). Status: `cd /opt/noose && docker compose ps`.
+- **Backup:** `/opt/noose/backup.sh` läuft täglich 04:15 per root-Cron → `/root/backups/noose-JJJJ-MM-TT.sql.gz` und `noose_demo-JJJJ-MM-TT.sql.gz` (Vollständigkeitsprüfung, rotiert nur die täglichen Dateien, 30 Tage Aufbewahrung, Log `/var/log/noose-backup.log`). Uploads (`App_Data`) sind **nicht** im Server-Backup. Restore: `gunzip < /root/backups/noose-<datum>.sql.gz | docker exec -i noose-db mariadb noose`.
 
 ---
 
@@ -509,7 +512,8 @@ NOOSE-Website/
 ├── Infrastructure/    Interceptors, Broadcaster, Worker, Audit, Storage, Seeder
 ├── Theme/             NooseTheme.cs (Dark-Palette)
 └── wwwroot/lib/       Quill, vis-network, FullCalendar, ECharts (self-hosted)
-scripts/                 deploy.ps1, backup-db.ps1, setup-demo.ps1, dotnet-tools.json
+scripts/                 deploy.ps1, backup-db.ps1, dotnet-tools.json
+deploy/                  compose.yml, backup.sh (Server-Backup)
 ```
 
 ---
@@ -519,7 +523,7 @@ scripts/                 deploy.ps1, backup-db.ps1, setup-demo.ps1, dotnet-tools
 - [`CLAUDE.md`](CLAUDE.md) - Codebase-Konventionen, Architektur, Gotchas
 - [`AGENTS.md`](AGENTS.md) - Agent-/Contributor-Hinweise
 - [`claude-memory/`](claude-memory/) - Detailwissen je Bereich: **warum** eine Regel existiert, nicht nur dass sie gilt
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) - Server-Setup (nginx → Kestrel → MariaDB), systemd, Troubleshooting
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) - Server-Setup (nginx → Container → MariaDB-Container), Docker Compose, Backup, Troubleshooting
 - [`docs/CODE_REVIEW_TODO.md`](docs/CODE_REVIEW_TODO.md) - bekannte Tech-Debt-/Review-Findings
 - [`docs/CachePlan.md`](docs/CachePlan.md) - Caching und Ladezeiten
 - [`docs/DEPLOYMENT-DEMO.md`](docs/DEPLOYMENT-DEMO.md) - Demo-Instanz

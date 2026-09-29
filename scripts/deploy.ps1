@@ -1,52 +1,52 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-    Veroeffentlicht die NOOSE-Website und rollt sie auf den Produktiv-Server aus.
+    Rollt die NOOSE-Website (Prod oder Demo) als Container auf dem VPS aus.
 
 .DESCRIPTION
-    Ein-Befehl-Deploy: Release veroeffentlichen -> mit tar packen (NICHT Compress-Archive,
-    das zerschießt Dateien) -> per scp hochladen -> auf dem Server Dienst stoppen, Dateien
-    tauschen (App_Data bleibt erhalten), Dienst starten, Health-Check.
+    Das Image baut GitHub Actions bei jedem Push auf master (.github/workflows/image.yml) und legt
+    es unter ghcr.io/nullradix-dev/noose-website:<commit-sha> ab. Dieses Skript baut NICHTS selbst:
+      0. Tag bestimmen (Standard: aktueller Commit von origin/master)
+      1. Prod-Schutz: die Prod-Env darf kein Demo__AutoSetup=true enthalten (fail-closed)
+      2. deploy/compose.yml nach /opt/noose/compose.yml hochladen und pruefen
+      3. Image ziehen, Tag in /opt/noose/.env setzen, Container neu erstellen. Compose stoppt den
+         alten Container, bevor der neue startet -> nie zwei Instanzen (BackgroundServices!).
+      4. Health-Check auf 127.0.0.1:5000 (Prod) bzw. :5001 (Demo)
 
-    Prod-Schutz: Vor dem Deploy wird geprueft, dass das Ziel KEINE Demo-Instanz ist
-    (Env-Flag Demo__AutoSetup). Auf den Prod-Server wird nur deployt, solange die Demo-Flag
-    false ist. Demo-Ziele werden am Service-/Pfadnamen ("demo") bzw. der Demo-IP erkannt und
-    uebersprungen; -AllowDemo erzwingt das Ueberspringen.
+    Rollback: dasselbe Skript mit -Tag <aelterer-commit> ausfuehren. Die Datenbank (Dienst db)
+    wird von diesem Skript nie neu gestartet; Aenderungen an ihrer Definition in compose.yml
+    muessen bewusst auf dem Server mit "docker compose up -d db" angewendet werden.
 
 .EXAMPLE
     .\deploy.ps1
-        Standard-Deploy auf root@62.169.28.155.
+        Prod auf den aktuellen Stand von origin/master bringen.
 
 .EXAMPLE
-    .\deploy.ps1 -SkipPublish
-        Nutzt den vorhandenen .\publish-Ordner (kein erneutes dotnet publish).
+    .\deploy.ps1 -Target demo
+        Demo-Instanz (demo.noose.info) auf den aktuellen Stand von origin/master bringen.
 
 .EXAMPLE
-    .\deploy.ps1 -NoPause
-        Ohne "Enter zum Schließen" am Ende (fuer Terminal-/CI-Nutzung).
-
-.EXAMPLE
-    .\deploy.ps1 -Server root@31.70.104.128 -AppDir /var/www/noose-demo -Service noose-demo
-        Deploy auf die Demo-Instanz (Prod-Schutz wird automatisch uebersprungen).
+    .\deploy.ps1 -Tag 323a5e7
+        Bestimmten Commit ausrollen (z. B. Rollback). Kurze SHAs werden lokal aufgeloest.
 
 .NOTES
-    Am besten aus einer bereits offenen PowerShell starten. Bei "Run with PowerShell" /
-    Doppelklick haelt das Skript das Fenster am Ende offen, damit Ausgabe & Fehler lesbar bleiben.
-    Ohne SSH-Key fragt scp/ssh je einmal nach dem Server-Passwort (siehe DEPLOYMENT.md -> SSH-Key).
+    Voraussetzungen: SSH-Key fuer root@62.169.28.155, auf dem Server einmalig "docker login ghcr.io"
+    (Classic-PAT mit read:packages, siehe docs/DEPLOYMENT.md). Die GitHub Action fuer den Commit muss
+    fertig sein, sonst bricht Schritt 3 mit "Image nicht gefunden" ab.
 #>
 
 [CmdletBinding()]
 param(
-    [string]$Server  = "root@62.169.28.155",
-    [string]$AppDir  = "/var/www/noose",
-    [string]$Service = "noose",
-    [switch]$SkipPublish,
-    [switch]$AllowDemo,
+    [string]$Server = "root@62.169.28.155",
+    [ValidateSet("prod", "demo")]
+    [string]$Target = "prod",
+    [string]$Tag,
     [switch]$NoPause
 )
 
 $ErrorActionPreference = "Stop"
 $exitCode = 0
+$image = "ghcr.io/nullradix-dev/noose-website"
 
 function Invoke-Step {
     param([string]$Label, [scriptblock]$Action)
@@ -55,7 +55,7 @@ function Invoke-Step {
     if ($LASTEXITCODE -ne 0) { throw "Schritt fehlgeschlagen: $Label (Exit $LASTEXITCODE)" }
 }
 
-# Findet ssh/scp robust – PATH-unabhaengig und auch aus einem 32-bit-PowerShell heraus, wo
+# Findet ssh/scp robust - PATH-unabhaengig und auch aus einem 32-bit-PowerShell heraus, wo
 # C:\Windows\System32 per WOW64 auf SysWOW64 umgeleitet wird und die 64-bit-OpenSSH-Exe dort fehlt.
 function Resolve-Exe {
     param([string]$Name)
@@ -73,109 +73,76 @@ function Resolve-Exe {
 }
 
 try {
-    # das Skript liegt in scripts\, das Projekt eine Ebene darueber
+    # das Skript liegt in scripts\, das Repo eine Ebene darueber
     $repoRoot = Split-Path -Parent $PSScriptRoot
-    $project = Join-Path $repoRoot "NOOSE-Website\NOOSE-Website.csproj"
-    $publish = Join-Path $PSScriptRoot "publish"
-    $tarball = Join-Path $PSScriptRoot "noose-publish.tgz"
+    $compose = Join-Path $repoRoot "deploy\compose.yml"
+    if (-not (Test-Path $compose)) { throw "deploy\compose.yml nicht gefunden: $compose" }
 
-    if (-not (Test-Path $project)) {
-        throw "Projekt nicht gefunden: $project. Liegt deploy.ps1 wirklich in scripts\ innerhalb des Repos?"
-    }
+    if ($Target -eq "prod") { $service = "noose";      $tagVar = "NOOSE_TAG"; $port = 5000; $url = "https://noose.info" }
+    else                    { $service = "noose-demo"; $tagVar = "DEMO_TAG";  $port = 5001; $url = "https://demo.noose.info" }
 
-    # ssh/scp vorab auf vollen Pfad aufloesen (PATH-unabhaengig).
     $scp = Resolve-Exe 'scp'
     $ssh = Resolve-Exe 'ssh'
     # nie still haengen: Verbindungs-Timeout + neue Host-Keys automatisch akzeptieren (kein yes/no-Prompt).
     $sshOpts = @('-o', 'ConnectTimeout=10', '-o', 'StrictHostKeyChecking=accept-new')
 
-    # 0) Prod-Schutz: NICHT auf einen Server deployen, der als Demo-Instanz konfiguriert ist
-    #    (Env-Flag Demo__AutoSetup=true). Verhindert, dass ein Prod-Deploy versehentlich eine
-    #    Demo-Box trifft. Demo-Ziele werden automatisch erkannt und uebersprungen; -AllowDemo erzwingt das.
-    #    Laeuft VOR dem Publish (fail-fast) und fail-closed: kann das Flag nicht geprueft werden -> Abbruch.
-    $isDemoTarget = $AllowDemo -or ($Service -like '*demo*') -or ($AppDir -like '*demo*') -or ($Server -like '*31.70.104.128*')
-    if (-not $isDemoTarget) {
-        $envFile = "/etc/$Service/$Service.env"
-        # ACHTUNG: keine doppelten Anfuehrungszeichen im Remote-Skript (siehe Hinweis bei $remote unten).
+    # 0) Tag bestimmen. Ohne -Tag: aktueller Commit von origin/master. Kurze SHAs lokal aufloesen,
+    #    weil GHCR nur die volle SHA als Tag kennt.
+    if (-not $Tag) {
+        Invoke-Step "Hole origin/master" { git -C $repoRoot fetch origin master --quiet }
+        $Tag = "$(git -C $repoRoot rev-parse origin/master)".Trim()
+    } elseif ($Tag -match '^[0-9a-f]{7,39}$') {
+        $resolved = git -C $repoRoot rev-parse --verify --quiet "$Tag^{commit}"
+        if ($LASTEXITCODE -ne 0 -or -not $resolved) { throw "Commit '$Tag' lokal nicht gefunden (vorher git fetch?)." }
+        $Tag = "$resolved".Trim()
+    }
+    if ($Tag -notmatch '^([0-9a-f]{40}|latest)$') { throw "Ungueltiger Tag '$Tag' (erwartet: Commit-SHA oder latest)." }
+    Write-Host "    Ziel: $Target ($service), Image $image`:$Tag" -ForegroundColor DarkGray
+
+    # 1) Prod-Schutz: NICHT als Prod ausrollen, wenn die Prod-Env als Demo konfiguriert ist
+    #    (Demo__AutoSetup=true -> Demo-Daten wuerden eingespielt). Fail-closed: kann das Flag nicht
+    #    geprueft werden -> Abbruch.
+    #
+    #    ACHTUNG, NIE doppelte Anfuehrungszeichen in Remote-Skripte schreiben: Windows PowerShell 5.1
+    #    verschluckt eingebettete " beim Aufbau der argv fuer native Exes, das Skript kommt dann
+    #    unquotiert auf dem Server an. Nur einfache Anfuehrungszeichen oder gar keine. Auch NICHT per
+    #    Pipe an 'bash -s' schicken (UTF-8-BOM + CRLF auf stdin).
+    if ($Target -eq "prod") {
         $remoteCheck =
-            "FLAG=false; " +
-            "if systemctl show '$Service' -p Environment 2>/dev/null | grep -iqE 'Demo__AutoSetup=true'; then FLAG=true; fi; " +
-            "if [ -f '$envFile' ] && grep -iqE '^[[:space:]]*Demo__AutoSetup[[:space:]]*=[[:space:]]*true' '$envFile'; then FLAG=true; fi; " +
-            'echo DEMO_FLAG=$FLAG'
-        Write-Host "==> Prod-Schutz: pruefe Demo-Flag auf $Server ($envFile)" -ForegroundColor Cyan
-        # stderr NICHT in die Pipeline ziehen: sonst verschluckt Out-String den ssh-Passwort-/Host-Key-Prompt -> sieht aus wie haengen.
+            "test -f /etc/noose/noose.env || { echo ENVFILE_MISSING; exit 1; }; " +
+            "if grep -iqE '^[[:space:]]*Demo__AutoSetup[[:space:]]*=[[:space:]]*[^[:alnum:]]?true' /etc/noose/noose.env; then echo DEMO_FLAG=true; else echo DEMO_FLAG=false; fi"
+        Write-Host "==> Prod-Schutz: pruefe Demo-Flag in /etc/noose/noose.env" -ForegroundColor Cyan
+        # stderr NICHT in die Pipeline ziehen: sonst verschluckt Out-String den ssh-Passwort-/Host-Key-Prompt.
         $checkOutput = (& $ssh @sshOpts $Server $remoteCheck | Out-String)
-        if ($LASTEXITCODE -ne 0) {
+        if ($LASTEXITCODE -ne 0 -or $checkOutput -notmatch 'DEMO_FLAG=(true|false)') {
             throw "Konnte das Demo-Flag nicht pruefen (ssh Exit $LASTEXITCODE). Aus Sicherheit abgebrochen.`nAusgabe: $checkOutput"
         }
         if ($checkOutput -match 'DEMO_FLAG=true') {
-            throw "ABBRUCH: '$Server' ist als DEMO-Instanz konfiguriert (Demo__AutoSetup=true). Auf den Prod-Server wird nur deployt, solange die Demo-Flag false ist.`nFuer einen bewussten Demo-Deploy: -Service mit 'demo' im Namen (z. B. noose-demo) oder -AllowDemo setzen."
+            throw "ABBRUCH: Die Prod-Env enthaelt Demo__AutoSetup=true. Auf Prod wird nur ausgerollt, solange die Demo-Flag false ist."
         }
         Write-Host "    Demo-Flag = false -> Prod-Deploy erlaubt." -ForegroundColor DarkGray
-    } else {
-        Write-Host "==> Demo-Ziel erkannt -> Prod-Schutz (Demo-Flag-Check) uebersprungen." -ForegroundColor DarkYellow
     }
 
-    # 1) Release veroeffentlichen. Publish-Ordner vorher leeren, weil "dotnet publish" das Ziel NICHT
-    #    aufraeumt: Altlasten frueherer Publishes wandern sonst mit ins Artefakt (so lagen z. B. noch
-    #    quill.js / quill-table-better.* vom verworfenen Quill-2-Versuch darin). Unter -SkipPublish wird
-    #    bewusst NICHT geleert (der vorhandene Ordner soll wiederverwendet werden).
-    if (-not $SkipPublish) {
-        if (Test-Path $publish) {
-            Write-Host "==> Leere Publish-Ordner (keine Altlasten)" -ForegroundColor Cyan
-            Remove-Item (Join-Path $publish '*') -Recurse -Force -ErrorAction Stop
-        }
-        Invoke-Step "Veroeffentliche Release" { dotnet publish $project -c Release -o $publish --nologo }
-    } else {
-        Write-Host "==> ueberspringe Publish (-SkipPublish)" -ForegroundColor DarkYellow
-    }
-    if (-not (Test-Path (Join-Path $publish "NOOSE-Website.dll"))) {
-        throw "publish-Ordner unvollstaendig: $publish (NOOSE-Website.dll fehlt). Laeuft evtl. noch eine Dev-Instanz und sperrt bin/?"
-    }
+    # 2) compose.yml und backup.sh als *.new hochladen; uebernommen werden sie erst nach der Pruefung
+    #    (die .env mit den Tags bleibt auf dem Server)
+    $backup = Join-Path $repoRoot "deploy\backup.sh"
+    Invoke-Step "Lade compose.yml hoch" { & $scp @sshOpts $compose "${Server}:/opt/noose/compose.yml.new" }
+    Invoke-Step "Lade backup.sh hoch" { & $scp @sshOpts $backup "${Server}:/opt/noose/backup.sh.new" }
 
-    # 1b) Selbst gehostete Quill-/Tabellen-Assets pruefen. dotnet publish kopiert wwwroot automatisch
-    #     mit; dieser Check stellt sicher, dass die Editor-Dateien (inkl. vendored Tabellen-Modul) wirklich
-    #     im Artefakt liegen — sonst fehlt im Editor der Tabellen-Button bzw. die Lese-Ansicht bricht.
-    $quillDir = Join-Path $publish "wwwroot\lib\quill"
-    $quillDateien = @("quill.min.js", "quill.snow.css", "table-module.js", "table-module.css", "quill-global.mjs")
-    foreach ($f in $quillDateien) {
-        $p = Join-Path $quillDir $f
-        if (-not (Test-Path $p)) {
-            throw "Publish-Output unvollstaendig: $p fehlt. Liegt die Datei in NOOSE-Website\wwwroot\lib\quill\ und wurde sie nicht ausgeschlossen?"
-        }
-    }
-    Write-Host "==> Quill-/Tabellen-Assets im Artefakt vorhanden ($($quillDateien.Count) Dateien)" -ForegroundColor DarkGray
-
-    # 2) Mit tar packen — zuverlaessig; Compress-Archive hat schon 0-Byte-Dateien erzeugt.
-    if (Test-Path $tarball) { Remove-Item $tarball -Force }
-    Invoke-Step "Packe Artefakt (tar)" { tar -czf $tarball -C $publish . }
-
-    # 3) Auf den Server kopieren
-    Invoke-Step "Lade auf Server hoch" { & $scp @sshOpts $tarball "${Server}:/tmp/noose-publish.tgz" }
-
-    # 4) Auf dem Server ausrollen: Dienst stoppen, Dateien tauschen (App_Data behalten),
-    #    Rechte setzen, Dienst starten, kurz warten, Health pruefen. Alles per && -> fail-fast.
-    #
-    #    ACHTUNG, NIE doppelte Anfuehrungszeichen in dieses Remote-Skript schreiben: Windows
-    #    PowerShell 5.1 verschluckt eingebettete " beim Aufbau der argv fuer native Exes, das
-    #    Skript kommt dann unquotiert auf dem Server an und bash bricht mit einem Syntaxfehler ab
-    #    (z. B. bei den Klammern einer Meldung). Nur einfache Anfuehrungszeichen oder gar keine.
-    #    Auch NICHT per Pipe an 'bash -s' schicken -- PowerShell stellt dem stdin eine UTF-8-BOM
-    #    voran und beendet mit CRLF; das \r klebt am letzten } und bash meldet 'unexpected EOF'.
-    $remote = "systemctl stop $Service" +
-              " && find $AppDir -mindepth 1 -maxdepth 1 ! -name App_Data -exec rm -rf {} +" +
-              " && tar -xzf /tmp/noose-publish.tgz -C $AppDir" +
-              " && chown -R www-data:www-data $AppDir" +
-              " && systemctl start $Service" +
-              " && rm -f /tmp/noose-publish.tgz" +
-              ' && { i=0; while [ $i -lt 30 ]; do curl -sf -o /dev/null http://127.0.0.1:5000/health && { echo Health-Check: OK; exit 0; }; i=$((i + 1)); sleep 2; done; echo Health-Check: FEHLGESCHLAGEN - kein 200 nach 60s; exit 1; }'
-    Invoke-Step "Rolle auf dem Server aus" { & $ssh @sshOpts $Server $remote }
-
-    # 5) Lokales Artefakt aufraeumen
-    Remove-Item $tarball -Force -ErrorAction SilentlyContinue
+    # 3) Ausrollen. Bash-Variablen stehen in '...'-Teilen, damit PowerShell sie nicht ersetzt.
+    $remote = "set -e; cd /opt/noose" +
+              " && docker compose -f compose.yml.new config -q && mv compose.yml.new compose.yml" +
+              " && sed -i 's/\r$//' backup.sh.new && install -m 700 backup.sh.new backup.sh && rm backup.sh.new" +
+              " && { docker pull -q ${image}:$Tag >/dev/null || { echo Image ${image}:$Tag nicht gefunden - GitHub Action Container-Image abwarten.; exit 1; }; }" +
+              " && echo vorher: `$(grep ^${tagVar}= .env)" +
+              " && sed -i 's/^${tagVar}=.*/${tagVar}=$Tag/' .env" +
+              " && docker compose up -d --no-deps $service" +
+              ' && { i=0; while [ $i -lt 45 ]; do curl -sf -o /dev/null http://127.0.0.1:' + $port + '/health && { echo Health-Check: OK; break; }; i=$((i + 1)); sleep 2; done; [ $i -lt 45 ] || { echo Health-Check: FEHLGESCHLAGEN - kein 200 nach 90s; docker logs --tail 40 ' + $service + '; exit 1; }; }' +
+              " && { docker image prune -af --filter until=168h --filter label=org.opencontainers.image.source=https://github.com/NULLRADIX-DEV/NOOSE-Website >/dev/null || true; }"
+    Invoke-Step "Rolle $service auf dem Server aus" { & $ssh @sshOpts $Server $remote }
 
     Write-Host ""
-    Write-Host "Fertig. https://noose.info ist aktualisiert." -ForegroundColor Green
+    Write-Host "Fertig. $url laeuft mit $($Tag.Substring(0, [Math]::Min(7, $Tag.Length)))." -ForegroundColor Green
     Write-Host "Im Browser ggf. mit Strg+F5 hart neu laden (Asset-Cache)." -ForegroundColor Green
 }
 catch {
@@ -185,6 +152,7 @@ catch {
     Write-Host "  DEPLOY FEHLGESCHLAGEN" -ForegroundColor Red
     Write-Host "============================================" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
+    Write-Host "Rollback: .\deploy.ps1 -Target $Target -Tag <vorheriger-commit> (siehe 'vorher:' oben)" -ForegroundColor DarkYellow
     if ($_.ScriptStackTrace) {
         Write-Host ""
         Write-Host $_.ScriptStackTrace -ForegroundColor DarkGray
@@ -193,7 +161,7 @@ catch {
 finally {
     if (-not $NoPause) {
         Write-Host ""
-        $null = Read-Host "Enter druecken zum Schließen"
+        $null = Read-Host "Enter druecken zum Schliessen"
     }
 }
 
