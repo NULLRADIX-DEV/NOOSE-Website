@@ -19,7 +19,7 @@ Browser ──HTTPS──> nginx (Port 443, TLS via Let's Encrypt)
 
 | Was | Wert |
 |-----|------|
-| Server (SSH) | `root@195.20.225.12` (Ubuntu 24.04) |
+| Server (SSH) | `root@62.169.28.155` (Ubuntu 24.04) |
 | Domain | `noose.info` (+ `www`) → A-Record auf die Server-IP |
 | App-Verzeichnis | `/var/www/noose` |
 | systemd-Dienst | `noose` |
@@ -76,7 +76,7 @@ Damit `deploy.ps1` nicht nach dem Passwort fragt, einmalig einen Schlüssel hint
 ssh-keygen -t ed25519
 
 # Öffentlichen Schlüssel auf den Server kopieren
-type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@195.20.225.12 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
+type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh root@62.169.28.155 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 ```
 
 Danach läuft `.\scripts\deploy.ps1` komplett ohne Passwort-Eingabe.
@@ -89,7 +89,7 @@ Danach läuft `.\scripts\deploy.ps1` komplett ohne Passwort-Eingabe.
 ```powershell
 dotnet publish .\NOOSE-Website\NOOSE-Website.csproj -c Release -o .\scripts\publish
 tar -czf noose-publish.tgz -C .\scripts\publish .
-scp .\noose-publish.tgz root@195.20.225.12:/tmp/
+scp .\noose-publish.tgz root@62.169.28.155:/tmp/
 ```
 
 **Auf dem Server:**
@@ -131,7 +131,7 @@ certbot renew --dry-run
 ```
 Das Skript erzeugt den Dump per SSH (`--single-transaction`, inkl. Routinen/Events), prüft die
 Integrität, lädt ihn per `scp` herunter und vergleicht die Größen. Parameter (Defaults):
-`-Server root@195.20.225.12`, `-Database noose`, `-RemoteDir /root/backups`,
+`-Server root@62.169.28.155`, `-Database noose`, `-RemoteDir /root/backups`,
 `-LocalDir %USERPROFILE%\NOOSE-Backups`, `-RetentionDays 30`, `-NoPause`. Serverseitig werden Dumps
 älter als `-RetentionDays` aufgeräumt; die PC-Kopien (Offsite) bleiben **alle** erhalten.
 Setzt einen hinterlegten SSH-Key voraus (siehe Abschnitt SSH-Key).
@@ -267,8 +267,8 @@ certbot ergänzt den 443-Block + http→https-Weiterleitung automatisch und erne
 ### 5.7 DNS (im STRATO-Kundenbereich)
 | Typ | Host | Wert |
 |-----|------|------|
-| A | `@` | `195.20.225.12` |
-| A | `www` | `195.20.225.12` |
+| A | `@` | `62.169.28.155` |
+| A | `www` | `62.169.28.155` |
 | AAAA | `@` / `www` | löschen **oder** auf die Server-IPv6 setzen (sonst muss nginx auch auf `[::]:80/443` lauschen) |
 
 ### 5.8 Discord-Login
@@ -313,14 +313,14 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 195.20.225.12 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 62.169.28.155 >> ~/.ssh/known_hosts
 
       - name: Upload
-        run: scp -i ~/.ssh/id_ed25519 noose-publish.tgz root@195.20.225.12:/tmp/
+        run: scp -i ~/.ssh/id_ed25519 noose-publish.tgz root@62.169.28.155:/tmp/
 
       - name: Deploy
         run: |
-          ssh -i ~/.ssh/id_ed25519 root@195.20.225.12 \
+          ssh -i ~/.ssh/id_ed25519 root@62.169.28.155 \
             "systemctl stop noose \
              && find /var/www/noose -mindepth 1 -maxdepth 1 ! -name App_Data -exec rm -rf {} + \
              && tar -xzf /tmp/noose-publish.tgz -C /var/www/noose \
@@ -342,7 +342,7 @@ jobs:
 | **`Kein Connection-String konfiguriert`** | Weder `ProductionConnection` noch `DefaultConnection` gesetzt/erreichbar → `/etc/noose/noose.env` prüfen, Dienst neu starten. |
 | **Seite lädt, aber ohne CSS/Styling** | Assets als 0 Bytes ausgeliefert — kaputte ZIP von `Compress-Archive`. Mit **`tar`** neu deployen (`deploy.ps1`). Check: `curl -s -o /dev/null -w "%{http_code} %{size_download}\n" http://127.0.0.1:5000/_content/MudBlazor/MudBlazor.min.css` muss > 0 Bytes liefern. Browser mit Strg+F5 neu laden. |
 | **`Failed to find a valid digest in the 'integrity' attribute`** (Konsole) | Gleiche Ursache: betroffene JS-/CSS-Datei kam mit 0 Bytes an → mit `tar` neu deployen. |
-| **certbot scheitert mit IPv6-Adresse / `204`** | Alter `AAAA`-Eintrag zeigt auf STRATO-Parkserver. AAAA löschen (oder auf Server-IPv6 setzen), bis `getent ahosts noose.info` nur die `195.20.225.12` zeigt, dann certbot erneut. |
+| **certbot scheitert mit IPv6-Adresse / `204`** | Alter `AAAA`-Eintrag zeigt auf STRATO-Parkserver. AAAA löschen (oder auf Server-IPv6 setzen), bis `getent ahosts noose.info` nur die `62.169.28.155` zeigt, dann certbot erneut. |
 | **`Failed to determine the https port for redirect`** (Log) | Harmlos. Tritt nur bei direkten http-Anfragen an Kestrel auf; über nginx+TLS verschwindet die Warnung. |
 | **Login: „invalid redirect_uri"** | Im Discord Developer Portal `https://noose.info/signin-discord` als Redirect eintragen. |
 | **Zeiten 2 h zu früh / falscher Tag** | Server läuft in UTC. In Blazor Server nutzt `.ToLocalTime()` die Server-Zeitzone. `TZ=Europe/Berlin` in `/etc/noose/noose.env` ergänzen, dann `systemctl restart noose` (Neustart nötig — `TimeZoneInfo.Local` ist pro Prozess gecacht). |

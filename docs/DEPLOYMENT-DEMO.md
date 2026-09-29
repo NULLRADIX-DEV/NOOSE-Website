@@ -19,7 +19,7 @@ Produktiv (`noose.info`) bleibt komplett unberührt. Vom **Main-PC** abarbeiten 
 
 ## Voraussetzungen (sollten schon erledigt sein)
 
-- [x] **DNS:** A-Record `demo` → `195.20.225.12`  (kein AAAA, außer noose.info läuft auch über IPv6)
+- [x] **DNS:** A-Record `demo` → `62.169.28.155`  (kein AAAA, außer noose.info läuft auch über IPv6)
 - [x] **Discord:** Redirect `https://demo.noose.info/signin-discord` im Developer-Portal ergänzt
 - [ ] **SSH-Zugang vom Main-PC** (siehe Schritt 0)
 
@@ -28,7 +28,7 @@ Produktiv (`noose.info`) bleibt komplett unberührt. Vom **Main-PC** abarbeiten 
 ## Schritt 0 — SSH-Zugang prüfen
 
 ```powershell
-ssh root@195.20.225.12 "hostname"
+ssh root@62.169.28.155 "hostname"
 ```
 
 - Gibt **ohne Passwortabfrage** den Servernamen aus → passt, weiter mit Schritt 1.
@@ -47,7 +47,7 @@ ssh root@195.20.225.12 "hostname"
 ```powershell
 nslookup demo.noose.info
 ```
-Muss `195.20.225.12` zurückgeben. Wenn nicht → DNS noch nicht propagiert, kurz warten (TLS in Schritt 4 braucht das).
+Muss `62.169.28.155` zurückgeben. Wenn nicht → DNS noch nicht propagiert, kurz warten (TLS in Schritt 4 braucht das).
 
 ---
 
@@ -57,8 +57,8 @@ Aktuellen Branch ziehen (enthält `setup-demo.sh`), Skript hochladen und ausfüh
 
 ```powershell
 git pull
-scp setup-demo.sh root@195.20.225.12:/tmp/setup-demo.sh
-ssh root@195.20.225.12 "sed -i 's/\r$//' /tmp/setup-demo.sh && bash /tmp/setup-demo.sh"
+scp setup-demo.sh root@62.169.28.155:/tmp/setup-demo.sh
+ssh root@62.169.28.155 "sed -i 's/\r$//' /tmp/setup-demo.sh && bash /tmp/setup-demo.sh"
 ```
 
 Das Skript macht (idempotent, mehrfach ausführbar):
@@ -89,17 +89,17 @@ die leere `noose_demo` automatisch. (Für künftige Updates der **Produktiv**-Se
 Sobald DNS (Schritt 1) aufgelöst ist:
 
 ```powershell
-ssh root@195.20.225.12 "certbot --nginx -d demo.noose.info --non-interactive --agree-tos -m tristan.atze@gmail.com --redirect"
+ssh root@62.169.28.155 "certbot --nginx -d demo.noose.info --non-interactive --agree-tos -m tristan.atze@gmail.com --redirect"
 ```
-(Alternativ ohne Flags interaktiv: `ssh root@195.20.225.12 "certbot --nginx -d demo.noose.info"` und Fragen beantworten.)
+(Alternativ ohne Flags interaktiv: `ssh root@62.169.28.155 "certbot --nginx -d demo.noose.info"` und Fragen beantworten.)
 
 ---
 
 ## Schritt 5 — Health-Check
 
 ```powershell
-ssh root@195.20.225.12 "systemctl status noose-demo --no-pager | head -n 5"
-ssh root@195.20.225.12 "curl -s -o /dev/null -w 'demo health: HTTP %{http_code}\n' http://127.0.0.1:5001/health"
+ssh root@62.169.28.155 "systemctl status noose-demo --no-pager | head -n 5"
+ssh root@62.169.28.155 "curl -s -o /dev/null -w 'demo health: HTTP %{http_code}\n' http://127.0.0.1:5001/health"
 ```
 Erwartet: Dienst `active (running)` und `HTTP 200`.
 
@@ -130,9 +130,9 @@ das ist eine kleine Code-Änderung + Deploy. Bei Bedarf sagen.)*
 ## Nützliche Befehle
 
 ```powershell
-ssh root@195.20.225.12 "journalctl -u noose-demo -f"          # Live-Logs Demo
-ssh root@195.20.225.12 "systemctl restart noose-demo"          # Neustart Demo
-ssh root@195.20.225.12 "ls -lh /root/backups"                  # Backups ansehen
+ssh root@62.169.28.155 "journalctl -u noose-demo -f"          # Live-Logs Demo
+ssh root@62.169.28.155 "systemctl restart noose-demo"          # Neustart Demo
+ssh root@62.169.28.155 "ls -lh /root/backups"                  # Backups ansehen
 ```
 
 ## Demo wieder entfernen (falls je nötig)
