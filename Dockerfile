@@ -7,9 +7,14 @@ WORKDIR /src
 # anhand der .razor-Dateien, ob die Blazor-Framework-Skripte (_framework/blazor.web.js) dazukommen.
 # Ohne sie startet Blazor im Browser nicht (Navbar & Co. reagieren nicht).
 COPY NOOSE-Website/ NOOSE-Website/
-# BuildNumber.txt ist gitignored; die Version (Einstellungen -> Status) setzt deshalb die GitHub Action.
-ARG BUILD_VERSION=
-RUN dotnet publish NOOSE-Website/NOOSE-Website.csproj -c Release -o /app --nologo ${BUILD_VERSION:+-p:Version=$BUILD_VERSION}
+# Build-Nummer: BuildNumber.txt ist gitignored, deshalb gibt die GitHub Action sie vor (BUILD_NUMBER).
+# Das csproj-Target IncrementBuildNumber zaehlt die Datei beim Build um 1 hoch und setzt Version selbst
+# (ein -p:Version von aussen wird dabei ueberschrieben) -> N-1 hineinschreiben, heraus kommt 1.0.N.
+# Die Nummer landet unter Einstellungen -> Status und stempelt den neuesten Changelog-Eintrag.
+ARG BUILD_NUMBER=
+RUN if [ -n "$BUILD_NUMBER" ]; then echo $((BUILD_NUMBER - 1)) > NOOSE-Website/BuildNumber.txt; fi \
+ && dotnet publish NOOSE-Website/NOOSE-Website.csproj -c Release -o /app --nologo \
+ && if [ -n "$BUILD_NUMBER" ]; then grep -aq "1\.0\.$BUILD_NUMBER" /app/NOOSE-Website.dll || { echo "Version 1.0.$BUILD_NUMBER fehlt in der DLL"; exit 1; }; fi
 
 # Pflicht-Assets im Artefakt pruefen: Blazor-Skript und die selbst gehosteten Quill-/Tabellen-Assets
 # (sonst fehlt im Editor der Tabellen-Button bzw. die Lese-Ansicht bricht).
