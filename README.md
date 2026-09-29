@@ -474,7 +474,7 @@ Deploy aus **64-bit Windows PowerShell** (sonst OpenSSH WOW64-Redirect):
 .\scripts\deploy.ps1 -NoPause       # ohne Pause (CI/Terminal)
 ```
 
-Ziel: `root@195.20.225.12`, systemd-Service `noose`, App-Dir `/var/www/noose`. Publish wird mit `tar` gepackt (nie `Compress-Archive`), per `scp` hochgeladen, Service getauscht, `/health` geprüft.
+Ziel: `root@62.169.28.155`, systemd-Service `noose`, App-Dir `/var/www/noose`. Publish wird mit `tar` gepackt (nie `Compress-Archive`), per `scp` hochgeladen, Service getauscht, `/health` geprüft.
 
 **Prod-Gotchas**
 - **`App_Data` beim Deploy nie löschen** - enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `deploy.ps1` schließt `App_Data` explizit aus.

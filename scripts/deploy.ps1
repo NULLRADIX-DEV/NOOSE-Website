@@ -15,7 +15,7 @@
 
 .EXAMPLE
     .\deploy.ps1
-        Standard-Deploy auf root@195.20.225.12.
+        Standard-Deploy auf root@62.169.28.155.
 
 .EXAMPLE
     .\deploy.ps1 -SkipPublish
@@ -37,7 +37,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Server  = "root@195.20.225.12",
+    [string]$Server  = "root@62.169.28.155",
     [string]$AppDir  = "/var/www/noose",
     [string]$Service = "noose",
     [switch]$SkipPublish,

@@ -68,7 +68,7 @@ cd ..
 # 'dotnet ef database update' ist i.d.R. UNNÖTIG — Migrationen werden beim App-Start
 # automatisch via db.Database.MigrateAsync() angewendet (Program.cs).
 
-# Deploy nach Produktion (root@195.20.225.12, systemd-Service 'noose', /var/www/noose)
+# Deploy nach Produktion (root@62.169.28.155, systemd-Service 'noose', /var/www/noose)
 .\scripts\deploy.ps1                # publish → tar → scp → service-swap (behält App_Data) → /health-check
 .\scripts\deploy.ps1 -SkipPublish   # vorhandenen ./scripts/publish-Ordner wiederverwenden
 .\scripts\deploy.ps1 -NoPause       # ohne "Enter zum Schließen" (CI/Terminal)

@@ -32,7 +32,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$Server        = "root@195.20.225.12",
+    [string]$Server        = "root@62.169.28.155",
     [string]$Database      = "noose",
     [string]$RemoteDir     = "/root/backups",
     [string]$LocalDir      = (Join-Path $env:USERPROFILE "NOOSE-Backups"),
