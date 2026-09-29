@@ -28,11 +28,15 @@ dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj --filter "FullyQualif
 # Coverage (no coverlet — it cannot instrument .NET 10):
 dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj --collect "Code Coverage" --settings docs/coverage.runsettings
 
-# Deploy (64-bit PowerShell; publish -> tar -> scp -> service swap -> /health)
-.\scripts\deploy.ps1                # -SkipPublish reuses ./scripts/publish, -NoPause for terminals
+# Deploy nach Produktion (root@62.169.28.155, Docker-Container 'noose', /opt/noose)
+# Image baut GitHub Actions (ghcr.io/nullradix-dev/noose-website:<sha>) — Action "Container-Image" für den Commit vorher abwarten
+.\scripts\deploy.ps1                # Prod: aktueller origin/master → compose.yml hochladen → Image ziehen → Container neu → /health-Check
+.\scripts\deploy.ps1 -Target demo   # Demo-Instanz (noose-demo)
+.\scripts\deploy.ps1 -Tag <sha>     # bestimmter Commit / Rollback (kurze SHA geht)
+.\scripts\deploy.ps1 -NoPause       # ohne "Enter zum Schließen" (CI/Terminal)
 ```
 
-There is **no CI** — build + tests are the only gate.
+CI only builds the container image (`.github/workflows/image.yml`: PR = build check, master = push to GHCR); tests do not run in CI — local build + tests are the gate.
 
 ### EF migrations (manifest lives in `scripts/`)
 

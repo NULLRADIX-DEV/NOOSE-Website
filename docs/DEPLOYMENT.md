@@ -1,38 +1,49 @@
 # Deployment — NOOSE-Website
 
-Diese Anleitung beschreibt, wie die NOOSE-Website auf den Produktiv-Server ausgerollt wird,
+Diese Anleitung beschreibt, wie die NOOSE-Website als Container auf den Produktiv-Server ausgerollt wird,
 wie der Server aufgebaut ist und wie man typische Probleme löst.
 
 ---
 
 ## 1. Überblick / Architektur
 
+Seit 30.09.2026 laufen NOOSE, die Demo und die Datenbank als **Docker-Container** (Compose) auf dem Server.
+nginx bleibt als Reverse-Proxy auf dem Host.
+
 ```
-Browser ──HTTPS──> nginx (Port 443, TLS via Let's Encrypt)
+Browser ──HTTPS──> nginx (Host, Port 443, TLS via Let's Encrypt)
                      │  Reverse-Proxy, leitet WebSockets (Blazor/SignalR) durch
                      ▼
-                   Kestrel (127.0.0.1:5000)  ← systemd-Dienst "noose", User www-data
+                   Container "noose" (Kestrel, 127.0.0.1:5000), User www-data
                      │
                      ▼
-                   MariaDB (127.0.0.1:3306, DB "noose")  ← lokal auf demselben Server
+                   Container "noose-db" (MariaDB 10.11, 127.0.0.1:3306, DB "noose")
 ```
 
 | Was | Wert |
 |-----|------|
 | Server (SSH) | `root@62.169.28.155` (Ubuntu 24.04) |
 | Domain | `noose.info` (+ `www`) → A-Record auf die Server-IP |
-| App-Verzeichnis | `/var/www/noose` |
-| systemd-Dienst | `noose` |
-| Secrets/Env | `/etc/noose/noose.env` (chmod 600, nur root) |
+| Container-Image | `ghcr.io/nullradix-dev/noose-website:<commit-sha>` (+ `latest`), gebaut von GitHub Actions, Paket **privat** |
+| Server-Verzeichnis | `/opt/noose/` (`compose.yml`, `.env`, `backup.sh`, `db/`, `data/`) |
+| Container | `noose` (Prod, Port 5000), `noose-demo` (Demo, Port 5001), `noose-db` (MariaDB, Port 3306) — alle `network_mode: host`, `restart: unless-stopped` |
+| Secrets/Env | `/etc/noose/noose.env` (chmod 600, nur root) — unverändert gegenüber dem Betrieb ohne Container |
 | Zeitzone | `Europe/Berlin` (via `TZ` in `/etc/noose/noose.env`) — **zwingend**, sonst alle Zeiten 2 h zu früh |
-| Datenbank | lokale **MariaDB**, DB `noose`, User `noose@localhost` / `noose@127.0.0.1` |
+| Datenbank | **MariaDB 10.11** im Container `noose-db` (Datenverzeichnis `/opt/noose/db`), DB `noose` (Demo: `noose_demo`), Connection-String weiterhin `Server=127.0.0.1` |
 | nginx-Site | `/etc/nginx/sites-available/noose` |
 | TLS | Let's Encrypt (certbot, erneuert sich automatisch) |
-| Uploads/Schlüssel | `/var/www/noose/App_Data` (**bei Updates niemals löschen!**) |
+| Uploads/Schlüssel | `App_Data` liegt **nicht im Image**, sondern als Volume unter `/opt/noose/data/prod` (**niemals löschen!**) |
+| Server-Dashboard | 1Panel (nur über VPN erreichbar) |
+
+Docker auf dem Server: Docker CE + Compose-Plugin aus dem offiziellen Docker-Repo. `/etc/docker/daemon.json`
+setzt `"ip": "127.0.0.1"` (veröffentlichte Ports nur auf Loopback, weil Docker die ufw umgeht), Log-Driver
+`local` (20 MB × 5) und `live-restore`. Firewall (ufw): nur 22/80/443 öffentlich.
+
+Speicherlimits: `noose-db` 768 MB, `noose` 1 GB, `noose-demo` 512 MB.
 
 Wichtige App-Mechanik (siehe `Program.cs` / `Data/DatabaseConnectionResolver.cs`):
 - **Verbindungs-Auswahl:** Erst `ConnectionStrings:ProductionConnection`, sonst Fallback auf
-  `DefaultConnection`. Auf dem Server zeigt `ProductionConnection` auf die lokale MariaDB.
+  `DefaultConnection`. Auf dem Server zeigt `ProductionConnection` auf die MariaDB im Container (`127.0.0.1`).
 - **Auto-Migration beim Start:** ausstehende EF-Migrationen werden automatisch angewendet —
   kein manuelles `dotnet ef database update` gegen Produktiv nötig.
 - **Reverse-Proxy:** `UseForwardedHeaders()` + persistente Data-Protection-Schlüssel unter
@@ -42,29 +53,45 @@ Wichtige App-Mechanik (siehe `Program.cs` / `Data/DatabaseConnectionResolver.cs`
 
 ## 2. Routine-Deploy (der einfache Weg)
 
-Nach Code-Änderungen einfach aus dem Repo-Root (das Skript liegt in `scripts\`) ausführen:
+Ablauf: Änderung nach `master` mergen (der Branch ist geschützt → per PR). Die GitHub Action
+**„Container-Image“** (`.github/workflows/image.yml`) baut daraus das Image und legt es in GHCR ab
+(bei einem PR nur Build zur Prüfung des Dockerfiles, Push erst auf `master`). **Warten, bis die Action
+für den Commit fertig ist**, dann aus dem Repo-Root (das Skript liegt in `scripts\`):
 
 ```powershell
-.\scripts\deploy.ps1
+.\scripts\deploy.ps1                 # Prod, aktueller Commit von origin/master
+.\scripts\deploy.ps1 -Target demo    # Demo-Instanz (noose-demo)
+.\scripts\deploy.ps1 -Tag 323a5e7    # bestimmter Commit, z. B. Rollback (kurze SHA geht)
 ```
 
-Das Skript macht alles: `dotnet publish` → mit **tar** packen → per `scp` hochladen → auf dem
-Server Dienst stoppen, Dateien tauschen (**`App_Data` bleibt erhalten**), Rechte setzen, Dienst
-starten, Health-Check. Am Ende im Browser **Strg+F5** (Asset-Cache leeren).
+Das Skript baut nichts lokal und packt nichts mehr. Es macht: Tag bestimmen → **Prod-Schutz** (die Prod-Env
+darf kein `Demo__AutoSetup=true` enthalten) → `deploy/compose.yml` nach `/opt/noose/compose.yml` hochladen →
+Image ziehen → Tag in `/opt/noose/.env` setzen (`NOOSE_TAG` bzw. `DEMO_TAG`) →
+`docker compose up -d --no-deps <dienst>` (der alte Container stoppt vorher, es laufen nie zwei Instanzen) →
+Health-Check auf `http://127.0.0.1:5000/health` (Demo: `:5001`). Am Ende im Browser **Strg+F5** (Asset-Cache leeren).
 
-> **Hinweis:** Ein Deploy stoppt den Dienst hart — alle eingeloggten Nutzer sehen kurz das
+Weitere Parameter: `-Server root@andere.ip`, `-NoPause`.
+
+- **Rollback:** dasselbe Skript mit `-Tag <älterer-commit>`.
+- **Datenbank:** `deploy.ps1` startet den Dienst `db` nie neu. Änderungen an dessen Definition in
+  `compose.yml` bewusst auf dem Server anwenden: `cd /opt/noose && docker compose up -d db`.
+- **Migrationen** laufen wie bisher beim App-Start automatisch.
+
+> **Hinweis:** Ein Deploy ersetzt den Container — alle eingeloggten Nutzer sehen kurz das
 > Reconnect-Modal, `/_blazor/negotiate` liefert währenddessen **502**. Das ist erwartet und dauert
 > ~10–25 s (bei migrationsschweren Releases länger). Clientseitige `ERR_NAME_NOT_RESOLVED`- bzw.
 > `ERR_NETWORK_CHANGED`-Fehler kommen dagegen **nicht** vom Server (siehe Abschnitt 7).
 
-Optionen:
-```powershell
-.\scripts\deploy.ps1 -SkipPublish     # vorhandenen .\scripts\publish-Ordner nutzen
-.\scripts\deploy.ps1 -Server root@andere.ip -Service noose -AppDir /var/www/noose
+### Einmalig: Server bei GHCR anmelden
+
+Die Images sind privat. Der Server braucht einmalig:
+
+```bash
+docker login ghcr.io -u <github-user>
 ```
 
-> **Wichtig:** Immer `tar` verwenden (macht das Skript). **Nie** `Compress-Archive` — das hat
-> beim ersten Deploy Dateien als 0 Bytes gepackt (kaputtes MudBlazor-CSS / blockierte Skripte).
+als Passwort einen **Classic-PAT** mit Scope nur `read:packages` (GHCR nimmt keine Fine-grained-Tokens).
+Läuft der PAT ab, scheitert der Deploy mit „unauthorized“ — neuen PAT erzeugen und `docker login` wiederholen.
 
 ### SSH-Key (passwortloser Deploy, empfohlen)
 
@@ -85,98 +112,134 @@ Danach läuft `.\scripts\deploy.ps1` komplett ohne Passwort-Eingabe.
 
 ## 3. Manueller Deploy (Fallback, falls das Skript mal nicht geht)
 
-**Auf dem PC** (Repo-Ordner):
-```powershell
-dotnet publish .\NOOSE-Website\NOOSE-Website.csproj -c Release -o .\scripts\publish
-tar -czf noose-publish.tgz -C .\scripts\publish .
-scp .\noose-publish.tgz root@62.169.28.155:/tmp/
-```
-
-**Auf dem Server:**
+Auf dem Server (das Image muss in GHCR vorhanden sein, also Action abgewartet):
 ```bash
-systemctl stop noose
-# Alten Stand entfernen, aber App_Data (Uploads + Schlüssel) behalten:
-find /var/www/noose -mindepth 1 -maxdepth 1 ! -name App_Data -exec rm -rf {} +
-tar -xzf /tmp/noose-publish.tgz -C /var/www/noose
-chown -R www-data:www-data /var/www/noose
-systemctl start noose
-rm -f /tmp/noose-publish.tgz
-journalctl -u noose -f       # Logs prüfen (Strg+C beendet)
+cd /opt/noose
+# Tag in .env setzen (NOOSE_TAG=<commit-sha>; für die Demo DEMO_TAG)
+nano .env
+docker compose pull noose
+docker compose up -d --no-deps noose
+docker logs -f noose         # Logs prüfen (Strg+C beendet)
+curl -s http://127.0.0.1:5000/health
 ```
+`/opt/noose/compose.yml` ist die Kopie von `deploy/compose.yml`.
 
 ---
 
 ## 4. Betrieb / nützliche Befehle (auf dem Server)
 
 ```bash
-journalctl -u noose -f                          # Live-Logs
-systemctl status noose                          # Status
-systemctl restart noose                         # Neustart
+cd /opt/noose && docker compose ps              # Status aller Container
+docker logs -f noose                            # Live-Logs Prod
+docker logs -f noose-demo                       # Live-Logs Demo
+docker logs noose-db                            # Logs der Datenbank
+cd /opt/noose && docker compose restart noose   # Neustart (nur ohne Env-Änderung)
+# Nach Änderung an /etc/noose/noose.env: docker compose up -d --force-recreate --no-deps noose (Demo: noose-demo)
 curl -s http://127.0.0.1:5000/health            # erwartet: Healthy
 
-# Datenbank ansehen
-mysql noose -e "SHOW TABLES;"
+# Datenbank-Konsole (root per Socket, kein Passwort nötig)
+docker exec -it noose-db mariadb noose
+#   darin z. B.: SHOW TABLES;
 
 # TLS-Zertifikat: certbot erneuert automatisch; Test:
 certbot renew --dry-run
 ```
+Logs und Container lassen sich auch im Server-Dashboard 1Panel (nur über VPN erreichbar) → Containers ansehen.
+
+> Die alten systemd-Dienste `noose`/`noose-demo`, die Host-MariaDB sowie `/var/www/noose` und
+> `/var/www/noose-demo` sind gestoppt bzw. deaktiviert und nur noch als Rollback vorhanden (werden später
+> entfernt). `journalctl -u noose` zeigt daher nur noch alte Logs.
 
 ### Backups der Datenbank
 
-**Ein-Befehl-Backup vom PC** (frischer Dump auf dem Server **+** Kopie auf den PC, aus dem Repo-Root (das Skript liegt in `scripts\`)):
+**Automatisches Server-Backup (Cron):** `/opt/noose/backup.sh` (Kopie von `deploy/backup.sh`, `deploy.ps1` lädt sie bei jedem Deploy hoch) läuft per
+root-Cron täglich um 04:15 Uhr:
+```
+15 4 * * * /opt/noose/backup.sh >> /var/log/noose-backup.log 2>&1
+```
+Es sichert beide Datenbanken aus dem Container `noose-db` nach `/root/backups/noose-JJJJ-MM-TT.sql.gz` und
+`/root/backups/noose_demo-JJJJ-MM-TT.sql.gz`, prüft jeden Dump auf Vollständigkeit (unvollständige werden
+verworfen), rotiert nur diese täglichen Dateien (`<db>-JJJJ-MM-TT.sql.gz`, 30 Tage) und schreibt das Log nach `/var/log/noose-backup.log`.
+
+> **Nicht im Server-Backup:** die Uploads unter `App_Data` (`/opt/noose/data/prod`), nur die Datenbanken.
+
+**Manuelles Backup vom PC** (Dump auf dem Server **+** Kopie auf den PC, aus dem Repo-Root (das Skript liegt in `scripts\`)):
 ```powershell
 .\scripts\backup-db.ps1
 # Server-Kopie:  /root/backups/noose-<datum>_<zeit>.sql.gz
 # PC-Kopie:      %USERPROFILE%\NOOSE-Backups\noose-<datum>_<zeit>.sql.gz
 ```
-Das Skript erzeugt den Dump per SSH (`--single-transaction`, inkl. Routinen/Events), prüft die
-Integrität, lädt ihn per `scp` herunter und vergleicht die Größen. Parameter (Defaults):
-`-Server root@62.169.28.155`, `-Database noose`, `-RemoteDir /root/backups`,
-`-LocalDir %USERPROFILE%\NOOSE-Backups`, `-RetentionDays 30`, `-NoPause`. Serverseitig werden Dumps
-älter als `-RetentionDays` aufgeräumt; die PC-Kopien (Offsite) bleiben **alle** erhalten.
-Setzt einen hinterlegten SSH-Key voraus (siehe Abschnitt SSH-Key).
-
-**Täglicher Server-Cron** (bereits in der root-crontab eingerichtet, 04:15 Uhr, 30 Tage Aufbewahrung):
-```
-15 4 * * * mkdir -p /root/backups && mysqldump --single-transaction --quick --routines --events noose | gzip > /root/backups/noose-$(date +\%F).sql.gz && find /root/backups -name "noose-*.sql.gz" -type f -mtime +30 -delete
-```
+Parameter (Defaults): `-Server root@62.169.28.155`, `-Database noose`, `-RemoteDir /root/backups`,
+`-LocalDir %USERPROFILE%\NOOSE-Backups`, `-RetentionDays 30`, `-NoPause`. `-RetentionDays` löscht auf dem Server nur
+manuelle Dumps (`<db>-<datum>_<zeit>.sql.gz`); die täglichen Cron-Dateien rotiert `backup.sh`. Die PC-Kopien (Offsite) bleiben
+**alle** erhalten. Setzt einen hinterlegten SSH-Key voraus (siehe Abschnitt SSH-Key).
 
 **Restore** einer Kopie (auf dem Server):
 ```bash
-gunzip < /root/backups/noose-2026-07-13.sql.gz | mysql noose
+gunzip < /root/backups/noose-2026-07-13.sql.gz | docker exec -i noose-db mariadb noose
 ```
 
 ---
 
 ## 5. Einmalige Server-Einrichtung (Referenz / Disaster Recovery)
 
-Falls der Server neu aufgesetzt werden muss — die komplette Erstinstallation in Kurzform.
+Falls der Server neu aufgesetzt werden muss — die Erstinstallation in Kurzform.
 
 ### 5.1 Pakete
 ```bash
 apt update && apt upgrade -y
-# .NET 10 Runtime
-apt install -y aspnetcore-runtime-10.0 unzip
-# Datenbank
-apt install -y mariadb-server
-systemctl enable --now mariadb
+# Docker CE + Compose-Plugin aus dem offiziellen Docker-Repo (docs.docker.com/engine/install/ubuntu)
 # Webserver + TLS
 apt install -y nginx certbot python3-certbot-nginx
 ```
+Danach `/etc/docker/daemon.json` anlegen (siehe Abschnitt 1: `"ip": "127.0.0.1"`, Log-Driver `local`,
+`live-restore`) und einmalig `docker login ghcr.io` ausführen (siehe Abschnitt 2).
 
-### 5.2 Datenbank anlegen
-```bash
-mysql
-```
-```sql
-CREATE DATABASE noose CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'noose'@'localhost' IDENTIFIED BY 'DEIN_DB_PASSWORT';
-CREATE USER 'noose'@'127.0.0.1' IDENTIFIED BY 'DEIN_DB_PASSWORT';
-GRANT ALL PRIVILEGES ON noose.* TO 'noose'@'localhost';
-GRANT ALL PRIVILEGES ON noose.* TO 'noose'@'127.0.0.1';
-FLUSH PRIVILEGES;
-EXIT;
-```
+### 5.2 Verzeichnisse, Env-Dateien, Datenbank
+Reihenfolge (alles als root auf dem Server):
+1. Docker installieren und `/etc/docker/daemon.json` anlegen (5.1), dann `docker login ghcr.io -u <github-user>` (Abschnitt 2).
+2. Verzeichnisse anlegen:
+   ```bash
+   mkdir -p /opt/noose/db /opt/noose/data/prod /opt/noose/data/demo
+   chown 999:999 /opt/noose/db && chmod 700 /opt/noose/db          # MariaDB-Container (UID 999)
+   chown 33:33 /opt/noose/data/prod /opt/noose/data/demo           # www-data, App_Data
+   ```
+3. Env-Dateien `/etc/noose/noose.env` (siehe 5.3) und `/etc/noose-demo/noose-demo.env` anlegen, je `chmod 600`.
+4. `/opt/noose/.env` schreiben. Beide Tags sind Pflicht (`compose.yml` verlangt sie auch für `db`); `<sha>` = Commit,
+   dessen Image die Action „Container-Image“ gebaut hat:
+   ```bash
+   printf 'NOOSE_TAG=<sha>\nDEMO_TAG=<sha>\n' > /opt/noose/.env
+   ```
+5. `deploy/compose.yml` und `deploy/backup.sh` nach `/opt/noose/` kopieren, `chmod 700 /opt/noose/backup.sh`
+   (bei späteren Deploys lädt `deploy.ps1` beide Dateien selbst hoch).
+6. Datenbank, entweder
+   - **Bestehendes MariaDB-Datenverzeichnis übernehmen** (kalt, MariaDB gestoppt): Inhalt nach `/opt/noose/db/`
+     kopieren, `chown -R 999:999 /opt/noose/db`; oder
+   - **Leeres Datenverzeichnis** initialisieren: einmalig MariaDB gegen das Volume starten, ~30 s warten, beenden:
+     ```bash
+     docker run -d --name noose-db-init -e MARIADB_RANDOM_ROOT_PASSWORD=1 -v /opt/noose/db:/var/lib/mysql mariadb:10.11
+     docker rm -f noose-db-init
+     cd /opt/noose && docker compose up -d db
+     ```
+     Datenbanken und User anlegen (`docker exec -it noose-db mariadb`, root per Socket):
+     ```sql
+     CREATE DATABASE noose CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+     CREATE DATABASE noose_demo CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+     CREATE USER 'noose'@'localhost' IDENTIFIED BY 'DEIN_DB_PASSWORT';
+     CREATE USER 'noose'@'127.0.0.1' IDENTIFIED BY 'DEIN_DB_PASSWORT';
+     GRANT ALL PRIVILEGES ON noose.* TO 'noose'@'localhost', 'noose'@'127.0.0.1';
+     GRANT ALL PRIVILEGES ON noose_demo.* TO 'noose'@'localhost', 'noose'@'127.0.0.1';
+     FLUSH PRIVILEGES;
+     EXIT;
+     ```
+     (Passwort = das aus dem Connection-String.) Dumps zurückspielen:
+     ```bash
+     gunzip < noose-<datum>.sql.gz      | docker exec -i noose-db mariadb noose
+     gunzip < noose_demo-<datum>.sql.gz | docker exec -i noose-db mariadb noose_demo
+     ```
+7. `cd /opt/noose && docker compose up -d db`, dann vom PC `.\scripts\deploy.ps1` (Prod) und
+   `.\scripts\deploy.ps1 -Target demo`.
+8. nginx + HTTPS (5.4, 5.5) und Backup-Cron (Abschnitt 4): `15 4 * * * /opt/noose/backup.sh >> /var/log/noose-backup.log 2>&1`.
 
 ### 5.3 Secrets / Env-Datei
 `/etc/noose/noose.env` (danach `chmod 600` + `chown root:root`):
@@ -185,7 +248,7 @@ ASPNETCORE_ENVIRONMENT=Production
 ASPNETCORE_URLS=http://127.0.0.1:5000
 # Zeitzone des App-Prozesses. ZWINGEND: In Blazor Server nutzt .ToLocalTime() die
 # Server-Zeitzone. Ohne dies läuft der Server in UTC und alle Zeiten sind 2 h zu früh
-# (über Mitternacht sogar der falsche Tag). Nach Änderung: systemctl restart noose.
+# (über Mitternacht sogar der falsche Tag). Nach Änderung: Container neu erstellen (`restart` liest die Env-Datei nicht neu): `cd /opt/noose && docker compose up -d --force-recreate --no-deps noose`.
 TZ=Europe/Berlin
 ConnectionStrings__ProductionConnection=Server=127.0.0.1;Port=3306;Database=noose;User ID=noose;Password=DEIN_DB_PASSWORT;SslMode=None;
 Authentication__Discord__ClientId=DEINE_DISCORD_CLIENT_ID
@@ -198,32 +261,7 @@ Llm__DeepSeek__ApiKey=DEIN_DEEPSEEK_SCHLUESSEL
 Ki__OwnerDiscordId=DEINE_DISCORD_ID
 ```
 
-### 5.4 systemd-Dienst
-`/etc/systemd/system/noose.service`:
-```ini
-[Unit]
-Description=NOOSE Website (Blazor Server)
-After=network.target
-
-[Service]
-WorkingDirectory=/var/www/noose
-ExecStart=/usr/bin/dotnet /var/www/noose/NOOSE-Website.dll
-Restart=always
-RestartSec=10
-KillSignal=SIGINT
-SyslogIdentifier=noose
-User=www-data
-EnvironmentFile=/etc/noose/noose.env
-
-[Install]
-WantedBy=multi-user.target
-```
-```bash
-systemctl daemon-reload
-systemctl enable --now noose
-```
-
-### 5.5 nginx
+### 5.4 nginx
 `/etc/nginx/sites-available/noose`:
 ```nginx
 # WebSocket-Upgrade für Blazor Server (SignalR) — zwingend
@@ -258,20 +296,20 @@ ufw allow 'Nginx Full'
 ufw --force enable
 ```
 
-### 5.6 HTTPS (nachdem DNS auf den Server zeigt)
+### 5.5 HTTPS (nachdem DNS auf den Server zeigt)
 ```bash
 certbot --nginx -d noose.info -d www.noose.info
 ```
 certbot ergänzt den 443-Block + http→https-Weiterleitung automatisch und erneuert sich selbst.
 
-### 5.7 DNS (im STRATO-Kundenbereich)
+### 5.6 DNS (im STRATO-Kundenbereich)
 | Typ | Host | Wert |
 |-----|------|------|
 | A | `@` | `62.169.28.155` |
 | A | `www` | `62.169.28.155` |
 | AAAA | `@` / `www` | löschen **oder** auf die Server-IPv6 setzen (sonst muss nginx auch auf `[::]:80/443` lauschen) |
 
-### 5.8 Discord-Login
+### 5.7 Discord-Login
 Im Discord Developer Portal → OAuth2 → Redirects eintragen:
 ```
 https://noose.info/signin-discord
@@ -279,58 +317,15 @@ https://noose.info/signin-discord
 
 ---
 
-## 6. Optional: Deploy per GitHub Action
+## 6. Image-Build per GitHub Action
 
-Wer lieber bei jedem Push automatisch deployen will, legt `.github/workflows/deploy.yml` an
-und hinterlegt in den Repo-Secrets `DEPLOY_SSH_KEY` (privater SSH-Schlüssel; passender
-öffentlicher Schlüssel muss in `~/.ssh/authorized_keys` auf dem Server liegen).
+Das Container-Image baut `.github/workflows/image.yml` („Container-Image“): bei einem PR nur Build (prüft das
+Dockerfile), bei einem Push auf `master` Build **und** Push nach GHCR
+(`ghcr.io/nullradix-dev/noose-website:<volle-commit-sha>` plus `latest`). Das `Dockerfile` baut mit `sdk:10.0`
+und läuft auf `aspnet:10.0` (Ubuntu 24.04) als `www-data`; die Quill-Assets werden im Build geprüft.
 
-```yaml
-name: Deploy
-on:
-  workflow_dispatch:          # manuell auslösbar
-  push:
-    branches: [ master ]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Publish
-        run: dotnet publish NOOSE-Website/NOOSE-Website.csproj -c Release -o publish
-
-      - name: Pack (tar)
-        run: tar -czf noose-publish.tgz -C publish .
-
-      - name: SSH vorbereiten
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H 62.169.28.155 >> ~/.ssh/known_hosts
-
-      - name: Upload
-        run: scp -i ~/.ssh/id_ed25519 noose-publish.tgz root@62.169.28.155:/tmp/
-
-      - name: Deploy
-        run: |
-          ssh -i ~/.ssh/id_ed25519 root@62.169.28.155 \
-            "systemctl stop noose \
-             && find /var/www/noose -mindepth 1 -maxdepth 1 ! -name App_Data -exec rm -rf {} + \
-             && tar -xzf /tmp/noose-publish.tgz -C /var/www/noose \
-             && chown -R www-data:www-data /var/www/noose \
-             && systemctl start noose \
-             && rm -f /tmp/noose-publish.tgz"
-```
-
-> Voraussetzung: Der GitHub-Runner muss den Server per SSH erreichen (öffentliche IP, Port 22).
-> `deploy.ps1` braucht das alles nicht — es ist der schnellste Weg ohne zusätzliche Einrichtung.
+Die Action deployt **nicht** auf den Server — das bleibt ein bewusster Schritt mit `.\scripts\deploy.ps1`
+(Abschnitt 2).
 
 ---
 
@@ -338,15 +333,15 @@ jobs:
 
 | Symptom | Ursache & Lösung |
 |---------|------------------|
-| **`Connect Timeout expired`** beim Start, Dienst im Neustart-Loop | DB nicht erreichbar. Die gemanagte STRATO-DB (`*.webspace-host.com`) ist vom V-Server aus **nicht** erreichbar → lokale MariaDB nutzen (Abschnitt 5.2) und `ProductionConnection` auf `127.0.0.1` zeigen lassen. |
-| **`Kein Connection-String konfiguriert`** | Weder `ProductionConnection` noch `DefaultConnection` gesetzt/erreichbar → `/etc/noose/noose.env` prüfen, Dienst neu starten. |
-| **Seite lädt, aber ohne CSS/Styling** | Assets als 0 Bytes ausgeliefert — kaputte ZIP von `Compress-Archive`. Mit **`tar`** neu deployen (`deploy.ps1`). Check: `curl -s -o /dev/null -w "%{http_code} %{size_download}\n" http://127.0.0.1:5000/_content/MudBlazor/MudBlazor.min.css` muss > 0 Bytes liefern. Browser mit Strg+F5 neu laden. |
-| **`Failed to find a valid digest in the 'integrity' attribute`** (Konsole) | Gleiche Ursache: betroffene JS-/CSS-Datei kam mit 0 Bytes an → mit `tar` neu deployen. |
+| **`Connect Timeout expired`** beim Start, Container im Neustart-Loop | DB nicht erreichbar. Die gemanagte STRATO-DB (`*.webspace-host.com`) ist vom V-Server aus **nicht** erreichbar → MariaDB-Container nutzen (Abschnitt 5.2) und `ProductionConnection` auf `127.0.0.1` zeigen lassen. Läuft `noose-db`? → `cd /opt/noose && docker compose ps`. |
+| **`Kein Connection-String konfiguriert`** | Weder `ProductionConnection` noch `DefaultConnection` gesetzt/erreichbar → `/etc/noose/noose.env` prüfen, Container neu erstellen (`restart` liest die Env-Datei nicht neu): `cd /opt/noose && docker compose up -d --force-recreate --no-deps noose`. |
 | **certbot scheitert mit IPv6-Adresse / `204`** | Alter `AAAA`-Eintrag zeigt auf STRATO-Parkserver. AAAA löschen (oder auf Server-IPv6 setzen), bis `getent ahosts noose.info` nur die `62.169.28.155` zeigt, dann certbot erneut. |
 | **`Failed to determine the https port for redirect`** (Log) | Harmlos. Tritt nur bei direkten http-Anfragen an Kestrel auf; über nginx+TLS verschwindet die Warnung. |
 | **Login: „invalid redirect_uri"** | Im Discord Developer Portal `https://noose.info/signin-discord` als Redirect eintragen. |
-| **Zeiten 2 h zu früh / falscher Tag** | Server läuft in UTC. In Blazor Server nutzt `.ToLocalTime()` die Server-Zeitzone. `TZ=Europe/Berlin` in `/etc/noose/noose.env` ergänzen, dann `systemctl restart noose` (Neustart nötig — `TimeZoneInfo.Local` ist pro Prozess gecacht). |
-| **502 Bad Gateway** | App läuft nicht → `systemctl status noose` + `journalctl -u noose -e`. |
-| **Nutzer nach jedem Deploy ausgeloggt** | Data-Protection-Schlüssel weg → `App_Data` darf beim Deploy **nicht** gelöscht werden (das Skript behält es). |
-| **Konsole: `ERR_NAME_NOT_RESOLVED` / `ERR_NETWORK_CHANGED`, WebSocket schließt mit `1006`, danach automatische Erholung** | Praktisch immer **clientseitig**: Der Browser konnte `noose.info` nicht auflösen bzw. hat abgebrochen, weil sich die Netzwerkschnittstelle geändert hat (WLAN-Wechsel, VPN, Adapter-Reset, Standby). Die Anfrage hat den Server nie erreicht — nginx und Kestrel können diese Codes gar nicht erzeugen. Gegenprobe Server: `systemctl status noose` (Laufzeit älter als der Vorfall = App war nie weg), `journalctl -u noose --since "<HH:MM>"` (kein Neustart) und `grep "<HH:MM>" /var/log/nginx/access.log` (keine Zeilen = kam nie an). Gegenprobe Client: `nslookup noose.info 1.1.1.1` aus einem anderen Netz (Handy-Hotspot). Bei echtem App-Ausfall käme **502**, bei totem Host `ERR_CONNECTION_REFUSED`/`ERR_CONNECTION_TIMED_OUT` — nie `ERR_NAME_NOT_RESOLVED`. Das Reconnect-Modal fängt das ab; nichts zu tun. |
-| **`ERR_CONNECTION_RESET` auf einzelne GUID-benannte Requests** (Uploads/Anhänge aus `App_Data/uploads`) | **Nur zusammen mit** dem Muster oben clientseitig (abgerissene Verbindung beim Netzwechsel). **Isoliert** — also ohne `ERR_NAME_NOT_RESOLVED` und bei stabiler WebSocket-Verbindung — serverseitig prüfen: `journalctl -u noose -e` auf Exceptions im Datei-Endpoint, `/var/log/nginx/error.log` auf `upstream prematurely closed connection`. |
+| **Zeiten 2 h zu früh / falscher Tag** | Server läuft in UTC. In Blazor Server nutzt `.ToLocalTime()` die Server-Zeitzone. `TZ=Europe/Berlin` in `/etc/noose/noose.env` ergänzen, dann Container neu erstellen: `cd /opt/noose && docker compose up -d --force-recreate --no-deps noose` (`restart` liest die Env-Datei nicht neu; Neustart nötig — `TimeZoneInfo.Local` ist pro Prozess gecacht). |
+| **502 Bad Gateway** | App läuft nicht → `cd /opt/noose && docker compose ps` + `docker logs --tail 100 noose`. |
+| **Deploy scheitert mit „unauthorized“** | GHCR-Anmeldung des Servers fehlt oder der PAT ist abgelaufen → neuen Classic-PAT (`read:packages`) erzeugen, `docker login ghcr.io -u <github-user>` wiederholen (Abschnitt 2). |
+| **Deploy: „Image nicht gefunden“** | Die GitHub Action „Container-Image“ für den Commit ist noch nicht fertig oder fehlgeschlagen → abwarten bzw. Action prüfen, dann erneut deployen. |
+| **Nutzer nach jedem Deploy ausgeloggt** | Data-Protection-Schlüssel weg → `App_Data` muss als Volume (`/opt/noose/data/prod`) eingebunden bleiben und darf **nicht** gelöscht werden. |
+| **Konsole: `ERR_NAME_NOT_RESOLVED` / `ERR_NETWORK_CHANGED`, WebSocket schließt mit `1006`, danach automatische Erholung** | Praktisch immer **clientseitig**: Der Browser konnte `noose.info` nicht auflösen bzw. hat abgebrochen, weil sich die Netzwerkschnittstelle geändert hat (WLAN-Wechsel, VPN, Adapter-Reset, Standby). Die Anfrage hat den Server nie erreicht — nginx und Kestrel können diese Codes gar nicht erzeugen. Gegenprobe Server: `docker compose ps` (Laufzeit des Containers älter als der Vorfall = App war nie weg), `docker logs --since <HH:MM> noose` (kein Neustart) und `grep "<HH:MM>" /var/log/nginx/access.log` (keine Zeilen = kam nie an). Gegenprobe Client: `nslookup noose.info 1.1.1.1` aus einem anderen Netz (Handy-Hotspot). Bei echtem App-Ausfall käme **502**, bei totem Host `ERR_CONNECTION_REFUSED`/`ERR_CONNECTION_TIMED_OUT` — nie `ERR_NAME_NOT_RESOLVED`. Das Reconnect-Modal fängt das ab; nichts zu tun. |
+| **`ERR_CONNECTION_RESET` auf einzelne GUID-benannte Requests** (Uploads/Anhänge aus `App_Data/uploads`) | **Nur zusammen mit** dem Muster oben clientseitig (abgerissene Verbindung beim Netzwechsel). **Isoliert** — also ohne `ERR_NAME_NOT_RESOLVED` und bei stabiler WebSocket-Verbindung — serverseitig prüfen: `docker logs --tail 200 noose` auf Exceptions im Datei-Endpoint, `/var/log/nginx/error.log` auf `upstream prematurely closed connection`. |

@@ -1,18 +1,18 @@
 # Demo-Instanz aufsetzen — `demo.noose.info`
 
 Zweite, **read-only** NOOSE-Instanz auf **demselben Server**, eigene DB, eigener Port, eigene Domain.
-Produktiv (`noose.info`) bleibt komplett unberührt. Vom **Main-PC** abarbeiten — alle Befehle in **PowerShell**, aus dem **Repo-Root** (das Skript liegt in `scripts\`).
+Produktiv (`noose.info`) bleibt komplett unberührt. Läuft als Container (Compose-Dienst `noose-demo`, siehe `deploy/compose.yml`). Vom **Main-PC** abarbeiten — alle Befehle in **PowerShell**, aus dem **Repo-Root** (das Skript liegt in `scripts\`).
 
 | | Produktiv | Demo |
 |--|-----------|------|
 | Domain | `noose.info` | `demo.noose.info` |
 | Port (Kestrel) | `5000` | `5001` |
 | DB | `noose` | `noose_demo` |
-| systemd-Dienst | `noose` | `noose-demo` |
-| App-Verzeichnis | `/var/www/noose` | `/var/www/noose-demo` |
+| Container | `noose` | `noose-demo` |
+| App_Data (Volume) | `/opt/noose/data/prod` | `/opt/noose/data/demo` |
 | Env-Datei | `/etc/noose/noose.env` | `/etc/noose-demo/noose-demo.env` |
 
-> Es ist **dasselbe Binary**. Unterschied nur: andere DB + anderer Port (Env) + andere Domain (nginx).
+> Es ist **dasselbe Image** (Tag `DEMO_TAG` statt `NOOSE_TAG`). Unterschied nur: andere DB + anderer Port (Env) + andere Domain (nginx). Beide Datenbanken liegen in derselben MariaDB (`noose-db`).
 > Der Demo-Modus selbst ist nur ein Flag in der jeweiligen DB — auf `noose_demo` isoliert, kann Produktiv nie treffen.
 
 ---
@@ -38,7 +38,7 @@ ssh root@62.169.28.155 "hostname"
   ssh-keygen -t ed25519
   ```
   Den Public Key (`type $env:USERPROFILE\.ssh\id_ed25519.pub`) auf den Server bringen — entweder
-  per STRATO-VNC-Konsole nach `~/.ssh/authorized_keys`, oder über einen Rechner, der schon Zugang hat.
+  per Contabo-VNC-Konsole nach `~/.ssh/authorized_keys`, oder über einen Rechner, der schon Zugang hat.
 
 ---
 
@@ -51,36 +51,25 @@ Muss `62.169.28.155` zurückgeben. Wenn nicht → DNS noch nicht propagiert, kur
 
 ---
 
-## Schritt 2 — Server vorbereiten (Backup + DB + Env + Dienst + nginx)
+## Schritt 2 — Server vorbereiten
 
-Aktuellen Branch ziehen (enthält `setup-demo.sh`), Skript hochladen und ausführen:
+Nichts mehr per Skript: Docker, `/opt/noose/compose.yml`, die MariaDB (Datenbank `noose_demo`), die Env-Datei
+`/etc/noose-demo/noose-demo.env` (u. a. `Demo__AutoSetup=true`) und die nginx-Site `demo.noose.info` sind Teil der
+bestehenden Server-Einrichtung. Das frühere Einrichtungs-Skript (`setup-demo`, systemd-Dienst, `/var/www/noose-demo`) gibt es nicht mehr.
 
-```powershell
-git pull
-scp setup-demo.sh root@62.169.28.155:/tmp/setup-demo.sh
-ssh root@62.169.28.155 "sed -i 's/\r$//' /tmp/setup-demo.sh && bash /tmp/setup-demo.sh"
-```
-
-Das Skript macht (idempotent, mehrfach ausführbar):
-1. **Backup** der Produktiv-DB → `/root/backups/noose-prod-<datum>.sql.gz`
-2. Demo-DB `noose_demo` + Rechte
-3. Env `/etc/noose-demo/noose-demo.env` — Secrets aus Prod übernommen, nur Port→5001 & DB→`noose_demo`
-4. App-Verzeichnis `/var/www/noose-demo`
-5. systemd-Dienst `noose-demo` (registriert, Start kommt mit dem Deploy)
-6. nginx-Site `demo.noose.info`
-
-> Produktiv-DB/-Dienst/-Env/-nginx werden **nicht** verändert — nur gelesen (Backup) + nginx neu geladen.
+> Produktiv-DB/-Container/-Env/-nginx werden durch die Demo **nicht** verändert.
 
 ---
 
 ## Schritt 3 — Demo-Instanz deployen
 
 ```powershell
-.\scripts\deploy.ps1 -AppDir /var/www/noose-demo -Service noose-demo
+.\scripts\deploy.ps1 -Target demo
 ```
 
-Publisht das Binary, lädt es nach `/var/www/noose-demo`, startet `noose-demo`. Beim Start migriert die App
-die leere `noose_demo` automatisch. (Für künftige Updates der **Produktiv**-Seite weiter einfach `.\scripts\deploy.ps1`.)
+Vorher muss die GitHub Action „Container-Image“ für den Commit fertig sein. Das Skript zieht das Image, setzt `DEMO_TAG`
+in `/opt/noose/.env`, startet `noose-demo` neu und prüft `/health`. Beim Start migriert die App
+`noose_demo` automatisch. (Für die **Produktiv**-Seite: `.\scripts\deploy.ps1`.)
 
 ---
 
@@ -98,49 +87,49 @@ ssh root@62.169.28.155 "certbot --nginx -d demo.noose.info --non-interactive --a
 ## Schritt 5 — Health-Check
 
 ```powershell
-ssh root@62.169.28.155 "systemctl status noose-demo --no-pager | head -n 5"
+ssh root@62.169.28.155 "cd /opt/noose && docker compose ps noose-demo"
 ssh root@62.169.28.155 "curl -s -o /dev/null -w 'demo health: HTTP %{http_code}\n' http://127.0.0.1:5001/health"
 ```
-Erwartet: Dienst `active (running)` und `HTTP 200`.
+Erwartet: Container `running` und `HTTP 200`.
 
 ---
 
-## Schritt 6 — Daten + Demo-Modus scharfschalten (einmalig)
+## Schritt 6 — Daten + Demo-Modus (automatisch)
 
-> **Besucher loggen sich NIE ein.** Sobald der Demo-Modus an ist, schaltet die App jeden anonymen
-> Besucher automatisch auf den read-only Demo-Agenten — alles sichtbar, kein Login, kein Discord.
-> Der folgende Login ist **ein einziges Mal** nötig, nur für dich als Admin, zum Befüllen + Anschalten.
+Mit `Demo__AutoSetup=true` in `/etc/noose-demo/noose-demo.env` spielt die App die Demo-Daten (~14 Fraktionen + 40 Personen)
+beim Start selbst ein und schaltet den Demo-Modus an (`DemoAutoSetup.cs`). **Besucher loggen sich NIE ein:** im Demo-Modus
+wird jeder anonyme Besucher automatisch der read-only Demo-Agent, alles ist sichtbar, kein Login, kein Discord.
+Manuelle Schritte im Admin-Bereich sind nicht nötig.
 
-1. `https://demo.noose.info` öffnen → **als Admin via Discord einloggen** (deine Discord-ID ist via
-   `Bootstrap__AdminDiscordId` aus der Prod-Env übernommen → du bist auf der Demo automatisch Admin).
-2. Admin → System → **„Demo-Daten einspielen"** (3-Stufen-Bestätigung) → ~14 Fraktionen + 40 Personen.
-3. Admin → System → **„Demo-Modus aktivieren"** (3-Stufen-Bestätigung).
-4. Fertig. Ausloggen — ab jetzt ist alles öffentlich read-only, niemand muss sich mehr einloggen.
-
-*(Optional, falls du sogar diesen einen Login vermeiden willst: ein Auto-Seed-Startflag wäre möglich —
-das ist eine kleine Code-Änderung + Deploy. Bei Bedarf sagen.)*
+Kontrolle nach dem Deploy:
+```powershell
+ssh root@62.169.28.155 "docker logs noose-demo 2>&1 | grep 'Demo-AutoSetup'"
+```
+Erwartet: `Demo-AutoSetup: <n> Datensaetze geseedet.` und `Demo-AutoSetup: Demo-Modus aktiviert.` (bei bereits
+befüllter Demo evtl. nur die zweite Zeile). Bei `Demo-AutoSetup: Seeding fehlgeschlagen` startet die Instanz ohne neue Beispieldaten.
 
 ---
 
 ## Updates später
 
 - **Produktiv:** `.\scripts\deploy.ps1`
-- **Demo:** `.\scripts\deploy.ps1 -AppDir /var/www/noose-demo -Service noose-demo`
+- **Demo:** `.\scripts\deploy.ps1 -Target demo`
 
 ## Nützliche Befehle
 
 ```powershell
-ssh root@62.169.28.155 "journalctl -u noose-demo -f"          # Live-Logs Demo
-ssh root@62.169.28.155 "systemctl restart noose-demo"          # Neustart Demo
+ssh root@62.169.28.155 "docker logs -f noose-demo"                          # Live-Logs Demo
+ssh root@62.169.28.155 "cd /opt/noose && docker compose restart noose-demo"  # Neustart Demo
 ssh root@62.169.28.155 "ls -lh /root/backups"                  # Backups ansehen
 ```
 
 ## Demo wieder entfernen (falls je nötig)
 
 ```bash
-systemctl disable --now noose-demo
-rm -f /etc/systemd/system/noose-demo.service /etc/nginx/sites-enabled/noose-demo /etc/nginx/sites-available/noose-demo
-systemctl daemon-reload && systemctl reload nginx
-rm -rf /var/www/noose-demo /etc/noose-demo
-mysql -e "DROP DATABASE noose_demo;"
+cd /opt/noose && docker compose stop noose-demo && docker compose rm -f noose-demo
+# danach den Dienst noose-demo aus /opt/noose/compose.yml (deploy/compose.yml) entfernen
+rm -f /etc/nginx/sites-enabled/noose-demo /etc/nginx/sites-available/noose-demo
+systemctl reload nginx
+rm -rf /etc/noose-demo /opt/noose/data/demo
+docker exec noose-db mariadb -e "DROP DATABASE noose_demo;"
 ```

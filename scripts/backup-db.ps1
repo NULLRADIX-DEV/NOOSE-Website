@@ -4,10 +4,11 @@
     Sichert die Produktiv-Datenbank der NOOSE-Website: Dump auf dem Server + Download auf den PC.
 
 .DESCRIPTION
-    Ein-Befehl-Backup: per SSH auf dem Server einen konsistenten mysqldump erzeugen
-    (--single-transaction, inkl. Routinen/Events), gzip-komprimiert unter /root/backups ablegen
+    Ein-Befehl-Backup: per SSH auf dem Server einen konsistenten Dump per
+    "docker exec noose-db mariadb-dump" erzeugen (--single-transaction, inkl. Routinen/Events), gzip-komprimiert unter /root/backups ablegen
     (Server-Kopie), das Ergebnis per scp auf den PC herunterladen (PC-Kopie) und die Groessen
-    beider Kopien vergleichen. Alte Server-Dumps aelter als -RetentionDays werden aufgeraeumt;
+    beider Kopien vergleichen. Alte manuelle Server-Dumps (<db>-<datum>_<zeit>) aelter als -RetentionDays werden aufgeraeumt,
+    die taeglichen Cron-Dumps von /opt/noose/backup.sh bleiben davon unberuehrt;
     die PC-Kopien (Offsite) bleiben ALLE erhalten.
 
     Nutzt dieselbe robuste ssh/scp-Aufloesung wie deploy.ps1 (PATH-unabhaengig, auch aus 32-bit
@@ -27,7 +28,8 @@
 
 .NOTES
     Am besten aus einer normalen (64-bit) Windows PowerShell starten (siehe deploy.ps1 -> Resolve-Exe).
-    Restore einer Kopie:  gunzip < noose-<datum>.sql.gz | mysql noose   (auf dem Server).
+    Restore einer Kopie:  gunzip < noose-<datum>.sql.gz | docker exec -i noose-db mariadb noose   (auf dem Server).
+    Der taegliche Server-Backup-Cron (/opt/noose/backup.sh) laeuft unabhaengig davon; dieses Skript ist der manuelle Dump + Download.
 #>
 
 [CmdletBinding()]
@@ -78,19 +80,19 @@ try {
 set -e
 mkdir -p '__REMOTEDIR__'
 f="__REMOTEDIR__/__DB__-$(date +%F_%H%M%S).sql.gz"
-mysqldump --single-transaction --quick --routines --events '__DB__' | gzip > "$f"
+docker exec noose-db mariadb-dump --single-transaction --quick --routines --events '__DB__' | gzip > "$f"
 integ=OK
 gzip -t "$f" || integ=BAD
 case "$(zcat "$f" | tail -1)" in *"Dump completed"*) : ;; *) integ=BAD ;; esac
 echo "FILE=$f"
 echo "SIZE=$(stat -c %s "$f")"
 echo "INTEGRITY=$integ"
-find '__REMOTEDIR__' -name '__DB__-*.sql.gz' -type f -mtime +__RETENTION__ -delete 2>/dev/null || true
+find '__REMOTEDIR__' -maxdepth 1 -name '__DB__-*_*.sql.gz' -type f -mtime +__RETENTION__ -delete 2>/dev/null || true
 '@
     $remote = $remote.Replace('__REMOTEDIR__', $RemoteDir).Replace('__DB__', $Database).Replace('__RETENTION__', "$RetentionDays")
 
     Write-Host "==> Erzeuge Dump auf $Server ($RemoteDir/$Database-<datum>.sql.gz)" -ForegroundColor Cyan
-    # Copy the dump script to the server and run it there — transparent (no base64/obfuscation that
+    # Copy the dump script to the server and run it there - transparent (no base64/obfuscation that
     # trips AV/agent guards) and sidesteps Windows PowerShell argv quote-mangling. Write it without a
     # BOM and with LF line endings so the remote bash reads it cleanly.
     $localScript = Join-Path ([System.IO.Path]::GetTempPath()) ("noose-dump-{0}.sh" -f [guid]::NewGuid())
