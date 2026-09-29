@@ -1,0 +1,16 @@
+**/bin/
+**/obj/
+**/*.user
+.git/
+.github/
+.claude/
+.vs/
+publish/
+scripts/
+docs/
+claude-memory/
+TestResults/
+NOOSE-Website.Tests/
+# Laufzeitdaten (Uploads, Data-Protection-Keys) kommen per Volume, nie ins Image
+NOOSE-Website/App_Data/
+NOOSE-Website/appsettings.json

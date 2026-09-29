@@ -1,0 +1,63 @@
+# NOOSE auf dem VPS: Prod, Demo und MariaDB. Liegt auf dem Server unter /opt/noose/compose.yml,
+# die Image-Tags stehen in /opt/noose/.env (NOOSE_TAG, DEMO_TAG) und setzt scripts/deploy.ps1.
+#
+# Alle Dienste laufen im Host-Netz: Die Apps lauschen wie vorher auf 127.0.0.1:5000/5001 (nginx
+# unverändert, ForwardedHeaders vertraut Loopback), MariaDB auf 127.0.0.1:3306 (Connection-String
+# unverändert). Von außen ist nichts davon erreichbar.
+#
+# Nie zwei Instanzen derselben App gleichzeitig: "docker compose up -d <dienst>" stoppt den alten
+# Container, bevor der neue startet (BackgroundServices dürfen nicht doppelt laufen).
+
+name: noose
+
+services:
+  db:
+    image: mariadb:10.11
+    container_name: noose-db
+    network_mode: host
+    command:
+      - --bind-address=127.0.0.1
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+    environment:
+      TZ: Europe/Berlin
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - /opt/noose/db:/var/lib/mysql
+    mem_limit: 768m
+    restart: unless-stopped
+    stop_grace_period: 60s
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "--protocol=socket"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  noose:
+    image: ghcr.io/nullradix-dev/noose-website:${NOOSE_TAG:?NOOSE_TAG fehlt in .env}
+    container_name: noose
+    network_mode: host
+    env_file: /etc/noose/noose.env
+    volumes:
+      - /opt/noose/data/prod:/app/App_Data
+    mem_limit: 1g
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
+
+  noose-demo:
+    image: ghcr.io/nullradix-dev/noose-website:${DEMO_TAG:?DEMO_TAG fehlt in .env}
+    container_name: noose-demo
+    network_mode: host
+    env_file: /etc/noose-demo/noose-demo.env
+    volumes:
+      - /opt/noose/data/demo:/app/App_Data
+    mem_limit: 512m
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      db:
+        condition: service_healthy
