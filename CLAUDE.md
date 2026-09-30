@@ -68,23 +68,21 @@ cd ..
 # 'dotnet ef database update' ist i.d.R. UNNÖTIG — Migrationen werden beim App-Start
 # automatisch via db.Database.MigrateAsync() angewendet (Program.cs).
 
-# Deploy nach Produktion (root@62.169.28.155, Docker-Container 'noose', /opt/noose)
-# Image baut GitHub Actions (ghcr.io/nullradix-dev/noose-website:<sha>) — Action für den Commit vorher abwarten
-.\scripts\deploy.ps1                # Prod: aktueller origin/master → compose.yml hochladen → Image ziehen → Container neu → /health-Check
-.\scripts\deploy.ps1 -Target demo   # Demo-Instanz (noose-demo)
-.\scripts\deploy.ps1 -Tag <sha>     # bestimmter Commit / Rollback (kurze SHA geht)
-.\scripts\deploy.ps1 -NoPause       # ohne "Enter zum Schließen" (CI/Terminal)
+# Deploy: GitHub Actions → Deploy → Run workflow (.github/workflows/deploy.yml, Kopie des Plattform-Templates)
+# Image baut vorher der Workflow "Container-Image" (ghcr.io/nullradix-dev/noose-website:<sha>) — für den Commit abwarten
+# Input environment = production (Prod, Default) | demo; Commit leer = aktueller master, sonst SHA; Häkchen "rollback" = vorheriges Release
+# Server prüft vor dem Umschalten, behält bei Startfehler das alte Release und dumpt vorher alle DBs. Server-Details: private Betriebsdoku
 ```
 
 - **Test-Projekt `NOOSE-Website.Tests`** (xunit, ~3.5k Tests): `dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj` — läuft auf In-Memory-SQLite, braucht **keine** Datenbank. Helfer in `Tests/Infrastructure/`: `SqliteTestContext` (In-Memory-SQLite + `IDbContextFactory`), `Seed.*` (Entity-Fabriken), `ClaimsPrincipalBuilder` (Rang/Flags/Claims). **Kein bUnit** → `.razor`-Komponenten sind nicht testbar; testbare Logik gehört in den Service-Layer.
-- `scripts\deploy.ps1` aus **64-bit Windows PowerShell** starten (sonst wird OpenSSH WOW64-redirected). Nutzt `ssh`/`scp` + `git`; lokal wird nichts mehr gebaut oder gepackt. Server braucht einmalig `docker login ghcr.io` (Classic-PAT, nur `read:packages`); läuft der PAT ab, scheitert der Deploy mit „unauthorized“.
+- Deploy nur über den Workflow „Deploy“ (Actions → Deploy → Run workflow). Das Image muss vorher vom Workflow „Container-Image“ gebaut sein. Der Server prüft alles vor dem Umschalten, behält bei Startfehler das vorherige Release und dumpt vorher alle Datenbanken (ein Rollback macht EF-Migrationen nicht rückgängig). Prod (`deploy/compose.yml`) und Demo (`deploy/demo/compose.yml`) sind zwei getrennte Apps mit eigenem Linux-User, Docker, MariaDB 10.11 und Speicherlimit. Server-Details (Pfade, Ports, Benutzer, Backups) stehen in der privaten Betriebsdoku.
 
 ### Secrets & Config
 
 `appsettings.json` enthält **nur leere Platzhalter**. Echte Werte kommen aus der Source-Control heraus:
 
 - **Lokal:** User-Secrets (`UserSecretsId d41f8a93-2c7b-4e16-9a55-0b3e7c1f6d28`)
-- **Produktion:** Env-Vars in `/etc/noose/noose.env` (Doppel-Unterstrich: `ConnectionStrings__ProductionConnection`, `Authentication__Discord__ClientId`)
+- **Produktion:** Env-Vars liegen nur auf dem Server, nie im Repo (Doppel-Unterstrich: `ConnectionStrings__ProductionConnection`, `Authentication__Discord__ClientId`)
 
 Benötigte Keys: `ConnectionStrings:DefaultConnection` (oder `:ProductionConnection`), `Authentication:Discord:ClientId` + `:ClientSecret`, `Bootstrap:AdminDiscordId`.
 Ohne erreichbaren DB-Connection-String wirft die App beim Start. `DatabaseConnectionResolver` bevorzugt `ProductionConnection` (5s-Reachability-Probe), sonst Fallback auf `DefaultConnection` → derselbe Build läuft lokal und auf dem Server ohne Edit.
@@ -272,9 +270,9 @@ handgebaute Leiste, `aria-current`, Policy-Snapshot, tote `CollapsedGroups`) →
 - **`dotnet tool restore` vor jedem `dotnet ef`** — `dotnet-ef` ist lokal-gepinnt (9.0.17), nicht global. Beides aus `scripts/` ausführen (dort liegt `dotnet-tools.json`); aus dem Repo-Root schlägt der Aufruf fehl.
 - **EF/Identity nicht auf 10.x** (Pomelo-9-Kollision).
 - **Vor `dotnet ef migrations add` den Dev-Server stoppen** (bin-Lock), dann neu bauen.
-- **`App_Data` beim Deploy nie löschen** — enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `App_Data` ist nicht im Image, sondern ein Volume (`/opt/noose/data/prod`, Demo `data/demo`) und überlebt jeden Deploy.
-- **Deploy baut nichts lokal** — das Image kommt aus GitHub Actions (`.github/workflows/image.yml`, Push auf master). Früher: `tar` statt `Compress-Archive` (packte 0-Byte-Dateien → kaputtes MudBlazor-CSS), heute irrelevant.
-- **`TZ=Europe/Berlin` in `/etc/noose/noose.env`** nötig — Blazor Server rechnet `ToLocalTime()` in der Server-TZ; ohne TZ sind alle Zeiten (inkl. 20-Min-„Tot"-Fenster) verschoben. `TimeZoneInfo.Local` ist prozess-gecached → Container neu erstellen (`restart` liest die Env-Datei nicht neu): `cd /opt/noose && docker compose up -d --force-recreate --no-deps noose` (Demo: `noose-demo`).
+- **`App_Data` beim Deploy nie löschen** — enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `App_Data` ist nicht im Image, sondern ein Volume auf dem Server und überlebt jeden Deploy.
+- **Deploy baut nichts lokal** — das Image kommt aus GitHub Actions (`.github/workflows/image.yml`, Push auf master), ausgerollt wird per Workflow „Deploy“.
+- **`TZ=Europe/Berlin` in der Server-Env** nötig — Blazor Server rechnet `ToLocalTime()` in der Server-TZ; ohne TZ sind alle Zeiten (inkl. 20-Min-„Tot"-Fenster) verschoben. `TimeZoneInfo.Local` ist prozess-gecached → Container neu erstellen (Deploy-Workflow; `restart` liest die Env-Datei nicht neu).
 - **`?v=` bumpen bei JS-Modul-Edits** (`graph.js?v=8`, `kalender.js?v=7`, `richtext.js?v=21`, `entwurf.js?v=1`, `textbild.js?v=1`, `app.js?v=4`) — dynamische ES-Imports umgehen Blazors Asset-Fingerprinting. **Alle** Importstellen eines Moduls mitziehen: `app.js` wird von `CommandPalette.razor`, `KeyboardShortcuts.razor` **und** `FinancingCatalogPanel.razor` geladen, und zwei verschiedene `?v=` holen zwei Kopien.
 - **Ablehnen, Schließen und eine nicht bestandene Sicherheitsüberprüfung sperren 14 Tage.** Die Dauer, das
   Aktiv-Prädikat (`IstBlacklist || GesperrtBis > jetzt`, es gibt keine `IstAktiv`-Spalte) und die
@@ -306,7 +304,7 @@ handgebaute Leiste, `aria-current`, Policy-Snapshot, tote `CollapsedGroups`) →
   lehnt ein Zusammenlegen ab. **Kein eindeutiger Index**: die Zeilen einer Fraktion im Papierkorb bleiben stehen,
   und Altbestand darf doppelt sein, bis jemand speichert. Ein neuer Schreibweg auf `FraktionDrogenrouten` muss
   durch dasselbe Schloss.
-- **`NOOSE-Website/BuildNumber.txt` erhöht sich automatisch bei jedem echten Build** (`dotnet build`/`watch`/`publish`, MSBuild-Target in der `.csproj`; IDE-Design-Time-Builds sind ausgenommen) und wird lokal als `1.0.<Zahl>` angezeigt. Die Prod-Version kommt aus der GitHub Action: Build-Nummer `1222 + Run-Nummer` geht als Build-Arg `BUILD_NUMBER` ans Dockerfile, das `N-1` in die Datei schreibt (das Target zählt selbst hoch und überschreibt ein `-p:Version`), heraus kommt `1.0.N` unter Einstellungen → Status und als Build im neuesten Changelog-Eintrag (der Seeder stempelt beim ersten Start nach einem Deploy). Die lokale Datei ist **gitignored** (`.gitignore` Zeile 386) → taucht nie in `git status` auf und wird nicht mitcommittet; sie zählt nur lokale Builds (`deploy.ps1` baut nicht mehr lokal).
+- **`NOOSE-Website/BuildNumber.txt` erhöht sich automatisch bei jedem echten Build** (`dotnet build`/`watch`/`publish`, MSBuild-Target in der `.csproj`; IDE-Design-Time-Builds sind ausgenommen) und wird lokal als `1.0.<Zahl>` angezeigt. Die Prod-Version kommt aus der GitHub Action: Build-Nummer `1222 + Run-Nummer` geht als Build-Arg `BUILD_NUMBER` ans Dockerfile, das `N-1` in die Datei schreibt (das Target zählt selbst hoch und überschreibt ein `-p:Version`), heraus kommt `1.0.N` unter Einstellungen → Status und als Build im neuesten Changelog-Eintrag (der Seeder stempelt beim ersten Start nach einem Deploy). Die lokale Datei ist **gitignored** (`.gitignore` Zeile 386) → taucht nie in `git status` auf und wird nicht mitcommittet; sie zählt nur lokale Builds (Deploy baut nicht lokal).
 - **Das Dockerfile muss zusammen mit allen Quellen restoren, nicht zuerst nur mit der `.csproj`.** Sonst fehlt `_framework/blazor.web.js` (Web SDK), Blazor startet nie (tote Navbar), während `/health` grün bleibt. Das Dockerfile prüft die Datei beim Build.
 - **Bild-Paste in ein Plaintext-Feld legt die Datei ab und schreibt nur ein Token.** `MentionInput` nimmt per
   Strg+V ein Clipboard-Bild an, sobald `ImageOwnerType`/`ImageOwnerId` gesetzt sind (Opt-in wie der @-Picker);
@@ -655,7 +653,7 @@ Helfer, wie `Permission`); der Zustand liegt als Schlüsselmenge in `NavPreferen
 ## Weiterführende Docs
 
 - `README.md` — Funktionsübersicht (Features-Sektion, intern + öffentlich), Schnellstart, Deployment
-- `docs/DEPLOYMENT.md` — Server-Setup (nginx → Container `noose` auf `127.0.0.1:5000` → MariaDB-Container), Docker Compose, Backup, Troubleshooting
+- `docs/DEPLOYMENT.md` — Plattform-Setup, Deploy-Workflow (Prod, Demo, Rollback), Backups, Troubleshooting
 - `docs/CODE_REVIEW_TODO.md` — bekannte Tech-Debt-/Review-Findings
 - `IdeenBacklog.md` — Feature-Roadmap: 66 bewertete Vorschläge, einzeln entschieden (28 angenommen,
   31 vorgemerkt, 3 abgelehnt). Je Vorschlag **die Dateien, an denen er ansetzt**. Vor einem neuen

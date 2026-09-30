@@ -184,7 +184,7 @@ Behörde schreiben. Was nach außen geht, entscheidet immer ein ausdrücklicher 
 - **OnlyReader** (TeamLead ohne Admin) - liest alles, schreibt nichts, sieht nie Klarnamen.
 - **Kill-Switch** - Sperrung/Rangänderung beendet Sessions in ≤30 s (Security-Stamp-Rotation).
 - **Demo-Instanz** (demo.noose.info) - read-only, anonym browsbar als Demo-Agent, idempotenter Demo-Daten-Seed.
-- **Deploy/Backup** - `scripts/deploy.ps1` (Image aus GHCR ziehen → Container neu erstellen → Health-Check, mit Demo-Schutz), `backup-db.ps1` (manueller Dump + Download auf den PC) und `deploy/backup.sh` (täglicher Server-Backup per Cron, 30 Tage Aufbewahrung).
+- **Deploy/Backup** - GitHub-Actions-Workflow „Deploy“ (Prod und Demo, Rollback auf das vorherige Release), Server-Checks vor dem Umschalten, DB-Dump vor jedem Deploy; nächtliche DB-Backups laufen über 1Panel auf dem Server.
 
 ### Öffentlicher Bereich
 
@@ -466,25 +466,22 @@ sortiert wird über den Zeitstempel im Dateinamen.
 
 ## Deployment
 
-Deploy aus **64-bit Windows PowerShell** (sonst OpenSSH WOW64-Redirect):
+Deploy per GitHub Actions: **Actions → Deploy → Run workflow** (`.github/workflows/deploy.yml`, Kopie des Plattform-Templates).
 
-```powershell
-.\scripts\deploy.ps1                # Prod: aktueller origin/master → Image ziehen → Container neu → /health-Check
-.\scripts\deploy.ps1 -Target demo   # Demo-Instanz (noose-demo)
-.\scripts\deploy.ps1 -Tag <sha>     # bestimmter Commit / Rollback (kurze SHA geht)
-.\scripts\deploy.ps1 -NoPause       # ohne Pause (CI/Terminal)
-```
+- `environment`: `production` (Prod, noose.info, Default) oder `demo` (demo.noose.info)
+- Commit leer = aktueller `master`, sonst Commit-SHA
+- Häkchen „rollback“ = zurück auf das vorherige Release
 
-Ziel: `root@62.169.28.155`, Docker-Container `noose` (Prod) bzw. `noose-demo`, Verzeichnis `/opt/noose`. Das Image `ghcr.io/nullradix-dev/noose-website:<commit-sha>` baut GitHub Actions (`.github/workflows/image.yml`, Push auf `master`); vor dem Deploy muss die Action für den Commit fertig sein. `deploy.ps1` baut nichts lokal: Es lädt `deploy/compose.yml` hoch, zieht das Image, setzt den Tag in `/opt/noose/.env`, erstellt den Container neu (nie zwei Instanzen gleichzeitig) und prüft `/health`. Die DB (Container `noose-db`, MariaDB 10.11) startet das Skript nie neu. Der Server braucht einmalig `docker login ghcr.io` (Classic-PAT, nur `read:packages`); läuft der PAT ab, scheitert der Deploy mit „unauthorized“.
+Das Image `ghcr.io/nullradix-dev/noose-website:<commit-sha>` baut vorher der Workflow „Container-Image“ (`.github/workflows/image.yml`, Push auf `master`); er muss für den Commit fertig sein. Prod (`deploy/compose.yml`) und Demo (`deploy/demo/compose.yml`) sind zwei getrennte Apps auf der Plattform, je mit eigenem Linux-User, eigenem rootless Docker, eigener MariaDB 10.11 (Zugriff über den Compose-Dienst `db`) und eigenem Speicherlimit. Der Server prüft vor dem Umschalten alles, behält bei einem Startfehler das vorherige Release und dumpt vor jedem Wechsel alle Datenbanken des laufenden Releases (ein Rollback macht EF-Migrationen nicht rückgängig). Server-Details (Pfade, Ports, Benutzer, Backups) stehen in der privaten Betriebsdoku.
 
 **Prod-Gotchas**
-- **`App_Data` beim Deploy nie löschen** - enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `App_Data` ist nicht im Image, sondern ein Volume (`/opt/noose/data/prod`, Demo `data/demo`) und überlebt jeden Deploy.
-- **`TZ=Europe/Berlin`** in `/etc/noose/noose.env` nötig - sonst sind alle `ToLocalTime()`-Zeiten verschoben. `TimeZoneInfo.Local` ist prozess-gecached → Container neu erstellen (`restart` liest die Env-Datei nicht neu): `cd /opt/noose && docker compose up -d --force-recreate --no-deps noose`.
+- **`App_Data` beim Deploy nie löschen** - enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `App_Data` ist nicht im Image, sondern ein Volume auf dem Server und überlebt jeden Deploy.
+- **`TZ=Europe/Berlin`** in der Server-Env nötig - sonst sind alle `ToLocalTime()`-Zeiten verschoben. `TimeZoneInfo.Local` ist prozess-gecached → Container neu erstellen (Deploy-Workflow; `restart` liest die Env-Datei nicht neu).
 - **Discord-Redirect** `https://noose.info/signin-discord` muss im Developer-Portal registriert sein.
-- **Prod-Secrets** in `/etc/noose/noose.env` mit Doppel-Unterstrich: `ConnectionStrings__ProductionConnection`, `Authentication__Discord__ClientId`/`__ClientSecret`, `Bootstrap__AdminDiscordId`, `Llm__ApiKey` (OpenRouter) und `Llm__DeepSeek__ApiKey` (DeepSeek direkt).
+- **Prod-Secrets** liegen nur auf dem Server, nie im Repo (Doppel-Unterstrich): `ConnectionStrings__ProductionConnection`, `Authentication__Discord__ClientId`/`__ClientSecret`, `Bootstrap__AdminDiscordId`, `Llm__ApiKey` (OpenRouter) und `Llm__DeepSeek__ApiKey` (DeepSeek direkt). Prod erzwingt `Demo__AutoSetup=false` in `deploy/compose.yml`.
 - **Health-Check:** `GET /health` (anonym, prüft DB-Konnektivität) → `200 Healthy`.
-- **Logs:** `docker logs -f noose` / `docker logs -f noose-demo` / `docker logs noose-db` (statt `journalctl`; `journalctl -u noose` zeigt nur noch alte Logs). Status: `cd /opt/noose && docker compose ps`.
-- **Backup:** `/opt/noose/backup.sh` läuft täglich 04:15 per root-Cron → `/root/backups/noose-JJJJ-MM-TT.sql.gz` und `noose_demo-JJJJ-MM-TT.sql.gz` (Vollständigkeitsprüfung, rotiert nur die täglichen Dateien, 30 Tage Aufbewahrung, Log `/var/log/noose-backup.log`). Uploads (`App_Data`) sind **nicht** im Server-Backup. Restore: `gunzip < /root/backups/noose-<datum>.sql.gz | docker exec -i noose-db mariadb noose`.
+- **Logs/Status:** auf dem Server im rootless Docker der jeweiligen App (`docker logs`, `docker compose ps`); Details in der privaten Betriebsdoku.
+- **Backup:** nächtliche DB-Backups laufen über 1Panel auf dem Server, vor jedem Deploy zusätzlich ein Dump aller Datenbanken. Uploads (`App_Data`) sind **nicht** im DB-Backup. Manuelle Dumps/Restores macht der Admin auf dem Server.
 
 ---
 
@@ -512,8 +509,8 @@ NOOSE-Website/
 ├── Infrastructure/    Interceptors, Broadcaster, Worker, Audit, Storage, Seeder
 ├── Theme/             NooseTheme.cs (Dark-Palette)
 └── wwwroot/lib/       Quill, vis-network, FullCalendar, ECharts (self-hosted)
-scripts/                 deploy.ps1, backup-db.ps1, dotnet-tools.json
-deploy/                  compose.yml, backup.sh (Server-Backup)
+scripts/                 dotnet-tools.json
+deploy/                  compose.yml (Prod), demo/compose.yml (Demo)
 ```
 
 ---

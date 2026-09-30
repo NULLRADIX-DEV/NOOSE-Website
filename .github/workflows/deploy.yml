@@ -1,0 +1,95 @@
+name: Deploy
+
+# Template: NULLRADIX-DEV/platform/templates/deploy.yml. Every app repo carries an identical copy, change the template first.
+# Rolls out the compose.yml of one commit on the default branch to the app's server, or rolls back to the
+# previous release. Starting this workflow by hand is the approval.
+# One environment per app: production for most repos, a repo with more apps adds one each (e.g. demo).
+# Secrets: DEPLOY_SSH_KEY (key that may only run receive), DEPLOY_TARGET (<app>@<server>), DEPLOY_KNOWN_HOSTS.
+# Variable DEPLOY_DIR: folder of the compose.yml, default deploy.
+# Public repos keep them in the environment (default branch only), private repos as repository secrets and variables.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: App to deploy, as environment of this repo
+        required: false
+        default: production
+      commit:
+        description: Commit on the default branch (empty = latest)
+        required: false
+        default: ''
+      rollback:
+        description: Roll back to the previous release (leave commit empty)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to server
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: ${{ inputs.environment }}
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR || 'deploy' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Check inputs
+        if: ${{ inputs.rollback && inputs.commit != '' }}
+        run: |
+          echo "::error::Either a commit or rollback, not both"; exit 1
+      # Pinned to a commit: this job holds the deploy key.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+      # Images only exist for commits on the default branch; the server refuses a commit whose images are missing.
+      - name: Resolve commit
+        if: ${{ !inputs.rollback }}
+        env:
+          COMMIT: ${{ inputs.commit }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          if [ -n "$COMMIT" ] && ! [[ $COMMIT =~ ^[0-9a-f]{7,40}$ ]]; then
+            echo "::error::'$COMMIT' is not a commit hash"; exit 1
+          fi
+          sha=$(git rev-parse --verify --quiet "${COMMIT:-origin/$DEFAULT_BRANCH}^{commit}") || { echo "::error::Unknown commit $COMMIT"; exit 1; }
+          git merge-base --is-ancestor "$sha" "origin/$DEFAULT_BRANCH" || { echo "::error::$sha is not on $DEFAULT_BRANCH"; exit 1; }
+          git cat-file -e "$sha:$DEPLOY_DIR/compose.yml" 2> /dev/null || { echo "::error::$sha has no $DEPLOY_DIR/compose.yml"; exit 1; }
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+      # The key may only run the receive command on the server (forced command, platform README).
+      # A deploy sends only the compose.yml; a rollback sends nothing, the server keeps the previous release.
+      - name: Deploy
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_TARGET: ${{ secrets.DEPLOY_TARGET }}
+          ROLLBACK: ${{ inputs.rollback }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          remote() {
+            ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$DEPLOY_TARGET" "$@"
+          }
+          if [ "$ROLLBACK" = true ]; then
+            remote rollback < /dev/null
+          else
+            git archive --format=tar "$SHA:$DEPLOY_DIR" compose.yml | remote "deploy $SHA"
+          fi | tee "$RUNNER_TEMP/deploy.log"
+          deployed=$(sed -n 's/^Deployed //p' "$RUNNER_TEMP/deploy.log")
+          previous=$(sed -n 's/^Previous release: //p' "$RUNNER_TEMP/deploy.log")
+          kind=''
+          if [ "$ROLLBACK" = true ]; then kind=' (Rollback)'; fi
+          echo "### Deployed \`$deployed\`$kind" >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "$previous" ]; then
+            echo "Rollback-Ziel: \`$previous\`" >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -28,15 +28,13 @@ dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj --filter "FullyQualif
 # Coverage (no coverlet — it cannot instrument .NET 10):
 dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj --collect "Code Coverage" --settings docs/coverage.runsettings
 
-# Deploy nach Produktion (root@62.169.28.155, Docker-Container 'noose', /opt/noose)
-# Image baut GitHub Actions (ghcr.io/nullradix-dev/noose-website:<sha>) — Action "Container-Image" für den Commit vorher abwarten
-.\scripts\deploy.ps1                # Prod: aktueller origin/master → compose.yml hochladen → Image ziehen → Container neu → /health-Check
-.\scripts\deploy.ps1 -Target demo   # Demo-Instanz (noose-demo)
-.\scripts\deploy.ps1 -Tag <sha>     # bestimmter Commit / Rollback (kurze SHA geht)
-.\scripts\deploy.ps1 -NoPause       # ohne "Enter zum Schließen" (CI/Terminal)
+# Deploy: GitHub Actions → Deploy → Run workflow (.github/workflows/deploy.yml, Kopie des Plattform-Templates)
+# Image baut vorher der Workflow "Container-Image" (ghcr.io/nullradix-dev/noose-website:<sha>) — für den Commit abwarten
+# Input environment = production (Prod, Default) | demo; Commit leer = aktueller master, sonst SHA; Häkchen "rollback" = vorheriges Release
+# Server prüft vor dem Umschalten, behält bei Startfehler das alte Release und dumpt vorher alle DBs. Server-Details: private Betriebsdoku
 ```
 
-CI only builds the container image (`.github/workflows/image.yml`: PR = build check, master = push to GHCR); tests do not run in CI — local build + tests are the gate.
+CI only builds the container image (`.github/workflows/image.yml`: PR = build check, master = push to GHCR); tests do not run in CI — local build + tests are the gate. Deploy is the manual workflow "Deploy" (see above).
 
 ### EF migrations (manifest lives in `scripts/`)
 
@@ -78,7 +76,7 @@ can never hit production. Stop the dev server before adding a migration.
   read-only barrier; call `Permission.RequireWriteAccess` and write a `ManualAudit.Row(...)` yourself.
 - **Do not bump EF Core/Identity packages to 10.x** — Pomelo 9 only supports EF Core 9.
 - **Never delete `NOOSE-Website/App_Data/`** — it holds uploads and the Data-Protection keys
-  (`App_Data/keys`); losing it logs everyone out. `deploy.ps1` excludes it.
+  (`App_Data/keys`); losing it logs everyone out. It is a volume outside the image and survives every deploy.
 - Culture is de-DE globally; times use `ToLocalTime()` against the server TZ.
 - A user-visible feature needs a line in `Infrastructure/Changelog/ChangelogContent.cs`; a new menu
   entry needs a handbook article — tests enforce both.

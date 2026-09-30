@@ -1,7 +1,7 @@
 name: Container-Image
 
 # PR: nur bauen (prüft das Dockerfile). master: bauen und nach GHCR pushen,
-# Tags = Commit-SHA (für deploy.ps1 und Rollback) + latest.
+# Tags = Commit-SHA (für den Workflow Deploy und Rollback) + latest.
 on:
   pull_request:
   push:
