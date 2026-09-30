@@ -1,6 +1,6 @@
-# NOOSE (noose.info) als App der gemeinsamen Server-Plattform: eigener Benutzer, eigener rootless Docker, eigene MariaDB.
-# Ausgerollt per Workflow "Deploy" (Environment production). Der Server setzt APP_COMMIT (Image-Tag), APP_PORT und
-# APP_SUBNET. Secrets liegen nur auf dem Server: .env fuer Compose, app.env fuer die App.
+# NOOSE-Demo (demo.noose.info) als eigene App der gemeinsamen Server-Plattform: eigener Benutzer, eigener rootless Docker, eigene MariaDB.
+# Ausgerollt per Workflow "Deploy" (Environment demo). Der Server setzt APP_COMMIT (Image-Tag), APP_PORT und
+# APP_SUBNET. Demo__AutoSetup kommt aus app.env. Secrets liegen nur auf dem Server: .env fuer Compose, app.env fuer die App.
 # Vor jedem Umschalten sichert der Server alle Datenbanken (Label platform.backup), denn ein Rollback macht
 # Migrationen nicht rueckgaengig. Compose stoppt den alten Container, bevor der neue startet, es laufen also nie
 # zwei Instanzen gleichzeitig (BackgroundServices).
@@ -11,6 +11,7 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_general_ci
+      - --innodb-buffer-pool-size=64M
     environment:
       TZ: Europe/Berlin
       MARIADB_AUTO_UPGRADE: "1"
@@ -22,7 +23,7 @@ services:
       - "127.0.0.1:${DB_PORT:?DB_PORT fehlt in .env}:3306"
     labels:
       platform.backup: mariadb
-    mem_limit: 768m
+    mem_limit: 384m
     restart: unless-stopped
     stop_grace_period: 60s
     healthcheck:
@@ -39,13 +40,11 @@ services:
       ASPNETCORE_URLS: http://+:8080
       # nginx auf dem Host kommt ueber das Gateway dieses Netzes, ihm wird fuer X-Forwarded-* vertraut.
       ForwardedHeaders__KnownNetworks__0: ${APP_SUBNET}
-      # Prod-Schutz: das Demo-Auto-Setup laeuft hier nie, egal was in app.env steht.
-      Demo__AutoSetup: "false"
     volumes:
       - ./data:/app/App_Data
     ports:
       - "127.0.0.1:${APP_PORT}:8080"
-    mem_limit: 1g
+    mem_limit: 512m
     restart: unless-stopped
     stop_grace_period: 30s
     depends_on:

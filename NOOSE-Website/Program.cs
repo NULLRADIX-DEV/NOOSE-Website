@@ -57,12 +57,17 @@ builder.Services.AddMudServices();
 
 builder.Services.AddHttpContextAccessor();
 
-// trust only the loopback reverse proxy
+// trust the loopback reverse proxy, plus the networks in ForwardedHeaders:KnownNetworks: on the server the app runs
+// in its own container network and sees the host nginx as that network's gateway
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownProxies.Add(IPAddress.Loopback);
     options.KnownProxies.Add(IPAddress.IPv6Loopback);
+    foreach (var network in builder.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>() ?? [])
+    {
+        options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(network));
+    }
 });
 
 // persist data-protection keys to App_Data so a restart doesn't sign everyone out
