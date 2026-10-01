@@ -83,6 +83,7 @@ cd ..
 
 - **Lokal:** User-Secrets (`UserSecretsId d41f8a93-2c7b-4e16-9a55-0b3e7c1f6d28`)
 - **Produktion:** Env-Vars liegen nur auf dem Server, nie im Repo (Doppel-Unterstrich: `ConnectionStrings__ProductionConnection`, `Authentication__Discord__ClientId`)
+- **Prüfung:** Der Workflow „Secret-Scan“ prüft die ganze Git-History mit gitleaks (`.gitleaks.toml`: Standardregeln, dazu keine öffentlichen IPv4-Adressen). Neue Funde nie in `.gitleaksignore` eintragen, sondern den Wert entfernen und ein Secret wechseln.
 
 Benötigte Keys: `ConnectionStrings:DefaultConnection` (oder `:ProductionConnection`), `Authentication:Discord:ClientId` + `:ClientSecret`, `Bootstrap:AdminDiscordId`.
 Ohne erreichbaren DB-Connection-String wirft die App beim Start. `DatabaseConnectionResolver` bevorzugt `ProductionConnection` (5s-Reachability-Probe), sonst Fallback auf `DefaultConnection` → derselbe Build läuft lokal und auf dem Server ohne Edit.

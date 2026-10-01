@@ -1,0 +1,31 @@
+# gitleaks: the default rules plus a ban on public IPv4 addresses.
+# This repo is public. Server IPs and other operations details never belong here.
+# Old findings in the history are listed by fingerprint in .gitleaksignore.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "public-ipv4"
+description = "Public IPv4 address, e.g. a server IP"
+regex = '''\b(?:(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)\b'''
+
+# Allowed: private networks, loopback, link-local, documentation networks, versions like 1.0.0.0
+# and well-known public DNS resolvers. Tailnet addresses (shared address space, RFC 6598) stay banned.
+[[rules.allowlists]]
+regexTarget = "match"
+regexes = [
+  '''^(?:0|10|127)\.''',
+  '''^169\.254\.''',
+  '''^172\.(?:1[6-9]|2\d|3[01])\.''',
+  '''^192\.168\.''',
+  '''^(?:192\.0\.2|198\.51\.100|203\.0\.113)\.''',
+  '''^\d+\.0\.0\.0$''',
+  '''^(?:1\.1\.1\.1|1\.0\.0\.1|8\.8\.8\.8|8\.8\.4\.4|9\.9\.9\.9)$''',
+  '''^255\.255\.255\.255$''',
+]
+
+# Vendored, minified third-party libraries: their long identifiers look like API keys.
+[[allowlists]]
+description = "Vendored third-party libraries"
+paths = ['''^NOOSE-Website/wwwroot/lib/''']
