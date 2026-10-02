@@ -41,13 +41,13 @@
 
   <ItemGroup>
     <!-- UI -->
-    <PackageReference Include="HtmlSanitizer" Version="9.0.892" />
-    <PackageReference Include="Markdig" Version="1.3.2" />
-    <PackageReference Include="MudBlazor" Version="9.5.0" />
+    <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
+    <PackageReference Include="Markdig" Version="1.4.0" />
+    <PackageReference Include="MudBlazor" Version="9.11.0" />
 
     <!-- Datenbank: MySQL 8.0 / MariaDB via Pomelo (EF Core 9, laeuft auf .NET 10) -->
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.16">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -55,11 +55,11 @@
     <!-- Auth: ASP.NET Core Identity (EF-Store) + Discord-OAuth.
          Bewusst die 9.0.x-Linie: 10.0.x wuerde EF Core 10 ziehen und mit Pomelo 9 kollidieren.
          9.0.16 laeuft sauber auf der .NET-10-Runtime und passt zu EF Core 9. -->
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.16" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.20" />
     <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
 
     <!-- Health-Checks (DB-Verbindung) -->
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.16" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.20" />
   </ItemGroup>
 
 </Project>
