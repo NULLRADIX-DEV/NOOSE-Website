@@ -75,7 +75,7 @@ cd ..
 ```
 
 - **Test-Projekt `NOOSE-Website.Tests`** (xunit, ~3.5k Tests): `dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj` — läuft auf In-Memory-SQLite, braucht **keine** Datenbank. Helfer in `Tests/Infrastructure/`: `SqliteTestContext` (In-Memory-SQLite + `IDbContextFactory`), `Seed.*` (Entity-Fabriken), `ClaimsPrincipalBuilder` (Rang/Flags/Claims). **Kein bUnit** → `.razor`-Komponenten sind nicht testbar; testbare Logik gehört in den Service-Layer.
-- Deploy nur über den Workflow „Deploy“ (Actions → Deploy → Run workflow). Das Image muss vorher vom Workflow „Container-Image“ gebaut sein. Der Server prüft alles vor dem Umschalten, behält bei Startfehler das vorherige Release und dumpt vorher alle Datenbanken (ein Rollback macht EF-Migrationen nicht rückgängig). Prod (`deploy/compose.yml`) und Demo (`deploy/demo/compose.yml`) sind zwei getrennte Apps mit eigenem Linux-User, Docker, MariaDB 10.11 und Speicherlimit. Server-Details (Pfade, Ports, Benutzer, Backups) stehen in der privaten Betriebsdoku.
+- Deploy nur über den Workflow „Deploy“ (Actions → Deploy → Run workflow). Das Image muss vorher vom Workflow „Container-Image“ gebaut sein. Der Server prüft alles vor dem Umschalten, behält bei Startfehler das vorherige Release und dumpt vorher alle Datenbanken (ein Rollback macht EF-Migrationen nicht rückgängig). Prod (`deploy/compose.yml`) und Demo (`deploy/demo/compose.yml`) sind zwei getrennte Apps mit je eigener MariaDB 10.11 und eigenem Speicherlimit. Server-Details (Pfade, Ports, Benutzer, Backups) stehen in der privaten Betriebsdoku.
 
 ### Secrets & Config
 
@@ -654,7 +654,7 @@ Helfer, wie `Permission`); der Zustand liegt als Schlüsselmenge in `NavPreferen
 ## Weiterführende Docs
 
 - `README.md` — Funktionsübersicht (Features-Sektion, intern + öffentlich), Schnellstart, Deployment
-- `docs/DEPLOYMENT.md` — Plattform-Setup, Deploy-Workflow (Prod, Demo, Rollback), Backups, Troubleshooting
+- `docs/DEPLOYMENT.md` — Deploy-Workflow (Prod, Demo, Rollback), Konfiguration, Image, Fehlersuche
 - `docs/CODE_REVIEW_TODO.md` — bekannte Tech-Debt-/Review-Findings
 - `IdeenBacklog.md` — Feature-Roadmap: 66 bewertete Vorschläge, einzeln entschieden (28 angenommen,
   31 vorgemerkt, 3 abgelehnt). Je Vorschlag **die Dateien, an denen er ansetzt**. Vor einem neuen
