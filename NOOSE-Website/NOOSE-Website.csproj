@@ -12,6 +12,9 @@
     <BuildNumberFile>$(MSBuildProjectDirectory)\BuildNumber.txt</BuildNumberFile>
     <!-- keep InformationalVersion a plain build number, no "+<git-hash>" suffix -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- NuGet Audit incl. transitive packages: high and critical advisories fail restore and image build -->
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
   </PropertyGroup>
 
   <!-- Auto build counter: bumps BuildNumber.txt on every real build (not IDE design-time evaluation).

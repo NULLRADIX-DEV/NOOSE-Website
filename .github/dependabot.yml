@@ -1,0 +1,34 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: nuget
+    directories: ["/NOOSE-Website", "/NOOSE-Website.Tests"]
+    schedule:
+      interval: weekly
+    ignore:
+      - dependency-name: "Pomelo.EntityFrameworkCore.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.AspNetCore.Identity.EntityFrameworkCore"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore"
+        update-types: ["version-update:semver-major"]
+    groups:
+      nuget-minor-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      base-images:
+        patterns: ["*"]
