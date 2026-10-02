@@ -40,7 +40,7 @@ public class Faction : IAuditable, ISoftDelete, IClassifiableRecord, IArchivable
     [Column("Einstufung")]
     public Classification Classification { get; set; } = Classification.Unknown;
 
-    /// <summary>Automatic threat score (0-100, null = not yet rated or exempt, e.g. state faction). The danger level is derived from it on read (EHK score, see AlgoPlan.md).</summary>
+    /// <summary>Automatic threat score (0-100, null = not yet rated or exempt, e.g. state faction). The danger level is derived from it on read (EHK score, see NOOSE-Doc/AlgoPlan.md).</summary>
     [Column("BedrohungsScore")]
     public int? ThreatScore { get; set; }
 

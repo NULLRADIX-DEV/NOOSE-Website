@@ -18,7 +18,7 @@
   },
   "Bootstrap": {
     "AdminDiscordId": "",
-    "AdminDiscordIds": [ "219038374177013760", "539131148195069952", "883419902843699250" ]
+    "AdminDiscordIds": []
   },
   "FileUpload": {
     "PersonenPfad": "App_Data/uploads/personen",
@@ -55,6 +55,6 @@
   },
   "Ki": {
     "OwnerDiscordId": "",
-    "OwnerDiscordIds": [ "883419902843699250" ]
+    "OwnerDiscordIds": []
   }
 }
