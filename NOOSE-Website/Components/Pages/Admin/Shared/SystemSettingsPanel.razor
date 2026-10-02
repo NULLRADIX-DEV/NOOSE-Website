@@ -4,6 +4,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IDemoDataService DemoData
+@inject IConfiguration Configuration
 
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
@@ -38,12 +39,22 @@ else
             </MudText>
             <AuthorizeView Policy="@Policies.BootstrapAdmin" Context="bootstrap">
                 <Authorized>
-                    <MudSwitch T="bool" Value="_input.DemoModeActive" Color="Color.Error"
-                               Label="Demo-Modus aktiv (öffentlich, ohne Login)"
-                               ValueChanged="DemoModeToggleAsync" />
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
-                               StartIcon="@Icons.Material.Filled.DataObject" OnClick="SeedDemoDataAsync"
-                               Disabled="_seeding">Demo-Daten einspielen</MudButton>
+                    @if (_demoInstance)
+                    {
+                        <MudSwitch T="bool" Value="_input.DemoModeActive" Color="Color.Error"
+                                   Label="Demo-Modus aktiv (öffentlich, ohne Login)"
+                                   ValueChanged="DemoModeToggleAsync" />
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mt-2"
+                                   StartIcon="@Icons.Material.Filled.DataObject" OnClick="SeedDemoDataAsync"
+                                   Disabled="_seeding">Demo-Daten einspielen</MudButton>
+                    }
+                    else
+                    {
+                        @* production: demo mode would show the real data to every visitor, demo data would mix into it *@
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                            Diese Instanz ist keine Demo. Demo-Modus und Demo-Daten gibt es nur auf demo.noose.info.
+                        </MudAlert>
+                    }
                 </Authorized>
                 <NotAuthorized>
                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
@@ -194,6 +205,7 @@ else
     private bool _load = true;
     private bool _busy;
     private bool _seeding;
+    private bool _demoInstance => NOOSE_Website.Infrastructure.DemoInstance.IsDemo(Configuration);
     private SystemConfiguration? _configuration;
     private SystemConfigurationInput _input = new();
     private ClaimsPrincipal _user = default!;

@@ -307,6 +307,21 @@ public static class Permission
         }
     }
 
+    /// <summary>Require leadership with write access for threat-score administration: full recalculation, calibration preview, configuration.</summary>
+    /// <remarks>
+    /// Same shape as <see cref="RequirePublicSituationWrite"/>. Leadership alone was not enough: the read-only
+    /// supervision and the demo principal (rank Director) passed it, and a full recalculation writes every person and
+    /// faction through a bulk path that never meets the write barrier.
+    /// </remarks>
+    public static void RequireThreatScoreAdministration(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayWrite() || !actor.IsLeadership())
+        {
+            throw new UnauthorizedAccessException(
+                "Bedrohungs-Scores verwaltet nur die Führung mit Schreibrecht.");
+        }
+    }
+
     /// <summary>Require the right to write and publish a released monthly situation report.</summary>
     /// <remarks>
     /// Same shape and same order as <see cref="RequirePressWrite"/>, and its own guard for the same reason: the

@@ -116,3 +116,6 @@ public sealed record ThreatScoreDistribution(
     int Total, int Scored, int Excluded,
     int No, int Low, int Medium, int High, int Critical,
     double AverageScore, double AverageConfidence, int TriageCount);
+
+/// <summary>Counts of one full recalculation started by a user.</summary>
+public sealed record ThreatScoreRecalculation(int Factions, int People);

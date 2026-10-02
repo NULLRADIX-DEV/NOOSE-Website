@@ -14,7 +14,7 @@ Produktiv (`noose.info`, `deploy/compose.yml`) bleibt komplett unberührt.
 | Datenbank | eigene MariaDB der Prod-App | eigene MariaDB der Demo-App |
 
 > Es ist **dasselbe Image** wie in Prod. Unterschied nur: eigene App mit eigener DB, eigener Env und eigener Domain.
-> Der Demo-Modus selbst ist nur ein Flag in der jeweiligen DB — auf der Demo-DB isoliert, kann Produktiv nie treffen.
+> Ob eine Instanz die Demo ist, entscheidet nur die Konfiguration (`Demo__AutoSetup=true`), nie ein Flag in der DB. Prod setzt `false` fest in der Compose-Datei und zeigt im Panel keinen Demo-Schalter.
 
 ---
 
