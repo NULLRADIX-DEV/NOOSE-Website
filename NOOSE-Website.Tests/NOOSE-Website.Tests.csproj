@@ -17,6 +17,8 @@
          because its Mono.Cecil cannot instrument .NET 10 assemblies. See README.md. -->
     <!-- EF Core 9 line to match Pomelo 9 / EF 9 in the web project -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.16" />
+    <!-- EF Core Sqlite 9 brings SQLitePCLRaw 2.1.x, whose bundled SQLite has a high advisory (GHSA-2m69-gcr7-jv3q) -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
     <PackageReference Include="NSubstitute" Version="5.1.0" />
   </ItemGroup>
 
