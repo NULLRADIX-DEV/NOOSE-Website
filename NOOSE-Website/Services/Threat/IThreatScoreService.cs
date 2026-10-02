@@ -3,7 +3,7 @@ using NOOSE_Website.Models.Threat;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Computes and persists the automatic threat score (EHK-Score, see AlgoPlan.md) via ExecuteUpdateAsync past the audit interceptor (no modified stamp, no audit-log flood). Called event-driven and from the nightly sweep.</summary>
+/// <summary>Computes and persists the automatic threat score (EHK-Score, see NOOSE-Doc/AlgoPlan.md) via ExecuteUpdateAsync past the audit interceptor (no modified stamp, no audit-log flood). Called event-driven and from the nightly sweep.</summary>
 public interface IThreatScoreService
 {
     /// <summary>Dry-run: score distribution for all factions under a candidate config, without persisting. Leadership with write access only.</summary>

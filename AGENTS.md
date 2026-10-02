@@ -7,10 +7,9 @@ Live: https://noose.info
 ## Where the rules live
 
 - `CLAUDE.md` is always loaded and is authoritative for conventions, architecture and gotchas.
-- Before changing a specific area, read the matching file in `claude-memory/` (table in `CLAUDE.md`) —
-  it explains *why* a rule exists and what broke when it was ignored.
-- `docs/superpowers/{specs,plans}/` are dated design history, not current truth (e.g. an early plan
-  says "do NOT add a test project" — `NOOSE-Website.Tests` exists). Trust code over those docs.
+- Before changing a specific area, read the matching file in `../NOOSE-Doc/claude-memory/` (table in
+  `CLAUDE.md`) — it explains *why* a rule exists and what broke when it was ignored. `NOOSE-Doc` is a
+  private neighbour repo; clone it next to this one.
 
 ## Commands
 
