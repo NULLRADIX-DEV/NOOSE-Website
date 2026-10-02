@@ -184,7 +184,7 @@ Behörde schreiben. Was nach außen geht, entscheidet immer ein ausdrücklicher 
 - **OnlyReader** (TeamLead ohne Admin) - liest alles, schreibt nichts, sieht nie Klarnamen.
 - **Kill-Switch** - Sperrung/Rangänderung beendet Sessions in ≤30 s (Security-Stamp-Rotation).
 - **Demo-Instanz** (demo.noose.info) - read-only, anonym browsbar als Demo-Agent, idempotenter Demo-Daten-Seed.
-- **Deploy/Backup** - GitHub-Actions-Workflow „Deploy“ (Prod und Demo, Rollback auf das vorherige Release), Server-Checks vor dem Umschalten, DB-Dump vor jedem Deploy; nächtliche DB-Backups laufen über 1Panel auf dem Server.
+- **Deploy** - GitHub-Actions-Workflow „Deploy“ (Prod und Demo, Rollback auf das vorherige Release), Server-Checks vor dem Umschalten, DB-Dump vor jedem Deploy.
 
 ### Öffentlicher Bereich
 
@@ -466,22 +466,7 @@ sortiert wird über den Zeitstempel im Dateinamen.
 
 ## Deployment
 
-Deploy per GitHub Actions: **Actions → Deploy → Run workflow** (`.github/workflows/deploy.yml`, Kopie des Plattform-Templates).
-
-- `environment`: `production` (Prod, noose.info, Default) oder `demo` (demo.noose.info)
-- Commit leer = aktueller `master`, sonst Commit-SHA
-- Häkchen „rollback“ = zurück auf das vorherige Release
-
-Das Image `ghcr.io/nullradix-dev/noose-website:<commit-sha>` baut vorher der Workflow „Container-Image“ (`.github/workflows/image.yml`, Push auf `master`); er muss für den Commit fertig sein. Prod (`deploy/compose.yml`) und Demo (`deploy/demo/compose.yml`) sind zwei getrennte Apps auf der Plattform, je mit eigenem Linux-User, eigenem rootless Docker, eigener MariaDB 10.11 (Zugriff über den Compose-Dienst `db`) und eigenem Speicherlimit. Der Server prüft vor dem Umschalten alles, behält bei einem Startfehler das vorherige Release und dumpt vor jedem Wechsel alle Datenbanken des laufenden Releases (ein Rollback macht EF-Migrationen nicht rückgängig). Server-Details (Pfade, Ports, Benutzer, Backups) stehen in der privaten Betriebsdoku.
-
-**Prod-Gotchas**
-- **`App_Data` beim Deploy nie löschen** - enthält Uploads **und** Data-Protection-Keys (`App_Data/keys`); Verlust loggt alle User bei jedem Restart aus. `App_Data` ist nicht im Image, sondern ein Volume auf dem Server und überlebt jeden Deploy.
-- **`TZ=Europe/Berlin`** in der Server-Env nötig - sonst sind alle `ToLocalTime()`-Zeiten verschoben. `TimeZoneInfo.Local` ist prozess-gecached → Container neu erstellen (Deploy-Workflow; `restart` liest die Env-Datei nicht neu).
-- **Discord-Redirect** `https://noose.info/signin-discord` muss im Developer-Portal registriert sein.
-- **Prod-Secrets** liegen nur auf dem Server, nie im Repo (Doppel-Unterstrich): `ConnectionStrings__ProductionConnection`, `Authentication__Discord__ClientId`/`__ClientSecret`, `Bootstrap__AdminDiscordId`, `Llm__ApiKey` (OpenRouter) und `Llm__DeepSeek__ApiKey` (DeepSeek direkt). Prod erzwingt `Demo__AutoSetup=false` in `deploy/compose.yml`.
-- **Health-Check:** `GET /health` (anonym, prüft DB-Konnektivität) → `200 Healthy`.
-- **Logs/Status:** auf dem Server im rootless Docker der jeweiligen App (`docker logs`, `docker compose ps`); Details in der privaten Betriebsdoku.
-- **Backup:** nächtliche DB-Backups laufen über 1Panel auf dem Server, vor jedem Deploy zusätzlich ein Dump aller Datenbanken. Uploads (`App_Data`) sind **nicht** im DB-Backup. Manuelle Dumps/Restores macht der Admin auf dem Server.
+Prod (`noose.info`) und Demo (`demo.noose.info`) rollst du über GitHub Actions aus, mit **Actions → Deploy → Run workflow** und `environment` = `production` oder `demo`. Vorher muss der Workflow „Container-Image“ für den Commit fertig sein. Wie der Deploy abläuft, welche Konfiguration die App braucht und was bei Fehlern hilft, steht in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), die Demo in [`docs/DEPLOYMENT-DEMO.md`](docs/DEPLOYMENT-DEMO.md).
 
 ---
 
@@ -520,7 +505,7 @@ deploy/                  compose.yml (Prod), demo/compose.yml (Demo)
 - [`CLAUDE.md`](CLAUDE.md) - Codebase-Konventionen, Architektur, Gotchas
 - [`AGENTS.md`](AGENTS.md) - Agent-/Contributor-Hinweise
 - [`claude-memory/`](claude-memory/) - Detailwissen je Bereich: **warum** eine Regel existiert, nicht nur dass sie gilt
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) - Server-Setup (nginx → Container → MariaDB-Container), Docker Compose, Backup, Troubleshooting
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) - Ausrollen, Konfiguration, Image und Fehlersuche
 - [`docs/CODE_REVIEW_TODO.md`](docs/CODE_REVIEW_TODO.md) - bekannte Tech-Debt-/Review-Findings
 - [`docs/CachePlan.md`](docs/CachePlan.md) - Caching und Ladezeiten
 - [`docs/DEPLOYMENT-DEMO.md`](docs/DEPLOYMENT-DEMO.md) - Demo-Instanz
