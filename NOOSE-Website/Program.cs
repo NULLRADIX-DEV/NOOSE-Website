@@ -160,7 +160,7 @@ builder.Services.AddCascadingAuthenticationState();
 // revalidate away — a plain provider is not IHostEnvironmentAuthenticationStateProvider, so the
 // circuit start can't push an anonymous state past CascadingAuthenticationState (which would
 // dead-end on the disabled Discord login). Prod keeps the real revalidating provider.
-if (builder.Configuration.GetValue<bool>("Demo:AutoSetup"))
+if (NOOSE_Website.Infrastructure.DemoInstance.IsDemo(builder.Configuration))
 {
     builder.Services.AddScoped<AuthenticationStateProvider, DemoAuthenticationStateProvider>();
 }
@@ -282,6 +282,7 @@ builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsSer
 builder.Services.AddScoped<IMeetingService, MeetingService>();
 builder.Services.AddHostedService<MeetingReminderWorker>();
 builder.Services.AddScoped<IThreatScoreConfigService, ThreatScoreConfigService>();
+builder.Services.AddSingleton<ThreatScoreRecalculationGate>();
 builder.Services.AddScoped<IThreatScoreService, ThreatScoreService>();
 builder.Services.AddScoped<IThreatTrendService, ThreatTrendService>();
 builder.Services.AddHostedService<ThreatScoreSweepWorker>();

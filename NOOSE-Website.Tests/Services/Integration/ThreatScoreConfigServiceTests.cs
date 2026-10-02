@@ -198,6 +198,20 @@ public sealed class ThreatScoreConfigServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveAsync_ThrowsUnauthorized_ForDemoVisitor()
+    {
+        var svc = NewService();
+        // rank Director like DemoIdentity: leadership by rank, but read-only
+        var demo = ClaimsPrincipalBuilder.Agent("demo-agent").WithRank(Rank.Director).AsDemo().Build();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => svc.SaveAsync(Valid(halfLifeDays: 99.0), demo));
+
+        using var db = _ctx.NewContext();
+        Assert.False(await db.ThreatScoreConfigs.AnyAsync()); // nothing persisted
+    }
+
+    [Fact]
     public async Task SaveAsync_ThrowsInvalidOperation_WhenConfigInvalid()
     {
         var svc = NewService();

@@ -241,9 +241,8 @@ else
         _calculates = true;
         try
         {
-            var factions = await ScoreService.NewCalculateAllAsync();
-            var people = await ScoreService.NewCalculateAllPeopleScoresAsync();
-            Snackbar.Add($"Neu berechnet: {factions} Fraktionen, {people} Personen.", Severity.Success);
+            var result = await ScoreService.RecalculateAllAsync(_user);
+            Snackbar.Add($"Neu berechnet: {result.Factions} Fraktionen, {result.People} Personen.", Severity.Success);
         }
         catch (Exception ex)
         {

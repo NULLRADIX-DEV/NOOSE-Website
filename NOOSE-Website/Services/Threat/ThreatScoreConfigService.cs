@@ -57,7 +57,7 @@ public class ThreatScoreConfigService(IDbContextFactory<AppDbContext> dbFactory,
 
     public async Task SaveAsync(ThreatScoreConfiguration config, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLeadership(actor);
+        Permission.RequireThreatScoreAdministration(actor);
         Validate(config);
 
         var json = JsonSerializer.Serialize(config, ThreatScoreService.JsonOptions);

@@ -14,9 +14,13 @@ namespace NOOSE_Website.Services;
 
 /// <inheritdoc cref="IThreatScoreService" />
 public class ThreatScoreService(
-    IDbContextFactory<AppDbContext> dbFactory, IThreatScoreConfigService configService, INotificationService notifications)
+    IDbContextFactory<AppDbContext> dbFactory, IThreatScoreConfigService configService, INotificationService notifications,
+    ThreatScoreRecalculationGate? recalculationGate = null)
     : IThreatScoreService
 {
+    // the app shares one gate (singleton); a service built without one, e.g. in a test, gets its own
+    private readonly ThreatScoreRecalculationGate _gate = recalculationGate ?? new ThreatScoreRecalculationGate();
+
     public static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -385,9 +389,37 @@ public class ThreatScoreService(
         return ids.Count;
     }
 
+    public async Task<ThreatScoreRecalculation> RecalculateAllAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireThreatScoreAdministration(actor);
+        if (!_gate.TryEnter())
+        {
+            throw new InvalidOperationException("Eine Neuberechnung läuft bereits.");
+        }
+
+        // released only here: this try starts after a successful TryEnter, so every way out frees the gate exactly once
+        try
+        {
+            var wait = _gate.RemainingCooldown(DateTime.UtcNow);
+            if (wait > TimeSpan.Zero)
+            {
+                throw new InvalidOperationException($"Bitte noch {Math.Ceiling(wait.TotalSeconds)} Sekunden warten.");
+            }
+
+            var factions = await NewCalculateAllAsync(cancellationToken);
+            var people = await NewCalculateAllPeopleScoresAsync(cancellationToken);
+            _gate.MarkFinished(DateTime.UtcNow); // the cooldown starts only after a successful run
+            return new ThreatScoreRecalculation(factions, people);
+        }
+        finally
+        {
+            _gate.Exit();
+        }
+    }
+
     public async Task<ThreatScoreDistribution> PreviewFactionDistributionAsync(ThreatScoreConfiguration candidate, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLeadership(actor);
+        Permission.RequireThreatScoreAdministration(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
         var ids = await db.Factions.OnlyActive().Select(f => f.Id).ToListAsync(cancellationToken);
@@ -412,7 +444,7 @@ public class ThreatScoreService(
 
     public async Task<ThreatScoreDistribution> PreviewPersonDistributionAsync(ThreatScoreConfiguration candidate, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLeadership(actor);
+        Permission.RequireThreatScoreAdministration(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
         var ids = await db.People.OnlyActive().Select(p => p.Id).ToListAsync(cancellationToken);

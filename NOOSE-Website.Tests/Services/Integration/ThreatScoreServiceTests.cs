@@ -22,6 +22,10 @@ public sealed class ThreatScoreServiceTests
     private static ClaimsPrincipal LowRank(string id = "low")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
 
+    // Demo visitor: rank Director like DemoIdentity, but read-only => fails RequireThreatScoreAdministration.
+    private static ClaimsPrincipal DemoVisitor()
+        => ClaimsPrincipalBuilder.Agent("demo-agent").WithRank(Rank.Director).AsDemo().Build();
+
     // --- collaborator factory ---
     private static IThreatScoreConfigService Config()
     {
@@ -398,5 +402,108 @@ public sealed class ThreatScoreServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.PreviewPersonDistributionAsync(ThreatScoreConfiguration.Default(), LowRank()));
+    }
+
+    [Fact]
+    public async Task PreviewDistributions_Throw_ForDemoVisitor()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = NewService(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => svc.PreviewFactionDistributionAsync(ThreatScoreConfiguration.Default(), DemoVisitor()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => svc.PreviewPersonDistributionAsync(ThreatScoreConfiguration.Default(), DemoVisitor()));
+    }
+
+    // ==================== RecalculateAllAsync (button in the settings) ====================
+
+    private static void SeedOneFactionAndPerson(SqliteTestContext ctx)
+    {
+        using var db = ctx.NewContext();
+        db.Factions.Add(Seed.Faction(id: "f1", name: "Ballas"));
+        db.People.Add(Seed.Person(id: "p1", name: "Max"));
+        db.SaveChanges();
+    }
+
+    private static ThreatScoreService NewService(SqliteTestContext ctx, ThreatScoreRecalculationGate gate)
+        => new(ctx.Factory, Config(), Substitute.For<INotificationService>(), gate);
+
+    [Fact]
+    public async Task RecalculateAllAsync_ComputesFactionsAndPeople_ForLeadership()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedOneFactionAndPerson(ctx);
+        var svc = NewService(ctx);
+
+        var result = await svc.RecalculateAllAsync(Leader());
+
+        Assert.Equal(new ThreatScoreRecalculation(Factions: 1, People: 1), result);
+        using var check = ctx.NewContext();
+        Assert.NotNull((await check.Factions.SingleAsync(x => x.Id == "f1")).ScoreCalculatedAt);
+        Assert.NotNull((await check.People.SingleAsync(x => x.Id == "p1")).ScoreCalculatedAt);
+    }
+
+    [Fact]
+    public async Task RecalculateAllAsync_Throws_ForDemoVisitor_AndWritesNothing()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedOneFactionAndPerson(ctx);
+        var svc = NewService(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.RecalculateAllAsync(DemoVisitor()));
+
+        using var check = ctx.NewContext();
+        Assert.Null((await check.Factions.SingleAsync(x => x.Id == "f1")).ScoreCalculatedAt);
+        Assert.Null((await check.People.SingleAsync(x => x.Id == "p1")).ScoreCalculatedAt);
+    }
+
+    [Fact]
+    public async Task RecalculateAllAsync_Throws_WhenNotLeadership()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = NewService(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.RecalculateAllAsync(LowRank()));
+    }
+
+    [Fact]
+    public async Task RecalculateAllAsync_Throws_WithinTheCooldown_AndReleasesTheGate()
+    {
+        using var ctx = new SqliteTestContext();
+        var gate = new ThreatScoreRecalculationGate();
+        var svc = NewService(ctx, gate);
+        await svc.RecalculateAllAsync(Leader());
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.RecalculateAllAsync(Leader()));
+
+        Assert.Contains("warten", refused.Message);
+        Assert.True(gate.TryEnter()); // the refused call did not keep the gate
+    }
+
+    [Fact]
+    public async Task RecalculateAllAsync_Throws_WhileAnotherRunHoldsTheGate()
+    {
+        using var ctx = new SqliteTestContext();
+        var gate = new ThreatScoreRecalculationGate();
+        Assert.True(gate.TryEnter()); // another run is going on
+        var svc = NewService(ctx, gate);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.RecalculateAllAsync(Leader()));
+
+        Assert.Contains("läuft bereits", refused.Message);
+        gate.Exit(); // the other run's release still works: the refused call did not release it
+    }
+
+    [Fact]
+    public void Gate_CountsTheCooldownDown_FromTheLastFinishedRun()
+    {
+        var gate = new ThreatScoreRecalculationGate();
+        var finished = new DateTime(2026, 10, 2, 12, 0, 0, DateTimeKind.Utc);
+        gate.MarkFinished(finished);
+
+        Assert.Equal(TimeSpan.FromSeconds(30), gate.RemainingCooldown(finished.AddSeconds(30)));
+        Assert.Equal(TimeSpan.Zero, gate.RemainingCooldown(finished + ThreatScoreRecalculationGate.Cooldown));
+        Assert.Equal(TimeSpan.Zero, new ThreatScoreRecalculationGate().RemainingCooldown(finished)); // never ran
     }
 }

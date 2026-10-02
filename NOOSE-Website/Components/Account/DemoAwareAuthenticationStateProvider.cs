@@ -2,34 +2,31 @@
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data.Entities;
-using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Components.Account;
 
-/// <summary>Carries auth state into interactive components and revalidates it (kill-switch). In demo mode it presents anonymous circuits as the demo agent and never revalidates that synthetic principal away.</summary>
+/// <summary>Carries auth state into interactive components and revalidates it (kill-switch). Never revalidates a demo principal away.</summary>
+/// <remarks>
+/// Registered only on instances that are not the demo (Program.cs). It used to present anonymous circuits as the
+/// demo agent when the database flag DemoModusAktiv was on, which on production would have opened the real data to
+/// every visitor. The demo instance has its own provider, see <see cref="NOOSE_Website.Infrastructure.DemoInstance"/>.
+/// </remarks>
 internal sealed class DemoAwareAuthenticationStateProvider(
     ILoggerFactory loggerFactory,
     IServiceScopeFactory scopeFactory,
-    IOptions<IdentityOptions> options,
-    IConfiguration configuration)
+    IOptions<IdentityOptions> options)
     : RevalidatingServerAuthenticationStateProvider(loggerFactory)
 {
-    // demo instance: present every anonymous visitor as the demo agent unconditionally (no DB check)
-    private readonly bool _forceDemo = configuration.GetValue<bool>("Demo:AutoSetup");
-
     // keep identical to the SecurityStampValidator interval in Program.cs
     protected override TimeSpan RevalidationInterval => TimeSpan.FromSeconds(30);
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        // primary path: the middleware sets HttpContext.User, which the framework persists as the
-        // circuit's state; this also backstops a reconnect that arrives anonymous. No SetAuthenticationState
-        // here on purpose (would re-notify mid-resolution).
+        // No SetAuthenticationState here on purpose (would re-notify mid-resolution).
         AuthenticationState? state = null;
         try
         {
@@ -37,17 +34,7 @@ internal sealed class DemoAwareAuthenticationStateProvider(
         }
         catch
         {
-            /* circuit without a seeded auth state: fall through to the demo backstop */
-        }
-
-        if (state?.User.Identity?.IsAuthenticated == true)
-        {
-            return state;
-        }
-
-        if (_forceDemo || await DemoActiveAsync())
-        {
-            return new AuthenticationState(DemoIdentity.BuildPrincipal());
+            /* circuit without a seeded auth state: stays anonymous */
         }
 
         return state ?? new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
@@ -73,13 +60,6 @@ internal sealed class DemoAwareAuthenticationStateProvider(
             /* transient DB fault: keep the session, the next tick decides */
             return true;
         }
-    }
-
-    private async Task<bool> DemoActiveAsync()
-    {
-        await using var scope = scopeFactory.CreateAsyncScope();
-        var settings = scope.ServiceProvider.GetRequiredService<ISystemSettingService>();
-        return (await settings.GetAsync()).DemoModeActive;
     }
 
     private async Task<bool> ValidateAsync(UserManager<Agent> userManager, ClaimsPrincipal principal)
