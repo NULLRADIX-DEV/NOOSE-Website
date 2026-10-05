@@ -478,7 +478,22 @@ public sealed class EvidenceServiceTests
     }
 
     [Fact]
-    public async Task CreateEntry_Withdrawal_NonLeadership_Throws_AndWritesNothing()
+    public async Task CreateEntry_Withdrawal_SeniorSpecialAgent_Succeeds()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+        await DepositAsync(svc, "Pistole", 10);
+        ClaimsPrincipal senior = ClaimsPrincipalBuilder.Agent("senior").WithRank(Rank.SeniorSpecialAgent).Build();
+
+        await svc.CreateEntryAsync(Entry(EvidenceEntryType.Withdrawal,
+            i => i.Lines.Add(new EvidenceLineInput { ItemName = "Pistole", Quantity = 3 })), senior);
+
+        var itemId = (await svc.GetItemByNameAsync("Pistole"))!.Id;
+        Assert.Equal(7, await svc.GetOnHandAsync(itemId));
+    }
+
+    [Fact]
+    public async Task CreateEntry_Withdrawal_BelowSenior_Throws_AndWritesNothing()
     {
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);

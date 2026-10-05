@@ -435,11 +435,11 @@ public sealed class PermissionTests
     [Theory]
     [InlineData(Rank.JuniorAgent, false)]
     [InlineData(Rank.SpecialAgent, false)]
-    [InlineData(Rank.SeniorSpecialAgent, false)]
+    [InlineData(Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SupervisorySpecialAgent, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
-    public void RequireEvidenceEntryWrite_withdrawal_byRank_gatesAtSupervisory(Rank rank, bool allowed)
+    public void RequireEvidenceEntryWrite_withdrawal_byRank_gatesAtSenior(Rank rank, bool allowed)
     {
         ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(rank);
         if (allowed)
@@ -466,7 +466,7 @@ public sealed class PermissionTests
         AssertDenied(() => Permission.RequireEvidenceEntryWrite(actor, EvidenceEntryType.Withdrawal));
     }
 
-    // Anonymous has no rank, so only the leadership arm stops it; the deposit arm is MayWrite-only,
+    // Anonymous has no rank, so only the rank arm stops it; the deposit arm is MayWrite-only,
     // exactly like RequireWriteAccess. Anonymous never reaches the service — every page is ActiveAgent.
     [Fact]
     public void RequireEvidenceEntryWrite_withdrawal_anonymous_throws()

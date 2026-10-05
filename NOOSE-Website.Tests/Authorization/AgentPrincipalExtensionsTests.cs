@@ -637,6 +637,35 @@ public class AgentPrincipalExtensionsTests
         Assert.False(user.MayHighestClassification());
     }
 
+    // ---------- MayEvidenceWithdraw (admin || rank >= SeniorSpecialAgent(3)) ----------
+
+    [Theory]
+    [InlineData(Rank.JuniorAgent, false)]
+    [InlineData(Rank.SpecialAgent, false)]
+    [InlineData(Rank.SeniorSpecialAgent, true)]
+    [InlineData(Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.DeputyDirector, true)]
+    [InlineData(Rank.Director, true)]
+    public void MayEvidenceWithdraw_byRank(Rank rank, bool expected)
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(rank).Build();
+        Assert.Equal(expected, user.MayEvidenceWithdraw());
+    }
+
+    [Fact]
+    public void MayEvidenceWithdraw_adminWithoutRank_returnsTrue()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsAdmin().Build();
+        Assert.True(user.MayEvidenceWithdraw());
+    }
+
+    [Fact]
+    public void MayEvidenceWithdraw_noRank_returnsFalse()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Build();
+        Assert.False(user.MayEvidenceWithdraw());
+    }
+
     // ---------- MayMeetingRead (MayHighestClassification || onlyReader) ----------
 
     [Fact]
