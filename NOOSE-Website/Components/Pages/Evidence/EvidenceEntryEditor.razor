@@ -34,7 +34,7 @@ else
             <MudStack Spacing="4">
                 <div>
                     <MudText Typo="Typo.subtitle2" Class="mb-1">Art</MudText>
-                    @if (_isLeadership)
+                    @if (_mayWithdraw)
                     {
                         <MudRadioGroup T="EvidenceEntryType" @bind-Value="_input.Type">
                             @foreach (var t in EvidenceEntryTypeDisplay.All)
@@ -47,13 +47,13 @@ else
                     }
                     else
                     {
-                        @* only leadership takes something out; the server enforces the same *@
+                        @* withdrawal needs Senior Special Agent; the server enforces the same *@
                         <MudChip T="string" Size="Size.Small" Color="@EvidenceEntryTypeDisplay.ChipColor(EvidenceEntryType.Deposit)"
                                  Icon="@EvidenceEntryTypeDisplay.Icon(EvidenceEntryType.Deposit)">
                             @EvidenceEntryTypeDisplay.Name(EvidenceEntryType.Deposit)
                         </MudChip>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
-                            Herausnahmen bucht die Führung.
+                            Herausnahmen bucht erst ein Senior Special Agent.
                         </MudText>
                     }
                 </div>
@@ -204,6 +204,7 @@ else
     // one scope for every text field of the page; dropped once the save went through
     private string DraftScope => IsEdit ? $"asservat:{Id}" : "asservat:neu";
     private bool _isLeadership;
+    private bool _mayWithdraw;
 
     private string _ownerKind = Noose;
     private AffiliationDialog.RecordHit? _owner;
@@ -240,6 +241,7 @@ else
 
         _user = (await AuthStateTask).User;
         _isLeadership = _user.IsLeadership();
+        _mayWithdraw = _user.MayEvidenceWithdraw();
         _agents = await Agents.GetSelectableAsync();
         _input.HandlerAgentId = _user.GetAgentId() ?? _agents.FirstOrDefault()?.Id ?? string.Empty;
 

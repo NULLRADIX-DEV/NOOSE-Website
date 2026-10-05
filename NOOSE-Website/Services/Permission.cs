@@ -201,7 +201,7 @@ public static class Permission
         }
     }
 
-    /// <summary>Require the right to file an evidence-room entry: depositing is open to every writing agent, taking something out stays with leadership.</summary>
+    /// <summary>Require the right to file an evidence-room entry: depositing is open to every writing agent, taking something out needs Senior Special Agent.</summary>
     public static void RequireEvidenceEntryWrite(ClaimsPrincipal actor, EvidenceEntryType type)
     {
         if (!actor.MayWrite())
@@ -209,11 +209,11 @@ public static class Permission
             throw new UnauthorizedAccessException(
                 "Nur-Lese-Modus: Änderungen sind in dieser Rolle nicht möglich.");
         }
-        // fail closed: anything that is not a deposit needs leadership
-        if (type != EvidenceEntryType.Deposit && !actor.IsLeadership())
+        // fail closed: anything that is not a deposit needs the withdrawal rank
+        if (type != EvidenceEntryType.Deposit && !actor.MayEvidenceWithdraw())
         {
             throw new UnauthorizedAccessException(
-                "Herausnahmen aus der Asservatenkammer bucht nur die Führung; einlagern darf jeder Agent.");
+                "Herausnahmen aus der Asservatenkammer bucht erst ein Senior Special Agent; einlagern darf jeder Agent.");
         }
     }
 

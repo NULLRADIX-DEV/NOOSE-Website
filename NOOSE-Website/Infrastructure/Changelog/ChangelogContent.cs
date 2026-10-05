@@ -397,6 +397,9 @@ public static class ChangelogContent
             Neu("2.2.13-routen", "Eine Drogenroute gehört jetzt immer nur einer Fraktion. Trägst du eine Route ein, "
                 + "die schon eine andere Fraktion hält, fragt die Seite nach – bestätigst du, geht sie beim Speichern "
                 + "über, und beide Akten vermerken den Wechsel.", "Akten"),
+            Besser("2.2.14-asservat-herausnahme", "Etwas aus der Asservatenkammer herausnehmen und die Buchung "
+                + "dazu anlegen darfst du jetzt schon ab dem Dienstgrad Senior Special Agent, nicht erst als "
+                + "Führung.", "Asservate"),
         ]),
     ];
 }
