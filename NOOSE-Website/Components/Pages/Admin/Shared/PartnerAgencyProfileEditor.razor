@@ -57,8 +57,8 @@ else
             }
         </MudGrid>
         <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
-            „Mitglieder von Badfraks“ heißt: aktuelle Mitglieder einer nicht archivierten Badfrak ohne Verschlusssache.
-            Verschlusssachen bleiben immer unsichtbar.
+            Badfrak-Regeln zählen nur nicht archivierte Badfraks ohne Verschlusssache, „Mitglieder von Badfraks“ nur
+            aktuelle Mitglieder. Verschlusssachen bleiben immer unsichtbar.
         </MudText>
     </MudPaper>
 
@@ -76,7 +76,7 @@ else
     @if (_mayEdit)
     {
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+                   OnClick="SaveAsync" Disabled="@(_busy || _load || _shownAgency != Agency)">Speichern</MudButton>
     }
 }
 
@@ -94,6 +94,9 @@ else
     private bool _load = true;
     private bool _busy;
     private PartnerAgency? _loadedAgency;
+    private int _loadGeneration;
+    // state's agency
+    private PartnerAgency _shownAgency;
     private PartnerFeature _features;
     private PartnerContent _blocked;
     private Dictionary<string, RuleState> _rules = new();
@@ -119,14 +122,34 @@ else
 
     private async Task LoadAsync()
     {
+        var generation = ++_loadGeneration;
+        var agency = Agency;
         _load = true;
-        var profile = await Profiles.GetAsync(Agency);
-        _features = profile.Features;
-        _blocked = profile.BlockedContent;
-        _rules = PartnerTabCatalog.All.ToDictionary(t => t.TypeKey, t => profile.RuleFor(t.TypeKey) is { } r
-            ? new RuleState { Scope = r.Scope, IncludesChildren = r.IncludesChildren }
-            : new RuleState());
-        _load = false;
+        try
+        {
+            var profile = await Profiles.GetAsync(agency);
+            // a newer agency switch won
+            if (generation != _loadGeneration)
+            {
+                return;
+            }
+            _shownAgency = agency;
+            _features = profile.Features;
+            _blocked = profile.BlockedContent;
+            _rules = PartnerTabCatalog.All.ToDictionary(t => t.TypeKey, t => profile.RuleFor(t.TypeKey) is { } r
+                ? new RuleState { Scope = r.Scope, IncludesChildren = r.IncludesChildren }
+                : new RuleState());
+            _load = false;
+        }
+        catch (Exception ex)
+        {
+            if (generation == _loadGeneration)
+            {
+                _loadedAgency = null;
+                _load = false;
+                Snackbar.Add($"Behördenzugang konnte nicht geladen werden: {ex.Message}", Severity.Error);
+            }
+        }
     }
 
     private static IEnumerable<PartnerRuleScope> ScopesFor(string typeKey)
@@ -166,7 +189,7 @@ else
                 .Where(r => r.Value.Scope is not null)
                 .Select(r => new PartnerRuleView(r.Key, r.Value.Scope!.Value, r.Value.IncludesChildren))
                 .ToList();
-            await Profiles.SaveAsync(Agency, _features, _blocked, rules, _user);
+            await Profiles.SaveAsync(_shownAgency, _features, _blocked, rules, _user);
             Snackbar.Add("Behördenzugang gespeichert – wirksam beim nächsten Seitenwechsel.", Severity.Success);
             await LoadAsync();
             await OnSaved.InvokeAsync();

@@ -10,6 +10,9 @@ public interface IPartnerAgencyProfileService
     /// <summary>The profile of one agency (cached); defaults when none is saved.</summary>
     Task<PartnerAgencyProfileView> GetAsync(PartnerAgency agency, CancellationToken cancellationToken = default);
 
+    /// <summary>The viewer's agency functions; None for internal accounts.</summary>
+    Task<PartnerFeature> GetFeaturesAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+
     /// <summary>True when the viewer is a partner whose agency has the function switched on.</summary>
     Task<bool> HasFeatureAsync(ClaimsPrincipal user, PartnerFeature feature, CancellationToken cancellationToken = default);
 

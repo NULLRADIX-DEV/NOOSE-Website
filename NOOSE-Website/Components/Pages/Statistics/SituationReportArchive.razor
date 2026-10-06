@@ -1,0 +1,60 @@
+@* Released situation reports for partner agencies with the reports function. *@
+@page "/lageberichte/archiv"
+@inject ISituationReportService SituationReports
+@inject NavigationManager Nav
+
+<PageTitle>Lageberichte · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.Assessment" Title="Lageberichte"
+            Subtitle="Monatliche Auswertungen der NOOSE, in der für deine Behörde freigegebenen Fassung." />
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_denied)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Lageberichte sind für dich nicht freigeschaltet.</MudAlert>
+}
+else if (_reports.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Assessment" Title="Noch keine Lageberichte"
+                Text="Der erste entsteht automatisch nach Monatsende." />
+}
+else
+{
+    <MudPaper Elevation="2">
+        <MudList T="string">
+            @foreach (var r in _reports)
+            {
+                <MudListItem T="string" OnClick="@(() => Nav.NavigateTo($"/lageberichte/{r.Id}"))" Icon="@Icons.Material.Filled.Assessment" Style="cursor:pointer;">
+                    <MudText Typo="Typo.body1"><b>@r.Title</b></MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Berichtsstand @r.GeneratedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                    </MudText>
+                </MudListItem>
+            }
+        </MudList>
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _denied;
+    private List<SituationReportHead> _reports = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _reports = await SituationReports.GetArchiveForAsync((await AuthStateTask).User);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _denied = true;
+        }
+        _load = false;
+    }
+}

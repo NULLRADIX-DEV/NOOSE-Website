@@ -16,8 +16,11 @@
                     <tr><th>Organisationen (Fraktionen, Gruppen, Parteien)</th><td>@metrics.FactionsAndGroups</td></tr>
                     <tr><th>Operationen</th><td>@metrics.Operations</td></tr>
                     <tr><th>Offene Vorgänge</th><td>@metrics.OpenCases</td></tr>
-                    <tr><th>Offene Anträge</th><td>@metrics.OpenRequests</td></tr>
-                    <tr><th>Veraltete Akten</th><td>@metrics.StaleRecords</td></tr>
+                    @if (!ForPartner)
+                    {
+                        <tr><th>Offene Anträge</th><td>@metrics.OpenRequests</td></tr>
+                        <tr><th>Veraltete Akten</th><td>@metrics.StaleRecords</td></tr>
+                    }
                 </tbody>
             </table>
         </section>
@@ -27,7 +30,10 @@
     @DistributionTable("Personen nach Gefährdung", r.PeopleByHazard)
     @DistributionTable("Personen nach Lebensstatus", r.PeopleByLifeStatus)
     @DistributionTable("Fraktionen nach Gefährdung", r.FactionsByHazard)
-    @DistributionTable("Maßnahme-Ausgänge", r.MeasureOutcomes)
+    @if (!ForPartner)
+    {
+        @DistributionTable("Maßnahme-Ausgänge", r.MeasureOutcomes)
+    }
     @DistributionTable("Vorgänge nach Status", r.CasesByStatus)
 
     @if (r.TimeSeries is { Count: > 0 } months)
@@ -36,24 +42,30 @@
             <h2>Verlauf der letzten 12 Monate</h2>
             <table class="druck-tabelle">
                 <thead>
-                    <tr><th>Monat</th><th>Maßnahmen</th><th>Neuzugänge</th></tr>
+                    <tr><th>Monat</th>@if (!ForPartner) { <th>Maßnahmen</th> }<th>Neuzugänge</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var m in months)
                     {
-                        <tr><td>@m.Label</td><td>@m.Measures</td><td>@m.NewEntries</td></tr>
+                        <tr><td>@m.Label</td>@if (!ForPartner) { <td>@m.Measures</td> }<td>@m.NewEntries</td></tr>
                     }
                 </tbody>
             </table>
         </section>
     }
 
-    @TopTable("Gefährlichste Personen", r.TopPeople)
+    @if (!ForPartner)
+    {
+        @TopTable("Gefährlichste Personen", r.TopPeople)
+    }
     @TopTable("Gefährlichste Fraktionen", r.TopFactions)
 }
 
 @code {
     [Parameter, EditorRequired] public StatisticsReport? Report { get; set; }
+
+    /// <summary>Hides internal workload, measures and named people; the data is redacted already, this keeps the layout honest.</summary>
+    [Parameter] public bool ForPartner { get; set; }
 
     private RenderFragment DistributionTable(string title, IReadOnlyList<DistributionSegment>? segments) =>@<section>
         <h2>@title</h2>

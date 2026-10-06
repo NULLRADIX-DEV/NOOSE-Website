@@ -26,8 +26,8 @@ public sealed record RadioChannelRow(
     string? Note,
     bool IsClassified);
 
-/// <summary>A faction frequency, read live from the faction record rather than copied into a channel row.</summary>
-public sealed record RadioFactionRow(string FactionId, string Name, string Frequency, bool IsClassified);
+/// <summary>A faction frequency, read live from the faction record rather than copied into a channel row; <paramref name="Linkable"/> is false where the viewer may not open the record.</summary>
+public sealed record RadioFactionRow(string FactionId, string Name, string Frequency, bool IsClassified, bool Linkable);
 
 /// <summary>Everything /funk shows, already filtered for the viewer.</summary>
 public sealed record RadioPlan(

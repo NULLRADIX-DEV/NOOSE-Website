@@ -223,6 +223,11 @@ public static class Visibility
         {
             return true;
         }
+        // no record behind it yet
+        if (row.TargetType == PartnerShareService.InquiryTarget)
+        {
+            return scope.IsLeadership && scope.PartnerAgency is null;
+        }
         return await IsRecordVisibleAsync(db, row.TargetType, row.TargetId, scope, cancellationToken);
     }
 

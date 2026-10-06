@@ -18,7 +18,7 @@ public sealed class ThreatDetailRedactionTests
     private static readonly ThreatPartialScore DocHeat = new(ThreatDetailRedaction.PersonDocHeat, 3, 12, 30, ["2 Maßnahme(n), jüngste vor 4 Tagen"]);
     private static readonly ThreatPartialScore ObservationHeat = new(ThreatDetailRedaction.PersonObservationHeat, 1, 5, 15, ["1 Observation(en)"]);
     private static readonly ThreatPartialScore Danger = new("Gefährlichkeit", 1, 8, 20, ["bewaffnet"]);
-    private static readonly ThreatPartialScore FactionHeat = new("Aktivitäts- & Maßnahmen-Heat", 4, 20, 35,
+    private static readonly ThreatPartialScore FactionHeat = new(ThreatDetailRedaction.FactionActivityHeat, 4, 20, 35,
         ["3 Aktivität(en), jüngste vor 2 Tagen", $"5 {ThreatDetailRedaction.FactionDocLine} (im Mitgliedschaftszeitraum)"]);
 
     [Fact]
@@ -30,14 +30,17 @@ public sealed class ThreatDetailRedactionTests
     }
 
     [Fact]
-    public void BlockedDocs_DropThePersonDocPartial_AndTheFactionDocLine()
+    public void BlockedDocs_DropEveryDocCarryingPartial_AndRecountTheContent()
     {
         var person = Read(ThreatDetailRedaction.WithoutContent(Json(DocHeat, ObservationHeat, Danger), PartnerContent.Docs));
-        var faction = Read(ThreatDetailRedaction.WithoutContent(Json(FactionHeat), PartnerContent.Docs));
+        var faction = Read(ThreatDetailRedaction.WithoutContent(Json(FactionHeat, Danger), PartnerContent.Docs));
 
         Assert.Equal(new[] { ThreatDetailRedaction.PersonObservationHeat, "Gefährlichkeit" }, person.PartialScores.Select(p => p.Name));
         Assert.Equal(61, person.Score);
-        Assert.Equal(new[] { "3 Aktivität(en), jüngste vor 2 Tagen" }, faction.PartialScores.Single().Driver);
+        // the shown content must not let anyone subtract their way to the hidden part
+        Assert.Equal(13, person.Content);
+        Assert.Equal(string.Empty, person.BandHint);
+        Assert.Equal(new[] { "Gefährlichkeit" }, faction.PartialScores.Select(p => p.Name));
     }
 
     [Fact]

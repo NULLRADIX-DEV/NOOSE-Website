@@ -68,7 +68,7 @@ public static class PartnerVisibility
             || await HasShareAsync(db, childType, childId, agency, partnerAgentId, cancellationToken);
     }
 
-    /// <summary>True if the parent record is released whole (all children covered) to the agency or the viewer's account.</summary>
+    /// <summary>True if the parent record is released whole (all children covered) to the agency or the viewer's account. Says nothing about the parent's own visibility; check that first.</summary>
     public static async Task<bool> ParentIncludesChildrenAsync(AppDbContext db, string parentType, string parentId, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
         => await db.PartnerShares.AnyAsync(s => s.EntityType == parentType && s.EntityId == parentId && s.Agency == agency && s.IncludesChildren
                 && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId), cancellationToken)
@@ -83,6 +83,15 @@ public static class PartnerVisibility
         }
         return PartnerContentCatalog.Blocks(await BlockedContentAsync(db, agency, cancellationToken), childType);
     }
+
+    /// <summary>Functions switched on for the viewer's agency; None for internal accounts or without a profile row.</summary>
+    public static async Task<PartnerFeature> FeaturesAsync(AppDbContext db, PartnerAgency? agency, CancellationToken cancellationToken = default)
+        => agency is null
+            ? PartnerFeature.None
+            : await db.PartnerAgencyProfiles
+                .Where(p => p.Agency == agency)
+                .Select(p => p.Features)
+                .FirstOrDefaultAsync(cancellationToken);
 
     /// <summary>Content the agency never sees; None without a profile row.</summary>
     public static async Task<PartnerContent> BlockedContentAsync(AppDbContext db, PartnerAgency agency, CancellationToken cancellationToken = default)
@@ -197,7 +206,7 @@ public static class PartnerVisibility
         return released;
     }
 
-    /// <summary>Of a candidate id set, those a release rule of the agency covers; existence and classification are the caller's.</summary>
+    /// <summary>Of a candidate id set, those a release rule of the agency covers. Existence and classification are the caller's: every caller checks parent visibility first.</summary>
     private static async Task<HashSet<string>> RuleMatchedIdsAsync(
         AppDbContext db, PartnerAgency agency, string entityType, IReadOnlyCollection<string> candidateIds, bool wholeOnly, CancellationToken cancellationToken)
     {
@@ -214,7 +223,7 @@ public static class PartnerVisibility
         {
             PartnerRuleScope.All => ids.ToHashSet(),
             PartnerRuleScope.BadFactions when entityType == nameof(Faction) => (await db.Factions
-                .Where(f => ids.Contains(f.Id) && f.IsBadFaction)
+                .Where(f => ids.Contains(f.Id) && f.IsBadFaction && !f.IsArchived)
                 .Select(f => f.Id)
                 .ToListAsync(cancellationToken)).ToHashSet(),
             PartnerRuleScope.BadFactionMembers when entityType == nameof(Person) => (await BadFactionMemberIds(db)
@@ -255,7 +264,7 @@ public static class PartnerVisibility
             && (db.PartnerShares.Any(s => s.EntityType == nameof(Faction) && s.EntityId == f.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)
-                || (f.IsBadFaction && rules.Any(r => r.Scope == PartnerRuleScope.BadFactions))));
+                || (f.IsBadFaction && !f.IsArchived && rules.Any(r => r.Scope == PartnerRuleScope.BadFactions))));
     }
 
     public static IQueryable<PersonGroup> OnlyPartnerVisible(this IQueryable<PersonGroup> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)

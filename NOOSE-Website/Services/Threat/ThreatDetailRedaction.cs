@@ -13,6 +13,9 @@ public static class ThreatDetailRedaction
     /// <summary>Person partial fed only by observations.</summary>
     public const string PersonObservationHeat = "Observations-Heat";
 
+    /// <summary>Faction partial mixing activities with the members' docs; its points cannot be split.</summary>
+    public const string FactionActivityHeat = "Aktivitäts- & Maßnahmen-Heat";
+
     /// <summary>Faction driver line counting the members' docs.</summary>
     public const string FactionDocLine = "Maßnahme(n) von Mitgliedern";
 
@@ -41,16 +44,17 @@ public static class ThreatDetailRedaction
         }
 
         var partials = detail.PartialScores
-            .Where(p => !(docs && p.Name == PersonDocHeat) && !(observations && p.Name == PersonObservationHeat))
-            .Select(p => docs ? p with { Driver = p.Driver.Where(d => !d.Contains(FactionDocLine, StringComparison.Ordinal)).ToList() } : p)
+            .Where(p => !(docs && (p.Name == PersonDocHeat || p.Name == FactionActivityHeat))
+                && !(observations && p.Name == PersonObservationHeat))
             .ToList();
         var redacted = new ThreatScoreDetail
         {
             PartialScores = partials,
-            Content = detail.Content,
+            // visible parts only
+            Content = partials.Sum(p => p.Points),
             ClassificationName = detail.ClassificationName,
             Base = detail.Base,
-            BandHint = detail.BandHint,
+            BandHint = string.Empty,
             Score = detail.Score,
             Confidence = detail.Confidence,
             TriageFlag = detail.TriageFlag,

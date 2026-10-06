@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Models.Enums;
@@ -339,5 +340,60 @@ public sealed class RadioServiceTests
         }, Plain());
 
         Assert.Equal(PartnerAgency.LSPD, created.Agency);
+    }
+
+    // ==================== partner with the radio function ====================
+
+    private static void GrantRadio(SqliteTestContext ctx, PartnerAgency agency)
+    {
+        using var db = ctx.NewContext();
+        db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = agency, Features = PartnerFeature.Radio });
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task GetPlanAsync_PartnerWithTheRadioFunction_SeesUnclassifiedChannels_AndLinksOnlyReleasedFactions()
+    {
+        using var ctx = new SqliteTestContext();
+        Add(ctx, c => { c.Label = "Offen"; c.Frequency = "100.1"; });
+        Add(ctx, c => { c.Label = "Geheim"; c.Frequency = "100.2"; c.IsClassified = true; });
+        using (var db = ctx.NewContext())
+        {
+            db.Factions.Add(Seed.Faction("released", "Ballas", f => f.Radio = "200.1"));
+            db.Factions.Add(Seed.Faction("hidden", "Vagos", f => f.Radio = "200.2"));
+            db.Factions.Add(Seed.Faction("vs", "Geheim", f => { f.Radio = "200.3"; f.IsClassified = true; }));
+            db.PartnerShares.Add(new PartnerShare { EntityType = "Faction", EntityId = "released", Agency = PartnerAgency.LSPD });
+            db.SaveChanges();
+        }
+        GrantRadio(ctx, PartnerAgency.LSPD);
+
+        var plan = await new RadioService(ctx.Factory).GetPlanAsync(Partner());
+
+        Assert.Equal(new[] { "Offen" }, plan.Channels.Select(c => c.Label));
+        Assert.Equal(new[] { "Ballas", "Vagos" }, plan.Factions.Select(f => f.Name).OrderBy(n => n));
+        Assert.True(plan.Factions.Single(f => f.FactionId == "released").Linkable);
+        Assert.False(plan.Factions.Single(f => f.FactionId == "hidden").Linkable);
+    }
+
+    [Fact]
+    public async Task GetPlanAsync_ThePartnerFunctionOfAnotherAgency_DoesNotOpenThePlan()
+    {
+        using var ctx = new SqliteTestContext();
+        GrantRadio(ctx, PartnerAgency.Parlament);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => new RadioService(ctx.Factory).GetPlanAsync(Partner()));
+    }
+
+    [Fact]
+    public async Task GetPlanAsync_PartnerWithTheRadioFunction_NeverSeesATaskforceChannel()
+    {
+        using var ctx = new SqliteTestContext();
+        AddTaskforce(ctx, "tf1", "someone");
+        Add(ctx, c => { c.Label = "TF"; c.TaskforceId = "tf1"; });
+        GrantRadio(ctx, PartnerAgency.LSPD);
+
+        var plan = await new RadioService(ctx.Factory).GetPlanAsync(Partner());
+
+        Assert.Empty(plan.Channels);
     }
 }

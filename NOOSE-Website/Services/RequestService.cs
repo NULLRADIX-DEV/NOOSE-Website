@@ -30,6 +30,7 @@ public class RequestService(IDbContextFactory<AppDbContext> dbFactory, INotifica
     public async Task UpgradeRequestAsync(string targetType, string targetId, string targetDesignation, Classification target,
         string justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         // top classification needs a request
         if (target != Classification.SecuredStateThreatening)
         {
@@ -99,7 +100,8 @@ public class RequestService(IDbContextFactory<AppDbContext> dbFactory, INotifica
         if (!isLeadership) return upgradeCount;
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var partnerCount = await db.Requests
-            .CountAsync(r => r.Type == RequestType.PartnerFreigabe && r.Status == RequestStatus.Requested, cancellationToken);
+            .CountAsync(r => (r.Type == RequestType.PartnerFreigabe || r.Type == RequestType.PartnerAnfrage)
+                && r.Status == RequestStatus.Requested, cancellationToken);
         return upgradeCount + partnerCount;
     }
 

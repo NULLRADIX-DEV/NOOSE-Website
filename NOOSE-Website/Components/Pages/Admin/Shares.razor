@@ -505,6 +505,45 @@ else
             </RowTemplate>
         </MudTable>
     }
+    <MudDivider Class="my-6" />
+
+    <MudText Typo="Typo.h6" Class="mb-2">Anfragen von Partnern</MudText>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+        Partnerbehörden fragen hier in eigenen Worten nach Akten, die sie noch nicht sehen. Zum Genehmigen wählst du
+        die passende Akte aus; die Freigabe wird dann gesetzt und das anfragende Konto benachrichtigt.
+    </MudText>
+    @if (_openInquiries.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Keine offenen Anfragen von Partnern.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_openInquiries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+            <HeaderContent>
+                <MudTh>Anfrage</MudTh>
+                <MudTh>Behörde</MudTh>
+                <MudTh>Begründung</MudTh>
+                <MudTh>Gestellt</MudTh>
+                <MudTh Style="text-align:right;">Aktion</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Anfrage"><MudText Typo="Typo.body2">@context.TargetDesignation</MudText></MudTd>
+                <MudTd DataLabel="Behörde">@(context.FreigabeAgency.HasValue ? PartnerAgencyDisplay.Name(context.FreigabeAgency.Value) : "—")</MudTd>
+                <MudTd DataLabel="Begründung"><MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Justification</MudText></MudTd>
+                <MudTd DataLabel="Gestellt">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@(context.RequesterName ?? "—") · @context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                </MudTd>
+                <MudTd DataLabel="Aktion" Style="text-align:right;">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                               StartIcon="@Icons.Material.Filled.Check" Class="mr-2"
+                               OnClick="() => InquiryApproveAsync(context)">Genehmigen</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Close"
+                               OnClick="() => InquiryRejectAsync(context)">Ablehnen</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
     </AuthorizeView>
 }
 
@@ -516,6 +555,7 @@ else
     private bool _isLeadership;
     private List<Request> _openUpgrades = new();
     private List<Request> _openPartnerRequests = new();
+    private List<Request> _openInquiries = new();
     private IReadOnlyList<PublicWantedRequestRow> _openPublications = Array.Empty<PublicWantedRequestRow>();
     private IReadOnlyList<BountyRequestRow> _openBounties = Array.Empty<BountyRequestRow>();
     private List<Agent> _pending = new();
@@ -589,6 +629,7 @@ else
         if (_isLeadership)
         {
             _openPartnerRequests = await PartnerShareService.GetPendingPartnerShareRequestsAsync();
+            _openInquiries = await PartnerShareService.GetPendingPartnerInquiriesAsync(_user);
             _pending = await AgentService.GetPendingAsync();
             _nameChanges = await AgentService.GetPendingNameChangesAsync();
             _avatars = await AgentService.GetPendingAvatarsAsync();
@@ -904,6 +945,51 @@ else
                 await PartnerShareService.RejectPartnerShareRequestAsync(_user, request.Id, string.IsNullOrWhiteSpace(note) ? null : note);
                 Snackbar.Add($"Freigabe-Antrag von {request.TargetDesignation} abgelehnt.", Severity.Info);
             }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        await LoadAsync();
+    }
+
+    private async Task InquiryApproveAsync(Request inquiry)
+    {
+        var dialog = await DialogService.ShowAsync<PartnerInquiryApproveDialog>("Anfrage beantworten", new DialogParameters<PartnerInquiryApproveDialog>
+        {
+            { d => d.Target, inquiry.TargetDesignation },
+            { d => d.Justification, inquiry.Justification },
+        }, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        if (await dialog.Result is not { Canceled: false, Data: PartnerInquiryAnswer answer })
+        {
+            return;
+        }
+        try
+        {
+            await PartnerShareService.ApprovePartnerInquiryAsync(_user, inquiry.Id, answer.EntityType, answer.EntityId,
+                answer.ToAccountOnly, answer.IncludesChildren, answer.Note);
+            Snackbar.Add("Anfrage beantwortet, Akte freigegeben.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        await LoadAsync();
+    }
+
+    private async Task InquiryRejectAsync(Request inquiry)
+    {
+        var note = await ReasonDialog.ShowAsync(DialogService, "Anfrage ablehnen?",
+            $"„{inquiry.TargetDesignation}“ wird abgelehnt. Eine Notiz sieht die anfragende Behörde.",
+            confirmText: "Ablehnen", label: "Notiz (optional)", colour: Color.Error);
+        if (note is null)
+        {
+            return;
+        }
+        try
+        {
+            await PartnerShareService.RejectPartnerInquiryAsync(_user, inquiry.Id, string.IsNullOrWhiteSpace(note) ? null : note);
+            Snackbar.Add("Anfrage abgelehnt.", Severity.Info);
         }
         catch (Exception ex)
         {

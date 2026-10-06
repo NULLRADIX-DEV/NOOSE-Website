@@ -1,7 +1,6 @@
-@* Frozen situation-report snapshot rendered as a document; leadership-only (contains classified aggregates). *@
+@* Frozen situation-report snapshot rendered as a document; leadership, or a partner with the reports function (redacted). *@
 @page "/lageberichte/{Id}"
 @layout PrintLayout
-@attribute [Authorize(Policy = Policies.LeadershipPage)]
 @inject ISituationReportService SituationReports
 
 <PageTitle>@(_display?.Title ?? "Lagebericht") · NOOSE</PageTitle>
@@ -16,32 +15,63 @@ else if (_display is null)
         <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3">
             Dieser Lagebericht existiert nicht (mehr) oder ist nicht lesbar.
         </MudAlert>
-        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/statistik?tab=lageberichte">Zurück zum Archiv</MudButton>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="@BackHref">Zurück zum Archiv</MudButton>
     </div>
 }
 else
 {
-    <PrintFrame Title="@_display.Title" BackHref="/statistik?tab=lageberichte" BackText="Zurück zum Archiv"
+    <PrintFrame Title="@_display.Title" BackHref="@BackHref" BackText="Zurück zum Archiv"
                  IsClassified="false" AutomaticPrint="false"
-                 Footer="NOOSE-interne Auswertung · automatisch erzeugter Lagebericht · Weitergabe nur nach Freigabe durch die Führung.">
+                 Footer="@(_isPartner
+                     ? "Freigegebene Auswertung der NOOSE · automatisch erzeugter Lagebericht · Weitergabe nur nach Freigabe durch die NOOSE."
+                     : "NOOSE-interne Auswertung · automatisch erzeugter Lagebericht · Weitergabe nur nach Freigabe durch die Führung.")">
         <p class="druck-meta">
             Automatisch erzeugter Lagebericht · Berichtsstand @_display.GeneratedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
-            · erzeugt von @(_display.GeneratedBy ?? "System")
+            @if (!_isPartner)
+            {
+                <text>· erzeugt von @(_display.GeneratedBy ?? "System")</text>
+            }
         </p>
-        <StatisticsReportTables Report="_display.Report" />
-        <FinancingReportTables Report="_display.Financing" />
+        <StatisticsReportTables Report="_display.Report" ForPartner="_isPartner" />
+        @if (!_isPartner)
+        {
+            <FinancingReportTables Report="_display.Financing" />
+        }
     </PrintFrame>
 }
 
 @code {
     [Parameter] public string Id { get; set; } = string.Empty;
 
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
     private bool _load = true;
+    private bool _isPartner;
     private SituationReportDisplay? _display;
 
-    protected override async Task OnInitializedAsync()
+    private string BackHref => _isPartner ? "/lageberichte/archiv" : "/statistik?tab=lageberichte";
+
+    private string? _loadedId;
+
+    protected override async Task OnParametersSetAsync()
     {
-        _display = await SituationReports.GetDisplayAsync(Id);
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _load = true;
+        var user = (await AuthStateTask).User;
+        _isPartner = user.IsPartner();
+        try
+        {
+            _display = await SituationReports.GetDisplayForAsync(Id, user);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // same message as missing
+            _display = null;
+        }
         _load = false;
     }
 }

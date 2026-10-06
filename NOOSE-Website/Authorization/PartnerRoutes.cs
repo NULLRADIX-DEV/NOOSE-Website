@@ -1,3 +1,4 @@
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Authorization;
@@ -21,6 +22,15 @@ public static class PartnerRoutes
 
     private static readonly string[] BlockedSuffixes = { "/neu", "/bearbeiten", "/papierkorb" };
 
+    // opened by an agency function
+    private static readonly (PartnerFeature Feature, string Prefix)[] FeaturePrefixes =
+    {
+        (PartnerFeature.Graph, "graph"),
+        (PartnerFeature.Radio, "funk"),
+        (PartnerFeature.SituationReports, "lageberichte"),
+        (PartnerFeature.ShareRequests, "anfragen"),
+    };
+
     // create routes a partner may open despite the blanket create-block (document authoring is universal)
     private static readonly string[] AuthoringRoutes = { "dokumente/neu" };
 
@@ -29,8 +39,8 @@ public static class PartnerRoutes
         => AuthoringRoutes.Contains(path)
             || (path.StartsWith("dokumente/") && path.EndsWith("/bearbeiten"));
 
-    /// <summary>True if a partner may open this relative path (dashboard and own profile always allowed).</summary>
-    public static bool IsAllowed(string? relativePath)
+    /// <summary>True if a partner may open this relative path (dashboard and own profile always allowed; function pages only with the agency function).</summary>
+    public static bool IsAllowed(string? relativePath, PartnerFeature features = PartnerFeature.None)
     {
         var path = Normalize(relativePath);
         if (path.Length == 0 || path == "dashboard" || path == "profil" || path.StartsWith("profil/"))
@@ -57,6 +67,10 @@ public static class PartnerRoutes
         if (BlockedSuffixes.Any(s => ("/" + path).EndsWith(s)))
         {
             return false;
+        }
+        if (FeaturePrefixes.Any(f => features.HasFlag(f.Feature) && (path == f.Prefix || path.StartsWith(f.Prefix + "/"))))
+        {
+            return true;
         }
         return AllowedPrefixes.Any(p => path == p || path.StartsWith(p + "/"));
     }

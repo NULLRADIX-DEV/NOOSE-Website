@@ -2,6 +2,7 @@
 @inject NavigationManager Nav
 @inject ISystemSettingService SettingService
 @inject IPartnerVisibilityPolicyService PartnerPolicy
+@inject IPartnerAgencyProfileService PartnerProfiles
 @inject INavPreferencesService NavPrefs
 @inject IAgentManagementService AgentService
 @inject IDialogService DialogService
@@ -193,6 +194,7 @@
     private bool _isPartner;
     private bool _isDemo;
     private IReadOnlySet<string>? _allowedPartnerTypes;
+    private PartnerFeature _partnerFeatures;
     private string? _avatarUrl;
 
     // re-evaluated each render
@@ -212,6 +214,7 @@
             if (_isPartner)
             {
                 _allowedPartnerTypes = await PartnerPolicy.GetAllowedTypesAsync(user);
+                _partnerFeatures = await PartnerProfiles.GetFeaturesAsync(user);
             }
 
             // remembered drawer state (read at prerender → no post-hydration flicker)
@@ -226,6 +229,26 @@
         }
     }
 
+    private string? _partnerGatePath;
+
+    // releases granted mid-session
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_isPartner || AuthStateTask is null || _partnerGatePath == CurrentPath)
+        {
+            return;
+        }
+        var first = _partnerGatePath is null;
+        _partnerGatePath = CurrentPath;
+        if (first)
+        {
+            return;
+        }
+        var user = (await AuthStateTask).User;
+        _allowedPartnerTypes = await PartnerPolicy.GetAllowedTypesAsync(user);
+        _partnerFeatures = await PartnerProfiles.GetFeaturesAsync(user);
+    }
+
     // partner gate: allowlisted route AND (not a record type OR the rank may access that type)
     private bool PartnerBlocked(string path)
     {
@@ -233,7 +256,7 @@
         {
             return false;
         }
-        if (!PartnerRoutes.IsAllowed(path))
+        if (!PartnerRoutes.IsAllowed(path, _partnerFeatures))
         {
             return true;
         }

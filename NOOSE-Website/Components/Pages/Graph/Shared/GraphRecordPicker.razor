@@ -7,6 +7,13 @@
 @inject ICaseService CaseService
 @inject ITaskforceService TaskforceService
 
+@if (_isPartner)
+{
+    <QuickRecordPicker Allowed="NOOSE_Website.Services.GraphService.PartnerNodeTypes" Label="@Label"
+                       Value="_partnerHit" ValueChanged="PartnerPickedAsync" />
+}
+else
+{
 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
     <MudSelect T="string" @bind-Value="_type" @bind-Value:after="TypeSwitchedAsync" Label="Typ" Dense="true"
                Variant="Variant.Outlined" Style="min-width:160px;" Margin="Margin.Dense">
@@ -69,8 +76,23 @@
             break;
     }
 </MudStack>
+}
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    // release-aware search
+    private bool _isPartner;
+    private QuickHit? _partnerHit;
+
+    protected override async Task OnInitializedAsync() => _isPartner = (await AuthStateTask).User.IsPartner();
+
+    private async Task PartnerPickedAsync(QuickHit? hit)
+    {
+        _partnerHit = hit;
+        await Selected.InvokeAsync(hit is null ? null : new GraphRecordChoice(hit.Category, hit.TargetId, hit.Name));
+    }
+
     [Parameter] public string Label { get; set; } = "Akte suchen";
     [Parameter] public bool IsLeadership { get; set; }
     [Parameter] public string? MeId { get; set; }

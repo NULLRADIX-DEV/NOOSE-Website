@@ -74,6 +74,8 @@ public class SituationReportService(
         }
 
         var report = await statistics.GetReportAsync(isLeadership: true, meId: null, cancellationToken: cancellationToken);
+        // classified records left out
+        var released = await statistics.GetReportAsync(isLeadership: false, meId: null, cancellationToken: cancellationToken);
         var financing = await financingStatistics.GetMonthAsync(year, month, cancellationToken);
         var title = $"Lagebericht {new DateTime(year, month, 1).ToString("MMMM yyyy", DeDe)}";
 
@@ -85,6 +87,7 @@ public class SituationReportService(
             SnapshotJson = JsonSerializer.Serialize(report, JsonOptions),
             // own column: SnapshotJson is a frozen wire format that must not gain members
             FinancingJson = JsonSerializer.Serialize(financing, JsonOptions),
+            ReleasedSnapshotJson = JsonSerializer.Serialize(released, JsonOptions),
             CreatedById = triggerId,
         };
         db.SituationReports.Add(bulletin);
@@ -94,11 +97,15 @@ public class SituationReportService(
         return bulletin;
     }
 
-    public async Task<List<SituationReportHead>> GetArchiveAsync(CancellationToken cancellationToken = default)
+    public Task<List<SituationReportHead>> GetArchiveAsync(CancellationToken cancellationToken = default)
+        => ArchiveAsync(releasedOnly: false, cancellationToken);
+
+    private async Task<List<SituationReportHead>> ArchiveAsync(bool releasedOnly, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         var rows = await db.SituationReports
+            .Where(l => !releasedOnly || l.ReleasedSnapshotJson != null)
             .OrderByDescending(l => l.Year).ThenByDescending(l => l.Month).ThenByDescending(l => l.CreatedAt)
             .Select(l => new { l.Id, l.Year, l.Month, l.Title, l.CreatedAt, l.CreatedById })
             .ToListAsync(cancellationToken);
@@ -114,11 +121,16 @@ public class SituationReportService(
             string.IsNullOrEmpty(r.CreatedById) ? null : names.GetValueOrDefault(r.CreatedById))).ToList();
     }
 
-    public async Task<SituationReportDisplay?> GetDisplayAsync(string id, CancellationToken cancellationToken = default)
+    public Task<SituationReportDisplay?> GetDisplayAsync(string id, CancellationToken cancellationToken = default)
+        => DisplayAsync(id, released: false, cancellationToken);
+
+    /// <summary>A report from the full snapshot or, for partners, the one without classified records (null when absent).</summary>
+    private async Task<SituationReportDisplay?> DisplayAsync(string id, bool released, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var bulletin = await db.SituationReports.FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
-        if (bulletin is null)
+        var json = released ? bulletin?.ReleasedSnapshotJson : bulletin?.SnapshotJson;
+        if (bulletin is null || string.IsNullOrWhiteSpace(json))
         {
             return null;
         }
@@ -126,7 +138,7 @@ public class SituationReportService(
         StatisticsReport? report;
         try
         {
-            report = JsonSerializer.Deserialize<StatisticsReport>(bulletin.SnapshotJson, JsonOptions);
+            report = JsonSerializer.Deserialize<StatisticsReport>(json, JsonOptions);
         }
         catch (JsonException ex)
         {
@@ -162,8 +174,63 @@ public class SituationReportService(
         return new SituationReportDisplay(bulletin.Id, bulletin.Title, bulletin.CreatedAt, generatedBy, report, financing);
     }
 
+    public async Task<List<SituationReportHead>> GetArchiveForAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
+    {
+        await RequireReadAsync(viewer, cancellationToken);
+        if (!viewer.IsPartner())
+        {
+            return await GetArchiveAsync(cancellationToken);
+        }
+        // released snapshots only
+        var heads = await ArchiveAsync(releasedOnly: true, cancellationToken);
+        return heads.Select(h => h with { GeneratedBy = null }).ToList();
+    }
+
+    public async Task<SituationReportDisplay?> GetDisplayForAsync(string id, ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
+    {
+        await RequireReadAsync(viewer, cancellationToken);
+        if (viewer.GetPartnerAgency() is not { } agency)
+        {
+            return await GetDisplayAsync(id, cancellationToken);
+        }
+        var display = await DisplayAsync(id, released: true, cancellationToken);
+        if (display is null)
+        {
+            return null;
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var factionIds = (display.Report.TopFactions ?? []).Select(e => SituationReportRedaction.LastSegment(e.Href)).ToList();
+        var visible = (await db.Factions.Where(f => factionIds.Contains(f.Id))
+            .OnlyPartnerVisible(db, agency, viewer.GetAgentId())
+            .Select(f => f.Id)
+            .ToListAsync(cancellationToken)).ToHashSet();
+        return display with
+        {
+            Report = SituationReportRedaction.ForPartner(display.Report, visible),
+            Financing = null,
+            GeneratedBy = null,
+        };
+    }
+
+    /// <summary>Leadership and supervision read every report; a partner only with the agency's reports function.</summary>
+    private async Task RequireReadAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken)
+    {
+        if (viewer.IsPartner())
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+            Permission.RequireInternalOrPartnerFeature(viewer,
+                await PartnerVisibility.FeaturesAsync(db, viewer.GetPartnerAgency(), cancellationToken), PartnerFeature.SituationReports);
+            return;
+        }
+        if (!viewer.IsLeadership() && !viewer.IsOnlyReader())
+        {
+            throw new UnauthorizedAccessException("Lageberichte sind der Führung vorbehalten.");
+        }
+    }
+
     public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var bulletin = await db.SituationReports.FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
         if (bulletin is null)

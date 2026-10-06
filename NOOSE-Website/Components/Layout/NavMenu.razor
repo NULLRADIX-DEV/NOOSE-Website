@@ -126,6 +126,7 @@
     [Inject] private IFinancingService FinancingService { get; set; } = default!;
     [Inject] private NOOSE_Website.Services.Public.ITipService TipService { get; set; } = default!;
     [Inject] private IPartnerVisibilityPolicyService PartnerPolicy { get; set; } = default!;
+    [Inject] private IPartnerAgencyProfileService PartnerProfiles { get; set; } = default!;
     [Inject] private Microsoft.Extensions.Logging.ILogger<NavMenu> Logger { get; set; } = default!;
 
     private ClaimsPrincipal? _user;
@@ -397,7 +398,7 @@
         {
             _allowedPartnerTypes = await PartnerPolicy.GetAllowedTypesAsync(_user);
             _partnerEntries = NavPersonalization.Apply(
-                NavCatalog.PartnerRecordEntries(_allowedPartnerTypes), _prefs).ToList();
+                NavCatalog.PartnerRecordEntries(_allowedPartnerTypes, await PartnerProfiles.GetFeaturesAsync(_user)), _prefs).ToList();
             _areas = _partnerEntries.Count > 0 ? [NavArea.Partner] : [];
         }
         else

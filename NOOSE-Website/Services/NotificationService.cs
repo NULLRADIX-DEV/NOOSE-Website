@@ -4,7 +4,6 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Notifications;
-using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Notifications;
@@ -134,9 +133,8 @@ public class NotificationService(
             // gate on recipient's own visibility, not the trigger's (no record/classification leak)
             if (e.PartnerAgency is { } agency)
             {
-                // docs never announced
-                if (childType == nameof(PersonDoc)
-                    || (childType is not null && await PartnerVisibility.IsContentBlockedAsync(db, agency, childType, cancellationToken))
+                // child release unknown
+                if (childType is not null
                     || !await Visibility.IsRecordVisibleAsync(db, targetType, targetId,
                         new ViewerScope(false, false, e.Id, agency), cancellationToken))
                 {

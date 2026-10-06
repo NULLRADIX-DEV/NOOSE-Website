@@ -82,7 +82,7 @@
             <MudSelect T="string" MultiSelection="true" SelectedValues="_typeFilter" SelectedValuesChanged="TypeFilterChanged"
                        Label="Aktentypen" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:200px;"
                        MultiSelectionTextFunc="@(s => s.Count == 0 ? "Alle" : $"{s.Count} gewählt")">
-                @foreach (var t in _allTypes)
+                @foreach (var t in ShownTypes)
                 {
                     <MudSelectItem T="string" Value="@t.Value">@t.Display</MudSelectItem>
                 }
@@ -364,6 +364,11 @@
         new(nameof(Observation), "Observationen", "#58A6FF"),
     };
     private static readonly TypeOption[] _legendTypes = _allTypes.Take(7).ToArray();
+
+    // partner types only
+    private IEnumerable<TypeOption> ShownTypes => _user?.IsPartner() == true
+        ? _allTypes.Where(t => NOOSE_Website.Services.GraphService.PartnerNodeTypes.Contains(t.Value))
+        : _allTypes;
 
     protected override async Task OnInitializedAsync()
     {

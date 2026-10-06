@@ -16,7 +16,7 @@ public interface INotificationService
     Task NotifyOnceAsync(string? recipientId, NotificationType type, string title, string? href,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Notify agents mentioned via @{Agent:Id} in the text, excluding the trigger, deduplicated and visibility-filtered. Title stays generic. <paramref name="childType"/> names the child the text sits in, so partners whose agency never sees it are skipped.</summary>
+    /// <summary>Notify agents mentioned via @{Agent:Id} in the text, excluding the trigger, deduplicated and visibility-filtered. Title stays generic. <paramref name="childType"/> names the child the text sits in; partners are never pinged from a child, whose release is not known here.</summary>
     Task NotifyMentionedAsync(string? text, string title, string? href, string targetType, string targetId,
         ClaimsPrincipal trigger, CancellationToken cancellationToken = default, string? childType = null);
 

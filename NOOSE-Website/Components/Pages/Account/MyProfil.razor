@@ -269,7 +269,8 @@
         }
         if (!string.IsNullOrWhiteSpace(id))
         {
-            _myRequests = await RequestService.GetMyAsync(id);
+            // inquiries live on /anfragen
+            _myRequests = (await RequestService.GetMyAsync(id)).Where(r => r.Type != RequestType.PartnerAnfrage).ToList();
             if (!_isPartner)
             {
                 _stats = await Gamification.GetStatsAsync(id);

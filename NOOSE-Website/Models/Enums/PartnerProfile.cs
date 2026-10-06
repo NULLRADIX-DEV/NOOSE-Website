@@ -64,7 +64,13 @@ public static class PartnerProfileDisplay
     };
 
     /// <summary>Functions that already work and may be switched, in display order.</summary>
-    public static readonly IReadOnlyList<PartnerFeature> AvailableFeatures = Array.Empty<PartnerFeature>();
+    public static readonly IReadOnlyList<PartnerFeature> AvailableFeatures = new[]
+    {
+        PartnerFeature.Graph,
+        PartnerFeature.Radio,
+        PartnerFeature.SituationReports,
+        PartnerFeature.ShareRequests,
+    };
 
     /// <summary>All blockable content kinds in display order.</summary>
     public static readonly IReadOnlyList<PartnerContent> AllContent = new[]

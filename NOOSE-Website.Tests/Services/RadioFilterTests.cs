@@ -12,7 +12,7 @@ public class RadioFilterTests
         => new("id", frequency, label, RadioScope.Noose, null, taskforce is null ? null : "tf1", taskforce, note, false);
 
     private static RadioFactionRow Faction(string frequency, string name = "Ballas")
-        => new("f1", name, frequency, false);
+        => new("f1", name, frequency, false, true);
 
     // ==================== nothing typed ====================
 

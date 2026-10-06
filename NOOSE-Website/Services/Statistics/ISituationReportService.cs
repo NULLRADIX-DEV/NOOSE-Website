@@ -20,6 +20,12 @@ public interface ISituationReportService
     /// <summary>Loads a report including its deserialized snapshot; null if not found/readable.</summary>
     Task<SituationReportDisplay?> GetDisplayAsync(string id, CancellationToken cancellationToken = default);
 
-    /// <summary>Moves a report to the trash (soft delete).</summary>
+    /// <summary>Archive headers for a viewer: leadership and supervision, or a partner with the reports function (no author).</summary>
+    Task<List<SituationReportHead>> GetArchiveForAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+
+    /// <summary>A report for a viewer; partners get the redacted view without financing.</summary>
+    Task<SituationReportDisplay?> GetDisplayForAsync(string id, ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+
+    /// <summary>Moves a report to the trash (soft delete). Leadership only.</summary>
     Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 }

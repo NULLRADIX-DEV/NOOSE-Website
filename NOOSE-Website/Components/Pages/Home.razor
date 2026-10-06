@@ -7,6 +7,9 @@
 @inject IFollowupService FollowupService
 @inject NavigationManager Nav
 @inject IAuthorizationService Authorization
+@using NOOSE_Website.Navigation
+@inject IPartnerVisibilityPolicyService PartnerPolicy
+@inject IPartnerAgencyProfileService PartnerProfiles
 
 <PageTitle>Dashboard · NOOSE</PageTitle>
 
@@ -32,9 +35,11 @@
         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
             Willkommen. Sie sehen ausschließlich die für Ihre Behörde freigegebenen Akten – schreibgeschützt.
         </MudText>
-        <MudStack Row="true" Spacing="2">
-            <MudButton Href="/personen" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Badge">Personen-Akten</MudButton>
-            <MudButton Href="/fraktionen" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Groups">Fraktionen</MudButton>
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+            @foreach (var entry in _partnerEntries)
+            {
+                <MudButton Href="@entry.Route" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@entry.Icon">@entry.Label</MudButton>
+            }
         </MudStack>
     </MudPaper>
 }
@@ -264,6 +269,7 @@ else if (_distributions is { } v)
     private bool _load = true;
     private bool _isLeadership;
     private bool _isPartner;
+    private IReadOnlyList<NavEntry> _partnerEntries = [];
     private bool _mayShares;
     private DashboardMetrics? _metrics;
     private DashboardDistributions? _distributions;
@@ -287,6 +293,8 @@ else if (_distributions is { } v)
         if (_isPartner)
         {
             // partner-safe landing
+            _partnerEntries = NavCatalog.PartnerRecordEntries(
+                await PartnerPolicy.GetAllowedTypesAsync(user), await PartnerProfiles.GetFeaturesAsync(user));
             _load = false;
             return;
         }
