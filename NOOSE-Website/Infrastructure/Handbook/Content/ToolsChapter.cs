@@ -114,12 +114,19 @@ internal static class ToolsChapter
                 harmlose Gründe für fast jedes Muster.</p>
                 """),
 
-            new Article("art-gesetze", "gesetzbuch", "Das Gesetzbuch",
+            new Article("art-gesetze", "gesetzbuch", "Die Gesetzbücher",
                 "Paragrafen nachschlagen - und wie sie nach außen kommen.",
                 """
-                <p>Das <strong>Gesetzbuch</strong> ist die Sammlung der Paragrafen und Rechtsgrundlagen, nach
-                denen die Behörde arbeitet. Du kannst darin suchen und einzelne Vorschriften aus einer Akte
-                heraus verknüpfen.</p>
+                <p>Unter <em>Gesetze</em> stehen die <strong>Gesetzbücher</strong>, nach denen die Behörde
+                arbeitet - zuerst als Karten, eine je Buch. Ein Klick auf ein Buch zeigt alle Paragrafen,
+                geordnet nach den Abschnitten des Buchs. Einen Paragrafen klappst du mit einem Klick auf und
+                liest ihn direkt dort; <em>Akte öffnen</em> bringt dich zu seiner eigenen Seite mit Verknüpfungen
+                und Druckansicht.</p>
+                <p>Das Suchfeld oben durchsucht alle Bücher auf einmal, das Suchfeld im Buch nur dieses eine.
+                Ein Treffer öffnet das Buch und klappt den Paragrafen gleich auf.</p>
+                <p>Die Führung legt Bücher und Paragrafen an. Der Gesetzestext ist ein formatierter Text:
+                Absätze, Aufzählungen und Hervorhebungen bleiben so stehen, wie du sie schreibst. Ein
+                gelöschter Paragraf landet im <em>Papierkorb</em> und lässt sich von dort zurückholen.</p>
                 <p>Einzelne Auszüge lassen sich <strong>für die Öffentlichkeit freigeben</strong>. Bürger sehen
                 dann genau diesen Auszug - nicht das ganze Buch.</p>
                 <p>Begriffe aus dem Gesetzbuch stehen bewusst <em>nicht</em> im Glossar dieses Handbuchs. Eine

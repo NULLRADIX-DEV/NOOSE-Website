@@ -26,6 +26,7 @@ public static class AuditEntityDisplay
         "Appointment" => "Termin",
         "Document" => "Dokument",
         "Law" => "Gesetz",
+        "LawBook" => "Gesetzbuch",
         "RadioChannel" => "Funkkanal",
         "Announcement" => "Ankündigung",
         "Agent" => "Agent",
@@ -89,6 +90,8 @@ public static class AuditEntityDisplay
         "Appointment" => $"/kalender/{id}",
         "Document" => $"/dokumente/{id}",
         "Law" => $"/gesetze/{id}",
+        // the book page is addressed by abbreviation, not id
+        "LawBook" => "/gesetze",
         // a channel has no detail page; the plan opens on it
         "RadioChannel" => $"/funk?kanal={id}",
         "Agent" => $"/personal/{id}",

@@ -235,7 +235,7 @@ public sealed class LawSearchProvider(IDbContextFactory<AppDbContext> dbFactory)
                 || g.LawBook.Contains(s) || g.Text.Contains(s)
                 || (g.Sentence != null && g.Sentence.Contains(s)));
         }
-        var rows = await q.OrderBy(g => g.LawBook).ThenBy(g => g.Paragraph).Take(query.PerCategory)
+        var rows = await q.OrderBy(g => g.LawBook).ThenBy(g => g.SortOrder).ThenBy(g => g.Paragraph).Take(query.PerCategory)
             .Select(g => new { g.Id, g.Paragraph, g.Title, g.LawBook }).ToListAsync(cancellationToken);
         return rows
             .Select(g => new SearchHit(nameof(Law), g.Id, $"{g.Paragraph} {g.Title}", g.LawBook, g.Paragraph))

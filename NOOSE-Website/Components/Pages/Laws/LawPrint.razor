@@ -25,6 +25,10 @@ else
                     <tr><th>Gesetzbuch</th><td>@_law.LawBook</td></tr>
                     <tr><th>Paragraf</th><td>@_law.Paragraph</td></tr>
                     <tr><th>Titel</th><td>@_law.Title</td></tr>
+                    @if (!string.IsNullOrWhiteSpace(_law.Section))
+                    {
+                        <tr><th>Abschnitt</th><td>@_law.Section</td></tr>
+                    }
                     @if (!string.IsNullOrWhiteSpace(_law.Sentence))
                     {
                         <tr><th>Strafmaß / Rechtsfolge</th><td>@_law.Sentence</td></tr>
@@ -35,7 +39,7 @@ else
 
         <section>
             <h2>Gesetzestext</h2>
-            <div class="druck-mehrzeilig"><MentionDisplay Text="@_law.Text" Plain="true" /></div>
+            <RichHtml Html="@_law.Text" Plain="true" Glossary="false" />
         </section>
 
         <PrintLinks Entries="_links" />

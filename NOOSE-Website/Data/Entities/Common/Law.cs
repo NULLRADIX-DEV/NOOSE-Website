@@ -18,6 +18,15 @@ public class Law : IAuditable, ISoftDelete
     [Column("Titel")]
     public string Title { get; set; } = string.Empty;
 
+    /// <summary>Heading of the part of the book the paragraph stands in, e.g. "I. – Allgemeiner Teil".</summary>
+    [Column("Abschnitt")]
+    public string? Section { get; set; }
+
+    /// <summary>Position within the book.</summary>
+    [Column("Reihenfolge")]
+    public int SortOrder { get; set; }
+
+    /// <summary>Sanitized HTML.</summary>
     public string Text { get; set; } = string.Empty;
 
     /// <summary>Optional sentence / legal consequence as free text.</summary>

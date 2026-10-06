@@ -228,6 +228,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     // system settings, law book, file library
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
     public DbSet<Law> Laws => Set<Law>();
+    public DbSet<LawBook> LawBooks => Set<LawBook>();
     public DbSet<LibraryFile> LibraryFiles => Set<LibraryFile>();
 
     // ---- partner record releases ----
@@ -1581,10 +1582,20 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(g => g.Paragraph).HasMaxLength(32).IsRequired();
             b.Property(g => g.Title).HasMaxLength(256).IsRequired();
             b.Property(g => g.Sentence).HasMaxLength(512);
+            b.Property(g => g.Section).HasMaxLength(256);
             b.HasIndex(g => g.LawBook);
             b.HasIndex(g => g.Title);
             // the public law page reads by this flag alone
             b.HasIndex(g => g.IsPublic);
+        });
+
+        modelBuilder.Entity<LawBook>(b =>
+        {
+            b.Property(g => g.Abbreviation).HasMaxLength(128).IsRequired();
+            b.Property(g => g.Name).HasMaxLength(256).IsRequired();
+            b.Property(g => g.Description).HasMaxLength(1024);
+            // not unique: a book in the trash keeps its abbreviation
+            b.HasIndex(g => g.Abbreviation);
         });
 
         modelBuilder.Entity<LibraryFile>(b =>

@@ -31,7 +31,13 @@
             @foreach (var book in _books)
             {
                 <MudDivider />
-                <MudText Typo="Typo.h5">@book.Name</MudText>
+                <MudText Typo="Typo.h5">
+                    @book.Name
+                    @if (book.Title is { Length: > 0 } title)
+                    {
+                        <span class="mud-text-secondary"> · @title</span>
+                    }
+                </MudText>
                 <MudStack Spacing="2">
                     @foreach (var entry in book.Entries)
                     {
@@ -43,8 +49,8 @@
                                     </MudChip>
                                     <MudText Typo="Typo.subtitle1">@entry.Title</MudText>
                                 </MudStack>
-                                @* plain text, never MarkupString: line breaks are the formatting of a statute *@
-                                <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">@entry.Text</MudText>
+                                @* raw markup, not RichHtml: that component resolves @{Typ:GUID} mentions and would print internal record names outside *@
+                                <div class="dokument-html">@((MarkupString)entry.Text)</div>
                                 @if (entry.Sentence is { Length: > 0 } sentence)
                                 {
                                     <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space: pre-wrap;">

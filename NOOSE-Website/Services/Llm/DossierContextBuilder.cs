@@ -617,7 +617,8 @@ public static partial class DossierContextBuilder
         Line(sb, "Paragraf", l.Paragraph);
         Line(sb, "Titel", l.Title);
         Line(sb, "Strafmaß", l.Sentence);
-        if (Free(l.Text) is { Length: > 0 } text)
+        Line(sb, "Abschnitt", l.Section);
+        if (Free(StripHtml(l.Text)) is { Length: > 0 } text)
         {
             sb.AppendLine("— Wortlaut —");
             sb.AppendLine(text);

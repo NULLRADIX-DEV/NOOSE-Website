@@ -36,7 +36,7 @@ public static class MergedPageSections
         "asservate-items", "asservate-eintraege", "kasse-buchungen", "finanzierungen",
         "feedback", "oeffentliche-seiten", "oeffentliche-fahndungen", "oeffentliche-fraktionsprofile",
         "hinweise", "tickets", "fahndungs-einsprueche", "pressemitteilungen", "oeffentliche-warnungen", "oeffentliche-lageberichte",
-        "neuerungen", "handbuch-kapitel", "handbuch-artikel",
+        "neuerungen", "handbuch-kapitel", "handbuch-artikel", "gesetzbuecher", "gesetze",
     ];
 
     public static readonly string[] Wanted =

@@ -17,4 +17,29 @@ public interface ILawService
     Task<Law> CreateAsync(LawInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RefreshAsync(string id, LawInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Deleted paragraphs for the trash.</summary>
+    Task<List<Law>> GetTrashAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Restore a paragraph; it comes back internal.</summary>
+    Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>All books the viewer can see, catalog order.</summary>
+    Task<List<LawBookSummary>> GetBooksAsync(CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null, string? partnerAgentId = null);
+
+    /// <summary>One book with its visible paragraphs; null if unknown or empty for a partner.</summary>
+    Task<LawBookContent?> GetBookAsync(string abbreviation, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null, string? partnerAgentId = null);
+
+    Task<LawBook> CreateBookAsync(LawBookInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Update a book; a new abbreviation moves its paragraphs along.</summary>
+    Task UpdateBookAsync(string id, LawBookInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Delete an empty book.</summary>
+    Task DeleteBookAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Deleted books for the trash.</summary>
+    Task<List<LawBook>> GetBookTrashAsync(CancellationToken cancellationToken = default);
+
+    Task RestoreBookAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 }

@@ -1,29 +1,52 @@
+@* Add or edit one paragraph; the text is rich text, the book comes from the catalog. *@
+@inject ILawService LawService
+
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="3">
-            <MudStack Row="true" Spacing="2">
-                <MudTextField @bind-Value="_input.LawBook" Label="Gesetzbuch" Variant="Variant.Outlined"
-                              Required="true" RequiredError="Gesetzbuch ist erforderlich"
-                              Placeholder="z. B. StGB, StVO" />
-                <MudTextField @bind-Value="_input.Paragraph" Label="Paragraf" Variant="Variant.Outlined"
-                              Required="true" RequiredError="Paragraf ist erforderlich"
+            @if (_loaded && _books.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Es gibt noch kein Gesetzbuch. Lege zuerst unter „Neues Gesetzbuch“ eines an.
+                </MudAlert>
+            }
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudSelect T="string" Value="_input.LawBook" ValueChanged="BookChangedAsync" Label="Gesetzbuch"
+                           Variant="Variant.Outlined" Required="true" RequiredError="Gesetzbuch ist erforderlich"
+                           Style="min-width:240px;">
+                    @foreach (var book in _books)
+                    {
+                        <MudSelectItem T="string" Value="@book.Abbreviation">@book.Abbreviation – @book.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_input.Paragraph" Label="Paragraf" Variant="Variant.Outlined" Immediate="true"
+                              Required="true" RequiredError="Paragraf ist erforderlich" MaxLength="32"
                               Placeholder="z. B. § 31" Style="max-width:160px;" />
+                <MudNumericField T="int" @bind-Value="_input.SortOrder" Label="Reihenfolge" Variant="Variant.Outlined"
+                                 Min="0" HelperText="0 = ans Ende des Buchs" Style="max-width:170px;" />
             </MudStack>
-            <MudTextField @bind-Value="_input.Title" Label="Titel" Variant="Variant.Outlined"
-                          Required="true" RequiredError="Titel ist erforderlich"
+            <MudTextField @bind-Value="_input.Title" Label="Titel" Variant="Variant.Outlined" Immediate="true"
+                          Required="true" RequiredError="Titel ist erforderlich" MaxLength="256"
                           Placeholder="z. B. Landfriedensbruch" />
-            <MentionInput @bind-Text="_input.Text" Label="Gesetzestext" HelperText="@MentionInput.Hint"
-                          Lines="8" Required="true" RequiredError="Text ist erforderlich"
-                          DraftKey='@DraftKeys.In(DraftScope, "text")' />
+            <MudAutocomplete T="string" @bind-Value="_input.Section" Label="Abschnitt (optional)" Variant="Variant.Outlined"
+                             SearchFunc="SearchSectionsAsync" CoerceValue="true" CoerceText="false" Clearable="true"
+                             MaxLength="256" Placeholder="z. B. II. – Straftaten gegen das Leben"
+                             HelperText="Überschrift, unter der der Paragraf im Gesetzbuch steht." />
+
+            <MudText Typo="Typo.subtitle2" Class="mt-2">Gesetzestext</MudText>
+            <RichTextEditor @ref="_editor" @bind-Value="_text" MinHeight="300px" Mentions="true"
+                            DraftKey="@TextDraftKey(LawId)" />
+
             <MudTextField @bind-Value="_input.Sentence" Label="Strafmaß / Rechtsfolge (optional)" Variant="Variant.Outlined"
-                          Placeholder="z. B. Freiheitsstrafe bis zu 3 Jahren oder Geldstrafe" />
+                          Immediate="true" MaxLength="512"
+                          Placeholder="z. B. Freiheitsstrafe bis zu 20 Hafteinheiten oder Geldstrafe" />
         </MudStack>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Abbrechen</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save"
                    Disabled="@(string.IsNullOrWhiteSpace(_input.LawBook) || string.IsNullOrWhiteSpace(_input.Paragraph)
-                               || string.IsNullOrWhiteSpace(_input.Title) || string.IsNullOrWhiteSpace(_input.Text))">
+                               || string.IsNullOrWhiteSpace(_input.Title))">
             Speichern
         </MudButton>
     </DialogActions>
@@ -34,13 +57,18 @@
 
     [Parameter] public LawInput? Preset { get; set; }
 
-    /// <summary>Browser draft scope of the law text; the caller drops it once the paragraph is stored.</summary>
-    [Parameter] public string? DraftScope { get; set; }
+    /// <summary>Id of the paragraph being edited; null for a new one (only scopes the browser draft).</summary>
+    [Parameter] public string? LawId { get; set; }
 
     private LawInput _input = new();
+    private string? _text;
+    private bool _loaded;
+    private RichTextEditor? _editor;
+    private List<LawBookSummary> _books = new();
+    private List<string> _sections = new();
 
     // once: a nested dialog re-renders this one, and re-applying the preset then threw away what was typed
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         if (Preset is not null)
         {
@@ -51,30 +79,107 @@
                 Title = Preset.Title,
                 Text = Preset.Text,
                 Sentence = Preset.Sentence,
+                Section = Preset.Section,
+                SortOrder = Preset.SortOrder,
             };
+            _text = Preset.Text;
         }
+        try
+        {
+            _books = await LawService.GetBooksAsync();
+            // a legacy spelling still selects its book
+            var match = _books.FirstOrDefault(b => string.Equals(b.Abbreviation, _input.LawBook, StringComparison.OrdinalIgnoreCase));
+            if (match is not null)
+            {
+                _input.LawBook = match.Abbreviation;
+            }
+            else if (string.IsNullOrEmpty(_input.LawBook) && _books.Count > 0)
+            {
+                _input.LawBook = _books[0].Abbreviation;
+            }
+            await LoadSectionsAsync();
+        }
+        catch
+        {
+            /* best effort */
+        }
+        _loaded = true;
+    }
+
+    private async Task BookChangedAsync(string book)
+    {
+        _input.LawBook = book;
+        try
+        {
+            await LoadSectionsAsync();
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    private async Task LoadSectionsAsync()
+    {
+        _sections = string.IsNullOrEmpty(_input.LawBook)
+            ? new()
+            : (await LawService.GetBookAsync(_input.LawBook))?.Paragraphs
+                  .Select(l => l.Section)
+                  .Where(s => !string.IsNullOrWhiteSpace(s))
+                  .Select(s => s!)
+                  .Distinct(StringComparer.OrdinalIgnoreCase)
+                  .ToList() ?? new();
+    }
+
+    private Task<IEnumerable<string>> SearchSectionsAsync(string value, CancellationToken cancellationToken)
+    {
+        IEnumerable<string> hits = string.IsNullOrWhiteSpace(value)
+            ? _sections
+            : _sections.Where(s => s.Contains(value.Trim(), StringComparison.OrdinalIgnoreCase));
+        return Task.FromResult(hits);
     }
 
     private void Cancel() => MudDialog.Cancel();
 
-    private void Save() => MudDialog.Close(DialogResult.Ok(_input));
+    private async Task Save()
+    {
+        // read straight from the editor: the bound value trails the last keystrokes by the change debounce
+        if (_editor is not null)
+        {
+            _text = await _editor.GetHtmlAsync();
+        }
+        _input.Text = _text ?? string.Empty;
+        MudDialog.Close(DialogResult.Ok(_input));
+    }
 
-    /// <summary>Draft scope of a new paragraph, or of the one with this id.</summary>
-    public static string DraftScopeFor(string? lawId) => string.IsNullOrEmpty(lawId) ? "gesetz:neu" : $"gesetz:{lawId}";
+    /// <summary>Browser draft key of the text; the caller drops it once the paragraph is stored.</summary>
+    public static string TextDraftKey(string? lawId) => $"gesetz:{(string.IsNullOrEmpty(lawId) ? "neu" : lawId)}:text";
 
     /// <summary>Shows the dialog; returns the input or null if cancelled.</summary>
-    /// <remarks>The caller drops <see cref="DraftScopeFor"/> once the paragraph is stored, not before.</remarks>
+    /// <remarks>The caller drops <see cref="TextDraftKey"/> once the paragraph is stored, not before.</remarks>
     public static async Task<LawInput?> ShowAsync(IDialogService dialog, string title, LawInput? preset = null,
         string? lawId = null)
     {
         var parameters = new DialogParameters<LawDialog>
         {
             { x => x.Preset, preset },
-            { x => x.DraftScope, DraftScopeFor(lawId) },
+            { x => x.LawId, lawId },
         };
         var reference = await dialog.ShowAsync<LawDialog>(title, parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseOnEscapeKey = true });
+            new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true });
         var result = await reference.Result;
         return result is { Canceled: false, Data: LawInput e } ? e : null;
     }
+
+    /// <summary>Preset for editing an existing paragraph.</summary>
+    public static LawInput PresetFor(Law law) => new()
+    {
+        LawBook = law.LawBook,
+        Paragraph = law.Paragraph,
+        Title = law.Title,
+        Text = law.Text,
+        Sentence = law.Sentence,
+        Section = law.Section,
+        SortOrder = law.SortOrder,
+    };
 }

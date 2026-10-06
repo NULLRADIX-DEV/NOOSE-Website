@@ -18,7 +18,8 @@ else if (_law is null)
 else
 {
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 no-print">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/gesetze" aria-label="Zurück zum Gesetzbuch" />
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"{LawsList.BookHref(_law.LawBook)}?p={_law.Id}")"
+                       aria-label="Zurück zum Gesetzbuch" />
         <MudIcon Icon="@Icons.Material.Filled.Gavel" Color="Color.Primary" Size="Size.Large" />
         <MudText Typo="Typo.h4">@_law.Paragraph @_law.Title</MudText>
         <MudSpacer />
@@ -30,7 +31,7 @@ else
         <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
             <PartnerShareButton EntityType="@nameof(Law)" EntityId="@_law.Id" />
         </AuthorizeView>
-        <AuthorizeView Policy="@Policies.Leadership" Context="fuehrung">
+        <AuthorizeView Policy="@Policies.LeadershipWrite" Context="fuehrung">
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
                        OnClick="EditAsync">Bearbeiten</MudButton>
         </AuthorizeView>
@@ -39,10 +40,16 @@ else
     <MudPaper Class="pa-4 mb-4" Elevation="2">
         <MudStack Spacing="3">
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@_law.LawBook</MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                         Href="@LawsList.BookHref(_law.LawBook)">@_law.LawBook</MudChip>
                 <MudText Typo="Typo.h6">@_law.Paragraph – @_law.Title</MudText>
+                @if (!string.IsNullOrWhiteSpace(_law.Section))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@_law.Section</MudText>
+                }
             </MudStack>
-            <MudText Typo="Typo.body1"><MentionDisplay Text="@_law.Text" /></MudText>
+            @* a div, not inside MudText: that renders a <p>, and block content cannot nest in it *@
+            <RichHtml Html="@_law.Text" User="@_user" Glossary="false" />
             @if (!string.IsNullOrWhiteSpace(_law.Sentence))
             {
                 <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
@@ -141,14 +148,7 @@ else
         {
             return;
         }
-        var input = await LawDialog.ShowAsync(DialogService, $"{_law.Paragraph} bearbeiten", new LawInput
-        {
-            LawBook = _law.LawBook,
-            Paragraph = _law.Paragraph,
-            Title = _law.Title,
-            Text = _law.Text,
-            Sentence = _law.Sentence,
-        }, _law.Id);
+        var input = await LawDialog.ShowAsync(DialogService, $"{_law.Paragraph} bearbeiten", LawDialog.PresetFor(_law), _law.Id);
         if (input is null)
         {
             return;
@@ -156,7 +156,7 @@ else
         try
         {
             await LawService.RefreshAsync(_law.Id, input, _user);
-            await TextDraft.DiscardScopeAsync(JS, _user.GetAgentId(), LawDialog.DraftScopeFor(_law.Id));
+            await RichTextEditor.DiscardDraftAsync(JS, _user.GetAgentId(), LawDialog.TextDraftKey(_law.Id));
             Snackbar.Add("Paragraf gespeichert.", Severity.Success);
             await LoadAsync();
         }

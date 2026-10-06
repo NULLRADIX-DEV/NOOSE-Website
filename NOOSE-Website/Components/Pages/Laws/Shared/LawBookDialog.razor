@@ -1,0 +1,65 @@
+@* Add or edit one law book of the catalog. *@
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudTextField @bind-Value="_input.Abbreviation" Label="Kürzel" Variant="Variant.Outlined" Immediate="true"
+                              Required="true" RequiredError="Kürzel ist erforderlich" MaxLength="128"
+                              Placeholder="z. B. StGB" Style="max-width:200px;"
+                              HelperText="Teil der Adresse; ein neues Kürzel nimmt die Paragrafen mit." />
+                <MudNumericField T="int" @bind-Value="_input.SortOrder" Label="Reihenfolge" Variant="Variant.Outlined"
+                                 Min="0" HelperText="0 = ans Ende" Style="max-width:170px;" />
+            </MudStack>
+            <MudTextField @bind-Value="_input.Name" Label="Name" Variant="Variant.Outlined" Immediate="true"
+                          Required="true" RequiredError="Name ist erforderlich" MaxLength="256"
+                          Placeholder="z. B. Strafgesetzbuch des Staates San Andreas" />
+            <MudTextField @bind-Value="_input.Description" Label="Beschreibung (optional)" Variant="Variant.Outlined"
+                          Immediate="true" MaxLength="1024"
+                          HelperText="Eine Zeile für die Übersicht — wofür das Gesetzbuch gilt." />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save"
+                   Disabled="@(string.IsNullOrWhiteSpace(_input.Abbreviation) || string.IsNullOrWhiteSpace(_input.Name))">
+            Speichern
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public LawBookInput? Preset { get; set; }
+
+    private LawBookInput _input = new();
+
+    // once: a nested dialog re-renders this one, and re-applying the preset then threw away what was typed
+    protected override void OnInitialized()
+    {
+        if (Preset is not null)
+        {
+            _input = new LawBookInput
+            {
+                Abbreviation = Preset.Abbreviation,
+                Name = Preset.Name,
+                Description = Preset.Description,
+                SortOrder = Preset.SortOrder,
+            };
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Save() => MudDialog.Close(DialogResult.Ok(_input));
+
+    /// <summary>Shows the dialog; returns the input or null if cancelled.</summary>
+    public static async Task<LawBookInput?> ShowAsync(IDialogService dialog, string title, LawBookInput? preset = null)
+    {
+        var parameters = new DialogParameters<LawBookDialog> { { x => x.Preset, preset } };
+        var reference = await dialog.ShowAsync<LawBookDialog>(title, parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: LawBookInput e } ? e : null;
+    }
+}

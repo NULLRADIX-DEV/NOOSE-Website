@@ -494,7 +494,7 @@ public partial class DemoDataService
             "Wer ohne die erforderliche Erlaubnis eine Schusswaffe erwirbt, besitzt, führt oder einem anderen "
             + "überlässt, wird bestraft.",
             "Freiheitsstrafe bis zu fünf Jahren oder Geldstrafe"),
-        new("BtMG", "§ 29a", "Betäubungsmittel in nicht geringer Menge",
+        new("BtmG", "§ 29a", "Betäubungsmittel in nicht geringer Menge",
             "Wer mit Betäubungsmitteln in nicht geringer Menge unerlaubt Handel treibt, sie herstellt, abgibt oder "
             + "besitzt, wird bestraft.",
             "Freiheitsstrafe nicht unter einem Jahr"),
@@ -505,16 +505,38 @@ public partial class DemoDataService
             "keine Strafnorm — Befugnisnorm"),
     ];
 
+    private static readonly (string Abbreviation, string Name)[] LawBookSpecs =
+    [
+        ("StGB", "Strafgesetzbuch des Staates San Andreas"),
+        ("StPO", "Strafprozessordnung des Staates San Andreas"),
+        ("BtmG", "Betäubungsmittelgesetz des Staates San Andreas"),
+        ("WaffG", "Waffengesetz des Staates San Andreas"),
+    ];
+
     /// <summary>Releases a handful of paragraphs for the public law extract; the flag on the record is the release.</summary>
     private static async Task<int> SeedLawsAsync(AppDbContext db, CancellationToken ct)
     {
+        var added = 0;
+        var books = (await db.LawBooks.IgnoreQueryFilters().Select(b => b.Abbreviation).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < LawBookSpecs.Length; i++)
+        {
+            var (abbreviation, name) = LawBookSpecs[i];
+            if (books.Add(abbreviation))
+            {
+                db.LawBooks.Add(new LawBook { Abbreviation = abbreviation, Name = name, SortOrder = i + 1 });
+                added++;
+            }
+        }
+
         var existing = (await db.Laws.IgnoreQueryFilters().ToListAsync(ct))
             .GroupBy(l => l.LawBook + "|" + l.Paragraph, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        var added = 0;
+        var sortOrder = 0;
         foreach (var spec in LawSpecs)
         {
+            sortOrder++;
             var key = spec.Book + "|" + spec.Paragraph;
             if (existing.TryGetValue(key, out var law))
             {
@@ -530,8 +552,9 @@ public partial class DemoDataService
                 LawBook = spec.Book,
                 Paragraph = spec.Paragraph,
                 Title = spec.Title,
-                Text = spec.Text,
+                Text = HtmlCleanup.FromPlain(spec.Text),
                 Sentence = spec.Sentence,
+                SortOrder = sortOrder,
                 IsPublic = true,
             });
             added++;

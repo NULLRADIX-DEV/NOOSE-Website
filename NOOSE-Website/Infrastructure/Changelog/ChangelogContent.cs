@@ -400,6 +400,13 @@ public static class ChangelogContent
             Besser("2.2.14-asservat-herausnahme", "Etwas aus der Asservatenkammer herausnehmen und die Buchung "
                 + "dazu anlegen darfst du jetzt schon ab dem Dienstgrad Senior Special Agent, nicht erst als "
                 + "Führung.", "Asservate"),
+            Neu("2.2.15-gesetzbuecher", "Unter Gesetze siehst du zuerst die Gesetzbücher. Ein Klick öffnet das "
+                + "Buch mit allen Paragrafen nach Abschnitten, und jeden Paragrafen klappst du direkt dort auf.",
+                "Gesetze"),
+            Besser("2.2.16-gesetzestext-formatiert", "Gesetzestexte lassen sich jetzt formatieren – mit Absätzen, "
+                + "Aufzählungen, Fett und Kursiv –, und bestehende Texte behalten ihre Zeilen.", "Gesetze"),
+            Fix("2.2.17-zeilenumbrueche", "Zeilenumbrüche in Texten bleiben nach dem Speichern sichtbar, statt "
+                + "zu einer Zeile zusammenzulaufen.", "Bedienung"),
         ]),
     ];
 }

@@ -4,6 +4,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Changelog;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Handbook;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
@@ -163,6 +164,13 @@ public static class TrashProjection
     // never the body: the trash page is a list, and an article may carry images
     public static TrashItem HandbookArticle(HandbookArticle x)
         => new("handbuch-artikel", x.Id, null, x.Title, x.Summary, x.DeletedAt);
+
+    // never the text: a paragraph body is HTML and may run for pages
+    public static TrashItem Law(Law x)
+        => new("gesetze", x.Id, null, $"{x.LawBook} {x.Paragraph} – {x.Title}", x.Section, x.DeletedAt);
+
+    public static TrashItem LawBook(LawBook x)
+        => new("gesetzbuecher", x.Id, null, $"{x.Abbreviation} – {x.Name}", x.Description, x.DeletedAt);
 
     private static string Snippet(string text)
         => text.Length <= 40 ? text : string.Concat(text.AsSpan(0, 40), "…");

@@ -273,4 +273,47 @@ public sealed class PublicLawServiceTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => host.Service.SetPublicAsync("s1", true, Citizen()));
     }
+
+    // ---- rich text ----
+
+    [Fact]
+    public async Task TheTextGoesOutAsCleanedMarkup_WithoutMentionTokens()
+    {
+        using var ctx = await SeededAsync();
+        await using (var db = ctx.NewContext())
+        {
+            // written around the service on purpose: the snapshot must not trust what is stored
+            (await db.Laws.SingleAsync(l => l.Id == "s1")).Text =
+                "<p>Wer <strong>@{Person:0f8fad5b-d9cb-469f-a165-70867728950e}</strong> hilft</p><script>alert(1)</script>";
+            await db.SaveChangesAsync();
+        }
+        var host = NewHost(ctx);
+        await host.Service.SetPublicAsync("s1", true, Leader());
+
+        var entry = Assert.Single(Assert.Single((await host.Service.GetPublishedAsync()).Books).Entries);
+        Assert.DoesNotContain("@{", entry.Text);
+        Assert.DoesNotContain("script", entry.Text);
+        Assert.Contains("<p>", entry.Text);
+        Assert.Equal("Wer hilft", entry.PlainText);
+    }
+
+    [Fact]
+    public async Task TheCatalogNamesTheBook_AndOrdersTheBooks()
+    {
+        using var ctx = await SeededAsync();
+        await using (var db = ctx.NewContext())
+        {
+            db.LawBooks.AddRange(
+                new LawBook { Abbreviation = "StVO", Name = "Straßenverkehrsordnung", SortOrder = 1 },
+                new LawBook { Abbreviation = "StGB", Name = "Strafgesetzbuch", SortOrder = 2 });
+            await db.SaveChangesAsync();
+        }
+        var host = NewHost(ctx);
+        await host.Service.SetPublicAsync("s1", true, Leader());
+        await host.Service.SetPublicAsync("v1", true, Leader());
+
+        var books = (await host.Service.GetPublishedAsync()).Books;
+        Assert.Equal(["StVO", "StGB"], books.Select(b => b.Name));
+        Assert.Equal(["Straßenverkehrsordnung", "Strafgesetzbuch"], books.Select(b => b.Title));
+    }
 }

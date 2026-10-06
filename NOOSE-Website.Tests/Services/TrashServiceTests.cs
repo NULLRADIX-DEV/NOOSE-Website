@@ -49,7 +49,8 @@ public class TrashServiceTests
         Substitute.For<IPublicWarningService>(),
         Substitute.For<IPublicReportService>(),
         _changelog,
-        _handbook);
+        _handbook,
+        Substitute.For<ILawService>());
 
     [Fact]
     public void Kind_keys_are_unique()
