@@ -61,7 +61,9 @@ namespace NOOSE_Website.Data.Migrations
                 table: "Gesetzbuecher",
                 column: "Kuerzel");
 
-            // plain text to paragraphs, as HtmlCleanup.FromPlain does: escape, trim lines, drop blank ones
+            // plain text to paragraphs, as HtmlCleanup.FromPlain does: escape, trim lines, drop blank ones;
+            // every row, since all of them are plain text here and one starting with '<' is no HTML
+            // the editor ever sanitized
             migrationBuilder.Sql(@"
 UPDATE Gesetze SET Text = CONCAT('<p>', REPLACE(
     REGEXP_REPLACE(
@@ -70,7 +72,7 @@ UPDATE Gesetze SET Text = CONCAT('<p>', REPLACE(
             CONCAT('[ ', CHAR(9 USING utf8mb4), ']*', CHAR(10 USING utf8mb4), '[[:space:]]*'), CHAR(10 USING utf8mb4)),
         '^[[:space:]]+|[[:space:]]+$', ''),
     CHAR(10 USING utf8mb4), '</p><p>'), '</p>')
-WHERE Text NOT LIKE '<%' AND TRIM(Text) <> '';");
+WHERE TRIM(Text) <> '';");
 
             // one catalog row per book the paragraphs already name; the collation folds BtMG and BtmG together
             migrationBuilder.Sql(@"
