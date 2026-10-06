@@ -181,6 +181,21 @@ public static class Permission
         }
     }
 
+    /// <summary>Require an internal agent, or a partner whose agency has <paramref name="needed"/> switched on.</summary>
+    public static void RequireInternalOrPartnerFeature(ClaimsPrincipal actor, PartnerFeature granted, PartnerFeature needed)
+    {
+        if (!actor.IsPartner())
+        {
+            RequireInternalAgent(actor);
+            return;
+        }
+        if (!granted.HasFlag(needed))
+        {
+            throw new UnauthorizedAccessException(
+                "Dieser Bereich ist für deine Behörde nicht freigeschaltet.");
+        }
+    }
+
     /// <summary>Require read access to leadership-level content; read-only supervision is admitted.</summary>
     public static void RequireClassifiedRead(ClaimsPrincipal actor)
     {

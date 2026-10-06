@@ -119,6 +119,9 @@ public enum NotificationType
     /// own, <see cref="PublicTipReceived"/> is the desk notice. This one exists so the submission pings and a
     /// citizen's reply on a running tip does not. The post stays generic and names neither citizen nor subject.</summary>
     PublicTipCreated = 35,
+
+    /// <summary>A partner agency asked for more records. Not routable: it names what an agency wants to see.</summary>
+    PartnerInquiry = 36,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -162,6 +165,7 @@ public static class NotificationTypeDisplay
         NotificationType.PublicObjectionReceived => "Einspruch gegen eine Ausschreibung",
         NotificationType.PublicObjectionDecided => "Entscheidung zu deinem Einspruch",
         NotificationType.PublicPressPublished => "Pressemitteilung",
+        NotificationType.PartnerInquiry => "Anfrage einer Partnerbehörde",
         _ => "Benachrichtigung",
     };
 
@@ -204,6 +208,7 @@ public static class NotificationTypeDisplay
         NotificationType.PublicObjectionReceived => Icons.Material.Filled.Balance,
         NotificationType.PublicObjectionDecided => Icons.Material.Filled.Gavel,
         NotificationType.PublicPressPublished => Icons.Material.Filled.Feed,
+        NotificationType.PartnerInquiry => Icons.Material.Filled.RequestPage,
         _ => Icons.Material.Filled.Notifications,
     };
 }

@@ -2,6 +2,7 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Nav
 @inject IPartnerVisibilityPolicyService PartnerPolicy
+@inject IPartnerAgencyProfileService PartnerProfiles
 
 <MudThemeProvider Theme="NooseTheme.Theme" IsDarkMode="false" />
 <MudPopoverProvider />
@@ -24,6 +25,7 @@
 
     private bool _isPartner;
     private IReadOnlySet<string>? _allowedPartnerTypes;
+    private PartnerFeature _partnerFeatures;
 
     protected override async Task OnInitializedAsync()
     {
@@ -34,6 +36,7 @@
             if (_isPartner)
             {
                 _allowedPartnerTypes = await PartnerPolicy.GetAllowedTypesAsync(user);
+                _partnerFeatures = await PartnerProfiles.GetFeaturesAsync(user);
             }
         }
     }
@@ -44,7 +47,7 @@
         {
             return false;
         }
-        if (!PartnerRoutes.IsAllowed(path))
+        if (!PartnerRoutes.IsAllowed(path, _partnerFeatures))
         {
             return true;
         }

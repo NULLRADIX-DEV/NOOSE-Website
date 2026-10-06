@@ -3,10 +3,14 @@
 @inject IPersonService PersonService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IPartnerAgencyProfileService PartnerProfiles
 
 <MudStack Spacing="6">
-    <MudButton Href="@($"/graph?typ={nameof(Person)}&id={PersonId}")" Variant="Variant.Filled" Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.Hub" Class="align-self-start">Im Beziehungsgraph anzeigen</MudButton>
+    @if (_mayGraph)
+    {
+        <MudButton Href="@($"/graph?typ={nameof(Person)}&id={PersonId}")" Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Hub" Class="align-self-start">Im Beziehungsgraph anzeigen</MudButton>
+    }
 
     <MudStack Spacing="3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
@@ -177,6 +181,7 @@
 
     private bool _load = true;
     private bool _mayWrite;
+    private bool _mayGraph;
     private List<RelationDisplay> _relations = new();
     private List<LinkDisplay> _manual = new();
     private List<LinkDisplay> _colleagues = new();
@@ -185,6 +190,7 @@
     protected override async Task OnInitializedAsync()
     {
         _mayWrite = User.MayWrite();
+        _mayGraph = !User.IsPartner() || await PartnerProfiles.HasFeatureAsync(User, PartnerFeature.Graph);
         await LoadAsync();
     }
 

@@ -162,7 +162,13 @@ internal static class PersonnelChapter
                 <p>Unter <em>Einstellungen → Partnerbehörden</em> steht außerdem, welche Inhalte eine Behörde
                 <strong>nie</strong> sieht - zum Beispiel Doks und Befragungen. Das schlägt jede Freigabe,
                 auch eine Einzelfreigabe mit „Ganze Akte“.</p>
-                <p>Partner dürfen wenig schreiben: Dokumente, Quellen und Beiträge im Taskforce-Chat. Alles
+                <p>Je Behörde lassen sich dort auch <strong>Funktionen</strong> freischalten: Beziehungsgraph,
+                Funkplan, Lageberichte und Anfragen. Graph und Funkplan zeigen einem Partner nur, was für ihn
+                freigegeben ist; Lageberichte bekommt er ohne Doks, ohne Namen von Personen und ohne Finanzen.</p>
+                <p>Über <em>Freigaben anfragen</em> bittet eine Behörde in eigenen Worten um weitere Akten. Die
+                Anfrage landet im Eingang unter <em>Anfragen von Partnern</em>. Wer sie genehmigt, wählt die passende
+                Akte aus und gibt sie damit frei; die Behörde bekommt Bescheid.</p>
+                <p>Partner dürfen wenig schreiben: Dokumente, Quellen, Beiträge im Taskforce-Chat und Anfragen. Alles
                 andere ist für sie nur zu lesen.</p>
                 """,
                 DiagramKey: "partner-freigabe",

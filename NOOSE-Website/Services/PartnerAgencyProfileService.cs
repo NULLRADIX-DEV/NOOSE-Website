@@ -36,9 +36,13 @@ public class PartnerAgencyProfileService(IDbContextFactory<AppDbContext> dbFacto
         return view;
     }
 
-    public async Task<bool> HasFeatureAsync(ClaimsPrincipal user, PartnerFeature feature, CancellationToken cancellationToken = default)
+    public async Task<PartnerFeature> GetFeaturesAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
         => user.GetPartnerAgency() is { } agency
-            && (await GetAsync(agency, cancellationToken)).Features.HasFlag(feature);
+            ? (await GetAsync(agency, cancellationToken)).Features
+            : PartnerFeature.None;
+
+    public async Task<bool> HasFeatureAsync(ClaimsPrincipal user, PartnerFeature feature, CancellationToken cancellationToken = default)
+        => (await GetFeaturesAsync(user, cancellationToken)).HasFlag(feature);
 
     public async Task SaveAsync(PartnerAgency agency, PartnerFeature features, PartnerContent blocked, IReadOnlyList<PartnerRuleView> rules,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default)

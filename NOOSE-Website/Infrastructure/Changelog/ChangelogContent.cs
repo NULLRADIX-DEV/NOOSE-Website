@@ -419,6 +419,10 @@ public static class ChangelogContent
                 + "dieser Dok für sie freigegeben ist.", "Partner"),
             Fix("2.2.23-partner-erwaehnung", "Partner bekommen eine Erwähnung nur noch gemeldet, wenn sie die Akte "
                 + "sehen dürfen – und nie aus einem Dok.", "Partner"),
+            Neu("2.2.24-partner-funktionen", "Partnerbehörden können je nach Freischaltung den Beziehungsgraph, den "
+                + "Funkplan und die Lageberichte öffnen – jeweils nur mit dem, was für sie freigegeben ist.", "Partner"),
+            Neu("2.2.25-partner-anfragen", "Partnerbehörden fragen unter „Freigaben anfragen“ nach weiteren Akten; die "
+                + "Führung beantwortet die Anfrage im Eingang, indem sie die passende Akte freigibt.", "Partner"),
         ]),
     ];
 }

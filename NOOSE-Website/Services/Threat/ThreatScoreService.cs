@@ -105,7 +105,7 @@ public class ThreatScoreService(
 
         var partialScores = new List<ThreatPartialScore>
         {
-            new("Aktivitäts- & Maßnahmen-Heat", R1(rawS1), R1(s1), k.CapS1, S1Driver(e, docCount, nowUtc)),
+            new(ThreatDetailRedaction.FactionActivityHeat, R1(rawS1), R1(s1), k.CapS1, S1Driver(e, docCount, nowUtc)),
             new("Organisation & Reichweite", R1(sizePkt + structurePkt + weaponsPkt + infraPkt), R1(s2), k.CapS2, S2Driver(e, size)),
             new("Konflikt & Bündnis", R1(rawS3), R1(s3), k.CapS3, S3Driver(e)),
             new("Netzwerk-Zentralität", R1(rawS4), R1(s4), k.CapS4, S4Driver(e)),

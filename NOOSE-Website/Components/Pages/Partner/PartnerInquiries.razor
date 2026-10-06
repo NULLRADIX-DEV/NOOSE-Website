@@ -1,0 +1,116 @@
+@* A partner agency asks for records it cannot see yet and follows the answers. *@
+@page "/anfragen"
+@inject IPartnerShareService Shares
+@inject ISnackbar Snackbar
+
+<PageTitle>Freigaben anfragen · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.RequestPage" Title="Freigaben anfragen"
+            Subtitle="Nenne eine Person, Fraktion oder einen Vorgang, den deine Behörde sehen möchte. Die Führung der NOOSE entscheidet." />
+
+@if (!_isPartner)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Anfragen stellen Partnerbehörden. Interne Freigaben laufen über die Akte selbst.</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4 mb-6" Elevation="2">
+        <MudTextField @bind-Value="_target" Label="Wen oder was möchtet ihr sehen?" Variant="Variant.Outlined" Immediate="true"
+                      MaxLength="256" Counter="256" Class="mb-3" />
+        <MudTextField @bind-Value="_justification" Label="Begründung" Variant="Variant.Outlined" Immediate="true"
+                      Lines="2" MaxLength="2000" />
+        <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                   Disabled="@(_busy || string.IsNullOrWhiteSpace(_target) || string.IsNullOrWhiteSpace(_justification))"
+                   OnClick="SubmitAsync">Anfrage senden</MudButton>
+    </MudPaper>
+
+    <MudText Typo="Typo.h6" Class="mb-2">Eure Anfragen</MudText>
+    @if (_mine.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.RequestPage" Title="Noch keine Anfragen" />
+    }
+    else
+    {
+        <MudTable Items="_mine" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+            <HeaderContent>
+                <MudTh>Anfrage</MudTh>
+                <MudTh>Gestellt</MudTh>
+                <MudTh>Stand</MudTh>
+                <MudTh>Antwort</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Anfrage">@context.TargetDesignation</MudTd>
+                <MudTd DataLabel="Gestellt">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Stand">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@StatusColour(context.Status)">@StatusName(context.Status)</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Antwort">
+                    @if (context.Status == RequestStatus.Approved && SearchNavigation.For(context.TargetType, context.TargetId) is { } href)
+                    {
+                        <MudLink Href="@href">Zur freigegebenen Akte</MudLink>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(context.DecisionNote))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.DecisionNote</MudText>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _isPartner;
+    private bool _busy;
+    private string? _target;
+    private string? _justification;
+    private List<Request> _mine = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _isPartner = _user.IsPartner();
+        if (_isPartner)
+        {
+            _mine = await Shares.GetMyPartnerInquiriesAsync(_user);
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Shares.SubmitPartnerInquiryAsync(_user, _target ?? string.Empty, _justification ?? string.Empty);
+            Snackbar.Add("Anfrage gesendet. Ihr bekommt Bescheid, sobald sie entschieden ist.", Severity.Success);
+            _target = null;
+            _justification = null;
+            _mine = await Shares.GetMyPartnerInquiriesAsync(_user);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string StatusName(RequestStatus status) => status switch
+    {
+        RequestStatus.Approved => "Freigegeben",
+        RequestStatus.Rejected => "Abgelehnt",
+        _ => "Offen",
+    };
+
+    private static Color StatusColour(RequestStatus status) => status switch
+    {
+        RequestStatus.Approved => Color.Success,
+        RequestStatus.Rejected => Color.Error,
+        _ => Color.Info,
+    };
+}

@@ -11,6 +11,8 @@ public enum RequestType
     Veroeffentlichung = 2,
     /// <summary>Official bounty share awaiting leadership approval.</summary>
     Kopfgeld = 3,
+    /// <summary>A partner asks in free text for records it cannot see yet.</summary>
+    PartnerAnfrage = 4,
 }
 
 /// <summary>Display labels.</summary>
@@ -22,6 +24,7 @@ public static class RequestTypeDisplay
         RequestType.PartnerFreigabe => "Partner-Freigabe",
         RequestType.Veroeffentlichung => "Veröffentlichung",
         RequestType.Kopfgeld => "Kopfgeld",
+        RequestType.PartnerAnfrage => "Partner-Anfrage",
         _ => "—",
     };
 }

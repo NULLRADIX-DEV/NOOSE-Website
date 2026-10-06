@@ -78,6 +78,17 @@ public sealed class PartnerReleaseRuleTests : IDisposable
     }
 
     [Fact]
+    public async Task BadFactionRule_LeavesAnArchivedBadfrakOut_LikeTheMemberRule()
+    {
+        Rule(nameof(Faction), PartnerRuleScope.BadFactions, includesChildren: true);
+        Add(Seed.Faction("old", configure: f => { f.IsBadFaction = true; f.IsArchived = true; }));
+
+        Assert.False(await VisibleAsync(nameof(Faction), "old"));
+        await using var db = _ctx.NewContext();
+        Assert.False(await PartnerVisibility.ParentIncludesChildrenAsync(db, nameof(Faction), "old", Parlament, "partner"));
+    }
+
+    [Fact]
     public async Task BadFactionRule_NeverReleasesAClassifiedFaction()
     {
         Rule(nameof(Faction), PartnerRuleScope.BadFactions);

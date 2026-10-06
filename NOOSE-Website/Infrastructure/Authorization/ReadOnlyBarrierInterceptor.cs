@@ -4,10 +4,12 @@ using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
+using NOOSE_Website.Data.Entities.Requests;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.CurrentUser;
 using NOOSE_Website.Models.Abstractions;
+using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Infrastructure.Authorization;
 
@@ -112,6 +114,7 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
             if (entry.State == EntityState.Added
                 && ((partnerMayAuthor && PartnerAuthorable.Contains(type))
                     || (partnerMayAuthor && PartnerApplicationAuthorable.Contains(type))
+                    || (partnerMayAuthor && entry.Entity is Request { Type: RequestType.PartnerAnfrage })
                     || (mayActAsCitizen && CitizenAuthorable.Contains(type))))
             {
                 continue;

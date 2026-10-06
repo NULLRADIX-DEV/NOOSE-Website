@@ -18,21 +18,27 @@ using NOOSE_Website.Models.Graph;
 namespace NOOSE_Website.Services;
 
 /// <inheritdoc cref="IGraphService" />
-public class GraphService(IDbContextFactory<AppDbContext> dbFactory) : IGraphService
+public class GraphService(IDbContextFactory<AppDbContext> dbFactory, IPartnerVisibilityPolicyService? partnerPolicy = null) : IGraphService
 {
     private const int MaxNode = 1500;
 
     private const int MaxPathDepth = 12;
     private const int MaxVisited = 8000;
 
+    /// <summary>Node types a partner may ever see in the graph; docs, observations, jobs and agents never.</summary>
+    public static readonly IReadOnlySet<string> PartnerNodeTypes = new HashSet<string>
+    {
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party),
+        nameof(Operation), nameof(Case), nameof(Law), nameof(Taskforce),
+    };
+
     public async Task<GraphData> GetGraphAsync(GraphQuery query, ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
     {
-        // partners: no graph access
-        if (viewer.IsPartner())
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        if (!await MayUseAsync(db, viewer, cancellationToken))
         {
             return new GraphData(Array.Empty<GraphNode>(), Array.Empty<GraphEdge>(), false);
         }
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var isLeadership = viewer.IsLeadership();
         var meId = viewer.GetAgentId();
 
@@ -57,7 +63,8 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory) : IGraphSer
             keys.Add(markKey);
         }
 
-        var node = await ResolveNodeAsync(db, keys, isLeadership, meId, cancellationToken);
+        var node = await ResolveNodeAsync(db, keys, isLeadership, meId, viewer.IsPartner(), cancellationToken);
+        await KeepPartnerVisibleAsync(db, node, viewer, cancellationToken);
 
         if (query.TypeFilter is { Count: > 0 })
         {
@@ -147,12 +154,11 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory) : IGraphSer
 
     public async Task<PathResult> FindPathAsync(string sourceType, string sourceId, string targetType, string targetId, ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
     {
-        // partners: no graph access
-        if (viewer.IsPartner())
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        if (!await MayUseAsync(db, viewer, cancellationToken))
         {
             return new PathResult(false, Array.Empty<GraphNode>(), Array.Empty<GraphEdge>());
         }
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var isLeadership = viewer.IsLeadership();
         var meId = viewer.GetAgentId();
 
@@ -166,7 +172,8 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory) : IGraphSer
             keys.Add(k.Source);
             keys.Add(k.Target);
         }
-        var node = await ResolveNodeAsync(db, keys, isLeadership, meId, cancellationToken);
+        var node = await ResolveNodeAsync(db, keys, isLeadership, meId, viewer.IsPartner(), cancellationToken);
+        await KeepPartnerVisibleAsync(db, node, viewer, cancellationToken);
 
         if (!node.ContainsKey(sourceKey) || !node.ContainsKey(targetKey))
         {
@@ -254,10 +261,50 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory) : IGraphSer
             edgesPath.Select(k => new GraphEdge(k.Source, k.Target, k.Label, k.Kind, k.Automatic)).ToList());
     }
 
+    /// <summary>Internal agents always; partners only with the agency's graph function.</summary>
+    private static async Task<bool> MayUseAsync(AppDbContext db, ClaimsPrincipal viewer, CancellationToken cancellationToken)
+        => !viewer.IsPartner()
+            || (await PartnerVisibility.FeaturesAsync(db, viewer.GetPartnerAgency(), cancellationToken)).HasFlag(PartnerFeature.Graph);
+
+    /// <summary>For a partner, drops every node that is not a released record of a partner node type the rank may see; edges follow the nodes.</summary>
+    private async Task KeepPartnerVisibleAsync(AppDbContext db, Dictionary<string, GraphNode> nodes, ClaimsPrincipal viewer, CancellationToken cancellationToken)
+    {
+        if (viewer.GetPartnerAgency() is not { } agency)
+        {
+            return;
+        }
+        var meId = viewer.GetAgentId();
+        var rankTypes = partnerPolicy is null ? null : await partnerPolicy.GetAllowedTypesAsync(viewer, cancellationToken);
+        var visible = new HashSet<string>();
+        foreach (var byType in nodes.Values.GroupBy(n => n.Type)
+                     .Where(g => PartnerNodeTypes.Contains(g.Key) && (rankTypes is null || rankTypes.Contains(g.Key))))
+        {
+            var ids = byType.Select(n => n.Id[(byType.Key.Length + 1)..]).ToList();
+            var released = byType.Key switch
+            {
+                nameof(Person) => await db.People.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(Faction) => await db.Factions.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(PersonGroup) => await db.PersonGroups.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(Party) => await db.Parties.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(Operation) => await db.Operations.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(Case) => await db.Cases.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(Law) => await db.Laws.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(Taskforce) => await db.Taskforces.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                _ => new List<string>(),
+            };
+            visible.UnionWith(released.Select(id => $"{byType.Key}:{id}"));
+        }
+        foreach (var key in nodes.Keys.Where(k => !visible.Contains(k)).ToList())
+        {
+            nodes.Remove(key);
+        }
+    }
+
     // ---- Resolve nodes ----
 
+    /// <remarks><paramref name="allTaskforces"/>: a partner sees released taskforces it is no member of; the partner filter gates them afterwards.</remarks>
     private static async Task<Dictionary<string, GraphNode>> ResolveNodeAsync(
-        AppDbContext db, IEnumerable<string> keys, bool isLeadership, string? meId, CancellationToken cancellationToken)
+        AppDbContext db, IEnumerable<string> keys, bool isLeadership, string? meId, bool allTaskforces, CancellationToken cancellationToken)
     {
         var targetType = new Dictionary<string, HashSet<string>>();
         foreach (var key in keys)
@@ -402,7 +449,7 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory) : IGraphSer
         var taskforceIds = Ids(nameof(Taskforce));
         if (taskforceIds.Count > 0)
         {
-            var visible = await TaskforceVisibility.VisibleIdsAsync(db, taskforceIds, isLeadership, meId, cancellationToken);
+            var visible = await TaskforceVisibility.VisibleIdsAsync(db, taskforceIds, isLeadership || allTaskforces, meId, cancellationToken);
             foreach (var x in await db.Taskforces.Where(t => visible.Contains(t.Id))
                 .Select(t => new { t.Id, t.Name, t.CaseNumber, t.IsClassified, t.IsArchived }).ToListAsync(cancellationToken))
             {

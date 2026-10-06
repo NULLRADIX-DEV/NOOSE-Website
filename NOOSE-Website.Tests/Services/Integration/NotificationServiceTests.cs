@@ -101,7 +101,7 @@ public class NotificationServiceTests
     [InlineData(true, null, true)]             // released person, plain record text
     [InlineData(true, "PersonDoc", false)]     // a doc is never announced to a partner
     [InlineData(true, "Comment", false)]       // comments blocked for the agency
-    [InlineData(true, "Followup", true)]       // not blocked
+    [InlineData(true, "Followup", false)]      // child release unknown
     public async Task NotifyMentionedAsync_PartnerRecipient_IsGatedOnTheirOwnRelease(bool released, string? childType, bool notified)
     {
         using var ctx = new SqliteTestContext();

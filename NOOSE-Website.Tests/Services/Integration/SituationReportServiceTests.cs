@@ -299,7 +299,7 @@ public sealed class SituationReportServiceTests
             db.SaveChanges();
         }
 
-        await svc.DeleteAsync(row.Id, ClaimsPrincipalBuilder.Agent("actor-x").Build());
+        await svc.DeleteAsync(row.Id, ClaimsPrincipalBuilder.Agent("actor-x").WithRank(Rank.Director).Build());
 
         using var check = ctx.NewContext();
         // Service sets IsDeleted explicitly -> filtered out of the normal set.
@@ -317,9 +317,143 @@ public sealed class SituationReportServiceTests
         var (svc, _, _) = Build(ctx);
 
         // Missing row returns early without throwing.
-        await svc.DeleteAsync("missing", ClaimsPrincipalBuilder.Agent("actor-x").Build());
+        await svc.DeleteAsync("missing", ClaimsPrincipalBuilder.Agent("actor-x").WithRank(Rank.Director).Build());
 
         using var check = ctx.NewContext();
         Assert.Empty(check.SituationReports.IgnoreQueryFilters().ToList());
+    }
+
+    [Fact]
+    public async Task DeleteAsync_RefusesAnAgentBelowLeadership()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            svc.DeleteAsync("any", ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build()));
+    }
+
+    // ---------- partner view ----------
+
+    private static ClaimsPrincipal Parlament()
+        => ClaimsPrincipalBuilder.Agent("partner").AsPartner(PartnerAgency.Parlament, PartnerRank.Member).Build();
+
+    private static StatisticsReport RichReport() => SampleReport() with
+    {
+        MeasureOutcomes = [new DistributionSegment("Spritze", 3)],
+        TopPeople = [new StatisticsTopEntry("Max", "NOOSE-P-1", "/personen/p1", 80, HazardLevel.High)],
+        TopFactions =
+        [
+            new StatisticsTopEntry("Ballas", "NOOSE-F-1", "/fraktionen/f-open", 70, HazardLevel.High),
+            new StatisticsTopEntry("Geheim", "NOOSE-F-2", "/fraktionen/f-hidden", 60, HazardLevel.Medium),
+        ],
+        TimeSeries = [new StatisticsMonth(2026, 1, "Jan", 5, 2)],
+    };
+
+    private static SituationReport RichRow() => Report(2026, 2, r =>
+    {
+        r.SnapshotJson = JsonSerializer.Serialize(RichReport() with { Metrics = new DashboardMetrics(99, 1, 2, 3, 4, 5, 6) });
+        r.ReleasedSnapshotJson = JsonSerializer.Serialize(RichReport());
+        r.FinancingJson = JsonSerializer.Serialize(FinancingReport.Empty);
+        r.CreatedById = "creator1";
+    });
+
+    [Fact]
+    public async Task GetDisplayForAsync_PartnerWithoutTheFunction_IsRefused()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetDisplayForAsync("any", Parlament()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetArchiveForAsync(Parlament()));
+    }
+
+    [Fact]
+    public async Task GetDisplayForAsync_Partner_GetsTheRedactedReportWithoutFinancingOrAuthor()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+        var row = RichRow();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("creator1"));
+            db.SituationReports.Add(row);
+            db.Factions.Add(Seed.Faction("f-open", "Ballas", f => f.IsBadFaction = true));
+            db.Factions.Add(Seed.Faction("f-hidden", "Geheim"));
+            db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = PartnerAgency.Parlament, Features = PartnerFeature.SituationReports });
+            db.PartnerReleaseRules.Add(new PartnerReleaseRule { Agency = PartnerAgency.Parlament, EntityType = "Faction", Scope = PartnerRuleScope.BadFactions });
+            db.SaveChanges();
+        }
+
+        var display = await svc.GetDisplayForAsync(row.Id, Parlament());
+
+        Assert.NotNull(display);
+        Assert.Null(display!.Financing);
+        Assert.Null(display.GeneratedBy);
+        Assert.Null(display.Report.MeasureOutcomes);
+        Assert.Null(display.Report.TopPeople);
+        Assert.Equal(new[] { "Ballas" }, display.Report.TopFactions.Select(f => f.Name));
+        Assert.All(display.Report.TimeSeries, m => Assert.Equal(0, m.Measures));
+        Assert.Equal(0, display.Report.Metrics.OpenRequests);
+        Assert.Equal(7, display.Report.Metrics.People);
+        Assert.Null((await svc.GetArchiveForAsync(Parlament())).Single().GeneratedBy);
+    }
+
+    [Fact]
+    public async Task Partner_NeverGetsAReportWithoutAReleasedSnapshot()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+        var old = Report(2026, 1);
+        using (var db = ctx.NewContext())
+        {
+            db.SituationReports.Add(old);
+            db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = PartnerAgency.Parlament, Features = PartnerFeature.SituationReports });
+            db.SaveChanges();
+        }
+
+        Assert.Null(await svc.GetDisplayForAsync(old.Id, Parlament()));
+        Assert.Empty(await svc.GetArchiveForAsync(Parlament()));
+    }
+
+    [Fact]
+    public async Task GenerateMonthAsync_StoresAReleasedSnapshotWithoutClassifiedRecords()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, statistics, _) = Build(ctx);
+
+        var row = await svc.GenerateMonthAsync(2026, 3, replaceExisting: false, triggerId: null);
+
+        Assert.NotNull(row!.ReleasedSnapshotJson);
+        await statistics.Received(1).GetReportAsync(Arg.Is(false), Arg.Is<string?>(m => m == null), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetDisplayForAsync_Leadership_GetsTheFullReport()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+        var row = RichRow();
+        using (var db = ctx.NewContext())
+        {
+            db.SituationReports.Add(row);
+            db.SaveChanges();
+        }
+
+        var display = await svc.GetDisplayForAsync(row.Id, ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build());
+
+        Assert.Equal(2, display!.Report.TopFactions.Count);
+        Assert.Single(display.Report.TopPeople);
+        Assert.NotNull(display.Financing);
+    }
+
+    [Fact]
+    public async Task GetDisplayForAsync_AgentBelowLeadership_IsRefused()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            svc.GetDisplayForAsync("any", ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build()));
     }
 }

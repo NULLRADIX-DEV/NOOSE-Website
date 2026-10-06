@@ -50,6 +50,86 @@ public sealed class GraphServiceTests
     }
 
     [Fact]
+    public async Task GetGraphAsync_PartnerWithTheGraphFunction_SeesReleasedRecordsOnly_NeverDocs()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("p1", "Max"));
+            db.People.Add(Seed.Person("p2", "Moritz"));
+            db.People.Add(Seed.Person("p3", "Geheim"));
+            db.Factions.Add(Seed.Faction("f1", "Ballas", f => f.IsBadFaction = true));
+            db.PersonDocs.Add(new PersonDoc { Id = "d1", PersonId = "p1", Timestamp = DateTime.UtcNow });
+            db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Person", TargetId = "p2" });
+            db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Person", TargetId = "p3" });
+            db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "PersonDoc", TargetId = "d1" });
+            db.FactionMembers.Add(new FactionMember { FactionId = "f1", PersonId = "p1" });
+            db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = PartnerAgency.DoJ, Features = PartnerFeature.Graph });
+            db.PartnerReleaseRules.Add(new PartnerReleaseRule { Agency = PartnerAgency.DoJ, EntityType = "Faction", Scope = PartnerRuleScope.BadFactions });
+            db.PartnerReleaseRules.Add(new PartnerReleaseRule { Agency = PartnerAgency.DoJ, EntityType = "Person", Scope = PartnerRuleScope.BadFactionMembers });
+            db.PartnerShares.Add(new PartnerShare { EntityType = "Person", EntityId = "p2", Agency = PartnerAgency.DoJ });
+            db.SaveChanges();
+        }
+
+        var result = await NewService(ctx).GetGraphAsync(new GraphQuery(), Partner());
+
+        Assert.Equal(new[] { "Faction:f1", "Person:p1", "Person:p2" }, result.Node.Select(n => n.Id).OrderBy(i => i));
+        Assert.All(result.Edges, e => Assert.DoesNotContain("PersonDoc", e.Source + e.Target));
+        Assert.Equal(2, result.Edges.Count);
+    }
+
+    [Fact]
+    public async Task GetGraphAsync_Partner_HonoursTheRankAllowlist_AndSeesReleasedTaskforces()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("p1", "Max"));
+            db.Factions.Add(Seed.Faction("f1", "Ballas"));
+            db.Taskforces.Add(new NOOSE_Website.Data.Entities.Taskforces.Taskforce { Id = "tf1", Name = "TF", CaseNumber = "NOOSE-T-2026-9001" });
+            db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Faction", TargetId = "f1" });
+            db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Taskforce", TargetId = "tf1" });
+            db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = PartnerAgency.DoJ, Features = PartnerFeature.Graph });
+            foreach (var (type, id) in new[] { ("Person", "p1"), ("Faction", "f1"), ("Taskforce", "tf1") })
+            {
+                db.PartnerShares.Add(new PartnerShare { EntityType = type, EntityId = id, Agency = PartnerAgency.DoJ });
+            }
+            var cfg = new NOOSE_Website.Models.Common.PartnerVisibilityConfig();
+            cfg.Ranks[NOOSE_Website.Models.Common.PartnerVisibilityConfig.RankKey(PartnerAgency.DoJ, PartnerRank.Member)] =
+                new NOOSE_Website.Models.Common.PartnerRankVisibility { Types = { "Person", "Taskforce" } };
+            db.SystemSettings.Add(new SystemSetting { Key = "PartnerRangSichtbarkeit", Value = System.Text.Json.JsonSerializer.Serialize(cfg) });
+            db.SaveChanges();
+        }
+        var policy = new PartnerVisibilityPolicyService(ctx.Factory, new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()));
+
+        var result = await new GraphService(ctx.Factory, policy).GetGraphAsync(new GraphQuery(), Partner());
+
+        Assert.Equal(new[] { "Person:p1", "Taskforce:tf1" }, result.Node.Select(n => n.Id).OrderBy(i => i));
+    }
+
+    [Fact]
+    public async Task FindPathAsync_PartnerWithTheGraphFunction_NeverRoutesThroughAnUnreleasedRecord()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("p1", "Max"));
+            db.People.Add(Seed.Person("hidden", "Mittelsmann"));
+            db.People.Add(Seed.Person("p2", "Moritz"));
+            db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Person", TargetId = "hidden" });
+            db.Links.Add(new Link { SourceType = "Person", SourceId = "hidden", TargetType = "Person", TargetId = "p2" });
+            db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = PartnerAgency.DoJ, Features = PartnerFeature.Graph });
+            db.PartnerShares.Add(new PartnerShare { EntityType = "Person", EntityId = "p1", Agency = PartnerAgency.DoJ });
+            db.PartnerShares.Add(new PartnerShare { EntityType = "Person", EntityId = "p2", Agency = PartnerAgency.DoJ });
+            db.SaveChanges();
+        }
+
+        var result = await NewService(ctx).FindPathAsync("Person", "p1", "Person", "p2", Partner());
+
+        Assert.False(result.Found);
+    }
+
+    [Fact]
     public async Task GetGraphAsync_BuildsFullGraph_FromLinks_AndResolvesMetadata()
     {
         using var ctx = new SqliteTestContext();

@@ -1,6 +1,5 @@
 @* Radio plan: own channels, partner channels and the faction frequencies read live from their records. *@
 @page "/funk"
-@attribute [Authorize(Policy = Policies.InternalAgent)]
 @inject IRadioService RadioService
 @inject ITaskforceService TaskforceService
 @inject IDialogService DialogService
@@ -147,7 +146,14 @@ else
                         </MudStack>
                     </MudTd>
                     <MudTd DataLabel="Fraktion">
-                        <MudLink Href="@($"/fraktionen/{context.FactionId}")">@context.Name</MudLink>
+                        @if (context.Linkable)
+                        {
+                            <MudLink Href="@($"/fraktionen/{context.FactionId}")">@context.Name</MudLink>
+                        }
+                        else
+                        {
+                            @context.Name
+                        }
                     </MudTd>
                 </RowTemplate>
             </MudTable>

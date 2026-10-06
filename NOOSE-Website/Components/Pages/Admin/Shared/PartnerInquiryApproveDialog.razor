@@ -1,0 +1,47 @@
+@* Answers a partner inquiry by picking the one record to release. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-1"><b>Anfrage:</b> @Target</MudText>
+        <MudText Typo="Typo.body2" Class="mb-4 mud-text-secondary">@Justification</MudText>
+        <QuickRecordPicker Allowed="Answerable" @bind-Value="_record" Label="Akte, die freigegeben wird"
+                           HelperText="Personen, Fraktionen, Gruppen, Parteien, Operationen, Vorgänge oder Dokumente."
+                           AutoFocus="true" />
+        <MudCheckBox T="bool" @bind-Value="_toAccountOnly" Color="Color.Primary" Class="mt-2"
+                     Label="Nur für das anfragende Konto, nicht für die ganze Behörde" />
+        <MudCheckBox T="bool" @bind-Value="_whole" Color="Color.Primary" Label="Ganze Akte (inklusive Kind-Einträgen)" />
+        <MudTextField @bind-Value="_note" Label="Notiz an die Behörde (optional)" Variant="Variant.Outlined" Lines="2" Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Abbrechen</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" Disabled="@(_record is null)" OnClick="Confirm">Freigeben</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string Target { get; set; } = string.Empty;
+    [Parameter] public string? Justification { get; set; }
+
+    /// <summary>Releasable types a designation can be resolved for.</summary>
+    private static readonly IReadOnlySet<string> Answerable = new HashSet<string>
+    {
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party),
+        nameof(Operation), nameof(Case), nameof(Document),
+    };
+
+    private QuickHit? _record;
+    private bool _toAccountOnly;
+    private bool _whole;
+    private string? _note;
+
+    private void Confirm()
+    {
+        if (_record is null)
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(new PartnerInquiryAnswer(_record.Category, _record.TargetId, _toAccountOnly, _whole, _note)));
+    }
+}

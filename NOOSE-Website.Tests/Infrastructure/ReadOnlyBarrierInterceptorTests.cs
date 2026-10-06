@@ -106,6 +106,35 @@ public sealed class ReadOnlyBarrierInterceptorTests
     };
 
     [Fact]
+    public async Task A_partner_may_file_an_inquiry_but_never_a_release()
+    {
+        using var ctx = new SqliteTestContext();
+        await using (var db = Guarded(ctx, Partner()))
+        {
+            db.Requests.Add(new NOOSE_Website.Data.Entities.Requests.Request
+            {
+                Type = RequestType.PartnerAnfrage, TargetType = "PartnerAnfrage", TargetId = "", TargetDesignation = "John Doe",
+                Justification = "Ausschuss", CreatedById = PartnerId,
+            });
+            await db.SaveChangesAsync();
+        }
+
+        await using (var release = Guarded(ctx, Partner()))
+        {
+            release.PartnerShares.Add(new PartnerShare { EntityType = "Person", EntityId = "p1", Agency = PartnerAgency.Parlament });
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => release.SaveChangesAsync());
+        }
+
+        // any other request type stays closed
+        await using var upgrade = Guarded(ctx, Partner());
+        upgrade.Requests.Add(new NOOSE_Website.Data.Entities.Requests.Request
+        {
+            Type = RequestType.Upgrade, TargetType = "Person", TargetId = "p1", TargetDesignation = "John Doe", CreatedById = PartnerId,
+        });
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => upgrade.SaveChangesAsync());
+    }
+
+    [Fact]
     public async Task A_partner_may_write_their_own_civilian_identity()
     {
         using var ctx = new SqliteTestContext();

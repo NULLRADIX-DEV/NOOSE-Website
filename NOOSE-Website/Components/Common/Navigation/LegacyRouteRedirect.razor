@@ -41,8 +41,18 @@
 @inject NavigationManager Nav
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
     // no own [Authorize]: the destination enforces its own policy after the hop
-    protected override void OnInitialized()
-        => Nav.NavigateTo(
-            LegacyRoutes.Target(Nav.ToBaseRelativePath(Nav.Uri)) ?? "/dashboard", replace: true);
+    protected override async Task OnInitializedAsync()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri);
+        // partners keep their own archive
+        if ((await AuthStateTask).User.IsPartner() && LegacyRoutes.Target(path) == "/statistik?tab=lageberichte")
+        {
+            Nav.NavigateTo("/lageberichte/archiv", replace: true);
+            return;
+        }
+        Nav.NavigateTo(LegacyRoutes.Target(path) ?? "/dashboard", replace: true);
+    }
 }

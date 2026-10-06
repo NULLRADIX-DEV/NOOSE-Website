@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Models.Enums;
@@ -12,10 +13,10 @@ public class RadioService(IDbContextFactory<AppDbContext> dbFactory) : IRadioSer
 {
     public async Task<RadioPlan> GetPlanAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireInternalAgent(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        await RequireReadAsync(db, actor, cancellationToken);
         var scope = ViewerScope.From(actor);
 
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var channels = await db.Funkkanaele.AsNoTracking().OnlyVisible(db, scope)
             .OrderBy(c => c.Scope).ThenBy(c => c.Frequency)
             .ToListAsync(cancellationToken);
@@ -32,18 +33,29 @@ public class RadioService(IDbContextFactory<AppDbContext> dbFactory) : IRadioSer
         var factions = await db.Factions.AsNoTracking().OnlyActive().OnlyVisible(scope)
             .Where(f => f.Radio != null && f.Radio != "")
             .OrderBy(f => f.Name)
-            .Select(f => new RadioFactionRow(f.Id, f.Name, f.Radio!, f.IsClassified))
+            .Select(f => new RadioFactionRow(f.Id, f.Name, f.Radio!, f.IsClassified, true))
             .ToListAsync(cancellationToken);
+        if (scope.PartnerAgency is { } agency)
+        {
+            // link only released
+            var ids = factions.Select(f => f.FactionId).ToList();
+            var released = (await db.Factions.Where(f => ids.Contains(f.Id))
+                .OnlyPartnerVisible(db, agency, scope.MeId)
+                .Select(f => f.Id)
+                .ToListAsync(cancellationToken)).ToHashSet();
+            factions = factions.Select(f => f with { Linkable = released.Contains(f.FactionId) }).ToList();
+            rows = rows.Select(r => r with { TaskforceId = null, TaskforceName = null }).ToList();
+        }
 
         return new RadioPlan(rows, factions);
     }
 
     public async Task<RadioChannel?> GetAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireInternalAgent(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        await RequireReadAsync(db, actor, cancellationToken);
         var scope = ViewerScope.From(actor);
 
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.Funkkanaele.AsNoTracking().OnlyVisible(db, scope)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
     }
@@ -136,6 +148,11 @@ public class RadioService(IDbContextFactory<AppDbContext> dbFactory) : IRadioSer
         channel.Note = string.IsNullOrWhiteSpace(input.Note) ? null : input.Note.Trim();
         channel.IsClassified = input.IsClassified;
     }
+
+    /// <summary>Internal agents read the plan; partners only with the agency's radio function.</summary>
+    private static async Task RequireReadAsync(AppDbContext db, ClaimsPrincipal actor, CancellationToken cancellationToken)
+        => Permission.RequireInternalOrPartnerFeature(actor,
+            await PartnerVisibility.FeaturesAsync(db, actor.GetPartnerAgency(), cancellationToken), PartnerFeature.Radio);
 
     /// <summary>Names for the bound taskforces of rows that already passed the gate.</summary>
     private static async Task<Dictionary<string, string>> TaskforceNamesAsync(

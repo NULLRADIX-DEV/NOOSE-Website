@@ -22,8 +22,8 @@ public class FactionInput
     /// <summary>State faction; never goes stale (recency stays "current").</summary>
     public bool IsStateFaction { get; set; }
 
-    /// <summary>Criminal faction (Badfrak); ignored when <see cref="IsStateFaction"/> is set.</summary>
-    public bool IsBadFaction { get; set; }
+    /// <summary>Criminal faction (Badfrak); ignored when <see cref="IsStateFaction"/> is set. New factions start as Badfrak, like the backfill.</summary>
+    public bool IsBadFaction { get; set; } = true;
 
     public int? EstimatedMemberCount { get; set; }
 

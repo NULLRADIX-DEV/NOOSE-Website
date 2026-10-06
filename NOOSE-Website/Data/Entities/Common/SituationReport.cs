@@ -24,6 +24,10 @@ public class SituationReport : IAuditable, ISoftDelete
     [Column("FinanzierungJson")]
     public string? FinancingJson { get; set; }
 
+    /// <summary>Same statistics without classified records, for partner agencies; null on reports from before it existed.</summary>
+    [Column("FreigabeSnapshotJson")]
+    public string? ReleasedSnapshotJson { get; set; }
+
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }
     [Column("ErstelltVonId")]

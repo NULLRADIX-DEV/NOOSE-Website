@@ -6,6 +6,7 @@
 @inject ISearchService SearchService
 @inject INavPreferencesService NavPrefs
 @inject IPartnerVisibilityPolicyService PartnerPolicy
+@inject IPartnerAgencyProfileService PartnerProfiles
 @inject IAuthorizationService Authorization
 @inject ITrashService Trash
 @inject Microsoft.Extensions.Logging.ILogger<CommandPalette> Logger
@@ -75,7 +76,7 @@
         {
             // partners: only the record types their rank may see, plus global search
             var allowed = await PartnerPolicy.GetAllowedTypesAsync(user);
-            _commands = NavCatalog.PartnerRecordEntries(allowed)
+            _commands = NavCatalog.PartnerRecordEntries(allowed, await PartnerProfiles.GetFeaturesAsync(user))
                 .Select(e => new PaletteItem(e.Label, e.Description, e.Icon, e.Route))
                 .ToList();
             _commands.Add(new PaletteItem("Globale Suche", null, Icons.Material.Filled.Search, "/suche"));

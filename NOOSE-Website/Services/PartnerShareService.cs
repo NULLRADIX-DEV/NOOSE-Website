@@ -11,14 +11,19 @@ using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Requests;
+using NOOSE_Website.Infrastructure.Shares;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services;
 
 /// <inheritdoc cref="IPartnerShareService" />
-public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INotificationService notifications) : IPartnerShareService
+public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INotificationService notifications,
+    SharesBroadcaster? broadcaster = null) : IPartnerShareService
 {
+    /// <summary>Target type of an inquiry no record answers yet; never a CLR type, so no visibility arm can match it.</summary>
+    public const string InquiryTarget = "PartnerAnfrage";
+
     private Task NotifyMentionsAsync(string? text, string what, string targetType, string targetId,
         ClaimsPrincipal actor, CancellationToken cancellationToken)
         => MentionNotify.DeltaAsync(notifications, null, text, $"einer {what} zu einer Freigabe",
@@ -355,6 +360,178 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
 
         await NotifyMentionsAsync(request.DecisionNote, "Entscheidung", request.TargetType, request.TargetId,
             actor, cancellationToken);
+    }
+
+    public async Task SubmitPartnerInquiryAsync(ClaimsPrincipal actor, string target, string justification,
+        CancellationToken cancellationToken = default)
+    {
+        if (!actor.IsPartner() || actor.IsDemo() || actor.GetPartnerAgency() is not { } agency || actor.GetAgentId() is not { } meId)
+        {
+            throw new UnauthorizedAccessException("Anfragen stellen nur Partnerbehörden.");
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        Permission.RequireInternalOrPartnerFeature(actor,
+            await PartnerVisibility.FeaturesAsync(db, agency, cancellationToken), PartnerFeature.ShareRequests);
+
+        var subject = (target ?? string.Empty).Trim();
+        var reason = (justification ?? string.Empty).Trim();
+        if (subject.Length == 0 || reason.Length == 0)
+        {
+            throw new InvalidOperationException("Bitte angeben, wen oder was ihr sehen möchtet, und warum.");
+        }
+        if (subject.Length > 256 || reason.Length > 2000)
+        {
+            throw new InvalidOperationException("Die Anfrage ist zu lang.");
+        }
+        var open = await db.Requests
+            .Where(r => r.Type == RequestType.PartnerAnfrage && r.Status == RequestStatus.Requested && r.CreatedById == meId)
+            .Select(r => r.TargetDesignation)
+            .ToListAsync(cancellationToken);
+        if (open.Any(t => string.Equals(t, subject, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("Zu dieser Anfrage wartet schon eine Antwort.");
+        }
+        if (open.Count >= MaxOpenInquiries)
+        {
+            throw new InvalidOperationException($"Es warten schon {MaxOpenInquiries} Anfragen auf eine Antwort. Bitte erst diese abwarten.");
+        }
+
+        db.Requests.Add(new Request
+        {
+            Type = RequestType.PartnerAnfrage,
+            TargetType = InquiryTarget,
+            TargetId = string.Empty,
+            TargetDesignation = subject,
+            FreigabeAgency = agency,
+            FreigabePartnerAgentId = meId,
+            Justification = reason,
+            Status = RequestStatus.Requested,
+            RequesterName = actor.GetCodename(),
+        });
+        await db.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            var leadership = await db.Users.OnlySelectable()
+                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SupervisorySpecialAgent))
+                .Select(u => u.Id)
+                .ToListAsync(cancellationToken);
+            await notifications.NotifyManyAsync(leadership, NotificationType.PartnerInquiry,
+                $"{PartnerAgencyDisplay.Name(agency)} fragt eine Freigabe an: {Clip(subject)}", "/admin/freigaben", meId, cancellationToken);
+        }
+        catch { /* best effort */ }
+        broadcaster?.Report();
+    }
+
+    /// <summary>Open inquiries one account may have at once.</summary>
+    public const int MaxOpenInquiries = 10;
+
+    /// <summary>Free text short enough for a notification title.</summary>
+    private static string Clip(string text) => text.Length <= 80 ? text : text[..79] + "…";
+
+    public async Task<List<Request>> GetMyPartnerInquiriesAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        if (actor.GetAgentId() is not { } meId)
+        {
+            return new();
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Requests
+            .Where(r => r.Type == RequestType.PartnerAnfrage && r.CreatedById == meId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<Request>> GetPendingPartnerInquiriesAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireLeadership(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Requests
+            .Where(r => r.Type == RequestType.PartnerAnfrage && r.Status == RequestStatus.Requested)
+            .OrderBy(r => r.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task ApprovePartnerInquiryAsync(ClaimsPrincipal actor, string requestId, string entityType, string entityId,
+        bool toAccountOnly, bool includesChildren, string? note, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireLeadership(actor);
+        if (!PartnerVisibility.IsReleasableType(entityType))
+        {
+            throw new InvalidOperationException("Diese Aktenart lässt sich nicht an Partner freigeben.");
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        var request = await OpenInquiryAsync(db, requestId, cancellationToken);
+        var designation = await GetDesignationAsync(db, entityType, entityId, cancellationToken);
+        if (designation == entityId)
+        {
+            throw new InvalidOperationException("Die gewählte Akte gibt es nicht.");
+        }
+        var target = toAccountOnly ? request.FreigabePartnerAgentId : null;
+        // never narrows an existing release
+        includesChildren |= await db.PartnerShares.AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId
+            && s.Agency == request.FreigabeAgency && s.PartnerAgentId == target && s.IncludesChildren, cancellationToken);
+        await UpsertAsync(db, entityType, entityId, request.FreigabeAgency!.Value, target, released: true, includesChildren, cancellationToken);
+
+        // answer names a record
+        request.TargetType = entityType;
+        request.TargetId = entityId;
+        request.FreigabeIncludesChildren = includesChildren;
+        Decide(request, RequestStatus.Approved, actor, note);
+        await db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+
+        try
+        {
+            await notifications.NotifyAsync(request.CreatedById, NotificationType.RequestDecided,
+                $"Deine Anfrage „{Clip(request.TargetDesignation)}“ wurde beantwortet: {Clip(designation)} ist freigegeben.",
+                SearchNavigation.For(entityType, entityId), cancellationToken);
+        }
+        catch { /* best effort */ }
+        broadcaster?.Report();
+    }
+
+    public async Task RejectPartnerInquiryAsync(ClaimsPrincipal actor, string requestId, string? note,
+        CancellationToken cancellationToken = default)
+    {
+        Permission.RequireLeadership(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var request = await OpenInquiryAsync(db, requestId, cancellationToken);
+        Decide(request, RequestStatus.Rejected, actor, note);
+        await db.SaveChangesAsync(cancellationToken);
+
+        try
+        {
+            await notifications.NotifyAsync(request.CreatedById, NotificationType.RequestDecided,
+                $"Deine Anfrage „{Clip(request.TargetDesignation)}“ wurde abgelehnt.", "/anfragen", cancellationToken);
+        }
+        catch { /* best effort */ }
+        broadcaster?.Report();
+    }
+
+    private static async Task<Request> OpenInquiryAsync(AppDbContext db, string requestId, CancellationToken cancellationToken)
+    {
+        var request = await db.Requests.FirstOrDefaultAsync(r => r.Id == requestId, cancellationToken)
+            ?? throw new InvalidOperationException("Anfrage nicht gefunden.");
+        if (request.Type != RequestType.PartnerAnfrage)
+        {
+            throw new InvalidOperationException("Ungültiger Antragstyp.");
+        }
+        if (request.Status != RequestStatus.Requested)
+        {
+            throw new InvalidOperationException("Diese Anfrage wurde bereits entschieden.");
+        }
+        return request;
+    }
+
+    private static void Decide(Request request, RequestStatus status, ClaimsPrincipal actor, string? note)
+    {
+        request.Status = status;
+        request.DeciderName = actor.GetCodename();
+        request.DecidedAt = DateTime.UtcNow;
+        request.DecisionNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
     }
 
     private static async Task<string> GetDesignationAsync(AppDbContext db, string entityType, string entityId, CancellationToken ct)

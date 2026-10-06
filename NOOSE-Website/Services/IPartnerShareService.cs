@@ -63,4 +63,22 @@ public interface IPartnerShareService
     /// <summary>Reject a pending partner-release request.</summary>
     Task RejectPartnerShareRequestAsync(ClaimsPrincipal actor, string requestId, string? note,
         CancellationToken cancellationToken = default);
+
+    /// <summary>A partner asks in free text for records it cannot see yet; needs the agency's inquiry function. Notifies leadership.</summary>
+    Task SubmitPartnerInquiryAsync(ClaimsPrincipal actor, string target, string justification,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>The viewer's own inquiries, newest first.</summary>
+    Task<List<Request>> GetMyPartnerInquiriesAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Open partner inquiries (leadership inbox).</summary>
+    Task<List<Request>> GetPendingPartnerInquiriesAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Answers an inquiry by releasing one chosen record to the agency or the asking account; notifies the asker.</summary>
+    Task ApprovePartnerInquiryAsync(ClaimsPrincipal actor, string requestId, string entityType, string entityId,
+        bool toAccountOnly, bool includesChildren, string? note, CancellationToken cancellationToken = default);
+
+    /// <summary>Declines an inquiry; notifies the asker.</summary>
+    Task RejectPartnerInquiryAsync(ClaimsPrincipal actor, string requestId, string? note,
+        CancellationToken cancellationToken = default);
 }

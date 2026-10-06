@@ -3,6 +3,7 @@
 @using NOOSE_Website.Models.Navigation
 @inject INavPreferencesService NavPrefs
 @inject IPartnerVisibilityPolicyService PartnerPolicy
+@inject IPartnerAgencyProfileService PartnerProfiles
 @inject IAuthorizationService Authorization
 @inject ISnackbar Snackbar
 
@@ -157,6 +158,7 @@
     private ClaimsPrincipal _user = default!;
     private NavPreferences _prefs = new();
     private IReadOnlySet<string>? _allowedPartnerTypes;
+    private PartnerFeature _partnerFeatures;
     private readonly Dictionary<string, bool> _policyOk = new(StringComparer.Ordinal);
     private List<NavArea> _zones = new();
     private List<NavEntry> _menuItems = new();
@@ -175,6 +177,7 @@
             if (_isPartner)
             {
                 _allowedPartnerTypes = await PartnerPolicy.GetAllowedTypesAsync(_user);
+                _partnerFeatures = await PartnerProfiles.GetFeaturesAsync(_user);
             }
             await ReloadAsync();
         }
@@ -195,9 +198,9 @@
 
         if (_isPartner)
         {
-            _menuItems = NavPersonalization.Ordered(NavCatalog.PartnerRecordEntries(_allowedPartnerTypes), _prefs).ToList();
+            _menuItems = NavPersonalization.Ordered(NavCatalog.PartnerRecordEntries(_allowedPartnerTypes, _partnerFeatures), _prefs).ToList();
             _zones = [NavArea.Partner];
-            _startOptions = NavCatalog.PartnerRecordEntries(_allowedPartnerTypes).ToList();
+            _startOptions = NavCatalog.PartnerRecordEntries(_allowedPartnerTypes, _partnerFeatures).ToList();
         }
         else
         {

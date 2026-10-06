@@ -1,4 +1,5 @@
 using NOOSE_Website.Authorization;
+using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Tests.Authorization;
 
@@ -238,4 +239,31 @@ public class PartnerRoutesTests
         // BuergerLayout does not consult this list; blocking it here would refuse a partner the printable page only
         Assert.True(PartnerRoutes.IsAllowed(path));
     }
+
+    // --- Function pages open only with the agency function ---
+
+    [Theory]
+    [InlineData("graph", PartnerFeature.Graph)]
+    [InlineData("funk", PartnerFeature.Radio)]
+    [InlineData("lageberichte/archiv", PartnerFeature.SituationReports)]
+    [InlineData("lageberichte/abc", PartnerFeature.SituationReports)]
+    [InlineData("anfragen", PartnerFeature.ShareRequests)]
+    public void IsAllowed_FunctionPage_OnlyWithItsFunction(string path, PartnerFeature feature)
+    {
+        Assert.False(PartnerRoutes.IsAllowed(path));
+        Assert.False(PartnerRoutes.IsAllowed(path, ~feature & AllFeatures));
+        Assert.True(PartnerRoutes.IsAllowed(path, feature));
+    }
+
+    [Theory]
+    [InlineData("fahndung")]
+    [InlineData("doks")]
+    [InlineData("kalender")]
+    [InlineData("statistik")]
+    [InlineData("funk/neu")]
+    public void IsAllowed_InternalPages_StayClosedWithEveryFunction(string path)
+        => Assert.False(PartnerRoutes.IsAllowed(path, AllFeatures));
+
+    private const PartnerFeature AllFeatures = PartnerFeature.Noosei | PartnerFeature.Graph | PartnerFeature.Radio
+        | PartnerFeature.SituationReports | PartnerFeature.ShareRequests;
 }

@@ -8,6 +8,7 @@ using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Taskforces;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Navigation;
@@ -167,8 +168,8 @@ public static class NavCatalog
         return best;
     }
 
-    /// <summary>Partner record-type entries, filtered by the rank's allowed types (null = all).</summary>
-    public static IReadOnlyList<NavEntry> PartnerRecordEntries(IReadOnlySet<string>? allowedTypes)
+    /// <summary>Partner record-type entries, filtered by the rank's allowed types (null = all), then the agency's function pages.</summary>
+    public static IReadOnlyList<NavEntry> PartnerRecordEntries(IReadOnlySet<string>? allowedTypes, PartnerFeature features = PartnerFeature.None)
     {
         var list = new List<NavEntry>();
         foreach (var t in PartnerTabCatalog.All)
@@ -178,8 +179,20 @@ public static class NavCatalog
                 list.Add(new NavEntry("partner." + t.TypeKey, "/" + t.RoutePrefix, PartnerIcon(t.TypeKey), t.DisplayName, NavSection.Partner, NavArea.Partner));
             }
         }
+        foreach (var f in PartnerFeaturePages.Where(f => features.HasFlag(f.Feature)))
+        {
+            list.Add(new NavEntry(f.Key, f.Href, f.Icon, f.Label, NavSection.Partner, NavArea.Partner));
+        }
         return list;
     }
+
+    private static readonly (PartnerFeature Feature, string Key, string Href, string Icon, string Label)[] PartnerFeaturePages =
+    {
+        (PartnerFeature.Graph, "partner.graph", "/graph", Icons.Material.Filled.Hub, "Beziehungsgraph"),
+        (PartnerFeature.Radio, "partner.funk", "/funk", Icons.Material.Filled.SettingsInputAntenna, "Funkplan"),
+        (PartnerFeature.SituationReports, "partner.lageberichte", "/lageberichte/archiv", Icons.Material.Filled.Assessment, "Lageberichte"),
+        (PartnerFeature.ShareRequests, "partner.anfragen", "/anfragen", Icons.Material.Filled.RequestPage, "Freigaben anfragen"),
+    };
 
     /// <summary>Icon per releasable record type.</summary>
     public static string PartnerIcon(string typeKey) => typeKey switch
