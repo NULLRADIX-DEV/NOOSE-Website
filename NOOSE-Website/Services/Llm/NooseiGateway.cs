@@ -124,7 +124,7 @@ public class NooseiGateway(
         // half to the other, and be judged against a boost it never spent under
         var providerState = await providerService.GetStateAsync(cancellationToken);
         var provider = providerState.Active;
-        var status = await quota.EnsureAvailableAsync(actor, cancellationToken, providerState.BoostPercent);
+        var status = await quota.EnsureAvailableAsync(actor, cancellationToken, providerState.BoostPercent, call.Feature);
         var agentId = actor.GetAgentId() ?? throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
 
         // the whole turn gets one budget; HttpClient.Timeout only bounds a single round

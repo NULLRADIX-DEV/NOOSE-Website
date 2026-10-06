@@ -65,6 +65,16 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the actor may use this NOOSEI feature: partners only the law chat, everyone else never it.</summary>
+    /// <remarks>Whether the partner's agency has NOOSEI switched on is the caller's check; this stays DB-free so the transport can use it.</remarks>
+    public static void RequireLlmUse(ClaimsPrincipal actor, LlmFeature feature)
+    {
+        if (actor.IsDemo() || actor.IsOnlyReader() || actor.IsPartner() != (feature == LlmFeature.LegalChat))
+        {
+            throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+        }
+    }
+
     /// <summary>Require the actor owns this NOOSEI conversation. Chats are working notes, not an agency record —
     /// the only other reader is the AI owner, for a concrete misuse suspicion.</summary>
     public static void RequireOwnConversation(ClaimsPrincipal actor, string ownerId)

@@ -30,6 +30,9 @@ internal static class ToolsChapter
                 <p>An Akten findest du außerdem den <strong>NOOSEI-Kurzbrief</strong>: eine kurze
                 Zusammenfassung der Akte auf Knopfdruck - praktisch, wenn du eine fremde Akte zum ersten Mal
                 öffnest.</p>
+                <p>Partnerbehörden, für die NOOSEI freigeschaltet ist, bekommen eine eigene
+                <strong>Rechtsauskunft</strong>. Sie beantwortet nur Fragen zu den Gesetzbüchern, zitiert die
+                Paragrafen und kann keine Akte lesen - auch keine freigegebene.</p>
                 """,
                 DiagramKey: "noosei-grenzen",
                 NavKey: "ki",

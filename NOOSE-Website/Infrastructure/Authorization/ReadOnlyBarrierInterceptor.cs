@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
@@ -56,6 +57,16 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
         typeof(Bewerbung),
         typeof(BewerbungMessage),
         typeof(BewerbungTestAnswer),
+    ];
+
+    // A partner's law chat: the conversation and its messages, the quota booking and the weekly close. Without it
+    // the chat would run unbilled and the paid answer would be lost at the save.
+    private static readonly HashSet<Type> PartnerChatAuthorable =
+    [
+        typeof(NooseiConversation),
+        typeof(NooseiMessage),
+        typeof(LlmRequestLog),
+        typeof(LlmQuotaPeriod),
     ];
 
     // Rows either side may change again afterwards — their own only; the create side is handled above.
@@ -115,7 +126,15 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
                 && ((partnerMayAuthor && PartnerAuthorable.Contains(type))
                     || (partnerMayAuthor && PartnerApplicationAuthorable.Contains(type))
                     || (partnerMayAuthor && entry.Entity is Request { Type: RequestType.PartnerAnfrage })
+                    || (partnerMayAuthor && PartnerChatAuthorable.Contains(type))
                     || (mayActAsCitizen && CitizenAuthorable.Contains(type))))
+            {
+                continue;
+            }
+            // own law chat only
+            if (entry.State is EntityState.Modified or EntityState.Deleted
+                && partnerMayAuthor
+                && entry.Entity is NooseiConversation chat && chat.CreatedById == user.Id)
             {
                 continue;
             }

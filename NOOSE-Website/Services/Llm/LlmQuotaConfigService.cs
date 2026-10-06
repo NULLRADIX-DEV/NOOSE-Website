@@ -119,6 +119,24 @@ public class LlmQuotaConfigService(IDbContextFactory<AppDbContext> dbFactory, IM
             }
         }
 
+        foreach (var agency in PartnerAgencyDisplay.All)
+        {
+            if (!config.PartnerAgencies.TryGetValue(LlmQuotaConfig.AgencyKey(agency), out var quota))
+            {
+                continue;
+            }
+            if (quota.BaseWeekly < 0)
+            {
+                throw new InvalidOperationException(
+                    $"Das Wochenkontingent für {PartnerAgencyDisplay.Name(agency)} darf nicht negativ sein.");
+            }
+            if (quota.CarryOverPercent is < 0 or > 100)
+            {
+                throw new InvalidOperationException(
+                    $"Der Übertrag für {PartnerAgencyDisplay.Name(agency)} muss zwischen 0 und 100 % liegen.");
+            }
+        }
+
         var t = config.Anomalies;
         Range(t.SpikeFactor >= 1, "Der Faktor für Kostenausreißer muss mindestens 1 sein.");
         Range(t.SpikeBaselineDays is >= 1 and <= 90, "Der Bezugszeitraum für Kostenausreißer muss zwischen 1 und 90 Tagen liegen.");
@@ -150,5 +168,11 @@ public class LlmQuotaConfigService(IDbContextFactory<AppDbContext> dbFactory, IM
         {
             var quota = config.For(r);
             return $"{RankDisplay.Name(r)}: {quota.BaseWeekly:N0} / {quota.CarryOverPercent} %";
-        }));
+        }).Concat(PartnerAgencyDisplay.All
+            .Where(a => config.PartnerAgencies.ContainsKey(LlmQuotaConfig.AgencyKey(a)))
+            .Select(a =>
+            {
+                var quota = config.For(null, a);
+                return $"{PartnerAgencyDisplay.Name(a)}: {quota.BaseWeekly:N0} / {quota.CarryOverPercent} %";
+            })));
 }

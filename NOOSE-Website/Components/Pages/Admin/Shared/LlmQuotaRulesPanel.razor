@@ -85,6 +85,58 @@ else
         </tbody>
     </MudSimpleTable>
 
+    <MudText Typo="Typo.subtitle2" Class="mt-6 mb-1">Partnerbehörden</MudText>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+        Gilt je Konto der Behörde, nur für die Rechtsauskunft und nur, wenn die Behörde NOOSEI freigeschaltet hat.
+        0 heißt: kein Zugang.
+    </MudText>
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+        <thead>
+            <tr>
+                <th>Behörde</th>
+                <th style="width:180px;">Grundkontingent</th>
+                <th style="width:140px;">Übertrag</th>
+                <th style="width:140px;">Tagesgrenze</th>
+                <th style="width:160px;" class="text-right">Max. in der Woche</th>
+                @if (_maySeeCost)
+                {
+                    <th style="width:160px;" class="text-right">≈ Realkosten/Woche</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var agency in PartnerAgencyDisplay.All)
+            {
+                var quota = Rules(agency);
+                <tr>
+                    <td>@PartnerAgencyDisplay.Name(agency)</td>
+                    <td>
+                        <MudNumericField T="long" @bind-Value="quota.BaseWeekly" Min="0" Step="1000"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="!_mayEdit"
+                                         Adornment="Adornment.End" AdornmentText="Token" />
+                    </td>
+                    <td>
+                        <MudNumericField T="int" @bind-Value="quota.CarryOverPercent" Min="0" Max="100"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="!_mayEdit"
+                                         Adornment="Adornment.End" AdornmentText="%" />
+                    </td>
+                    <td>
+                        <MudNumericField T="int" @bind-Value="quota.DailyPercent" Min="0" Max="100"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="!_mayEdit"
+                                         Adornment="Adornment.End" AdornmentText="%" />
+                    </td>
+                    <td class="text-right">@LlmQuotaMath.Ceiling(quota.BaseWeekly, quota.CarryOverPercent).ToString("N0")</td>
+                    @if (_maySeeCost)
+                    {
+                        <td class="text-right mud-text-secondary">
+                            @LlmQuotaMath.ToCost(LlmQuotaMath.Ceiling(quota.BaseWeekly, quota.CarryOverPercent)).ToString("0.00") $
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+
     <MudText Typo="Typo.subtitle2" Class="mt-6 mb-2">Auffälligkeiten</MudText>
     <MudGrid Spacing="2">
         <MudItem xs="12" md="6">
@@ -175,6 +227,17 @@ else
     private bool _maySeeCost;
 
     private bool _busy;
+
+    private LlmRankQuota Rules(PartnerAgency agency)
+    {
+        var key = LlmQuotaConfig.AgencyKey(agency);
+        if (!_config!.PartnerAgencies.TryGetValue(key, out var quota))
+        {
+            quota = new LlmRankQuota();
+            _config.PartnerAgencies[key] = quota;
+        }
+        return quota;
+    }
 
     private LlmRankQuota Rules(Rank rank)
     {

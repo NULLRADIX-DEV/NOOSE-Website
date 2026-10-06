@@ -14,9 +14,22 @@ public sealed class LlmQuotaConfig
     /// <summary>Stable key for a rank (the int, so JSON round-trips cleanly).</summary>
     public static string RankKey(Rank rank) => ((int)rank).ToString(CultureInfo.InvariantCulture);
 
+    /// <summary>Per partner agency, keyed by <see cref="AgencyKey"/>; every account of the agency gets it like a rank.
+    /// A missing key means no quota, so the law chat stays closed until the AI owner sets one.</summary>
+    public Dictionary<string, LlmRankQuota> PartnerAgencies { get; set; } = new();
+
+    /// <summary>Stable key for a partner agency.</summary>
+    public static string AgencyKey(PartnerAgency agency) => ((int)agency).ToString(CultureInfo.InvariantCulture);
+
     /// <summary>Quota of a rank; an unranked or unconfigured agent gets nothing.</summary>
     public LlmRankQuota For(Rank? rank)
         => rank is { } r && Ranks.TryGetValue(RankKey(r), out var quota) ? quota : new LlmRankQuota();
+
+    /// <summary>Quota of an account: its rank, or for a partner account its agency.</summary>
+    public LlmRankQuota For(Rank? rank, PartnerAgency? agency)
+        => rank is null && agency is { } a
+            ? PartnerAgencies.TryGetValue(AgencyKey(a), out var quota) ? quota : new LlmRankQuota()
+            : For(rank);
 
     /// <summary>Starting values; the AI owner tunes them at runtime.</summary>
     public static LlmQuotaConfig Default() => new()

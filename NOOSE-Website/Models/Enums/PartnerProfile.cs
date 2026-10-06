@@ -66,6 +66,7 @@ public static class PartnerProfileDisplay
     /// <summary>Functions that already work and may be switched, in display order.</summary>
     public static readonly IReadOnlyList<PartnerFeature> AvailableFeatures = new[]
     {
+        PartnerFeature.Noosei,
         PartnerFeature.Graph,
         PartnerFeature.Radio,
         PartnerFeature.SituationReports,

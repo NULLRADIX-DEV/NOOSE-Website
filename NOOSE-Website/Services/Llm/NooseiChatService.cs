@@ -129,9 +129,10 @@ public sealed class NooseiChatService(
     public async Task<IReadOnlyList<NooseiConversationRow>> GetConversationsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         var agentId = OwnerId(actor);
+        var mode = ModeOf(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.NooseiConversations.AsNoTracking()
-            .Where(c => c.AgentId == agentId)
+            .Where(c => c.AgentId == agentId && c.Mode == mode)
             .OrderByDescending(c => c.LastMessageAt)
             .Take(50)
             .Select(c => new NooseiConversationRow(c.Id, c.Title, c.LastMessageAt, c.MessageCount))
@@ -194,7 +195,9 @@ public sealed class NooseiChatService(
         string? conversationId, string question, ClaimsPrincipal actor,
         IProgress<string>? progress = null, NooseiAnchor? anchor = null, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLlmUse(actor);
+        var mode = ModeOf(actor);
+        var feature = mode == NooseiChatMode.Legal ? LlmFeature.LegalChat : LlmFeature.Chat;
+        Permission.RequireLlmUse(actor, feature);
         var agentId = OwnerId(actor);
         var trimmed = PromptRedactor.Clip(question, PromptRedactor.MaxChatInputChars);
         if (string.IsNullOrWhiteSpace(trimmed))
@@ -206,8 +209,15 @@ public sealed class NooseiChatService(
         var stamp = ScopeStamp(context.Scope);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        if (mode == NooseiChatMode.Legal)
+        {
+            Permission.RequireInternalOrPartnerFeature(actor,
+                await PartnerVisibility.FeaturesAsync(db, actor.GetPartnerAgency(), cancellationToken), PartnerFeature.Noosei);
+        }
+        // no anchor in law chat
         var conversation = conversationId is null
-            ? Create(db, agentId, trimmed, stamp, await VisibleAnchorAsync(db, anchor, context.Scope, cancellationToken))
+            ? Create(db, agentId, trimmed, stamp, mode,
+                mode == NooseiChatMode.Legal ? null : await VisibleAnchorAsync(db, anchor, context.Scope, cancellationToken))
             : await LoadOwnAsync(db, conversationId, actor, cancellationToken);
 
         var history = new List<LlmMessage>();
@@ -219,10 +229,12 @@ public sealed class NooseiChatService(
 
         var messages = new List<LlmMessage>(history.Count + 4)
         {
-            LlmMessage.System(NooseiPrompts.Combine(NooseiPrompts.Chat, await AddendumAsync(cancellationToken))),
+            LlmMessage.System(mode == NooseiChatMode.Legal
+                ? NooseiPrompts.LegalChat
+                : NooseiPrompts.Combine(NooseiPrompts.Chat, await AddendumAsync(cancellationToken))),
         };
         // re-checked every turn, not once at creation: the owner's rights may have been withdrawn since
-        if (await AnchorLineAsync(db, conversation, context.Scope, cancellationToken) is { } line)
+        if (mode == NooseiChatMode.Agency && await AnchorLineAsync(db, conversation, context.Scope, cancellationToken) is { } line)
         {
             messages.Add(LlmMessage.System(line));
         }
@@ -238,11 +250,11 @@ public sealed class NooseiChatService(
 
         var answer = await noosei.AskAsync(
             new NooseiCall(
-                LlmFeature.Chat,
+                feature,
                 messages,
                 LoggedPrompt: trimmed,
-                Tools: tools.Definitions,
-                ToolExecutor: (call, ct) => RunToolAsync(call, context, progress, ct),
+                Tools: tools.DefinitionsFor(mode),
+                ToolExecutor: (call, ct) => RunToolAsync(call, context, mode, progress, ct),
                 ConversationId: conversation.Id,
                 EntityType: conversation.AnchorEntityType,
                 EntityId: conversation.AnchorEntityId),
@@ -303,9 +315,10 @@ public sealed class NooseiChatService(
 
     // ---- tools ----
 
-    private async Task<NooseiToolOutcome> RunToolAsync(LlmToolCall call, NooseiToolContext context, IProgress<string>? progress, CancellationToken cancellationToken)
+    private async Task<NooseiToolOutcome> RunToolAsync(LlmToolCall call, NooseiToolContext context, NooseiChatMode mode,
+        IProgress<string>? progress, CancellationToken cancellationToken)
     {
-        var tool = tools.Find(call.Name);
+        var tool = tools.Find(call.Name, mode);
         if (tool is null)
         {
             return NooseiToolOutcome.Failed($"Unbekanntes Werkzeug: {call.Name}.");
@@ -340,7 +353,8 @@ public sealed class NooseiChatService(
 
     // ---- storage ----
 
-    private static NooseiConversation Create(AppDbContext db, string agentId, string question, string stamp, NooseiAnchor? anchor)
+    private static NooseiConversation Create(AppDbContext db, string agentId, string question, string stamp,
+        NooseiChatMode mode, NooseiAnchor? anchor)
     {
         var conversation = new NooseiConversation
         {
@@ -348,6 +362,7 @@ public sealed class NooseiChatService(
             Title = Shorten(question, 80),
             LastMessageAt = DateTime.UtcNow,
             ScopeStamp = stamp,
+            Mode = mode,
             AnchorEntityType = anchor?.EntityType,
             AnchorEntityId = anchor?.EntityId,
         };
@@ -409,8 +424,17 @@ public sealed class NooseiChatService(
             .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken)
             ?? throw new InvalidOperationException("Unterhaltung nicht gefunden.");
         Permission.RequireOwnConversation(actor, conversation.AgentId);
+        // never crosses chat modes
+        if (conversation.Mode != ModeOf(actor))
+        {
+            throw new InvalidOperationException("Unterhaltung nicht gefunden.");
+        }
         return conversation;
     }
+
+    /// <summary>Partners talk to the law chat, everyone else to the agency chat.</summary>
+    private static NooseiChatMode ModeOf(ClaimsPrincipal actor)
+        => actor.IsPartner() ? NooseiChatMode.Legal : NooseiChatMode.Agency;
 
     /// <summary>Replays the recent history. Tool results are dropped when the owner's scope changed since:
     /// their text was authorised under rights that may since have been taken away.</summary>

@@ -188,6 +188,7 @@ public static class NavCatalog
 
     private static readonly (PartnerFeature Feature, string Key, string Href, string Icon, string Label)[] PartnerFeaturePages =
     {
+        (PartnerFeature.Noosei, "partner.ki", "/ki-assistent", Icons.Material.Filled.Gavel, "NOOSEI-Rechtsauskunft"),
         (PartnerFeature.Graph, "partner.graph", "/graph", Icons.Material.Filled.Hub, "Beziehungsgraph"),
         (PartnerFeature.Radio, "partner.funk", "/funk", Icons.Material.Filled.SettingsInputAntenna, "Funkplan"),
         (PartnerFeature.SituationReports, "partner.lageberichte", "/lageberichte/archiv", Icons.Material.Filled.Assessment, "Lageberichte"),

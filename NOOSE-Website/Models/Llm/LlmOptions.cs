@@ -168,6 +168,7 @@ public sealed class LlmOptions
     public Dictionary<LlmFeature, int> MaxAnswerTokensByFeature { get; set; } = new()
     {
         [LlmFeature.Chat] = 4_000,
+        [LlmFeature.LegalChat] = 4_000,
     };
 
     /// <summary>How often a free-text answer cut off by its feature's ceiling is continued before it is handed over

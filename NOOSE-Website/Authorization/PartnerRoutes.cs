@@ -25,6 +25,7 @@ public static class PartnerRoutes
     // opened by an agency function
     private static readonly (PartnerFeature Feature, string Prefix)[] FeaturePrefixes =
     {
+        (PartnerFeature.Noosei, "ki-assistent"),
         (PartnerFeature.Graph, "graph"),
         (PartnerFeature.Radio, "funk"),
         (PartnerFeature.SituationReports, "lageberichte"),
