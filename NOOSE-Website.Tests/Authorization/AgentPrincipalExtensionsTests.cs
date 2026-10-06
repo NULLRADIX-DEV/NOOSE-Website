@@ -311,7 +311,7 @@ public class AgentPrincipalExtensionsTests
 
     [Theory]
     [InlineData("0")]
-    [InlineData("4")]
+    [InlineData("5")]
     [InlineData("99")]
     [InlineData("xyz")]
     [InlineData("")]

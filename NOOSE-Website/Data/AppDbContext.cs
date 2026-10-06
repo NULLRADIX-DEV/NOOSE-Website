@@ -233,6 +233,8 @@ public class AppDbContext : IdentityDbContext<Agent>
 
     // ---- partner record releases ----
     public DbSet<PartnerShare> PartnerShares => Set<PartnerShare>();
+    public DbSet<PartnerAgencyProfile> PartnerAgencyProfiles => Set<PartnerAgencyProfile>();
+    public DbSet<PartnerReleaseRule> PartnerReleaseRules => Set<PartnerReleaseRule>();
     public DbSet<DocumentAccessExclusion> DocumentAccessExclusions => Set<DocumentAccessExclusion>();
 
     // ---- recruiting (applications, invites, tests) ----
@@ -1617,6 +1619,18 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(s => s.PartnerAgentId).HasMaxLength(64);
             b.HasIndex(s => new { s.EntityType, s.EntityId });
             b.HasIndex(s => new { s.Agency, s.EntityType, s.EntityId });
+        });
+
+        modelBuilder.Entity<PartnerAgencyProfile>(b =>
+        {
+            b.HasKey(p => p.Agency);
+            b.Property(p => p.Agency).ValueGeneratedNever();
+        });
+
+        modelBuilder.Entity<PartnerReleaseRule>(b =>
+        {
+            b.Property(r => r.EntityType).HasMaxLength(128).IsRequired();
+            b.HasIndex(r => new { r.Agency, r.EntityType }).IsUnique();
         });
 
         modelBuilder.Entity<DocumentAccessExclusion>(b =>

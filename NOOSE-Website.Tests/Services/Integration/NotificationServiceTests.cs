@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Enums;
@@ -93,6 +94,39 @@ public class NotificationServiceTests
             NotificationType.Mention, Arg.Any<string>(),
             Arg.Is<IReadOnlyCollection<string>>(c => c.Count == 1 && c.Contains(RecipientGuid)),
             Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(false, null, false)]           // person not released to the partner
+    [InlineData(true, null, true)]             // released person, plain record text
+    [InlineData(true, "PersonDoc", false)]     // a doc is never announced to a partner
+    [InlineData(true, "Comment", false)]       // comments blocked for the agency
+    [InlineData(true, "Followup", true)]       // not blocked
+    public async Task NotifyMentionedAsync_PartnerRecipient_IsGatedOnTheirOwnRelease(bool released, string? childType, bool notified)
+    {
+        using var ctx = new SqliteTestContext();
+        using (var seed = ctx.NewContext())
+        {
+            seed.Users.Add(Seed.Agent(RecipientGuid, status: AgentStatus.Active, configure: a =>
+            {
+                a.Rank = null;
+                a.PartnerAgency = PartnerAgency.Parlament;
+            }));
+            seed.People.Add(Seed.Person(PersonGuid, "Ziel"));
+            seed.PartnerAgencyProfiles.Add(new() { Agency = PartnerAgency.Parlament, BlockedContent = PartnerContent.Comments });
+            if (released)
+            {
+                seed.PartnerShares.Add(new() { EntityType = "Person", EntityId = PersonGuid, Agency = PartnerAgency.Parlament });
+            }
+            seed.SaveChanges();
+        }
+        var svc = NewService(ctx, new NotificationBroadcaster(), Substitute.For<IDiscordWebhookService>());
+
+        await svc.NotifyMentionedAsync($"Hallo {MentionToken(RecipientGuid)}", "erwähnt", "/personen/x",
+            "Person", PersonGuid, ClaimsPrincipalBuilder.Agent(TriggerGuid).Build(), childType: childType);
+
+        using var db = ctx.NewContext();
+        Assert.Equal(notified, db.Notifications.Any(n => n.RecipientId == RecipientGuid));
     }
 
     [Fact]

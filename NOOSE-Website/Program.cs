@@ -346,6 +346,7 @@ builder.Services.AddScoped<IDemoDataService, DemoDataService>();
 builder.Services.AddScoped<INavPreferencesService, NavPreferencesService>();
 builder.Services.AddScoped<INavLabelService, NavLabelService>();
 builder.Services.AddScoped<IPartnerVisibilityPolicyService, PartnerVisibilityPolicyService>();
+builder.Services.AddScoped<IPartnerAgencyProfileService, PartnerAgencyProfileService>();
 builder.Services.AddScoped<ILawService, LawService>();
 builder.Services.AddScoped<IRadioService, RadioService>();
 builder.Services.AddScoped<NOOSE_Website.Services.Changelog.IChangelogService,

@@ -4,6 +4,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Notifications;
+using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Notifications;
@@ -88,16 +89,16 @@ public class NotificationService(
     }
 
     public Task NotifyMentionedAsync(string? text, string title, string? href, string targetType, string targetId,
-        ClaimsPrincipal trigger, CancellationToken cancellationToken = default)
-        => FanOutMentionsAsync(MentionedAgentIds(text, trigger), title, href, targetType, targetId, cancellationToken);
+        ClaimsPrincipal trigger, CancellationToken cancellationToken = default, string? childType = null)
+        => FanOutMentionsAsync(MentionedAgentIds(text, trigger), title, href, targetType, targetId, childType, cancellationToken);
 
     public Task NotifyMentionedDeltaAsync(string? oldText, string? newText, string title, string? href,
-        string targetType, string targetId, ClaimsPrincipal trigger, CancellationToken cancellationToken = default)
+        string targetType, string targetId, ClaimsPrincipal trigger, CancellationToken cancellationToken = default, string? childType = null)
     {
         // already-mentioned agents were pinged on the earlier save
         var known = MentionedAgentIds(oldText, trigger).ToHashSet(StringComparer.Ordinal);
         var added = MentionedAgentIds(newText, trigger).Where(id => !known.Contains(id)).ToList();
-        return FanOutMentionsAsync(added, title, href, targetType, targetId, cancellationToken);
+        return FanOutMentionsAsync(added, title, href, targetType, targetId, childType, cancellationToken);
     }
 
     /// <summary>Agent ids mentioned in the text, without the trigger, deduplicated.</summary>
@@ -112,7 +113,7 @@ public class NotificationService(
     }
 
     private async Task FanOutMentionsAsync(IReadOnlyList<string> agentIds, string title, string? href,
-        string targetType, string targetId, CancellationToken cancellationToken)
+        string targetType, string targetId, string? childType, CancellationToken cancellationToken)
     {
         if (agentIds.Count == 0)
         {
@@ -124,17 +125,31 @@ public class NotificationService(
         // active recipients only
         var recipient = await db.Users
             .Where(u => agentIds.Contains(u.Id) && u.Status == AgentStatus.Active)
-            .Select(u => new { u.Id, u.IsAdmin, u.Rank })
+            .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency })
             .ToListAsync(cancellationToken);
 
         var notified = new List<string>();
         foreach (var e in recipient)
         {
             // gate on recipient's own visibility, not the trigger's (no record/classification leak)
-            var recipientIsLeadership = e.IsAdmin || e.Rank is >= Rank.SupervisorySpecialAgent;
-            if (!await Visibility.IsRecordVisibleAsync(db, targetType, targetId, recipientIsLeadership, cancellationToken, e.Id))
+            if (e.PartnerAgency is { } agency)
             {
-                continue;
+                // docs never announced
+                if (childType == nameof(PersonDoc)
+                    || (childType is not null && await PartnerVisibility.IsContentBlockedAsync(db, agency, childType, cancellationToken))
+                    || !await Visibility.IsRecordVisibleAsync(db, targetType, targetId,
+                        new ViewerScope(false, false, e.Id, agency), cancellationToken))
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                var recipientIsLeadership = e.IsAdmin || e.Rank is >= Rank.SupervisorySpecialAgent;
+                if (!await Visibility.IsRecordVisibleAsync(db, targetType, targetId, recipientIsLeadership, cancellationToken, e.Id))
+                {
+                    continue;
+                }
             }
             db.Notifications.Add(new Notification
             {

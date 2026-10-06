@@ -49,6 +49,11 @@ public class PersonService(
         {
             return null;
         }
+        if (scope.PartnerAgency is { } agency)
+        {
+            person.ThreatDetailJson = ThreatDetailRedaction.WithoutContent(
+                person.ThreatDetailJson, await PartnerVisibility.BlockedContentAsync(db, agency, cancellationToken));
+        }
         return person;
     }
 

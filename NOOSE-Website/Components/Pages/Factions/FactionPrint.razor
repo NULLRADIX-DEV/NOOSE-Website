@@ -35,10 +35,17 @@ else
                     {
                         <tr><th>Einstufung</th><td>@ClassificationDisplay.Name(_faction.Classification)</td></tr>
                     }
-                    <tr><th>Gefährdung</th><td>@HazardDisplayText()</td></tr>
+                    @if (TabOn("gefaehrdung"))
+                    {
+                        <tr><th>Gefährdung</th><td>@HazardDisplayText()</td></tr>
+                    }
                     @if (_faction.IsStateFaction)
                     {
                         <tr><th>Staatsfraktion</th><td>Ja</td></tr>
+                    }
+                    @if (_faction.IsBadFaction)
+                    {
+                        <tr><th>Badfrak</th><td>Ja</td></tr>
                     }
                     @if (_faction.EstimatedMemberCount is { } count)
                     {
@@ -69,7 +76,7 @@ else
                         <tr><th>Beschreibung</th><td class="druck-mehrzeilig"><MentionDisplay Text="@_faction.Description" Plain="true" /></td></tr>
                     }
                     @* freshness follows the oldest of the four updatable sections *@
-                    @foreach (var stamp in FactionRecency.Facets(_faction))
+                    @foreach (var stamp in FactionRecency.Facets(_faction, !_isPartner))
                     {
                         <tr>
                             <th>@FactionRecencyFacetDisplay.Name(stamp.Facet) aktualisiert</th>
@@ -234,6 +241,7 @@ else
     private List<Comment> _comments = new();
 
     private IReadOnlySet<string>? _visibleTabs;
+    private bool _isPartner;
 
     /// <summary>False only when a partner's rank restricts this record type to other tabs.</summary>
     private bool TabOn(string slug) => _visibleTabs is null || _visibleTabs.Contains(slug);
@@ -242,6 +250,7 @@ else
     {
         var user = (await AuthStateTask).User;
         var isLeadership = user.IsLeadership();
+        _isPartner = user.IsPartner();
         _printBy = user.GetCodename();
 
         var scope = ViewerScope.From(user);

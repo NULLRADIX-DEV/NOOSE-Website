@@ -20,7 +20,7 @@ public class ObservationService(
     private Task NotifyMentionsAsync(string? oldText, string? newText, string personId,
         ClaimsPrincipal actor, CancellationToken cancellationToken)
         => MentionNotify.DeltaAsync(notifications, oldText, newText, Mentioned, nameof(Person), personId,
-            actor, cancellationToken);
+            actor, cancellationToken, childType: nameof(Observation));
 
     public async Task<List<ObservationDisplay>> GetForPersonAsync(string personId, ViewerScope scope, CancellationToken cancellationToken = default)
     {

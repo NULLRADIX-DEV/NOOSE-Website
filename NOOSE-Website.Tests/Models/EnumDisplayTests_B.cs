@@ -116,6 +116,7 @@ public class EnumDisplayTests_B
     [InlineData(PartnerAgency.DoJ, "DoJ")]
     [InlineData(PartnerAgency.LSPD, "LSPD")]
     [InlineData(PartnerAgency.LSMD, "LSMD")]
+    [InlineData(PartnerAgency.Parlament, "Parlament")]
     public void PartnerAgencyName_definedValue_mapsToShortLabel(PartnerAgency agency, string expected)
         => Assert.Equal(expected, PartnerAgencyDisplay.Name(agency));
 
@@ -131,6 +132,7 @@ public class EnumDisplayTests_B
     [InlineData(PartnerAgency.DoJ, "Department of Justice")]
     [InlineData(PartnerAgency.LSPD, "Los Santos Police Department")]
     [InlineData(PartnerAgency.LSMD, "Los Santos Medical Department")]
+    [InlineData(PartnerAgency.Parlament, "Parlament von San Andreas")]
     public void PartnerAgencyLongName_definedValue_mapsToFullLabel(PartnerAgency agency, string expected)
         => Assert.Equal(expected, PartnerAgencyDisplay.LongName(agency));
 
@@ -141,7 +143,7 @@ public class EnumDisplayTests_B
     [Fact]
     public void PartnerAgencyAll_containsAllInDeclarationOrder()
         => Assert.Equal(
-            new[] { PartnerAgency.DoJ, PartnerAgency.LSPD, PartnerAgency.LSMD },
+            new[] { PartnerAgency.DoJ, PartnerAgency.LSPD, PartnerAgency.LSMD, PartnerAgency.Parlament },
             PartnerAgencyDisplay.All);
 
     // ---------------------------------------------------------------------

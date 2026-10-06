@@ -63,7 +63,7 @@ public class CommentService(IDbContextFactory<AppDbContext> dbFactory, INotifica
         {
             var who = string.IsNullOrWhiteSpace(actor.GetCodename()) ? "Ein Agent" : actor.GetCodename();
             await notifications.NotifyMentionedAsync(text, $"{who} hat dich in einem Vermerk erwähnt.",
-                SearchNavigation.For(entityType, entityId), entityType, entityId, actor, cancellationToken);
+                SearchNavigation.For(entityType, entityId), entityType, entityId, actor, cancellationToken, nameof(Comment));
         }
         catch { /* best effort */ }
 
@@ -102,7 +102,7 @@ public class CommentService(IDbContextFactory<AppDbContext> dbFactory, INotifica
         await db.SaveChangesAsync(cancellationToken);
 
         await MentionNotify.DeltaAsync(notifications, oldText, text, "einem Vermerk",
-            comment.EntityType, comment.EntityId, actor, cancellationToken);
+            comment.EntityType, comment.EntityId, actor, cancellationToken, childType: nameof(Comment));
 
         return comment;
     }

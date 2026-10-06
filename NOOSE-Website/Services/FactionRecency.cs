@@ -23,9 +23,12 @@ public static class FactionRecency
     }) ?? faction.CreatedAt;
 
     /// <summary>Reference date for the freshness light: the oldest of the four facet stamps.</summary>
-    public static DateTime Reference(Faction faction)
+    public static DateTime Reference(Faction faction) => Reference(faction, includeDocs: true);
+
+    /// <summary>Reference date, optionally without the docs stamp (partners never learn about docs).</summary>
+    public static DateTime Reference(Faction faction, bool includeDocs)
         => Reference(faction.CreatedAt, faction.MembersRefreshedAt, faction.StockRefreshedAt,
-            faction.ActivitiesRefreshedAt, faction.DocsRefreshedAt);
+            faction.ActivitiesRefreshedAt, includeDocs ? faction.DocsRefreshedAt : faction.MembersRefreshedAt);
 
     /// <summary>Reference date from raw columns, for query projections that never materialize the entity.</summary>
     public static DateTime Reference(DateTime createdAt, DateTime? members, DateTime? stock,
@@ -38,11 +41,14 @@ public static class FactionRecency
     }
 
     /// <summary>The facet whose stamp is oldest; ties resolve in display order.</summary>
-    public static FactionRecencyFacet Oldest(Faction faction)
+    public static FactionRecencyFacet Oldest(Faction faction) => Oldest(faction, includeDocs: true);
+
+    /// <summary>The oldest facet, optionally ignoring docs.</summary>
+    public static FactionRecencyFacet Oldest(Faction faction, bool includeDocs)
     {
         var oldest = FactionRecencyFacet.Members;
         var oldestAt = RefreshedAt(faction, oldest);
-        foreach (var facet in FactionRecencyFacetDisplay.All)
+        foreach (var facet in Shown(includeDocs))
         {
             var at = RefreshedAt(faction, facet);
             if (at < oldestAt)
@@ -55,13 +61,19 @@ public static class FactionRecency
     }
 
     /// <summary>All four facets in display order, with the light-driving one flagged.</summary>
-    public static IReadOnlyList<Stamp> Facets(Faction faction)
+    public static IReadOnlyList<Stamp> Facets(Faction faction) => Facets(faction, includeDocs: true);
+
+    /// <summary>Facets in display order, optionally without docs.</summary>
+    public static IReadOnlyList<Stamp> Facets(Faction faction, bool includeDocs)
     {
-        var oldest = Oldest(faction);
-        return FactionRecencyFacetDisplay.All
+        var oldest = Oldest(faction, includeDocs);
+        return Shown(includeDocs)
             .Select(f => new Stamp(f, RefreshedAt(faction, f), f == oldest))
             .ToList();
     }
+
+    private static IEnumerable<FactionRecencyFacet> Shown(bool includeDocs)
+        => FactionRecencyFacetDisplay.All.Where(f => includeDocs || f != FactionRecencyFacet.Docs);
 
     /// <summary>Filter for records whose reference date is before the cutoff. Any facet older than the cutoff makes the oldest one older too, so the OR-form matches the same rows as the minimum would — and stays translatable to SQL.</summary>
     public static Expression<Func<Faction, bool>> ReferenceBefore(DateTime cutoffUtc)

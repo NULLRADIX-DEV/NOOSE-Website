@@ -82,34 +82,38 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
         {
             return null;
         }
-        // unconfigured rank: sees all
-        if (user.GetPartnerRank() is not { } rank)
-        {
-            return null;
-        }
+        var meId = user.GetAgentId();
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
+        // released types
+        var shared = await db.PartnerShares
+            .Where(s => s.Agency == agency && (s.PartnerAgentId == null || s.PartnerAgentId == meId))
+            .Select(s => new { s.EntityType, Individual = s.PartnerAgentId != null })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var ruled = await db.PartnerReleaseRules
+            .Where(r => r.Agency == agency)
+            .Select(r => r.EntityType)
+            .ToListAsync(cancellationToken);
+        var released = new HashSet<string>(shared.Select(s => s.EntityType).Concat(ruled)) { nameof(Document) };
+
         var cfg = await GetAsync(cancellationToken);
-        if (cfg.Ranks.GetValueOrDefault(PartnerVisibilityConfig.RankKey(agency, rank)) is not { } entry)
+        var entry = user.GetPartnerRank() is { } rank
+            ? cfg.Ranks.GetValueOrDefault(PartnerVisibilityConfig.RankKey(agency, rank))
+            : null;
+        // unconfigured: all released
+        if (entry is null)
         {
-            return null;
+            return PartnerTabCatalog.All.Select(t => t.TypeKey).Where(released.Contains).ToHashSet();
         }
 
         var allowed = new HashSet<string>(entry.Types);
-
         // individual account releases widen beyond the rank default
-        var meId = user.GetAgentId();
-        if (meId is not null)
+        foreach (var type in shared.Where(s => s.Individual).Select(s => s.EntityType))
         {
-            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-            var individual = await db.PartnerShares
-                .Where(s => s.PartnerAgentId == meId && s.Agency == agency)
-                .Select(s => s.EntityType)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-            foreach (var type in individual)
-            {
-                allowed.Add(type);
-            }
+            allowed.Add(type);
         }
+        allowed.IntersectWith(released);
         return allowed;
     }
 
@@ -119,6 +123,23 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
         {
             return null;
         }
+        var tabs = await RankTabsAsync(user, agency, typeKey, recordId, cancellationToken);
+
+        // blocks beat releases
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var blocked = await PartnerVisibility.BlockedContentAsync(db, agency, cancellationToken);
+        if (blocked == PartnerContent.None)
+        {
+            return tabs;
+        }
+        var visible = new HashSet<string>(tabs ?? PartnerTabCatalog.TabSlugs(typeKey));
+        visible.ExceptWith(PartnerContentCatalog.BlockedTabs(blocked));
+        return visible;
+    }
+
+    /// <summary>Rank allowlist for a record; null = all tabs (unconfigured rank or individually released).</summary>
+    private async Task<IReadOnlySet<string>?> RankTabsAsync(ClaimsPrincipal user, PartnerAgency agency, string typeKey, string recordId, CancellationToken cancellationToken)
+    {
         if (user.GetPartnerRank() is not { } rank)
         {
             return null;

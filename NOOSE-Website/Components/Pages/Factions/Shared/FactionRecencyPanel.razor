@@ -41,6 +41,9 @@
     /// <summary>Record never goes stale (state faction or exempt record): every facet shows green.</summary>
     [Parameter] public bool ForcedFresh { get; set; }
 
+    /// <summary>Leaves the docs facet out, for partners.</summary>
+    [Parameter] public bool HideDocs { get; set; }
+
     private DateTime _reference;
     private FactionRecencyFacet _oldest;
     private RecencyLevel _level;
@@ -49,9 +52,9 @@
 
     protected override async Task OnParametersSetAsync()
     {
-        _stamps = FactionRecency.Facets(Faction);
-        _reference = FactionRecency.Reference(Faction);
-        _oldest = FactionRecency.Oldest(Faction);
+        _stamps = FactionRecency.Facets(Faction, !HideDocs);
+        _reference = FactionRecency.Reference(Faction, !HideDocs);
+        _oldest = FactionRecency.Oldest(Faction, !HideDocs);
 
         // one settings read for all five lights
         var settings = await Recency.GetSettingsAsync(nameof(Faction));

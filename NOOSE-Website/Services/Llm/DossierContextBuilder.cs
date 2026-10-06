@@ -277,6 +277,7 @@ public static partial class DossierContextBuilder
         Line(sb, "Einstufung", ClassificationDisplay.Name(f.Classification));
         Line(sb, "Verschlusssache", f.IsRestricted ? $"Ja ({f.SecrecyLevel})" : "Nein");
         Line(sb, "Staatsfraktion", f.IsStateFaction);
+        Line(sb, "Badfrak", f.IsBadFaction);
         if (f.ThreatScore.HasValue)
         {
             var conf = f.ThreatConfidence.HasValue ? $" (Konfidenz {f.ThreatConfidence}%)" : "";

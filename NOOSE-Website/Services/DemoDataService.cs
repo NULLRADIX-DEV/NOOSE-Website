@@ -140,6 +140,7 @@ public partial class DemoDataService(
                 Classification = spec.Classification,
                 IsClassified = spec.Classified,
                 IsStateFaction = spec.StateFaction,
+                IsBadFaction = !spec.StateFaction,
                 ThreatScore = spec.ThreatScore,
                 ThreatConfidence = spec.ThreatScore is null ? null : 72,
                 ScoreCalculatedAt = DateTime.UtcNow,

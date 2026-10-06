@@ -1264,6 +1264,20 @@ public sealed class MySqlTranslationTests : IDisposable
         Assert.Contains("LIMIT", sql, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ThePartnerRuleArms_Translate()
+    {
+        // every partner list and point check now carries the rule subqueries; untranslatable means every partner page throws
+        var people = _db.People.OnlyPartnerVisible(_db, PartnerAgency.Parlament, "p1").ToQueryString();
+        var factions = _db.Factions.OnlyPartnerVisible(_db, PartnerAgency.Parlament, "p1").ToQueryString();
+        var laws = _db.Laws.OnlyPartnerVisible(_db, PartnerAgency.Parlament, null).ToQueryString();
+
+        Assert.Contains("PartnerRegelFreigaben", people, StringComparison.Ordinal);
+        Assert.Contains("FraktionMitglieder", people, StringComparison.Ordinal);
+        Assert.Contains("IstBadfrak", factions, StringComparison.Ordinal);
+        Assert.Contains("PartnerRegelFreigaben", laws, StringComparison.Ordinal);
+    }
+
     private static int Occurrences(string text, string needle)
     {
         var count = 0;

@@ -112,6 +112,7 @@ else
                 Classification = f.Classification,
                 SecrecyLevel = f.SecrecyLevel,
                 IsStateFaction = f.IsStateFaction,
+                IsBadFaction = f.IsBadFaction,
                 EstimatedMemberCount = f.EstimatedMemberCount,
                 Ranks = f.Ranks.OrderBy(r => r.Order).Select(r => new RankInput { Id = r.Id, Designation = r.Designation }).ToList(),
                 WeaponStock = f.WeaponStock.Select(w => new StockInput { Designation = w.Designation, Quantity = w.Quantity }).ToList(),

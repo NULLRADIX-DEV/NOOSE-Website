@@ -32,6 +32,7 @@ else
             <MudTextField Value="_search" ValueChanged="@((string v) => SearchChangedAsync(v))" Placeholder="Suchen (Name, Aktenzeichen, Art)…" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
             <MudSpacer />
+            <MudSwitch T="bool" Value="_onlyBad" ValueChanged="OnlyBadSelectedAsync" Color="Color.Error" Label="Nur Badfraks" Class="mr-2" />
             <MudSelect T="Classification?" Value="_classification" ValueChanged="ClassificationSelectedAsync" Label="Einstufung" Dense="true"
                        Clearable="true" Variant="Variant.Outlined" Style="max-width:220px;" Margin="Margin.Dense">
                 <MudSelectItem T="Classification?" Value="@(null)">Alle</MudSelectItem>
@@ -175,10 +176,11 @@ else
     private Classification? _classification;
     private RecencyLevel? _recency;
     private ArchiveFilter _archive = ArchiveFilter.Active;
+    private bool _onlyBad;
     private List<FactionRow> _rows = new();
 
     private bool HasFilter => !string.IsNullOrWhiteSpace(_search) || _classification is not null || _recency is not null
-        || _archive != ArchiveFilter.Active;
+        || _archive != ArchiveFilter.Active || _onlyBad;
 
     protected override async Task OnInitializedAsync()
     {
@@ -194,6 +196,7 @@ else
         _classification = QueryState.ReadEnum<Classification>(query, "einstufung");
         _recency = QueryState.ReadEnum<RecencyLevel>(query, "aktualitaet");
         _archive = QueryState.ReadEnum<ArchiveFilter>(query, "archiv") ?? ArchiveFilter.Active;
+        _onlyBad = QueryState.ReadFlag(query, "badfrak");
     }
 
     // a saved view, the palette or the menu landing on this list while it shows: the instance is reused
@@ -239,13 +242,14 @@ else
         _rows = factions.Select(f =>
         {
             // freshness follows the oldest of members/stocks/activities/docs, not the last master-data edit
-            var referenceUtc = FactionRecency.Reference(f);
+            var referenceUtc = FactionRecency.Reference(f, !isPartner);
             return new FactionRow
             {
                 Id = f.Id,
                 CaseNumber = f.CaseNumber,
                 Name = f.Name,
                 Kind = f.Kind ?? "—",
+                IsBadFaction = f.IsBadFaction,
                 // count only members with a visible record
                 // partners: hide member count
                 MemberCount = isPartner ? 0 : f.Members.Count(m => m.Person is not null && (mayClassifiedRead || !m.Person.IsClassified)),
@@ -260,7 +264,7 @@ else
                 SecrecyLevel = f.SecrecyLevel,
                 RefreshedUtc = referenceUtc,
                 Refreshed = referenceUtc.ToLocalTime(),
-                OldestFacet = FactionRecency.Oldest(f),
+                OldestFacet = FactionRecency.Oldest(f, !isPartner),
                 // state factions and exempt records never go stale
                 IsArchived = f.IsArchived,
                 Level = RecencyAssessment.For(settings.AgingDisabled, f.IsStateFaction || f.AgingDisabled, f.IsArchived,
@@ -272,6 +276,10 @@ else
 
     private bool Filter(FactionRow z)
     {
+        if (_onlyBad && !z.IsBadFaction)
+        {
+            return false;
+        }
         if (_classification is { } c && z.Classification != c)
         {
             return false;
@@ -308,6 +316,12 @@ else
         return PersistFiltersAsync();
     }
 
+    private Task OnlyBadSelectedAsync(bool value)
+    {
+        _onlyBad = value;
+        return PersistFiltersAsync();
+    }
+
     private async Task ArchiveSelectedAsync(ArchiveFilter value)
     {
         _archive = value;
@@ -321,6 +335,7 @@ else
         _search = string.Empty;
         _classification = null;
         _recency = null;
+        _onlyBad = false;
         var reload = _archive != ArchiveFilter.Active;
         _archive = ArchiveFilter.Active;
         await PersistFiltersAsync();
@@ -338,6 +353,7 @@ else
         ("einstufung", _classification?.ToString()),
         ("aktualitaet", _recency?.ToString()),
         ("archiv", _archive == ArchiveFilter.Active ? null : _archive.ToString()),
+        ("badfrak", _onlyBad ? "1" : null),
     ];
 
     private Task PersistFiltersAsync() => QueryState.WriteAsync(JS, Nav, FilterState);
@@ -359,6 +375,7 @@ else
         public string CaseNumber { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Kind { get; set; } = string.Empty;
+        public bool IsBadFaction { get; set; }
         public int MemberCount { get; set; }
         public string? TitleImagePhotoId { get; set; }
         public Classification Classification { get; set; }
