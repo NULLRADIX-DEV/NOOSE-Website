@@ -237,7 +237,8 @@ public sealed class NooseiOperationsTests
     public async Task TheLogRow_RecordsHowTheTurnRan()
     {
         using var ctx = new SqliteTestContext();
-        var (gateway, llm) = await BuildAsync(ctx);
+        // the final round stops on length to show the column; continuing it is another test's business
+        var (gateway, llm) = await BuildAsync(ctx, o => o.MaxAnswerContinuations = 0);
         var round = 0;
         llm.CompleteAsync(Arg.Any<LlmRequest>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
             .Returns(_ => ++round == 1

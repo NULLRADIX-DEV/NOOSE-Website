@@ -407,6 +407,8 @@ public static class ChangelogContent
                 + "Aufzählungen, Fett und Kursiv –, und bestehende Texte behalten ihre Zeilen.", "Gesetze"),
             Fix("2.2.17-zeilenumbrueche", "Zeilenumbrüche in Texten bleiben nach dem Speichern sichtbar, statt "
                 + "zu einer Zeile zusammenzulaufen.", "Bedienung"),
+            Fix("2.2.18-noosei-lange-antworten", "NOOSEI schreibt lange Antworten auf umfangreiche Fragen jetzt zu "
+                + "Ende, statt sie nach wenigen Sätzen abzubrechen.", "NOOSEI"),
         ]),
     ];
 }

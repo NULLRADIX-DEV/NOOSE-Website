@@ -245,6 +245,11 @@ public static class NooseiPrompts
         """;
 
     /// <summary>Answer to a call the model already made with the same arguments this turn.</summary>
+    public const string ContinueAnswer = """
+        Deine Antwort oben wurde wegen der Längengrenze abgeschnitten. Setze sie genau an der Stelle fort, an der
+        sie endet — ohne Einleitung, ohne Wiederholung und ohne neue Werkzeugaufrufe.
+        """;
+
     public const string RepeatedToolCall =
         "Dieses Werkzeug wurde in dieser Anfrage bereits mit denselben Parametern aufgerufen. "
         + "Das Ergebnis steht weiter oben. Nutze es oder wähle ein anderes Werkzeug.";

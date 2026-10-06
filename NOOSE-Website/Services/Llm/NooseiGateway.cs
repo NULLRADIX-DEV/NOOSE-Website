@@ -148,6 +148,8 @@ public class NooseiGateway(
         var modelMs = 0L;
         LlmToolWithdrawal? withdrawal = null;
         LlmResult? last = null;
+        // the answer so far, continued pieces included; what a timeout rescues
+        string? answered = null;
 
         try
         {
@@ -244,6 +246,26 @@ public class NooseiGateway(
                 looping = planned.All(p => p.Repeat);
             }
 
+            answered = last?.Text;
+            // the ceiling exists to detect "length", not to end the answer: a free-text answer is continued on a
+            // copy of the transcript, so the resume prompt never reaches the stored conversation
+            var continuations = 0;
+            while (MayContinue(call, last, answered) && continuations < Math.Clamp(_o.MaxAnswerContinuations, 0, 10))
+            {
+                continuations++;
+                var resume = new List<LlmMessage>(messages)
+                {
+                    LlmMessage.Assistant(answered!),
+                    LlmMessage.System(NooseiPrompts.ContinueAnswer),
+                };
+                var more = await llm.CompleteAsync(Round(call, provider, resume, offerTools: false), actor, turnCts.Token);
+                total += more.Usage;
+                attempts += more.Attempts;
+                modelMs += more.ElapsedMs;
+                last = more;
+                answered += more.Text;
+            }
+
             watch.Stop();
             if (withdrawal is null && CanUseTools(call))
             {
@@ -251,8 +273,8 @@ public class NooseiGateway(
             }
             var trace = Trace(last, attempts, modelMs, toolCalls, barren.Count, degraded, withdrawal, null);
             var charge = await ChargeAsync(agentId, call, provider, total, last, refs, rounds, watch, success: true, error: null, trace);
-            return new NooseiAnswer(last?.Text, total, charge, rounds, messages, degraded,
-                string.Equals(last?.FinishReason, "length", StringComparison.OrdinalIgnoreCase),
+            return new NooseiAnswer(answered, total, charge, rounds, messages, degraded,
+                IsCutOff(last),
                 refs,
                 barren,
                 last?.Model ?? _o.ModelFor(provider, call.Feature));
@@ -261,7 +283,7 @@ public class NooseiGateway(
         // in nothing while the quota was charged anyway — the agent's own cancel is not this case and falls through.
         catch (OperationCanceledException) when (turnCts.IsCancellationRequested
             && !cancellationToken.IsCancellationRequested
-            && last?.Text is { Length: > 0 } partial)
+            && (answered ?? last?.Text) is { Length: > 0 } partial)
         {
             watch.Stop();
             var trace = Trace(last, attempts, modelMs, toolCalls, barren.Count, degraded,
@@ -291,6 +313,14 @@ public class NooseiGateway(
             _ = status;
         }
     }
+
+    private static bool IsCutOff(LlmResult? result)
+        => string.Equals(result?.FinishReason, "length", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Whether a cut-off answer may be continued. Only free text under the feature's own ceiling: glued
+    /// pieces of a structured answer are no longer valid JSON, and a caller's own ceiling is a decision.</summary>
+    private static bool MayContinue(NooseiCall call, LlmResult? last, string? answered)
+        => IsCutOff(last) && !string.IsNullOrEmpty(answered) && call.ResponseFormat is null && call.MaxTokens is null;
 
     /// <summary>Whether this call could use tools at all. Separate from the per-round decision, because a feature
     /// that never had tools must report no withdrawal rather than one it never hit.</summary>
