@@ -417,7 +417,8 @@ internal static class GlossaryContent
             "Eigene Regeln dafür, welches Verhalten innerhalb der Seite als auffällig gilt.",
             ArticleKey: "art-gegenaufklaerung"),
         new("beg-gesetzbuch", "Gesetzbuch",
-            "Die Sammlung der Paragrafen. Einzelne Auszüge lassen sich für die Öffentlichkeit freigeben.",
+            "Eine Sammlung von Paragrafen, etwa das StGB. Unter Gesetze steht je Buch eine Karte; einzelne "
+            + "Auszüge lassen sich für die Öffentlichkeit freigeben.",
             Synonyms: "Gesetze", ArticleKey: "art-gesetze"),
         new("beg-druckansicht", "Druckansicht",
             "Eine Akte ohne Menü und Knöpfe, für Papier oder PDF. Ebenfalls rechtegefiltert.",

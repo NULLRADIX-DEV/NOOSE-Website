@@ -72,7 +72,6 @@ public class DraftKeysTests
             DocDialog.NewDraftScope("p1"), DocDialog.EditDraftScope("d1"), DocCreateDialog.DraftScope,
             ObservationDialog.NewDraftScope("p1"), ObservationDialog.EditDraftScope("o1"),
             SourceDialog.NewDraftScope("Person", "p1"),
-            LawDialog.DraftScopeFor(null), LawDialog.DraftScopeFor("l1"),
             PublicTemplateDialog.DraftScopeFor(null, PublicTemplateKind.TicketEingang),
             PublicTemplateDialog.DraftScopeFor("t1", PublicTemplateKind.TicketEingang),
         ];

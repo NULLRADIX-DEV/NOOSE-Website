@@ -1,0 +1,440 @@
+@* One law book: its paragraphs grouped by section, each one opened in place. *@
+@page "/gesetze/buch/{Abbreviation}"
+@implements IAsyncDisposable
+@inject ILawService LawService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>@(_content?.Book.Abbreviation ?? "Gesetzbuch") · NOOSE</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_content is null)
+{
+    <PageHeader Icon="@Icons.Material.Filled.MenuBook" Title="Gesetzbuch" BackHref="/gesetze" BackText="Zurück zu den Gesetzen" />
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Dieses Gesetzbuch gibt es nicht (mehr).</MudAlert>
+}
+else
+{
+    var book = _content.Book;
+    <PageHeader Icon="@Icons.Material.Filled.MenuBook" Title="@book.Abbreviation" BackHref="/gesetze" BackText="Zurück zu den Gesetzen"
+                Subtitle="@SubtitleFor(book)">
+        <Actions>
+            @if (_mayWrite)
+            {
+                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                    @if (book.Id is not null)
+                    {
+                        <MudTooltip Text="Gesetzbuch bearbeiten">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="EditBookAsync"
+                                           aria-label="Gesetzbuch bearbeiten" />
+                        </MudTooltip>
+                        @if (_content.Paragraphs.Count == 0)
+                        {
+                            <MudTooltip Text="Gesetzbuch löschen">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="DeleteBookAsync"
+                                               aria-label="Gesetzbuch löschen" />
+                            </MudTooltip>
+                        }
+                    }
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="NewParagraphAsync">Paragraf hinzufügen</MudButton>
+                </MudStack>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (_content.Paragraphs.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Gavel" Title="In diesem Gesetzbuch steht noch kein Paragraf." />
+    }
+    else
+    {
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+            <MudTextField @bind-Value="_search" Placeholder="In diesem Gesetzbuch suchen…" Immediate="true" DebounceInterval="250"
+                          Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Style="min-width:260px;" Class="flex-grow-1" />
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.UnfoldMore" OnClick="OpenAll">Alle aufklappen</MudButton>
+            <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.UnfoldLess" OnClick="CloseAll">Alle zuklappen</MudButton>
+        </MudStack>
+
+        var groups = Groups().ToList();
+        @if (groups.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Kein Paragraf passt zur Suche.</MudText>
+        }
+        @foreach (var group in groups)
+        {
+            @if (!string.IsNullOrWhiteSpace(group.Section))
+            {
+                <MudText Typo="Typo.h6" Class="mt-4 mb-2">@group.Section</MudText>
+            }
+            <MudExpansionPanels MultiExpansion="true" Elevation="1" Class="mb-2">
+                @foreach (var law in group.Paragraphs)
+                {
+                    <MudExpansionPanel @key="law.Id" Expanded="@_open.Contains(law.Id)"
+                                       ExpandedChanged="@(open => Toggle(law.Id, open))">
+                        <TitleContent>
+                            @if (law.Id == _focusId)
+                            {
+                                <div @ref="_focusAnchor" style="scroll-margin-top:80px;"></div>
+                            }
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                                <MudText Typo="Typo.body1"><b>@law.Paragraph</b> – @law.Title</MudText>
+                                @if (!string.IsNullOrWhiteSpace(law.Sentence))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">@law.Sentence</MudChip>
+                                }
+                            </MudStack>
+                        </TitleContent>
+                        <ChildContent>
+                            @* rendered only while open: a whole book would otherwise resolve every mention at once *@
+                            @if (_open.Contains(law.Id))
+                            {
+                                <MudStack Spacing="3">
+                                    <RichHtml Html="@law.Text" User="@_user" Glossary="false" />
+                                    @if (!string.IsNullOrWhiteSpace(law.Sentence))
+                                    {
+                                        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                                            <b>Strafmaß/Rechtsfolge:</b> @law.Sentence
+                                        </MudAlert>
+                                    }
+                                    <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.OpenInNew"
+                                                   Href="@($"/gesetze/{law.Id}")">Akte öffnen</MudButton>
+                                        @if (_mayWrite)
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                                       StartIcon="@Icons.Material.Filled.Edit"
+                                                       OnClick="@(() => EditParagraphAsync(law))">Bearbeiten</MudButton>
+                                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                                       StartIcon="@Icons.Material.Filled.Delete"
+                                                       OnClick="@(() => DeleteParagraphAsync(law))">Löschen</MudButton>
+                                        }
+                                    </MudStack>
+                                </MudStack>
+                            }
+                        </ChildContent>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+        }
+    }
+}
+
+@code {
+    [Parameter] public string Abbreviation { get; set; } = string.Empty;
+
+    /// <summary>Paragraph to open and scroll to, e.g. from a search hit.</summary>
+    [SupplyParameterFromQuery(Name = "p")] public string? Focus { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _mayWrite;
+    private string _search = string.Empty;
+    private string? _loadedKey;
+    private string? _focusId;
+    private bool _scrollPending;
+    private LawBookContent? _content;
+    private Dictionary<string, string> _plain = new();
+    private readonly HashSet<string> _open = new();
+    private ClaimsPrincipal _user = default!;
+    private ElementReference _focusAnchor;
+    private IJSObjectReference? _module;
+
+    private sealed record SectionGroup(string? Section, List<Law> Paragraphs);
+
+    // the same component serves every book, so a route change reuses this instance
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = $"{Abbreviation}|{Focus}";
+        if (key == _loadedKey)
+        {
+            return;
+        }
+        var bookChanged = _loadedKey is null || !_loadedKey.StartsWith(Abbreviation + "|", StringComparison.Ordinal);
+        _loadedKey = key;
+        _user = (await AuthStateTask).User;
+        // mirrors the service guard: write check and leadership
+        _mayWrite = _user.MayWrite() && _user.IsLeadership();
+        if (bookChanged)
+        {
+            _open.Clear();
+            _search = string.Empty;
+            await LoadAsync();
+        }
+        if (!string.IsNullOrEmpty(Focus) && _content?.Paragraphs.Any(l => l.Id == Focus) == true)
+        {
+            _focusId = Focus;
+            _open.Add(Focus);
+            _scrollPending = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_scrollPending || _focusId is null)
+        {
+            return;
+        }
+        _scrollPending = false;
+        try
+        {
+            // Bump ?v= when app.js changes
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./app.js?v=4");
+            await _module.InvokeVoidAsync("scrollToElement", _focusAnchor);
+        }
+        catch (JSDisconnectedException)
+        {
+            /* ignore */
+        }
+        catch (Exception)
+        {
+            /* best effort */
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _content = await LawService.GetBookAsync(Abbreviation,
+            partnerAgency: _user.GetPartnerAgency(), partnerAgentId: _user.GetAgentId());
+        _plain = _content?.Paragraphs.ToDictionary(l => l.Id, l => HtmlCleanup.PlainText(l.Text)) ?? new();
+        _load = false;
+    }
+
+    private static string? SubtitleFor(LawBookSummary book)
+    {
+        var name = string.Equals(book.Name, book.Abbreviation, StringComparison.OrdinalIgnoreCase) ? null : book.Name;
+        var count = book.ParagraphCount == 1 ? "1 Paragraf" : $"{book.ParagraphCount} Paragrafen";
+        return string.Join(" · ", new[] { name, book.Description, count }.Where(p => !string.IsNullOrWhiteSpace(p)));
+    }
+
+    // consecutive runs, so a section that recurs further down keeps its place in the book
+    private IEnumerable<SectionGroup> Groups()
+    {
+        if (_content is null)
+        {
+            yield break;
+        }
+        var s = _search.Trim();
+        SectionGroup? current = null;
+        foreach (var law in _content.Paragraphs)
+        {
+            if (s.Length > 0 && !Matches(law, s))
+            {
+                continue;
+            }
+            if (current is null || !string.Equals(current.Section, law.Section, StringComparison.Ordinal))
+            {
+                if (current is not null)
+                {
+                    yield return current;
+                }
+                current = new SectionGroup(law.Section, new List<Law>());
+            }
+            current.Paragraphs.Add(law);
+        }
+        if (current is not null)
+        {
+            yield return current;
+        }
+    }
+
+    private bool Matches(Law law, string s)
+        => law.Title.Contains(s, StringComparison.OrdinalIgnoreCase)
+           || law.Paragraph.Contains(s, StringComparison.OrdinalIgnoreCase)
+           || (law.Section?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+           || (law.Sentence?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+           || _plain.GetValueOrDefault(law.Id, string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase);
+
+    private void Toggle(string id, bool open)
+    {
+        if (open)
+        {
+            _open.Add(id);
+        }
+        else
+        {
+            _open.Remove(id);
+        }
+    }
+
+    private void OpenAll()
+    {
+        foreach (var law in Groups().SelectMany(g => g.Paragraphs))
+        {
+            _open.Add(law.Id);
+        }
+    }
+
+    private void CloseAll() => _open.Clear();
+
+    private async Task ReloadAsync()
+    {
+        _content = await LawService.GetBookAsync(Abbreviation,
+            partnerAgency: _user.GetPartnerAgency(), partnerAgentId: _user.GetAgentId());
+        _plain = _content?.Paragraphs.ToDictionary(l => l.Id, l => HtmlCleanup.PlainText(l.Text)) ?? new();
+    }
+
+    private async Task NewParagraphAsync()
+    {
+        if (_content is null)
+        {
+            return;
+        }
+        var preset = new LawInput
+        {
+            LawBook = _content.Book.Abbreviation,
+            // most new paragraphs continue the last part of the book
+            Section = _content.Paragraphs.LastOrDefault()?.Section,
+        };
+        var input = await LawDialog.ShowAsync(DialogService, $"Neuer Paragraf in {_content.Book.Abbreviation}", preset);
+        if (input is null)
+        {
+            return;
+        }
+        try
+        {
+            var law = await LawService.CreateAsync(input, _user);
+            await RichTextEditor.DiscardDraftAsync(JS, _user.GetAgentId(), LawDialog.TextDraftKey(null));
+            Snackbar.Add("Paragraf angelegt.", Severity.Success);
+            await AfterParagraphWriteAsync(law.LawBook, law.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task EditParagraphAsync(Law law)
+    {
+        var input = await LawDialog.ShowAsync(DialogService, $"{law.Paragraph} bearbeiten", LawDialog.PresetFor(law), law.Id);
+        if (input is null)
+        {
+            return;
+        }
+        try
+        {
+            await LawService.RefreshAsync(law.Id, input, _user);
+            await RichTextEditor.DiscardDraftAsync(JS, _user.GetAgentId(), LawDialog.TextDraftKey(law.Id));
+            Snackbar.Add("Paragraf gespeichert.", Severity.Success);
+            await AfterParagraphWriteAsync(input.LawBook, law.Id);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    // a paragraph moved to another book is followed there
+    private async Task AfterParagraphWriteAsync(string book, string lawId)
+    {
+        if (!string.Equals(book.Trim(), Abbreviation, StringComparison.OrdinalIgnoreCase))
+        {
+            Nav.NavigateTo($"{LawsList.BookHref(book.Trim())}?p={lawId}");
+            return;
+        }
+        _open.Add(lawId);
+        await ReloadAsync();
+    }
+
+    private async Task DeleteParagraphAsync(Law law)
+    {
+        var confirmed = await ConfirmDialog.ShowAsync(DialogService, "Paragraf löschen?",
+            $"„{law.Paragraph} {law.Title}“ in den Papierkorb verschieben? Bestehende Verknüpfungen zeigen ihn danach nicht mehr an.");
+        if (!confirmed)
+        {
+            return;
+        }
+        try
+        {
+            await LawService.DeleteAsync(law.Id, _user);
+            Snackbar.Add("Paragraf gelöscht.", Severity.Success);
+            _open.Remove(law.Id);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task EditBookAsync()
+    {
+        if (_content?.Book is not { Id: { } id } book)
+        {
+            return;
+        }
+        var input = await LawBookDialog.ShowAsync(DialogService, $"{book.Abbreviation} bearbeiten", new LawBookInput
+        {
+            Abbreviation = book.Abbreviation,
+            Name = book.Name,
+            Description = book.Description,
+            SortOrder = book.SortOrder,
+        });
+        if (input is null)
+        {
+            return;
+        }
+        try
+        {
+            await LawService.UpdateBookAsync(id, input, _user);
+            Snackbar.Add("Gesetzbuch gespeichert.", Severity.Success);
+            if (!string.Equals(input.Abbreviation.Trim(), Abbreviation, StringComparison.Ordinal))
+            {
+                Nav.NavigateTo(LawsList.BookHref(input.Abbreviation.Trim()), replace: true);
+                return;
+            }
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteBookAsync()
+    {
+        if (_content?.Book is not { Id: { } id } book)
+        {
+            return;
+        }
+        var confirmed = await ConfirmDialog.ShowAsync(DialogService, "Gesetzbuch löschen?",
+            $"„{book.Abbreviation}“ in den Papierkorb verschieben?");
+        if (!confirmed)
+        {
+            return;
+        }
+        try
+        {
+            await LawService.DeleteBookAsync(id, _user);
+            Snackbar.Add("Gesetzbuch gelöscht.", Severity.Success);
+            Nav.NavigateTo("/gesetze");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                /* ignore */
+            }
+        }
+    }
+}

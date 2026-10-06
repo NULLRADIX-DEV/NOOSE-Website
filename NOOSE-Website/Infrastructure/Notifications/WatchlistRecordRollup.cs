@@ -131,6 +131,9 @@ public static class WatchlistRecordRollup
             case OeffentlichesFuehrungsprofil:
             // a template is configuration; what a follower could care about is the message it produced
             case OeffentlicheVorlage:
+            // statutes are reference text, not casework, and nobody follows a law book
+            case Law:
+            case LawBook:
                 return Array.Empty<(string, string)>();
 
             default:

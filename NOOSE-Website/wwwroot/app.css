@@ -2072,3 +2072,21 @@ div.vis-tooltip {
 .faq-antwort {
     padding: 0 1rem 1rem 2.15rem;
 }
+
+/* law book cards on /gesetze: the whole card is the link */
+.noose-law-book-card {
+    display: block;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+}
+
+.noose-law-book-card > .mud-paper {
+    transition: box-shadow .15s ease, transform .15s ease;
+}
+
+.noose-law-book-card:hover > .mud-paper,
+.noose-law-book-card:focus-visible > .mud-paper {
+    box-shadow: 0 0 0 1px var(--mud-palette-primary);
+    transform: translateY(-1px);
+}

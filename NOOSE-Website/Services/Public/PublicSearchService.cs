@@ -238,7 +238,7 @@ public class PublicSearchService(
         return snapshot.Books
             .SelectMany(book => book.Entries.Select(entry => new Candidate(
                 $"{entry.Paragraph} {entry.Title}".Trim(), $"{book.Name} {entry.Paragraph}".Trim(), "/recht", null,
-                Join(book.Name, entry.Paragraph, entry.Title, entry.Text, entry.Sentence))))
+                Join(book.Name, book.Title, entry.Paragraph, entry.Title, Body(entry.PlainText, entry.Text), entry.Sentence))))
             .ToList();
     }
 

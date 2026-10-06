@@ -35,8 +35,10 @@ public static class AuditDisplay
 
     // Document bodies, layouts and score snapshots are unreadable as a before/after pair and swamp
     // every timeline they appear in; the audit row still records that the field changed.
-    private static bool IsPayload(string field)
-        => field.EndsWith("Html", StringComparison.Ordinal) || field.EndsWith("Json", StringComparison.Ordinal);
+    private static bool IsPayload(string field, string? entityType)
+        => field.EndsWith("Html", StringComparison.Ordinal) || field.EndsWith("Json", StringComparison.Ordinal)
+           // a paragraph's text is HTML under a name that does not say so
+           || (field == "Text" && entityType == "Law");
 
     private static readonly Dictionary<string, string> Labels = new(StringComparer.Ordinal)
     {
@@ -97,6 +99,9 @@ public static class AuditDisplay
         ["IsInvestigationLead"] = "Ermittlungsleitung",
         ["PageRoute"] = "Seite", ["PageTab"] = "Seiten-Tab",
         ["Response"] = "Antwort", ["DeciderName"] = "Entschieden von", ["DecidedAt"] = "Entschieden am",
+        ["LawBook"] = "Gesetzbuch", ["Paragraph"] = "Paragraf", ["Sentence"] = "Strafmaß",
+        ["Section"] = "Abschnitt", ["SortOrder"] = "Reihenfolge", ["Abbreviation"] = "Kürzel",
+        ["IsPublic"] = "Öffentlich",
     };
 
     // whole-day values carry no instant, so they must never be shifted into a time zone
@@ -139,7 +144,7 @@ public static class AuditDisplay
         var list = new List<FieldChange>();
         foreach (var (field, values) in raw)
         {
-            if (Hidden.Contains(field) || IsPayload(field))
+            if (Hidden.Contains(field) || IsPayload(field, entityType))
             {
                 continue;
             }

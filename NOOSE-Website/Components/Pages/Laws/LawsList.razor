@@ -1,4 +1,4 @@
-@* Searchable law knowledge base; readable by all, curated by leadership. *@
+@* Law books as cards; a search runs across every paragraph. Readable by all, curated by leadership. *@
 @page "/gesetze"
 @inject ILawService LawService
 @inject IDialogService DialogService
@@ -6,21 +6,21 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<PageTitle>Gesetzbuch · NOOSE</PageTitle>
+<PageTitle>Gesetze · NOOSE</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.Gavel" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Gesetzbuch</MudText>
-    <MudSpacer />
-    <AuthorizeView Policy="@Policies.Leadership" Context="fuehrung">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="NewAsync">Neuer Paragraf</MudButton>
-    </AuthorizeView>
-</MudStack>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Rechtsgrundlagen der Ermittlungsarbeit. Paragrafen können über „Verknüpfen" mit Vorgängen,
-    Doks und anderen Akten verbunden werden und tauchen in der globalen Suche auf.
-</MudText>
+<PageHeader Icon="@Icons.Material.Filled.Gavel" Title="Gesetze"
+            Subtitle="Die Gesetzbücher als Rechtsgrundlage der Ermittlungsarbeit. Paragrafen lassen sich mit Vorgängen, Doks und anderen Akten verknüpfen und tauchen in der globalen Suche auf.">
+    <Actions>
+        <AuthorizeView Policy="@Policies.LeadershipWrite" Context="fuehrung">
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LibraryAdd"
+                           OnClick="NewBookAsync">Neues Gesetzbuch</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="NewParagraphAsync">Neuer Paragraf</MudButton>
+            </MudStack>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
 
 @if (_load)
 {
@@ -28,99 +28,145 @@
 }
 else
 {
-    <MudTextField @bind-Value="_search" Placeholder="Suchen (Gesetzbuch, Paragraf, Titel, Text)…" Immediate="true"
-                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-3" Variant="Variant.Outlined" />
+    <MudTextField @bind-Value="_search" Placeholder="In allen Gesetzen suchen (Paragraf, Titel, Text)…" Immediate="true"
+                  DebounceInterval="250" Clearable="true"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="mb-4" Variant="Variant.Outlined" />
 
-    <MudTable Items="_filtered" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
-              T="Law" RowClass="cursor-pointer" OnRowClick="@(args => Open(args.Item))">
-        <HeaderContent>
-            <MudTh><MudTableSortLabel T="Law" SortBy="@(x => x.LawBook)" InitialDirection="SortDirection.Ascending">Gesetzbuch</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Law" SortBy="@(x => x.Paragraph)">Paragraf</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Law" SortBy="@(x => x.Title)">Titel</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Law" SortBy="@(x => x.Sentence)">Strafmaß</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align:right;">Aktion</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Gesetzbuch">
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@context.LawBook</MudChip>
-            </MudTd>
-            <MudTd DataLabel="Paragraf"><MudText Typo="Typo.body2"><b>@context.Paragraph</b></MudText></MudTd>
-            <MudTd DataLabel="Titel">
-                <MudLink Href="@($"/gesetze/{context.Id}")" @onclick:stopPropagation="true">@context.Title</MudLink>
-            </MudTd>
-            <MudTd DataLabel="Strafmaß">
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">@(string.IsNullOrWhiteSpace(context.Sentence) ? "—" : context.Sentence)</MudText>
-            </MudTd>
-            <MudTd DataLabel="Aktion" Style="text-align:right;">
-                @if (_isLeadership)
+    @if (string.IsNullOrWhiteSpace(_search))
+    {
+        @if (_books.Count == 0)
+        {
+            <EmptyState Icon="@Icons.Material.Filled.MenuBook"
+                        Title="@(_isPartner ? "Für Ihre Behörde wurde noch kein Paragraf freigegeben." : "Noch keine Gesetzbücher erfasst.")" />
+        }
+        else
+        {
+            <MudGrid Spacing="3">
+                @foreach (var book in _books)
                 {
-                    @* Stop click propagation so the button doesn't open the row. *@
-                    <span @onclick:stopPropagation="true">
-                        <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
-                                           OnClick="@(() => EditAsync(context))" aria-label="Paragraf bearbeiten" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                           OnClick="@(() => DeleteAsync(context))" aria-label="Paragraf löschen" />
-                        </MudStack>
-                    </span>
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <a href="@BookHref(book.Abbreviation)" class="noose-law-book-card" aria-label="@($"{book.Abbreviation} öffnen")">
+                            <MudPaper Elevation="2" Class="pa-4" Style="height:100%;">
+                                <MudStack Spacing="1">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudIcon Icon="@Icons.Material.Filled.MenuBook" Color="Color.Primary" />
+                                        <MudText Typo="Typo.h5">@book.Abbreviation</MudText>
+                                    </MudStack>
+                                    @if (!string.Equals(book.Name, book.Abbreviation, StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <MudText Typo="Typo.body1">@book.Name</MudText>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(book.Description))
+                                    {
+                                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@book.Description</MudText>
+                                    }
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @(book.ParagraphCount == 1 ? "1 Paragraf" : $"{book.ParagraphCount} Paragrafen")
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        </a>
+                    </MudItem>
                 }
-            </MudTd>
-        </RowTemplate>
-        <NoRecordsContent>
-            <AuthorizeView Policy="@Policies.PartnerView" Context="partnerEmpty">
-                <Authorized>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Für Ihre Behörde wurde noch kein Paragraf freigegeben.</MudText>
-                </Authorized>
-                <NotAuthorized>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Noch keine Paragrafen erfasst.</MudText>
-                </NotAuthorized>
-            </AuthorizeView>
-        </NoRecordsContent>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
+            </MudGrid>
+        }
+    }
+    else
+    {
+        var hits = Hits().ToList();
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+            @(hits.Count == 0 ? "Kein Treffer." : hits.Count == 1 ? "1 Treffer" : $"{hits.Count} Treffer")
+            @if (hits.Count > MaxHits)
+            {
+                <span> — die ersten @MaxHits werden gezeigt, grenze die Suche weiter ein.</span>
+            }
+        </MudText>
+        <MudPaper Elevation="2">
+            <MudList T="string" Dense="true">
+                @foreach (var law in hits.Take(MaxHits))
+                {
+                    <MudListItem T="string" Href="@($"{BookHref(law.LawBook)}?p={law.Id}")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@law.LawBook</MudChip>
+                            <MudText Typo="Typo.body2"><b>@law.Paragraph</b> @law.Title</MudText>
+                            @if (!string.IsNullOrWhiteSpace(law.Section))
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@law.Section</MudText>
+                            }
+                        </MudStack>
+                    </MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+    }
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
-    private bool _load = true;
-    private bool _isLeadership;
-    private string _search = string.Empty;
-    private List<Law> _laws = new();
-    private ClaimsPrincipal _user = default!;
+    private const int MaxHits = 100;
 
-    private IEnumerable<Law> _filtered => string.IsNullOrWhiteSpace(_search)
-        ? _laws
-        : _laws.Where(g => g.Title.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
-                           || g.Paragraph.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
-                           || g.LawBook.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase)
-                           || g.Text.Contains(_search.Trim(), StringComparison.OrdinalIgnoreCase));
+    private bool _load = true;
+    private bool _isPartner;
+    private string _search = string.Empty;
+    private List<LawBookSummary> _books = new();
+    private List<Law> _laws = new();
+    private Dictionary<string, string> _plain = new();
+    private ClaimsPrincipal _user = default!;
 
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
-        _isLeadership = _user.IsLeadership();
+        _isPartner = _user.IsPartner();
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _load = true;
-        _laws = await LawService.GetListAsync(partnerAgency: _user.GetPartnerAgency(), partnerAgentId: _user.GetAgentId());
+        var agency = _user.GetPartnerAgency();
+        var agentId = _user.GetAgentId();
+        _books = await LawService.GetBooksAsync(partnerAgency: agency, partnerAgentId: agentId);
+        _laws = await LawService.GetListAsync(partnerAgency: agency, partnerAgentId: agentId);
+        // searched as text: matching the markup would hit tag names and entities
+        _plain = _laws.ToDictionary(l => l.Id, l => HtmlCleanup.PlainText(l.Text));
         _load = false;
     }
 
-    private void Open(Law? g)
+    private IEnumerable<Law> Hits()
     {
-        if (g is not null)
+        var s = _search.Trim();
+        return _laws.Where(l => l.Title.Contains(s, StringComparison.OrdinalIgnoreCase)
+                                || l.Paragraph.Contains(s, StringComparison.OrdinalIgnoreCase)
+                                || l.LawBook.Contains(s, StringComparison.OrdinalIgnoreCase)
+                                || (l.Section?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || (l.Sentence?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+                                || _plain.GetValueOrDefault(l.Id, string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Address of a book page.</summary>
+    public static string BookHref(string abbreviation) => $"/gesetze/buch/{Uri.EscapeDataString(abbreviation)}";
+
+    private async Task NewBookAsync()
+    {
+        var input = await LawBookDialog.ShowAsync(DialogService, "Neues Gesetzbuch");
+        if (input is null)
         {
-            Nav.NavigateTo($"/gesetze/{g.Id}");
+            return;
+        }
+        try
+        {
+            var book = await LawService.CreateBookAsync(input, _user);
+            Snackbar.Add("Gesetzbuch angelegt.", Severity.Success);
+            Nav.NavigateTo(BookHref(book.Abbreviation));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
-    private async Task NewAsync()
+    private async Task NewParagraphAsync()
     {
         var input = await LawDialog.ShowAsync(DialogService, "Neuer Paragraf");
         if (input is null)
@@ -129,57 +175,10 @@ else
         }
         try
         {
-            await LawService.CreateAsync(input, _user);
-            await TextDraft.DiscardScopeAsync(JS, _user.GetAgentId(), LawDialog.DraftScopeFor(null));
+            var law = await LawService.CreateAsync(input, _user);
+            await RichTextEditor.DiscardDraftAsync(JS, _user.GetAgentId(), LawDialog.TextDraftKey(null));
             Snackbar.Add("Paragraf angelegt.", Severity.Success);
-            await LoadAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-    }
-
-    private async Task EditAsync(Law law)
-    {
-        var input = await LawDialog.ShowAsync(DialogService, $"{law.Paragraph} bearbeiten", new LawInput
-        {
-            LawBook = law.LawBook,
-            Paragraph = law.Paragraph,
-            Title = law.Title,
-            Text = law.Text,
-            Sentence = law.Sentence,
-        }, law.Id);
-        if (input is null)
-        {
-            return;
-        }
-        try
-        {
-            await LawService.RefreshAsync(law.Id, input, _user);
-            await TextDraft.DiscardScopeAsync(JS, _user.GetAgentId(), LawDialog.DraftScopeFor(law.Id));
-            Snackbar.Add("Paragraf gespeichert.", Severity.Success);
-            await LoadAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-    }
-
-    private async Task DeleteAsync(Law law)
-    {
-        var confirmed = await ConfirmDialog.ShowAsync(DialogService, "Paragraf löschen?",
-            $"„{law.Paragraph} {law.Title}“ wirklich löschen? Bestehende Verknüpfungen zeigen ihn danach nicht mehr an.");
-        if (!confirmed)
-        {
-            return;
-        }
-        try
-        {
-            await LawService.DeleteAsync(law.Id, _user);
-            Snackbar.Add("Paragraf gelöscht.", Severity.Success);
-            await LoadAsync();
+            Nav.NavigateTo($"{BookHref(law.LawBook)}?p={law.Id}");
         }
         catch (Exception ex)
         {

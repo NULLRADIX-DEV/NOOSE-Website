@@ -59,8 +59,11 @@ public static class PublicVisibility
                 + "von der Führung geschriebener Text, kein Auszug des internen Zahlen-Snapshots. Entwurf, Anker "
                 + "und veröffentlichender Agent bleiben drinnen.",
             ["Law"] = "Gesetzbuch, Paragraf, Titel, Text und Strafmaß eines ausdrücklich freigegebenen "
-                + "Paragrafen. Standardmäßig bleibt jeder Paragraf drinnen; die Freigabe ist eine eigene "
-                + "Entscheidung je Zeile, und wer sie getroffen hat, steht nicht auf der öffentlichen Seite.",
+                + "Paragrafen. Der Text geht als bereinigtes HTML ohne Erwähnungen hinaus; Abschnitt und "
+                + "Reihenfolge ordnen ihn nur. Standardmäßig bleibt jeder Paragraf drinnen; die Freigabe ist eine "
+                + "eigene Entscheidung je Zeile, und wer sie getroffen hat, steht nicht auf der öffentlichen Seite.",
+            ["LawBook"] = "Kürzel und Name eines Gesetzbuchs als Überschrift über seinen freigegebenen Paragrafen — "
+                + "nur solange mindestens einer davon freigegeben ist. Beschreibung und Reihenfolge bleiben drinnen.",
             ["OeffentlicheFahndung"] = "Der Publikations-Snapshot einer Ausschreibung: öffentliches Aktenzeichen, "
                 + "Art, Anzeigename, die vom Autor gewählten Aliase, Vorwurfstext, letzte Gegend, Fahrzeugtext, die "
                 + "beim Publizieren festgehaltene Gefahrenstufe, eine Kopie des Fotos und — im Archiv — das "

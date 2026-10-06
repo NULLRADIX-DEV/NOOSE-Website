@@ -522,6 +522,7 @@ public static class SearchCatalog
             ["OeffentlicheVorlage"] = "Werteliste ohne Aktenbezug, gepflegt in /einstellungen. Gesucht wird "
                 + "die Nachricht, die daraus entstand, nicht der Baustein.",
             ["HandbookChapter"] = "Überschrift eines Handbuch-Kapitels ohne eigenen Text; die Artikel tragen ihn.",
+            ["LawBook"] = "Überschrift eines Gesetzbuchs ohne eigenen Text; gefunden werden seine Paragrafen.",
             ["HandbookStep"] = "Einzelner Schritt einer Anleitung; gefunden wird der Artikel, der ihn trägt.",
             ["ChangelogRelease"] = "Überschrift einer Fassung ohne eigenen Text; die Einträge tragen ihn.",
             ["ChangelogEntry"] = "Zeile über die Anwendung selbst, kein Aktenbestand. Sie steht vollständig "

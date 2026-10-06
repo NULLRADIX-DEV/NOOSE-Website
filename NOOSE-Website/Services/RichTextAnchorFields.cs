@@ -38,6 +38,8 @@ public static class RichTextAnchorFields
         [typeof(ActivityTemplate)] = ["ContentHtml"],
         [typeof(PersonnelTemplate)] = ["ContentHtml"],
         [typeof(AgentPromotionRequest)] = ["Justification"],
+        // public carrier, so never in the image list
+        [typeof(Law)] = ["Text"],
     };
 
     /// <summary>The registered carrier types, for the invariants that hold the table against the model.</summary>
