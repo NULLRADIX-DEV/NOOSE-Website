@@ -100,11 +100,19 @@ else
                 @if (_messages.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                        Frag nach der Aktenlage — NOOSEI durchsucht die Datenbank selbst.
-                        Zum Beispiel: „Was weißt du über die Ballas und wer führt sie?"
+                        @if (_isPartner)
+                        {
+                            <text>Frag nach den Gesetzbüchern — NOOSEI sucht die passenden Paragrafen selbst.
+                            Zum Beispiel: „Welche Strafe steht auf Geiselnahme?"</text>
+                        }
+                        else
+                        {
+                            <text>Frag nach der Aktenlage — NOOSEI durchsucht die Datenbank selbst.
+                            Zum Beispiel: „Was weißt du über die Ballas und wer führt sie?"</text>
+                        }
                     </MudText>
                     <div class="d-flex flex-wrap mt-3" style="gap:6px;">
-                        @foreach (var start in StarterQuestions)
+                        @foreach (var start in _isPartner ? LegalStarterQuestions : StarterQuestions)
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
                                      Icon="@Icons.Material.Filled.NorthEast" OnClick="() => Suggest(start)">
@@ -229,7 +237,9 @@ else
                            Disabled="@(_busy || string.IsNullOrWhiteSpace(_input) || Locked)">Senden</MudButton>
             </MudStack>
             <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
-                NOOSEI sieht nur, was du sehen darfst. Antworten sind KI-generiert und ungeprüft.
+                @(_isPartner
+                    ? "NOOSEI beantwortet hier nur Rechtsfragen zu den Gesetzbüchern. Antworten sind KI-generiert und ungeprüft."
+                    : "NOOSEI sieht nur, was du sehen darfst. Antworten sind KI-generiert und ungeprüft.")
             </MudText>
         </MudItem>
     </MudGrid>
@@ -254,6 +264,17 @@ else
         "Was hat sich in den letzten 7 Tagen geändert?",
         "Wie lege ich eine Fahndung an?",
     ];
+
+    /// <summary>Openers of the law chat a partner agency sees.</summary>
+    private static readonly string[] LegalStarterQuestions =
+    [
+        "Welche Gesetzbücher gibt es?",
+        "Was gilt bei Körperverletzung?",
+        "Welche Strafe steht auf Geiselnahme?",
+    ];
+
+    // partners get the law chat
+    private bool _isPartner;
 
     private ClaimsPrincipal? _user;
     private IReadOnlyList<NooseiConversationRow> _conversations = [];
@@ -304,6 +325,11 @@ else
         var questions = new List<string>();
         foreach (var source in last.Sources.Take(2))
         {
+            if (_isPartner)
+            {
+                questions.Add($"Wie hängt {source.Name} mit anderen Paragrafen zusammen?");
+                continue;
+            }
             questions.Add($"Welche Verbindungen hat {source.Name}?");
             questions.Add($"Was ist bei {source.Name} zuletzt passiert?");
         }
@@ -318,6 +344,7 @@ else
         }
         _loaded = true;
         _user = (await AuthStateTask).User;
+        _isPartner = _user.IsPartner();
         if (!Chat.IsConfigured)
         {
             return;

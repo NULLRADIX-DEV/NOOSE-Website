@@ -30,7 +30,7 @@ public interface ILlmQuotaService
 
     /// <summary>Pre-flight: throws when the actor may not use NOOSEI or has nothing left this week.</summary>
     Task<LlmQuotaStatus> EnsureAvailableAsync(
-        ClaimsPrincipal actor, CancellationToken cancellationToken = default, int? boostPercent = null);
+        ClaimsPrincipal actor, CancellationToken cancellationToken = default, int? boostPercent = null, LlmFeature feature = LlmFeature.Chat);
 
     /// <summary>Books a finished call against the running week and returns what it cost.</summary>
     Task<LlmQuotaCharge> TryChargeAsync(LlmChargeInput input, CancellationToken cancellationToken = default);
@@ -85,6 +85,8 @@ public class LlmQuotaService(
         var agents = await db.Users.AsNoTracking().OnlySelectable()
             .OrderBy(a => a.Codename)
             .ToListAsync(cancellationToken);
+        // partner spenders; not a picker
+        agents = agents.Concat(await PartnerSpendersAsync(db, cancellationToken)).OrderBy(a => a.Codename).ToList();
 
         // one snapshot for the whole roster: the ledger asked seven questions per agent, which is a synchronous
         // render waiting on two hundred round trips before it paints a single row
@@ -120,9 +122,9 @@ public class LlmQuotaService(
     }
 
     public async Task<LlmQuotaStatus> EnsureAvailableAsync(
-        ClaimsPrincipal actor, CancellationToken cancellationToken = default, int? boostPercent = null)
+        ClaimsPrincipal actor, CancellationToken cancellationToken = default, int? boostPercent = null, LlmFeature feature = LlmFeature.Chat)
     {
-        Permission.RequireLlmUse(actor);
+        Permission.RequireLlmUse(actor, feature);
         var agentId = actor.GetAgentId();
         if (string.IsNullOrEmpty(agentId))
         {
@@ -343,12 +345,30 @@ public class LlmQuotaService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    /// <summary>Active partner accounts whose agency has the law chat switched on.</summary>
+    private static async Task<List<Agent>> PartnerSpendersAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var agencies = (await db.PartnerAgencyProfiles.AsNoTracking()
+                .Select(p => new { p.Agency, p.Features })
+                .ToListAsync(cancellationToken))
+            .Where(p => p.Features.HasFlag(PartnerFeature.Noosei))
+            .Select(p => (PartnerAgency?)p.Agency)
+            .ToList();
+        if (agencies.Count == 0)
+        {
+            return [];
+        }
+        return await db.Users.AsNoTracking()
+            .Where(u => u.Status == AgentStatus.Active && u.PartnerAgency != null && agencies.Contains(u.PartnerAgency))
+            .ToListAsync(cancellationToken);
+    }
+
     private static async Task<LlmQuotaStatus> BuildStatusAsync(
         AppDbContext db, Agent agent, LlmQuotaConfig config, int boostPercent, QuotaSnapshot snapshot,
         CancellationToken cancellationToken)
     {
         var (year, week) = IsoWeekPeriod.Current();
-        var rules = config.For(agent.Rank);
+        var rules = config.For(agent.Rank, agent.PartnerAgency);
         // the boost sits on top of an individual override too: it says what the active upstream costs, not who
         // is allowed how much, and those are two different questions
         var rawBaseWeekly = agent.LlmQuotaOverride ?? rules.BaseWeekly;

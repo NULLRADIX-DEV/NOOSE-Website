@@ -423,6 +423,8 @@ public static class ChangelogContent
                 + "Funkplan und die Lageberichte öffnen – jeweils nur mit dem, was für sie freigegeben ist.", "Partner"),
             Neu("2.2.25-partner-anfragen", "Partnerbehörden fragen unter „Freigaben anfragen“ nach weiteren Akten; die "
                 + "Führung beantwortet die Anfrage im Eingang, indem sie die passende Akte freigibt.", "Partner"),
+            Neu("2.2.26-noosei-rechtsauskunft", "Partnerbehörden können NOOSEI Fragen zu den Gesetzbüchern stellen; "
+                + "die Antwort zitiert die Paragrafen, Akten sieht diese Rechtsauskunft nie.", "NOOSEI"),
         ]),
     ];
 }

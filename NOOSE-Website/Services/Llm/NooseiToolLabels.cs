@@ -25,6 +25,9 @@ public static class NooseiToolLabels
         "erklaere_bedrohungsscore" => "NOOSEI schlüsselt einen Bedrohungs-Score auf …",
         "meine_akten" => "NOOSEI holt die Beobachtungsliste …",
         "schlage_nach" => "NOOSEI schlägt im Handbuch nach …",
+        "liste_gesetzbuecher" => "NOOSEI sieht die Gesetzbücher durch …",
+        "suche_gesetz" => "NOOSEI sucht in den Gesetzen …",
+        "lies_gesetz" => "NOOSEI liest einen Paragrafen …",
         _ => "NOOSEI arbeitet …",
     };
 
@@ -47,6 +50,9 @@ public static class NooseiToolLabels
         "erklaere_bedrohungsscore" => "Bedrohungs-Score",
         "meine_akten" => "Beobachtungsliste",
         "schlage_nach" => "Handbuch",
+        "liste_gesetzbuecher" => "Gesetzbücher",
+        "suche_gesetz" => "Gesetzessuche",
+        "lies_gesetz" => "Paragraf gelesen",
         _ => toolName,
     };
 }

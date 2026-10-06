@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Activities;
@@ -118,19 +119,34 @@ public sealed class NooseiToolRegistry
 {
     private readonly Dictionary<string, INooseiTool> _byName;
 
+    private readonly IReadOnlyList<LlmToolDefinition> _legal;
+
     public NooseiToolRegistry(IEnumerable<INooseiTool> tools)
     {
         _byName = tools.ToDictionary(t => t.Name, StringComparer.Ordinal);
-        Definitions = _byName.Values
+        Definitions = Build(t => !LegalToolGate.ToolNames.Contains(t.Name));
+        _legal = Build(t => LegalToolGate.ToolNames.Contains(t.Name));
+    }
+
+    private List<LlmToolDefinition> Build(Func<INooseiTool, bool> include)
+        => _byName.Values
+            .Where(include)
             .OrderBy(t => t.Name, StringComparer.Ordinal)
             .Select(t => new LlmToolDefinition(t.Name, t.Description, t.ParameterSchema))
             .ToList();
-    }
 
-    /// <summary>Stable order: the tool block is the cached prompt prefix, and reordering it would cost cache hits.</summary>
+    /// <summary>The agency chat's tools. Stable order: the tool block is the cached prompt prefix, and reordering it would cost cache hits.</summary>
     public IReadOnlyList<LlmToolDefinition> Definitions { get; }
 
+    /// <summary>The tools of one chat mode; computed once, so each mode keeps its own stable prefix.</summary>
+    public IReadOnlyList<LlmToolDefinition> DefinitionsFor(NooseiChatMode mode)
+        => mode == NooseiChatMode.Legal ? _legal : Definitions;
+
     public INooseiTool? Find(string name) => _byName.GetValueOrDefault(name);
+
+    /// <summary>A tool of this mode only: a name the mode was never offered is unknown, even when the model invents it.</summary>
+    public INooseiTool? Find(string name, NooseiChatMode mode)
+        => (mode == NooseiChatMode.Legal) == LegalToolGate.ToolNames.Contains(name) ? Find(name) : null;
 }
 
 /// <summary>What NOOSEI may do with a record type.</summary>

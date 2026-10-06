@@ -16,13 +16,23 @@ public enum LlmFeature
 
     /// <summary>Composing text from an instruction in a rich-text editor.</summary>
     Compose = 3,
+
+    /// <summary>Law questions from a partner agency; law tools only.</summary>
+    LegalChat = 4,
+}
+
+/// <summary>Which conversation a NOOSEI chat is: the agency's record chat or a partner's law chat.</summary>
+public enum NooseiChatMode
+{
+    Agency = 0,
+    Legal = 1,
 }
 
 /// <summary>German labels and icons of <see cref="LlmFeature"/>.</summary>
 public static class LlmFeatureDisplay
 {
     public static readonly LlmFeature[] All =
-        [LlmFeature.Brief, LlmFeature.Chat, LlmFeature.Proofread, LlmFeature.Compose];
+        [LlmFeature.Brief, LlmFeature.Chat, LlmFeature.Proofread, LlmFeature.Compose, LlmFeature.LegalChat];
 
     public static string Name(LlmFeature feature) => feature switch
     {
@@ -30,6 +40,7 @@ public static class LlmFeatureDisplay
         LlmFeature.Chat => "Chat",
         LlmFeature.Proofread => "Rechtschreibung",
         LlmFeature.Compose => "Formulieren",
+        LlmFeature.LegalChat => "Rechtsauskunft",
         _ => feature.ToString(),
     };
 
@@ -39,6 +50,7 @@ public static class LlmFeatureDisplay
         LlmFeature.Chat => Icons.Material.Filled.Forum,
         LlmFeature.Proofread => Icons.Material.Filled.Spellcheck,
         LlmFeature.Compose => Icons.Material.Filled.EditNote,
+        LlmFeature.LegalChat => Icons.Material.Filled.Gavel,
         _ => Icons.Material.Filled.SmartToy,
     };
 }

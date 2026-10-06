@@ -135,6 +135,43 @@ public sealed class ReadOnlyBarrierInterceptorTests
     }
 
     [Fact]
+    public async Task A_partner_may_keep_their_own_law_chat_but_not_touch_anyone_elses()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var seed = ctx.NewContext())
+        {
+            seed.Users.Add(Seed.Agent(PartnerId));
+            seed.Users.Add(Seed.Agent("someone"));
+            seed.NooseiConversations.Add(new NOOSE_Website.Data.Entities.Llm.NooseiConversation
+            {
+                Id = "theirs", AgentId = "someone", Title = "fremd", CreatedById = "someone",
+            });
+            seed.SaveChanges();
+        }
+
+        await using (var db = Guarded(ctx, Partner()))
+        {
+            db.NooseiConversations.Add(new NOOSE_Website.Data.Entities.Llm.NooseiConversation
+            {
+                Id = "mine", AgentId = PartnerId, Title = "Recht", Mode = NooseiChatMode.Legal, CreatedById = PartnerId,
+            });
+            db.NooseiMessages.Add(new NOOSE_Website.Data.Entities.Llm.NooseiMessage { ConversationId = "mine", Role = "user", Content = "Frage" });
+            await db.SaveChangesAsync();
+        }
+        await using (var db = Guarded(ctx, Partner()))
+        {
+            var mine = await db.NooseiConversations.SingleAsync(c => c.Id == "mine");
+            mine.Title = "Umbenannt";
+            await db.SaveChangesAsync();
+        }
+
+        await using var other = Guarded(ctx, Partner());
+        var theirs = await other.NooseiConversations.SingleAsync(c => c.Id == "theirs");
+        theirs.Title = "übernommen";
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => other.SaveChangesAsync());
+    }
+
+    [Fact]
     public async Task A_partner_may_write_their_own_civilian_identity()
     {
         using var ctx = new SqliteTestContext();

@@ -70,13 +70,16 @@
         var user = (await AuthStateTask).User;
         _user = user;
         _agentId = user.GetAgentId();
-        // same three exclusions Permission.RequireLlmUse enforces; no point offering an entry that would refuse
+        // same exclusions Permission.RequireLlmUse enforces; no point offering an entry that would refuse
         _mayUseNoosei = !user.IsPartner() && !user.IsDemo() && !user.IsOnlyReader();
         if (user.IsPartner())
         {
             // partners: only the record types their rank may see, plus global search
             var allowed = await PartnerPolicy.GetAllowedTypesAsync(user);
-            _commands = NavCatalog.PartnerRecordEntries(allowed, await PartnerProfiles.GetFeaturesAsync(user))
+            var features = await PartnerProfiles.GetFeaturesAsync(user);
+            // law chat if switched on
+            _mayUseNoosei = features.HasFlag(PartnerFeature.Noosei);
+            _commands = NavCatalog.PartnerRecordEntries(allowed, features)
                 .Select(e => new PaletteItem(e.Label, e.Description, e.Icon, e.Route))
                 .ToList();
             _commands.Add(new PaletteItem("Globale Suche", null, Icons.Material.Filled.Search, "/suche"));

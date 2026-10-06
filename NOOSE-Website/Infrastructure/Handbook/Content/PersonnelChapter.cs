@@ -162,8 +162,9 @@ internal static class PersonnelChapter
                 <p>Unter <em>Einstellungen → Partnerbehörden</em> steht außerdem, welche Inhalte eine Behörde
                 <strong>nie</strong> sieht - zum Beispiel Doks und Befragungen. Das schlägt jede Freigabe,
                 auch eine Einzelfreigabe mit „Ganze Akte“.</p>
-                <p>Je Behörde lassen sich dort auch <strong>Funktionen</strong> freischalten: Beziehungsgraph,
-                Funkplan, Lageberichte und Anfragen. Graph und Funkplan zeigen einem Partner nur, was für ihn
+                <p>Je Behörde lassen sich dort auch <strong>Funktionen</strong> freischalten: die
+                NOOSEI-Rechtsauskunft, Beziehungsgraph, Funkplan, Lageberichte und Anfragen. Die Rechtsauskunft
+                kennt nur die Gesetzbücher; ihr Wochenkontingent je Konto legt der KI-Eigner fest. Graph und Funkplan zeigen einem Partner nur, was für ihn
                 freigegeben ist; Lageberichte bekommt er ohne Doks, ohne Namen von Personen und ohne Finanzen.</p>
                 <p>Über <em>Freigaben anfragen</em> bittet eine Behörde in eigenen Worten um weitere Akten. Die
                 Anfrage landet im Eingang unter <em>Anfragen von Partnern</em>. Wer sie genehmigt, wählt die passende

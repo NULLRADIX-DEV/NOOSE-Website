@@ -40,7 +40,7 @@ public class LlmService(IHttpClientFactory httpFactory, IOptions<LlmOptions> opt
 
     public async Task<LlmResult> CompleteAsync(LlmRequest request, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLlmUse(actor);
+        Permission.RequireLlmUse(actor, request.Context.Feature);
         var provider = request.Context.Provider;
         if (!_o.IsConfiguredFor(provider))
         {

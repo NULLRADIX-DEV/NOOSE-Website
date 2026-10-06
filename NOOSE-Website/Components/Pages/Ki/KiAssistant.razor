@@ -4,12 +4,14 @@
 <PageTitle>NOOSEI · NOOSE</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.SmartToy"
-            Title="NOOSEI"
-            Subtitle="Fragt die Aktendatenbank für dich ab, formuliert und fasst zusammen. Antworten sind KI-generiert und ungeprüft." />
+            Title="@(_isPartner ? "NOOSEI-Rechtsauskunft" : "NOOSEI")"
+            Subtitle="@(_isPartner
+                ? "Beantwortet Fragen zu den Gesetzbüchern und zitiert die Paragrafen. Antworten sind KI-generiert und ungeprüft."
+                : "Fragt die Aktendatenbank für dich ab, formuliert und fasst zusammen. Antworten sind KI-generiert und ungeprüft.")" />
 
 <RecordSectionRail>
     <RecordSection Group="NOOSEI" Slug="chat" Label="Chat" Icon="@Icons.Material.Filled.Forum">
-        <NooseiChatPanel Anchor="@Record" Draft="@Question" />
+        <NooseiChatPanel Anchor="@(_isPartner ? null : Record)" Draft="@Question" />
     </RecordSection>
     <RecordSection Group="NOOSEI" Slug="kontingent" Label="Mein Kontingent" Icon="@Icons.Material.Filled.Token">
         <NooseiQuotaPanel />
@@ -17,6 +19,12 @@
 </RecordSectionRail>
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _isPartner;
+
+    protected override async Task OnInitializedAsync() => _isPartner = (await AuthStateTask).User.IsPartner();
+
     /// <summary>Record the chat was opened from, as <c>Typ:Id</c>. Whether it may be seen is decided server-side.</summary>
     [SupplyParameterFromQuery(Name = "akte")]
     private string? Record { get; set; }

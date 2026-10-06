@@ -16,7 +16,7 @@ else
         <MudItem xs="6" md="3">
             <StatTile Icon="@Icons.Material.Filled.Savings" Label="Grundkontingent"
                       Value="@_status.BaseWeekly.ToString("N0")"
-                      Hint="@(_status.IsOverride ? "individuell gesetzt" : "nach Dienstgrad")" />
+                      Hint="@(_status.IsOverride ? "individuell gesetzt" : _status.Rank is null ? "nach Behörde" : "nach Dienstgrad")" />
         </MudItem>
         <MudItem xs="6" md="3">
             <StatTile Icon="@Icons.Material.Filled.MoveDown" Label="Übertrag aus Vorwoche"

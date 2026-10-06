@@ -1,4 +1,5 @@
 using NOOSE_Website.Models.Abstractions;
+using NOOSE_Website.Models.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NOOSE_Website.Data.Entities.Llm;
@@ -34,6 +35,11 @@ public class NooseiConversation : IAuditable, ISoftDelete
     /// because their text was authorised under rights the owner no longer has.</summary>
     [Column("RechteStempel")]
     public string? ScopeStamp { get; set; }
+
+    /// <summary>Agency chat or a partner's law chat. A conversation never changes mode: an account moved from
+    /// internal to partner must not replay internal answers into the law chat.</summary>
+    [Column("Modus")]
+    public NooseiChatMode Mode { get; set; }
 
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }
