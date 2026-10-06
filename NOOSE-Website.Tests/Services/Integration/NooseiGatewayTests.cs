@@ -415,6 +415,76 @@ public sealed class NooseiGatewayTests
         Assert.True(answer.Truncated);
     }
 
+    private static LlmResult Piece(string text, string finish)
+        => new(text, [], new LlmUsage(100, 20, 120, 0, 0, 0.01m), "Baidu", "vendor/model", finish, "gen-1", 1, 42);
+
+    [Fact]
+    public async Task Ask_ContinuesACutOffAnswer_InsteadOfHandingOverATorso()
+    {
+        using var ctx = new SqliteTestContext();
+        var (gateway, llm, _) = await BuildAsync(ctx);
+        var sent = new List<LlmRequest>();
+        var pieces = new Queue<LlmResult>([Piece("Der Vorfall begann ", "length"), Piece("am Pier und endete dort.", "stop")]);
+        llm.CompleteAsync(Arg.Any<LlmRequest>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                sent.Add(call.Arg<LlmRequest>());
+                return pieces.Dequeue();
+            });
+
+        var answer = await gateway.AskAsync(Call(), Agent());
+
+        Assert.Equal("Der Vorfall begann am Pier und endete dort.", answer.Text);
+        Assert.False(answer.Truncated);
+        Assert.Equal(2, sent.Count);
+        // the second round sees its own torso and the request to resume
+        Assert.Equal("Der Vorfall begann ", sent[1].Messages[^2].Content);
+        Assert.Equal(NooseiPrompts.ContinueAnswer, sent[1].Messages[^1].Content);
+        // both rounds are billed as one request
+        Assert.Equal(240, answer.Usage.TotalTokens);
+        // the resume prompt is scaffolding, never part of the stored conversation
+        Assert.DoesNotContain(answer.Transcript, m => m.Content == NooseiPrompts.ContinueAnswer);
+    }
+
+    [Fact]
+    public async Task Ask_StopsContinuingAtTheLimit_AndSaysTheAnswerIsStillCut()
+    {
+        using var ctx = new SqliteTestContext();
+        var (gateway, llm, _) = await BuildAsync(ctx, configure: o => o.MaxAnswerContinuations = 2);
+        var calls = 0;
+        llm.CompleteAsync(Arg.Any<LlmRequest>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                calls++;
+                return Piece("Teil ", "length");
+            });
+
+        var answer = await gateway.AskAsync(Call(), Agent());
+
+        Assert.Equal(3, calls);
+        Assert.Equal("Teil Teil Teil ", answer.Text);
+        Assert.True(answer.Truncated);
+    }
+
+    [Fact]
+    public async Task Ask_LeavesACallersOwnCeilingAlone_EvenWhenCut()
+    {
+        using var ctx = new SqliteTestContext();
+        var (gateway, llm, _) = await BuildAsync(ctx);
+        var calls = 0;
+        llm.CompleteAsync(Arg.Any<LlmRequest>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                calls++;
+                return Piece("Kurz", "length");
+            });
+
+        var answer = await gateway.AskAsync(Call() with { MaxTokens = 300 }, Agent());
+
+        Assert.Equal(1, calls);
+        Assert.True(answer.Truncated);
+    }
+
     [Fact]
     public async Task Ask_CountsARepeatedCallOnce_InTheTouchedToolRefs()
     {

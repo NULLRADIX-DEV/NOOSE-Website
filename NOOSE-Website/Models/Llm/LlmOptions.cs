@@ -163,10 +163,16 @@ public sealed class LlmOptions
     /// <summary>Ceiling on the answer of a feature, in tokens; anything unset leaves it to the endpoint's default.
     /// Without one <see cref="LlmResult.FinishReason" /> never says "length" and a cut-off answer is stored as if
     /// it were whole — the model then reads its own torso back as a finished statement.</summary>
+    /// <remarks>Raised from 1,200: a reasoning model spends part of the ceiling thinking, and after several tool
+    /// rounds on a complex incident the answer itself was left with a sentence or two.</remarks>
     public Dictionary<LlmFeature, int> MaxAnswerTokensByFeature { get; set; } = new()
     {
-        [LlmFeature.Chat] = 1_200,
+        [LlmFeature.Chat] = 4_000,
     };
+
+    /// <summary>How often a free-text answer cut off by its feature's ceiling is continued before it is handed over
+    /// as truncated. The turn timeout still bounds the whole.</summary>
+    public int MaxAnswerContinuations { get; set; } = 3;
 
     /// <summary>Answer ceiling of a feature, or null when it has none.</summary>
     public int? MaxAnswerTokensFor(LlmFeature feature)
