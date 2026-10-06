@@ -6,6 +6,7 @@ public enum PartnerAgency
     DoJ = 1,
     LSPD = 2,
     LSMD = 3,
+    Parlament = 4,
 }
 
 /// <summary>Display labels.</summary>
@@ -16,6 +17,7 @@ public static class PartnerAgencyDisplay
         PartnerAgency.DoJ => "DoJ",
         PartnerAgency.LSPD => "LSPD",
         PartnerAgency.LSMD => "LSMD",
+        PartnerAgency.Parlament => "Parlament",
         _ => "—",
     };
 
@@ -25,6 +27,7 @@ public static class PartnerAgencyDisplay
         PartnerAgency.DoJ => "Department of Justice",
         PartnerAgency.LSPD => "Los Santos Police Department",
         PartnerAgency.LSMD => "Los Santos Medical Department",
+        PartnerAgency.Parlament => "Parlament von San Andreas",
         _ => "—",
     };
 
@@ -34,5 +37,6 @@ public static class PartnerAgencyDisplay
         PartnerAgency.DoJ,
         PartnerAgency.LSPD,
         PartnerAgency.LSMD,
+        PartnerAgency.Parlament,
     };
 }

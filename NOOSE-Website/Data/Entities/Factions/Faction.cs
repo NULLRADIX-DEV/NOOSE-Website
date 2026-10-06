@@ -92,6 +92,10 @@ public class Faction : IAuditable, ISoftDelete, IClassifiableRecord, IArchivable
     [Column("IstStaatsfraktion")]
     public bool IsStateFaction { get; set; }
 
+    /// <summary>Criminal faction (Badfrak); never together with <see cref="IsStateFaction"/>. Drives partner release rules.</summary>
+    [Column("IstBadfrak")]
+    public bool IsBadFaction { get; set; }
+
     /// <summary>Aging disabled: record never goes stale.</summary>
     [Column("VeralterungDeaktiviert")]
     public bool AgingDisabled { get; set; }

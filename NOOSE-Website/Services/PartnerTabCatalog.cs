@@ -39,8 +39,8 @@ public static class PartnerTabCatalog
         }),
         new PartnerRecordType(nameof(PersonGroup), "personengruppen", "Personengruppen", new PartnerTab[]
         {
-            new("stammdaten", "Stammdaten"), new("mitglieder", "Mitglieder"), new("fotos", "Fotos"),
-            new("einstufung", "Einstufung"),
+            new("stammdaten", "Stammdaten"), new("mitglieder", "Mitglieder"), new("aktivitaeten", "Aktivitäten"),
+            new("fotos", "Fotos"), new("einstufung", "Einstufung"),
             new("doks", "Doks"), new("beziehungen", "Beziehungen"), new("quellen", "Quellen"),
             new("wiedervorlagen", "Wiedervorlagen"), new("kommentare", "Kommentare"), new("zusatzfelder", "Zusatzfelder"),
             new("historie", "Zeitstrahl"),
@@ -103,4 +103,8 @@ public static class PartnerTabCatalog
     /// <summary>Route prefix for a type key, or null.</summary>
     public static string? PrefixForTypeKey(string typeKey)
         => ByTypeKey.GetValueOrDefault(typeKey)?.RoutePrefix;
+
+    /// <summary>All partner-visible tab slugs of a type; empty for unknown or tab-less types.</summary>
+    public static IEnumerable<string> TabSlugs(string typeKey)
+        => ByTypeKey.GetValueOrDefault(typeKey)?.Tabs.Select(t => t.Slug) ?? Enumerable.Empty<string>();
 }

@@ -21,7 +21,7 @@ public class PersonDocService(
     private Task NotifyMentionsAsync(string? oldText, string? newText, string personId,
         ClaimsPrincipal actor, CancellationToken cancellationToken)
         => MentionNotify.DeltaAsync(notifications, oldText, newText, Mentioned, nameof(Person), personId,
-            actor, cancellationToken);
+            actor, cancellationToken, childType: nameof(PersonDoc));
 
     public async Task<List<PersonDocDisplay>> GetForPersonAsync(string personId, ViewerScope scope, CancellationToken cancellationToken = default)
     {
@@ -61,9 +61,12 @@ public class PersonDocService(
             .ToListAsync(cancellationToken);
         if (scope.PartnerAgency is { } agency)
         {
-            // partners: only released persons
+            // person, then doc
             var released = await PartnerVisibility.ReleasedParentIdsAsync(db, nameof(Person), docs.Select(d => d.PersonId).Distinct().ToList(), agency, scope.MeId, cancellationToken);
             docs = docs.Where(d => released.Contains(d.PersonId)).ToList();
+            var visibleDocs = await PartnerVisibility.VisibleChildIdsAsync(db, nameof(PersonDoc),
+                docs.Select(d => (nameof(Person), d.PersonId, d.Id)).ToList(), agency, scope.MeId, cancellationToken);
+            docs = docs.Where(d => visibleDocs.Contains(d.Id)).ToList();
         }
         return await ToDisplayAsync(db, docs, scope.MayClassifiedRead, cancellationToken);
     }

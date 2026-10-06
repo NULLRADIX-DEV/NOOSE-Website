@@ -255,7 +255,7 @@ public sealed class ObservationServiceTests
             Arg.Is<string?>(s => s == null), Arg.Is<string?>(s => s == "Treffen Folgerung"),
             Arg.Any<string>(), Arg.Any<string?>(),
             Arg.Is<string>(t => t == "Person"), Arg.Is<string>(i => i == "p7"),
-            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>(), "Observation");
     }
 
     [Fact]

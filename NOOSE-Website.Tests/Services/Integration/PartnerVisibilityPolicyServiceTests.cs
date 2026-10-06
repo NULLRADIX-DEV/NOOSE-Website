@@ -33,7 +33,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
         db.SaveChanges();
     }
 
-    private void SeedShare(string entityType, string entityId, string partnerAgentId, PartnerAgency agency)
+    private void SeedShare(string entityType, string entityId, string? partnerAgentId, PartnerAgency agency)
     {
         using var db = _ctx.NewContext();
         db.PartnerShares.Add(new PartnerShare
@@ -43,6 +43,20 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
             PartnerAgentId = partnerAgentId,
             Agency = agency,
         });
+        db.SaveChanges();
+    }
+
+    private void SeedRule(PartnerAgency agency, string entityType, PartnerRuleScope scope)
+    {
+        using var db = _ctx.NewContext();
+        db.PartnerReleaseRules.Add(new PartnerReleaseRule { Agency = agency, EntityType = entityType, Scope = scope });
+        db.SaveChanges();
+    }
+
+    private void SeedBlocked(PartnerAgency agency, PartnerContent blocked)
+    {
+        using var db = _ctx.NewContext();
+        db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = agency, BlockedContent = blocked });
         db.SaveChanges();
     }
 
@@ -207,29 +221,31 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllowedTypesAsync_PartnerUnconfiguredRank_ReturnsNull()
+    public async Task GetAllowedTypesAsync_PartnerUnconfiguredRank_ReturnsReleasedTypesOnly()
     {
-        var user = Partner("me", PartnerAgency.LSPD, PartnerRank.Member);
+        SeedShare("Faction", "f1", null, PartnerAgency.LSPD);
+        SeedRule(PartnerAgency.LSPD, "Law", PartnerRuleScope.All);
+        SeedShare("Case", "c1", null, PartnerAgency.DoJ);
 
-        var allowed = await NewService().GetAllowedTypesAsync(user);
+        var allowed = await NewService().GetAllowedTypesAsync(Partner("me", PartnerAgency.LSPD, PartnerRank.Member));
 
-        Assert.Null(allowed);
+        Assert.NotNull(allowed);
+        Assert.Equal(new[] { "Document", "Faction", "Law" }, allowed!.OrderBy(t => t));
     }
 
     [Fact]
-    public async Task GetAllowedTypesAsync_ConfiguredRank_ReturnsAllowlist()
+    public async Task GetAllowedTypesAsync_ConfiguredRank_ReturnsAllowlistNarrowedToReleased()
     {
         var cfg = new PartnerVisibilityConfig();
         cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member)] =
             new PartnerRankVisibility { Types = { "Person", "Case" } };
         SeedConfig(cfg);
+        SeedShare("Person", "p1", null, PartnerAgency.LSPD);
 
         var allowed = await NewService().GetAllowedTypesAsync(Partner("me", PartnerAgency.LSPD, PartnerRank.Member));
 
         Assert.NotNull(allowed);
-        Assert.Equal(2, allowed!.Count);
-        Assert.Contains("Person", allowed);
-        Assert.Contains("Case", allowed);
+        Assert.Equal(new[] { "Person" }, allowed!);
     }
 
     [Fact]
@@ -239,6 +255,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
         cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member)] =
             new PartnerRankVisibility { Types = { "Person" } };
         SeedConfig(cfg);
+        SeedShare("Person", "p1", null, PartnerAgency.LSPD);
         SeedShare("Faction", "f1", "me", PartnerAgency.LSPD);
 
         var allowed = await NewService().GetAllowedTypesAsync(Partner("me", PartnerAgency.LSPD, PartnerRank.Member));
@@ -246,6 +263,16 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
         Assert.NotNull(allowed);
         Assert.Contains("Person", allowed);
         Assert.Contains("Faction", allowed);
+    }
+
+    [Fact]
+    public async Task GetAllowedTypesAsync_AnotherAccountsIndividualShare_DoesNotCount()
+    {
+        SeedShare("Faction", "f1", "someone-else", PartnerAgency.LSPD);
+
+        var allowed = await NewService().GetAllowedTypesAsync(Partner("me", PartnerAgency.LSPD, PartnerRank.Member));
+
+        Assert.DoesNotContain("Faction", allowed!);
     }
 
     // ---- GetVisibleTabsAsync ----
@@ -336,6 +363,50 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
         // Individually released record shows in full (null) despite the rank tab restriction.
         var tabs = await NewService().GetVisibleTabsAsync(
             Partner("me", PartnerAgency.LSPD, PartnerRank.Member), "Person", "r1");
+
+        Assert.Null(tabs);
+    }
+
+    [Fact]
+    public async Task GetVisibleTabsAsync_BlockedContent_RemovesTabsOfAnUnconfiguredRank()
+    {
+        SeedBlocked(PartnerAgency.Parlament, PartnerContent.Docs | PartnerContent.Observations);
+
+        var tabs = await NewService().GetVisibleTabsAsync(
+            Partner("me", PartnerAgency.Parlament, PartnerRank.Member), "Person", "r1");
+
+        Assert.NotNull(tabs);
+        Assert.DoesNotContain("doks", tabs!);
+        Assert.DoesNotContain("ueberwachung", tabs!);
+        Assert.Contains("steckbrief", tabs!);
+        Assert.Contains("einstufung", tabs!);
+    }
+
+    [Fact]
+    public async Task GetVisibleTabsAsync_BlockedContent_BeatsAnIndividualRelease()
+    {
+        var cfg = new PartnerVisibilityConfig();
+        cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.Parlament, PartnerRank.Member)] =
+            new PartnerRankVisibility { Types = { "Faction" } };
+        SeedConfig(cfg);
+        SeedShare("Faction", "f1", "me", PartnerAgency.Parlament);
+        SeedBlocked(PartnerAgency.Parlament, PartnerContent.Docs);
+
+        var tabs = await NewService().GetVisibleTabsAsync(
+            Partner("me", PartnerAgency.Parlament, PartnerRank.Member), "Faction", "f1");
+
+        Assert.NotNull(tabs);
+        Assert.DoesNotContain("doks", tabs!);
+        Assert.Contains("mitglieder", tabs!);
+    }
+
+    [Fact]
+    public async Task GetVisibleTabsAsync_OtherAgencysBlock_DoesNotApply()
+    {
+        SeedBlocked(PartnerAgency.Parlament, PartnerContent.Docs);
+
+        var tabs = await NewService().GetVisibleTabsAsync(
+            Partner("me", PartnerAgency.DoJ, PartnerRank.Member), "Person", "r1");
 
         Assert.Null(tabs);
     }

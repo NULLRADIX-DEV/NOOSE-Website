@@ -481,6 +481,8 @@ public static class SearchCatalog
             ["SystemSetting"] = "Key/Value-Store mit Discord-Webhooks und Tokens; kein betrachter-skopierter Lesepfad.",
             ["AgentInvite"] = "Einziges Textfeld ist der Einladungs-Token, also ein Credential.",
             ["PartnerShare"] = "Freigabe-Zeile; sie zu listen wäre ein Zugriffs-Orakel.",
+            ["PartnerAgencyProfile"] = "Zugangseinstellung einer Behörde; Verwaltung, kein Akteninhalt.",
+            ["PartnerReleaseRule"] = "Regelfreigabe; sie zu listen wäre ein Zugriffs-Orakel.",
             ["DocumentAccessExclusion"] = "Entzugs-Zeile; sie zu listen wäre ein Zugriffs-Orakel.",
             ["CustomFieldDefinition"] = "Feld-Definition; die Werte sind durchsuchbar, die Definition ist Konfiguration.",
 

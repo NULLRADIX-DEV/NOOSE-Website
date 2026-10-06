@@ -1,5 +1,6 @@
 @* Which records a partner agency may see; the agency selector lives on the parent panel. *@
 @inject IPartnerShareService ShareService
+@inject IPartnerAgencyProfileService Profiles
 @inject ISnackbar Snackbar
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
@@ -7,8 +8,8 @@
     sieht damit alle nicht als Verschlusssache eingestuften Akten dieses Typs.
 </MudText>
 <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-6">
-    Hinweis: Später neu angelegte Akten musst du erneut freigeben. Einzelne Akten gibst du weiterhin
-    über den „Freigegeben“-Schalter auf der jeweiligen Detailseite frei.
+    Hinweis: Später neu angelegte Akten musst du erneut freigeben – außer bei einer automatischen Freigabe
+    oben. Einzelne Akten gibst du weiterhin über den „Freigegeben“-Schalter auf der jeweiligen Detailseite frei.
 </MudText>
 
 @if (_load)
@@ -28,6 +29,12 @@ else
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @t.SharedRecords von @t.TotalRecords für @PartnerAgencyDisplay.Name(Agency) freigegeben
                             </MudText>
+                            @if (_profile?.RuleFor(t.TypeKey) is { } rule)
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Info" Class="d-block">
+                                    Automatisch: @PartnerProfileDisplay.Name(rule.Scope)@(rule.IncludesChildren ? " · Ganze Akte" : "")
+                                </MudText>
+                            }
                         </div>
                         <MudCheckBox T="bool" Value="@_wholeRecord.GetValueOrDefault(t.TypeKey)"
                                      ValueChanged="@(v => _wholeRecord[t.TypeKey] = v)" Dense="true"
@@ -58,6 +65,7 @@ else
     private bool _busy;
     private PartnerAgency? _loadedAgency;
     private IReadOnlyList<PartnerTypeShareSummary> _summaries = new List<PartnerTypeShareSummary>();
+    private PartnerAgencyProfileView? _profile;
     private readonly Dictionary<string, bool> _wholeRecord = new();
 
     // the parent swaps the agency without recreating this component, so react to parameters
@@ -76,6 +84,7 @@ else
     {
         _load = true;
         _summaries = await ShareService.GetTypeSummariesAsync(Agency);
+        _profile = await Profiles.GetAsync(Agency);
         foreach (var t in _summaries)
         {
             _wholeRecord.TryAdd(t.TypeKey, false);

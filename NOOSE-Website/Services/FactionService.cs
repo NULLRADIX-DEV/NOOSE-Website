@@ -50,6 +50,11 @@ public class FactionService(
         {
             return null;
         }
+        if (scope.PartnerAgency is { } agency)
+        {
+            faction.ThreatDetailJson = ThreatDetailRedaction.WithoutContent(
+                faction.ThreatDetailJson, await PartnerVisibility.BlockedContentAsync(db, agency, cancellationToken));
+        }
         return faction;
     }
 
@@ -105,6 +110,7 @@ public class FactionService(
             Classification = input.Classification,
             SecrecyLevel = input.SecrecyLevel,
             IsStateFaction = input.IsStateFaction,
+            IsBadFaction = input.IsBadFaction && !input.IsStateFaction,
             EstimatedMemberCount = input.EstimatedMemberCount,
         };
         ChildrenMap(faction, input);
@@ -226,6 +232,7 @@ public class FactionService(
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
         faction.SecrecyLevel = input.SecrecyLevel;
         faction.IsStateFaction = input.IsStateFaction;
+        faction.IsBadFaction = input.IsBadFaction && !input.IsStateFaction;
         faction.EstimatedMemberCount = input.EstimatedMemberCount;
 
         // Detect renames before replacing the old ranks, so the denormalized rank name on members can follow.

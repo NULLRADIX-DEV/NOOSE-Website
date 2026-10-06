@@ -409,6 +409,16 @@ public static class ChangelogContent
                 + "zu einer Zeile zusammenzulaufen.", "Bedienung"),
             Fix("2.2.18-noosei-lange-antworten", "NOOSEI schreibt lange Antworten auf umfangreiche Fragen jetzt zu "
                 + "Ende, statt sie nach wenigen Sätzen abzubrechen.", "NOOSEI"),
+            Neu("2.2.19-parlament", "Das Parlament bekommt einen eigenen Partnerzugang: Gesetzbücher, Badfraks mit "
+                + "ihren Mitgliedern, Personengruppen und Parteien – Doks und Befragungen sieht es nie.", "Partner"),
+            Neu("2.2.20-behoerdenzugang", "Unter Einstellungen → Partnerbehörden stellst du je Behörde ein, welche "
+                + "Akten sie automatisch sieht – auch künftige – und welche Inhalte ihr nie gezeigt werden.", "Partner"),
+            Neu("2.2.21-badfrak", "Fraktionen lassen sich als Badfrak kennzeichnen, und die Fraktionsliste filtert "
+                + "auf Wunsch nur Badfraks.", "Fraktionen"),
+            Fix("2.2.22-partner-doks", "Partner sehen Doks im Doks-Bereich einer Fraktion nur noch, wenn genau "
+                + "dieser Dok für sie freigegeben ist.", "Partner"),
+            Fix("2.2.23-partner-erwaehnung", "Partner bekommen eine Erwähnung nur noch gemeldet, wenn sie die Akte "
+                + "sehen dürfen – und nie aus einem Dok.", "Partner"),
         ]),
     ];
 }

@@ -218,7 +218,7 @@ public sealed class CommentServiceTests
 
         await notifications.Received(1).NotifyMentionedAsync(
             Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string?>(),
-            "Person", "p8", Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+            "Person", "p8", Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>(), "Comment");
     }
 
     [Theory]
@@ -510,10 +510,10 @@ public sealed class CommentServiceTests
         // the delta fanout gets both texts; anyone already named at creation stays unpinged
         await notifications.Received(1).NotifyMentionedDeltaAsync(
             "ohne", "jetzt mit Erwaehnung", Arg.Any<string>(), Arg.Any<string?>(),
-            "Person", "e7", Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+            "Person", "e7", Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>(), "Comment");
         await notifications.DidNotReceive().NotifyMentionedAsync(
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string>(), Arg.Any<string>(),
-            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>(), Arg.Any<string?>());
     }
 
     /// <summary>Stub acting agent for the interceptor-backed test.</summary>

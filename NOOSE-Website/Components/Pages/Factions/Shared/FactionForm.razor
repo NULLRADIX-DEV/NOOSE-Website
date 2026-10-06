@@ -47,8 +47,10 @@
                 }
             </MudSelect>
         }
-        <MudSwitch T="bool" @bind-Value="Input.IsStateFaction" Color="Color.Info"
-                   Label="Staatsfraktion (wird nie als veraltet markiert)" />
+        <MudSwitch T="bool" Value="Input.IsStateFaction" ValueChanged="@((bool v) => { Input.IsStateFaction = v; if (v) { Input.IsBadFaction = false; } })"
+                   Color="Color.Info" Label="Staatsfraktion (wird nie als veraltet markiert)" />
+        <MudSwitch T="bool" Value="Input.IsBadFaction" ValueChanged="@((bool v) => { Input.IsBadFaction = v; if (v) { Input.IsStateFaction = false; } })"
+                   Color="Color.Error" Label="Badfrak (kriminelle Fraktion)" />
     </MudItem>
 
     @if (ShowClassification)

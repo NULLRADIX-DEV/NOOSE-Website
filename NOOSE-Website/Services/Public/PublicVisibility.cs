@@ -177,6 +177,8 @@ public static class PublicVisibility
             ["LibraryFile"] = "Anhang der Bibliothek; nach außen nie.",
             ["DocumentAccessExclusion"] = Assignment,
             ["PartnerShare"] = "Freigabe an eine Partnerbehörde; das ist ein eigener Kanal, nicht die Öffentlichkeit.",
+            ["PartnerAgencyProfile"] = "Zugangseinstellung einer Partnerbehörde; Verwaltung, kein Inhalt.",
+            ["PartnerReleaseRule"] = "Regelfreigabe an eine Partnerbehörde; derselbe eigene Kanal wie die Einzelfreigabe.",
 
             // --- personnel ---
             ["AgentRankHistory"] = Personnel,

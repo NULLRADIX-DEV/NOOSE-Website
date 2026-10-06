@@ -32,6 +32,10 @@ public class SourceService(
             .ToListAsync(cancellationToken);
         if (scope.PartnerAgency is { } agency)
         {
+            if (await PartnerVisibility.IsContentBlockedAsync(db, agency, nameof(Source), cancellationToken))
+            {
+                return new();
+            }
             var kept = new HashSet<string>();
             // document sources: keep those whose target document the partner may see (own-authored or released, not classified)
             foreach (var s in sources.Where(q => q.Type == SourceType.Document && q.TargetId != null))
@@ -177,7 +181,7 @@ public class SourceService(
         }
 
         await MentionNotify.DeltaAsync(notifications, null, source.Description, "einer Quelle",
-            entityType, entityId, actor, cancellationToken);
+            entityType, entityId, actor, cancellationToken, childType: nameof(Source));
 
         return source;
     }

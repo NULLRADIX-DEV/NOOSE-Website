@@ -16,13 +16,13 @@ public interface INotificationService
     Task NotifyOnceAsync(string? recipientId, NotificationType type, string title, string? href,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Notify agents mentioned via @{Agent:Id} in the text, excluding the trigger, deduplicated and visibility-filtered. Title stays generic.</summary>
+    /// <summary>Notify agents mentioned via @{Agent:Id} in the text, excluding the trigger, deduplicated and visibility-filtered. Title stays generic. <paramref name="childType"/> names the child the text sits in, so partners whose agency never sees it are skipped.</summary>
     Task NotifyMentionedAsync(string? text, string title, string? href, string targetType, string targetId,
-        ClaimsPrincipal trigger, CancellationToken cancellationToken = default);
+        ClaimsPrincipal trigger, CancellationToken cancellationToken = default, string? childType = null);
 
     /// <summary>Same as <see cref="NotifyMentionedAsync"/> but only for mentions added since the old text, so re-saving an edited field never pings twice.</summary>
     Task NotifyMentionedDeltaAsync(string? oldText, string? newText, string title, string? href, string targetType,
-        string targetId, ClaimsPrincipal trigger, CancellationToken cancellationToken = default);
+        string targetId, ClaimsPrincipal trigger, CancellationToken cancellationToken = default, string? childType = null);
 
     /// <summary>Broadcast the same notification to many recipients, excluding the trigger and deduplicated; empty list = no-op.</summary>
     Task NotifyManyAsync(IReadOnlyCollection<string> recipientIds, NotificationType type, string title,

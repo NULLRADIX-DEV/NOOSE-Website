@@ -166,7 +166,7 @@ public sealed class FollowupServiceTests
             Arg.Is<string?>(s => s == null), Arg.Is<string?>(s => s == "Notiz"),
             Arg.Any<string>(), Arg.Any<string?>(),
             Arg.Is<string>(t => t == "Person"), Arg.Is<string>(i => i == "p9"),
-            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>(), "Followup");
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public sealed class FollowupServiceTests
             Arg.Is<string?>(s => s == "alt"), Arg.Is<string?>(s => s == "neu"),
             Arg.Any<string>(), Arg.Any<string?>(),
             Arg.Is<string>(t => t == "Person"), Arg.Is<string>(i => i == "p10"),
-            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>(), "Followup");
     }
 
     [Fact]

@@ -1,0 +1,183 @@
+@* What an agency sees automatically and what it never sees; the agency selector lives on the parent panel. *@
+@inject IPartnerAgencyProfileService Profiles
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    Gilt für alle Konten dieser Behörde. <b>Automatische Freigaben</b> zeigen jede passende Akte, auch künftige,
+    ohne dass jemand sie einzeln freigibt. <b>Nie sichtbar</b> schlägt jede Freigabe – auch eine Einzelfreigabe
+    an ein Konto und „Ganze Akte“.
+    @if (!_mayEdit)
+    {
+        <span> Ändern dürfen nur Admins.</span>
+    }
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    @if (PartnerProfileDisplay.AvailableFeatures.Count > 0)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">Funktionen</MudText>
+            @foreach (var feature in PartnerProfileDisplay.AvailableFeatures)
+            {
+                <MudSwitch T="bool" Value="@_features.HasFlag(feature)" ValueChanged="@(v => FeatureToggled(feature, v))"
+                           Color="Color.Primary" Label="@PartnerProfileDisplay.Name(feature)" ReadOnly="@(!_mayEdit)" />
+            }
+        </MudPaper>
+    }
+
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Automatische Freigaben</MudText>
+        <MudGrid Spacing="2">
+            @foreach (var type in PartnerTabCatalog.All)
+            {
+                <MudItem xs="12" md="6">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudSelect T="PartnerRuleScope?" Value="@_rules[type.TypeKey].Scope" ValueChanged="@(v => ScopeChanged(type.TypeKey, v))"
+                                   Label="@type.DisplayName" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   ReadOnly="@(!_mayEdit)" Style="min-width:220px;">
+                            <MudSelectItem T="PartnerRuleScope?" Value="@(null)">Nur Einzelfreigabe</MudSelectItem>
+                            @foreach (var scope in ScopesFor(type.TypeKey))
+                            {
+                                <MudSelectItem T="PartnerRuleScope?" Value="@scope">@PartnerProfileDisplay.Name(scope)</MudSelectItem>
+                            }
+                        </MudSelect>
+                        @if (_rules[type.TypeKey].Scope is not null && type.Tabs.Count > 0)
+                        {
+                            <MudCheckBox T="bool" Value="@_rules[type.TypeKey].IncludesChildren"
+                                         ValueChanged="@(v => _rules[type.TypeKey].IncludesChildren = v)"
+                                         Color="Color.Primary" Label="Ganze Akte" ReadOnly="@(!_mayEdit)" Dense="true" />
+                        }
+                    </MudStack>
+                </MudItem>
+            }
+        </MudGrid>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+            „Mitglieder von Badfraks“ heißt: aktuelle Mitglieder einer nicht archivierten Badfrak ohne Verschlusssache.
+            Verschlusssachen bleiben immer unsichtbar.
+        </MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">Nie sichtbar</MudText>
+        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2">
+            @foreach (var content in PartnerProfileDisplay.AllContent)
+            {
+                <MudCheckBox T="bool" Value="@_blocked.HasFlag(content)" ValueChanged="@(v => ContentToggled(content, v))"
+                             Color="Color.Error" Label="@PartnerProfileDisplay.Name(content)" ReadOnly="@(!_mayEdit)" />
+            }
+        </MudStack>
+    </MudPaper>
+
+    @if (_mayEdit)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    /// <summary>Agency whose profile is edited; owned by the parent panel.</summary>
+    [Parameter] public PartnerAgency Agency { get; set; }
+
+    /// <summary>Raised after a save so sibling sections can reflect new rules.</summary>
+    [Parameter] public EventCallback OnSaved { get; set; }
+
+    private ClaimsPrincipal _user = default!;
+    private bool _mayEdit;
+    private bool _load = true;
+    private bool _busy;
+    private PartnerAgency? _loadedAgency;
+    private PartnerFeature _features;
+    private PartnerContent _blocked;
+    private Dictionary<string, RuleState> _rules = new();
+
+    private sealed class RuleState
+    {
+        public PartnerRuleScope? Scope { get; set; }
+        public bool IncludesChildren { get; set; }
+    }
+
+    // reused across agencies
+    protected override async Task OnParametersSetAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayEdit = _user.IsAdmin();
+        if (_loadedAgency == Agency)
+        {
+            return;
+        }
+        _loadedAgency = Agency;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        var profile = await Profiles.GetAsync(Agency);
+        _features = profile.Features;
+        _blocked = profile.BlockedContent;
+        _rules = PartnerTabCatalog.All.ToDictionary(t => t.TypeKey, t => profile.RuleFor(t.TypeKey) is { } r
+            ? new RuleState { Scope = r.Scope, IncludesChildren = r.IncludesChildren }
+            : new RuleState());
+        _load = false;
+    }
+
+    private static IEnumerable<PartnerRuleScope> ScopesFor(string typeKey)
+    {
+        yield return PartnerRuleScope.All;
+        if (typeKey == nameof(Faction))
+        {
+            yield return PartnerRuleScope.BadFactions;
+        }
+        if (typeKey == nameof(Person))
+        {
+            yield return PartnerRuleScope.BadFactionMembers;
+        }
+    }
+
+    private void ScopeChanged(string typeKey, PartnerRuleScope? scope)
+    {
+        _rules[typeKey].Scope = scope;
+        if (scope is null)
+        {
+            _rules[typeKey].IncludesChildren = false;
+        }
+    }
+
+    private void FeatureToggled(PartnerFeature feature, bool on)
+        => _features = on ? _features | feature : _features & ~feature;
+
+    private void ContentToggled(PartnerContent content, bool on)
+        => _blocked = on ? _blocked | content : _blocked & ~content;
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            var rules = _rules
+                .Where(r => r.Value.Scope is not null)
+                .Select(r => new PartnerRuleView(r.Key, r.Value.Scope!.Value, r.Value.IncludesChildren))
+                .ToList();
+            await Profiles.SaveAsync(Agency, _features, _blocked, rules, _user);
+            Snackbar.Add("Behördenzugang gespeichert – wirksam beim nächsten Seitenwechsel.", Severity.Success);
+            await LoadAsync();
+            await OnSaved.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -13,13 +13,13 @@ public static class MentionNotify
     /// <summary>Pings only agents mentioned in <paramref name="newText"/> but not in <paramref name="oldText"/>; pass null as old text on create. Never throws.</summary>
     public static async Task DeltaAsync(INotificationService notifications, string? oldText, string? newText,
         string what, string entityType, string entityId, ClaimsPrincipal actor,
-        CancellationToken cancellationToken = default, string? href = null)
+        CancellationToken cancellationToken = default, string? href = null, string? childType = null)
     {
         try
         {
             var who = string.IsNullOrWhiteSpace(actor.GetCodename()) ? "Ein Agent" : actor.GetCodename();
             await notifications.NotifyMentionedDeltaAsync(oldText, newText, $"{who} hat dich in {what} erwähnt.",
-                href ?? SearchNavigation.For(entityType, entityId), entityType, entityId, actor, cancellationToken);
+                href ?? SearchNavigation.For(entityType, entityId), entityType, entityId, actor, cancellationToken, childType);
         }
         catch { /* best effort */ }
     }

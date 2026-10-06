@@ -19,9 +19,9 @@ public interface IPartnerVisibilityPolicyService
     /// <summary>Saves (or, when null, clears) a rank's allowlist. Admin only.</summary>
     Task SaveRankAsync(PartnerAgency agency, PartnerRank rank, PartnerRankVisibility? visibility, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Type keys this viewer may access; null = no restriction (internal user or unconfigured rank).</summary>
+    /// <summary>Type keys this viewer may access (released by share or rule, narrowed by rank); null = internal user.</summary>
     Task<IReadOnlySet<string>?> GetAllowedTypesAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 
-    /// <summary>Visible tab slugs for this viewer on a record; null = all tabs (internal, unconfigured, or individually released).</summary>
+    /// <summary>Visible tab slugs for this viewer on a record, minus blocked content; null = all tabs.</summary>
     Task<IReadOnlySet<string>?> GetVisibleTabsAsync(ClaimsPrincipal user, string typeKey, string recordId, CancellationToken cancellationToken = default);
 }

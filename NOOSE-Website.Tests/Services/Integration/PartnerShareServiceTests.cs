@@ -73,7 +73,7 @@ public sealed class PartnerShareServiceTests
 
         var states = await service.GetForRecordAsync(nameof(Person), "p1");
 
-        Assert.Equal(3, states.Count); // one entry per agency
+        Assert.Equal(PartnerAgencyDisplay.All.Count, states.Count); // one entry per agency
         var lspd = states.Single(s => s.Agency == PartnerAgency.LSPD);
         Assert.True(lspd.Released);
         Assert.True(lspd.IncludesChildren);
@@ -105,7 +105,7 @@ public sealed class PartnerShareServiceTests
 
         var states = await service.GetForChildAsync("PersonDoc", "doc-1");
 
-        Assert.Equal(3, states.Count);
+        Assert.Equal(PartnerAgencyDisplay.All.Count, states.Count);
         Assert.True(states.Single(s => s.Agency == PartnerAgency.DoJ).Released);
         Assert.False(states.Single(s => s.Agency == PartnerAgency.LSPD).Released);
     }

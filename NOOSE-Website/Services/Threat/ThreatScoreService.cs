@@ -170,9 +170,9 @@ public class ThreatScoreService(
 
         var partialScores = new List<ThreatPartialScore>
         {
-            new("Maßnahmen-Heat", R1(rawP1), R1(p1), k.CapP1, P1DriverPerson(e, nowUtc)),
+            new(ThreatDetailRedaction.PersonDocHeat, R1(rawP1), R1(p1), k.CapP1, P1DriverPerson(e, nowUtc)),
             new("Bewaffnung & Eskalation", R1(weaponsPkt + fugitivePkt), R1(p2), k.CapP2, P2DriverPerson(e, effective)),
-            new("Observations-Heat", R1(rawP3), R1(p3), k.CapP3, P3DriverPerson(e)),
+            new(ThreatDetailRedaction.PersonObservationHeat, R1(rawP3), R1(p3), k.CapP3, P3DriverPerson(e)),
             new("Soziale Gefahr", R1(rawP4), R1(p4), k.CapP4, P4DriverPerson(e)),
             new("Netzwerk-Zentralität", R1(e.DefaultEdgesDegree), R1(p5), k.CapP5, P5DriverPerson(e)),
         };
@@ -252,7 +252,7 @@ public class ThreatScoreService(
         }
         if (docCount > 0)
         {
-            t.Add($"{docCount} Maßnahme(n) von Mitgliedern (im Mitgliedschaftszeitraum)");
+            t.Add($"{docCount} {ThreatDetailRedaction.FactionDocLine} (im Mitgliedschaftszeitraum)");
         }
         if (t.Count == 0)
         {

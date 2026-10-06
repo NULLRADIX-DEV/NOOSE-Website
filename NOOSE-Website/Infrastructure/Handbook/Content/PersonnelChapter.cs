@@ -144,21 +144,24 @@ internal static class PersonnelChapter
                 """),
 
             new Article("art-partner", "partner-freigaben", "Partnerbehörden",
-                "LSPD, DoJ und LSMD - und was sie sehen dürfen.",
+                "LSPD, DoJ, LSMD und Parlament - und was sie sehen dürfen.",
                 """
                 <p>Konten von <strong>Partnerbehörden</strong> sind keine NOOSE-Agenten. Sie sehen
                 standardmäßig <strong>nichts</strong> - und das ändert sich nur durch ausdrückliche
                 Freigaben.</p>
-                <p>Dafür gibt es <strong>zwei voneinander unabhängige Tore</strong>, und beide müssen offen
-                sein:</p>
+                <p>Eine Akte wird auf zwei Wegen freigegeben:</p>
                 <ul>
-                <li>Die <strong>Typ-Erlaubnis</strong> sagt, welche Aktenarten eine Behörde überhaupt sehen
-                darf. Sie schränkt nur ein; sie gibt nichts frei.</li>
-                <li>Die <strong>Einzelfreigabe</strong> gibt eine bestimmte Akte für eine Behörde frei.</li>
+                <li>Die <strong>Einzelfreigabe</strong> gibt eine bestimmte Akte für eine Behörde oder ein
+                einzelnes Konto frei.</li>
+                <li>Die <strong>Regelfreigabe</strong> gibt alle passenden Akten eines Typs frei - auch die,
+                die erst später angelegt werden. Beim Parlament sind das zum Beispiel alle Badfraks und
+                deren aktuelle Mitglieder.</li>
                 </ul>
-                <p>Eine Typ-Erlaubnis allein zeigt also nichts. Das überrascht regelmäßig - es ist aber genau
-                so gewollt: sonst würde das Anhaken einer Aktenart den gesamten Bestand dieser Art
-                öffnen.</p>
+                <p>Die <strong>Typ-Erlaubnis</strong> je Rang schränkt danach nur noch ein; sie gibt nichts
+                frei. Verschlusssachen sieht ein Partner nie.</p>
+                <p>Unter <em>Einstellungen → Partnerbehörden</em> steht außerdem, welche Inhalte eine Behörde
+                <strong>nie</strong> sieht - zum Beispiel Doks und Befragungen. Das schlägt jede Freigabe,
+                auch eine Einzelfreigabe mit „Ganze Akte“.</p>
                 <p>Partner dürfen wenig schreiben: Dokumente, Quellen und Beiträge im Taskforce-Chat. Alles
                 andere ist für sie nur zu lesen.</p>
                 """,

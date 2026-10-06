@@ -92,7 +92,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         await db.SaveChangesAsync(cancellationToken);
 
         await MentionNotify.DeltaAsync(notifications, null, note, Mentioned, entityType, entityId,
-            actor, cancellationToken);
+            actor, cancellationToken, childType: nameof(Followup));
     }
 
     public async Task RefreshAsync(string id, FollowupInput input, ClaimsPrincipal actor,
@@ -117,7 +117,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         await db.SaveChangesAsync(cancellationToken);
 
         await MentionNotify.DeltaAsync(notifications, oldNote, w.Note, Mentioned, w.EntityType, w.EntityId,
-            actor, cancellationToken);
+            actor, cancellationToken, childType: nameof(Followup));
     }
 
     public async Task CompleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

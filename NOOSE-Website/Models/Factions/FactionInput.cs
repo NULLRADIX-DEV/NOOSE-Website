@@ -22,6 +22,9 @@ public class FactionInput
     /// <summary>State faction; never goes stale (recency stays "current").</summary>
     public bool IsStateFaction { get; set; }
 
+    /// <summary>Criminal faction (Badfrak); ignored when <see cref="IsStateFaction"/> is set.</summary>
+    public bool IsBadFaction { get; set; }
+
     public int? EstimatedMemberCount { get; set; }
 
     public List<RankInput> Ranks { get; set; } = new();

@@ -125,7 +125,7 @@ internal static class GettingStartedChapter
                 werden. Das Kennzeichen <strong>Admin</strong> überspringt jede Rangprüfung - ein Admin gilt
                 überall als Führung, unabhängig von seinem Dienstgrad.</p>
                 <p>Es gibt zusätzlich Konten, die <strong>alles lesen, aber nichts schreiben</strong> dürfen -
-                die Aufsicht. Und Partnerkonten von LSPD, DoJ und LSMD, die nur einzeln freigegebene Akten
+                die Aufsicht. Und Partnerkonten von LSPD, DoJ, LSMD und Parlament, die nur freigegebene Akten
                 sehen.</p>
                 """,
                 DiagramKey: "rechte-matrix"),

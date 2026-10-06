@@ -26,6 +26,10 @@
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.AccountBalance">Staatsfraktion</MudChip>
                 }
+                @if (Faction.IsBadFaction)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Dangerous">Badfrak</MudChip>
+                }
             </MudStack>
             <MudText Typo="Typo.body2" Class="mud-text-secondary">@Faction.CaseNumber</MudText>
             @if (!string.IsNullOrWhiteSpace(Faction.Kind))
@@ -51,7 +55,8 @@
 
         <MudStack Spacing="1">
             @* state factions and exempt records never go stale: forced Fresh wins *@
-            <FactionRecencyPanel Faction="Faction" ForcedFresh="@(Faction.IsStateFaction || Faction.AgingDisabled)" />
+            <FactionRecencyPanel Faction="Faction" ForcedFresh="@(Faction.IsStateFaction || Faction.AgingDisabled)"
+                                 HideDocs="@(User?.IsPartner() == true)" />
             <AuthorizeView Policy="@Policies.Leadership">
                 <MudSwitch T="bool" Value="Faction.AgingDisabled" ValueChanged="ToggleAgingAsync"
                            Color="Color.Info" Size="Size.Small" Label="Veralterung deaktiviert" />

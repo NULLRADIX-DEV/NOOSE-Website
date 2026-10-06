@@ -83,7 +83,7 @@ public static class AuditDisplay
         ["Done"] = "Erledigt", ["IsRestricted"] = "Eingeschränkt",
         ["Radio"] = "Funk", ["IssuingTimes"] = "Aufstellungszeiten", ["Estate"] = "Anwesen",
         ["RecognitionColor"] = "Erkennungsfarbe", ["Targets"] = "Ziele",
-        ["IsStateFaction"] = "Staatsfraktion", ["EstimatedMemberCount"] = "Geschätzte Mitgliederzahl",
+        ["IsStateFaction"] = "Staatsfraktion", ["IsBadFaction"] = "Badfrak", ["EstimatedMemberCount"] = "Geschätzte Mitgliederzahl",
         ["Location"] = "Ort", ["Start"] = "Beginn", ["End"] = "Ende", ["Expiry"] = "Ablauf",
         ["Result"] = "Ergebnis", ["Remarks"] = "Bemerkungen",
         ["Rank"] = "Rang", ["Role"] = "Rolle", ["IsLead"] = "Leitung",
