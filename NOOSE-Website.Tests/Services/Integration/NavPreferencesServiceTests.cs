@@ -604,6 +604,58 @@ public sealed class NavPreferencesServiceTests : IDisposable
         Assert.Single(Stored(DemoIdentity.AgentId).SavedViews);
     }
 
+    // ---------------------------------------------------------------- the shared demo account
+
+    /// <summary>One visitor hid every entry and the next visitor got an empty drawer.</summary>
+    [Fact]
+    public async Task A_demo_visitor_customising_the_menu_never_reaches_the_next_visitor()
+    {
+        SeedAgent(DemoIdentity.AgentId);
+        var visitor = NewService();
+
+        await visitor.SetHiddenAsync(DemoIdentity.AgentId, "graph", hidden: true);
+        await visitor.SetOrderAsync(DemoIdentity.AgentId, ["cases", "people"]);
+        await visitor.ToggleFavoriteAsync(DemoIdentity.AgentId, PageFav("people"));
+
+        // same memory cache: a session blob there would reach the next circuit for thirty seconds
+        var next = await NewService().GetAsync(DemoIdentity.AgentId);
+        Assert.Empty(next.HiddenKeys);
+        Assert.Empty(next.Order);
+        Assert.Empty(next.Favorites);
+        Assert.Empty(Stored(DemoIdentity.AgentId).HiddenKeys);
+    }
+
+    /// <summary>What visitors already wrote onto the account must not keep the drawer empty after the fix ships.</summary>
+    [Fact]
+    public async Task The_demo_ignores_what_is_already_stored_on_the_shared_account()
+    {
+        var poisoned = new NavPreferences { StartRoute = "/statistik" };
+        poisoned.HiddenKeys.UnionWith(["people", "factions", "cases"]);
+        SeedAgent(DemoIdentity.AgentId, poisoned);
+
+        var prefs = await NewService().GetAsync(DemoIdentity.AgentId);
+
+        Assert.Empty(prefs.HiddenKeys);
+        Assert.Null(prefs.StartRoute);
+    }
+
+    [Fact]
+    public async Task A_demo_visitor_keeps_their_own_changes_for_the_session()
+    {
+        SeedAgent(DemoIdentity.AgentId);
+        var visitor = NewService();
+        var fired = false;
+        visitor.Changed += () => fired = true;
+
+        await visitor.SetHiddenAsync(DemoIdentity.AgentId, "graph", hidden: true);
+        await visitor.PushRecentAsync(DemoIdentity.AgentId, PageRecent("/personen"));
+
+        var prefs = await visitor.GetAsync(DemoIdentity.AgentId);
+        Assert.Contains("graph", prefs.HiddenKeys);
+        Assert.Single(prefs.Recents);
+        Assert.True(fired);
+    }
+
     [Fact]
     public async Task SaveViewAsync_reports_a_full_list_and_keeps_it()
     {

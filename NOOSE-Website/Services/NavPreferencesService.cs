@@ -15,6 +15,10 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
 
     public event Action? Changed;
 
+    /// <summary>The demo visitor's own preferences; scoped service, so one circuit.</summary>
+    private NavPreferences? _demoSession;
+    private readonly object _demoSessionGate = new();
+
     private static string CacheKey(string agentId) => $"nav:{agentId}";
 
     public async Task<NavPreferences> GetAsync(string agentId, CancellationToken cancellationToken = default)
@@ -22,6 +26,14 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
         if (string.IsNullOrEmpty(agentId))
         {
             return new NavPreferences();
+        }
+        // ignores the stored row
+        if (IsSharedDemo(agentId))
+        {
+            lock (_demoSessionGate)
+            {
+                return _demoSession ??= new NavPreferences();
+            }
         }
         if (cache.TryGetValue(CacheKey(agentId), out NavPreferences? cached) && cached is not null)
         {
@@ -180,8 +192,8 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
 
     /// <summary>The public demo's one account, which every anonymous visitor shares.</summary>
     /// <remarks>
-    /// Favourites are shared there too, but their labels come from the catalogue. A view name is free text, so one
-    /// visitor could write a sentence every later visitor reads. The header hides the button; this closes the rest.
+    /// Its preferences live in <see cref="_demoSession"/> and never reach the row: one visitor hiding every entry
+    /// emptied the drawer for all later ones. Views stay refused even per session, the header hides the button.
     /// </remarks>
     private static bool IsSharedDemo(string agentId)
         => string.Equals(agentId, DemoIdentity.AgentId, StringComparison.Ordinal);
@@ -208,26 +220,39 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
             return;
         }
 
-        var writer = WriterFor(agentId);
-        await writer.WaitAsync(cancellationToken);
-        try
+        if (IsSharedDemo(agentId))
         {
-            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-            var json = await db.Users.AsNoTracking()
-                .Where(a => a.Id == agentId)
-                .Select(a => a.NavPreferencesJson)
-                .FirstOrDefaultAsync(cancellationToken);
-            var prefs = Deserialize(json);
-            mutate(prefs);
-            var updated = JsonSerializer.Serialize(prefs);
-            await db.Users.Where(a => a.Id == agentId)
-                .ExecuteUpdateAsync(s => s.SetProperty(a => a.NavPreferencesJson, updated), cancellationToken);
-            // inside the lock: a cache write from a mutation that lost the race would resurrect its stale blob
-            cache.Set(CacheKey(agentId), prefs, CacheDuration);
+            // copy on write: the drawer may be enumerating the old one
+            lock (_demoSessionGate)
+            {
+                var session = Deserialize(JsonSerializer.Serialize(_demoSession ?? new NavPreferences()));
+                mutate(session);
+                _demoSession = session;
+            }
         }
-        finally
+        else
         {
-            writer.Release();
+            var writer = WriterFor(agentId);
+            await writer.WaitAsync(cancellationToken);
+            try
+            {
+                await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+                var json = await db.Users.AsNoTracking()
+                    .Where(a => a.Id == agentId)
+                    .Select(a => a.NavPreferencesJson)
+                    .FirstOrDefaultAsync(cancellationToken);
+                var prefs = Deserialize(json);
+                mutate(prefs);
+                var updated = JsonSerializer.Serialize(prefs);
+                await db.Users.Where(a => a.Id == agentId)
+                    .ExecuteUpdateAsync(s => s.SetProperty(a => a.NavPreferencesJson, updated), cancellationToken);
+                // inside the lock: a cache write from a mutation that lost the race would resurrect its stale blob
+                cache.Set(CacheKey(agentId), prefs, CacheDuration);
+            }
+            finally
+            {
+                writer.Release();
+            }
         }
 
         if (notify)
