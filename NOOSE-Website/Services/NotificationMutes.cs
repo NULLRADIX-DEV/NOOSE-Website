@@ -43,6 +43,7 @@ public static class NotificationMutes
             NotificationType.JobDueSoon,
             NotificationType.Followup,
             NotificationType.RecordModified,
+            NotificationType.SavedSearchHit,
             NotificationType.RequestDecided,
             NotificationType.ThreatSpike,
         ]),

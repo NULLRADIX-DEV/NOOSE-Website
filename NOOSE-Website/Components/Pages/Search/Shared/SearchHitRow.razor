@@ -22,6 +22,10 @@
         @* the type chip is what keeps three dozen categories legible at a glance *@
         <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="ma-0"
                  Icon="@SearchCatalog.Icon(Hit.Category)">@SearchCatalog.German(Hit.Category)</MudChip>
+        @if (IsNew)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ma-0">Neu</MudChip>
+        }
 
         @switch (row?.Shape ?? SearchHitShape.Record)
         {
@@ -101,6 +105,9 @@
     [Parameter] public bool Picked { get; set; }
 
     [Parameter] public EventCallback<SearchHit> OnToggle { get; set; }
+
+    /// <summary>A watched saved search reported this hit since the agent last looked.</summary>
+    [Parameter] public bool IsNew { get; set; }
 
     private string? When() => Hit.Timestamp?.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
 

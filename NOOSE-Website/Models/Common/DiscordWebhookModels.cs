@@ -54,6 +54,8 @@ public static class DiscordRouting
         NotificationType.PingDigest,
         // pings only who still owes the acknowledgment, not the role: the others already answered
         NotificationType.AcknowledgmentReminder,
+        // pings the owner only; the post names neither the search nor a hit, both were found under the owner's rights
+        NotificationType.SavedSearchHit,
     };
 
     public static bool IsRoutable(NotificationType type) => RoutableTypes.Contains(type);
@@ -65,7 +67,7 @@ public static class DiscordRouting
         => type is NotificationType.Mention or NotificationType.Followup
                 or NotificationType.JobAssigned or NotificationType.JobDueSoon
                 or NotificationType.PersonnelEntry or NotificationType.PingDigest
-                or NotificationType.AcknowledgmentReminder;
+                or NotificationType.AcknowledgmentReminder or NotificationType.SavedSearchHit;
 
     /// <summary>Category whose Discord post pings nobody: the embed carries inert mention chips instead.</summary>
     public static bool PingsNobody(NotificationType type)

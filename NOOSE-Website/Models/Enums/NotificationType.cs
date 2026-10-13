@@ -130,6 +130,10 @@ public enum NotificationType
     /// <summary>An announcement's acknowledgment deadline passed and the recipient still owes it. Routable — pings
     /// the recipients themselves, once per announcement.</summary>
     AcknowledgmentReminder = 38,
+
+    /// <summary>A watched saved search found hits its previous run did not have. Routable — pings the owner, and
+    /// the post names neither the search nor a hit.</summary>
+    SavedSearchHit = 39,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -176,6 +180,7 @@ public static class NotificationTypeDisplay
         NotificationType.PartnerInquiry => "Anfrage einer Partnerbehörde",
         NotificationType.PingDigest => "Tagesüberblick",
         NotificationType.AcknowledgmentReminder => "Quittierung überfällig",
+        NotificationType.SavedSearchHit => "Neue Treffer einer gespeicherten Suche",
         _ => "Benachrichtigung",
     };
 
@@ -221,6 +226,7 @@ public static class NotificationTypeDisplay
         NotificationType.PartnerInquiry => Icons.Material.Filled.RequestPage,
         NotificationType.PingDigest => Icons.Material.Filled.Summarize,
         NotificationType.AcknowledgmentReminder => Icons.Material.Filled.PendingActions,
+        NotificationType.SavedSearchHit => Icons.Material.Filled.SavedSearch,
         _ => Icons.Material.Filled.Notifications,
     };
 }

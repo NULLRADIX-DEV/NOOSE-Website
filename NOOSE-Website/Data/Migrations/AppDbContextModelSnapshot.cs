@@ -2582,6 +2582,22 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("ErstelltVonId");
 
+                    b.Property<bool>("IsWatched")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Ueberwacht");
+
+                    b.Property<string>("KnownHitsJson")
+                        .HasColumnType("longtext")
+                        .HasColumnName("BekannteTrefferJson");
+
+                    b.Property<DateTime?>("LastCheckedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ZuletztGeprueftAm");
+
+                    b.Property<bool>("LastRunIncomplete")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("LetzterLaufUnvollstaendig");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("GeaendertAm");
@@ -2595,14 +2611,25 @@ namespace NOOSE_Website.Data.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("varchar(120)");
 
+                    b.Property<string>("ScopeStamp")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("RechteStempel");
+
                     b.Property<string>("SearchParameterJson")
                         .IsRequired()
                         .HasColumnType("longtext")
                         .HasColumnName("SuchparameterJson");
 
+                    b.Property<string>("UnseenHitsJson")
+                        .HasColumnType("longtext")
+                        .HasColumnName("NeueTrefferJson");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AgentId");
+
+                    b.HasIndex("IsWatched", "LastCheckedAt");
 
                     b.ToTable("GespeicherteSuchen");
                 });

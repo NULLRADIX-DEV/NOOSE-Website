@@ -738,8 +738,11 @@ public class AppDbContext : IdentityDbContext<Agent>
         {
             b.Property(g => g.AgentId).HasMaxLength(64);
             b.Property(g => g.Name).HasMaxLength(120).IsRequired();
+            b.Property(g => g.ScopeStamp).HasMaxLength(64);
             b.HasOne<Agent>().WithMany().HasForeignKey(g => g.AgentId).OnDelete(DeleteBehavior.Cascade);
             b.HasIndex(g => g.AgentId);
+            // the watch worker picks the stalest watched rows
+            b.HasIndex(g => new { g.IsWatched, g.LastCheckedAt });
         });
 
         modelBuilder.Entity<TextSnippet>(b =>

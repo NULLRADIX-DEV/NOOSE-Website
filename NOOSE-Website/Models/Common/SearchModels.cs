@@ -67,6 +67,9 @@ public sealed record SearchResults(
     TimeSpan Elapsed)
 {
     public static readonly SearchResults None = new([], 0, [], [], 0, TimeSpan.Zero);
+
+    /// <summary>A fuzzy search ran out of time before the phonetic pass; its weakest matches are missing.</summary>
+    public bool SideIndexSkipped { get; init; }
 }
 
 /// <summary>Compact hit for the command palette.</summary>

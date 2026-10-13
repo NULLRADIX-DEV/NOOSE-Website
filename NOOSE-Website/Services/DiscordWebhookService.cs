@@ -485,6 +485,7 @@ public class DiscordWebhookService(
         NotificationType.PublicTipCreated => "/hinweise",
         NotificationType.PingDigest => "/benachrichtigungen",
         NotificationType.AcknowledgmentReminder => "/brett",
+        NotificationType.SavedSearchHit => "/suche",
         _ => "/dashboard",
     };
 
@@ -509,6 +510,7 @@ public class DiscordWebhookService(
         NotificationType.PublicTipCreated => "💡 Ein neuer Bürgerhinweis liegt im Eingang.",
         NotificationType.PingDigest => "🗞️ Dein Tagesüberblick liegt bereit.",
         NotificationType.AcknowledgmentReminder => "📋 Eine Ankündigung wartet noch auf deine Quittierung.",
+        NotificationType.SavedSearchHit => "🔍 Eine deiner gespeicherten Suchen hat neue Treffer.",
         _ => "🔔 Neue Benachrichtigung.",
     };
 
