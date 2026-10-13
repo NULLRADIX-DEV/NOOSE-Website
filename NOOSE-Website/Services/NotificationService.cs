@@ -244,8 +244,16 @@ public class NotificationService(
         await PushAsync(db, NotificationType.Mention, href, notified, headline: null, cancellationToken);
     }
 
-    public async Task NotifyManyAsync(IReadOnlyCollection<string> recipientIds, NotificationType type,
+    public Task NotifyManyAsync(IReadOnlyCollection<string> recipientIds, NotificationType type,
         string title, string? href, string? triggerId, CancellationToken cancellationToken = default)
+        => NotifyManyCoreAsync(recipientIds, type, title, href, triggerId, toChannel: true, cancellationToken);
+
+    public Task NotifyManyInAppAsync(IReadOnlyCollection<string> recipientIds, NotificationType type,
+        string title, string? href, string? triggerId, CancellationToken cancellationToken = default)
+        => NotifyManyCoreAsync(recipientIds, type, title, href, triggerId, toChannel: false, cancellationToken);
+
+    private async Task NotifyManyCoreAsync(IReadOnlyCollection<string> recipientIds, NotificationType type,
+        string title, string? href, string? triggerId, bool toChannel, CancellationToken cancellationToken)
     {
         // exclude trigger, dedupe, drop empties
         var targets = recipientIds
@@ -272,7 +280,10 @@ public class NotificationService(
 
         // one channel post per broadcast event; role categories ping their role, personal categories ping these recipients.
         // the in-app title is forwarded as an optional headline (used only for header-eligible categories when enabled)
-        await PushAsync(db, type, href, targets, title, cancellationToken);
+        if (toChannel)
+        {
+            await PushAsync(db, type, href, targets, title, cancellationToken);
+        }
     }
 
     public async Task NotifyManyOnceAsync(IReadOnlyCollection<string> recipientIds, NotificationType type,

@@ -390,7 +390,7 @@ public class AnnouncementService(
             .Where(a => a.AcknowledgmentRequired && a.AcknowledgmentDueAt != null && a.AcknowledgmentDueAt <= nowUtc
                 && a.AcknowledgmentRemindedAt == null)
             .OrderBy(a => a.AcknowledgmentDueAt)
-            .Select(a => new { a.Id, a.Title })
+            .Select(a => new { a.Id, a.Title, a.Audience })
             .ToListAsync(cancellationToken);
 
         var sent = 0;
@@ -420,8 +420,18 @@ public class AnnouncementService(
                 {
                     continue;
                 }
-                await notifications.NotifyManyAsync(owing, NotificationType.AcknowledgmentReminder,
-                    title.Length > 300 ? title[..297] + "…" : title, $"/brett/{a.Id}", triggerId: null, CancellationToken.None);
+                var text = title.Length > 300 ? title[..297] + "…" : title;
+                if (a.Audience == AnnouncementAudience.Taskforce)
+                {
+                    // a shared channel would show who sits in the taskforce together
+                    await notifications.NotifyManyInAppAsync(owing, NotificationType.AcknowledgmentReminder, text,
+                        $"/brett/{a.Id}", triggerId: null, CancellationToken.None);
+                }
+                else
+                {
+                    await notifications.NotifyManyAsync(owing, NotificationType.AcknowledgmentReminder, text,
+                        $"/brett/{a.Id}", triggerId: null, CancellationToken.None);
+                }
                 sent++;
             }
             catch (Exception ex)

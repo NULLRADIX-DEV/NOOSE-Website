@@ -28,6 +28,10 @@ public interface INotificationService
     Task NotifyManyAsync(IReadOnlyCollection<string> recipientIds, NotificationType type, string title,
         string? href, string? triggerId, CancellationToken cancellationToken = default);
 
+    /// <summary>Like <see cref="NotifyManyAsync"/>, but bell only: for recipient lists a shared Discord channel must not show.</summary>
+    Task NotifyManyInAppAsync(IReadOnlyCollection<string> recipientIds, NotificationType type, string title,
+        string? href, string? triggerId, CancellationToken cancellationToken = default);
+
     /// <summary>Like <see cref="NotifyManyAsync"/>, but folds onto each recipient's still-unread notice for the same type and href; only genuinely new notices reach the Discord channel.</summary>
     Task NotifyManyOnceAsync(IReadOnlyCollection<string> recipientIds, NotificationType type, string title,
         string? href, string? triggerId, CancellationToken cancellationToken = default);
