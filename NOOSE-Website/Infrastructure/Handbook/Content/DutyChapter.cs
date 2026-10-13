@@ -131,6 +131,11 @@ internal static class DutyChapter
                 findest du sie im Posteingang auch dann, wenn sie älter als die zwanzig neuesten ist. Solange eine
                 Meldung zu einer beobachteten Akte ungelesen ist, kommt zu dieser Akte keine zweite dazu - die
                 offene sagt ja schon, dass sich dort etwas getan hat.</p>
+                <p>Was die Glocke klingeln lässt, stellst du in deinem <em>Profil</em> unter <em>Meine
+                Benachrichtigungen</em> ein - je Art ein Schalter. Eine ausgeschaltete Art geht nicht verloren:
+                sie landet gelesen im Posteingang, nur die Zahl an der Glocke bleibt still. Mit <em>Ruhe während
+                meiner Abmeldung</em> gilt das für alle Arten, solange eine Abmeldung den heutigen Tag abdeckt.
+                Erwähnungen und Meldungen zu deinem Konto kommen immer an.</p>
                 <p>Ein Teil davon geht zusätzlich nach <strong>Discord</strong>. Was dort ankommt, ist bewusst
                 inhaltsarm - eine Zeile, die sagt, dass es etwas gibt, nicht was es ist.</p>
                 """,

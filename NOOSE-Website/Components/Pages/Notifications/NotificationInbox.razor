@@ -17,6 +17,8 @@
         <SavedViewButton BaseRoute="/benachrichtigungen" Filters="FilterState" OnApply="ApplyViewAsync" />
         <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.DoneAll"
                    Disabled="@(_unread == 0)" OnClick="AllReadAsync">Alle als gelesen</MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Tune"
+                   Href="/profil#benachrichtigungen">Einstellen</MudButton>
     </Actions>
 </PageHeader>
 

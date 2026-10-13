@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace NOOSE_Website.Models.Navigation;
 
 /// <summary>Per-account navigation preferences, persisted as JSON on the Agent.</summary>
@@ -55,8 +57,24 @@ public sealed class NavPreferences
     /// </remarks>
     public List<SavedView> SavedViews { get; set; } = [];
 
+    /// <summary>Notification categories that arrive already read, by <see cref="Enums.NotificationType"/> name.</summary>
+    /// <remarks>
+    /// Names rather than numbers, so a renumbered enum cannot silently mute a different category. Only what
+    /// <see cref="Services.NotificationMutes.IsMutable"/> allows has any effect; anything else stored here is ignored.
+    /// </remarks>
+    public HashSet<string> MutedNotifications { get; set; } = [];
+
+    /// <summary>While a filed absence covers today, every mutable category arrives already read.</summary>
+    public bool QuietDuringAbsence { get; set; }
+
     /// <summary>Schema version for future migrations.</summary>
     public int Version { get; set; } = 2;
+
+    /// <summary>Parse the stored blob; empty or null yields defaults.</summary>
+    public static NavPreferences FromJson(string? json)
+        => string.IsNullOrWhiteSpace(json)
+            ? new NavPreferences()
+            : JsonSerializer.Deserialize<NavPreferences>(json) ?? new NavPreferences();
 }
 
 /// <summary>A pinned page or record in the favorites quick-access list.</summary>

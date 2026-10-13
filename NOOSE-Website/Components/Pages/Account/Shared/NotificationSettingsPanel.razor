@@ -1,0 +1,114 @@
+@* Which categories ring the bell; a silenced one still lands in the inbox, already read. *@
+@inject INavPreferencesService NavPrefs
+@using NOOSE_Website.Models.Navigation
+@inject ISnackbar Snackbar
+
+<div id="benachrichtigungen">
+    <MudText Typo="Typo.h6" Class="mb-1">Meine Benachrichtigungen</MudText>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+        Lege fest, was die Glocke klingeln lässt. Was du ausschaltest, geht nicht verloren: Es landet
+        gelesen im <MudLink Href="/benachrichtigungen" Typo="Typo.caption">Posteingang</MudLink>, nur die
+        Glocke bleibt still. Erwähnungen und Meldungen zu deinem Konto kommen immer an.
+    </MudText>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        @if (_isDemo)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                In der Demo teilen sich alle Besucher ein Konto, deshalb lassen sich die Benachrichtigungen hier nicht einstellen.
+            </MudAlert>
+        }
+
+        <MudSwitch T="bool" Value="_prefs.QuietDuringAbsence" ValueChanged="OnQuietChangedAsync"
+                   Color="Color.Primary" Disabled="@(_isDemo || _busy)" Class="mb-1"
+                   Label="Ruhe während meiner Abmeldung" />
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4 ml-1">
+            Solange eine Abmeldung den heutigen Tag abdeckt, klingelt nur noch, was immer ankommt.
+        </MudText>
+
+        <MudGrid Spacing="4">
+            @foreach (var group in NotificationMutes.Groups)
+            {
+                <MudItem xs="12" md="6">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-1">
+                        <MudIcon Icon="@group.Icon" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.subtitle2">@group.Label</MudText>
+                    </MudStack>
+                    @foreach (var type in group.Types)
+                    {
+                        <MudSwitch T="bool" Value="@(!NotificationMutes.IsMuted(_prefs, type))"
+                                   ValueChanged="@(on => OnTypeChangedAsync(type, on))"
+                                   Color="Color.Primary" Size="Size.Small" Disabled="@(_isDemo || _busy)" Class="d-flex">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                <MudIcon Icon="@NotificationTypeDisplay.Icon(type)" Size="Size.Small" Class="mud-text-secondary" />
+                                <MudText Typo="Typo.body2">@NotificationTypeDisplay.Name(type)</MudText>
+                            </MudStack>
+                        </MudSwitch>
+                    }
+                </MudItem>
+            }
+        </MudGrid>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-4">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Class="mud-text-secondary" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Immer an: @string.Join(", ", NotificationMutes.Locked.Select(NotificationTypeDisplay.Name))
+            </MudText>
+        </MudStack>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _busy;
+    private bool _isDemo;
+    private string _agentId = string.Empty;
+    private NavPreferences _prefs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isDemo = User.IsDemo();
+        _agentId = User.GetAgentId() ?? string.Empty;
+        try
+        {
+            _prefs = await NavPrefs.GetAsync(_agentId);
+        }
+        finally
+        {
+            // a failed load must not leave the panel on the progress bar
+            _load = false;
+        }
+    }
+
+    private Task OnQuietChangedAsync(bool quiet)
+        => SaveAsync(() => NavPrefs.SetQuietDuringAbsenceAsync(_agentId, quiet));
+
+    private Task OnTypeChangedAsync(NotificationType type, bool on)
+        => SaveAsync(() => NavPrefs.SetNotificationMutedAsync(_agentId, type, muted: !on));
+
+    private async Task SaveAsync(Func<Task> save)
+    {
+        _busy = true;
+        try
+        {
+            await save();
+            // read back: the switch shows what is stored, not what was clicked
+            _prefs = await NavPrefs.GetAsync(_agentId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Nicht gespeichert: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
