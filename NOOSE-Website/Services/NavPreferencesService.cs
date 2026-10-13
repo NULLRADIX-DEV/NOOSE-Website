@@ -5,6 +5,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
+using NOOSE_Website.Models.Shift;
 
 namespace NOOSE_Website.Services;
 
@@ -230,6 +231,15 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
         => IsSharedDemo(agentId)
             ? Task.CompletedTask
             : MutateAsync(agentId, p => SavedViewRules.Remove(p.SavedViews, viewId), cancellationToken);
+
+    // inside the writer lock: the stamp reads and moves the visit in one step
+    public async Task<ShiftWindow> StampShiftVisitAsync(string agentId, DateTime nowUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var window = ShiftRules.WindowFor(null, nowUtc);
+        await MutateAsync(agentId, p => window = ShiftRules.Stamp(p, nowUtc), cancellationToken, notify: false);
+        return window;
+    }
 
     /// <summary>The public demo's one account, which every anonymous visitor shares.</summary>
     /// <remarks>

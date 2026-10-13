@@ -164,7 +164,11 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<List<FollowupDashboardItem>> GetMyDueAsync(ClaimsPrincipal actor,
+    public Task<List<FollowupDashboardItem>> GetMyDueAsync(ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+        => GetMineUntilAsync(actor, DateTime.UtcNow, cancellationToken);
+
+    public async Task<List<FollowupDashboardItem>> GetMineUntilAsync(ClaimsPrincipal actor, DateTime untilUtc,
         CancellationToken cancellationToken = default)
     {
         var meId = actor.GetAgentId();
@@ -174,11 +178,10 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var now = DateTime.UtcNow;
 
-        // Open and due, where I am responsible or watch the record.
+        // Open and due by then, where I am responsible or watch the record.
         var rows = await db.Followups
-            .Where(w => !w.Done && w.DueAt <= now
+            .Where(w => !w.Done && w.DueAt <= untilUtc
                 && (w.ResponsibleAgentId == meId
                     || db.Watchlists.Any(x => x.AgentId == meId && x.EntityType == w.EntityType && x.EntityId == w.EntityId)))
             .OrderBy(w => w.DueAt)

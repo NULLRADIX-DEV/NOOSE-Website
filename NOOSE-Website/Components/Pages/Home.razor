@@ -23,6 +23,10 @@
         <Authorized Context="auth">Willkommen zurück, <b>@Codename(auth.User)</b>. </Authorized>
     </AuthorizeView>
     Überblick über den aktuellen Bestand und die jüngsten Aktivitäten im Dienst.
+    @* policy, not _isPartner: that is still false on the first render *@
+    <AuthorizeView Policy="@Policies.InternalAgent" Context="shift">
+        <span>Was heute an dir hängt, zeigt <MudLink Href="@ShiftRules.Route">Meine Schicht</MudLink>.</span>
+    </AuthorizeView>
 </MudText>
 
 @if (_isPartner)

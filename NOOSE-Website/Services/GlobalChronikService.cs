@@ -207,7 +207,7 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
 
     /// <summary>Everything the SQL side of one slice needs, derived once per call.</summary>
     private sealed record SliceFilter(
-        string[] RecordTypes, string[] AuditTypes, string[]? AgentIds,
+        string[] RecordTypes, string[] AuditTypes, string[]? AgentIds, string? ExcludeAgentId,
         bool WantsAudit, bool WantsClassification, bool WantsScore)
     {
         public static SliceFilter From(ChronikQuery query)
@@ -222,6 +222,7 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
                 types,
                 ChronikParentResolver.AuditTypesFor(types),
                 agents,
+                string.IsNullOrEmpty(query.ExcludeAgentId) ? null : query.ExcludeAgentId,
                 // classification and score are the only categories the audit spine never produces;
                 // asking for just those must not make the day probe chase audit-only days
                 query.Categories is not { Count: > 0 } cats
@@ -242,6 +243,11 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
     {
         var q = db.AuditLogs.Where(a => filter.AuditTypes.Contains(a.EntityType)
             && a.Timestamp >= fromUtc && a.Timestamp < toUtc);
+        if (filter.ExcludeAgentId is { } excluded)
+        {
+            // actorless rows stay
+            q = q.Where(a => a.AgentId != excluded);
+        }
         return filter.AgentIds is null ? q : q.Where(a => a.AgentId != null && filter.AgentIds.Contains(a.AgentId));
     }
 
@@ -279,6 +285,10 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
     {
         var q = db.ClassificationHistory.Where(e => filter.ClassificationTypes.Contains(e.EntityType)
             && e.Timestamp >= fromUtc && e.Timestamp < toUtc);
+        if (filter.ExcludeAgentId is { } excluded)
+        {
+            q = q.Where(e => e.AgentId != excluded);
+        }
         return filter.AgentIds is null ? q : q.Where(e => e.AgentId != null && filter.AgentIds.Contains(e.AgentId));
     }
 

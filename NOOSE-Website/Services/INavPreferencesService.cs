@@ -1,5 +1,6 @@
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
+using NOOSE_Website.Models.Shift;
 
 namespace NOOSE_Website.Services;
 
@@ -62,6 +63,9 @@ public interface INavPreferencesService
 
     /// <summary>Deletes one saved list view by its id.</summary>
     Task RemoveViewAsync(string agentId, string viewId, CancellationToken cancellationToken = default);
+
+    /// <summary>Records a look at "Meine Schicht" and returns where its "since your last visit" block starts.</summary>
+    Task<ShiftWindow> StampShiftVisitAsync(string agentId, DateTime nowUtc, CancellationToken cancellationToken = default);
 
     /// <summary>Stable id for a favorite (used for reordering).</summary>
     static string FavoriteId(NavFavorite f)

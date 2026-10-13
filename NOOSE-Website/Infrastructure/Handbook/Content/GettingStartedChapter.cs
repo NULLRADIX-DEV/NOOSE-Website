@@ -48,6 +48,28 @@ internal static class GettingStartedChapter
                 DiagramKey: "oberflaeche",
                 NavKey: "dashboard"),
 
+            new Article("art-meine-schicht", "meine-schicht", "Meine Schicht",
+                "Eine Seite für die Frage, was gerade an dir hängt.",
+                """
+                <p><em>Meine Schicht</em> im Bereich <em>Mein Dienst</em> sammelt auf einer Seite, was sonst auf
+                fünf verteilt ist: deine <strong>offenen Aufgaben</strong>, deine fälligen und in den nächsten sieben
+                Tagen anstehenden <strong>Wiedervorlagen</strong>, ungelesene <strong>Erwähnungen</strong>, Einträge
+                am Brett, die du noch <strong>quittieren</strong> musst, Änderungen an <strong>beobachteten
+                Akten</strong> und neue Nachrichten anderer in deinen <strong>Taskforces</strong> seit deinem letzten
+                Besuch hier.</p>
+                <p>Ganz unten steht, was <strong>im Haus</strong> passiert ist, seit du zuletzt hier warst: wie viele
+                Akten sich geändert haben und die neuesten Einträge aus der Chronik. Deine eigenen Änderungen zählen
+                nicht mit - die kennst du schon. Als ein Besuch zählt alles, was weniger als eine halbe Stunde
+                auseinanderliegt - Neuladen löscht den Block also nicht. Beim ersten Besuch zeigt er den letzten Tag,
+                nach einer langen Pause höchstens die letzte Woche.</p>
+                <p>Ein Klick auf eine Erwähnung oder eine beobachtete Akte öffnet sie und markiert die Meldung als
+                gelesen, genau wie in der Glocke. Was du für die Glocke ausgeschaltet hast, kommt schon gelesen an
+                und steht deshalb auch hier nicht.</p>
+                <p>Mit <em>Als Startseite</em> oben rechts öffnet sich die Seite nach jedem Anmelden zuerst. Zurück
+                aufs Lagezentrum stellst du das unter <em>Navigation anpassen</em>.</p>
+                """,
+                NavKey: "meine-schicht"),
+
             new Article("art-suchen", "suchen", "Suchen und finden",
                 "Die Suche über alles - und die Schnellsuche mit Strg+K.",
                 """

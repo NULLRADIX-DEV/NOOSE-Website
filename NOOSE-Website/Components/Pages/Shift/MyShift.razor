@@ -1,0 +1,419 @@
+@page "/meine-schicht"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@using NOOSE_Website.Data.Entities.Notifications
+@using NOOSE_Website.Models.Notifications
+@using NOOSE_Website.Models.Shift
+@using NOOSE_Website.Models.Timeline
+@inject IJobService Jobs
+@inject IFollowupService Followups
+@inject INotificationService Notifications
+@inject IAnnouncementService Announcements
+@inject ITaskforceChatService TaskforceChat
+@inject IGlobalChronikService Chronik
+@inject INavPreferencesService NavPrefs
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Meine Schicht · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.WorkHistory" Title="Meine Schicht"
+            Subtitle="Was heute an dir hängt – und was seit deinem letzten Besuch passiert ist.">
+    <Actions>
+        @if (_offerStart)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Home"
+                       OnClick="MakeStartAsync">Als Startseite</MudButton>
+        }
+    </Actions>
+</PageHeader>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudGrid Class="mb-2">
+        <MudItem xs="6" sm="4" md="2">
+            <StatTile Icon="@Icons.Material.Filled.AssignmentTurnedIn" Label="Aufgaben" Value="@_jobs.Count.ToString()"
+                      Href="/aufgaben?meine=1" Hint="Offene Aufgaben, die dir zugeteilt sind" />
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <StatTile Icon="@Icons.Material.Filled.EventRepeat" Colour="Color.Info" Label="Wiedervorlagen"
+                      Value="@_due.Count.ToString()" Hint="Deine Wiedervorlagen, die heute oder früher fällig sind" />
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <StatTile Icon="@Icons.Material.Filled.AlternateEmail" Label="Erwähnungen" Value="@_mentions.Total.ToString()"
+                      Href="@InboxHref(NotificationType.Mention)" Hint="Erwähnungen, die du noch nicht gelesen hast" />
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <StatTile Icon="@Icons.Material.Filled.Campaign" Colour="Color.Warning" Label="Zu quittieren"
+                      Value="@_acks.Count.ToString()" Href="/brett" Hint="Einträge am Brett, die du noch bestätigen musst" />
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <StatTile Icon="@Icons.Material.Filled.Forum" Label="Taskforce-Chat" Value="@_taskforces.Sum(t => t.Count).ToString()"
+                      Href="/taskforces" Hint="@($"Nachrichten anderer in deinen Taskforces {SinceText}")" />
+        </MudItem>
+        <MudItem xs="6" sm="4" md="2">
+            <StatTile Icon="@Icons.Material.Filled.Star" Colour="Color.Warning" Label="Beobachtet" Value="@_watched.Total.ToString()"
+                      Href="@InboxHref(NotificationType.RecordModified)" Hint="Beobachtete Akten mit einer Änderung, die du noch nicht gelesen hast" />
+        </MudItem>
+    </MudGrid>
+
+    @if (NothingOpen)
+    {
+        <MudPaper Class="mb-4" Elevation="2">
+            <EmptyState Icon="@Icons.Material.Filled.TaskAlt" Title="Gerade hängt nichts an dir."
+                        Text="Keine offene Aufgabe, keine fällige Wiedervorlage, nichts Ungelesenes und nichts zu quittieren." />
+        </MudPaper>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Elevation="2">
+                    @Head(Icons.Material.Filled.AssignmentTurnedIn, "Meine Aufgaben", "/aufgaben?meine=1", "Zum Board")
+                    @if (_jobs.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Dir ist keine offene Aufgabe zugeteilt.</MudText>
+                    }
+                    else
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var job in _jobs.Take(ShiftRules.ListCap))
+                            {
+                                <MudListItem T="string" Href="@($"/aufgaben/{job.Id}")" Icon="@JobIcon(job)" IconColor="@JobColour(job)">
+                                    <MudText Typo="Typo.body2"><b>@job.Title</b></MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @job.CaseNumber · @JobStatusDisplay.Name(job.Status) · Priorität @JobPriorityDisplay.Name(job.Priority)@DueText(job)
+                                    </MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                        @More(_jobs.Count)
+                    }
+                </MudPaper>
+
+                <MudPaper Class="pa-4" Elevation="2">
+                    @Head(Icons.Material.Filled.EventRepeat, "Wiedervorlagen", null, null)
+                    @if (_due.Count == 0 && _upcoming.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            Keine Wiedervorlage ist fällig oder steht in den nächsten @((int)ShiftRules.UpcomingFollowups.TotalDays) Tagen an.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var w in _due.Concat(_upcoming).Take(ShiftRules.ListCap))
+                            {
+                                var due = w.DueAt <= _now;
+                                <MudListItem T="string" Href="@w.Href" Icon="@(due ? Icons.Material.Filled.EventBusy : Icons.Material.Filled.Event)"
+                                             IconColor="@(due ? Color.Error : Color.Info)">
+                                    <MudText Typo="Typo.body2"><b>@w.Display</b> · @(due ? "fällig" : "am") @w.DueAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(w.Note))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@w.Note</MudText>
+                                    }
+                                </MudListItem>
+                            }
+                        </MudList>
+                        @More(_due.Count + _upcoming.Count)
+                    }
+                </MudPaper>
+
+                <MudPaper Class="pa-4" Elevation="2">
+                    @Head(Icons.Material.Filled.Campaign, "Zu quittieren", "/brett", "Zum Brett")
+                    @if (_acks.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Am Brett wartet nichts auf deine Bestätigung.</MudText>
+                    }
+                    else
+                    {
+                        <MudList T="string" Dense="true">
+                            @foreach (var a in _acks.Take(ShiftRules.ListCap))
+                            {
+                                <MudListItem T="string" Href="@($"/brett/{a.AnnouncementId}")"
+                                             Icon="@(a.Important ? Icons.Material.Filled.PriorityHigh : Icons.Material.Filled.Campaign)"
+                                             IconColor="@(a.Important ? Color.Error : Color.Warning)">
+                                    <MudText Typo="Typo.body2"><b>@a.Title</b></MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">seit @a.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                        @More(_acks.Count)
+                    }
+                </MudPaper>
+            </MudStack>
+        </MudItem>
+
+        <MudItem xs="12" md="6">
+            <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Elevation="2">
+                    @Head(Icons.Material.Filled.AlternateEmail, "Ungelesene Erwähnungen", InboxHref(NotificationType.Mention), "Im Posteingang")
+                    @Notices(_mentions, "Niemand hat dich erwähnt, was du noch nicht gelesen hast.")
+                </MudPaper>
+
+                <MudPaper Class="pa-4" Elevation="2">
+                    @Head(Icons.Material.Filled.Star, "Beobachtete Akten mit Änderung", InboxHref(NotificationType.RecordModified), "Im Posteingang")
+                    @Notices(_watched, "An deinen beobachteten Akten hat sich nichts getan, was du noch nicht gelesen hast.")
+                </MudPaper>
+
+                <MudPaper Class="pa-4" Elevation="2">
+                    @Head(Icons.Material.Filled.Forum, "Meine Taskforces", "/taskforces", "Alle Taskforces")
+                    @if (_taskforces.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine neuen Nachrichten anderer @SinceText.</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Nachrichten anderer @SinceText</MudText>
+                        <MudList T="string" Dense="true">
+                            @foreach (var t in _taskforces.Take(ShiftRules.ListCap))
+                            {
+                                <MudListItem T="string" Href="@($"/taskforces/{t.TaskforceId}?tab=chat")" Icon="@Icons.Material.Filled.Groups2">
+                                    <MudText Typo="Typo.body2"><b>@t.Name</b> · @Messages(t.Count)</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        zuletzt @t.LastAtUtc.ToLocalTime().ToString("dd.MM. HH:mm")@(string.IsNullOrWhiteSpace(t.LastAuthor) ? null : $" · {t.LastAuthor}")
+                                    </MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                        @More(_taskforces.Count)
+                    }
+                </MudPaper>
+            </MudStack>
+        </MudItem>
+
+        <MudItem xs="12">
+            <MudPaper Class="pa-4" Elevation="2">
+                @Head(Icons.Material.Filled.History, "Im Haus " + SinceText, "/nachweis?tab=chronik", "Zur Chronik")
+                @if (_sinceLoading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+                }
+                else if (_sinceFailed)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Die Chronik ließ sich gerade nicht laden.</MudText>
+                }
+                else if (_density is null || _density.Total == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Niemand sonst hat an Akten, die du sehen darfst, etwas geändert.</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        <b>@_density.Total.ToString("N0")</b> @(_density.Total == 1 ? "Änderung" : "Änderungen")
+                        an <b>@_density.DistinctRecords.ToString("N0")</b> @(_density.DistinctRecords == 1 ? "Akte" : "Akten"),
+                        deine eigenen nicht mitgezählt. Die neuesten:
+                    </MudText>
+                    <MudTimeline TimelinePosition="TimelinePosition.Start">
+                        @foreach (var x in _events)
+                        {
+                            <MudTimelineItem Color="@TimelineCategoryDisplay.Colour(x.Category)" Size="Size.Small">
+                                <MudText Typo="Typo.body2">
+                                    <b>@RecordTypeDisplay.Name(x.EntityType)</b>
+                                    @if (x.RecordDeleted || string.IsNullOrEmpty(x.Href))
+                                    {
+                                        <span>»@x.Name«</span>
+                                    }
+                                    else
+                                    {
+                                        <MudLink Href="@x.Href">»@x.Name«</MudLink>
+                                    }
+                                    <span class="mud-text-secondary"> · @x.Title</span>
+                                </MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    @x.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @(x.ActorName ?? "System")
+                                </MudText>
+                            </MudTimelineItem>
+                        }
+                    </MudTimeline>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private const int EventCount = 8;
+
+    private ClaimsPrincipal _user = new();
+    private string? _agentId;
+    private DateTime _now;
+    private ShiftWindow _window = ShiftRules.WindowFor(null, DateTime.UtcNow);
+    private bool _load = true;
+    private bool _offerStart;
+
+    private List<JobRow> _jobs = [];
+    private List<FollowupDashboardItem> _due = [];
+    private List<FollowupDashboardItem> _upcoming = [];
+    private NotificationInboxPage _mentions = NotificationInboxPage.Empty;
+    private NotificationInboxPage _watched = NotificationInboxPage.Empty;
+    private List<OpenAcknowledgment> _acks = [];
+    private List<TaskforceActivity> _taskforces = [];
+
+    private bool _sinceLoading = true;
+    private bool _sinceFailed;
+    private ChronikDensity? _density;
+    private IReadOnlyList<ChronikEvent> _events = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _agentId = _user.GetAgentId();
+        _now = DateTime.UtcNow;
+        _window = ShiftRules.WindowFor(null, _now);
+
+        if (!string.IsNullOrEmpty(_agentId))
+        {
+            try
+            {
+                _window = await NavPrefs.StampShiftVisitAsync(_agentId, _now);
+                _offerStart = (await NavPrefs.GetAsync(_agentId)).StartRoute != ShiftRules.Route;
+            }
+            catch
+            {
+                /* best effort */
+            }
+        }
+
+        _jobs = await Jobs.GetMyOpenAsync(_user);
+        var followups = await Followups.GetMineUntilAsync(_user, _now + ShiftRules.UpcomingFollowups);
+        _due = followups.Where(f => f.DueAt <= _now).ToList();
+        _upcoming = followups.Where(f => f.DueAt > _now).ToList();
+        _mentions = await UnreadAsync(NotificationType.Mention);
+        _watched = await UnreadAsync(NotificationType.RecordModified);
+        _acks = await Announcements.GetOpenAcknowledgmentsAsync(_user);
+        _taskforces = await TaskforceChat.GetActivitySinceAsync(_user, _window.SinceUtc);
+        _load = false;
+        StateHasChanged();
+
+        // the chronicle is the heavy part; the own lists come first
+        try
+        {
+            // own changes are not news
+            var query = new ChronikQuery(_window.SinceUtc, _now.AddMinutes(1), MinEvents: EventCount, ExcludeAgentId: _agentId);
+            _density = await Chronik.GetDensityAsync(query, _user);
+            _events = _density.Total == 0 ? [] : (await Chronik.GetEventsAsync(query, _user)).Events.Take(EventCount).ToList();
+        }
+        catch
+        {
+            /* best effort */
+            _sinceFailed = true;
+        }
+        _sinceLoading = false;
+    }
+
+    private Task<NotificationInboxPage> UnreadAsync(NotificationType type)
+        => Notifications.GetInboxAsync(_user,
+            new NotificationInboxQuery([type], null, null, OnlyUnread: true, Page: 1, PageSize: ShiftRules.ListCap));
+
+    private bool NothingOpen => _jobs.Count == 0 && _due.Count == 0 && _mentions.Total == 0 && _watched.Total == 0
+        && _acks.Count == 0 && _taskforces.Count == 0;
+
+    private string SinceText => _window.Kind switch
+    {
+        ShiftWindowKind.FirstVisit => "in den letzten 24 Stunden",
+        ShiftWindowKind.Capped => $"in den letzten {(int)ShiftRules.MaxLookBack.TotalDays} Tagen",
+        _ => $"seit deinem letzten Besuch am {_window.SinceUtc.ToLocalTime():dd.MM.} um {_window.SinceUtc.ToLocalTime():HH:mm} Uhr",
+    };
+
+    private static string InboxHref(NotificationType type)
+        => $"/benachrichtigungen?{NotificationInboxUrl.TypesKey}={type}&{NotificationInboxUrl.UnreadKey}=1";
+
+    private async Task OpenNoticeAsync(Notification notice)
+    {
+        try
+        {
+            await Notifications.AsReadMarkAsync(notice.Id, _user);
+        }
+        catch
+        {
+            /* best effort */
+        }
+        if (!string.IsNullOrWhiteSpace(notice.Href))
+        {
+            Nav.NavigateTo(notice.Href);
+        }
+    }
+
+    private async Task MakeStartAsync()
+    {
+        if (string.IsNullOrEmpty(_agentId))
+        {
+            return;
+        }
+        try
+        {
+            await NavPrefs.SetStartRouteAsync(_agentId, ShiftRules.Route);
+            _offerStart = false;
+            Snackbar.Add("Nach dem Anmelden öffnet sich jetzt Meine Schicht.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private bool Overdue(JobRow job) => job.DueDate is { } due && due.Date < _now.ToLocalTime().Date;
+
+    private string JobIcon(JobRow job) => Overdue(job)
+        ? Icons.Material.Filled.AssignmentLate
+        : job.Status == JobStatus.InProcessing ? Icons.Material.Filled.PendingActions : Icons.Material.Filled.Assignment;
+
+    private Color JobColour(JobRow job) => Overdue(job)
+        ? Color.Error
+        : job.Priority == JobPriority.High ? Color.Warning : Color.Default;
+
+    private string DueText(JobRow job) => job.DueDate is not { } due
+        ? string.Empty
+        : Overdue(job) ? $" · überfällig seit {due:dd.MM.yyyy}" : $" · fällig {due:dd.MM.yyyy}";
+
+    private static string Messages(int count) => count == 1 ? "1 Nachricht" : $"{count} Nachrichten";
+
+    private RenderFragment Head(string icon, string title, string? href, string? linkText) => __builder =>
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+            <MudIcon Icon="@icon" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">@title</MudText>
+            <MudSpacer />
+            @if (href is not null && linkText is not null)
+            {
+                <MudLink Href="@href" Typo="Typo.caption">@linkText</MudLink>
+            }
+        </MudStack>
+    };
+
+    private RenderFragment More(int total) => __builder =>
+    {
+        @if (total > ShiftRules.ListCap)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">… und @(total - ShiftRules.ListCap) weitere.</MudText>
+        }
+    };
+
+    private RenderFragment Notices(NotificationInboxPage page, string empty) => __builder =>
+    {
+        @if (page.Total == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@empty</MudText>
+        }
+        else
+        {
+            <MudList T="string" Dense="true">
+                @foreach (var n in page.Items.Take(ShiftRules.ListCap))
+                {
+                    <MudListItem T="string" OnClick="@(() => OpenNoticeAsync(n))" Style="cursor:pointer;"
+                                 Icon="@NotificationTypeDisplay.Icon(n.Type)" IconColor="Color.Primary">
+                        <MudText Typo="Typo.body2">@n.Title</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@n.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                    </MudListItem>
+                }
+            </MudList>
+            @More(page.Total)
+        }
+    };
+}

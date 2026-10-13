@@ -24,6 +24,8 @@ public static class NavCatalog
         new NavEntry("suche", "/suche", Icons.Material.Filled.Search, "Globale Suche", NavSection.Primary, NavArea.Primary,
             Description: "Durchsucht alle Akten, Dokumente und Inhalte"),
 
+        new NavEntry("meine-schicht", "/meine-schicht", Icons.Material.Filled.WorkHistory, "Meine Schicht", NavSection.MeinDienst, NavArea.MeinDienst,
+            Description: "Was heute an dir hängt: Aufgaben, Wiedervorlagen, Erwähnungen, Brett, Taskforces"),
         new NavEntry("profil", "/profil", Icons.Material.Filled.AccountCircle, "Mein Profil", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Eigene Stammdaten, Codename und Kontaktangaben"),
         new NavEntry("watchlist", "/watchlist", Icons.Material.Filled.Star, "Beobachtete Akten", NavSection.MeinDienst, NavArea.MeinDienst,
