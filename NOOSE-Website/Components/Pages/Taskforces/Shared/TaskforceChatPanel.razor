@@ -14,6 +14,7 @@
         }
         else
         {
+            var firstNew = FirstNewId;
             @foreach (var e in _entries.AsEnumerable().Reverse())
             {
                 var own = e.Msg.CreatedById == _myId;
@@ -32,6 +33,15 @@
                         <MentionText Segments="e.Segments" />
                     </MudPaper>
                 </div>
+                @* column-reverse: next in markup sits above *@
+                @if (e.Msg.Id == firstNew)
+                {
+                    <div role="separator" style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; border-top:1px solid var(--mud-palette-primary);"></div>
+                        <MudText Typo="Typo.caption" Color="Color.Primary">Neu seit deinem letzten Besuch</MudText>
+                        <div style="flex:1; border-top:1px solid var(--mud-palette-primary);"></div>
+                    </div>
+                }
             }
             @if (_morePossible)
             {
@@ -65,7 +75,12 @@
     [Parameter, EditorRequired] public string TaskforceId { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
+    /// <summary>Raised once the chat has been shown and the read mark moved.</summary>
+    [Parameter] public EventCallback Read { get; set; }
+
     private const int Page = 50;
+    // enough to reach the divider without loading a whole archive
+    private const int MaxFirstLoad = 200;
     private const string Placeholder = "Nachricht verfassen … (Verlinken per @, Strg+Enter sendet)";
     private bool _load = true;
     private bool _loadsMore;
@@ -80,6 +95,9 @@
     private string _text = string.Empty;
     private MentionInput? _input;
     private List<Entry> _entries = new();
+    // read state at opening; the divider stays where it was while the chat is open
+    private TaskforceReadState _state = TaskforceReadState.None;
+    private bool _marked;
 
     private sealed record Entry(TaskforceMessage Msg, IReadOnlyList<MentionSegment> Segments);
 
@@ -93,16 +111,49 @@
         _mayPost = User.MayContribute();
         _myId = User.GetAgentId();
         Broadcaster.Modified += OnModified;
+        _state = await ChatService.GetReadStateAsync(TaskforceId, User);
         await LoadAsync();
+    }
+
+    // after the first interactive render: a mark set while prerendering would remove the divider it placed
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_marked && !_load)
+        {
+            _marked = true;
+            await MarkReadAsync(notify: true);
+        }
     }
 
     private async Task LoadAsync()
     {
         _load = true;
-        var messages = await ChatService.GetMessagesAsync(TaskforceId, ViewerScope.From(User), Page);
-        _morePossible = messages.Count >= Page;
+        var limit = Math.Clamp(_state.Unread + 5, Page, MaxFirstLoad);
+        var messages = await ChatService.GetMessagesAsync(TaskforceId, ViewerScope.From(User), limit);
+        _morePossible = messages.Count >= limit;
         _entries = await ToEntriesAsync(messages);
         _load = false;
+    }
+
+    // first unread message by someone else at opening; none when nothing was unread then
+    private string? FirstNewId => _state is { Unread: > 0, SinceUtc: { } since }
+        ? _entries.FirstOrDefault(e => e.Msg.CreatedAt > since && e.Msg.CreatedById != _myId)?.Msg.Id
+        : null;
+
+    private async Task MarkReadAsync(bool notify)
+    {
+        try
+        {
+            await ChatService.MarkReadAsync(TaskforceId, User);
+            if (notify)
+            {
+                await Read.InvokeAsync();
+            }
+        }
+        catch
+        {
+            /* best effort */
+        }
     }
 
     private async Task<List<Entry>> ToEntriesAsync(List<TaskforceMessage> messages)
@@ -183,6 +234,11 @@
         {
             await LoadAsync();
             StateHasChanged();
+            // seen as it arrives, once the chat is really on screen
+            if (_marked)
+            {
+                await MarkReadAsync(notify: false);
+            }
         });
     }
 

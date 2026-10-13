@@ -13,9 +13,28 @@
     /// <summary>Caption this section is filed under in the rail; sections sharing a caption stay together.</summary>
     [Parameter] public string? Group { get; set; }
 
+    /// <summary>Count shown beside the label, e.g. unread messages; nothing below one.</summary>
+    [Parameter] public int? Badge { get; set; }
+
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
-    protected override void OnInitialized() => Rail?.Register(this);
+    private int? _shownBadge;
+
+    protected override void OnInitialized()
+    {
+        _shownBadge = Badge;
+        Rail?.Register(this);
+    }
+
+    // the rail draws the badge, so it has to hear about a change
+    protected override void OnParametersSet()
+    {
+        if (_shownBadge != Badge)
+        {
+            _shownBadge = Badge;
+            Rail?.Redraw();
+        }
+    }
 
     public void Dispose() => Rail?.Unregister(this);
 }

@@ -55,8 +55,8 @@ internal static class GettingStartedChapter
                 fünf verteilt ist: deine <strong>offenen Aufgaben</strong>, deine fälligen und in den nächsten sieben
                 Tagen anstehenden <strong>Wiedervorlagen</strong>, ungelesene <strong>Erwähnungen</strong>, Einträge
                 am Brett, die du noch <strong>quittieren</strong> musst, Änderungen an <strong>beobachteten
-                Akten</strong> und neue Nachrichten anderer in deinen <strong>Taskforces</strong> seit deinem letzten
-                Besuch hier.</p>
+                Akten</strong> und ungelesene Nachrichten anderer in deinen <strong>Taskforces</strong> - dieselbe
+                Zahl, die auch die Taskforce-Liste zeigt.</p>
                 <p>Ganz unten steht, was <strong>im Haus</strong> passiert ist, seit du zuletzt hier warst: wie viele
                 Akten sich geändert haben und die neuesten Einträge aus der Chronik. Deine eigenen Änderungen zählen
                 nicht mit - die kennst du schon. Als ein Besuch zählt alles, was weniger als eine halbe Stunde

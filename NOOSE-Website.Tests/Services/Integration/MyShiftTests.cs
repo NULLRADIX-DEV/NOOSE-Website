@@ -274,7 +274,7 @@ public sealed class MyShiftTests
         db.Users.Add(Seed.Agent("other", Rank.JuniorAgent));
     }
 
-    private static void SeedTaskforce(AppDbContext db, string id, bool member = true, bool archived = false)
+    private static void SeedTaskforce(AppDbContext db, string id, bool member = true, bool archived = false, DateTime? readAt = null)
     {
         db.Taskforces.Add(new Taskforce
         {
@@ -286,8 +286,8 @@ public sealed class MyShiftTests
         });
         if (member)
         {
-            db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = id, AgentId = "me", CreatedAt = T0.AddDays(-30) });
-            db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = id, AgentId = "lead", CreatedAt = T0.AddDays(-30) });
+            db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = id, AgentId = "me", CreatedAt = T0.AddDays(-30), LastReadAt = readAt });
+            db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = id, AgentId = "lead", CreatedAt = T0.AddDays(-30), LastReadAt = readAt });
         }
     }
 
@@ -295,25 +295,25 @@ public sealed class MyShiftTests
         => new() { TaskforceId = taskforceId, Text = "…", AuthorName = author, CreatedAt = at, CreatedById = by };
 
     [Fact]
-    public async Task Taskforce_activity_counts_messages_by_others_since_the_instant()
+    public async Task Taskforce_unread_counts_messages_by_others_after_the_read_mark()
     {
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
             SeedAgents(db);
-            SeedTaskforce(db, "busy");
-            SeedTaskforce(db, "quiet");
+            SeedTaskforce(db, "busy", readAt: T0.AddDays(-1));
+            SeedTaskforce(db, "quiet", readAt: T0.AddDays(-1));
             db.TaskforceMessages.AddRange(
                 Message("busy", T0.AddHours(-2), "other", "Wolf"),
                 Message("busy", T0.AddHours(-1), "lead", "Falcon"),
-                // own message and one before the window do not count
+                // own message and one already read do not count
                 Message("busy", T0.AddMinutes(-30), "me", "Rookie"),
                 Message("busy", T0.AddDays(-2), "other", "Wolf"),
                 Message("quiet", T0.AddDays(-3), "other", "Wolf"));
             db.SaveChanges();
         }
 
-        var activity = await Chat(ctx).GetActivitySinceAsync(Junior(), T0.AddDays(-1));
+        var activity = await Chat(ctx).GetUnreadAsync(Junior());
 
         var busy = Assert.Single(activity);
         Assert.Equal("busy", busy.TaskforceId);
@@ -323,7 +323,7 @@ public sealed class MyShiftTests
     }
 
     [Fact]
-    public async Task Taskforce_activity_covers_own_live_taskforces_only()
+    public async Task Taskforce_unread_covers_own_live_taskforces_only()
     {
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
@@ -339,13 +339,13 @@ public sealed class MyShiftTests
         }
 
         // leadership may read every taskforce, but the shift lists only the ones it belongs to
-        var activity = await Chat(ctx).GetActivitySinceAsync(Leader(), T0.AddDays(-1));
+        var activity = await Chat(ctx).GetUnreadAsync(Leader());
 
         Assert.Equal(["mine"], activity.Select(a => a.TaskforceId).ToArray());
     }
 
     [Fact]
-    public async Task Taskforce_activity_is_ordered_by_the_latest_message()
+    public async Task Taskforce_unread_is_ordered_by_the_latest_message()
     {
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
@@ -357,7 +357,7 @@ public sealed class MyShiftTests
             db.SaveChanges();
         }
 
-        var activity = await Chat(ctx).GetActivitySinceAsync(Junior(), T0.AddDays(-1));
+        var activity = await Chat(ctx).GetUnreadAsync(Junior());
 
         Assert.Equal(["b", "a"], activity.Select(a => a.TaskforceId).ToArray());
     }

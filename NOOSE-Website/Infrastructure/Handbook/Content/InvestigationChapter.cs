@@ -80,6 +80,12 @@ internal static class InvestigationChapter
                 <p>Sie hat einen eigenen <strong>Chat</strong>, in dem nur die zugeteilten Agenten schreiben.
                 Und sie ist die einzige Akte, die andere Agenten <em>ausschließt</em>: Wer nicht zugeteilt
                 ist, sieht die Taskforce gar nicht - weder in der Liste noch in der Suche.</p>
+                <p>Was im Chat neu ist, siehst du, ohne hineinzuschauen: In der Liste steht neben jeder deiner
+                Taskforces, wie viele <strong>Nachrichten anderer</strong> du noch nicht gelesen hast, und in der
+                Akte trägt der Abschnitt <em>Chat</em> dieselbe Zahl. Öffnest du den Chat, trennt eine Linie
+                <em>Neu seit deinem letzten Besuch</em> das Gelesene vom Neuen, und der Zähler steht wieder auf null.
+                Gezählt wird nur in Taskforces, denen du zugeteilt bist, und erst ab dem Tag, an dem du dazugekommen
+                bist.</p>
                 <p>Der <strong>Umfang</strong> unterscheidet innerbehördlich von überbehördlich. Eine
                 überbehördliche Taskforce ist die Form, in der mit LSPD, DoJ oder LSMD zusammengearbeitet
                 wird; Partnerkonten können dort mitlesen und schreiben, aber die Agentenliste bleibt

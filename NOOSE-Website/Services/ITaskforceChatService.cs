@@ -10,8 +10,14 @@ public interface ITaskforceChatService
     /// <summary>Loads recent messages, oldest first for display; olderAs pages further back.</summary>
     Task<List<TaskforceMessage>> GetMessagesAsync(string taskforceId, ViewerScope scope, int limit = 100, DateTime? olderAs = null, CancellationToken cancellationToken = default);
 
-    /// <summary>Messages by others since the instant, per taskforce the caller belongs to; archived ones are left out.</summary>
-    Task<List<TaskforceActivity>> GetActivitySinceAsync(ClaimsPrincipal actor, DateTime sinceUtc, CancellationToken cancellationToken = default);
+    /// <summary>Unread messages by others, per taskforce the caller belongs to; newest activity first.</summary>
+    Task<List<TaskforceActivity>> GetUnreadAsync(ClaimsPrincipal actor, bool includeArchived = false, CancellationToken cancellationToken = default);
+
+    /// <summary>The caller's read mark on one taskforce chat and the unread count behind it.</summary>
+    Task<TaskforceReadState> GetReadStateAsync(string taskforceId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Moves the caller's read mark to now; members with write access only, a no-op for everyone else.</summary>
+    Task MarkReadAsync(string taskforceId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Sends a message; throws if the taskforce is not visible or the text is empty.</summary>
     Task<TaskforceMessage> SendAsync(string taskforceId, string text, ClaimsPrincipal actor, CancellationToken cancellationToken = default);

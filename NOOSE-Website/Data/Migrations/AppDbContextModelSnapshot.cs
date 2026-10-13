@@ -10605,6 +10605,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("ErstelltVonId");
 
+                    b.Property<DateTime?>("LastReadAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ZuletztGelesenAm");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("GeaendertAm");

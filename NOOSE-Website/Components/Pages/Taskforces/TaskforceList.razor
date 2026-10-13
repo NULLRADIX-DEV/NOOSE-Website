@@ -1,5 +1,8 @@
 @page "/taskforces"
+@implements IDisposable
 @inject ITaskforceService TaskforceService
+@inject ITaskforceChatService ChatService
+@inject TaskforceChatBroadcaster Broadcaster
 @inject IRecencyService Recency
 @inject NavigationManager Nav
 
@@ -57,6 +60,15 @@ else
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined" Class="ml-2">Archiviert</MudChip>
                     }
+                    @if (_unread.GetValueOrDefault(context.Item.Id) is > 0 and var n)
+                    {
+                        @* a plain anchor: the row click must not fire as well *@
+                        <a href="@($"/taskforces/{context.Item.Id}?tab=chat")" @onclick:stopPropagation="true" class="ml-2"
+                           aria-label="@(n == 1 ? "1 neue Nachricht im Chat" : $"{n} neue Nachrichten im Chat")">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Filled.Forum"
+                                     Style="cursor:pointer;">@n neu</MudChip>
+                        </a>
+                    }
                 </CellTemplate>
             </TemplateColumn>
             <PropertyColumn Property="x => x.Scope" Title="Geltungsbereich" />
@@ -103,13 +115,31 @@ else
     private string _search = string.Empty;
     private TaskforceStatus? _statusFilter;
     private List<TaskforceRow> _rows = new();
+    private ClaimsPrincipal _user = new();
+    // unread chat messages per taskforce id; only the caller's own memberships
+    private Dictionary<string, int> _unread = new();
+    private bool _subscribed;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        await LoadAsync();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // prerender is a static snapshot: subscribing there leaks a handler onto a circuit that never lives
+        if (firstRender && RendererInfo.IsInteractive && !_subscribed)
+        {
+            Broadcaster.Modified += OnChatModified;
+            _subscribed = true;
+        }
+    }
 
     // the archive filter is server-side, so switching it reloads rather than filtering in place
     private async Task LoadAsync()
     {
-        var user = (await AuthStateTask).User;
+        var user = _user;
         // Only assigned taskforces; leadership sees all
         var taskforces = await TaskforceService.GetListAsync(user.MayAllTaskforcesSee(), user.GetAgentId(), _archive,
             partnerAgency: user.GetPartnerAgency(), partnerAgentId: user.GetAgentId());
@@ -133,8 +163,38 @@ else
                     settings.WarningDays, settings.StaleDays, referenceUtc, now),
             };
         }).ToList();
+        await UnreadLoadAsync();
         _load = false;
     }
+
+    private async Task UnreadLoadAsync()
+    {
+        try
+        {
+            var unread = await ChatService.GetUnreadAsync(_user, includeArchived: true);
+            _unread = unread.ToDictionary(a => a.TaskforceId, a => a.Count);
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    // a message elsewhere moves the counter here; marshal into this circuit
+    private void OnChatModified(string taskforceId)
+    {
+        if (_load || _rows.All(r => r.Id != taskforceId))
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            await UnreadLoadAsync();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose() => Broadcaster.Modified -= OnChatModified;
 
     private void StatusSelected(TaskforceStatus? status)
     {

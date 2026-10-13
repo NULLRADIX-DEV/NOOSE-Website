@@ -31,7 +31,14 @@ else
                            StartIcon="@entry.Icon"
                            OnClick="@(() => ActivateAsync(entry.Slug))"
                            aria-current="@(IsActive(entry) ? "true" : null)">
-                    @entry.Label
+                    @if (entry.Badge is > 0)
+                    {
+                        <MudBadge Content="@entry.Badge" Color="Color.Primary" Overlap="false">@entry.Label</MudBadge>
+                    }
+                    else
+                    {
+                        @entry.Label
+                    }
                 </MudButton>
             }
         }
@@ -52,7 +59,7 @@ else
 
     private readonly List<RecordSection> _sections = [];
     private string? _activeSlug;
-    private bool _registrationsChanged;
+    private bool _redraw;
 
     private RecordSection? Active
         => _sections.FirstOrDefault(s => s.Slug == _activeSlug) ?? _sections.FirstOrDefault();
@@ -81,7 +88,7 @@ else
         if (!_sections.Contains(section))
         {
             _sections.Add(section);
-            _registrationsChanged = true;
+            _redraw = true;
         }
     }
 
@@ -89,16 +96,19 @@ else
     {
         if (_sections.Remove(section))
         {
-            _registrationsChanged = true;
+            _redraw = true;
         }
     }
 
-    // children register while this component is already rendering, so redraw once they are all in
+    // a section's badge changed while the rail was rendering it
+    internal void Redraw() => _redraw = true;
+
+    // children register and update while this component is already rendering, so redraw once they are all in
     protected override void OnAfterRender(bool firstRender)
     {
-        if (_registrationsChanged)
+        if (_redraw)
         {
-            _registrationsChanged = false;
+            _redraw = false;
             StateHasChanged();
         }
     }

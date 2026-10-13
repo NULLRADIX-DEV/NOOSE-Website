@@ -434,6 +434,8 @@ public static class ChangelogContent
             Neu("2.2.29-meine-schicht", "Neu unter Mein Dienst: Meine Schicht zeigt auf einer Seite deine offenen "
                 + "Aufgaben, Wiedervorlagen, ungelesenen Erwähnungen, offene Quittierungen, neue Taskforce-Nachrichten und "
                 + "was seit deinem letzten Besuch passiert ist. Auf Wunsch ist sie deine Startseite.", "Bedienung"),
+            Neu("2.2.30-taskforce-ungelesen", "Die Taskforce-Liste zeigt, wie viele Chat-Nachrichten du noch nicht "
+                + "gelesen hast, und im Chat markiert eine Linie, was seit deinem letzten Besuch neu ist.", "Taskforces"),
         ]),
     ];
 }

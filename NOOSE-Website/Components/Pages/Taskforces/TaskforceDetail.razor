@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject IPartnerVisibilityPolicyService PartnerPolicy
+@inject ITaskforceChatService ChatService
 
 <PageTitle>@(_taskforce?.Name ?? "Taskforce") · NOOSE</PageTitle>
 
@@ -145,8 +146,8 @@ else
                 }
                 @if (TabOn("chat"))
                 {
-                <RecordSection Group="Kommunikation" Slug="chat" Label="Chat" Icon="@Icons.Material.Filled.Forum">
-                    <TaskforceChatPanel TaskforceId="@_taskforce.Id" User="_user" />
+                <RecordSection Group="Kommunikation" Slug="chat" Label="Chat" Icon="@Icons.Material.Filled.Forum" Badge="_chatUnread">
+                    <TaskforceChatPanel TaskforceId="@_taskforce.Id" User="_user" Read="@(() => _chatUnread = 0)" />
                 </RecordSection>
                 }
                 @if (TabOn("beziehungen"))
@@ -210,6 +211,7 @@ else
     private string? _loadedId;
     // last view of the previous visit, read before this one is logged
     private DateTime? _since;
+    private int _chatUnread;
 
     // every section slug on this page; the rail persists the active one in the URL
     private static readonly string[] _tabs =
@@ -242,12 +244,14 @@ else
         _loadedId = Id;
         _load = true;
         _taskforce = null;
+        _chatUnread = 0;
         _since = null;
         await LoadAsync();
         if (_taskforce is not null)
         {
             _since = await AccessLog.PreviousVisitAsync(nameof(Taskforce), _taskforce.Id);
             await AccessLog.LogViewAsync(nameof(Taskforce), _taskforce.Id);
+            _chatUnread = (await ChatService.GetReadStateAsync(_taskforce.Id, _user)).Unread;
         }
     }
 
