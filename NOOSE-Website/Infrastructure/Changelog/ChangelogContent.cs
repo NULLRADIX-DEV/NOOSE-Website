@@ -425,6 +425,9 @@ public static class ChangelogContent
                 + "Führung beantwortet die Anfrage im Eingang, indem sie die passende Akte freigibt.", "Partner"),
             Neu("2.2.26-noosei-rechtsauskunft", "Partnerbehörden können NOOSEI Fragen zu den Gesetzbüchern stellen; "
                 + "die Antwort zitiert die Paragrafen, Akten sieht diese Rechtsauskunft nie.", "NOOSEI"),
+            Neu("2.2.27-benachrichtigungen-steuern", "In deinem Profil legst du fest, welche Benachrichtigungen die "
+                + "Glocke klingeln lassen. Was du ausschaltest, landet still im Posteingang, und auf Wunsch bleibt die "
+                + "Glocke während deiner Abmeldung ruhig. Erwähnungen kommen immer an.", "Bedienung"),
         ]),
     ];
 }

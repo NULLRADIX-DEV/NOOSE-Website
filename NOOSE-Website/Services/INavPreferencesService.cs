@@ -1,3 +1,4 @@
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
 
 namespace NOOSE_Website.Services;
@@ -43,6 +44,12 @@ public interface INavPreferencesService
 
     /// <summary>Turns the glossary explain-bubbles on or off for this agent.</summary>
     Task SetGlossarBlasenAsync(string agentId, bool enabled, CancellationToken cancellationToken = default);
+
+    /// <summary>Lets one notification category ring the bell or arrive already read; locked categories are ignored.</summary>
+    Task SetNotificationMutedAsync(string agentId, NotificationType type, bool muted, CancellationToken cancellationToken = default);
+
+    /// <summary>Keeps the bell quiet while a filed absence covers today.</summary>
+    Task SetQuietDuringAbsenceAsync(string agentId, bool quiet, CancellationToken cancellationToken = default);
 
     /// <summary>Records that an agent reached one onboarding step. Idempotent, and cheap enough to call blind.</summary>
     Task MarkOnboardingStepAsync(string agentId, string stepKey, CancellationToken cancellationToken = default);

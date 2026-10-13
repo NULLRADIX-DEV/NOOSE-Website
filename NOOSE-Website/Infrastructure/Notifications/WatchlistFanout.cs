@@ -65,7 +65,8 @@ public sealed class WatchlistFanout(IDbContextFactory<AppDbContext> dbFactory, I
                 {
                     continue;
                 }
-                await notifications.NotifyAsync(f.Id, NotificationType.RecordModified, title, aufl.Href, cancellationToken);
+                // the notice summarises the record, so a follower who silenced it keeps one read row per record
+                await notifications.NotifyOnceAsync(f.Id, NotificationType.RecordModified, title, aufl.Href, cancellationToken);
             }
         }
     }

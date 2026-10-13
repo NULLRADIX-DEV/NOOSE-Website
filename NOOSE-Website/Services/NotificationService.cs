@@ -4,8 +4,10 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Notifications;
+using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Models.Navigation;
 using NOOSE_Website.Models.Notifications;
 
 namespace NOOSE_Website.Services;
@@ -24,13 +26,9 @@ public class NotificationService(
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        db.Notifications.Add(new Notification
-        {
-            RecipientId = recipientId,
-            Type = type,
-            Title = title,
-            Href = href,
-        });
+        // never folds, silenced or not: distinct events share a target here (every absence goes to one list)
+        var silent = (await SilencedAsync(db, [recipientId], type, cancellationToken)).Contains(recipientId);
+        db.Notifications.Add(NewRow(recipientId, type, title, href, silent));
         await db.SaveChangesAsync(cancellationToken);
 
         broadcaster.Report(recipientId);
@@ -45,15 +43,10 @@ public class NotificationService(
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        if (!await TryFoldAsync(db, recipientId, type, title, href, cancellationToken))
+        var silent = (await SilencedAsync(db, [recipientId], type, cancellationToken)).Contains(recipientId);
+        if (!await TryFoldAsync(db, recipientId, type, title, href, silent, cancellationToken))
         {
-            db.Notifications.Add(new Notification
-            {
-                RecipientId = recipientId,
-                Type = type,
-                Title = title,
-                Href = href,
-            });
+            db.Notifications.Add(NewRow(recipientId, type, title, href, silent));
         }
         await db.SaveChangesAsync(cancellationToken);
 
@@ -61,9 +54,12 @@ public class NotificationService(
     }
 
     /// <summary>Refreshes the recipient's still-unread notice for the same target; false when there is none to fold onto.</summary>
-    /// <remarks>A thread that runs for a while must not fill the bell line by line; the unread notice IS the summary.</remarks>
+    /// <remarks>
+    /// A thread that runs for a while must not fill the bell line by line; the unread notice IS the summary.
+    /// A silenced delivery folds onto the newest notice for the target whether read or not, and leaves it read.
+    /// </remarks>
     private static async Task<bool> TryFoldAsync(AppDbContext db, string recipientId, NotificationType type,
-        string title, string? href, CancellationToken cancellationToken)
+        string title, string? href, bool silent, CancellationToken cancellationToken)
     {
         // without a target there is no identity to fold on
         if (string.IsNullOrWhiteSpace(href))
@@ -71,8 +67,12 @@ public class NotificationService(
             return false;
         }
 
-        var open = await db.Notifications
-            .Where(n => n.RecipientId == recipientId && n.Type == type && n.Href == href && n.ReadAt == null)
+        var same = db.Notifications.Where(n => n.RecipientId == recipientId && n.Type == type && n.Href == href);
+        if (!silent)
+        {
+            same = same.Where(n => n.ReadAt == null);
+        }
+        var open = await same
             .OrderByDescending(n => n.CreatedAt)
             .FirstOrDefaultAsync(cancellationToken);
         if (open is null)
@@ -80,11 +80,81 @@ public class NotificationService(
             return false;
         }
 
+        var now = DateTime.UtcNow;
         open.Title = title;
         // the bell sorts by CreatedAt, so an unbumped fold would stay buried under newer rows;
         // the audit interceptor stamps ModifiedAt on an update and leaves CreatedAt alone
-        open.CreatedAt = DateTime.UtcNow;
+        open.CreatedAt = now;
+        if (silent)
+        {
+            open.ReadAt ??= now;
+        }
         return true;
+    }
+
+    /// <summary>A fresh notice; a silenced one is born read, so it waits in the inbox without ringing.</summary>
+    private static Notification NewRow(string recipientId, NotificationType type, string title, string? href, bool silent)
+        => new()
+        {
+            RecipientId = recipientId,
+            Type = type,
+            Title = title,
+            Href = href,
+            ReadAt = silent ? DateTime.UtcNow : null,
+        };
+
+    /// <summary>Recipients who want this category without the bell: switched off, or quiet while absent today.</summary>
+    private static async Task<HashSet<string>> SilencedAsync(AppDbContext db, IReadOnlyCollection<string> recipientIds,
+        NotificationType type, CancellationToken cancellationToken)
+    {
+        var silenced = new HashSet<string>(StringComparer.Ordinal);
+        if (!NotificationMutes.IsMutable(type) || recipientIds.Count == 0)
+        {
+            return silenced;
+        }
+
+        // the shared demo account keeps its choices in the visitor's session, never on the row
+        var ids = recipientIds.Where(id => id != DemoIdentity.AgentId).Distinct().ToList();
+        var rows = await db.Users.AsNoTracking()
+            .Where(u => ids.Contains(u.Id) && u.NavPreferencesJson != null)
+            .Select(u => new { u.Id, u.NavPreferencesJson })
+            .ToListAsync(cancellationToken);
+
+        var quietWhenAway = new List<string>();
+        foreach (var row in rows)
+        {
+            NavPreferences prefs;
+            try
+            {
+                prefs = NavPreferences.FromJson(row.NavPreferencesJson);
+            }
+            catch
+            {
+                /* ignore */
+                continue;
+            }
+
+            if (NotificationMutes.IsMuted(prefs, type))
+            {
+                silenced.Add(row.Id);
+            }
+            else if (prefs.QuietDuringAbsence)
+            {
+                quietWhenAway.Add(row.Id);
+            }
+        }
+
+        if (quietWhenAway.Count > 0)
+        {
+            // absences are calendar days in Berlin time
+            var today = MeetingTime.Day(DateTime.UtcNow);
+            silenced.UnionWith(await db.Absences.AsNoTracking()
+                .Covering(today)
+                .Where(a => quietWhenAway.Contains(a.AgentId))
+                .Select(a => a.AgentId)
+                .ToListAsync(cancellationToken));
+        }
+        return silenced;
     }
 
     public Task NotifyMentionedAsync(string? text, string title, string? href, string targetType, string targetId,
@@ -188,15 +258,10 @@ public class NotificationService(
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var silenced = await SilencedAsync(db, targets, type, cancellationToken);
         foreach (var id in targets)
         {
-            db.Notifications.Add(new Notification
-            {
-                RecipientId = id,
-                Type = type,
-                Title = title,
-                Href = href,
-            });
+            db.Notifications.Add(NewRow(id, type, title, href, silenced.Contains(id)));
         }
         await db.SaveChangesAsync(cancellationToken);
 
@@ -224,20 +289,16 @@ public class NotificationService(
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var silenced = await SilencedAsync(db, targets, type, cancellationToken);
         var fresh = new List<string>();
         foreach (var id in targets)
         {
-            if (await TryFoldAsync(db, id, type, title, href, cancellationToken))
+            var silent = silenced.Contains(id);
+            if (await TryFoldAsync(db, id, type, title, href, silent, cancellationToken))
             {
                 continue;
             }
-            db.Notifications.Add(new Notification
-            {
-                RecipientId = id,
-                Type = type,
-                Title = title,
-                Href = href,
-            });
+            db.Notifications.Add(NewRow(id, type, title, href, silent));
             fresh.Add(id);
         }
         await db.SaveChangesAsync(cancellationToken);

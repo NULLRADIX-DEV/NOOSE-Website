@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using NOOSE_Website.Data;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
 
 namespace NOOSE_Website.Services;
@@ -163,6 +164,26 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
     public Task SetGlossarBlasenAsync(string agentId, bool enabled, CancellationToken cancellationToken = default)
         => MutateAsync(agentId, p => p.GlossarBlasen = enabled, cancellationToken);
 
+    // the profile panel reads its own state back, nothing else shows it
+    public Task SetNotificationMutedAsync(string agentId, NotificationType type, bool muted,
+        CancellationToken cancellationToken = default)
+        => !NotificationMutes.IsMutable(type)
+            ? Task.CompletedTask
+            : MutateAsync(agentId, p =>
+            {
+                if (muted)
+                {
+                    p.MutedNotifications.Add(type.ToString());
+                }
+                else
+                {
+                    p.MutedNotifications.Remove(type.ToString());
+                }
+            }, cancellationToken, notify: false);
+
+    public Task SetQuietDuringAbsenceAsync(string agentId, bool quiet, CancellationToken cancellationToken = default)
+        => MutateAsync(agentId, p => p.QuietDuringAbsence = quiet, cancellationToken, notify: false);
+
     // one tiny idempotent step per call, not a save-all: the agent is navigating while these land, and the
     // whole blob is last-writer-wins against the recents push that every navigation fires
     public Task MarkOnboardingStepAsync(string agentId, string stepKey, CancellationToken cancellationToken = default)
@@ -261,8 +282,5 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
         }
     }
 
-    private static NavPreferences Deserialize(string? json)
-        => string.IsNullOrWhiteSpace(json)
-            ? new NavPreferences()
-            : JsonSerializer.Deserialize<NavPreferences>(json) ?? new NavPreferences();
+    private static NavPreferences Deserialize(string? json) => NavPreferences.FromJson(json);
 }
