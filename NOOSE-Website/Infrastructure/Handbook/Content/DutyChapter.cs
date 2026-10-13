@@ -138,6 +138,13 @@ internal static class DutyChapter
                 Erwähnungen und Meldungen zu deinem Konto kommen immer an.</p>
                 <p>Ein Teil davon geht zusätzlich nach <strong>Discord</strong>. Was dort ankommt, ist bewusst
                 inhaltsarm - eine Zeile, die sagt, dass es etwas gibt, nicht was es ist.</p>
+                <p>Erwähnungen, Aufgaben und fällige Wiedervorlagen pingen dich dort persönlich. Wann, legst du im
+                selben Abschnitt des Profils fest: <em>Sofort</em>, <em>Gesammelt</em> oder <em>Nie</em>.
+                Gesammeltes kommt einmal am Tag um 18 Uhr als <em>Tagesüberblick</em> - eine Zeile mit deinem
+                Ping und der Zahl der Meldungen, die du bis dahin noch nicht gelesen hast. Was du vorher in der
+                Glocke liest, pingt dich also gar nicht mehr. Eine Art, die du für die Glocke ausgeschaltet hast,
+                kommt schon gelesen an und fehlt deshalb auch im Tagesüberblick. Ankündigungen, Besprechungen und
+                andere Rundrufe pingen eine ganze Rolle; die schaltest du in Discord selbst stumm.</p>
                 """,
                 NavKey: "benachrichtigungen",
                 Steps:

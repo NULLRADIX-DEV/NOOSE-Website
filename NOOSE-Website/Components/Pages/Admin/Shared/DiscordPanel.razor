@@ -16,6 +16,12 @@
     Akte: <b>Personalakte-Eintrag</b> und <b>Kündigung</b> posten ein Embed mit Name, Datum und Begründung.
     Die Kündigung geht in ihren eigenen Channel und pingt niemanden.
 </MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
+    Jeder Agent legt im Profil fest, wann ihn die persönlichen Kategorien (Erwähnung, Aufgabe, Wiedervorlage)
+    anpingen: sofort, nie oder <b>gesammelt</b>. Gesammeltes geht einmal am Tag um @DiscordPings.DigestHour Uhr in den
+    Channel <b>Tagesüberblick</b>, eine Zeile je Agent mit Ping und der Zahl der ungelesenen Meldungen, ohne Titel.
+    Ohne diesen Channel lässt sich „gesammelt“ im Profil nicht wählen.
+</MudText>
 
 @if (_load)
 {

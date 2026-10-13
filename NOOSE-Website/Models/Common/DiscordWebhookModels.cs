@@ -50,6 +50,8 @@ public static class DiscordRouting
         // and an answer is addressed to exactly one citizen.
         // PublicObjectionReceived/PublicObjectionDecided likewise: the first names a citizen disputing a public
         // accusation, the second is addressed to exactly one of them
+        // the daily bundle of collected personal pings: one line per agent with counts, never a title
+        NotificationType.PingDigest,
     };
 
     public static bool IsRoutable(NotificationType type) => RoutableTypes.Contains(type);
@@ -60,7 +62,7 @@ public static class DiscordRouting
         // channel is the complement of the absence set and would leak who filed an absence
         => type is NotificationType.Mention or NotificationType.Followup
                 or NotificationType.JobAssigned or NotificationType.JobDueSoon
-                or NotificationType.PersonnelEntry;
+                or NotificationType.PersonnelEntry or NotificationType.PingDigest;
 
     /// <summary>Category whose Discord post pings nobody: the embed carries inert mention chips instead.</summary>
     public static bool PingsNobody(NotificationType type)

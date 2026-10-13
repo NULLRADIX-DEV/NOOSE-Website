@@ -48,6 +48,9 @@ public static class SystemSettingKeys
     /// <summary>Last time the announcement ran (round-trip UTC); worker guard, not user-edited.</summary>
     public const string BestAgentLastRun = "BesterAgentZuletzt";
 
+    /// <summary>Last time the daily ping digest went out (round-trip UTC); worker guard, not user-edited.</summary>
+    public const string PingDigestLastRun = "TagesueberblickZuletzt";
+
     /// <summary>Set once the one-shot search side-index backfill has fully completed; guards against re-scanning. Not user-edited.</summary>
     public const string SearchIndexBackfillDone = "SuchIndexBackfillFertig";
 

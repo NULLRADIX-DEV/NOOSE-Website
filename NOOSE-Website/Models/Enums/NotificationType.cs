@@ -122,6 +122,10 @@ public enum NotificationType
 
     /// <summary>A partner agency asked for more records. Not routable: it names what an agency wants to see.</summary>
     PartnerInquiry = 36,
+
+    /// <summary>The daily bundle of personal pings an agent chose to collect. Routable — its own channel; rings no
+    /// bell of its own, the notices it counts are already in the inbox. The post carries counts, never a title.</summary>
+    PingDigest = 37,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -166,6 +170,7 @@ public static class NotificationTypeDisplay
         NotificationType.PublicObjectionDecided => "Entscheidung zu deinem Einspruch",
         NotificationType.PublicPressPublished => "Pressemitteilung",
         NotificationType.PartnerInquiry => "Anfrage einer Partnerbehörde",
+        NotificationType.PingDigest => "Tagesüberblick",
         _ => "Benachrichtigung",
     };
 
@@ -209,6 +214,7 @@ public static class NotificationTypeDisplay
         NotificationType.PublicObjectionDecided => Icons.Material.Filled.Gavel,
         NotificationType.PublicPressPublished => Icons.Material.Filled.Feed,
         NotificationType.PartnerInquiry => Icons.Material.Filled.RequestPage,
+        NotificationType.PingDigest => Icons.Material.Filled.Summarize,
         _ => Icons.Material.Filled.Notifications,
     };
 }

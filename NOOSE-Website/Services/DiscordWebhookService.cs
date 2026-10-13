@@ -189,6 +189,36 @@ public class DiscordWebhookService(
         }
     }
 
+    // the lines already carry their mentions, so no prefix; the allow-list keeps the ping to exactly these users
+    public async Task<bool> PushDigestAsync(string content, IReadOnlyList<string> discordUserIds, string? href = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return false;
+            }
+            var config = await GetCachedConfigAsync(cancellationToken);
+            if (!config.Enabled
+                || !config.Webhooks.TryGetValue(NotificationType.PingDigest, out var url)
+                || string.IsNullOrWhiteSpace(url))
+            {
+                return false;
+            }
+            var ids = discordUserIds.Where(IsSnowflake).Distinct().Take(100).ToList();
+            var link = Link(config.SiteBaseUrl, href);
+            var body = link is null ? content : $"{content}\n{link}";
+            return await SendAsync(url, body, MentionSpec.Inline(ids), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            logger.LogWarning(ex, "Discord ping digest failed.");
+            return false;
+        }
+    }
+
     // Discord rejects empty field values
     private static string Field(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
 
@@ -412,6 +442,7 @@ public class DiscordWebhookService(
         NotificationType.PublicTicketCreated => "/tickets",
         NotificationType.PublicCaptureReported => "/hinweise",
         NotificationType.PublicTipCreated => "/hinweise",
+        NotificationType.PingDigest => "/benachrichtigungen",
         _ => "/dashboard",
     };
 
@@ -434,6 +465,7 @@ public class DiscordWebhookService(
         NotificationType.PublicTicketCreated => "📨 Ein neues Ticket liegt im Eingang.",
         NotificationType.PublicCaptureReported => "🚨 Ein Bürger meldet die Ergreifung einer gesuchten Person.",
         NotificationType.PublicTipCreated => "💡 Ein neuer Bürgerhinweis liegt im Eingang.",
+        NotificationType.PingDigest => "🗞️ Dein Tagesüberblick liegt bereit.",
         _ => "🔔 Neue Benachrichtigung.",
     };
 
@@ -500,5 +532,9 @@ public class DiscordWebhookService(
         public static MentionSpec Users(IReadOnlyList<string> discordIds)
             => new(string.Join(' ', discordIds.Select(id => $"<@{id}>")),
                 new { parse = Array.Empty<string>(), users = discordIds });
+
+        // mentions written into the body itself; only the allow-list is attached
+        public static MentionSpec Inline(IReadOnlyList<string> discordIds)
+            => new(string.Empty, new { parse = Array.Empty<string>(), users = discordIds });
     }
 }

@@ -29,6 +29,9 @@ public interface IDiscordWebhookService
     /// <summary>Send a test message to a category's channel; admin-only. Returns true on 2xx.</summary>
     Task<bool> TestAsync(NotificationType type, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Post one daily-digest message to the PingDigest channel. The content carries its own user mentions; only <paramref name="discordUserIds"/> may resolve. Best-effort; returns true on 2xx.</summary>
+    Task<bool> PushDigestAsync(string content, IReadOnlyList<string> discordUserIds, string? href = null, CancellationToken cancellationToken = default);
+
     /// <summary>Post an app-authored message to a category's channel with that category's ping (role or none) and an optional login-gated link. Best-effort; returns true on 2xx.</summary>
     Task<bool> PushCustomAsync(NotificationType type, string content, string? href = null, CancellationToken cancellationToken = default);
 }

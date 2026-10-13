@@ -67,6 +67,13 @@ public sealed class NavPreferences
     /// <summary>While a filed absence covers today, every mutable category arrives already read.</summary>
     public bool QuietDuringAbsence { get; set; }
 
+    /// <summary>Personal Discord pings held back for the daily digest, by <see cref="Enums.NotificationType"/> name.</summary>
+    public HashSet<string> DigestPings { get; set; } = [];
+
+    /// <summary>Personal Discord pings switched off entirely, by name; wins over <see cref="DigestPings"/>.</summary>
+    /// <remarks>Only what <see cref="Services.DiscordPings.IsPersonal"/> allows has any effect.</remarks>
+    public HashSet<string> MutedPings { get; set; } = [];
+
     /// <summary>Schema version for future migrations.</summary>
     public int Version { get; set; } = 2;
 

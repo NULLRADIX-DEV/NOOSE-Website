@@ -184,6 +184,26 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
     public Task SetQuietDuringAbsenceAsync(string agentId, bool quiet, CancellationToken cancellationToken = default)
         => MutateAsync(agentId, p => p.QuietDuringAbsence = quiet, cancellationToken, notify: false);
 
+    public Task SetDiscordPingAsync(string agentId, NotificationType type, DiscordPingMode mode,
+        CancellationToken cancellationToken = default)
+        => !DiscordPings.IsPersonal(type)
+            ? Task.CompletedTask
+            : MutateAsync(agentId, p =>
+            {
+                // one mode per category: both sets cleared first
+                var name = type.ToString();
+                p.DigestPings.Remove(name);
+                p.MutedPings.Remove(name);
+                if (mode == DiscordPingMode.Digest)
+                {
+                    p.DigestPings.Add(name);
+                }
+                else if (mode == DiscordPingMode.Off)
+                {
+                    p.MutedPings.Add(name);
+                }
+            }, cancellationToken, notify: false);
+
     // one tiny idempotent step per call, not a save-all: the agent is navigating while these land, and the
     // whole blob is last-writer-wins against the recents push that every navigation fires
     public Task MarkOnboardingStepAsync(string agentId, string stepKey, CancellationToken cancellationToken = default)
