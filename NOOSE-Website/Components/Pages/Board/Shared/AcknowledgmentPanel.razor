@@ -8,6 +8,15 @@
         <MudText Typo="Typo.body2" Class="mud-text-secondary">@_acknowledged von @Acknowledgments.Count quittiert</MudText>
     </MudStack>
 
+    @if (DueAt is { } due)
+    {
+        <MudText Typo="Typo.caption" Class="@(AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow) ? "mud-warning-text" : "mud-text-secondary")">
+            @(AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow)
+                ? $"Frist am {due.ToLocalTime():dd.MM.yyyy HH:mm} abgelaufen. Wer noch offen ist, wird einmal erinnert."
+                : $"Frist bis {due.ToLocalTime():dd.MM.yyyy HH:mm}. Wer dann noch offen ist, wird einmal erinnert.")
+        </MudText>
+    }
+
     @if (Acknowledgments.Count == 0)
     {
         <MudText Typo="Typo.body2" Class="mud-text-secondary">Kein quittierungspflichtiger Empfänger.</MudText>
@@ -35,6 +44,9 @@
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<AcknowledgmentRow> Acknowledgments { get; set; } = Array.Empty<AcknowledgmentRow>();
+
+    /// <summary>Acknowledgment deadline; null when the announcement sets none.</summary>
+    [Parameter] public DateTime? DueAt { get; set; }
 
     private int _acknowledged => Acknowledgments.Count(q => q.AcknowledgedAt is not null);
 }

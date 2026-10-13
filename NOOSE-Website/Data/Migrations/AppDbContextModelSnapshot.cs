@@ -732,6 +732,14 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("varchar(255)");
 
+                    b.Property<DateTime?>("AcknowledgmentDueAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("QuittierenBis");
+
+                    b.Property<DateTime?>("AcknowledgmentRemindedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("QuittierungErinnertAm");
+
                     b.Property<bool>("AcknowledgmentRequired")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("QuittierungVerlangt");
@@ -10604,6 +10612,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<string>("CreatedById")
                         .HasColumnType("longtext")
                         .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("LastReadAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ZuletztGelesenAm");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime(6)")

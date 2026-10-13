@@ -346,6 +346,7 @@ builder.Services.AddScoped<WatchlistFanout>();
 builder.Services.AddSingleton<WatchlistDispatcher>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+builder.Services.AddHostedService<AcknowledgmentReminderWorker>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<IDemoDataService, DemoDataService>();
 builder.Services.AddScoped<INavPreferencesService, NavPreferencesService>();

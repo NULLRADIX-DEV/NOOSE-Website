@@ -34,6 +34,12 @@ public interface IAnnouncementService
 
     /// <summary>The announcements the caller still must acknowledge, important first, then oldest.</summary>
     Task<List<OpenAcknowledgment>> GetOpenAcknowledgmentsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Announcements past their deadline that the caller manages, with who still owes them; latest deadline first.</summary>
+    Task<List<OverdueAcknowledgment>> GetOverdueAcknowledgmentsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Reminds, once per announcement, whoever still owes an acknowledgment past its deadline; returns how many were sent. Worker only.</summary>
+    Task<int> RemindOverdueAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Board list/card row for an announcement (public codenames, never real names).</summary>
@@ -49,6 +55,8 @@ public sealed class AnnouncementRow
     public string TargetDisplay { get; set; } = string.Empty;
     public bool AsBroadcast { get; set; }
     public bool AcknowledgmentRequired { get; set; }
+    /// <summary>Acknowledgment deadline; null = no reminder.</summary>
+    public DateTime? AcknowledgmentDueAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? CreatorCodename { get; set; }
 

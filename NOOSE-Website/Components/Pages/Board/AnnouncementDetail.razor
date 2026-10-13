@@ -76,6 +76,14 @@ else
                             <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
                                 <div>
                                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneOutline" OnClick="AcknowledgeAsync">Kenntnis nehmen</MudButton>
+                                    @if (z.AcknowledgmentDueAt is { } due)
+                                    {
+                                        <MudText Typo="Typo.caption" Class="@(AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow) ? "mud-warning-text d-block mt-1" : "mud-text-secondary d-block mt-1")">
+                                            @(AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow)
+                                                ? $"Die Frist ist am {due.ToLocalTime():dd.MM.yyyy HH:mm} abgelaufen."
+                                                : $"Bitte bis {due.ToLocalTime():dd.MM.yyyy HH:mm} quittieren.")
+                                        </MudText>
+                                    }
                                 </div>
                             </AuthorizeView>
                         }
@@ -92,7 +100,7 @@ else
         {
             <MudItem xs="12" md="4">
                 <MudPaper Class="pa-4" Elevation="2">
-                    <AcknowledgmentPanel Acknowledgments="_detail.Acknowledgments" />
+                    <AcknowledgmentPanel Acknowledgments="_detail.Acknowledgments" DueAt="_detail.Row.AcknowledgmentDueAt" />
                 </MudPaper>
             </MudItem>
         }

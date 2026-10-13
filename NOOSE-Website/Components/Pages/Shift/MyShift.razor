@@ -52,7 +52,7 @@ else
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.Forum" Label="Taskforce-Chat" Value="@_taskforces.Sum(t => t.Count).ToString()"
-                      Href="/taskforces" Hint="@($"Nachrichten anderer in deinen Taskforces {SinceText}")" />
+                      Href="/taskforces" Hint="Ungelesene Nachrichten anderer in deinen Taskforces" />
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.Star" Colour="Color.Warning" Label="Beobachtet" Value="@_watched.Total.ToString()"
@@ -137,7 +137,20 @@ else
                                              Icon="@(a.Important ? Icons.Material.Filled.PriorityHigh : Icons.Material.Filled.Campaign)"
                                              IconColor="@(a.Important ? Color.Error : Color.Warning)">
                                     <MudText Typo="Typo.body2"><b>@a.Title</b></MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">seit @a.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        seit @a.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                                        @if (a.DueAt is { } due)
+                                        {
+                                            @if (AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow))
+                                            {
+                                                <span class="mud-warning-text"> · Frist abgelaufen</span>
+                                            }
+                                            else
+                                            {
+                                                <span> · bis @due.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                            }
+                                        }
+                                    </MudText>
                                 </MudListItem>
                             }
                         </MudList>
@@ -163,11 +176,11 @@ else
                     @Head(Icons.Material.Filled.Forum, "Meine Taskforces", "/taskforces", "Alle Taskforces")
                     @if (_taskforces.Count == 0)
                     {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine neuen Nachrichten anderer @SinceText.</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine ungelesenen Nachrichten anderer.</MudText>
                     }
                     else
                     {
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Nachrichten anderer @SinceText</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Ungelesene Nachrichten anderer</MudText>
                         <MudList T="string" Dense="true">
                             @foreach (var t in _taskforces.Take(ShiftRules.ListCap))
                             {
@@ -287,7 +300,7 @@ else
         _mentions = await UnreadAsync(NotificationType.Mention);
         _watched = await UnreadAsync(NotificationType.RecordModified);
         _acks = await Announcements.GetOpenAcknowledgmentsAsync(_user);
-        _taskforces = await TaskforceChat.GetActivitySinceAsync(_user, _window.SinceUtc);
+        _taskforces = await TaskforceChat.GetUnreadAsync(_user);
         _load = false;
         StateHasChanged();
 

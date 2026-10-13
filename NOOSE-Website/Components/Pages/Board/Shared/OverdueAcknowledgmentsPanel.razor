@@ -1,0 +1,21 @@
+@* Overdue acknowledgments for the managers of an announcement; codenames, never real names. *@
+
+<MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.PendingActions" Class="mb-4">
+    <MudText Typo="Typo.subtitle2">Überfällige Quittierungen</MudText>
+    @foreach (var item in Items)
+    {
+        <div class="mt-2">
+            <MudLink Href="@($"/brett/{item.AnnouncementId}")" Typo="Typo.body2">@item.Title</MudLink>
+            <MudText Typo="Typo.caption" Class="d-block">
+                Frist am @item.DueAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm") abgelaufen · noch offen (@item.Codenames.Count):
+                @string.Join(", ", item.Codenames.Take(MaxNames))@(item.Codenames.Count > MaxNames ? $" und {item.Codenames.Count - MaxNames} weitere" : "")
+            </MudText>
+        </div>
+    }
+</MudAlert>
+
+@code {
+    private const int MaxNames = 10;
+
+    [Parameter, EditorRequired] public IReadOnlyList<OverdueAcknowledgment> Items { get; set; } = [];
+}

@@ -1,4 +1,5 @@
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Models.Announcements;
 
@@ -17,4 +18,7 @@ public class AnnouncementInput
 
     public bool AsBroadcast { get; set; }
     public bool AcknowledgmentRequired { get; set; }
+
+    /// <summary>Days until whoever has not acknowledged is reminded; 0 = never. Only read with an acknowledgment.</summary>
+    public int AcknowledgmentDays { get; set; } = AcknowledgmentRules.DefaultDays;
 }

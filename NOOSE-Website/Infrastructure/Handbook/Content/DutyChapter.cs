@@ -81,8 +81,13 @@ internal static class DutyChapter
                 Hinweise, Termine, Personalien. Jede Ankündigung richtet sich an eine bestimmte Gruppe - alle,
                 nur die Führung, nur eine Einheit.</p>
                 <p>Manche Ankündigungen sind <strong>quittierungspflichtig</strong>. Dann steht ein Knopf
-                <em>Zur Kenntnis genommen</em> darunter, und die Zahl am Menüeintrag bleibt stehen, bis du
+                <em>Kenntnis nehmen</em> darunter, und die Zahl am Menüeintrag bleibt stehen, bis du
                 geklickt hast. Wer angekündigt hat, sieht, wer schon quittiert hat.</p>
+                <p>Meist gibt es dazu eine <strong>Frist</strong>, sie steht neben dem Knopf. Hast du bis dahin nicht
+                quittiert, erinnert dich die Seite einmal - in der Glocke und, wenn eingerichtet, per Discord-Ping.
+                Die Führung sieht oben am Brett, bei welchen Ankündigungen die Frist abgelaufen ist und wer noch
+                fehlt. Wer die Zielgruppe inzwischen verlassen hat, etwa eine Taskforce, schuldet die Quittierung
+                nicht mehr.</p>
                 <p>Das ist kein Schikane-Werkzeug, sondern ein Nachweis: Bei einer Dienstanweisung muss die
                 Führung belegen können, dass sie jeden erreicht hat.</p>
                 """,
@@ -138,8 +143,9 @@ internal static class DutyChapter
                 Erwähnungen und Meldungen zu deinem Konto kommen immer an.</p>
                 <p>Ein Teil davon geht zusätzlich nach <strong>Discord</strong>. Was dort ankommt, ist bewusst
                 inhaltsarm - eine Zeile, die sagt, dass es etwas gibt, nicht was es ist.</p>
-                <p>Erwähnungen, Aufgaben und fällige Wiedervorlagen pingen dich dort persönlich. Wann, legst du im
-                selben Abschnitt des Profils fest: <em>Sofort</em>, <em>Gesammelt</em> oder <em>Nie</em>.
+                <p>Erwähnungen, Aufgaben, fällige Wiedervorlagen und überfällige Quittierungen pingen dich dort
+                persönlich. Wann, legst du im selben Abschnitt des Profils fest: <em>Sofort</em>, <em>Gesammelt</em>
+                oder <em>Nie</em>.
                 Gesammeltes kommt einmal am Tag um 18 Uhr als <em>Tagesüberblick</em> - eine Zeile mit deinem
                 Ping und der Zahl der Meldungen, die du bis dahin noch nicht gelesen hast. Was du vorher in der
                 Glocke liest, pingt dich also gar nicht mehr. Eine Art, die du für die Glocke ausgeschaltet hast,

@@ -30,6 +30,7 @@ public class DiscordWebhookModelsTests
         NotificationType.PublicCaptureReported,
         NotificationType.PublicTipCreated,
         NotificationType.PingDigest,
+        NotificationType.AcknowledgmentReminder,
     };
 
     // Enum members NOT in the routable list.
@@ -96,6 +97,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.JobAssigned)]
     [InlineData(NotificationType.JobDueSoon)]
     [InlineData(NotificationType.PingDigest)]
+    [InlineData(NotificationType.AcknowledgmentReminder)]
     public void PingsRecipients_forRecipientCategories_returnsTrue(NotificationType type)
     {
         Assert.True(DiscordRouting.PingsRecipients(type));

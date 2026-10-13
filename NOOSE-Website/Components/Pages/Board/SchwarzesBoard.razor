@@ -31,6 +31,10 @@ else if (_rows.Count == 0)
 }
 else
 {
+    @if (_overdue.Count > 0)
+    {
+        <OverdueAcknowledgmentsPanel Items="_overdue" />
+    }
     <MudStack Spacing="3">
         @foreach (var row in _rows)
         {
@@ -45,6 +49,7 @@ else
     private bool _load = true;
     private ClaimsPrincipal _user = default!;
     private List<AnnouncementRow> _rows = new();
+    private List<OverdueAcknowledgment> _overdue = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -56,6 +61,7 @@ else
     {
         _load = true;
         _rows = await BoardService.GetBoardAsync(_user);
+        _overdue = await BoardService.GetOverdueAcknowledgmentsAsync(_user);
         _load = false;
     }
 

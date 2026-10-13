@@ -38,6 +38,10 @@ else
                     @if (_detail.Row.AcknowledgmentRequired)
                     {
                         <tr><th>Quittierung</th><td>Lesebestätigung verlangt</td></tr>
+                        @if (_detail.Row.AcknowledgmentDueAt is { } due)
+                        {
+                            <tr><th>Frist</th><td>@due.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td></tr>
+                        }
                     }
                 </tbody>
             </table>

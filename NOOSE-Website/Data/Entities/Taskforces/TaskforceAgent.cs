@@ -19,6 +19,10 @@ public class TaskforceAgent : IAuditable
     [Column("Rolle")]
     public TaskforceRole Role { get; set; } = TaskforceRole.Member;
 
+    /// <summary>This member's read mark over the chat; null = nothing read since joining.</summary>
+    [Column("ZuletztGelesenAm")]
+    public DateTime? LastReadAt { get; set; }
+
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }
     [Column("ErstelltVonId")]
