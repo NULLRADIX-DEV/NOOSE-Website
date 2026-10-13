@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Common;
@@ -223,7 +224,7 @@ public sealed class MyShiftTests
 
     private static AnnouncementService Announcements(SqliteTestContext ctx)
         => new(ctx.Factory, Substitute.For<ICaseNumberService>(), Substitute.For<INotificationService>(),
-            new AcknowledgmentBroadcaster());
+            new AcknowledgmentBroadcaster(), NullLogger<AnnouncementService>.Instance);
 
     private static Announcement Announcement(string id, bool required = true, bool important = false, int day = 1)
         => new()

@@ -56,6 +56,7 @@ public static class NotificationMutes
         new("Behörde und Personal", MudBlazor.Icons.Material.Filled.Apartment,
         [
             NotificationType.Announcement,
+            NotificationType.AcknowledgmentReminder,
             NotificationType.SituationReport,
             NotificationType.AbsenceFiled,
             NotificationType.AbductionFiled,

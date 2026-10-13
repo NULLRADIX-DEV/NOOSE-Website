@@ -126,6 +126,10 @@ public enum NotificationType
     /// <summary>The daily bundle of personal pings an agent chose to collect. Routable — its own channel; rings no
     /// bell of its own, the notices it counts are already in the inbox. The post carries counts, never a title.</summary>
     PingDigest = 37,
+
+    /// <summary>An announcement's acknowledgment deadline passed and the recipient still owes it. Routable — pings
+    /// the recipients themselves, once per announcement.</summary>
+    AcknowledgmentReminder = 38,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -171,6 +175,7 @@ public static class NotificationTypeDisplay
         NotificationType.PublicPressPublished => "Pressemitteilung",
         NotificationType.PartnerInquiry => "Anfrage einer Partnerbehörde",
         NotificationType.PingDigest => "Tagesüberblick",
+        NotificationType.AcknowledgmentReminder => "Quittierung überfällig",
         _ => "Benachrichtigung",
     };
 
@@ -215,6 +220,7 @@ public static class NotificationTypeDisplay
         NotificationType.PublicPressPublished => Icons.Material.Filled.Feed,
         NotificationType.PartnerInquiry => Icons.Material.Filled.RequestPage,
         NotificationType.PingDigest => Icons.Material.Filled.Summarize,
+        NotificationType.AcknowledgmentReminder => Icons.Material.Filled.PendingActions,
         _ => Icons.Material.Filled.Notifications,
     };
 }

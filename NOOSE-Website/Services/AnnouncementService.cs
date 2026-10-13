@@ -14,7 +14,8 @@ public class AnnouncementService(
     IDbContextFactory<AppDbContext> dbFactory,
     ICaseNumberService caseNumber,
     INotificationService notifications,
-    AcknowledgmentBroadcaster acknowledgmentBroadcaster) : IAnnouncementService
+    AcknowledgmentBroadcaster acknowledgmentBroadcaster,
+    ILogger<AnnouncementService> logger) : IAnnouncementService
 {
     public async Task<List<AnnouncementRow>> GetBoardAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
@@ -31,7 +32,7 @@ public class AnnouncementService(
             .Select(a => new
             {
                 a.Id, a.CaseNumber, a.Title, a.Content, a.Important, a.Audience, a.TargetId, a.MinRank,
-                a.AsBroadcast, a.AcknowledgmentRequired, a.CreatedAt, a.CreatedById,
+                a.AsBroadcast, a.AcknowledgmentRequired, a.AcknowledgmentDueAt, a.CreatedAt, a.CreatedById,
             })
             .ToListAsync(cancellationToken);
         if (rows.Count == 0)
@@ -77,6 +78,7 @@ public class AnnouncementService(
                 TargetDisplay = TargetDisplay(r.Audience, r.TargetId, r.MinRank, tfNames),
                 AsBroadcast = r.AsBroadcast,
                 AcknowledgmentRequired = r.AcknowledgmentRequired,
+                AcknowledgmentDueAt = r.AcknowledgmentDueAt,
                 CreatedAt = r.CreatedAt,
                 CreatorCodename = r.CreatedById is not null && creatorNames.TryGetValue(r.CreatedById, out var cn) ? cn : null,
                 MustAcknowledge = my is { AcknowledgedAt: null },
@@ -145,6 +147,7 @@ public class AnnouncementService(
             TargetDisplay = targetDisplay,
             AsBroadcast = a.AsBroadcast,
             AcknowledgmentRequired = a.AcknowledgmentRequired,
+            AcknowledgmentDueAt = a.AcknowledgmentDueAt,
             CreatedAt = a.CreatedAt,
             CreatorCodename = creatorCodename,
             MustAcknowledge = my is { AcknowledgedAt: null },
@@ -195,6 +198,10 @@ public class AnnouncementService(
         {
             throw new InvalidOperationException("Bitte einen Mindest-Dienstgrad als Zielgruppe wählen.");
         }
+        if (input.AcknowledgmentRequired && !AcknowledgmentRules.IsValid(input.AcknowledgmentDays))
+        {
+            throw new InvalidOperationException("Bitte eine gültige Frist für die Erinnerung wählen.");
+        }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -210,6 +217,9 @@ public class AnnouncementService(
             MinRank = input.Audience == AnnouncementAudience.FromRank ? input.MinRank : null,
             AsBroadcast = input.AsBroadcast,
             AcknowledgmentRequired = input.AcknowledgmentRequired,
+            AcknowledgmentDueAt = input.AcknowledgmentRequired
+                ? AcknowledgmentRules.DueAt(DateTime.UtcNow, input.AcknowledgmentDays)
+                : null,
         };
         db.Announcements.Add(announcement);
         await db.SaveChangesAsync(cancellationToken);
@@ -325,7 +335,7 @@ public class AnnouncementService(
             return 0;
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return await OpenAcknowledgments(db, meId).CountAsync(cancellationToken);
+        return await Owed(db).Where(q => q.AgentId == meId).CountAsync(cancellationToken);
     }
 
     public async Task<List<OpenAcknowledgment>> GetOpenAcknowledgmentsAsync(ClaimsPrincipal actor,
@@ -338,20 +348,108 @@ public class AnnouncementService(
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // important first, then the one waiting longest
-        return await OpenAcknowledgments(db, meId)
+        return await Owed(db).Where(q => q.AgentId == meId)
             .OrderByDescending(q => q.Announcement!.Important)
             .ThenBy(q => q.Announcement!.CreatedAt)
             .Select(q => new OpenAcknowledgment(q.AnnouncementId, q.Announcement!.Title, q.Announcement.Important,
-                q.Announcement.CreatedAt))
+                q.Announcement.CreatedAt, q.Announcement.AcknowledgmentDueAt))
             .ToListAsync(cancellationToken);
     }
 
-    /// <summary>The caller's acknowledgments still due; badge and list share it so they never disagree.</summary>
-    private static IQueryable<AnnouncementAcknowledgment> OpenAcknowledgments(AppDbContext db, string meId)
-        // Reference nav forces the join, so the announcement's soft-delete filter hides trashed ones.
-        => db.AnnouncementAcknowledgments
-            .Where(q => q.AgentId == meId && q.AcknowledgedAt == null && q.Announcement!.AcknowledgmentRequired
-                && !q.Agent!.IsTeamLead && q.Agent!.PartnerAgency == null);
+    public async Task<List<OverdueAcknowledgment>> GetOverdueAcknowledgmentsAsync(ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+    {
+        var meId = actor.GetAgentId();
+        if (string.IsNullOrEmpty(meId))
+        {
+            return new();
+        }
+        // same gate as MayManage: leadership sees every list, an author their own
+        var isLeadership = actor.IsLeadership();
+        var now = DateTime.UtcNow;
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await Owed(db)
+            .Where(q => q.Announcement!.AcknowledgmentDueAt != null && q.Announcement.AcknowledgmentDueAt <= now
+                && (isLeadership || q.Announcement.CreatedById == meId))
+            .Select(q => new { q.AnnouncementId, q.Announcement!.Title, q.Announcement.AcknowledgmentDueAt, q.Agent!.Codename })
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .GroupBy(r => r.AnnouncementId)
+            .Select(g => new OverdueAcknowledgment(g.Key, g.First().Title, g.First().AcknowledgmentDueAt!.Value,
+                g.Select(r => r.Codename).Order(StringComparer.CurrentCulture).ToList()))
+            .OrderByDescending(o => o.DueAt)
+            .ToList();
+    }
+
+    public async Task<int> RemindOverdueAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var due = await db.Announcements
+            .Where(a => a.AcknowledgmentRequired && a.AcknowledgmentDueAt != null && a.AcknowledgmentDueAt <= nowUtc
+                && a.AcknowledgmentRemindedAt == null)
+            .OrderBy(a => a.AcknowledgmentDueAt)
+            .Select(a => new { a.Id, a.Title })
+            .ToListAsync(cancellationToken);
+
+        var sent = 0;
+        foreach (var a in due)
+        {
+            // claim first, so a second instance or a retry never reminds twice
+            var claimed = await db.Announcements
+                .Where(x => x.Id == a.Id && x.AcknowledgmentRemindedAt == null)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.AcknowledgmentRemindedAt, nowUtc), cancellationToken);
+            if (claimed == 0)
+            {
+                continue;
+            }
+
+            var owing = await Owed(db).Where(q => q.AnnouncementId == a.Id)
+                .Select(q => q.AgentId)
+                .ToListAsync(cancellationToken);
+            if (owing.Count == 0)
+            {
+                continue;
+            }
+
+            var title = $"Bitte quittieren: „{a.Title}“ – die Frist ist abgelaufen.";
+            try
+            {
+                await notifications.NotifyManyAsync(owing, NotificationType.AcknowledgmentReminder,
+                    title.Length > 300 ? title[..297] + "…" : title, $"/brett/{a.Id}", triggerId: null, cancellationToken);
+                sent++;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // the claim is spent; log this one and keep the batch going
+                logger.LogError(ex, "Acknowledgment reminder for {Id} failed after claiming.", a.Id);
+            }
+        }
+        return sent;
+    }
+
+    /// <summary>Open acknowledgments someone still owes: a selectable agent who can still read the announcement.</summary>
+    /// <remarks>Badge, open list, reminder and overdue list all read this, so they never disagree. A recipient who left
+    /// the audience (another taskforce, lost TRU) no longer owes it: the board hides the entry from them.</remarks>
+    private static IQueryable<AnnouncementAcknowledgment> Owed(AppDbContext db)
+    {
+        var leadershipFloor = Rank.SupervisorySpecialAgent;
+        // the reference nav forces the join, so the announcement's soft-delete filter hides trashed ones
+        return db.AnnouncementAcknowledgments
+            .Where(q => q.AcknowledgedAt == null && q.Announcement!.AcknowledgmentRequired)
+            .Join(db.Users.OnlySelectable(), q => q.AgentId, u => u.Id, (q, u) => new { q, u })
+            // mirrors AnnouncementVisibility.OnlyVisible for that agent; the author never holds a row
+            .Where(x => x.u.IsAdmin || x.u.Rank >= leadershipFloor
+                || x.q.Announcement!.Audience == AnnouncementAudience.AllActive
+                || (x.q.Announcement.Audience == AnnouncementAudience.TruUnit && x.u.IsTRU)
+                || (x.q.Announcement.Audience == AnnouncementAudience.HrbUnit && x.u.IsHRB)
+                || (x.q.Announcement.Audience == AnnouncementAudience.FromRank && x.u.Rank != null
+                    && x.q.Announcement.MinRank != null && x.u.Rank >= x.q.Announcement.MinRank)
+                || (x.q.Announcement.Audience == AnnouncementAudience.Taskforce && x.q.Announcement.TargetId != null
+                    && db.TaskforceAgents.Any(ta => ta.TaskforceId == x.q.Announcement.TargetId && ta.AgentId == x.u.Id)))
+            .Select(x => x.q);
+    }
 
     /// <summary>Active agent ids in an announcement's audience.</summary>
     private static async Task<List<string>> RecipientIdsAsync(AppDbContext db, Announcement a, CancellationToken cancellationToken)

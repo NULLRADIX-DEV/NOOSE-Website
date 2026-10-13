@@ -443,6 +443,7 @@ public class DiscordWebhookService(
         NotificationType.PublicCaptureReported => "/hinweise",
         NotificationType.PublicTipCreated => "/hinweise",
         NotificationType.PingDigest => "/benachrichtigungen",
+        NotificationType.AcknowledgmentReminder => "/brett",
         _ => "/dashboard",
     };
 
@@ -466,6 +467,7 @@ public class DiscordWebhookService(
         NotificationType.PublicCaptureReported => "🚨 Ein Bürger meldet die Ergreifung einer gesuchten Person.",
         NotificationType.PublicTipCreated => "💡 Ein neuer Bürgerhinweis liegt im Eingang.",
         NotificationType.PingDigest => "🗞️ Dein Tagesüberblick liegt bereit.",
+        NotificationType.AcknowledgmentReminder => "📋 Eine Ankündigung wartet noch auf deine Quittierung.",
         _ => "🔔 Neue Benachrichtigung.",
     };
 

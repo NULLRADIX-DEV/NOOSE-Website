@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Announcements;
@@ -26,7 +27,8 @@ public sealed class AnnouncementServiceTests
         var broadcaster = new AcknowledgmentBroadcaster();
         var reported = new List<string>();
         broadcaster.Modified += id => reported.Add(id);
-        var svc = new AnnouncementService(ctx.Factory, caseNo, notifications, broadcaster);
+        var svc = new AnnouncementService(ctx.Factory, caseNo, notifications, broadcaster,
+            NullLogger<AnnouncementService>.Instance);
         return (svc, notifications, broadcaster, reported);
     }
 

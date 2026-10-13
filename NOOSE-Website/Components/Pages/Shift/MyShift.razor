@@ -137,7 +137,20 @@ else
                                              Icon="@(a.Important ? Icons.Material.Filled.PriorityHigh : Icons.Material.Filled.Campaign)"
                                              IconColor="@(a.Important ? Color.Error : Color.Warning)">
                                     <MudText Typo="Typo.body2"><b>@a.Title</b></MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">seit @a.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        seit @a.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                                        @if (a.DueAt is { } due)
+                                        {
+                                            @if (AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow))
+                                            {
+                                                <span class="mud-warning-text"> · Frist abgelaufen</span>
+                                            }
+                                            else
+                                            {
+                                                <span> · bis @due.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                                            }
+                                        }
+                                    </MudText>
                                 </MudListItem>
                             }
                         </MudList>

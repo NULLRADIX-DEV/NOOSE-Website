@@ -44,6 +44,14 @@ public class Announcement : IAuditable, ISoftDelete
     [Column("QuittierungVerlangt")]
     public bool AcknowledgmentRequired { get; set; }
 
+    /// <summary>Acknowledgment deadline; whoever still owes it is reminded once it passes. Null = no reminder.</summary>
+    [Column("QuittierenBis")]
+    public DateTime? AcknowledgmentDueAt { get; set; }
+
+    /// <summary>When the reminder went out; the worker claims it so it is sent once.</summary>
+    [Column("QuittierungErinnertAm")]
+    public DateTime? AcknowledgmentRemindedAt { get; set; }
+
     /// <summary>Recipient snapshot for acknowledgment; populated only when required.</summary>
     public List<AnnouncementAcknowledgment> Acknowledgments { get; set; } = new();
 

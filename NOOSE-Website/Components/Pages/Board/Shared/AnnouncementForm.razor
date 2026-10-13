@@ -24,7 +24,8 @@
             <MudText Typo="Typo.subtitle1">Behörden-Broadcast (nur Führung)</MudText>
             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                 Die Zielgruppe bestimmt, wer den Eintrag am Brett sieht. „In die Glocke senden" pusht zusätzlich eine
-                Benachrichtigung; „Quittierung verlangen" fordert eine Lesebestätigung an.
+                Benachrichtigung; „Quittierung verlangen" fordert eine Lesebestätigung an. Wer sie bis zur Frist nicht
+                gegeben hat, wird einmal erinnert.
             </MudText>
         </MudItem>
         <MudItem xs="12" md="6">
@@ -63,6 +64,20 @@
         <MudItem xs="12" md="6">
             <MudSwitch T="bool" @bind-Value="Input.AcknowledgmentRequired" Color="Color.Primary" Label="Quittierung verlangen (Lesebestätigung)" />
         </MudItem>
+        @if (Input.AcknowledgmentRequired)
+        {
+            <MudItem xs="12" md="6">
+                <MudSelect T="int" @bind-Value="Input.AcknowledgmentDays" Label="Erinnern, wer nicht quittiert hat"
+                           Variant="Variant.Outlined"
+                           HelperText="Ab dann gilt die Quittierung als überfällig. Die Erinnerung geht einmal raus.">
+                    @foreach (var days in AcknowledgmentRules.DayChoices)
+                    {
+                        <MudSelectItem T="int" Value="days">@AcknowledgmentRules.ChoiceLabel(days)</MudSelectItem>
+                    }
+                    <MudSelectItem T="int" Value="0">@AcknowledgmentRules.ChoiceLabel(0)</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        }
     }
 </MudGrid>
 

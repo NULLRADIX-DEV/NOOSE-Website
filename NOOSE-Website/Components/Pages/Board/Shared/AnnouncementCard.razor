@@ -33,6 +33,14 @@
                 }
                 @if (Row.MustAcknowledge)
                 {
+                    @if (Row.AcknowledgmentDueAt is { } due)
+                    {
+                        var overdue = AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow);
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Schedule"
+                                 Color="@(overdue ? Color.Warning : Color.Default)">
+                            @(overdue ? "Frist abgelaufen" : $"bis {due.ToLocalTime():dd.MM.yyyy HH:mm}")
+                        </MudChip>
+                    }
                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.DoneOutline" OnClick="OnAcknowledge">Kenntnis nehmen</MudButton>
                 }
