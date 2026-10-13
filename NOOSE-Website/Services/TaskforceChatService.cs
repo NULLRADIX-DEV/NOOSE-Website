@@ -4,6 +4,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Infrastructure.Chat;
+using NOOSE_Website.Models.Taskforces;
 
 namespace NOOSE_Website.Services;
 
@@ -32,6 +33,54 @@ public class TaskforceChatService(IDbContextFactory<AppDbContext> dbFactory, Tas
             .ToListAsync(cancellationToken);
         latest.Reverse();
         return latest;
+    }
+
+    public async Task<List<TaskforceActivity>> GetActivitySinceAsync(ClaimsPrincipal actor, DateTime sinceUtc,
+        CancellationToken cancellationToken = default)
+    {
+        var meId = actor.GetAgentId();
+        if (string.IsNullOrEmpty(meId))
+        {
+            return new();
+        }
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        // own memberships only; an archived taskforce is history, not work
+        var mine = await db.TaskforceAgents
+            .Where(ta => ta.AgentId == meId && !ta.Taskforce!.IsArchived)
+            .Select(ta => new { ta.TaskforceId, ta.Taskforce!.Name })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var scope = ViewerScope.From(actor);
+        var names = new Dictionary<string, string>();
+        foreach (var t in mine)
+        {
+            if (!names.ContainsKey(t.TaskforceId)
+                && await Visibility.IsRecordVisibleAsync(db, nameof(Taskforce), t.TaskforceId, scope, cancellationToken))
+            {
+                names[t.TaskforceId] = t.Name;
+            }
+        }
+        if (names.Count == 0)
+        {
+            return new();
+        }
+
+        var ids = names.Keys.ToList();
+        // flat rows, grouped here: a window holds tens of messages, not thousands
+        var messages = await db.TaskforceMessages
+            .Where(n => ids.Contains(n.TaskforceId) && n.CreatedAt > sinceUtc && n.CreatedById != meId)
+            .Select(n => new { n.TaskforceId, n.AuthorName, n.CreatedAt })
+            .ToListAsync(cancellationToken);
+        return messages
+            .GroupBy(n => n.TaskforceId)
+            .Select(g =>
+            {
+                var last = g.MaxBy(n => n.CreatedAt)!;
+                return new TaskforceActivity(g.Key, names[g.Key], g.Count(), last.CreatedAt, last.AuthorName);
+            })
+            .OrderByDescending(a => a.LastAtUtc)
+            .ToList();
     }
 
     public async Task<TaskforceMessage> SendAsync(string taskforceId, string text, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

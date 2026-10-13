@@ -431,6 +431,9 @@ public static class ChangelogContent
             Neu("2.2.28-discord-pings", "Ob Discord dich bei Erwähnungen, Aufgaben und Wiedervorlagen sofort anpingt, "
                 + "gar nicht oder gesammelt in einem Tagesüberblick um 18 Uhr, legst du jetzt selbst im Profil fest.",
                 "Discord"),
+            Neu("2.2.29-meine-schicht", "Neu unter Mein Dienst: Meine Schicht zeigt auf einer Seite deine offenen "
+                + "Aufgaben, Wiedervorlagen, ungelesenen Erwähnungen, offene Quittierungen, neue Taskforce-Nachrichten und "
+                + "was seit deinem letzten Besuch passiert ist. Auf Wunsch ist sie deine Startseite.", "Bedienung"),
         ]),
     ];
 }

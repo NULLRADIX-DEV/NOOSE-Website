@@ -325,11 +325,33 @@ public class AnnouncementService(
             return 0;
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        // Reference nav forces the join, so the announcement's soft-delete filter hides trashed ones.
-        return await db.AnnouncementAcknowledgments
-            .CountAsync(q => q.AgentId == meId && q.AcknowledgedAt == null && q.Announcement!.AcknowledgmentRequired
-                && !q.Agent!.IsTeamLead && q.Agent!.PartnerAgency == null, cancellationToken);
+        return await OpenAcknowledgments(db, meId).CountAsync(cancellationToken);
     }
+
+    public async Task<List<OpenAcknowledgment>> GetOpenAcknowledgmentsAsync(ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+    {
+        var meId = actor.GetAgentId();
+        if (string.IsNullOrEmpty(meId))
+        {
+            return new();
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        // important first, then the one waiting longest
+        return await OpenAcknowledgments(db, meId)
+            .OrderByDescending(q => q.Announcement!.Important)
+            .ThenBy(q => q.Announcement!.CreatedAt)
+            .Select(q => new OpenAcknowledgment(q.AnnouncementId, q.Announcement!.Title, q.Announcement.Important,
+                q.Announcement.CreatedAt))
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>The caller's acknowledgments still due; badge and list share it so they never disagree.</summary>
+    private static IQueryable<AnnouncementAcknowledgment> OpenAcknowledgments(AppDbContext db, string meId)
+        // Reference nav forces the join, so the announcement's soft-delete filter hides trashed ones.
+        => db.AnnouncementAcknowledgments
+            .Where(q => q.AgentId == meId && q.AcknowledgedAt == null && q.Announcement!.AcknowledgmentRequired
+                && !q.Agent!.IsTeamLead && q.Agent!.PartnerAgency == null);
 
     /// <summary>Active agent ids in an announcement's audience.</summary>
     private static async Task<List<string>> RecipientIdsAsync(AppDbContext db, Announcement a, CancellationToken cancellationToken)

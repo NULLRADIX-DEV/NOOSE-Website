@@ -11,6 +11,8 @@ public interface IJobService
 {
     /// <summary>Team board: all jobs, optionally only own (creator or assigned). Newest first.</summary>
     Task<List<JobRow>> GetTeamBoardAsync(bool onlyMy, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Open jobs assigned to the caller, soonest due first.</summary>
+    Task<List<JobRow>> GetMyOpenAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     /// <summary>Loads a job; null when restricted and not visible to the caller.</summary>
     Task<Job?> GetDetailAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<List<Job>> GetTrashAsync(CancellationToken cancellationToken = default);

@@ -3,6 +3,7 @@ using NOOSE_Website.Services;
 namespace NOOSE_Website.Models.Timeline;
 
 /// <summary>Window, filters and page cursor for the agency-wide chronicle.</summary>
+/// <param name="ExcludeAgentId">Leaves out what this agent did; system rows and score jumps carry no actor and stay.</param>
 public sealed record ChronikQuery(
     DateTime FromUtc,
     DateTime ToUtc,
@@ -11,7 +12,8 @@ public sealed record ChronikQuery(
     IReadOnlyList<TimelineCategory>? Categories = null,
     string? Text = null,
     DateTime? BeforeUtc = null,
-    int MinEvents = 40);
+    int MinEvents = 40,
+    string? ExcludeAgentId = null);
 
 /// <summary>One record-level event on the global chronicle; always anchored on a record the viewer may see.</summary>
 public sealed record ChronikEvent(

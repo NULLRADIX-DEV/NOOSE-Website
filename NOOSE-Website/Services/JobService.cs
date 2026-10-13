@@ -23,14 +23,41 @@ public class JobService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         var meId = actor.GetAgentId();
-        var isLeadership = actor.IsLeadership();
         var query = db.Jobs.OnlyVisible(db, actor.MayClassifiedRead(), meId);
         if (onlyMy && !string.IsNullOrEmpty(meId))
         {
             query = query.Where(a => a.CreatedById == meId
                 || db.JobAssignments.Any(z => z.JobId == a.Id && z.AgentId == meId));
         }
+        return await RowsAsync(db, query, actor, meId, cancellationToken);
+    }
 
+    public async Task<List<JobRow>> GetMyOpenAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        var meId = actor.GetAgentId();
+        if (string.IsNullOrEmpty(meId))
+        {
+            return new();
+        }
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var query = db.Jobs.OnlyVisible(db, actor.MayClassifiedRead(), meId)
+            .Where(a => (a.Status == JobStatus.Open || a.Status == JobStatus.InProcessing)
+                && db.JobAssignments.Any(z => z.JobId == a.Id && z.AgentId == meId));
+        var rows = await RowsAsync(db, query, actor, meId, cancellationToken);
+        // soonest due first, undated last, then the more urgent
+        return rows
+            .OrderBy(r => r.DueDate is null)
+            .ThenBy(r => r.DueDate)
+            .ThenByDescending(r => r.Priority)
+            .ToList();
+    }
+
+    /// <summary>Board rows for a visible job query, newest change first.</summary>
+    private static async Task<List<JobRow>> RowsAsync(AppDbContext db, IQueryable<Job> query, ClaimsPrincipal actor,
+        string? meId, CancellationToken cancellationToken)
+    {
+        var isLeadership = actor.IsLeadership();
         // flat load, no collection-projection subselect (Pomelo)
         var rows = await query
             .OrderByDescending(a => a.ModifiedAt ?? a.CreatedAt)

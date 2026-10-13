@@ -31,6 +31,9 @@ public interface IAnnouncementService
 
     /// <summary>Count of announcements the caller still must acknowledge (for the nav badge).</summary>
     Task<int> GetOpenAcknowledgmentsCountAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>The announcements the caller still must acknowledge, important first, then oldest.</summary>
+    Task<List<OpenAcknowledgment>> GetOpenAcknowledgmentsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Board list/card row for an announcement (public codenames, never real names).</summary>

@@ -25,4 +25,7 @@ public interface IFollowupService
 
     /// <summary>Caller's open, due follow-ups (assigned or following), resolved to name + href and visibility-filtered. For the dashboard.</summary>
     Task<List<FollowupDashboardItem>> GetMyDueAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Like <see cref="GetMyDueAsync"/>, but everything due up to the given instant, so upcoming ones show too.</summary>
+    Task<List<FollowupDashboardItem>> GetMineUntilAsync(ClaimsPrincipal actor, DateTime untilUtc, CancellationToken cancellationToken = default);
 }

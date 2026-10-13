@@ -74,6 +74,12 @@ public sealed class NavPreferences
     /// <remarks>Only what <see cref="Services.DiscordPings.IsPersonal"/> allows has any effect.</remarks>
     public HashSet<string> MutedPings { get; set; } = [];
 
+    /// <summary>Last look at "Meine Schicht"; looks less than half an hour apart are one visit.</summary>
+    public DateTime? ShiftSeenUtc { get; set; }
+
+    /// <summary>Last look of the visit before the current one; where "since your last visit" starts.</summary>
+    public DateTime? ShiftBoundaryUtc { get; set; }
+
     /// <summary>Schema version for future migrations.</summary>
     public int Version { get; set; } = 2;
 
