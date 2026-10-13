@@ -23,6 +23,10 @@ public class DiscordWebhookService(
     private const string CacheKey = "DiscordWebhookConfig";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
+    // Discord takes 2000 characters and 100 mentions per message
+    private const int MaxMessageChars = 2000;
+    private const int MaxMessageMentions = 100;
+
     public async Task PushAsync(NotificationType type, string? href,
         IReadOnlyCollection<string>? recipientAgentIds, string? headline = null, CancellationToken cancellationToken = default)
     {
@@ -37,11 +41,14 @@ public class DiscordWebhookService(
             {
                 return;
             }
-            var mention = await ResolveMentionAsync(type, recipientAgentIds, config, cancellationToken);
             var content = ShouldIncludeHeadline(type, config, headline)
                 ? ComposeHeadline(headline!, config.SiteBaseUrl, href)
                 : Compose(type, config.SiteBaseUrl, href);
-            await SendAsync(url, content, mention, cancellationToken);
+            // a long ping list goes out as several posts, or Discord refuses the whole message
+            foreach (var mention in await ResolveMentionsAsync(type, recipientAgentIds, config, content.Length, cancellationToken))
+            {
+                await SendAsync(url, content, mention, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
@@ -176,10 +183,14 @@ public class DiscordWebhookService(
             {
                 return false;
             }
-            var mention = await ResolveMentionAsync(type, null, config, cancellationToken);
             var link = Link(config.SiteBaseUrl, href);
             var body = link is null ? content : $"{content}\n{link}";
-            return await SendAsync(url, body, mention, cancellationToken);
+            var sent = true;
+            foreach (var mention in await ResolveMentionsAsync(type, null, config, body.Length, cancellationToken))
+            {
+                sent &= await SendAsync(url, body, mention, cancellationToken);
+            }
+            return sent;
         }
         catch (Exception ex)
         {
@@ -240,27 +251,57 @@ public class DiscordWebhookService(
         return ids.Count > 0 ? $"<@{ids[0]}>" : null;
     }
 
-    // personal categories ping the recipients; broadcast categories ping the configured role
-    private async Task<MentionSpec> ResolveMentionAsync(NotificationType type,
-        IReadOnlyCollection<string>? recipientAgentIds, DiscordWebhookConfig config, CancellationToken cancellationToken)
+    // personal categories ping the recipients, one post per batch; broadcast categories ping the configured role
+    private async Task<IReadOnlyList<MentionSpec>> ResolveMentionsAsync(NotificationType type,
+        IReadOnlyCollection<string>? recipientAgentIds, DiscordWebhookConfig config, int bodyLength,
+        CancellationToken cancellationToken)
     {
         if (DiscordRouting.PingsRole(type))
         {
             var roleId = config.Roles.GetValueOrDefault(type);
-            return IsSnowflake(roleId) ? MentionSpec.Role(roleId!) : MentionSpec.None;
+            return [IsSnowflake(roleId) ? MentionSpec.Role(roleId!) : MentionSpec.None];
         }
         if (DiscordRouting.PingsRecipients(type) && recipientAgentIds is { Count: > 0 })
         {
             var ids = await ResolveDiscordIdsAsync(recipientAgentIds, cancellationToken);
             if (ids.Count > 0)
             {
-                return MentionSpec.Users(ids);
+                return MentionBatches(ids, bodyLength).Select(batch => MentionSpec.Users(batch)).ToList();
             }
         }
-        return MentionSpec.None;
+        return [MentionSpec.None];
     }
 
-    // agent id -> Discord snowflake; drops empties and the demo placeholder, caps at Discord's 100-mention limit
+    /// <summary>Splits a ping list into batches that each fit one message beside a body of the given length.</summary>
+    public static List<List<string>> MentionBatches(IReadOnlyList<string> discordIds, int bodyLength)
+    {
+        // the prefix and the body are joined by one space
+        var room = MaxMessageChars - bodyLength - 1;
+        var batches = new List<List<string>>();
+        var batch = new List<string>();
+        var used = 0;
+        foreach (var id in discordIds)
+        {
+            // "<@id>", plus a space after the first one
+            var cost = id.Length + 3 + (batch.Count > 0 ? 1 : 0);
+            if (batch.Count > 0 && (batch.Count >= MaxMessageMentions || used + cost > room))
+            {
+                batches.Add(batch);
+                batch = new List<string>();
+                used = 0;
+                cost = id.Length + 3;
+            }
+            batch.Add(id);
+            used += cost;
+        }
+        if (batch.Count > 0)
+        {
+            batches.Add(batch);
+        }
+        return batches;
+    }
+
+    // agent id -> Discord snowflake; drops empties and the demo placeholder; MentionBatches keeps each post in bounds
     private async Task<List<string>> ResolveDiscordIdsAsync(IReadOnlyCollection<string> agentIds, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -268,7 +309,7 @@ public class DiscordWebhookService(
             .Where(u => agentIds.Contains(u.Id))
             .Select(u => u.DiscordId)
             .ToListAsync(cancellationToken);
-        return ids.Where(IsSnowflake).Distinct().Take(100).ToList()!;
+        return ids.Where(IsSnowflake).Distinct().ToList()!;
     }
 
     // only numeric snowflakes are pingable (guards "" and the seeded "demo" user)

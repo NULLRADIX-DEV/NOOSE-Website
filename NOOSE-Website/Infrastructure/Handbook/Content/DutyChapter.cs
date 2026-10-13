@@ -85,6 +85,8 @@ internal static class DutyChapter
                 geklickt hast. Wer angekündigt hat, sieht, wer schon quittiert hat.</p>
                 <p>Meist gibt es dazu eine <strong>Frist</strong>, sie steht neben dem Knopf. Hast du bis dahin nicht
                 quittiert, erinnert dich die Seite einmal - in der Glocke und, wenn eingerichtet, per Discord-Ping.
+                Bei Ankündigungen an eine Taskforce bleibt es bei der Glocke: Ein gemeinsamer Ping im Kanal würde
+                zeigen, wer in der Taskforce ist.
                 Die Führung sieht oben am Brett, bei welchen Ankündigungen die Frist abgelaufen ist und wer noch
                 fehlt. Wer die Zielgruppe inzwischen verlassen hat, etwa eine Taskforce, schuldet die Quittierung
                 nicht mehr.</p>

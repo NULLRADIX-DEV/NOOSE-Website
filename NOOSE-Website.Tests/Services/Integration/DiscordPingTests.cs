@@ -113,6 +113,22 @@ public sealed class DiscordPingTests
     }
 
     [Fact]
+    public async Task A_bell_only_notice_rings_but_never_reaches_the_channel()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "a1");
+        var discord = Substitute.For<IDiscordWebhookService>();
+
+        await NewService(ctx, discord).NotifyManyInAppAsync(["a1"], NotificationType.AcknowledgmentReminder,
+            "Bitte quittieren", "/brett/1", triggerId: null);
+
+        await discord.DidNotReceiveWithAnyArgs().PushAsync(default, default, default, default, default);
+        using var db = ctx.NewContext();
+        var row = Assert.Single(db.Notifications, n => n.RecipientId == "a1");
+        Assert.Null(row.ReadAt);
+    }
+
+    [Fact]
     public async Task A_role_category_ignores_whatever_is_stored_for_it()
     {
         using var ctx = new SqliteTestContext();

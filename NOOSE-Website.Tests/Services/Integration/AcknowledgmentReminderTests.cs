@@ -20,7 +20,7 @@ public sealed class AcknowledgmentReminderTests
     // relative to the clock, because the overdue list reads the real time
     private static readonly DateTime Now = DateTime.UtcNow;
 
-    private sealed record Reminder(List<string> Recipients, string Title, string? Href);
+    private sealed record Reminder(List<string> Recipients, string Title, string? Href, bool Channel);
 
     private static (AnnouncementService Svc, List<Reminder> Sent, INotificationService Notifications) Build(SqliteTestContext ctx)
     {
@@ -34,7 +34,12 @@ public sealed class AcknowledgmentReminderTests
             .When(n => n.NotifyManyAsync(Arg.Any<IReadOnlyCollection<string>>(), NotificationType.AcknowledgmentReminder,
                 Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()))
             .Do(ci => sent.Add(new Reminder(ci.ArgAt<IReadOnlyCollection<string>>(0).Order().ToList(),
-                ci.ArgAt<string>(2), ci.ArgAt<string?>(3))));
+                ci.ArgAt<string>(2), ci.ArgAt<string?>(3), Channel: true)));
+        notifications
+            .When(n => n.NotifyManyInAppAsync(Arg.Any<IReadOnlyCollection<string>>(), NotificationType.AcknowledgmentReminder,
+                Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()))
+            .Do(ci => sent.Add(new Reminder(ci.ArgAt<IReadOnlyCollection<string>>(0).Order().ToList(),
+                ci.ArgAt<string>(2), ci.ArgAt<string?>(3), Channel: false)));
         var svc = new AnnouncementService(ctx.Factory, caseNo, notifications, new AcknowledgmentBroadcaster(),
             NullLogger<AnnouncementService>.Instance);
         return (svc, sent, notifications);
@@ -258,6 +263,78 @@ public sealed class AcknowledgmentReminderTests
         Assert.Equal(["/brett/first", "/brett/second"], sent.Select(r => r.Href!).ToArray());
         Assert.Equal(Now, RemindedAt(ctx, "first"));
         Assert.Equal(Now, RemindedAt(ctx, "second"));
+    }
+
+    [Fact]
+    public async Task A_stopping_host_finishes_the_claimed_reminder_and_leaves_the_rest_unclaimed()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Announcements.AddRange(Board("first", Now.AddHours(-2)), Board("second", Now.AddHours(-1)));
+            db.AnnouncementAcknowledgments.AddRange(Ack("first", "a1"), Ack("second", "a1"));
+            db.SaveChanges();
+        }
+        var (svc, _, notifications) = Build(ctx);
+        using var stopping = new CancellationTokenSource();
+        var cancellable = new List<bool>();
+        // the host starts stopping while the first notice goes out
+        notifications
+            .When(n => n.NotifyManyAsync(Arg.Any<IReadOnlyCollection<string>>(), NotificationType.AcknowledgmentReminder,
+                Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()))
+            .Do(ci =>
+            {
+                cancellable.Add(ci.ArgAt<CancellationToken>(5).CanBeCanceled);
+                stopping.Cancel();
+            });
+
+        Assert.Equal(1, await svc.RemindOverdueAsync(Now, stopping.Token));
+
+        Assert.Equal([false], cancellable);
+        Assert.Equal(Now, RemindedAt(ctx, "first"));
+        Assert.Null(RemindedAt(ctx, "second"));
+    }
+
+    public static TheoryData<AnnouncementAudience, bool> ChannelByAudience => new()
+    {
+        { AnnouncementAudience.AllActive, true },
+        { AnnouncementAudience.TruUnit, true },
+        { AnnouncementAudience.HrbUnit, true },
+        { AnnouncementAudience.FromRank, true },
+        // taskforce membership is hidden from outsiders, a shared channel must not list it
+        { AnnouncementAudience.Taskforce, false },
+    };
+
+    [Theory]
+    [MemberData(nameof(ChannelByAudience))]
+    public async Task Only_a_taskforce_reminder_stays_out_of_the_discord_channel(AnnouncementAudience audience, bool channel)
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("a1", Rank.SpecialAgent, configure: a =>
+            {
+                a.IsTRU = true;
+                a.IsHRB = true;
+            }));
+            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Taskforce", CaseNumber = "NOOSE-TF-2026-0001", CreatedAt = Now.AddDays(-30) });
+            db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf", AgentId = "a1", CreatedAt = Now.AddDays(-30) });
+            db.Announcements.Add(Board("due", Now.AddHours(-1), audience: audience, configure: a =>
+            {
+                a.TargetId = audience == AnnouncementAudience.Taskforce ? "tf" : null;
+                a.MinRank = audience == AnnouncementAudience.FromRank ? Rank.SpecialAgent : null;
+            }));
+            db.AnnouncementAcknowledgments.Add(Ack("due", "a1"));
+            db.SaveChanges();
+        }
+        var (svc, sent, _) = Build(ctx);
+
+        await svc.RemindOverdueAsync(Now);
+
+        var reminder = Assert.Single(sent);
+        Assert.Equal(["a1"], reminder.Recipients);
+        Assert.Equal(channel, reminder.Channel);
     }
 
     // ---------- who still owes it ----------
