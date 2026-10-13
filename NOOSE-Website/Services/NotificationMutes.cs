@@ -26,6 +26,11 @@ public static class NotificationMutes
         NotificationType.PublicTicketCreated,
         NotificationType.AgentTerminated,
         NotificationType.PublicTipCreated,
+        // posted straight to the channel, never written as a notice
+        NotificationType.PersonnelEntry,
+        NotificationType.PublicWantedPublished,
+        NotificationType.PublicWantedBountyRaised,
+        NotificationType.PublicPressPublished,
     ];
 
     /// <summary>The switchable categories as the profile shows them.</summary>
@@ -52,7 +57,6 @@ public static class NotificationMutes
             NotificationType.Announcement,
             NotificationType.SituationReport,
             NotificationType.AbsenceFiled,
-            NotificationType.PersonnelEntry,
             NotificationType.AbductionFiled,
             NotificationType.Recruiting,
             NotificationType.Financing,
@@ -61,9 +65,7 @@ public static class NotificationMutes
         ]),
         new("Öffentlichkeit und Bürgerkontakt", MudBlazor.Icons.Material.Filled.Public,
         [
-            NotificationType.PublicWantedPublished,
             NotificationType.PublicWantedExpired,
-            NotificationType.PublicWantedBountyRaised,
             NotificationType.PublicCaptureReported,
             NotificationType.PublicTipReceived,
             NotificationType.PublicTipAnswered,
@@ -73,7 +75,6 @@ public static class NotificationMutes
             NotificationType.PublicTicketInternal,
             NotificationType.PublicObjectionReceived,
             NotificationType.PublicObjectionDecided,
-            NotificationType.PublicPressPublished,
         ]),
     ];
 
