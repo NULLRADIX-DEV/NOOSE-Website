@@ -1,5 +1,6 @@
-@* Which categories ring the bell; a silenced one still lands in the inbox, already read. *@
+@* Which categories ring the bell, and when Discord pings the agent personally. *@
 @inject INavPreferencesService NavPrefs
+@inject IDiscordWebhookService Discord
 @using NOOSE_Website.Models.Navigation
 @inject ISnackbar Snackbar
 
@@ -60,6 +61,57 @@
                 Immer an: @string.Join(", ", NotificationMutes.Locked.Select(NotificationTypeDisplay.Name))
             </MudText>
         </MudStack>
+
+        <MudDivider Class="my-5" />
+        <MudText Typo="Typo.subtitle1" Class="mb-1">Pings auf Discord</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+            Lege fest, wann Discord dich persönlich anpingt. Bei <b>Gesammelt</b> kommt statt vieler Einzelpings einmal
+            am Tag um @DiscordPings.DigestHour Uhr ein Tagesüberblick mit der Zahl deiner noch ungelesenen Meldungen.
+            Bei <b>Nie</b> pingt Discord dich dafür gar nicht. In der Glocke kommt alles weiter an.
+        </MudText>
+
+        @if (!_discordLive)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                Die Discord-Weiterleitung ist gerade ausgeschaltet. Deine Wahl gilt, sobald sie wieder läuft.
+            </MudAlert>
+        }
+        else if (!_digestLive)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                Für den Tagesüberblick ist noch kein Channel eingerichtet. Gesammelt lässt sich wählen, sobald die
+                Leitung ihn unter Einstellungen → Discord-Benachrichtigungen einträgt.
+            </MudAlert>
+        }
+
+        @foreach (var type in DiscordPings.Personal)
+        {
+            var mode = DiscordPings.ModeFor(_prefs, type);
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap"
+                      Spacing="2" Class="py-1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@NotificationTypeDisplay.Icon(type)" Size="Size.Small" Class="mud-text-secondary" />
+                    <MudText Typo="Typo.body2">@NotificationTypeDisplay.Name(type)</MudText>
+                </MudStack>
+                <MudRadioGroup T="DiscordPingMode" Value="mode" ValueChanged="@(m => OnPingChangedAsync(type, m))"
+                               Disabled="@(_isDemo || _busy)">
+                    <MudRadio T="DiscordPingMode" Value="DiscordPingMode.Instant" Color="Color.Primary" Dense="true">Sofort</MudRadio>
+                    @* a stored choice stays selectable, so it can be seen and changed back *@
+                    <MudRadio T="DiscordPingMode" Value="DiscordPingMode.Digest" Color="Color.Primary" Dense="true"
+                              Disabled="@(!_digestLive && mode != DiscordPingMode.Digest)">Gesammelt</MudRadio>
+                    <MudRadio T="DiscordPingMode" Value="DiscordPingMode.Off" Color="Color.Primary" Dense="true">Nie</MudRadio>
+                </MudRadioGroup>
+            </MudStack>
+        }
+
+        <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="1" Class="mt-3">
+            <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Class="mud-text-secondary" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Ankündigungen, Besprechungen, Termine oder Lageberichte pingen eine ganze Rolle. Das lässt sich hier
+                nicht für dich allein abschalten, aber in Discord: in den Benachrichtigungseinstellungen des Servers
+                unter „Alle Rollen-@@Erwähnungen unterdrücken“.
+            </MudText>
+        </MudStack>
     }
 </div>
 
@@ -71,6 +123,9 @@
     private bool _isDemo;
     private string _agentId = string.Empty;
     private NavPreferences _prefs = new();
+    // unknown counts as live: a failed read must not lock the choices
+    private bool _discordLive = true;
+    private bool _digestLive = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,6 +134,7 @@
         try
         {
             _prefs = await NavPrefs.GetAsync(_agentId);
+            await LoadDiscordStateAsync();
         }
         finally
         {
@@ -92,6 +148,24 @@
 
     private Task OnTypeChangedAsync(NotificationType type, bool on)
         => SaveAsync(() => NavPrefs.SetNotificationMutedAsync(_agentId, type, muted: !on));
+
+    private Task OnPingChangedAsync(NotificationType type, DiscordPingMode mode)
+        => SaveAsync(() => NavPrefs.SetDiscordPingAsync(_agentId, type, mode));
+
+    private async Task LoadDiscordStateAsync()
+    {
+        try
+        {
+            var config = await Discord.GetConfigAsync();
+            _discordLive = config.Enabled;
+            _digestLive = config.Enabled
+                && !string.IsNullOrWhiteSpace(config.Webhooks.GetValueOrDefault(NotificationType.PingDigest));
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
 
     private async Task SaveAsync(Func<Task> save)
     {

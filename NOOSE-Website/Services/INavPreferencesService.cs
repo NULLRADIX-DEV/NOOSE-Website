@@ -51,6 +51,9 @@ public interface INavPreferencesService
     /// <summary>Keeps the bell quiet while a filed absence covers today.</summary>
     Task SetQuietDuringAbsenceAsync(string agentId, bool quiet, CancellationToken cancellationToken = default);
 
+    /// <summary>Sets when a personal category pings on Discord; other categories are ignored.</summary>
+    Task SetDiscordPingAsync(string agentId, NotificationType type, DiscordPingMode mode, CancellationToken cancellationToken = default);
+
     /// <summary>Records that an agent reached one onboarding step. Idempotent, and cheap enough to call blind.</summary>
     Task MarkOnboardingStepAsync(string agentId, string stepKey, CancellationToken cancellationToken = default);
 

@@ -428,6 +428,9 @@ public static class ChangelogContent
             Neu("2.2.27-benachrichtigungen-steuern", "In deinem Profil legst du fest, welche Benachrichtigungen die "
                 + "Glocke klingeln lassen. Was du ausschaltest, landet still im Posteingang, und auf Wunsch bleibt die "
                 + "Glocke während deiner Abmeldung ruhig. Erwähnungen kommen immer an.", "Bedienung"),
+            Neu("2.2.28-discord-pings", "Ob Discord dich bei Erwähnungen, Aufgaben und Wiedervorlagen sofort anpingt, "
+                + "gar nicht oder gesammelt in einem Tagesüberblick um 18 Uhr, legst du jetzt selbst im Profil fest.",
+                "Discord"),
         ]),
     ];
 }

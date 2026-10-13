@@ -211,6 +211,8 @@ builder.Services.AddScoped<IFollowupService, FollowupService>();
 builder.Services.AddHostedService<FollowupDueWorker>();
 builder.Services.AddHostedService<TicketFollowupWorker>();
 builder.Services.AddHostedService<JobDueSoonWorker>();
+builder.Services.AddScoped<IPingDigestService, PingDigestService>();
+builder.Services.AddHostedService<PingDigestWorker>();
 builder.Services.AddScoped<ISourceService, SourceService>();
 builder.Services.AddScoped<ITagService, TagService>();
 builder.Services.AddScoped<ICommentService, CommentService>();

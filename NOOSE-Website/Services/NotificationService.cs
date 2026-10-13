@@ -241,7 +241,7 @@ public class NotificationService(
         }
 
         // one channel post per mention event; pings the mentioned recipients directly
-        await discord.PushAsync(NotificationType.Mention, href, notified, cancellationToken: cancellationToken);
+        await PushAsync(db, NotificationType.Mention, href, notified, headline: null, cancellationToken);
     }
 
     public async Task NotifyManyAsync(IReadOnlyCollection<string> recipientIds, NotificationType type,
@@ -272,7 +272,7 @@ public class NotificationService(
 
         // one channel post per broadcast event; role categories ping their role, personal categories ping these recipients.
         // the in-app title is forwarded as an optional headline (used only for header-eligible categories when enabled)
-        await discord.PushAsync(type, href, targets, title, cancellationToken);
+        await PushAsync(db, type, href, targets, title, cancellationToken);
     }
 
     public async Task NotifyManyOnceAsync(IReadOnlyCollection<string> recipientIds, NotificationType type,
@@ -312,8 +312,53 @@ public class NotificationService(
         // a fold is a refresh of something already announced; only a genuinely new notice reaches the channel
         if (fresh.Count > 0)
         {
-            await discord.PushAsync(type, href, fresh, title, cancellationToken);
+            await PushAsync(db, type, href, fresh, title, cancellationToken);
         }
+    }
+
+    /// <summary>Posts to the category's channel; a personal category pings only who wants it now, and with nobody left there is no post.</summary>
+    private async Task PushAsync(AppDbContext db, NotificationType type, string? href,
+        IReadOnlyCollection<string> recipientIds, string? headline, CancellationToken cancellationToken)
+    {
+        var pinged = await PingNowAsync(db, recipientIds, type, cancellationToken);
+        if (pinged.Count > 0)
+        {
+            await discord.PushAsync(type, href, pinged, headline, cancellationToken);
+        }
+    }
+
+    /// <summary>Recipients the post may ping right away; the others collect it for the digest or switched it off.</summary>
+    private static async Task<IReadOnlyCollection<string>> PingNowAsync(AppDbContext db,
+        IReadOnlyCollection<string> recipientIds, NotificationType type, CancellationToken cancellationToken)
+    {
+        if (!DiscordPings.IsPersonal(type))
+        {
+            return recipientIds;
+        }
+
+        // the shared demo account keeps its choices in the visitor's session, never on the row
+        var ids = recipientIds.Where(id => id != DemoIdentity.AgentId).Distinct().ToList();
+        var rows = await db.Users.AsNoTracking()
+            .Where(u => ids.Contains(u.Id) && u.NavPreferencesJson != null)
+            .Select(u => new { u.Id, u.NavPreferencesJson })
+            .ToListAsync(cancellationToken);
+
+        var held = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var row in rows)
+        {
+            try
+            {
+                if (DiscordPings.ModeFor(NavPreferences.FromJson(row.NavPreferencesJson), type) != DiscordPingMode.Instant)
+                {
+                    held.Add(row.Id);
+                }
+            }
+            catch
+            {
+                /* ignore */
+            }
+        }
+        return held.Count == 0 ? recipientIds : recipientIds.Where(id => !held.Contains(id)).ToList();
     }
 
     public async Task<List<Notification>> GetOwnAsync(ClaimsPrincipal actor, int max = 20, CancellationToken cancellationToken = default)
