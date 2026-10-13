@@ -1,7 +1,8 @@
 @page "/suche"
-@using System.Text.Json
+@using Microsoft.AspNetCore.WebUtilities
 @using NOOSE_Website.Components.Pages.Search.Shared
 @using NOOSE_Website.Services.Search
+@implements IDisposable
 @inject ISearchService SearchService
 @inject ISavedSearchService SavedSearchService
 @inject ITagService TagService
@@ -30,7 +31,7 @@
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           OnKeyDown="SearchKeyDown" Class="flex-grow-1 mt-0" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search"
-                       OnClick="SearchAsync">Suchen</MudButton>
+                       OnClick="NewSearchAsync">Suchen</MudButton>
         </MudStack>
 
         <MudStack Row="true" Spacing="3" Class="flex-wrap" AlignItems="AlignItems.Center">
@@ -73,10 +74,46 @@
                 @foreach (var g in _saved)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
-                             OnClick="@(() => ApplyAsync(g))" OnClose="@(() => SearchDeleteAsync(g))">@g.Name</MudChip>
+                             Icon="@(g.IsWatched ? Icons.Material.Filled.NotificationsActive : null)"
+                             OnClick="@(() => ApplyAsync(g))" OnClose="@(() => SearchDeleteAsync(g))">@ChipLabel(g)</MudChip>
+                }
+                @if (_mayWatch)
+                {
+                    <MudTooltip Text="Gespeicherte Suchen überwachen lassen">
+                        <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small" aria-label="Gespeicherte Suchen verwalten"
+                                       Color="@(_manageOpen ? Color.Primary : Color.Default)"
+                                       OnClick="@(() => _manageOpen = !_manageOpen)" />
+                    </MudTooltip>
                 }
             }
         </MudStack>
+
+        @if (_manageOpen && _mayWatch && _saved.Count > 0)
+        {
+            <MudDivider />
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.subtitle2">Gespeicherte Suchen überwachen</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Eine überwachte Suche läuft etwa stündlich in deinem Namen – mit deinen Rechten von heute – und meldet
+                    dir über die Glocke, was sie noch nie gefunden hatte. Der erste Lauf merkt sich nur, was es
+                    schon gibt. Höchstens @SavedSearchRules.MaxWatchedPerAgent Suchen gleichzeitig.
+                </MudText>
+                @foreach (var g in _saved)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                        <MudSwitch T="bool" Value="g.IsWatched" ValueChanged="@(v => WatchAsync(g, v))"
+                                   Color="Color.Primary" Label="@g.Name" Class="ma-0" />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@Describe(g)</MudText>
+                        @if (g.IsWatched)
+                        {
+                            <MudText Typo="Typo.caption" Class="@(g.LastRunIncomplete ? "mud-warning-text" : "mud-text-secondary")">
+                                @WatchState(g)
+                            </MudText>
+                        }
+                    </MudStack>
+                }
+            </MudStack>
+        }
     </MudStack>
 </MudPaper>
 
@@ -101,6 +138,11 @@ else
                 <text>@ShownCount Treffer · @SearchCatalog.Plural(_facet)</text>
             }
         </MudText>
+        @if (NewShown > 0)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="ma-0"
+                     Icon="@Icons.Material.Filled.FiberNew">@NewShown neu seit deinem letzten Blick</MudChip>
+        }
         <MudText Typo="Typo.caption" Class="mud-text-secondary">
             @_results.Searched.Count von @_results.VisibleCategories Kategorien durchsucht ·
             @_results.Elapsed.TotalSeconds.ToString("0.0") s
@@ -199,7 +241,8 @@ else
                         @foreach (var t in group.Hit)
                         {
                             <SearchHitRow Hit="t" SelectMode="_selectMode" Selectable="@SearchSelection.IsSelectable(t)"
-                                          Picked="@_picked.ContainsKey(SearchSelection.Key(t))" OnToggle="Toggle" />
+                                          Picked="@_picked.ContainsKey(SearchSelection.Key(t))" OnToggle="Toggle"
+                                          IsNew="@_newKeys.Contains(SavedSearchRules.Key(t))" />
                         }
                     </MudStack>
                 </div>
@@ -240,6 +283,14 @@ else
     private List<SavedSearch> _saved = new();
 
     private string? _appliedQ;
+    private bool _parametersSeen;
+
+    // watching: internal writers only, the service asks again
+    private bool _mayWatch;
+    private bool _manageOpen;
+    // hits a watch reported since the last look; cleared in the database after an interactive render
+    private HashSet<string> _newKeys = new(StringComparer.Ordinal);
+    private (string Id, string Json)? _pendingSeen;
 
     // selection mode: only for agents who may write, and never cleared by a new search
     private bool _mayAct;
@@ -257,21 +308,43 @@ else
 
     private int ShownCount => Shown().Sum(g => g.Hit.Count);
 
+    private int NewShown => _newKeys.Count == 0 ? 0
+        : Shown().SelectMany(g => g.Hit).Select(SavedSearchRules.Key).Distinct().Count(_newKeys.Contains);
+
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
         _agentId = _user.GetAgentId();
         _mayAct = _user.MayWrite();
+        _mayWatch = SavedSearchRules.MayWatch(_user);
         // partners: no internal tag vocabulary
         if (!_user.IsPartner())
         {
             _tags = await TagService.GetAllAsync();
         }
         await SavedLoadAsync();
+        Nav.LocationChanged += OnLocationChanged;
     }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 
     protected override async Task OnParametersSetAsync()
     {
+        // a watch report links here. Opened here on load only; later navigations of this instance go through
+        // OnLocationChanged, since a second click on the same notice changes no parameter at all. Nav.Uri keeps the
+        // link after replaceState, so the query below would otherwise be read again on every parameter pass
+        var first = !_parametersSeen;
+        _parametersSeen = true;
+        if (SavedFromUri(Nav.Uri) is { } savedId)
+        {
+            if (first)
+            {
+                _appliedQ = Q;
+                await OpenSavedAsync(savedId);
+            }
+            return;
+        }
+
         // real navigations only: QueryState.WriteAsync goes through replaceState, which raises no LocationChanged
         if (Q == _appliedQ)
         {
@@ -286,6 +359,62 @@ else
         }
     }
 
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        if (SavedFromUri(e.Location) is { } savedId)
+        {
+            _ = InvokeAsync(async () =>
+            {
+                try
+                {
+                    await OpenSavedAsync(savedId);
+                    StateHasChanged();
+                }
+                catch { /* best effort */ }
+            });
+        }
+    }
+
+    /// <summary>The saved search a link to this page names, if any.</summary>
+    private static string? SavedFromUri(string uri)
+    {
+        var parsed = new Uri(uri);
+        return string.Equals(parsed.AbsolutePath.TrimEnd('/'), "/suche", StringComparison.OrdinalIgnoreCase)
+               && QueryHelpers.ParseQuery(parsed.Query).TryGetValue("gespeichert", out var id)
+               && !string.IsNullOrWhiteSpace(id) ? id.ToString() : null;
+    }
+
+    /// <summary>Applies one of the agent's own searches by id; only their own are in the list.</summary>
+    private async Task OpenSavedAsync(string id)
+    {
+        await SavedLoadAsync();
+        if (_saved.FirstOrDefault(s => s.Id == id) is { } saved)
+        {
+            await ApplyAsync(saved);
+        }
+        else
+        {
+            Snackbar.Add("Diese gespeicherte Suche gibt es nicht mehr.", Severity.Info);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // never while prerendering, and only once the hits are on screen: a mark cleared before that is never seen
+        if (_pendingSeen is not { } seen || _load || !_searched)
+        {
+            return;
+        }
+        _pendingSeen = null;
+        try
+        {
+            await SavedSearchService.MarkSeenAsync(seen.Id, seen.Json, _user);
+            await SavedLoadAsync();
+            StateHasChanged();
+        }
+        catch { /* best effort */ }
+    }
+
     private async Task SavedLoadAsync()
     {
         if (_agentId is not null)
@@ -298,8 +427,16 @@ else
     {
         if (e.Key == "Enter")
         {
-            await SearchAsync();
+            await NewSearchAsync();
         }
+    }
+
+    /// <summary>A search the agent typed; the marks of a saved search belong to that search only.</summary>
+    private Task NewSearchAsync()
+    {
+        _newKeys = new HashSet<string>(StringComparer.Ordinal);
+        _pendingSeen = null;
+        return SearchAsync();
     }
 
     private SearchCriteria BuildCriteria() => new()
@@ -342,6 +479,8 @@ else
             // surface the error instead of hanging the spinner
             _results = SearchResults.None;
             _searched = true;
+            // nothing was shown, so the new-marks stay for the next look
+            _pendingSeen = null;
             Snackbar.Add($"Suche fehlgeschlagen: {ex.Message}", Severity.Error);
         }
         finally
@@ -490,7 +629,7 @@ else
 
     private async Task UrlAsync()
     {
-        await QueryState.WriteAsync(JS, Nav, ("q", _text), ("kat", _facet));
+        await QueryState.WriteAsync(JS, Nav, ("q", _text), ("kat", _facet), ("gespeichert", null));
         // replaceState raises no LocationChanged, so Q still holds the old value. Without this the guard in
         // OnParametersSetAsync swallows the next real navigation from the header search box.
         _appliedQ = string.IsNullOrWhiteSpace(_text) ? null : _text;
@@ -517,10 +656,10 @@ else
 
     private async Task ApplyAsync(SavedSearch g)
     {
-        SearchCriteria? k = null;
-        try { k = JsonSerializer.Deserialize<SearchCriteria>(g.SearchParameterJson); }
-        catch { /* ignore */ }
-        if (k is null)
+        // a run may have added marks since the list loaded
+        await SavedLoadAsync();
+        g = _saved.FirstOrDefault(s => s.Id == g.Id) ?? g;
+        if (SavedSearchRules.Parse(g.SearchParameterJson) is not { } k)
         {
             return;
         }
@@ -530,12 +669,7 @@ else
         _fuzzy = k.Fuzzy;
         _maxMode = k.MaxMode;
         _includeArchived = k.IncludeArchived;
-
-        // rows saved with the old checkbox filter carry Categories as a PRE-filter. Deliberately not honoured:
-        // it hid categories from the reader. A single saved category survives as the result facet.
-        _facet = k.Facet is { Length: > 0 } f && SearchCatalog.Find(f) is not null ? f
-            : k.Categories is [var only] && SearchCatalog.Find(only) is not null ? only
-            : null;
+        _facet = SavedSearchRules.FacetOf(k);
 
         if (k.Facet is null && k.Categories is { Count: > 1 })
         {
@@ -543,7 +677,76 @@ else
                 + "alles Sichtbare durchsucht; Kategorien filtern nur das Ergebnis.", Severity.Info);
         }
 
+        _newKeys = SavedSearchRules.ReadKeys(g.UnseenHitsJson).ToHashSet(StringComparer.Ordinal);
+        _pendingSeen = _newKeys.Count > 0 ? (g.Id, g.UnseenHitsJson!) : null;
         await SearchAsync();
+    }
+
+    private async Task WatchAsync(SavedSearch g, bool watched)
+    {
+        try
+        {
+            await SavedSearchService.SetWatchedAsync(g.Id, watched, _user);
+            Snackbar.Add(watched
+                ? $"„{g.Name}“ wird überwacht. Neue Treffer meldet die Glocke."
+                : $"„{g.Name}“ wird nicht mehr überwacht.", Severity.Success);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Warning);
+        }
+        await SavedLoadAsync();
+    }
+
+    private static string ChipLabel(SavedSearch g)
+    {
+        var unseen = SavedSearchRules.ReadKeys(g.UnseenHitsJson).Count;
+        return unseen > 0 ? $"{g.Name} · {unseen} neu" : g.Name;
+    }
+
+    /// <summary>What a saved search asks for, in one line.</summary>
+    private static string Describe(SavedSearch g)
+    {
+        if (SavedSearchRules.Parse(g.SearchParameterJson) is not { } k)
+        {
+            return "nicht lesbar";
+        }
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(k.Text))
+        {
+            parts.Add($"„{k.Text.Trim()}“");
+        }
+        if (k.TagIds.Count > 0)
+        {
+            parts.Add(k.TagIds.Count == 1 ? "1 Tag" : $"{k.TagIds.Count} Tags");
+        }
+        if (SavedSearchRules.FacetOf(k) is { } facet)
+        {
+            parts.Add($"nur {SearchCatalog.Plural(facet)}");
+        }
+        if (k.Fuzzy)
+        {
+            parts.Add("Smart-Suche");
+        }
+        if (k.MaxMode)
+        {
+            parts.Add("Deep-Scan");
+        }
+        if (k.IncludeArchived)
+        {
+            parts.Add("mit Archiv");
+        }
+        return string.Join(" · ", parts);
+    }
+
+    private static string WatchState(SavedSearch g)
+    {
+        if (g.LastCheckedAt is not { } at)
+        {
+            return "Wartet auf den ersten Lauf.";
+        }
+        var text = $"Zuletzt geprüft {at.ToLocalTime():dd.MM. HH:mm}";
+        return g.LastRunIncomplete ? text + " – die Zeit reichte nicht für alle Kategorien." : text + ".";
     }
 
     private async Task SearchDeleteAsync(SavedSearch g)

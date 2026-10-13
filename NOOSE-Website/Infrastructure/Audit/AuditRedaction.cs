@@ -1,4 +1,5 @@
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.Public;
 
 namespace NOOSE_Website.Infrastructure.Audit;
@@ -29,6 +30,13 @@ public static class AuditRedaction
         $"{nameof(TextSnippet)}.{nameof(TextSnippet.Name)}",
         // a file name the citizen chose is their content, exactly like the message it hangs on
         $"{nameof(TicketNachricht)}.{nameof(TicketNachricht.AttachmentOriginalName)}",
+        // a watched search's hits were found under its owner's rights, VS records included
+        $"{nameof(SavedSearch)}.{nameof(SavedSearch.KnownHitsJson)}",
+        $"{nameof(SavedSearch)}.{nameof(SavedSearch.UnseenHitsJson)}",
+        $"{nameof(SavedSearch)}.{nameof(SavedSearch.ScopeStamp)}",
+        // a folded notice rewrites its title, and the title is written for one recipient's eyes: a watch report
+        // names hits only its owner may see
+        $"{nameof(Notification)}.{nameof(Notification.Title)}",
     };
 
     /// <summary>Whether this field's before/after pair stays out of the audit row.</summary>

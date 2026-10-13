@@ -78,20 +78,23 @@ public class SearchService(
 
         // phonetic/stem recall last: weakest matches, appended after ranking, resolved through the providers so
         // each visibility rule stays with the one place that owns it
-        if (query.Fuzzy && query.HasText && !budget.IsCancellationRequested)
+        var sideIndexSkipped = false;
+        if (query.Fuzzy && query.HasText)
         {
             try
             {
+                budget.Token.ThrowIfCancellationRequested();
                 await SearchSideIndex.AppendAsync(dbFactory, runnable, groups, query, budget.Token);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
                 /* budget spent; the groups collected so far still stand */
+                sideIndexSkipped = true;
             }
         }
 
         return new SearchResults(groups, groups.Sum(g => g.Hit.Count), searched, incomplete,
-            allowed.Count, started.Elapsed);
+            allowed.Count, started.Elapsed) { SideIndexSkipped = sideIndexSkipped };
     }
 
     public async Task<List<QuickHit>> QuickSearchAsync(

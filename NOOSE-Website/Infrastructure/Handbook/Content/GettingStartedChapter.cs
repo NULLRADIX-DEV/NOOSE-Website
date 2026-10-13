@@ -85,6 +85,14 @@ internal static class GettingStartedChapter
                 Leiste unten: <em>Verknüpfen</em> hängt alle an eine Akte, etwa einen Vorgang, <em>Stichwort</em> gibt
                 allen dasselbe Stichwort, <em>Beobachten</em> nimmt sie auf deine Beobachtungsliste. Kommentare,
                 Quellen und Protokolle lassen sich nicht auswählen, nur die Akten selbst.</p>
+                <p>Eine Suche, die du öfter brauchst, <strong>speicherst</strong> du unter einem Namen; sie steht dann
+                als Knopf über den Treffern. Über das Regler-Symbol daneben lässt du bis zu fünf gespeicherte Suchen
+                <strong>überwachen</strong>: Sie laufen etwa stündlich in deinem Namen, mit deinen Rechten von heute,
+                und die Glocke meldet dir, was sie noch nie gefunden hatten - eine neue Akte zu „Ballas“ etwa
+                oder ein Kennzeichen, das plötzlich auftaucht. Der erste Lauf merkt sich nur, was es schon gibt.
+                Öffnest du die Suche, sind die neuen Treffer mit <em>Neu</em> markiert. Überwacht werden Akten, ihre
+                Inhalte und die Verwaltung, nicht deine eigenen Einträge und keine Protokolle. Wie Discord dich dazu
+                anpingt, stellst du im Profil ein wie bei Erwähnungen.</p>
                 """,
                 NavKey: "suche",
                 Steps:
@@ -97,6 +105,8 @@ internal static class GettingStartedChapter
                         "Auf der Suchseite grenzt die Leiste über den Treffern auf Personen, Fraktionen und so weiter ein."),
                     new Step("Checklist", "Mehrere Akten auf einmal",
                         "Über den Treffern „Auswählen“ drücken, anhaken und unten verknüpfen, verschlagworten oder beobachten."),
+                    new Step("NotificationsActive", "Eine Suche überwachen lassen",
+                        "Suche speichern, dann über das Regler-Symbol „überwachen“ einschalten. Neues meldet die Glocke."),
                 ]),
 
             new Article("art-menue-anpassen", "menue-anpassen", "Das Menü anpassen",

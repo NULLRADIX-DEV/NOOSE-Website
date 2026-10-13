@@ -22,6 +22,7 @@ public static class DiscordPings
         NotificationType.JobDueSoon,
         NotificationType.Followup,
         NotificationType.AcknowledgmentReminder,
+        NotificationType.SavedSearchHit,
     ];
 
     /// <summary>Whether an agent decides for themselves when this category pings them.</summary>

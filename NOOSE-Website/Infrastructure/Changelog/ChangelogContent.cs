@@ -438,6 +438,9 @@ public static class ChangelogContent
                 + "gelesen hast, und im Chat markiert eine Linie, was seit deinem letzten Besuch neu ist.", "Taskforces"),
             Neu("2.2.31-quittierung-erinnern", "Eine Ankündigung mit Lesebestätigung bekommt eine Frist: Wer danach noch "
                 + "nicht quittiert hat, wird einmal erinnert, und die Führung sieht am Brett, wer noch fehlt.", "Brett"),
+            Neu("2.2.32-suche-ueberwachen", "Eine gespeicherte Suche lässt sich überwachen: Sie läuft dann etwa stündlich "
+                + "für dich und meldet über die Glocke, was neu dazugekommen ist. Öffnest du sie, sind die neuen Treffer "
+                + "markiert.", "Suche"),
         ]),
     ];
 }
