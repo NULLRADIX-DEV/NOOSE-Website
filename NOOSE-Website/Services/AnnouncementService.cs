@@ -396,34 +396,38 @@ public class AnnouncementService(
         var sent = 0;
         foreach (var a in due)
         {
-            // claim first, so a second instance or a retry never reminds twice
-            var claimed = await db.Announcements
-                .Where(x => x.Id == a.Id && x.AcknowledgmentRemindedAt == null)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.AcknowledgmentRemindedAt, nowUtc), cancellationToken);
-            if (claimed == 0)
+            // a stopping host leaves the rest unclaimed for the next run
+            if (cancellationToken.IsCancellationRequested)
             {
-                continue;
-            }
-
-            var owing = await Owed(db).Where(q => q.AnnouncementId == a.Id)
-                .Select(q => q.AgentId)
-                .ToListAsync(cancellationToken);
-            if (owing.Count == 0)
-            {
-                continue;
+                break;
             }
 
             var title = $"Bitte quittieren: „{a.Title}“ – die Frist ist abgelaufen.";
             try
             {
+                // claim first, so a second instance or a retry never reminds twice; once claimed, finish it
+                var claimed = await db.Announcements
+                    .Where(x => x.Id == a.Id && x.AcknowledgmentRemindedAt == null)
+                    .ExecuteUpdateAsync(s => s.SetProperty(x => x.AcknowledgmentRemindedAt, nowUtc), CancellationToken.None);
+                if (claimed == 0)
+                {
+                    continue;
+                }
+                var owing = await Owed(db).Where(q => q.AnnouncementId == a.Id)
+                    .Select(q => q.AgentId)
+                    .ToListAsync(CancellationToken.None);
+                if (owing.Count == 0)
+                {
+                    continue;
+                }
                 await notifications.NotifyManyAsync(owing, NotificationType.AcknowledgmentReminder,
-                    title.Length > 300 ? title[..297] + "…" : title, $"/brett/{a.Id}", triggerId: null, cancellationToken);
+                    title.Length > 300 ? title[..297] + "…" : title, $"/brett/{a.Id}", triggerId: null, CancellationToken.None);
                 sent++;
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (Exception ex)
             {
-                // the claim is spent; log this one and keep the batch going
-                logger.LogError(ex, "Acknowledgment reminder for {Id} failed after claiming.", a.Id);
+                // a spent claim is not retried; log this one and keep the batch going
+                logger.LogError(ex, "Acknowledgment reminder for {Id} failed.", a.Id);
             }
         }
         return sent;

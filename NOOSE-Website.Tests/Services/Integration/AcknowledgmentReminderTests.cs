@@ -260,6 +260,37 @@ public sealed class AcknowledgmentReminderTests
         Assert.Equal(Now, RemindedAt(ctx, "second"));
     }
 
+    [Fact]
+    public async Task A_stopping_host_finishes_the_claimed_reminder_and_leaves_the_rest_unclaimed()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Announcements.AddRange(Board("first", Now.AddHours(-2)), Board("second", Now.AddHours(-1)));
+            db.AnnouncementAcknowledgments.AddRange(Ack("first", "a1"), Ack("second", "a1"));
+            db.SaveChanges();
+        }
+        var (svc, _, notifications) = Build(ctx);
+        using var stopping = new CancellationTokenSource();
+        var cancellable = new List<bool>();
+        // the host starts stopping while the first notice goes out
+        notifications
+            .When(n => n.NotifyManyAsync(Arg.Any<IReadOnlyCollection<string>>(), NotificationType.AcknowledgmentReminder,
+                Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()))
+            .Do(ci =>
+            {
+                cancellable.Add(ci.ArgAt<CancellationToken>(5).CanBeCanceled);
+                stopping.Cancel();
+            });
+
+        Assert.Equal(1, await svc.RemindOverdueAsync(Now, stopping.Token));
+
+        Assert.Equal([false], cancellable);
+        Assert.Equal(Now, RemindedAt(ctx, "first"));
+        Assert.Null(RemindedAt(ctx, "second"));
+    }
+
     // ---------- who still owes it ----------
 
     public static TheoryData<AnnouncementAudience> Narrowed =>
