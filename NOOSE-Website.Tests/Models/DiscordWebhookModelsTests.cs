@@ -34,6 +34,7 @@ public class DiscordWebhookModelsTests
         NotificationType.AcknowledgmentReminder,
         NotificationType.SavedSearchHit,
         NotificationType.InactivityNudge,
+        NotificationType.FactionThreatBoard,
     };
 
     // Enum members NOT in the routable list.
@@ -200,6 +201,26 @@ public class DiscordWebhookModelsTests
     public void PingsNobody_forTermination_returnsTrue()
     {
         Assert.True(DiscordRouting.PingsNobody(NotificationType.AgentTerminated));
+    }
+
+    [Fact]
+    public void ThreatBoard_isRoutableButPingsNobodyAndOffersNoRoleField()
+    {
+        Assert.True(DiscordRouting.IsRoutable(NotificationType.FactionThreatBoard));
+        Assert.True(DiscordRouting.PingsNobody(NotificationType.FactionThreatBoard));
+        Assert.False(DiscordRouting.PingsRole(NotificationType.FactionThreatBoard));
+        Assert.False(DiscordRouting.PingsRecipients(NotificationType.FactionThreatBoard));
+        Assert.DoesNotContain(NotificationType.FactionThreatBoard, DiscordRouting.RoleRoutableTypes);
+    }
+
+    [Fact]
+    public void DiscordWebhookConfig_threatBoardThreshold_defaultsToNinety()
+    {
+        var config = new DiscordWebhookConfig(true, "https://example.test",
+            new Dictionary<NotificationType, string?>(), new Dictionary<NotificationType, string?>(), IncludeHeadline: true);
+
+        Assert.Equal(90, config.ThreatBoardThreshold);
+        Assert.Equal(90, new DiscordWebhookConfigInput().ThreatBoardThreshold);
     }
 
     [Theory]

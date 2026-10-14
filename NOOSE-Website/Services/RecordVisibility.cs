@@ -42,4 +42,9 @@ public static class RecordVisibility
             || (x.IsTRUClassified && isTru)
             || (x.IsHRBClassified && isHrb));
     }
+
+    /// <summary>Records without any secrecy level: the ones every internal agent sees, for an audience the app does not know.</summary>
+    public static IQueryable<T> OnlyUnrestricted<T>(this IQueryable<T> query)
+        where T : class, IClassifiableRecord
+        => query.Where(x => !x.IsClassified && !x.IsTRUClassified && !x.IsHRBClassified);
 }

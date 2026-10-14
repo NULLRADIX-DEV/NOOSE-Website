@@ -34,6 +34,7 @@ public static class NotificationMutes
         NotificationType.PublicWantedBountyRaised,
         NotificationType.PublicPressPublished,
         NotificationType.PingDigest,
+        NotificationType.FactionThreatBoard,
     ];
 
     /// <summary>The switchable categories as the profile shows them.</summary>

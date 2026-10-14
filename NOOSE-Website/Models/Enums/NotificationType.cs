@@ -149,6 +149,9 @@ public enum NotificationType
     /// <summary>Leadership asks the recipient to check in after a long silence. Routable — pings the recipient, and
     /// like a personnel entry it is not theirs to silence.</summary>
     InactivityNudge = 43,
+
+    /// <summary>Channel of the standing Discord board of factions above the threat threshold; never a notice.</summary>
+    FactionThreatBoard = 44,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -200,6 +203,7 @@ public static class NotificationTypeDisplay
         NotificationType.NooseiAnomaly => "NOOSEI-Auffälligkeit",
         NotificationType.DecorationAwarded => "Ehrung",
         NotificationType.InactivityNudge => "Rückmeldung erbeten",
+        NotificationType.FactionThreatBoard => "Gefahrenlage (Fraktionen)",
         _ => "Benachrichtigung",
     };
 
@@ -250,6 +254,7 @@ public static class NotificationTypeDisplay
         NotificationType.NooseiAnomaly => Icons.Material.Filled.DataUsage,
         NotificationType.DecorationAwarded => Icons.Material.Filled.MilitaryTech,
         NotificationType.InactivityNudge => Icons.Material.Filled.ContactSupport,
+        NotificationType.FactionThreatBoard => Icons.Material.Filled.Dangerous,
         _ => Icons.Material.Filled.Notifications,
     };
 }

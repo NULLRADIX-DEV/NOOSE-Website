@@ -296,6 +296,8 @@ builder.Services.AddSingleton<ThreatScoreRecalculationGate>();
 builder.Services.AddScoped<IThreatScoreService, ThreatScoreService>();
 builder.Services.AddScoped<IThreatTrendService, ThreatTrendService>();
 builder.Services.AddHostedService<ThreatScoreSweepWorker>();
+builder.Services.AddScoped<IFactionThreatBoardService, FactionThreatBoardService>();
+builder.Services.AddHostedService<FactionThreatBoardWorker>();
 builder.Services.AddScoped<IGamificationService, GamificationService>();
 builder.Services.AddHostedService<GamificationSweepWorker>();
 builder.Services.AddScoped<ITopAgentAwardService, TopAgentAwardService>();
@@ -344,6 +346,7 @@ builder.Services.AddScoped<IFinancingStatisticsService, FinancingStatisticsServi
 builder.Services.AddScoped<ISituationReportService, SituationReportService>();
 builder.Services.AddHostedService<SituationReportWorker>();
 builder.Services.AddHttpClient("discord", client => client.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddHttpClient(DiscordWebhookService.BoardClient, client => client.Timeout = TimeSpan.FromSeconds(30));
 builder.Services.AddScoped<IDiscordWebhookService, DiscordWebhookService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<NotificationBroadcaster>();
