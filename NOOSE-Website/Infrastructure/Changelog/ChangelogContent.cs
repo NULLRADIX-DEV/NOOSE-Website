@@ -28,8 +28,10 @@ public static class ChangelogContent
     /// six. Only the revision opens the update branch that writes the order with them.
     /// Raised to 4 when 2.2.07 and 2.2.08 were cut to fit the 300-character title column; longer, they failed
     /// the whole seeding batch on MySQL.
+    /// Raised to 5 when 2.2.00 was cut into 2.2.00 to 2.6.00: thirty-seven lines moved into the new releases, each
+    /// carrying the key it had under 2.2.00 as <c>LegacyKey</c>, and again only the revision writes their order.
     /// </remarks>
-    public const int Revision = 4;
+    public const int Revision = 5;
 
     /// <param name="Key">Stable handle; renaming one orphans the old row and creates a second.</param>
     /// <param name="LegacyKey">The key this line shipped under before it moved into another release.</param>
@@ -372,102 +374,133 @@ public static class ChangelogContent
             Neu("2.2.06-textbausteine", "Du kannst dir eigene Textbausteine anlegen: Sätze, die du immer "
                 + "wieder schreibst, holst du mit einem Schrägstrich in jedes Textfeld. Platzhalter wie "
                 + "Name, Aktenzeichen und Datum füllen sich dabei von selbst.", "Bedienung"),
-            Neu("2.2.07-ansichten", "Auf den Listen der Personen, Fraktionen, Vorgänge und Operationen und "
+        ]),
+
+        new("2.3.00", new DateTime(2026, 9, 24), "Ansichten, Entwürfe und Posteingang",
+        [
+            Neu("2.3.00-ansichten", "Auf den Listen der Personen, Fraktionen, Vorgänge und Operationen und "
                 + "auf dem Aufgaben-Board merkst du dir eine gefilterte Auswahl unter einem Namen – sie steht "
                 + "dann unter den Favoriten und im Schnellzugriff. Das Aufgaben-Board behält seine Filter "
-                + "jetzt auch, wenn du die Seite neu lädst.", "Bedienung"),
-            Neu("2.2.08-entwuerfe", "Was du in ein Dok, eine Observation, einen Vermerk, den Taskforce-Chat oder "
+                + "jetzt auch, wenn du die Seite neu lädst.", "Bedienung", "2.2.07-ansichten"),
+            Neu("2.3.01-entwuerfe", "Was du in ein Dok, eine Observation, einen Vermerk, den Taskforce-Chat oder "
                 + "die Beschreibung einer Akte tippst, hebt dein Browser jetzt mit auf. Reißt die Verbindung ab "
                 + "oder schließt du einen Dialog aus Versehen, bietet dir das Feld den Text beim nächsten Öffnen "
-                + "wieder an.", "Bedienung"),
-            Neu("2.2.09-neu-seit-besuch", "Öffnest du eine Akte wieder, steht oben, was andere seit deinem "
+                + "wieder an.", "Bedienung", "2.2.08-entwuerfe"),
+            Neu("2.3.02-neu-seit-besuch", "Öffnest du eine Akte wieder, steht oben, was andere seit deinem "
                 + "letzten Besuch eingetragen haben – etwa „Einstufung geändert, 1 Dok und 3 Kommentare“. Im "
                 + "Zeitstrahl trägt jeder dieser Einträge ein „Neu“, und ein Klick filtert auf genau sie. Was "
-                + "du selbst eingetragen hast, zählt nicht mit.", "Akten"),
-            Besser("2.2.10-neuerungen-fenster", "Nach einem Update zeigt dir die Seite beim ersten Aufruf in einem "
+                + "du selbst eingetragen hast, zählt nicht mit.", "Akten", "2.2.09-neu-seit-besuch"),
+            Besser("2.3.03-neuerungen-fenster", "Nach einem Update zeigt dir die Seite beim ersten Aufruf in einem "
                 + "kleinen Fenster, was sich geändert hat – mit einem Knopf zu allen Neuerungen. Bisher stand dort "
-                + "nur eine Karte mit der Anzahl, und die hat manche Neuerung übersehen.", "Bedienung"),
-            Neu("2.2.11-mehrfachauswahl", "In der Suche wählst du über „Auswählen“ mehrere Akten auf einmal aus – "
+                + "nur eine Karte mit der Anzahl, und die hat manche Neuerung übersehen.",
+                "Bedienung", "2.2.10-neuerungen-fenster"),
+            Neu("2.3.04-mehrfachauswahl", "In der Suche wählst du über „Auswählen“ mehrere Akten auf einmal aus – "
                 + "auch über mehrere Suchbegriffe hinweg – und verknüpfst sie in einem Schritt mit einem Vorgang, "
-                + "gibst ihnen ein Stichwort oder beobachtest sie alle.", "Bedienung"),
-            Neu("2.2.12-posteingang", "Unten in der Glocke führt „Alle Benachrichtigungen“ auf eine eigene Seite: "
+                + "gibst ihnen ein Stichwort oder beobachtest sie alle.", "Bedienung", "2.2.11-mehrfachauswahl"),
+            Neu("2.3.05-posteingang", "Unten in der Glocke führt „Alle Benachrichtigungen“ auf eine eigene Seite: "
                 + "dort findest du auch ältere Meldungen als die zwanzig neuesten, filterst nach Art und Zeitraum und "
                 + "holst eine versehentlich angeklickte Meldung mit „Als ungelesen markieren“ zurück.", "Bedienung",
-                "2.2.11-posteingang"),
-            Neu("2.2.13-routen", "Eine Drogenroute gehört jetzt immer nur einer Fraktion. Trägst du eine Route ein, "
+                "2.2.12-posteingang"),
+            Neu("2.3.06-routen", "Eine Drogenroute gehört jetzt immer nur einer Fraktion. Trägst du eine Route ein, "
                 + "die schon eine andere Fraktion hält, fragt die Seite nach – bestätigst du, geht sie beim Speichern "
-                + "über, und beide Akten vermerken den Wechsel.", "Akten"),
-            Besser("2.2.14-asservat-herausnahme", "Etwas aus der Asservatenkammer herausnehmen und die Buchung "
+                + "über, und beide Akten vermerken den Wechsel.", "Akten", "2.2.13-routen"),
+        ]),
+
+        new("2.4.00", new DateTime(2026, 10, 6), "Gesetzbücher und mehr Zugang für Partnerbehörden",
+        [
+            Besser("2.4.00-asservat-herausnahme", "Etwas aus der Asservatenkammer herausnehmen und die Buchung "
                 + "dazu anlegen darfst du jetzt schon ab dem Dienstgrad Senior Special Agent, nicht erst als "
-                + "Führung.", "Asservate"),
-            Neu("2.2.15-gesetzbuecher", "Unter Gesetze siehst du zuerst die Gesetzbücher. Ein Klick öffnet das "
+                + "Führung.", "Asservate", "2.2.14-asservat-herausnahme"),
+            Neu("2.4.01-gesetzbuecher", "Unter Gesetze siehst du zuerst die Gesetzbücher. Ein Klick öffnet das "
                 + "Buch mit allen Paragrafen nach Abschnitten, und jeden Paragrafen klappst du direkt dort auf.",
-                "Gesetze"),
-            Besser("2.2.16-gesetzestext-formatiert", "Gesetzestexte lassen sich jetzt formatieren – mit Absätzen, "
-                + "Aufzählungen, Fett und Kursiv –, und bestehende Texte behalten ihre Zeilen.", "Gesetze"),
-            Fix("2.2.17-zeilenumbrueche", "Zeilenumbrüche in Texten bleiben nach dem Speichern sichtbar, statt "
-                + "zu einer Zeile zusammenzulaufen.", "Bedienung"),
-            Fix("2.2.18-noosei-lange-antworten", "NOOSEI schreibt lange Antworten auf umfangreiche Fragen jetzt zu "
-                + "Ende, statt sie nach wenigen Sätzen abzubrechen.", "NOOSEI"),
-            Neu("2.2.19-parlament", "Das Parlament bekommt einen eigenen Partnerzugang: Gesetzbücher, Badfraks mit "
-                + "ihren Mitgliedern, Personengruppen und Parteien – Doks und Befragungen sieht es nie.", "Partner"),
-            Neu("2.2.20-behoerdenzugang", "Unter Einstellungen → Partnerbehörden stellst du je Behörde ein, welche "
-                + "Akten sie automatisch sieht – auch künftige – und welche Inhalte ihr nie gezeigt werden.", "Partner"),
-            Neu("2.2.21-badfrak", "Fraktionen lassen sich als Badfrak kennzeichnen, und die Fraktionsliste filtert "
-                + "auf Wunsch nur Badfraks.", "Fraktionen"),
-            Fix("2.2.22-partner-doks", "Partner sehen Doks im Doks-Bereich einer Fraktion nur noch, wenn genau "
-                + "dieser Dok für sie freigegeben ist.", "Partner"),
-            Fix("2.2.23-partner-erwaehnung", "Partner bekommen eine Erwähnung nur noch gemeldet, wenn sie die Akte "
-                + "sehen dürfen – und nie aus einem Dok.", "Partner"),
-            Neu("2.2.24-partner-funktionen", "Partnerbehörden können je nach Freischaltung den Beziehungsgraph, den "
-                + "Funkplan und die Lageberichte öffnen – jeweils nur mit dem, was für sie freigegeben ist.", "Partner"),
-            Neu("2.2.25-partner-anfragen", "Partnerbehörden fragen unter „Freigaben anfragen“ nach weiteren Akten; die "
-                + "Führung beantwortet die Anfrage im Eingang, indem sie die passende Akte freigibt.", "Partner"),
-            Neu("2.2.26-noosei-rechtsauskunft", "Partnerbehörden können NOOSEI Fragen zu den Gesetzbüchern stellen; "
-                + "die Antwort zitiert die Paragrafen, Akten sieht diese Rechtsauskunft nie.", "NOOSEI"),
-            Neu("2.2.27-benachrichtigungen-steuern", "In deinem Profil legst du fest, welche Benachrichtigungen die "
+                "Gesetze", "2.2.15-gesetzbuecher"),
+            Besser("2.4.02-gesetzestext-formatiert", "Gesetzestexte lassen sich jetzt formatieren – mit Absätzen, "
+                + "Aufzählungen, Fett und Kursiv –, und bestehende Texte behalten ihre Zeilen.",
+                "Gesetze", "2.2.16-gesetzestext-formatiert"),
+            Fix("2.4.03-zeilenumbrueche", "Zeilenumbrüche in Texten bleiben nach dem Speichern sichtbar, statt "
+                + "zu einer Zeile zusammenzulaufen.", "Bedienung", "2.2.17-zeilenumbrueche"),
+            Fix("2.4.04-noosei-lange-antworten", "NOOSEI schreibt lange Antworten auf umfangreiche Fragen jetzt zu "
+                + "Ende, statt sie nach wenigen Sätzen abzubrechen.", "NOOSEI", "2.2.18-noosei-lange-antworten"),
+            Neu("2.4.05-parlament", "Das Parlament bekommt einen eigenen Partnerzugang: Gesetzbücher, Badfraks mit "
+                + "ihren Mitgliedern, Personengruppen und Parteien – Doks und Befragungen sieht es nie.",
+                "Partner", "2.2.19-parlament"),
+            Neu("2.4.06-behoerdenzugang", "Unter Einstellungen → Partnerbehörden stellst du je Behörde ein, welche "
+                + "Akten sie automatisch sieht – auch künftige – und welche Inhalte ihr nie gezeigt werden.",
+                "Partner", "2.2.20-behoerdenzugang"),
+            Neu("2.4.07-badfrak", "Fraktionen lassen sich als Badfrak kennzeichnen, und die Fraktionsliste filtert "
+                + "auf Wunsch nur Badfraks.", "Fraktionen", "2.2.21-badfrak"),
+            Fix("2.4.08-partner-doks", "Partner sehen Doks im Doks-Bereich einer Fraktion nur noch, wenn genau "
+                + "dieser Dok für sie freigegeben ist.", "Partner", "2.2.22-partner-doks"),
+            Fix("2.4.09-partner-erwaehnung", "Partner bekommen eine Erwähnung nur noch gemeldet, wenn sie die Akte "
+                + "sehen dürfen – und nie aus einem Dok.", "Partner", "2.2.23-partner-erwaehnung"),
+            Neu("2.4.10-partner-funktionen", "Partnerbehörden können je nach Freischaltung den Beziehungsgraph, den "
+                + "Funkplan und die Lageberichte öffnen – jeweils nur mit dem, was für sie freigegeben ist.",
+                "Partner", "2.2.24-partner-funktionen"),
+            Neu("2.4.11-partner-anfragen", "Partnerbehörden fragen unter „Freigaben anfragen“ nach weiteren Akten; die "
+                + "Führung beantwortet die Anfrage im Eingang, indem sie die passende Akte freigibt.",
+                "Partner", "2.2.25-partner-anfragen"),
+            Neu("2.4.12-noosei-rechtsauskunft", "Partnerbehörden können NOOSEI Fragen zu den Gesetzbüchern stellen; "
+                + "die Antwort zitiert die Paragrafen, Akten sieht diese Rechtsauskunft nie.",
+                "NOOSEI", "2.2.26-noosei-rechtsauskunft"),
+        ]),
+
+        new("2.5.00", new DateTime(2026, 10, 13), "Meine Schicht und Benachrichtigungen nach Wunsch",
+        [
+            Neu("2.5.00-benachrichtigungen-steuern", "In deinem Profil legst du fest, welche Benachrichtigungen die "
                 + "Glocke klingeln lassen. Was du ausschaltest, landet still im Posteingang, und auf Wunsch bleibt die "
-                + "Glocke während deiner Abmeldung ruhig. Erwähnungen kommen immer an.", "Bedienung"),
-            Neu("2.2.28-discord-pings", "Ob Discord dich bei Erwähnungen, Aufgaben und Wiedervorlagen sofort anpingt, "
+                + "Glocke während deiner Abmeldung ruhig. Erwähnungen kommen immer an.",
+                "Bedienung", "2.2.27-benachrichtigungen-steuern"),
+            Neu("2.5.01-discord-pings", "Ob Discord dich bei Erwähnungen, Aufgaben und Wiedervorlagen sofort anpingt, "
                 + "gar nicht oder gesammelt in einem Tagesüberblick um 18 Uhr, legst du jetzt selbst im Profil fest.",
-                "Discord"),
-            Neu("2.2.29-meine-schicht", "Neu unter Mein Dienst: Meine Schicht zeigt auf einer Seite deine offenen "
+                "Discord", "2.2.28-discord-pings"),
+            Neu("2.5.02-meine-schicht", "Neu unter Mein Dienst: Meine Schicht zeigt auf einer Seite deine offenen "
                 + "Aufgaben, Wiedervorlagen, ungelesenen Erwähnungen, offene Quittierungen, neue Taskforce-Nachrichten und "
-                + "was seit deinem letzten Besuch passiert ist. Auf Wunsch ist sie deine Startseite.", "Bedienung"),
-            Neu("2.2.30-taskforce-ungelesen", "Die Taskforce-Liste zeigt, wie viele Chat-Nachrichten du noch nicht "
-                + "gelesen hast, und im Chat markiert eine Linie, was seit deinem letzten Besuch neu ist.", "Taskforces"),
-            Neu("2.2.31-quittierung-erinnern", "Eine Ankündigung mit Lesebestätigung bekommt eine Frist: Wer danach noch "
-                + "nicht quittiert hat, wird einmal erinnert, und die Führung sieht am Brett, wer noch fehlt.", "Brett"),
-            Neu("2.2.32-suche-ueberwachen", "Eine gespeicherte Suche lässt sich überwachen: Sie läuft dann etwa stündlich "
+                + "was seit deinem letzten Besuch passiert ist. Auf Wunsch ist sie deine Startseite.",
+                "Bedienung", "2.2.29-meine-schicht"),
+            Neu("2.5.03-taskforce-ungelesen", "Die Taskforce-Liste zeigt, wie viele Chat-Nachrichten du noch nicht "
+                + "gelesen hast, und im Chat markiert eine Linie, was seit deinem letzten Besuch neu ist.",
+                "Taskforces", "2.2.30-taskforce-ungelesen"),
+            Neu("2.5.04-quittierung-erinnern", "Eine Ankündigung mit Lesebestätigung bekommt eine Frist: Wer danach noch "
+                + "nicht quittiert hat, wird einmal erinnert, und die Führung sieht am Brett, wer noch fehlt.",
+                "Brett", "2.2.31-quittierung-erinnern"),
+            Neu("2.5.05-suche-ueberwachen", "Eine gespeicherte Suche lässt sich überwachen: Sie läuft dann etwa stündlich "
                 + "für dich und meldet über die Glocke, was neu dazugekommen ist. Öffnest du sie, sind die neuen Treffer "
-                + "markiert.", "Suche"),
-            Neu("2.2.33-gegenaufklaerung-meldet", "Die Regeln der Gegenaufklärung melden neue Auffälligkeiten jetzt "
+                + "markiert.", "Suche", "2.2.32-suche-ueberwachen"),
+        ]),
+
+        new("2.6.00", new DateTime(2026, 10, 14), "Ehrungen, Inaktivitäts-Radar und Meldungen für die Führung",
+        [
+            Neu("2.6.00-gegenaufklaerung-meldet", "Die Regeln der Gegenaufklärung melden neue Auffälligkeiten jetzt "
                 + "von selbst in der Glocke der Führung, ohne einen Namen zu nennen. Unter Auffälligkeiten ist markiert, "
                 + "was seit deinem letzten Blick neu ist, und für jede Regel lässt sich die Meldung abschalten.",
-                "Gegenaufklärung"),
-            Neu("2.2.34-noosei-auffaelligkeiten-melden", "Auch neue Auffälligkeiten bei der NOOSEI-Nutzung melden sich "
-                + "von selbst in der Glocke der Führung und sind in den Kontingenten als neu markiert.", "NOOSEI"),
-            Fix("2.2.35-suche-regel-link", "Ein Suchtreffer auf eine Gegenaufklärungs-Regel öffnet jetzt die Regeln "
-                + "statt der Chronik.", "Suche"),
-            Fix("2.2.36-chronik-neu-markierung", "Die Linie „Seit deinem letzten Besuch“ in der Chronik verschwindet "
-                + "beim Neuladen der Seite nicht mehr, bevor du sie gesehen hast.", "Chronik"),
-            Fix("2.2.37-lagebild-farbe", "Das Lagebild der Gegenaufklärung warnt jetzt auch, wenn nur Auffälligkeiten "
-                + "der Stufe „Hoch“ vorliegen.", "Gegenaufklärung"),
-            Neu("2.2.38-ehrenzeichen", "Die Führung kann Ehrenzeichen verleihen. Die Ehrung wird am Schwarzen Brett und "
-                + "auf Discord bekanntgegeben, und der Geehrte bekommt eine Meldung in der Glocke.", "Personal"),
-            Neu("2.2.39-urkunden", "Zu jeder Ehrung, Ernennung und Beförderung lässt sich eine Urkunde im Querformat "
-                + "drucken, wahlweise mit Codename oder Klarname.", "Personal"),
-            Neu("2.2.40-ehrenzeichen-plaketten", "Verliehene Ehrenzeichen erscheinen als Plaketten im Profil, im "
+                "Gegenaufklärung", "2.2.33-gegenaufklaerung-meldet"),
+            Neu("2.6.01-noosei-auffaelligkeiten-melden", "Auch neue Auffälligkeiten bei der NOOSEI-Nutzung melden sich "
+                + "von selbst in der Glocke der Führung und sind in den Kontingenten als neu markiert.",
+                "NOOSEI", "2.2.34-noosei-auffaelligkeiten-melden"),
+            Fix("2.6.02-suche-regel-link", "Ein Suchtreffer auf eine Gegenaufklärungs-Regel öffnet jetzt die Regeln "
+                + "statt der Chronik.", "Suche", "2.2.35-suche-regel-link"),
+            Fix("2.6.03-chronik-neu-markierung", "Die Linie „Seit deinem letzten Besuch“ in der Chronik verschwindet "
+                + "beim Neuladen der Seite nicht mehr, bevor du sie gesehen hast.",
+                "Chronik", "2.2.36-chronik-neu-markierung"),
+            Fix("2.6.04-lagebild-farbe", "Das Lagebild der Gegenaufklärung warnt jetzt auch, wenn nur Auffälligkeiten "
+                + "der Stufe „Hoch“ vorliegen.", "Gegenaufklärung", "2.2.37-lagebild-farbe"),
+            Neu("2.6.05-ehrenzeichen", "Die Führung kann Ehrenzeichen verleihen. Die Ehrung wird am Schwarzen Brett und "
+                + "auf Discord bekanntgegeben, und der Geehrte bekommt eine Meldung in der Glocke.",
+                "Personal", "2.2.38-ehrenzeichen"),
+            Neu("2.6.06-urkunden", "Zu jeder Ehrung, Ernennung und Beförderung lässt sich eine Urkunde im Querformat "
+                + "drucken, wahlweise mit Codename oder Klarname.", "Personal", "2.2.39-urkunden"),
+            Neu("2.6.07-ehrenzeichen-plaketten", "Verliehene Ehrenzeichen erscheinen als Plaketten im Profil, im "
                 + "Organigramm, in der Bestenliste, im Lagezentrum und auf Wunsch am öffentlichen Führungsprofil.",
-                "Personal"),
-            Fix("2.2.41-personalakte-druck", "Die Druckansicht der Personalakte zeigt den Kündigungsgrund nur noch der "
-                + "Führung, so wie die Akte selbst.", "Personal"),
-            Neu("2.2.42-inaktivitaets-radar", "Unter Personal zeigt der neue Reiter „Inaktiv“ der Führung, wer seit "
+                "Personal", "2.2.40-ehrenzeichen-plaketten"),
+            Fix("2.6.08-personalakte-druck", "Die Druckansicht der Personalakte zeigt den Kündigungsgrund nur noch der "
+                + "Führung, so wie die Akte selbst.", "Personal", "2.2.41-personalakte-druck"),
+            Neu("2.6.09-inaktivitaets-radar", "Unter Personal zeigt der neue Reiter „Inaktiv“ der Führung, wer seit "
                 + "Wochen kein Lebenszeichen auf der Seite gegeben hat – abgemeldete Tage zählen nicht mit. Von dort aus "
-                + "lässt sich nachfassen, ein Vermerk schreiben oder eine Kündigung prüfen.", "Personal"),
-            Neu("2.2.43-gefahrenlage-discord", "Ein eigener Discord-Kanal zeigt jetzt laufend alle Fraktionen mit einem "
+                + "lässt sich nachfassen, ein Vermerk schreiben oder eine Kündigung prüfen.",
+                "Personal", "2.2.42-inaktivitaets-radar"),
+            Neu("2.6.10-gefahrenlage-discord", "Ein eigener Discord-Kanal zeigt jetzt laufend alle Fraktionen mit einem "
                 + "Bedrohungs-Score über 90, die höchste zuerst. Die Nachricht wird aktualisiert statt neu gepostet; "
-                + "Verschlusssachen stehen nie darauf.", "Discord"),
+                + "Verschlusssachen stehen nie darauf.", "Discord", "2.2.43-gefahrenlage-discord"),
         ]),
     ];
 }
