@@ -101,6 +101,53 @@ public class DiscordWebhookService(
         }
     }
 
+    // golden "EHRUNG" embed to the decoration channel; pings only the honoured agent, names the codename only
+    public async Task PushDecorationAsync(string recipientAgentId, string recipientCodename, string decorationName,
+        DateTime awardedOn, string citationPlain, string? awardedByName, string? href,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var config = await GetCachedConfigAsync(cancellationToken);
+            if (!config.Enabled
+                || !config.Webhooks.TryGetValue(NotificationType.DecorationAwarded, out var url)
+                || string.IsNullOrWhiteSpace(url))
+            {
+                return;
+            }
+
+            var recipientIds = await ResolveDiscordIdsAsync(new[] { recipientAgentId }, cancellationToken);
+            var mention = recipientIds.Count > 0 ? MentionSpec.Users(recipientIds) : MentionSpec.None;
+
+            var link = Link(config.SiteBaseUrl, href);
+            var fields = new List<object>
+            {
+                new { name = "👤 Agent", value = Field(recipientCodename), inline = true },
+                new { name = "🎖️ Ehrenzeichen", value = Field(decorationName), inline = true },
+                new { name = "📅 Verliehen am", value = awardedOn.ToString("dddd, d. MMMM yyyy"), inline = false },
+            };
+            if (!string.IsNullOrWhiteSpace(citationPlain))
+            {
+                fields.Add(new { name = "📜 Verleihungstext", value = Field(Truncate(citationPlain, 1024)), inline = false });
+            }
+            fields.Add(new { name = "✍️ Verliehen durch", value = Field(awardedByName ?? "—"), inline = false });
+            var embed = new
+            {
+                title = "🎖️ EHRUNG",
+                description = link,
+                color = 0xC9A227, // decoration gold
+                footer = new { text = "National Office of Security Enforcement" },
+                fields = fields.ToArray(),
+            };
+            await SendEmbedAsync(url, mention, embed, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            logger.LogWarning(ex, "Discord decoration embed failed.");
+        }
+    }
+
     // official "KÜNDIGUNG" notice to its own channel; mention chips inside the embed, so nobody is pinged
     public async Task PushTerminationAsync(string subjectAgentId, string subjectDisplay, string? executorAgentId,
         string? executorDisplay, DateTime terminatedAt, string reasonPlain, string? href,
@@ -475,6 +522,7 @@ public class DiscordWebhookService(
         NotificationType.AppointmentScheduled => "/kalender",
         NotificationType.PersonnelEntry => "/personal",
         NotificationType.AgentTerminated => "/personal",
+        NotificationType.DecorationAwarded => "/personal",
         // the one outward category: its fallback must stay outside, or a generic push would post an internal
         // destination into the public channel
         NotificationType.PublicWantedPublished => "/gesucht",
@@ -503,6 +551,7 @@ public class DiscordWebhookService(
         NotificationType.AppointmentScheduled => "📅 Ein neuer Termin wurde angelegt.",
         NotificationType.PersonnelEntry => "📝 Neuer Personalakten-Eintrag.",
         NotificationType.AgentTerminated => "⚠️ Eine Kündigung wurde ausgesprochen.",
+        NotificationType.DecorationAwarded => "🎖️ Ein Ehrenzeichen wurde verliehen.",
         NotificationType.PublicWantedPublished => "🔎 Neue öffentliche Fahndung.",
         NotificationType.PublicPressPublished => "📰 Neue Pressemitteilung.",
         NotificationType.PublicTicketCreated => "📨 Ein neues Ticket liegt im Eingang.",

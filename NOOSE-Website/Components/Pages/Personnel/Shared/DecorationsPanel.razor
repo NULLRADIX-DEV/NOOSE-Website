@@ -1,0 +1,233 @@
+@* Decorations in a personnel file: award, correct, revoke (leadership, never on oneself) and the certificate link. *@
+@inject IDecorationService Decorations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudStack Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.MilitaryTech" Color="Color.Warning" />
+        <MudText Typo="Typo.h6">Ehrenzeichen</MudText>
+        <MudSpacer />
+        @if (MayAward)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AwardAsync"
+                       StartIcon="@Icons.Material.Filled.Add" Disabled="_busy">Ehrenzeichen verleihen</MudButton>
+        }
+    </MudStack>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_awards.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Ehrenzeichen verliehen.</MudText>
+    }
+    else
+    {
+        @foreach (var a in _awards)
+        {
+            <MudPaper Class="@(a.IsRevoked ? "pa-3 ehrung-aberkannt" : "pa-3")" Elevation="1">
+                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Start">
+                    <DecorationPlaque Name="@a.DecorationName" Symbol="@a.Symbol" Tier="@a.Tier" AwardedOn="@a.AwardedOn" Large="true" />
+                    <div style="flex:1;min-width:0;">
+                        <MudText Typo="Typo.subtitle1" Class="ehrung-name"><b>@a.DecorationName</b></MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            Verliehen am @a.AwardedOn.ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(a.AwardedByName) ? "" : $" durch {a.AwardedByName}")
+                        </MudText>
+                        <MudText Typo="Typo.body2" Class="mt-1 ehrung-text" Style="white-space:pre-wrap;">@a.Citation</MudText>
+                        @if (a.IsRevoked)
+                        {
+                            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                                Aberkannt am @a.RevokedAt!.Value.ToLocalTime().ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(a.RevokedByName) ? "" : $" durch {a.RevokedByName}"):
+                                <span style="white-space:pre-wrap;">@a.RevocationReason</span>
+                            </MudAlert>
+                        }
+                    </div>
+                    <MudStack Row="true" Spacing="0">
+                        @if (DecorationRules.MayPrint(_user, AgentId, a.IsRevoked))
+                        {
+                            <MudTooltip Text="Urkunde drucken">
+                                <MudIconButton Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Small"
+                                               Href="@($"/urkunden/ehrung/{a.Id}")" Target="_blank"
+                                               aria-label="Urkunde drucken" />
+                            </MudTooltip>
+                        }
+                        @if (MayManage && !a.IsRevoked)
+                        {
+                            <MudTooltip Text="Korrigieren">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="_busy"
+                                               OnClick="@(() => EditAsync(a))" aria-label="Ehrung korrigieren" />
+                            </MudTooltip>
+                            <MudTooltip Text="Aberkennen">
+                                <MudIconButton Icon="@Icons.Material.Filled.RemoveCircleOutline" Color="Color.Error"
+                                               Size="Size.Small" Disabled="_busy"
+                                               OnClick="@(() => RevokeAsync(a))" aria-label="Ehrung aberkennen" />
+                            </MudTooltip>
+                        }
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public Agent Agent { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _busy;
+    private ClaimsPrincipal _user = new();
+    private IReadOnlyList<DecorationAwardView> _awards = [];
+    private string? _loadedId;
+
+    private string AgentId => Agent.Id;
+
+    // mirrors the service guards: leadership with write access, never on one's own file
+    private bool MayManage => _user.IsLeadership() && _user.MayWrite()
+        && !string.Equals(_user.GetAgentId(), AgentId, StringComparison.Ordinal);
+
+    private bool MayAward => MayManage && AgentSelection.IsSelectable(Agent);
+
+    protected override async Task OnInitializedAsync() => _user = (await AuthStateTask).User;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == AgentId)
+        {
+            return;
+        }
+        _loadedId = AgentId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        try
+        {
+            _awards = await Decorations.GetForAgentAsync(AgentId, _user);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ehrenzeichen konnten nicht geladen werden: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _load = false;
+        }
+    }
+
+    private async Task AwardAsync()
+    {
+        if (await CatalogAsync() is not { } catalog)
+        {
+            return;
+        }
+        if (!catalog.Any(d => d.IsActive))
+        {
+            Snackbar.Add("Es gibt noch kein aktives Ehrenzeichen. Lege eines unter Einstellungen → Ehrenzeichen an.", Severity.Info);
+            return;
+        }
+        var input = await DecorationAwardDialog.ShowAsync(DialogService, AgentId, Codename, catalog, _user);
+        if (input is null)
+        {
+            return;
+        }
+        await RunAsync(async () =>
+        {
+            await Decorations.AwardAsync(input, _user);
+            await DiscardDraftAsync(DecorationAwardDialog.DraftScopeFor(AgentId, null));
+            Snackbar.Add($"Ehrenzeichen an {Codename} verliehen.", Severity.Success);
+        });
+    }
+
+    private async Task EditAsync(DecorationAwardView award)
+    {
+        if (await CatalogAsync() is not { } catalog)
+        {
+            return;
+        }
+        var input = await DecorationAwardDialog.ShowAsync(DialogService, AgentId, Codename, catalog, _user, award);
+        if (input is null)
+        {
+            return;
+        }
+        await RunAsync(async () =>
+        {
+            await Decorations.UpdateAsync(award.Id, input, _user);
+            await DiscardDraftAsync(DecorationAwardDialog.DraftScopeFor(AgentId, award.Id));
+            Snackbar.Add("Ehrung korrigiert.", Severity.Success);
+        });
+    }
+
+    private async Task RevokeAsync(DecorationAwardView award)
+    {
+        var reason = await ReasonDialog.ShowAsync(DialogService, "Ehrung aberkennen",
+            $"„{award.DecorationName}“ vom {award.AwardedOn:dd.MM.yyyy} wird aberkannt. Sie bleibt mit deinem Grund "
+            + "durchgestrichen in der Personalakte stehen und verschwindet aus Profil, Organigramm, Bestenliste, "
+            + "Lagezentrum und vom öffentlichen Führungsprofil; der Eintrag am Schwarzen Brett wandert in den Papierkorb.",
+            confirmText: "Aberkennen", label: "Grund", mandatoryReason: true, colour: Color.Error,
+            maxLength: DecorationRules.MaxReasonLength);
+        if (reason is null)
+        {
+            return;
+        }
+        await RunAsync(async () =>
+        {
+            await Decorations.RevokeAsync(award.Id, reason, _user);
+            Snackbar.Add("Ehrung aberkannt.", Severity.Success);
+        });
+    }
+
+    private async Task<IReadOnlyList<DecorationView>?> CatalogAsync()
+    {
+        try
+        {
+            return await Decorations.GetCatalogAsync(_user);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Ehrenzeichen konnten nicht geladen werden: {ex.Message}", Severity.Error);
+            return null;
+        }
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Das hat nicht geklappt: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DiscardDraftAsync(string scope)
+    {
+        try
+        {
+            await TextDraft.DiscardScopeAsync(JS, _user.GetAgentId(), scope);
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    private string Codename => string.IsNullOrWhiteSpace(Agent.Codename) ? "Unbenannter Agent" : Agent.Codename;
+}

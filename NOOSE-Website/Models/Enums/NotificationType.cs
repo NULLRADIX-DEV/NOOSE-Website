@@ -141,6 +141,10 @@ public enum NotificationType
 
     /// <summary>NOOSEI usage stood out in a new way this week. Not routable, for the same reason.</summary>
     NooseiAnomaly = 41,
+
+    /// <summary>Leadership awarded the recipient a decoration. Bell for the recipient; the Discord post is its own
+    /// embed that pings the recipient, an announcement about them like a personnel entry.</summary>
+    DecorationAwarded = 42,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -190,6 +194,7 @@ public static class NotificationTypeDisplay
         NotificationType.SavedSearchHit => "Neue Treffer einer gespeicherten Suche",
         NotificationType.CounterIntelFinding => "Gegenaufklärung",
         NotificationType.NooseiAnomaly => "NOOSEI-Auffälligkeit",
+        NotificationType.DecorationAwarded => "Ehrung",
         _ => "Benachrichtigung",
     };
 
@@ -238,6 +243,7 @@ public static class NotificationTypeDisplay
         NotificationType.SavedSearchHit => Icons.Material.Filled.SavedSearch,
         NotificationType.CounterIntelFinding => Icons.Material.Filled.GppMaybe,
         NotificationType.NooseiAnomaly => Icons.Material.Filled.DataUsage,
+        NotificationType.DecorationAwarded => Icons.Material.Filled.MilitaryTech,
         _ => Icons.Material.Filled.Notifications,
     };
 }

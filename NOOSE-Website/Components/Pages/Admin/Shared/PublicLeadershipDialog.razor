@@ -3,6 +3,7 @@
 @using NOOSE_Website.Models.Public
 @inject IPublicLeadershipService Leadership
 @inject IAgentManagementService Agents
+@inject IDecorationService Decorations
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -13,8 +14,8 @@
                 ändert diesen Eintrag nicht von selbst.
             </MudText>
 
-            <MudSelect T="string" @bind-Value="_input.AgentId" Label="Agent" Variant="Variant.Outlined"
-                       Margin="Margin.Dense" Disabled="@(_existing is not null)">
+            <MudSelect T="string" @bind-Value="_input.AgentId" @bind-Value:after="LoadDecorationsAsync" Label="Agent"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="@(_existing is not null)">
                 @foreach (var a in _candidates)
                 {
                     <MudSelectItem T="string" Value="@a.Id">@Label(a)</MudSelectItem>
@@ -29,6 +30,25 @@
                           MaxLength="160" />
             <MudNumericField T="int" @bind-Value="_input.SortOrder" Label="Reihenfolge" Min="0" Max="9999"
                              Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:160px;" />
+
+            @if (_decorations.Count > 0)
+            {
+                <MudText Typo="Typo.subtitle2">Ehrenzeichen zeigen</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Angehakte Ehrungen gehen mit diesem Eintrag nach außen, als Name und Symbol. Eine Aberkennung nimmt
+                    sie von selbst wieder heraus.
+                </MudText>
+                @foreach (var d in _decorations)
+                {
+                    <MudCheckBox T="bool" Value="@_selected.Contains(d.Id)" ValueChanged="@(on => Toggle(d.Id, on))"
+                                 Color="Color.Primary" Dense="true">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <DecorationPlaque Name="@d.DecorationName" Symbol="@d.Symbol" Tier="@d.Tier" />
+                            <span>@d.DecorationName · @d.AwardedOn.ToString("dd.MM.yyyy")</span>
+                        </MudStack>
+                    </MudCheckBox>
+                }
+            }
         </MudStack>
     </DialogContent>
     <DialogActions>
@@ -47,6 +67,9 @@
     private readonly PublicLeadershipInput _input = new();
     private PublicLeadershipEdit? _existing;
     private List<Agent> _candidates = new();
+    private IReadOnlyList<DecorationAwardView> _decorations = [];
+    private readonly HashSet<string> _selected = new(StringComparer.Ordinal);
+    private bool _decorationsLoaded;
     private bool _busy;
 
     private bool MaySave => !string.IsNullOrWhiteSpace(_input.AgentId)
@@ -64,6 +87,8 @@
             _input.Title = _existing.Title;
             _input.RoleText = _existing.RoleText;
             _input.SortOrder = _existing.SortOrder;
+            _selected.UnionWith(_existing.DecorationAwardIds);
+            await LoadDecorationsAsync();
         }
 
         try
@@ -90,11 +115,46 @@
             : $"{a.Codename} · {rank}";
     }
 
+    private async Task LoadDecorationsAsync()
+    {
+        _decorations = [];
+        _decorationsLoaded = false;
+        if (string.IsNullOrWhiteSpace(_input.AgentId))
+        {
+            return;
+        }
+        try
+        {
+            _decorations = (await Decorations.GetForAgentAsync(_input.AgentId, User)).Where(d => !d.IsRevoked).ToList();
+            _decorationsLoaded = true;
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    private void Toggle(string awardId, bool on)
+    {
+        if (on)
+        {
+            _selected.Add(awardId);
+        }
+        else
+        {
+            _selected.Remove(awardId);
+        }
+    }
+
     private async Task SaveAsync()
     {
         _busy = true;
         try
         {
+            // only what this agent still holds; unloaded leaves the released copies untouched
+            _input.DecorationAwardIds = _decorationsLoaded
+                ? _decorations.Where(d => _selected.Contains(d.Id)).Select(d => d.Id).ToList()
+                : null;
             await Leadership.SaveAsync(_input, User);
             MudDialog.Close(DialogResult.Ok(true));
         }

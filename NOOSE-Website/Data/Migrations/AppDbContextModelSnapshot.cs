@@ -3214,6 +3214,160 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("AuffaelligkeitMeldungen");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Decorations.Decoration", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<string>("DefaultCitation")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Standardtext");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("Beschreibung");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Aktiv");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int")
+                        .HasColumnName("Reihenfolge");
+
+                    b.Property<string>("Symbol")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("Symbol");
+
+                    b.Property<int>("Tier")
+                        .HasColumnType("int")
+                        .HasColumnName("Stufe");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Ehrenzeichen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Decorations.DecorationAward", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AnnouncementId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("AnkuendigungId");
+
+                    b.Property<string>("AwardedById")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("VerliehenVonId");
+
+                    b.Property<string>("AwardedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("VerliehenVonName");
+
+                    b.Property<DateTime>("AwardedOn")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("VerliehenAm");
+
+                    b.Property<string>("Citation")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("Verleihungstext");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<string>("DecorationId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("EhrenzeichenId");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int?>("RecipientRank")
+                        .HasColumnType("int")
+                        .HasColumnName("Dienstgrad");
+
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("AberkennungsGrund");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AberkanntAm");
+
+                    b.Property<string>("RevokedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AberkanntVonName");
+
+                    b.Property<string>("SignatoryName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("UnterzeichnerName");
+
+                    b.Property<int?>("SignatoryRank")
+                        .HasColumnType("int")
+                        .HasColumnName("UnterzeichnerDienstgrad");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AwardedOn");
+
+                    b.HasIndex("DecorationId");
+
+                    b.HasIndex("AgentId", "RevokedAt");
+
+                    b.ToTable("Ehrungen");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>
                 {
                     b.Property<string>("Id")
@@ -9006,6 +9160,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("ErstelltVonId");
 
+                    b.Property<string>("DecorationsJson")
+                        .HasColumnType("longtext")
+                        .HasColumnName("EhrenzeichenJson");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -11147,6 +11305,23 @@ namespace NOOSE_Website.Data.Migrations
                         .HasForeignKey("AgentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Decorations.DecorationAward", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Decorations.Decoration", "Decoration")
+                        .WithMany()
+                        .HasForeignKey("DecorationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Decoration");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>

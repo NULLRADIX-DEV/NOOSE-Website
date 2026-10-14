@@ -35,4 +35,8 @@ public interface IPublicLeadershipService
     Task RetractAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Rewrites a corrected award in every released copy, or removes it when <paramref name="copy"/> is null. Unguarded: callers gate.</summary>
+    Task SyncDecorationAsync(string awardId, Models.Decorations.PublicDecorationCopy? copy,
+        CancellationToken cancellationToken = default);
 }

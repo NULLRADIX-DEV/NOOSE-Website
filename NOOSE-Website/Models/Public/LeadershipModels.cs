@@ -1,4 +1,6 @@
-﻿namespace NOOSE_Website.Models.Public;
+﻿using NOOSE_Website.Models.Enums;
+
+namespace NOOSE_Website.Models.Public;
 
 /// <summary>One released leadership entry as an anonymous visitor sees it.</summary>
 /// <remarks>
@@ -11,7 +13,11 @@ public record PublicLeadershipCard(
     string DisplayName,
     string Title,
     string? RoleText,
-    bool HasPhoto);
+    bool HasPhoto,
+    IReadOnlyList<PublicLeadershipDecoration> Decorations);
+
+/// <summary>One released decoration on a leadership card: what it is called and how it looks, nothing else.</summary>
+public record PublicLeadershipDecoration(string Name, string Symbol, DecorationTier Tier);
 
 /// <summary>One entry as the editor works on it.</summary>
 /// <remarks>Inward: it names the agent behind the entry, which the outward card deliberately does not.</remarks>
@@ -26,7 +32,8 @@ public record PublicLeadershipEdit(
     int SortOrder,
     bool HasPhoto,
     DateTime? PublishedAt,
-    string? PublishedByCodename);
+    string? PublishedByCodename,
+    IReadOnlyList<string> DecorationAwardIds);
 
 /// <summary>What the editor submits.</summary>
 public class PublicLeadershipInput
@@ -37,6 +44,9 @@ public class PublicLeadershipInput
     public string Title { get; set; } = string.Empty;
     public string? RoleText { get; set; }
     public int SortOrder { get; set; }
+
+    /// <summary>Awards to release with the entry; null leaves the released copies as they are.</summary>
+    public List<string>? DecorationAwardIds { get; set; }
 }
 
 /// <summary>A released photo, as the anonymous endpoint streams it.</summary>

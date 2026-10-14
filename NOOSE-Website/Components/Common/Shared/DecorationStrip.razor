@@ -1,0 +1,23 @@
+@* A row of plaques for one agent, capped with a "+N" for the rest. *@
+
+@if (Plaques is { Count: > 0 } plaques)
+{
+    <span class="ehrenzeichen-leiste @Class">
+        @foreach (var p in plaques.Take(Max))
+        {
+            <DecorationPlaque Name="@p.Name" Symbol="@p.Symbol" Tier="@p.Tier" Count="@p.Count" AwardedOn="@p.LatestOn" />
+        }
+        @if (plaques.Count > Max)
+        {
+            <MudTooltip Text="@string.Join(", ", plaques.Skip(Max).Select(p => p.Name))">
+                <span class="ehrenzeichen-mehr">+@(plaques.Count - Max)</span>
+            </MudTooltip>
+        }
+    </span>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<DecorationPlaqueView>? Plaques { get; set; }
+    [Parameter] public int Max { get; set; } = DecorationRules.TileMax;
+    [Parameter] public string? Class { get; set; }
+}

@@ -52,6 +52,7 @@ public class PublicWantedModelTests
         typeof(PublicFactionBoard),
         // the leadership chart: the one outward surface that names agents, and only released entries
         typeof(PublicLeadershipCard),
+        typeof(PublicLeadershipDecoration),
         // the press hub and one release
         typeof(PublicPressCard),
         typeof(PublicPressView),

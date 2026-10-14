@@ -48,6 +48,39 @@ internal static class PersonnelChapter
                 """,
                 DiagramKey: "befoerderung"),
 
+            new Article("art-ehrungen", "ehrungen-und-urkunden", "Ehrungen und Urkunden",
+                "Ehrenzeichen verleihen, bekanntgeben, aberkennen und als Urkunde drucken.",
+                """
+                <p>Die Führung kann einem Agenten ein <strong>Ehrenzeichen</strong> verleihen - etwa eine
+                Verdienst- oder Tapferkeitsmedaille. Welche es gibt, legt die Führung unter
+                <em>Einstellungen → Ehrenzeichen</em> fest. Dort steht zu jedem auch ein Standardtext, der beim
+                Verleihen schon eingetragen ist.</p>
+                <p>Verliehen wird in der Personalakte, Reiter <em>Auszeichnungen</em>, über
+                <em>Ehrenzeichen verleihen</em>: Ehrenzeichen wählen, Tag der Verleihung und Verleihungstext
+                eintragen. Drei Schalter entscheiden über die Bekanntgabe: ein Eintrag am Schwarzen Brett, ein
+                Beitrag im Discord-Kanal für Ehrungen, der den Geehrten erwähnt, und eine Meldung in seiner Glocke.
+                Genannt wird immer nur der Codename. Dasselbe Ehrenzeichen kann ein Agent mehrfach bekommen; sich
+                selbst kann niemand etwas verleihen.</p>
+                <p>Verliehene Ehrenzeichen erscheinen als kleine <strong>Plaketten</strong> in der Personalakte, im
+                eigenen Profil, im Organigramm, in der Bestenliste und einige Wochen lang im Lagezentrum. Auf dem
+                öffentlichen Führungsprofil stehen nur die, die die Führung dort ausdrücklich angehakt hat.</p>
+                <p>Eine Ehrung lässt sich korrigieren - dann ändern sich auch der Eintrag am Schwarzen Brett und das
+                Führungsprofil - oder <strong>aberkennen</strong>. Eine aberkannte Ehrung bleibt mit dem Grund
+                durchgestrichen und ausgegraut in der Personalakte stehen, verschwindet aber aus Profil, Organigramm,
+                Bestenliste, Lagezentrum und vom Führungsprofil, und ihr Eintrag am Schwarzen Brett wandert in den
+                Papierkorb. Über die eigenen Ehrungen entscheidet immer jemand anderes.</p>
+                <p>Zu jeder Ehrung gibt es eine <strong>Urkunde</strong> im Querformat, ebenso zu jeder Ernennung
+                und Beförderung im Dienstgrad-Verlauf. Drucken dürfen die Führung und der Geehrte selbst. Vor dem
+                Druck wählst du, ob der Codename oder der Klarname darauf steht. Unterschrieben ist sie von der
+                Behördenleitung, die unter <em>Einstellungen → Ehrenzeichen</em> eingetragen ist; eine
+                Ehrungs-Urkunde behält die Unterschrift vom Tag der Verleihung.</p>
+                """,
+                RoleplayHtml: """
+                <p>Eine Ehrung ist ein feierlicher Moment. Trag sie hier ein - mit dem Tag der Übergabe als Datum -,
+                druck die Urkunde aus und übergib Medaille und Urkunde dann im Spiel, bei einem Antreten oder einer
+                Besprechung.</p>
+                """),
+
             new Article("art-ausbildung", "ausbildungsmodule", "Ausbildungsmodule",
                 "Die Abhak-Liste der Einarbeitung.",
                 """

@@ -181,6 +181,7 @@
                             <StatTile Icon="@Icons.Material.Filled.TaskAlt" Label="Gelöste Vorgänge" Value="@_stats.SolvedCases.ToString()" />
                         </MudStack>
                         <MudText Typo="Typo.subtitle2" Class="mb-2">Auszeichnungen</MudText>
+                        <MyDecorations User="_user" />
                         <AgentBadgesPanel AgentId="@_agent.Id" />
                     </MudPaper>
                 </MudItem>

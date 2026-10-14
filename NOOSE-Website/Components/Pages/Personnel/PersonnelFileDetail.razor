@@ -114,6 +114,11 @@ else
                     <ModulesPanel AgentId="@_agent.Id" MayMark="@AgentSelection.IsSelectable(_agent)" />
                 </MudTabPanel>
                 <MudTabPanel Text="Auszeichnungen" Icon="@Icons.Material.Filled.EmojiEvents">
+                    <DecorationsPanel Agent="_agent" />
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-6 mb-2">
+                        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Primary" />
+                        <MudText Typo="Typo.h6">Abzeichen</MudText>
+                    </MudStack>
                     <AgentBadgesPanel AgentId="@_agent.Id" />
                 </MudTabPanel>
                 <MudTabPanel Text="Entführungen" Icon="@Icons.Material.Filled.PersonOff">

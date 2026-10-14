@@ -948,6 +948,7 @@ public class AgentManagementService(
         await db.Absences.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.Feedbacks.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentBadges.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.DecorationAwards.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.DocumentAccessExclusions.IgnoreQueryFilters().Where(x => x.AgentId == agentId)
             .ExecuteDeleteAsync(cancellationToken);
         await db.MeetingAttendances.IgnoreQueryFilters().Where(x => x.AgentId == agentId)

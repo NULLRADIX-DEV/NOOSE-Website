@@ -1,0 +1,84 @@
+@* One landscape certificate sheet: a decoration, an appointment or a promotion. *@
+
+<div class="urkunde">
+    <div class="urkunde-rahmen">
+        <div class="urkunde-kopf">
+            <img class="urkunde-logo" src="@LogoSrc" alt="Wappen der NOOSE" />
+            <div class="urkunde-behoerde">National Office of Security Enforcement</div>
+        </div>
+
+        <div class="urkunde-titel">@Heading</div>
+
+        @if (View.Kind == CertificateKind.Decoration)
+        {
+            <p class="urkunde-satz">Das National Office of Security Enforcement verleiht</p>
+            <p class="urkunde-name">@NameLine</p>
+            @if (View.BadgeNumber is { Length: > 0 } badge)
+            {
+                <p class="urkunde-nummer">Dienstnummer @badge</p>
+            }
+            <p class="urkunde-satz">das Ehrenzeichen</p>
+            <div class="urkunde-symbol" style="color:@DecorationTierDisplay.Hex(View.Tier ?? DecorationTier.Gold);">
+                <MudIcon Icon="@DecorationSymbols.Find(View.Symbol).Icon" Style="font-size:72px;width:72px;height:72px;" />
+            </div>
+            <p class="urkunde-ehrenzeichen">@View.DecorationName</p>
+            @if (!string.IsNullOrWhiteSpace(View.Citation))
+            {
+                <p class="@(View.Citation.Length > DecorationRules.LongCitation ? "urkunde-text lang" : "urkunde-text")">@View.Citation</p>
+            }
+        }
+        else
+        {
+            <p class="urkunde-satz">Im Namen des National Office of Security Enforcement wird</p>
+            <p class="urkunde-name">@NameLine</p>
+            @if (View.BadgeNumber is { Length: > 0 } badge)
+            {
+                <p class="urkunde-nummer">Dienstnummer @badge</p>
+            }
+            <p class="urkunde-satz">mit Wirkung vom @DecorationRules.LongDate(View.Date) zum</p>
+            <p class="urkunde-ehrenzeichen">@RankDisplay.Name(View.Rank)</p>
+            <p class="urkunde-satz">@(View.Kind == CertificateKind.Appointment ? "ernannt." : "befördert.")</p>
+        }
+
+        <div class="urkunde-fuss">
+            <div class="urkunde-ort">@View.Place, den @DecorationRules.LongDate(View.Date)</div>
+            <div class="urkunde-unterschrift">
+                <div class="urkunde-linie"></div>
+                @if (View.SignatoryName is { Length: > 0 } signatory)
+                {
+                    <div class="urkunde-unterzeichner">@signatory</div>
+                    <div class="urkunde-funktion">@RankDisplay.Name(View.SignatoryRank) · Behördenleitung</div>
+                }
+                else
+                {
+                    <div class="urkunde-unterzeichner">Die Behördenleitung</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public CertificateView View { get; set; } = default!;
+    [Parameter] public bool UseRealName { get; set; }
+    [Parameter] public string LogoSrc { get; set; } = "NooseIcon.png";
+
+    private string Heading => View.Kind switch
+    {
+        CertificateKind.Appointment => "Ernennungsurkunde",
+        CertificateKind.Promotion => "Beförderungsurkunde",
+        _ => "Urkunde",
+    };
+
+    // the rank leads on a decoration, the conferred rank already stands on its own line otherwise
+    private string NameLine
+    {
+        get
+        {
+            var name = UseRealName && View.RealName is { Length: > 0 } real ? real : View.Codename;
+            return View.Kind == CertificateKind.Decoration && View.Rank is not null
+                ? $"{RankDisplay.Name(View.Rank)} {name}"
+                : name;
+        }
+    }
+}
