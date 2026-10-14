@@ -1278,6 +1278,27 @@ public sealed class MySqlTranslationTests : IDisposable
         Assert.Contains("PartnerRegelFreigaben", laws, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheInactivityRadarsLatestTracePerAgent_TranslatesToAGroupedMax()
+    {
+        // the radar reads both logs this way; a client-side fallback would pull every log row into memory
+        var ids = new List<string> { "a1", "a2" };
+        var writes = _db.AuditLogs.AsNoTracking()
+            .Where(l => l.AgentId != null && ids.Contains(l.AgentId))
+            .GroupBy(l => l.AgentId!)
+            .Select(g => new { AgentId = g.Key, At = g.Max(l => l.Timestamp) })
+            .ToQueryString();
+        var reads = _db.AccessLogs.AsNoTracking()
+            .Where(l => l.AgentId != null && ids.Contains(l.AgentId))
+            .GroupBy(l => l.AgentId!)
+            .Select(g => new { AgentId = g.Key, At = g.Max(l => l.Timestamp) })
+            .ToQueryString();
+
+        Assert.Contains("GROUP BY", writes, StringComparison.Ordinal);
+        Assert.Contains("MAX(", writes, StringComparison.Ordinal);
+        Assert.Contains("GROUP BY", reads, StringComparison.Ordinal);
+    }
+
     private static int Occurrences(string text, string needle)
     {
         var count = 0;

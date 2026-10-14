@@ -71,6 +71,9 @@ internal static class DutyChapter
                 auf.</p>
                 <p>Melde dich lieber zu oft ab als zu selten. Eine Abmeldung kostet nichts; ein Agent, auf den
                 eine Woche lang gewartet wird, kostet die Dienststelle Zeit.</p>
+                <p>Abgemeldete Tage zählen auch im <em>Inaktivitäts-Radar</em> der Führung nicht mit. Wer
+                wochenlang kein Lebenszeichen gibt und nicht abgemeldet ist, landet dort - und bekommt zuerst eine
+                Nachricht mit der Bitte, sich zu melden.</p>
                 """,
                 NavKey: "abmeldungen"),
 

@@ -453,6 +453,9 @@ public static class ChangelogContent
                 + "beim Neuladen der Seite nicht mehr, bevor du sie gesehen hast.", "Chronik"),
             Fix("2.2.37-lagebild-farbe", "Das Lagebild der Gegenaufklärung warnt jetzt auch, wenn nur Auffälligkeiten "
                 + "der Stufe „Hoch“ vorliegen.", "Gegenaufklärung"),
+            Neu("2.2.38-inaktivitaets-radar", "Unter Personal zeigt der neue Reiter „Inaktiv“ der Führung, wer seit "
+                + "Wochen kein Lebenszeichen auf der Seite gegeben hat – abgemeldete Tage zählen nicht mit. Von dort aus "
+                + "lässt sich nachfassen, ein Vermerk schreiben oder eine Kündigung prüfen.", "Personal"),
         ]),
     ];
 }

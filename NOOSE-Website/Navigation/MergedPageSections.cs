@@ -8,7 +8,7 @@ public static class MergedPageSections
         "system", "discord", "status", "neuerungen",
         "custom-felder", "tags", "aktualitaet", "bedrohungs-score",
         "vorlagen-dok", "vorlagen-dokument", "vorlagen-aktivitaet", "vorlagen-personal",
-        "module", "einladungen",
+        "module", "einladungen", "inaktivitaet",
         "finanzierung",
         "noosei", "ki-anbieter", "ki-regeln", "ki-betrieb", "ki-kontingente", "ki-anfragen",
         "partner",

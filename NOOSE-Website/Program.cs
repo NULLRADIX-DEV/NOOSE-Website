@@ -325,6 +325,7 @@ builder.Services.AddScoped<IObservationService, ObservationService>();
 // fans the global recycle bin out over every record service, so restore keeps its guards
 builder.Services.AddScoped<ITrashService, TrashService>();
 builder.Services.AddScoped<IPersonnelFileService, PersonnelFileService>();
+builder.Services.AddScoped<IInactivityRadarService, InactivityRadarService>();
 builder.Services.AddScoped<ITrainingModuleService, TrainingModuleService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();

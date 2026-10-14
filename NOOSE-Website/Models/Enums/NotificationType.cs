@@ -141,6 +141,10 @@ public enum NotificationType
 
     /// <summary>NOOSEI usage stood out in a new way this week. Not routable, for the same reason.</summary>
     NooseiAnomaly = 41,
+
+    /// <summary>Leadership asks the recipient to check in after a long silence. Routable — pings the recipient, and
+    /// like a personnel entry it is not theirs to silence.</summary>
+    InactivityNudge = 43,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -190,6 +194,7 @@ public static class NotificationTypeDisplay
         NotificationType.SavedSearchHit => "Neue Treffer einer gespeicherten Suche",
         NotificationType.CounterIntelFinding => "Gegenaufklärung",
         NotificationType.NooseiAnomaly => "NOOSEI-Auffälligkeit",
+        NotificationType.InactivityNudge => "Rückmeldung erbeten",
         _ => "Benachrichtigung",
     };
 
@@ -238,6 +243,7 @@ public static class NotificationTypeDisplay
         NotificationType.SavedSearchHit => Icons.Material.Filled.SavedSearch,
         NotificationType.CounterIntelFinding => Icons.Material.Filled.GppMaybe,
         NotificationType.NooseiAnomaly => Icons.Material.Filled.DataUsage,
+        NotificationType.InactivityNudge => Icons.Material.Filled.ContactSupport,
         _ => Icons.Material.Filled.Notifications,
     };
 }

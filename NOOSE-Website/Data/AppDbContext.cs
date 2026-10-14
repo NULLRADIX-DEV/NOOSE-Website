@@ -303,6 +303,12 @@ public class AppDbContext : IdentityDbContext<Agent>
             // longtext for JSON
             b.Property(a => a.NavPreferencesJson).HasColumnType("longtext");
             b.Property(a => a.FinancingBudgetOverride).HasPrecision(18, 2);
+            b.Property(a => a.InactivityNudgedByName).HasMaxLength(128);
+            // written by ExecuteUpdate only: UserManager.UpdateAsync rewrites the whole row from a possibly stale copy
+            foreach (var stamp in new[] { nameof(Agent.LastSeenAt), nameof(Agent.InactivityNudgedAt), nameof(Agent.InactivityNudgedByName) })
+            {
+                b.Property(stamp).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+            }
             b.HasIndex(a => a.DiscordId).IsUnique();
         });
 
@@ -314,6 +320,8 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(a => a.AgentName).HasMaxLength(128);
             b.HasIndex(a => new { a.EntityType, a.EntityId });
             b.HasIndex(a => a.Timestamp);
+            // inactivity radar: latest write per agent
+            b.HasIndex(a => new { a.AgentId, a.Timestamp });
             // window scans: Leads / Chronik / Gamification
             b.HasIndex(a => new { a.EntityType, a.Timestamp });
         });

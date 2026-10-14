@@ -486,6 +486,7 @@ public class DiscordWebhookService(
         NotificationType.PingDigest => "/benachrichtigungen",
         NotificationType.AcknowledgmentReminder => "/brett",
         NotificationType.SavedSearchHit => "/suche",
+        NotificationType.InactivityNudge => "/abmeldungen",
         _ => "/dashboard",
     };
 
@@ -511,6 +512,7 @@ public class DiscordWebhookService(
         NotificationType.PingDigest => "🗞️ Dein Tagesüberblick liegt bereit.",
         NotificationType.AcknowledgmentReminder => "📋 Eine Ankündigung wartet noch auf deine Quittierung.",
         NotificationType.SavedSearchHit => "🔍 Eine deiner gespeicherten Suchen hat neue Treffer.",
+        NotificationType.InactivityNudge => "👋 Die Führung bittet dich um eine kurze Rückmeldung.",
         _ => "🔔 Neue Benachrichtigung.",
     };
 

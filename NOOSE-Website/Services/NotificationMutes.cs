@@ -18,6 +18,8 @@ public static class NotificationMutes
     [
         NotificationType.Mention,
         NotificationType.Account,
+        // leadership asking a silent agent to check in; muting it would defeat the only channel left
+        NotificationType.InactivityNudge,
     ];
 
     /// <summary>Discord-only categories; they never reach the bell, so there is nothing to silence.</summary>

@@ -109,4 +109,20 @@ public class Agent : IdentityUser
     /// <summary>Weekly NOOSEI token quota overriding the rank default; null = rank default applies.</summary>
     [Column("KiKontingent")]
     public long? LlmQuotaOverride { get; set; }
+
+    /// <summary>When the account last became a selectable agent again (unblocked, reinstated, made internal); the
+    /// inactivity radar never counts from before it.</summary>
+    [Column("AktivSeitAm")]
+    public DateTime? ActiveSinceAt { get; set; }
+
+    /// <summary>Last page visit, stamped at most hourly; one of the inactivity radar's traces.</summary>
+    [Column("ZuletztGesehenAm")]
+    public DateTime? LastSeenAt { get; set; }
+
+    /// <summary>When leadership last asked this agent to check in over the inactivity radar.</summary>
+    [Column("InaktivNachgefasstAm")]
+    public DateTime? InactivityNudgedAt { get; set; }
+
+    [Column("InaktivNachgefasstVonName")]
+    public string? InactivityNudgedByName { get; set; }
 }

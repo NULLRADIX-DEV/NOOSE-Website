@@ -879,6 +879,33 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
+    public async Task Becoming_selectable_again_restarts_the_inactivity_count()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("blocked", AgentStatus.Blocked, Rank.SpecialAgent),
+            NewAgent("gone", AgentStatus.Terminated, Rank.SpecialAgent),
+            NewAgent("partner", AgentStatus.Active,
+                cfg: a => { a.PartnerAgency = PartnerAgency.LSPD; a.PartnerRank = PartnerRank.Member; }),
+            NewAgent("tl", AgentStatus.Active, Rank.SpecialAgent, a => a.IsTeamLead = true),
+            NewAgent("plain", AgentStatus.Active, Rank.SpecialAgent));
+        var before = DateTime.UtcNow.AddSeconds(-1);
+
+        await f.Svc.UnblockAsync("blocked", Admin());
+        await f.Svc.TerminationRevokeAsync("gone", Admin());
+        await f.Svc.ConvertToInternalAsync("partner", Rank.SpecialAgent, Admin());
+        await f.Svc.TeamLeadSetAsync("tl", false, Admin());
+        // becoming oversight is no return to the roster
+        await f.Svc.TeamLeadSetAsync("plain", true, Admin());
+
+        foreach (var id in new[] { "blocked", "gone", "partner", "tl" })
+        {
+            Assert.True(Reload(f, id).ActiveSinceAt > before, id);
+        }
+        Assert.Null(Reload(f, "plain").ActiveSinceAt);
+    }
+
+    [Fact]
     public async Task DeleteAccountAsync_SelfThrows()
     {
         using var f = Make();
