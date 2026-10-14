@@ -20,7 +20,9 @@
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
     Eigene Muster für die Gegenaufklärung. Jede Regel kombiniert Aktion, Ziel-Akte, Akteur und Tageszeit und
     schlägt an, sobald ein Agent ihre Schwelle reißt. Treffer erscheinen im Reiter „Auffälligkeiten“ der
-    Gegenaufklärung. Nur-Lese-Aufsicht und System-Zugriffe bleiben überall ausgeblendet.
+    Gegenaufklärung. Eine aktive Regel mit Glocke meldet neue Treffer von selbst an die Führung – nur, was
+    passiert, seit sie eingeschaltet oder ihre Bedingungen zuletzt geändert wurden, und nie an den, um den es
+    geht. Nur-Lese-Aufsicht und System-Zugriffe bleiben überall ausgeblendet.
 </MudText>
 
 @if (_error is not null)
@@ -44,14 +46,30 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Regel">
-                <MudText Typo="Typo.body2"><b>@context.Name</b></MudText>
+                <MudText Typo="Typo.body2">
+                    <b>@context.Name</b>
+                    @if (context.Notify && context.IsActive)
+                    {
+                        <MudTooltip Text="Meldet neue Treffer in der Glocke">
+                            <MudIcon Icon="@Icons.Material.Filled.NotificationsActive" Size="Size.Small"
+                                     Color="Color.Primary" Class="ml-1" Style="vertical-align:middle;" />
+                        </MudTooltip>
+                    }
+                    else if (!context.Notify)
+                    {
+                        <MudTooltip Text="Meldet sich nicht, nur im Cockpit sichtbar">
+                            <MudIcon Icon="@Icons.Material.Filled.NotificationsOff" Size="Size.Small"
+                                     Class="ml-1 mud-text-secondary" Style="vertical-align:middle;" />
+                        </MudTooltip>
+                    }
+                </MudText>
                 @if (!string.IsNullOrWhiteSpace(context.Description))
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary"><MentionDisplay Text="@context.Description" /></MudText>
                 }
             </MudTd>
             <MudTd DataLabel="Schweregrad">
-                <MudChip T="string" Size="Size.Small" Color="@Colour(context.Severity)"
+                <MudChip T="string" Size="Size.Small" Color="@CounterIntelSeverityDisplay.Colour(context.Severity)"
                          Variant="@(context.Severity == CounterIntelSeverity.Critical ? Variant.Filled : Variant.Outlined)">
                     @CounterIntelSeverityDisplay.Name(context.Severity)
                 </MudChip>
@@ -91,7 +109,7 @@ else
         <NoRecordsContent>
             <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">
                 Noch keine Regeln angelegt — die Gegenaufklärung meldet damit keine Auffälligkeiten.
-                „Standard-Regeln“ legt die drei mitgelieferten Muster wieder an.
+                „Standard-Regeln“ legt die mitgelieferten Muster wieder an.
             </MudText>
         </NoRecordsContent>
     </MudTable>
@@ -196,10 +214,4 @@ else
         }
     }
 
-    private static Color Colour(CounterIntelSeverity severity) => severity switch
-    {
-        CounterIntelSeverity.Info => Color.Info,
-        CounterIntelSeverity.Warning => Color.Warning,
-        _ => Color.Error,
-    };
 }

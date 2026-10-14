@@ -41,7 +41,7 @@ public static class CounterIntelRuleEvaluator
         DateTime nowLocal)
     {
         var definition = rule.Definition;
-        var since = nowLocal.AddDays(-Math.Clamp(definition.WindowDays, 1, CounterIntelRuleDefinition.MaxWindowDays));
+        var since = WindowStart(definition, nowLocal);
         var threshold = Math.Max(1, definition.Threshold);
 
         var flags = new List<InsiderFlag>();
@@ -62,6 +62,14 @@ public static class CounterIntelRuleEvaluator
         }
         return flags;
     }
+
+    /// <summary>Earliest local instant the rule still looks at.</summary>
+    public static DateTime WindowStart(CounterIntelRuleDefinition definition, DateTime nowLocal)
+        => nowLocal.AddDays(-WindowDays(definition));
+
+    /// <summary>The rule's observation window in days, clamped to what the loader reads.</summary>
+    public static int WindowDays(CounterIntelRuleDefinition definition)
+        => Math.Clamp(definition.WindowDays, 1, CounterIntelRuleDefinition.MaxWindowDays);
 
     /// <summary>Names the flagged account — unless every counted event is a tip whose anonymity still holds.</summary>
     /// <remarks>
@@ -231,7 +239,8 @@ public static class CounterIntelRuleEvaluator
         return best;
     }
 
-    private static int Count(IEnumerable<CounterIntelEvent> rows, CounterIntelCountMode mode)
+    /// <summary>How much a set of events weighs under the rule's count mode.</summary>
+    public static int Count(IEnumerable<CounterIntelEvent> rows, CounterIntelCountMode mode)
         => mode == CounterIntelCountMode.DistinctRecords
             ? rows.Select(e => e.RecordKey).Distinct().Count()
             : rows.Count();

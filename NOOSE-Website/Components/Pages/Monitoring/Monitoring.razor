@@ -38,7 +38,7 @@
         </RecordSection>
         <RecordSection Group="Gegenaufklärung" Slug="auffaelligkeiten" Label="Auffälligkeiten"
                        Icon="@Icons.Material.Filled.Warning">
-            <CounterIntelFlagsPanel />
+            <CounterIntelFlagsPanel @bind-Unseen="_findingsUnseen" />
         </RecordSection>
         <RecordSection Group="Gegenaufklärung" Slug="regeln" Label="Regeln"
                        Icon="@Icons.Material.Filled.Rule">
@@ -53,6 +53,7 @@
     // both live on the page, not in a panel: the rail keys its content pane per section, so every
     // switch destroys the panel — the visit stamp would re-fire and the option lists would re-query
     private DateTime? _lastSeen;
+    private UnseenFindings? _findingsUnseen;
     private AuditFilterOptions _auditOptions = new(Array.Empty<AuditAgentOption>(), Array.Empty<string>());
 
     private string? _agentId;
@@ -82,13 +83,14 @@
         }
     }
 
-    private async Task StampSeenAsync()
+    // stamped with the instant the feed was read at, so an event written during the load stays new
+    private async Task StampSeenAsync(DateTime readAtUtc)
     {
         if (_stamped || string.IsNullOrEmpty(_agentId))
         {
             return;
         }
         _stamped = true;
-        await NavPreferences.SetChronikLastSeenAsync(_agentId, DateTime.UtcNow);
+        await NavPreferences.SetChronikLastSeenAsync(_agentId, readAtUtc);
     }
 }

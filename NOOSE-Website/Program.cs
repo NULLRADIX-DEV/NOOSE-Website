@@ -23,6 +23,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Infrastructure.Announcements;
+using NOOSE_Website.Infrastructure.CounterIntel;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.Authorization;
 using NOOSE_Website.Infrastructure.Threat;
@@ -229,6 +230,9 @@ builder.Services.AddScoped<IGlobalChronikService, GlobalChronikService>();
 builder.Services.AddScoped<ILeadService, LeadService>();
 builder.Services.AddScoped<ICounterIntelRuleService, CounterIntelRuleService>();
 builder.Services.AddScoped<ICounterIntelService, CounterIntelService>();
+// counter-intel rules and NOOSEI anomalies ring the leadership bell on their own
+builder.Services.AddScoped<IFindingWatchService, FindingWatchService>();
+builder.Services.AddHostedService<FindingWatchWorker>();
 builder.Services.AddScoped<IInformantService, InformantService>();
 
 // AI assistant (OpenAI-compatible: OpenRouter or DeepSeek). Keys come from user-secrets / env, never the repo.

@@ -385,6 +385,60 @@ public sealed class CounterIntelTests
         Assert.False(copy.IsActive);
     }
 
+    // every way a rule comes into being starts its bell at that moment, never earlier
+    [Fact]
+    public async Task RuleService_ArmsTheBellWheneverARuleComesIntoBeing()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = new CounterIntelRuleService(ctx.Factory);
+        var before = DateTime.UtcNow;
+
+        var id = await svc.CreateAsync(Input(name: "Original"), Leader());
+        var copyId = await svc.DuplicateAsync(id, Leader());
+        await svc.RestoreDefaultsAsync(Leader());
+
+        var all = await svc.GetAllAsync(Leader());
+        Assert.All(all, r => Assert.True(r.ReportFrom >= before, r.Name));
+        Assert.All(all, r => Assert.True(r.Notify, r.Name));
+        Assert.Contains(all, r => r.Id == copyId);
+    }
+
+    [Fact]
+    public async Task RuleService_DuplicateKeepsASilencedBellSilent()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = new CounterIntelRuleService(ctx.Factory);
+        var input = Input(name: "Leise");
+        input.Notify = false;
+        var id = await svc.CreateAsync(input, Leader());
+
+        var copyId = await svc.DuplicateAsync(id, Leader());
+
+        Assert.False((await svc.GetAllAsync(Leader())).Single(r => r.Id == copyId).Notify);
+    }
+
+    [Fact]
+    public async Task RuleService_ReviveFromTheBinArmsTheBellAnew()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = new CounterIntelRuleService(ctx.Factory);
+        await svc.RestoreDefaultsAsync(Leader());
+        using (var db = ctx.NewContext())
+        {
+            // the bin as the interceptor would leave it
+            var row = db.CounterIntelRules.Single(r => r.Id == CounterIntelRuleDefaults.MassAccessId);
+            row.IsDeleted = true;
+            row.ReportFrom = DateTime.UtcNow.AddDays(-3);
+            db.SaveChanges();
+        }
+        var revived = DateTime.UtcNow;
+
+        Assert.Equal(1, await svc.RestoreDefaultsAsync(Leader()));
+
+        var rule = (await svc.GetAllAsync(Leader())).Single(r => r.Id == CounterIntelRuleDefaults.MassAccessId);
+        Assert.True(rule.ReportFrom >= revived);
+    }
+
     // the Remove → soft-delete rewrite belongs to the interceptor, which the test context does not wire up;
     // what is testable here is that a deleted rule stops being listed and stops being evaluated
     [Fact]

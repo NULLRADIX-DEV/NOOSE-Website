@@ -1,11 +1,13 @@
 @* Rule hits grouped by rule, worst first. Leadership only (service-guarded). *@
 @using NOOSE_Website.Models.CounterIntel
 @inject ICounterIntelService CounterIntel
+@inject IFindingWatchService Watch
 @inject NavigationManager Nav
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
     Treffer der aktiven Gegenaufklärungs-Regeln. Jede Regel bringt ihr eigenes Beobachtungsfenster mit –
-    die Bedingungen stehen unter <MudLink Href="/nachweis?tab=regeln">Regeln</MudLink>.
+    die Bedingungen stehen unter <MudLink Href="/nachweis?tab=regeln">Regeln</MudLink>. Was seit deinem letzten
+    Blick hierher neu gemeldet wurde, trägt die Marke <b>Neu</b>.
 </MudText>
 
 @if (_error is not null)
@@ -27,7 +29,7 @@ else
     @foreach (var group in _flags.GroupBy(f => f.Rule).OrderByDescending(g => g.First().Grade))
     {
         <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">
-            <MudChip T="string" Size="Size.Small" Color="@Colour(group.First().Grade)"
+            <MudChip T="string" Size="Size.Small" Color="@CounterIntelSeverityDisplay.Colour(group.First().Grade)"
                      Variant="@(group.First().Grade == CounterIntelSeverity.Critical ? Variant.Filled : Variant.Outlined)">
                 @CounterIntelSeverityDisplay.Name(group.First().Grade)
             </MudChip>
@@ -38,7 +40,14 @@ else
                 @foreach (var f in group)
                 {
                     <tr style="cursor:pointer;" @onclick="@(() => Go(f.Href))">
-                        <td style="width:14rem;"><b>@f.AgentName</b></td>
+                        <td style="width:14rem;">
+                            <b>@f.AgentName</b>
+                            @if (_unseen.IsNew(f.RuleId, f.AgentId))
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                         Class="ml-1">Neu</MudChip>
+                            }
+                        </td>
                         <td>@f.Detail</td>
                     </tr>
                 }
@@ -50,30 +59,58 @@ else
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
+    /// <summary>The marks of this page visit, kept by the page: the rail rebuilds the panel on every section switch.</summary>
+    [Parameter] public UnseenFindings? Unseen { get; set; }
+
+    [Parameter] public EventCallback<UnseenFindings> UnseenChanged { get; set; }
+
+    private ClaimsPrincipal _user = new();
     private bool _load = true;
+    private bool _fresh;
+    private bool _marked;
     private string? _error;
     private IReadOnlyList<InsiderFlag> _flags = Array.Empty<InsiderFlag>();
+    private UnseenFindings _unseen = UnseenFindings.None(DateTime.UtcNow);
 
     protected override async Task OnInitializedAsync()
     {
-        var user = (await AuthStateTask).User;
+        _user = (await AuthStateTask).User;
         try
         {
-            _flags = await CounterIntel.GetFlagsAsync(user);
+            // read before the flags: the stamp below must not swallow a finding reported in between
+            _fresh = Unseen is null;
+            _unseen = Unseen ?? await Watch.GetUnseenAsync(_user, FindingSource.Rule);
+            _flags = await CounterIntel.GetFlagsAsync(_user);
         }
         catch (UnauthorizedAccessException ex)
         {
             _error = ex.Message;
         }
         _load = false;
+        if (_fresh && _error is null)
+        {
+            await UnseenChanged.InvokeAsync(_unseen);
+        }
     }
 
-    private static Color Colour(CounterIntelSeverity severity) => severity switch
+    // after the first interactive render only: a stamp during prerendering would clear the marks before they show
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        CounterIntelSeverity.Info => Color.Info,
-        CounterIntelSeverity.Warning => Color.Warning,
-        _ => Color.Error,
-    };
+        // only the visit that read the marks stamps them; a rebuilt panel shows the kept ones
+        if (!_fresh || _marked || _load || _error is not null)
+        {
+            return;
+        }
+        _marked = true;
+        try
+        {
+            await Watch.MarkSeenAsync(_user, FindingSource.Rule, _unseen.AsOfUtc);
+        }
+        catch (Exception)
+        {
+            /* best effort */
+        }
+    }
 
     private void Go(string? href)
     {

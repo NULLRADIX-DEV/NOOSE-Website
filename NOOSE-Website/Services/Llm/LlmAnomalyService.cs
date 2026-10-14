@@ -10,7 +10,13 @@ namespace NOOSE_Website.Services;
 public interface ILlmAnomalyService
 {
     Task<IReadOnlyList<LlmAnomalyFlag>> GetFlagsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>A fresh evaluation and the week it speaks for; no actor guard, the finding watch gates the result.</summary>
+    Task<LlmAnomalySnapshot> EvaluateAsync(CancellationToken cancellationToken = default);
 }
+
+/// <summary>The running week's flags together with that week's start, so both always agree.</summary>
+public sealed record LlmAnomalySnapshot(DateTime WeekStartUtc, IReadOnlyList<LlmAnomalyFlag> Flags);
 
 /// <inheritdoc cref="ILlmAnomalyService" />
 public sealed class LlmAnomalyService(
@@ -30,13 +36,17 @@ public sealed class LlmAnomalyService(
     {
         // the panel names agents and their behaviour, so it follows the counter-intelligence gate
         Permission.RequireLeadershipNoReader(actor);
-        if (cache.TryGetValue(CacheKey, out IReadOnlyList<LlmAnomalyFlag>? cached) && cached is not null)
+        if (cache.TryGetValue(CacheKey, out LlmAnomalySnapshot? cached) && cached is not null)
         {
-            return cached;
+            return cached.Flags;
         }
+        return (await EvaluateAsync(cancellationToken)).Flags;
+    }
 
+    public async Task<LlmAnomalySnapshot> EvaluateAsync(CancellationToken cancellationToken = default)
+    {
         var config = await configService.GetAsync(cancellationToken);
-        var statuses = await quota.GetAllStatusAsync(actor, cancellationToken);
+        var statuses = await quota.GetRosterStatusAsync(cancellationToken);
         var (year, week) = IsoWeekPeriod.Current();
         var weekStartUtc = IsoWeekPeriod.Start(year, week).ToUniversalTime();
 
@@ -69,8 +79,10 @@ public sealed class LlmAnomalyService(
 
         // the rank baseline is derived inside the evaluator, per agent and without them in it
         var flags = LlmAnomalyEvaluator.Evaluate(usage, statuses, trailing, config.Anomalies, DateTime.Now);
-        cache.Set(CacheKey, flags, CacheDuration);
-        return flags;
+        // one cache for panel and watch, so a reported anomaly is never missing from the list it is marked in
+        var snapshot = new LlmAnomalySnapshot(weekStartUtc, flags);
+        cache.Set(CacheKey, snapshot, CacheDuration);
+        return snapshot;
     }
 
     /// <summary>Mean consumption of an agent's recent closed weeks; agents without enough history are left out.</summary>

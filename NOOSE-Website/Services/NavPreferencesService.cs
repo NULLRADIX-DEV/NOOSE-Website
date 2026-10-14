@@ -162,6 +162,24 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
             ? seen
             : seenUtc, cancellationToken, notify: false);
 
+    // forward only: a stale tab must not hand back findings already looked at
+    public Task SetFindingsSeenAsync(string agentId, FindingSource source, DateTime seenUtc,
+        CancellationToken cancellationToken = default)
+        => MutateAsync(agentId, p =>
+        {
+            if (source == FindingSource.Noosei)
+            {
+                p.NooseiAnomaliesSeenUtc = Later(p.NooseiAnomaliesSeenUtc, seenUtc);
+            }
+            else
+            {
+                p.CounterIntelSeenUtc = Later(p.CounterIntelSeenUtc, seenUtc);
+            }
+        }, cancellationToken, notify: false);
+
+    private static DateTime Later(DateTime? stored, DateTime candidate)
+        => stored is { } seen && seen > candidate ? seen : candidate;
+
     public Task SetGlossarBlasenAsync(string agentId, bool enabled, CancellationToken cancellationToken = default)
         => MutateAsync(agentId, p => p.GlossarBlasen = enabled, cancellationToken);
 

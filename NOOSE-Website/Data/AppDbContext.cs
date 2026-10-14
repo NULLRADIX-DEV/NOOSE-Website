@@ -203,6 +203,7 @@ public class AppDbContext : IdentityDbContext<Agent>
 
     // leadership-defined counter-intelligence rules
     public DbSet<CounterIntelRule> CounterIntelRules => Set<CounterIntelRule>();
+    public DbSet<FindingReport> FindingReports => Set<FindingReport>();
 
     // configurable custom fields per record type
     public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
@@ -570,7 +571,17 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(r => r.Name).HasMaxLength(150).IsRequired();
             b.Property(r => r.Description).HasMaxLength(1000);
             b.Property(r => r.DefinitionJson).HasColumnType("longtext");
+            // no HasDefaultValue: EF would read a false switch as unset
             b.HasIndex(r => new { r.IsActive, r.Order });
+        });
+
+        // what the finding watch already reported; one row per source, key and flagged account
+        modelBuilder.Entity<FindingReport>(b =>
+        {
+            b.Property(r => r.Key).HasMaxLength(64).IsRequired();
+            b.Property(r => r.AgentId).HasMaxLength(64).IsRequired();
+            b.HasIndex(r => new { r.Source, r.Key, r.AgentId }).IsUnique();
+            b.HasIndex(r => new { r.Source, r.ReportedAt });
         });
 
         modelBuilder.Entity<CustomFieldDefinition>(b =>

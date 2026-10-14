@@ -53,8 +53,10 @@ public class CounterIntelRuleService(IDbContextFactory<AppDbContext> dbFactory) 
             Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim(),
             Severity = input.Severity,
             IsActive = input.IsActive,
+            Notify = input.Notify,
             Order = input.Order,
             DefinitionJson = input.Definition.ToJson(),
+            ReportFrom = DateTime.UtcNow,
         };
         db.CounterIntelRules.Add(rule);
         await db.SaveChangesAsync(cancellationToken);
@@ -71,10 +73,16 @@ public class CounterIntelRuleService(IDbContextFactory<AppDbContext> dbFactory) 
         var rule = await db.CounterIntelRules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken)
                    ?? throw new InvalidOperationException("Regel nicht gefunden.");
 
+        // a rule that now means something new reports only what happens from here on
+        if (FindingWatchRules.Rearms(rule.DefinitionJson, rule.IsActive, rule.Notify, input))
+        {
+            rule.ReportFrom = DateTime.UtcNow;
+        }
         rule.Name = input.Name.Trim();
         rule.Description = string.IsNullOrWhiteSpace(input.Description) ? null : input.Description.Trim();
         rule.Severity = input.Severity;
         rule.IsActive = input.IsActive;
+        rule.Notify = input.Notify;
         rule.Order = input.Order;
         rule.DefinitionJson = input.Definition.ToJson();
         await db.SaveChangesAsync(cancellationToken);
@@ -87,6 +95,10 @@ public class CounterIntelRuleService(IDbContextFactory<AppDbContext> dbFactory) 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var rule = await db.CounterIntelRules.FirstOrDefaultAsync(r => r.Id == id, cancellationToken)
                    ?? throw new InvalidOperationException("Regel nicht gefunden.");
+        if (isActive && !rule.IsActive)
+        {
+            rule.ReportFrom = DateTime.UtcNow;
+        }
         rule.IsActive = isActive;
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -106,8 +118,10 @@ public class CounterIntelRuleService(IDbContextFactory<AppDbContext> dbFactory) 
             Description = source.Description,
             Severity = source.Severity,
             IsActive = false,
+            Notify = source.Notify,
             Order = source.Order + 1,
             DefinitionJson = source.DefinitionJson,
+            ReportFrom = DateTime.UtcNow,
         };
         db.CounterIntelRules.Add(copy);
         await db.SaveChangesAsync(cancellationToken);
@@ -146,6 +160,8 @@ public class CounterIntelRuleService(IDbContextFactory<AppDbContext> dbFactory) 
                 row.IsDeleted = false;
                 row.DeletedAt = null;
                 row.DeletedById = null;
+                // back from the bin: what happened while it was gone is not news
+                row.ReportFrom = DateTime.UtcNow;
             }
             else
             {
@@ -156,8 +172,10 @@ public class CounterIntelRuleService(IDbContextFactory<AppDbContext> dbFactory) 
                     Description = d.Description,
                     Severity = d.Severity,
                     IsActive = d.IsActive,
+                    Notify = d.Notify,
                     Order = d.Order,
                     DefinitionJson = d.Definition.ToJson(),
+                    ReportFrom = DateTime.UtcNow,
                 });
             }
             restored++;
@@ -243,7 +261,8 @@ public class CounterIntelRuleService(IDbContextFactory<AppDbContext> dbFactory) 
     // a rule whose JSON no longer parses is skipped, not thrown on: one bad row must not blind the cockpit
     private static CounterIntelRuleView? View(CounterIntelRule rule)
         => CounterIntelRuleDefinition.TryParse(rule.DefinitionJson) is { } definition
-            ? new CounterIntelRuleView(rule.Id, rule.Name, rule.Description, rule.Severity, rule.IsActive, rule.Order, definition)
+            ? new CounterIntelRuleView(rule.Id, rule.Name, rule.Description, rule.Severity, rule.IsActive, rule.Order,
+                definition, rule.Notify, rule.ReportFrom)
             : null;
 
     private static string Shorten(string name) => name.Length <= 150 ? name : name[..150];

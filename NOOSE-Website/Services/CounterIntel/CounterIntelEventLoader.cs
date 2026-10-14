@@ -27,8 +27,10 @@ public static class CounterIntelEventLoader
     private const int IdBatchSize = 500;
 
     /// <summary>Actor and target metadata resolved for the given definitions; timestamps are local.</summary>
+    /// <param name="notBeforeUtc">The watch passes the earliest instant it may still report; older rows are not read.</param>
     public static async Task<List<CounterIntelEvent>> LoadAsync(
-        AppDbContext db, IReadOnlyList<CounterIntelRuleDefinition> definitions, CancellationToken cancellationToken = default)
+        AppDbContext db, IReadOnlyList<CounterIntelRuleDefinition> definitions, CancellationToken cancellationToken = default,
+        DateTime? notBeforeUtc = null)
     {
         if (definitions.Count == 0)
         {
@@ -39,6 +41,10 @@ public static class CounterIntelEventLoader
             .Select(d => Math.Clamp(d.WindowDays, 1, CounterIntelRuleDefinition.MaxWindowDays))
             .Max();
         var since = DateTime.UtcNow.AddDays(-windowDays);
+        if (notBeforeUtc is { } floor && floor > since)
+        {
+            since = floor;
+        }
 
         var wantsRead = definitions.Any(d => d.Actions.Count == 0 || d.Actions.Contains(CounterIntelActionKind.Read));
         var wantsWrites = definitions.Any(d => d.Actions.Count == 0 || d.Actions.Any(a => a != CounterIntelActionKind.Read));
@@ -104,6 +110,7 @@ public static class CounterIntelEventLoader
                 AgentId = r.AgentId,
                 AgentName = string.IsNullOrWhiteSpace(actor.Codename) ? r.AgentName : actor.Codename,
                 LocalTimestamp = r.TimestampUtc.ToLocalTime(),
+                TimestampUtc = r.TimestampUtc,
                 EntityType = r.EntityType,
                 EntityId = r.EntityId,
                 Action = r.Action,

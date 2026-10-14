@@ -134,6 +134,13 @@ public enum NotificationType
     /// <summary>A watched saved search found hits its previous run did not have. Routable — pings the owner, and
     /// the post names neither the search nor a hit.</summary>
     SavedSearchHit = 39,
+
+    /// <summary>A counter-intelligence rule found something new. Not routable: who stands out is for the bell of
+    /// leadership alone, and the notice names rules, never an agent.</summary>
+    CounterIntelFinding = 40,
+
+    /// <summary>NOOSEI usage stood out in a new way this week. Not routable, for the same reason.</summary>
+    NooseiAnomaly = 41,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -181,6 +188,8 @@ public static class NotificationTypeDisplay
         NotificationType.PingDigest => "Tagesüberblick",
         NotificationType.AcknowledgmentReminder => "Quittierung überfällig",
         NotificationType.SavedSearchHit => "Neue Treffer einer gespeicherten Suche",
+        NotificationType.CounterIntelFinding => "Gegenaufklärung",
+        NotificationType.NooseiAnomaly => "NOOSEI-Auffälligkeit",
         _ => "Benachrichtigung",
     };
 
@@ -227,6 +236,8 @@ public static class NotificationTypeDisplay
         NotificationType.PingDigest => Icons.Material.Filled.Summarize,
         NotificationType.AcknowledgmentReminder => Icons.Material.Filled.PendingActions,
         NotificationType.SavedSearchHit => Icons.Material.Filled.SavedSearch,
+        NotificationType.CounterIntelFinding => Icons.Material.Filled.GppMaybe,
+        NotificationType.NooseiAnomaly => Icons.Material.Filled.DataUsage,
         _ => Icons.Material.Filled.Notifications,
     };
 }

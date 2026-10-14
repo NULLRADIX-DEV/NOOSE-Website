@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Llm;
 
@@ -52,6 +53,12 @@ public class LlmQuotaConfigService(IDbContextFactory<AppDbContext> dbFactory, IM
         var raw = (await db.SystemSettings
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Key == SettingKey, cancellationToken))?.Value;
+        return Parse(raw);
+    }
+
+    // the stored config, or the defaults when it is missing, unreadable or breaks the invariants
+    private static LlmQuotaConfig Parse(string? raw)
+    {
         if (string.IsNullOrWhiteSpace(raw))
         {
             return LlmQuotaConfig.Default();
@@ -83,6 +90,7 @@ public class LlmQuotaConfigService(IDbContextFactory<AppDbContext> dbFactory, IM
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var row = await db.SystemSettings.FirstOrDefaultAsync(e => e.Key == SettingKey, cancellationToken);
+        var thresholdsBefore = JsonSerializer.Serialize(Parse(row?.Value).Anomalies);
         if (row is null)
         {
             db.SystemSettings.Add(new SystemSetting { Key = SettingKey, Value = json });
@@ -90,6 +98,16 @@ public class LlmQuotaConfigService(IDbContextFactory<AppDbContext> dbFactory, IM
         else
         {
             row.Value = json;
+        }
+        // new thresholds: what they flag right now is the next baseline, not news
+        if (thresholdsBefore != JsonSerializer.Serialize(config.Anomalies))
+        {
+            var armed = await db.SystemSettings
+                .FirstOrDefaultAsync(e => e.Key == SystemSettingKeys.NooseiAnomalyWatchArmedAt, cancellationToken);
+            if (armed is not null)
+            {
+                armed.Value = null;
+            }
         }
         // SystemSetting carries no per-field audit, so record the config action explicitly
         db.AuditLogs.Add(ManualAudit.Row(AuditType, "global", AuditAction.Modified, actor,

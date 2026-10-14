@@ -330,7 +330,7 @@ public sealed class CounterIntelRuleSearchProvider(IDbContextFactory<AppDbContex
         return await q.OrderBy(r => r.Order).Take(query.PerCategory)
             .Select(r => new SearchHit(nameof(CounterIntelRule), r.Id, r.Name, r.Description ?? string.Empty, string.Empty)
             {
-                Href = "/nachweis?tab=gegenaufklaerung-regeln",
+                Href = "/nachweis?tab=regeln",
             })
             .ToListAsync(cancellationToken);
     }
