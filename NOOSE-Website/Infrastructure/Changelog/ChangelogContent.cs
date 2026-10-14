@@ -462,6 +462,9 @@ public static class ChangelogContent
                 "Personal"),
             Fix("2.2.41-personalakte-druck", "Die Druckansicht der Personalakte zeigt den Kündigungsgrund nur noch der "
                 + "Führung, so wie die Akte selbst.", "Personal"),
+            Neu("2.2.42-inaktivitaets-radar", "Unter Personal zeigt der neue Reiter „Inaktiv“ der Führung, wer seit "
+                + "Wochen kein Lebenszeichen auf der Seite gegeben hat – abgemeldete Tage zählen nicht mit. Von dort aus "
+                + "lässt sich nachfassen, ein Vermerk schreiben oder eine Kündigung prüfen.", "Personal"),
         ]),
     ];
 }

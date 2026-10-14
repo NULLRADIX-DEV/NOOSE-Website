@@ -28,6 +28,42 @@ internal static class PersonnelChapter
                 """,
                 NavKey: "personal"),
 
+            new Article("art-inaktivitaet", "inaktivitaets-radar", "Das Inaktivitäts-Radar",
+                "Wer seit Wochen kein Lebenszeichen gibt - und was die Führung dann tut.",
+                """
+                <p>Unter <em>Personal</em> hat die Führung einen Reiter <em>Inaktiv</em>. Er listet Agenten, von
+                denen die Seite seit einer Weile nichts gesehen hat. Als <strong>Lebenszeichen</strong> zählt
+                alles, was du hier tust: etwas schreiben, eine Akte öffnen oder die Seite überhaupt aufrufen.
+                Das jüngste davon steht in der Liste; fährst du mit der Maus über das Datum, siehst du alle drei
+                einzeln.</p>
+                <p><strong>Abgemeldete Tage zählen nicht.</strong> Wer zwei Wochen still war und davon zehn Tage
+                abgemeldet, kommt auf vier Tage ohne Lebenszeichen. Läuft gerade eine Abmeldung, steht in der
+                Zeile <em>abgemeldet bis …</em>. Ein frisch freigegebenes, entsperrtes oder wieder aufgenommenes
+                Konto zählt erst ab diesem Tag.</p>
+                <p>Die Liste ist nach Dauer gestuft, und jede Stufe bringt ihren Knopf mit:</p>
+                <ul>
+                <li><strong>Nachfassen</strong> (Grundwert ab 14 Tagen): Der Agent bekommt eine Benachrichtigung
+                und - wenn der Kanal dafür eingerichtet ist - einen Discord-Ping mit der Bitte, sich zu melden
+                oder eine Abmeldung einzutragen. Diese
+                Nachricht lässt sich nicht stummschalten. Die Zeile merkt sich, wer wann nachgefasst hat, und
+                ein zweites Nachfassen geht frühestens nach 24 Stunden - so schreibt niemand doppelt.</li>
+                <li><strong>Vermerk</strong> (ab 30 Tagen): Ein vorausgefüllter Eintrag in der Personalakte, Art
+                <em>Disziplinarisch</em>. Text und Art lassen sich vor dem Eintragen ändern.</li>
+                <li><strong>Kündigung prüfen</strong> (ab 60 Tagen): Der übliche Kündigungsdialog, der Grund ist
+                schon ausgefüllt.</li>
+                </ul>
+                <p>Die drei Schwellen stellt die Führung unter <em>Einstellungen → Inaktivitäts-Radar</em> ein.
+                Das Radar entscheidet nichts von selbst: es meldet sich nicht in der Glocke und kündigt niemanden.
+                Sobald der Agent wieder ein Lebenszeichen gibt, verschwindet er aus der Liste.</p>
+                <p>Die Seite sieht nur, was auf der Seite passiert. Wer im Spiel aktiv ist, aber nie hier
+                hereinschaut, steht trotzdem im Radar - deshalb ist Nachfassen der erste Schritt, nicht der
+                Vermerk. Wer gerade abgemeldet ist, bekommt keine Bitte um Rückmeldung.</p>
+                <p>Seitenbesuche zählt die Seite erst seit dem Update, mit dem das Radar kam. Vorher hinterließ wer
+                nur Listen oder das Brett las gar keine Spur. Steht ein Agent nur mit einer älteren Spur im Radar,
+                ist die Zeile deshalb <em>vorläufig</em>: bis die Besuche so lange gezählt wurden wie die erste
+                Schwelle, bietet das Radar dort nur <em>Nachfassen</em> an.</p>
+                """),
+
             new Article("art-befoerderung", "befoerderung", "Beförderung",
                 "Vom Antrag bis zum neuen Dienstgrad.",
                 """

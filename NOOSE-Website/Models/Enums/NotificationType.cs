@@ -145,6 +145,10 @@ public enum NotificationType
     /// <summary>Leadership awarded the recipient a decoration. Bell for the recipient; the Discord post is its own
     /// embed that pings the recipient, an announcement about them like a personnel entry.</summary>
     DecorationAwarded = 42,
+
+    /// <summary>Leadership asks the recipient to check in after a long silence. Routable — pings the recipient, and
+    /// like a personnel entry it is not theirs to silence.</summary>
+    InactivityNudge = 43,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -195,6 +199,7 @@ public static class NotificationTypeDisplay
         NotificationType.CounterIntelFinding => "Gegenaufklärung",
         NotificationType.NooseiAnomaly => "NOOSEI-Auffälligkeit",
         NotificationType.DecorationAwarded => "Ehrung",
+        NotificationType.InactivityNudge => "Rückmeldung erbeten",
         _ => "Benachrichtigung",
     };
 
@@ -244,6 +249,7 @@ public static class NotificationTypeDisplay
         NotificationType.CounterIntelFinding => Icons.Material.Filled.GppMaybe,
         NotificationType.NooseiAnomaly => Icons.Material.Filled.DataUsage,
         NotificationType.DecorationAwarded => Icons.Material.Filled.MilitaryTech,
+        NotificationType.InactivityNudge => Icons.Material.Filled.ContactSupport,
         _ => Icons.Material.Filled.Notifications,
     };
 }

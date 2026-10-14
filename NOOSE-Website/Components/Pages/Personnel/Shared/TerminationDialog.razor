@@ -57,6 +57,9 @@
 
     [Parameter] public string AgentDisplay { get; set; } = string.Empty;
 
+    /// <summary>Starting text of the reason; the operator may change it.</summary>
+    [Parameter] public string? SuggestedReason { get; set; }
+
     /// <summary>What the operator confirmed: reason plus the two opt-out side effects.</summary>
     public record Choice(string Reason, bool CreateNote, bool PostDiscord);
 
@@ -66,13 +69,19 @@
     private bool _postDiscord = true;
     private bool _matched;
 
+    protected override void OnInitialized() => _reason = SuggestedReason ?? string.Empty;
+
     private void Confirm() => MudDialog.Close(DialogResult.Ok(new Choice(_reason.Trim(), _createNote, _postDiscord)));
     private void Cancel() => MudDialog.Cancel();
 
     /// <summary>Shows the dialog; returns the operator's choice or null on cancel.</summary>
-    public static async Task<Choice?> ShowAsync(IDialogService dialog, string agentDisplay)
+    public static async Task<Choice?> ShowAsync(IDialogService dialog, string agentDisplay, string? suggestedReason = null)
     {
-        var parameters = new DialogParameters<TerminationDialog> { { x => x.AgentDisplay, agentDisplay } };
+        var parameters = new DialogParameters<TerminationDialog>
+        {
+            { x => x.AgentDisplay, agentDisplay },
+            { x => x.SuggestedReason, suggestedReason },
+        };
         var options = new DialogOptions { CloseOnEscapeKey = false, BackdropClick = false };
         var reference = await dialog.ShowAsync<TerminationDialog>($"{agentDisplay} kündigen", parameters, options);
         var result = await reference.Result;

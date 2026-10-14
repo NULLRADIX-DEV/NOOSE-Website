@@ -1,0 +1,267 @@
+@* The "Inaktiv" tab of /personal: silent agents with the action their tier calls for. Leadership only. *@
+@using NOOSE_Website.Models.Personnel
+@inject IInactivityRadarService RadarService
+@inject IPersonnelFileService PersonnelFileService
+@inject IAgentManagementService AgentService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+    Agenten ohne Lebenszeichen auf der Seite: nichts geschrieben, keine Akte geöffnet, die Seite nicht besucht.
+    Abgemeldete Tage zählen nicht mit. Nachfassen ab @Radar.Thresholds.FollowUpDays, Vermerk ab
+    @Radar.Thresholds.NoteDays, Kündigung prüfen ab @Radar.Thresholds.TerminationDays Tagen.
+    <MudLink Href="/einstellungen?tab=inaktivitaet" Typo="Typo.body2">Schwellen ändern</MudLink>
+</MudText>
+
+@if (Radar.Rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.TaskAlt" Title="Niemand ist inaktiv"
+                Text="@($"Jeder Agent hat sich in den letzten {Radar.Thresholds.FollowUpDays} Tagen gezeigt oder war abgemeldet.")" />
+}
+else
+{
+    <MudTable Items="Radar.Rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true" T="InactivityRow">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.Codename)">Codename</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.LastTraceAt)">Letztes Lebenszeichen</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.InactiveDays)" InitialDirection="SortDirection.Descending">Tage</MudTableSortLabel></MudTh>
+            <MudTh>Stufe</MudTh>
+            <MudTh>Stand</MudTh>
+            @if (_mayWrite)
+            {
+                <MudTh Style="text-align:right;">Aktion</MudTh>
+            }
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Codename">
+                <MudLink Href="@($"/personal/{context.AgentId}")">@context.Codename</MudLink>
+                @if (!string.IsNullOrWhiteSpace(context.RealName))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.RealName</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
+            <MudTd DataLabel="Letztes Lebenszeichen">
+                <MudTooltip>
+                    <ChildContent>
+                        @context.LastTraceAt.ToLocalTime().ToString("dd.MM.yyyy")
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">(@InactivityDisplay.Trace(context.LastTraceKind))</MudText>
+                    </ChildContent>
+                    <TooltipContent>
+                        <div>Zuletzt geschrieben: @Stamp(context.LastWriteAt)</div>
+                        <div>Zuletzt Akte geöffnet: @Stamp(context.LastReadAt)</div>
+                        <div>Zuletzt Seite besucht: @Stamp(context.LastSeenAt)</div>
+                    </TooltipContent>
+                </MudTooltip>
+            </MudTd>
+            <MudTd DataLabel="Tage">
+                <MudTooltip Text="@($"{context.SilentDays} Tage still, davon {context.AbsentDays} abgemeldet")">
+                    <b>@context.InactiveDays</b>
+                    @if (context.AbsentDays > 0)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">(+@context.AbsentDays abgemeldet)</MudText>
+                    }
+                </MudTooltip>
+            </MudTd>
+            <MudTd DataLabel="Stufe">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                         Color="@InactivityDisplay.TierColour(context.Tier)">@InactivityDisplay.Tier(context.Tier)</MudChip>
+            </MudTd>
+            <MudTd DataLabel="Stand">
+                @if (context.AbsentUntil is { } until)
+                {
+                    <MudText Typo="Typo.caption" Class="d-block">Abgemeldet bis @until.ToString("dd.MM.yyyy")</MudText>
+                }
+                @if (context.NudgedAt is { } nudged)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                        Nachgefasst am @nudged.ToLocalTime().ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(context.NudgedByName) ? "" : $" von {context.NudgedByName}")
+                    </MudText>
+                }
+                @if (context.Provisional)
+                {
+                    <MudTooltip Text="@ProvisionalHint">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">vorläufig</MudChip>
+                    </MudTooltip>
+                }
+            </MudTd>
+            @if (_mayWrite)
+            {
+                <MudTd DataLabel="Aktion" Style="text-align:right;">
+                    <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" Wrap="Wrap.Wrap">
+                        @if (context.AgentId != _me)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
+                                       Disabled="@(_busy || context.AbsentUntil is not null || context.NudgeLockedUntil > DateTime.UtcNow)"
+                                       StartIcon="@Icons.Material.Filled.ContactSupport" OnClick="@(() => NudgeAsync(context))">
+                                @(context.NudgedAt is null ? "Nachfassen" : "Erneut nachfassen")
+                            </MudButton>
+                        }
+                        @if (context.Tier >= InactivityTier.Note && context.AgentId != _me)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning" Disabled="_busy"
+                                       StartIcon="@Icons.Material.Filled.Description" OnClick="@(() => NoteAsync(context))">
+                                Vermerk
+                            </MudButton>
+                        }
+                        @if (context.Tier >= InactivityTier.Termination && context.AgentId != _me)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error" Disabled="_busy"
+                                       StartIcon="@Icons.Material.Filled.PersonRemove" OnClick="@(() => TerminateAsync(context))">
+                                Kündigen
+                            </MudButton>
+                        }
+                    </MudStack>
+                </MudTd>
+            }
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    [Parameter, EditorRequired] public InactivityRadar Radar { get; set; } = default!;
+
+    /// <summary>Raised after an action, so the page reloads the radar and the tab count.</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private ClaimsPrincipal _user = default!;
+    private bool _mayWrite;
+    private bool _mayRealName;
+    private string? _me;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayWrite = _user.MayWrite();
+        _mayRealName = _user.MayRealNameSee();
+        _me = _user.GetAgentId();
+    }
+
+    private static string Stamp(DateTime? utc) => utc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
+
+    private string ProvisionalHint => Radar.VisitsCountedFrom is { } from
+        ? $"Seitenbesuche werden erst seit dem {from.ToLocalTime():dd.MM.yyyy} gezählt. Bis sie {Radar.Thresholds.FollowUpDays} Tage "
+          + "lang gezählt wurden, bietet das Radar hier nur Nachfassen an."
+        : "Seitenbesuche werden erst seit kurzem gezählt.";
+
+    private Task NudgeAsync(InactivityRow row) => ExclusiveAsync(async () =>
+    {
+        var text = row.NudgedAt is { } at
+            ? $"{row.NudgedByName ?? "Jemand"} hat am {at.ToLocalTime():dd.MM.yyyy} schon nachgefasst. Noch einmal schreiben?"
+            : $"{row.Codename} bekommt eine Benachrichtigung und einen Discord-Ping mit der Bitte, sich zu melden "
+              + "oder eine Abmeldung einzutragen.";
+        if (!await ConfirmDialog.ShowAsync(DialogService, $"Bei {row.Codename} nachfassen?", text, "Nachfassen"))
+        {
+            return;
+        }
+        await RunAsync(async () =>
+        {
+            await RadarService.NudgeAsync(row.AgentId, _user);
+            Snackbar.Add($"Bei {row.Codename} nachgefasst.", Severity.Success);
+        });
+    });
+
+    private Task NoteAsync(InactivityRow row) => ExclusiveAsync(async () =>
+    {
+        // the page may be an hour old; the agent could be back by now
+        if (await StillDueAsync(row, InactivityTier.Note) is not { } fresh)
+        {
+            return;
+        }
+        var choice = await InactivityNoteDialog.ShowAsync(DialogService, fresh.AgentId, fresh.Codename,
+            InactivityRules.NoteHtml(MeetingTime.Day(fresh.LastTraceAt), fresh.InactiveDays));
+        if (choice is null || await StillDueAsync(fresh, InactivityTier.Note) is null)
+        {
+            return;
+        }
+        await RunAsync(async () =>
+        {
+            await PersonnelFileService.NoteCreateAsync(fresh.AgentId, choice.Kind, null, DateTime.Now,
+                Array.Empty<string>(), choice.Html, _user);
+            // the dialog closed before this write, so its draft is dropped here
+            await RichTextEditor.DiscardDraftAsync(JS, _me, InactivityNoteDialog.DraftKeyFor(fresh.AgentId));
+            Snackbar.Add($"Vermerk für {fresh.Codename} eingetragen.", Severity.Success);
+        });
+    });
+
+    private Task TerminateAsync(InactivityRow row) => ExclusiveAsync(async () =>
+    {
+        if (await StillDueAsync(row, InactivityTier.Termination) is not { } fresh)
+        {
+            return;
+        }
+        var display = _mayRealName && !string.IsNullOrWhiteSpace(fresh.RealName)
+            ? $"{fresh.RealName} ({fresh.Codename})"
+            : fresh.Codename;
+        var choice = await TerminationDialog.ShowAsync(DialogService, display,
+            InactivityRules.TerminationReason(MeetingTime.Day(fresh.LastTraceAt), fresh.InactiveDays));
+        if (choice is null || await StillDueAsync(fresh, InactivityTier.Termination) is null)
+        {
+            return;
+        }
+        await RunAsync(async () =>
+        {
+            await AgentService.TerminateAsync(fresh.AgentId, choice.Reason, choice.CreateNote, choice.PostDiscord, _user);
+            Snackbar.Add($"{display} wurde gekündigt.", Severity.Warning);
+        });
+    });
+
+    /// <summary>One flow at a time, from the first check to the reload, so a double click cannot open two dialogs.</summary>
+    private async Task ExclusiveAsync(Func<Task> flow)
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await flow();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>The agent's row as of now if it still reaches the tier; otherwise says so and reloads the list.</summary>
+    private async Task<InactivityRow?> StillDueAsync(InactivityRow row, InactivityTier tier)
+    {
+        try
+        {
+            if (await RadarService.GetRowAsync(row.AgentId, _user) is { } fresh && fresh.Tier >= tier)
+            {
+                return fresh;
+            }
+            Snackbar.Add($"{row.Codename} hat sich inzwischen gezeigt oder steht nicht mehr auf dieser Stufe.",
+                Severity.Info);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        return null;
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        try
+        {
+            await action();
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

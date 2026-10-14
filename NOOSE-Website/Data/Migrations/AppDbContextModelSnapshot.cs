@@ -516,6 +516,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("ActiveSinceAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AktivSeitAm");
+
                     b.Property<string>("AvatarContentType")
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)")
@@ -578,6 +582,15 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("Finanzierungsbudget");
 
+                    b.Property<DateTime?>("InactivityNudgedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("InaktivNachgefasstAm");
+
+                    b.Property<string>("InactivityNudgedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("InaktivNachgefasstVonName");
+
                     b.Property<bool>("IsAdmin")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IstAdmin");
@@ -593,6 +606,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<bool>("IsTeamLead")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IstTeamLeitung");
+
+                    b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ZuletztGesehenAm");
 
                     b.Property<long?>("LlmQuotaOverride")
                         .HasColumnType("bigint")
@@ -11080,6 +11097,8 @@ namespace NOOSE_Website.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Timestamp");
+
+                    b.HasIndex("AgentId", "Timestamp");
 
                     b.HasIndex("EntityType", "EntityId");
 
