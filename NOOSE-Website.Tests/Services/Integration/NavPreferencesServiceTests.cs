@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using NOOSE_Website.Data;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
 using NOOSE_Website.Services;
 
@@ -423,6 +424,23 @@ public sealed class NavPreferencesServiceTests : IDisposable
         await NewService().SetNeuerungenLastSeenAsync("a1", pageRead.AddMinutes(-5));
 
         Assert.Equal(pageRead, Stored("a1").NeuerungenLastSeenUtc);
+    }
+
+    // ---- the finding marks ----
+
+    /// <summary>A stale tab must not hand back findings already looked at, and the two sources keep apart.</summary>
+    [Fact]
+    public async Task SetFindingsSeenAsync_moves_each_source_forward_only()
+    {
+        SeedAgent("a1");
+        var look = new DateTime(2026, 10, 14, 8, 0, 0, DateTimeKind.Utc);
+
+        await NewService().SetFindingsSeenAsync("a1", FindingSource.Rule, look);
+        await NewService().SetFindingsSeenAsync("a1", FindingSource.Rule, look.AddMinutes(-5));
+        await NewService().SetFindingsSeenAsync("a1", FindingSource.Noosei, look.AddHours(1));
+
+        Assert.Equal(look, Stored("a1").CounterIntelSeenUtc);
+        Assert.Equal(look.AddHours(1), Stored("a1").NooseiAnomaliesSeenUtc);
     }
 
     // ---- the two fields the handbook added ----

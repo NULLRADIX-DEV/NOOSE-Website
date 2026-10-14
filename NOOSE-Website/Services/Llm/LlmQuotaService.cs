@@ -22,6 +22,9 @@ public interface ILlmQuotaService
     /// <summary>Quota of every selectable agent, for the overview.</summary>
     Task<IReadOnlyList<LlmQuotaStatus>> GetAllStatusAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>The same roster without an actor guard, for the anomaly watch; callers gate the result.</summary>
+    Task<IReadOnlyList<LlmQuotaStatus>> GetRosterStatusAsync(CancellationToken cancellationToken = default);
+
     /// <summary>Closed weeks of one agent, newest first — the audit trail of the carry chain.</summary>
     Task<List<LlmQuotaPeriod>> GetPeriodsAsync(string agentId, ClaimsPrincipal actor, int max = 12, CancellationToken cancellationToken = default);
 
@@ -76,9 +79,14 @@ public class LlmQuotaService(
         return await BuildStatusAsync(db, agent, config, boost, snapshot, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<LlmQuotaStatus>> GetAllStatusAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public Task<IReadOnlyList<LlmQuotaStatus>> GetAllStatusAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireQuotaRead(actor);
+        return GetRosterStatusAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<LlmQuotaStatus>> GetRosterStatusAsync(CancellationToken cancellationToken = default)
+    {
         var config = await configService.GetAsync(cancellationToken);
         var boost = (await providerService.GetStateAsync(cancellationToken)).BoostPercent;
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);

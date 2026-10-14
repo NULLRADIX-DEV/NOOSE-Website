@@ -3149,9 +3149,17 @@ namespace NOOSE_Website.Data.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("varchar(150)");
 
+                    b.Property<bool>("Notify")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Meldet");
+
                     b.Property<int>("Order")
                         .HasColumnType("int")
                         .HasColumnName("Reihenfolge");
+
+                    b.Property<DateTime?>("ReportFrom")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("MeldenAb");
 
                     b.Property<int>("Severity")
                         .HasColumnType("int")
@@ -3162,6 +3170,48 @@ namespace NOOSE_Website.Data.Migrations
                     b.HasIndex("IsActive", "Order");
 
                     b.ToTable("GegenaufklaerungsRegeln");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.CounterIntel.FindingReport", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("CoveredUntil")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GemeldetBis");
+
+                    b.Property<int>("Grade")
+                        .HasColumnType("int")
+                        .HasColumnName("Stufe");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("Schluessel");
+
+                    b.Property<DateTime?>("ReportedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GemeldetAm");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("int")
+                        .HasColumnName("Quelle");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Source", "ReportedAt");
+
+                    b.HasIndex("Source", "Key", "AgentId")
+                        .IsUnique();
+
+                    b.ToTable("AuffaelligkeitMeldungen");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>

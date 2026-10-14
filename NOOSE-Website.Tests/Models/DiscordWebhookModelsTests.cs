@@ -48,6 +48,9 @@ public class DiscordWebhookModelsTests
         // an internal operating fact: NotifyManyAsync pushes every routable category, so a routable one here would
         // post each expiry into the public channel
         NotificationType.PublicWantedExpired,
+        // who stands out is for the leadership bell alone; a shared channel would show it was rung
+        NotificationType.CounterIntelFinding,
+        NotificationType.NooseiAnomaly,
     };
 
     // ----- IsRoutable: true branch -----

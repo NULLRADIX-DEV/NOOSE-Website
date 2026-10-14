@@ -101,6 +101,8 @@ public class NotificationService(
             Title = title,
             Href = href,
             ReadAt = silent ? DateTime.UtcNow : null,
+            // the audit stamp overwrites it; set anyway, the read-up-to mark compares it
+            CreatedAt = DateTime.UtcNow,
         };
 
     /// <summary>Recipients who want this category without the bell: switched off, or quiet while absent today.</summary>
@@ -414,6 +416,33 @@ public class NotificationService(
         await db.SaveChangesAsync(cancellationToken);
 
         broadcaster.Report(n.RecipientId);
+    }
+
+    public async Task TargetAsReadMarkAsync(ClaimsPrincipal actor, NotificationType type, string href,
+        DateTime notAfterUtc, CancellationToken cancellationToken = default)
+    {
+        var agentId = actor.GetAgentId();
+        if (string.IsNullOrWhiteSpace(agentId))
+        {
+            return;
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var open = await db.Notifications
+            .Where(n => n.RecipientId == agentId && n.Type == type && n.Href == href
+                        && n.ReadAt == null && n.CreatedAt <= notAfterUtc)
+            .ToListAsync(cancellationToken);
+        if (open.Count == 0)
+        {
+            return;
+        }
+        var now = DateTime.UtcNow;
+        foreach (var n in open)
+        {
+            n.ReadAt = now;
+        }
+        await db.SaveChangesAsync(cancellationToken);
+
+        broadcaster.Report(agentId);
     }
 
     public async Task AllAsReadAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)

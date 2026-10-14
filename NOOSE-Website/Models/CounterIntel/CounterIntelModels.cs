@@ -45,6 +45,9 @@ public sealed record CounterIntelEvent
     public required string AgentId { get; init; }
     public string? AgentName { get; init; }
     public required DateTime LocalTimestamp { get; init; }
+
+    /// <summary>The log row's own timestamp; the watch compares against it, never against local time.</summary>
+    public DateTime TimestampUtc { get; init; }
     public required string EntityType { get; init; }
     public required string EntityId { get; init; }
     public required CounterIntelActionKind Action { get; init; }
@@ -75,9 +78,12 @@ public sealed record CounterIntelEvent
 }
 
 /// <summary>A rule paired with its parsed definition, ready for evaluation.</summary>
+/// <param name="Notify">Whether new findings ring the leadership bell.</param>
+/// <param name="ReportFrom">Nothing before this instant (UTC) is ever reported; null until the watch arms the rule.</param>
 public sealed record CounterIntelRuleView(
     string Id, string Name, string? Description, CounterIntelSeverity Severity,
-    bool IsActive, int Order, CounterIntelRuleDefinition Definition);
+    bool IsActive, int Order, CounterIntelRuleDefinition Definition,
+    bool Notify = true, DateTime? ReportFrom = null);
 
 /// <summary>Editor payload for creating or updating a rule.</summary>
 public sealed class CounterIntelRuleInput
@@ -86,6 +92,7 @@ public sealed class CounterIntelRuleInput
     public string? Description { get; set; }
     public CounterIntelSeverity Severity { get; set; } = CounterIntelSeverity.Warning;
     public bool IsActive { get; set; } = true;
+    public bool Notify { get; set; } = true;
     public int Order { get; set; }
     public CounterIntelRuleDefinition Definition { get; set; } = new();
 }

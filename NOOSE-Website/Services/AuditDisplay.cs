@@ -31,6 +31,8 @@ public static class AuditDisplay
         // the follow-up worker's own stamp, exactly like NotifiedAt above: it says a reminder went out, which
         // the bell already did, and every waiting ticket would otherwise write a row into the protocol hourly
         "NudgedAt",
+        // moves along with the definition; the definition change is the news
+        "ReportFrom",
     };
 
     // Document bodies, layouts and score snapshots are unreadable as a before/after pair and swamp
@@ -102,6 +104,7 @@ public static class AuditDisplay
         ["LawBook"] = "Gesetzbuch", ["Paragraph"] = "Paragraf", ["Sentence"] = "Strafmaß",
         ["Section"] = "Abschnitt", ["SortOrder"] = "Reihenfolge", ["Abbreviation"] = "Kürzel",
         ["IsPublic"] = "Öffentlich",
+        ["Notify"] = "Meldet sich in der Glocke",
     };
 
     // whole-day values carry no instant, so they must never be shifted into a time zone

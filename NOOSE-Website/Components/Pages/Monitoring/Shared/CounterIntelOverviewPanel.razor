@@ -71,9 +71,10 @@ else
     private CounterIntelHeatmap? _heatmap;
     private IReadOnlyList<InsiderFlag> _flags = Array.Empty<InsiderFlag>();
 
-    private Severity Worst => _flags.Any(f => f.Grade == CounterIntelSeverity.Critical)
-        ? Severity.Error
-        : _flags.Any(f => f.Grade == CounterIntelSeverity.Warning) ? Severity.Warning : Severity.Info;
+    // the same tone the findings tab colours the worst rule in
+    private Severity Worst => _flags.Count == 0
+        ? Severity.Info
+        : CounterIntelSeverityDisplay.Alert(_flags.Max(f => f.Grade));
 
     protected override async Task OnInitializedAsync()
     {

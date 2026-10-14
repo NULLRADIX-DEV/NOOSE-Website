@@ -58,6 +58,9 @@ internal static class ToolsChapter
                 bezahlt, sieht nur, wer die KI betreibt.</p>
                 <p>Der praktische Rat: Stell eine gute Frage statt fünf ungefährer. Und wenn du nur wissen
                 willst, ob es eine Akte gibt - dafür ist die Suche schneller und kostet nichts.</p>
+                <p>Ungewöhnliche Nutzung fällt auf: Die Führung sieht sie unter <em>Einstellungen</em> im
+                Abschnitt <em>Kontingente</em>, und was in einer Woche neu auffällt, meldet sich von selbst in
+                ihrer <em>Glocke</em>.</p>
                 """),
 
             new Article("art-statistik", "statistik", "Statistik",
@@ -115,6 +118,13 @@ internal static class ToolsChapter
                 Bereich. Innerhalb einer Kategorie gilt „oder“, zwischen Kategorien „und“.</p>
                 <p>Eine ausgelöste Regel ist ein <strong>Anlass zum Hinsehen</strong>, kein Vorwurf. Es gibt
                 harmlose Gründe für fast jedes Muster.</p>
+                <p>Niemand muss nachsehen, ob etwas anschlägt: Die Regeln <strong>melden sich selbst</strong>. Was
+                neu auffällt, kommt als Sammelmeldung in die <em>Glocke</em> der Führung. Sie nennt die Regel und
+                die Zahl, nie einen Namen - wen es betrifft, steht unter <em>Auffälligkeiten</em>, wo neue Funde
+                die Marke <em>Neu</em> tragen. Gemeldet wird nur, was passiert, seit eine Regel eingeschaltet
+                oder ihre Bedingungen zuletzt geändert wurden, und niemand bekommt eine Meldung über sich selbst.
+                Schlägt eine Regel zu oft an, schaltest du im Editor <em>Meldet sich in der Glocke</em> aus - dann
+                meldet sie sich bei niemandem mehr, bleibt aber im Cockpit sichtbar.</p>
                 """),
 
             new Article("art-gesetze", "gesetzbuch", "Die Gesetzbücher",

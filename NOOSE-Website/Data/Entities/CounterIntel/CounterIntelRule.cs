@@ -22,6 +22,14 @@ public class CounterIntelRule : IAuditable, ISoftDelete
     [Column("IstAktiv")]
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Whether new findings ring the leadership bell; the cockpit shows them either way.</summary>
+    [Column("Meldet")]
+    public bool Notify { get; set; } = true;
+
+    /// <summary>Nothing before this instant (UTC) is reported; reset when the rule starts to mean something new.</summary>
+    [Column("MeldenAb")]
+    public DateTime? ReportFrom { get; set; }
+
     /// <summary>Display order in the panel and in the findings tab (smaller first).</summary>
     [Column("Reihenfolge")]
     public int Order { get; set; }

@@ -4,6 +4,7 @@
 @inject ILlmQuotaService Quota
 @inject ILlmRequestLogService Log
 @inject ILlmAnomalyService Anomalies
+@inject IFindingWatchService Watch
 @inject IDialogService Dialogs
 @inject ISnackbar Snackbar
 
@@ -41,7 +42,12 @@
         @foreach (var flag in _flags)
         {
             <MudText Typo="Typo.body2">
-                <b>@flag.AgentName</b> ·
+                <b>@flag.AgentName</b>
+                @if (_unseen.IsNew(flag.Kind.ToString(), flag.AgentId))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled">Neu</MudChip>
+                }
+                ·
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                          Color="@(flag.Grade >= CounterIntelSeverity.High ? Color.Error : Color.Warning)"
                          Icon="@LlmAnomalyKindDisplay.Icon(flag.Kind)">
@@ -131,13 +137,56 @@
     private (long Tokens, decimal CostUsd, int Weeks)? _expected;
     private bool _busy = true;
 
+    /// <summary>The marks of this page visit, kept by the page: the rail rebuilds the panel on every section switch.</summary>
+    [Parameter] public UnseenFindings? Unseen { get; set; }
+
+    [Parameter] public EventCallback<UnseenFindings> UnseenChanged { get; set; }
+
+    // what the watch reported since the last look; read once, a reload must not move the marks
+    private UnseenFindings _unseen = UnseenFindings.None(DateTime.UtcNow);
+    private bool _fresh;
+    private bool _marked;
+    private bool _loadFailed;
+
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
         _maySeeCost = _user.IsAiOwner();
         // only the AI owner may change budgets; a control that always fails is worse than none
         _mayManage = _maySeeCost && _user.MayWrite();
+        try
+        {
+            _unseen = Unseen ?? await Watch.GetUnseenAsync(_user, FindingSource.Noosei);
+            _fresh = Unseen is null;
+        }
+        catch (Exception)
+        {
+            /* the list stays usable without marks */
+        }
         await ReloadAsync();
+        if (_fresh && !_loadFailed)
+        {
+            await UnseenChanged.InvokeAsync(_unseen);
+        }
+    }
+
+    // after the first interactive render only: a stamp during prerendering would clear the marks before they show
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // only the visit that read the marks stamps them, and only once the list it marks has shown
+        if (!_fresh || _marked || _busy || _loadFailed)
+        {
+            return;
+        }
+        _marked = true;
+        try
+        {
+            await Watch.MarkSeenAsync(_user, FindingSource.Noosei, _unseen.AsOfUtc);
+        }
+        catch (Exception)
+        {
+            /* best effort */
+        }
     }
 
     /// <summary>Worst case from the live roster, forecast from the closed weeks. Only for the AI owner: the
@@ -179,6 +228,7 @@
         }
         catch (Exception ex)
         {
+            _loadFailed = true;
             Snackbar.Add(ex.Message, Severity.Error);
         }
         finally

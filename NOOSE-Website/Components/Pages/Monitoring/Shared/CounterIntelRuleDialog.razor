@@ -40,6 +40,16 @@
                                 <MudItem xs="6" sm="4" Class="d-flex align-center">
                                     <MudSwitch T="bool" @bind-Value="_input.IsActive" Color="Color.Primary" Label="Aktiv" />
                                 </MudItem>
+                                <MudItem xs="12">
+                                    <MudSwitch T="bool" @bind-Value="_input.Notify" Color="Color.Primary"
+                                               Label="Meldet sich in der Glocke" />
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                                        Neue Treffer gehen von selbst an die Führung, ohne einen Namen zu nennen.
+                                        Gemeldet wird nur, was passiert, seit die Regel eingeschaltet oder ihre
+                                        Bedingungen zuletzt geändert wurden. Aus heißt: für die ganze Führung still,
+                                        im Cockpit bleibt sie sichtbar.
+                                    </MudText>
+                                </MudItem>
                             </MudGrid>
                         </MudStack>
                     </MudExpansionPanel>
@@ -305,6 +315,7 @@
             _input.Description = rule.Description;
             _input.Severity = rule.Severity;
             _input.IsActive = rule.IsActive;
+            _input.Notify = rule.Notify;
             _input.Order = rule.Order;
             // edit a copy so cancelling leaves the loaded rule untouched
             _definition = rule.Definition.Clone();

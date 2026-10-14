@@ -138,8 +138,8 @@
     /// <summary>Divider anchor for "new since your last visit"; owned by the page so a section switch keeps it.</summary>
     [Parameter] public DateTime? LastSeenUtc { get; set; }
 
-    /// <summary>Raised once after the first load, so the page can stamp the visit.</summary>
-    [Parameter] public EventCallback OnOpened { get; set; }
+    /// <summary>Raised once the loaded feed has rendered interactively, with the instant it was read at.</summary>
+    [Parameter] public EventCallback<DateTime> OnOpened { get; set; }
 
     private static readonly (int Days, string Label)[] Presets =
     {
@@ -154,6 +154,8 @@
     private DateTime? _cursor;
     private bool _hasMore;
     private bool _load = true;
+    private bool _opened;
+    private DateTime _readAtUtc;
     private bool _loadMore;
     private int _loadGen;
 
@@ -195,17 +197,24 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _readAtUtc = DateTime.UtcNow;
         _user = (await AuthStateTask).User;
         _options = await Chronik.GetFilterOptionsAsync(_user);
 
         ReadUrlState();
         ApplyWindow();
         await ReloadAsync(withDensity: true);
+    }
 
-        if (OnOpened.HasDelegate)
+    // after the first interactive render only: a stamp during prerendering would clear the divider before it shows
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_opened || _load || !OnOpened.HasDelegate)
         {
-            await OnOpened.InvokeAsync();
+            return;
         }
+        _opened = true;
+        await OnOpened.InvokeAsync(_readAtUtc);
     }
 
     // ---------------------------------------------------------------- loading

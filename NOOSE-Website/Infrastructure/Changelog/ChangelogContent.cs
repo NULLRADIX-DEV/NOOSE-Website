@@ -441,6 +441,18 @@ public static class ChangelogContent
             Neu("2.2.32-suche-ueberwachen", "Eine gespeicherte Suche lässt sich überwachen: Sie läuft dann etwa stündlich "
                 + "für dich und meldet über die Glocke, was neu dazugekommen ist. Öffnest du sie, sind die neuen Treffer "
                 + "markiert.", "Suche"),
+            Neu("2.2.33-gegenaufklaerung-meldet", "Die Regeln der Gegenaufklärung melden neue Auffälligkeiten jetzt "
+                + "von selbst in der Glocke der Führung, ohne einen Namen zu nennen. Unter Auffälligkeiten ist markiert, "
+                + "was seit deinem letzten Blick neu ist, und für jede Regel lässt sich die Meldung abschalten.",
+                "Gegenaufklärung"),
+            Neu("2.2.34-noosei-auffaelligkeiten-melden", "Auch neue Auffälligkeiten bei der NOOSEI-Nutzung melden sich "
+                + "von selbst in der Glocke der Führung und sind in den Kontingenten als neu markiert.", "NOOSEI"),
+            Fix("2.2.35-suche-regel-link", "Ein Suchtreffer auf eine Gegenaufklärungs-Regel öffnet jetzt die Regeln "
+                + "statt der Chronik.", "Suche"),
+            Fix("2.2.36-chronik-neu-markierung", "Die Linie „Seit deinem letzten Besuch“ in der Chronik verschwindet "
+                + "beim Neuladen der Seite nicht mehr, bevor du sie gesehen hast.", "Chronik"),
+            Fix("2.2.37-lagebild-farbe", "Das Lagebild der Gegenaufklärung warnt jetzt auch, wenn nur Auffälligkeiten "
+                + "der Stufe „Hoch“ vorliegen.", "Gegenaufklärung"),
         ]),
     ];
 }

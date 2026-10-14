@@ -109,7 +109,7 @@
     </RecordSection>
     <RecordSection Group="KI" Slug="ki-kontingente" Label="Kontingente"
                    Icon="@Icons.Material.Filled.Token">
-        <LlmQuotaOverviewPanel />
+        <LlmQuotaOverviewPanel @bind-Unseen="_anomaliesUnseen" />
     </RecordSection>
     @* Prompts and answers are stored in full: agents do paste real names, and supervision must never see those. *@
     <AuthorizeView Policy="@Policies.CounterIntel" Context="kiLogSection">
@@ -201,6 +201,9 @@
 </RecordSectionRail>
 
 @code {
+    // on the page, not in the panel: the rail rebuilds a panel on every section switch
+    private UnseenFindings? _anomaliesUnseen;
+
     // three sections left for /nachweis; forward old deep links instead of silently falling back
     protected override void OnInitialized()
     {

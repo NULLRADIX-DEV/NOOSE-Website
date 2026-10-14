@@ -51,6 +51,9 @@ public static class SystemSettingKeys
     /// <summary>Last time the daily ping digest went out (round-trip UTC); worker guard, not user-edited.</summary>
     public const string PingDigestLastRun = "TagesueberblickZuletzt";
 
+    /// <summary>Since when the NOOSEI anomaly watch reports (round-trip UTC); empty = lay a silent baseline first. Not user-edited.</summary>
+    public const string NooseiAnomalyWatchArmedAt = "KiAuffaelligkeitenScharfAb";
+
     /// <summary>Set once the one-shot search side-index backfill has fully completed; guards against re-scanning. Not user-edited.</summary>
     public const string SearchIndexBackfillDone = "SuchIndexBackfillFertig";
 

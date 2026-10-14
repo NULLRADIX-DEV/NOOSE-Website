@@ -45,6 +45,11 @@ public interface INotificationService
     /// <summary>Mark one of the caller's notifications as read.</summary>
     Task AsReadMarkAsync(string notificationId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Mark the caller's unread notices for one target as read, up to the given instant.</summary>
+    /// <remarks>A notice folded after <paramref name="notAfterUtc"/> carries something the caller has not seen yet.</remarks>
+    Task TargetAsReadMarkAsync(ClaimsPrincipal actor, NotificationType type, string href, DateTime notAfterUtc,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Mark all of the caller's unread notifications as read.</summary>
     Task AllAsReadAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 

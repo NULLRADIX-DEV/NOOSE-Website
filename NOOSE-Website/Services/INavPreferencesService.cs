@@ -43,6 +43,9 @@ public interface INavPreferencesService
     /// <summary>Stamp the changelog as seen up to this instant; the hint card appears only for what came after.</summary>
     Task SetNeuerungenLastSeenAsync(string agentId, DateTime seenUtc, CancellationToken cancellationToken = default);
 
+    /// <summary>Stamp one source's findings as seen up to this instant; only ever moves forward.</summary>
+    Task SetFindingsSeenAsync(string agentId, FindingSource source, DateTime seenUtc, CancellationToken cancellationToken = default);
+
     /// <summary>Turns the glossary explain-bubbles on or off for this agent.</summary>
     Task SetGlossarBlasenAsync(string agentId, bool enabled, CancellationToken cancellationToken = default);
 

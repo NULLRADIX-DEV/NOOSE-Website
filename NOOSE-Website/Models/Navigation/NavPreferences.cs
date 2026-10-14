@@ -80,6 +80,12 @@ public sealed class NavPreferences
     /// <summary>Last look of the visit before the current one; where "since your last visit" starts.</summary>
     public DateTime? ShiftBoundaryUtc { get; set; }
 
+    /// <summary>Last look at the counter-intelligence findings; what was reported after it counts as new.</summary>
+    public DateTime? CounterIntelSeenUtc { get; set; }
+
+    /// <summary>Last look at the NOOSEI anomaly list; same role as <see cref="CounterIntelSeenUtc"/>.</summary>
+    public DateTime? NooseiAnomaliesSeenUtc { get; set; }
+
     /// <summary>Schema version for future migrations.</summary>
     public int Version { get; set; } = 2;
 
