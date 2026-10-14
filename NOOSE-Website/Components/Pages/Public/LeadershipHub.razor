@@ -55,6 +55,22 @@
                                         @card.RoleText
                                     </MudText>
                                 }
+                                @* static page: plain title attributes, no popover-based tooltip *@
+                                @if (card.Decorations.Count > 0)
+                                {
+                                    <div class="ehrenzeichen-oeffentlich">
+                                        @foreach (var d in card.Decorations)
+                                        {
+                                            <span class="ehrenzeichen-oeffentlich-eintrag" title="@d.Name">
+                                                <span class="ehrenzeichen-plakette" aria-hidden="true"
+                                                      style="--plakette-farbe:@DecorationTierDisplay.Hex(d.Tier);">
+                                                    <MudIcon Icon="@DecorationSymbols.Find(d.Symbol).Icon" Size="Size.Small" />
+                                                </span>
+                                                <span>@d.Name</span>
+                                            </span>
+                                        }
+                                    </div>
+                                }
                             </MudStack>
                         </MudPaper>
                     }

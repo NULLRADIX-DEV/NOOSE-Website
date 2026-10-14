@@ -28,6 +28,7 @@ using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Feedback;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.CounterIntel;
+using NOOSE_Website.Data.Entities.Decorations;
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Kasse;
@@ -218,6 +219,8 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<ThreatScoreConfig> ThreatScoreConfigs => Set<ThreatScoreConfig>();
     public DbSet<ThreatScoreHistory> ThreatScoreHistory => Set<ThreatScoreHistory>();
     public DbSet<NOOSE_Website.Data.Entities.Gamification.AgentBadge> AgentBadges => Set<NOOSE_Website.Data.Entities.Gamification.AgentBadge>();
+    public DbSet<Decoration> Decorations => Set<Decoration>();
+    public DbSet<DecorationAward> DecorationAwards => Set<DecorationAward>();
     public DbSet<Followup> Followups => Set<Followup>();
 
     // cached AI dossier summaries (one current row per record)
@@ -303,6 +306,12 @@ public class AppDbContext : IdentityDbContext<Agent>
             // longtext for JSON
             b.Property(a => a.NavPreferencesJson).HasColumnType("longtext");
             b.Property(a => a.FinancingBudgetOverride).HasPrecision(18, 2);
+            b.Property(a => a.InactivityNudgedByName).HasMaxLength(128);
+            // written by ExecuteUpdate only: UserManager.UpdateAsync rewrites the whole row from a possibly stale copy
+            foreach (var stamp in new[] { nameof(Agent.LastSeenAt), nameof(Agent.InactivityNudgedAt), nameof(Agent.InactivityNudgedByName) })
+            {
+                b.Property(stamp).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+            }
             b.HasIndex(a => a.DiscordId).IsUnique();
         });
 
@@ -314,6 +323,8 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(a => a.AgentName).HasMaxLength(128);
             b.HasIndex(a => new { a.EntityType, a.EntityId });
             b.HasIndex(a => a.Timestamp);
+            // inactivity radar: latest write per agent
+            b.HasIndex(a => new { a.AgentId, a.Timestamp });
             // window scans: Leads / Chronik / Gamification
             b.HasIndex(a => new { a.EntityType, a.Timestamp });
         });
@@ -347,6 +358,30 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(a => a.BadgeKey).HasMaxLength(64);
             b.HasIndex(a => new { a.AgentId, a.BadgeKey }).IsUnique();
             b.HasOne<Agent>().WithMany().HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Decoration>(b =>
+        {
+            b.Property(d => d.Name).HasMaxLength(80).IsRequired();
+            b.Property(d => d.Description).HasMaxLength(500);
+            b.Property(d => d.DefaultCitation).HasMaxLength(2000);
+            b.Property(d => d.Symbol).HasMaxLength(32).IsRequired();
+            b.HasIndex(d => d.Name).IsUnique();
+        });
+
+        modelBuilder.Entity<DecorationAward>(b =>
+        {
+            b.Property(a => a.Citation).HasColumnType("longtext").IsRequired();
+            b.Property(a => a.AwardedById).HasMaxLength(64);
+            b.Property(a => a.AwardedByName).HasMaxLength(128);
+            b.Property(a => a.SignatoryName).HasMaxLength(128);
+            b.Property(a => a.AnnouncementId).HasMaxLength(64);
+            b.Property(a => a.RevokedByName).HasMaxLength(128);
+            b.Property(a => a.RevocationReason).HasMaxLength(1000);
+            b.HasIndex(a => new { a.AgentId, a.RevokedAt });
+            b.HasIndex(a => a.AwardedOn);
+            b.HasOne<Agent>().WithMany().HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(a => a.Decoration).WithMany().HasForeignKey(a => a.DecorationId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<DossierSummary>(b =>
@@ -2174,6 +2209,7 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(p => p.RoleText).HasMaxLength(160);
             b.Property(p => p.PhotoFileName).HasMaxLength(256);
             b.Property(p => p.PhotoContentType).HasMaxLength(128);
+            b.Property(p => p.DecorationsJson).HasColumnType("longtext");
             b.Property(p => p.PublishedById).HasMaxLength(64);
             // Restrict: a released entry outlives the account it was made from, and it carries its own copy of
             // every value anyway

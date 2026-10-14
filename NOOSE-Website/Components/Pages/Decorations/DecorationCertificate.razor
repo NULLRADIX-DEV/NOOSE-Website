@@ -1,0 +1,39 @@
+@* Printable certificate of one decoration award; leadership and the recipient, never a revoked award. *@
+@page "/urkunden/ehrung/{Id}"
+@layout PrintLayout
+@inject IDecorationService Decorations
+@inject ISystemSettingService SettingService
+@inject IAccessLogService AccessLog
+
+<PageTitle>@(_view is null ? "Urkunde" : $"Urkunde {_view.DecorationName} · {_view.Codename}") · NOOSE</PageTitle>
+
+<CertificatePage View="_view" Loading="_load" LogoSrc="@_logo"
+                 BackHref="@(_view is null ? "/personal" : $"/personal/{_view.AgentId}?tab=auszeichnungen")" />
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private CertificateView? _view;
+    private string _logo = "NooseIcon.png";
+    private string? _loadedId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _load = true;
+        var user = (await AuthStateTask).User;
+        _view = await Decorations.GetCertificateAsync(Id, user);
+        _logo = await CertificateLogo.SourceAsync(SettingService);
+        if (_view is not null)
+        {
+            await AccessLog.LogViewAsync(nameof(Agent), _view.AgentId);
+        }
+        _load = false;
+    }
+}

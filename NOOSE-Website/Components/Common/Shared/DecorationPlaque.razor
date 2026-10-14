@@ -1,0 +1,33 @@
+@* One decoration as a round plaque in its grade colour; the tooltip names it, a count marks repeats. *@
+
+<MudTooltip Text="@Tooltip">
+    <span class="@CssClass" style="--plakette-farbe:@DecorationTierDisplay.Hex(Tier);" role="img" aria-label="@Tooltip">
+        <MudIcon Icon="@DecorationSymbols.Find(Symbol).Icon" Size="@(Large ? Size.Medium : Size.Small)" />
+        @if (Count > 1)
+        {
+            <span class="ehrenzeichen-anzahl">@Count×</span>
+        }
+    </span>
+</MudTooltip>
+
+@code {
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter] public string? Symbol { get; set; }
+    [Parameter] public DecorationTier Tier { get; set; }
+    [Parameter] public int Count { get; set; } = 1;
+    [Parameter] public DateTime? AwardedOn { get; set; }
+    [Parameter] public bool Large { get; set; }
+
+    private string CssClass => Large ? "ehrenzeichen-plakette gross" : "ehrenzeichen-plakette";
+
+    private string Tooltip
+    {
+        get
+        {
+            var text = Count > 1 ? $"{Name} ({Count}×)" : Name;
+            return AwardedOn is { } on
+                ? $"{text} · {(Count > 1 ? "zuletzt " : "")}verliehen am {on:dd.MM.yyyy}"
+                : text;
+        }
+    }
+}

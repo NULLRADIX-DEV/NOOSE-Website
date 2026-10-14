@@ -28,6 +28,42 @@ internal static class PersonnelChapter
                 """,
                 NavKey: "personal"),
 
+            new Article("art-inaktivitaet", "inaktivitaets-radar", "Das Inaktivitäts-Radar",
+                "Wer seit Wochen kein Lebenszeichen gibt - und was die Führung dann tut.",
+                """
+                <p>Unter <em>Personal</em> hat die Führung einen Reiter <em>Inaktiv</em>. Er listet Agenten, von
+                denen die Seite seit einer Weile nichts gesehen hat. Als <strong>Lebenszeichen</strong> zählt
+                alles, was du hier tust: etwas schreiben, eine Akte öffnen oder die Seite überhaupt aufrufen.
+                Das jüngste davon steht in der Liste; fährst du mit der Maus über das Datum, siehst du alle drei
+                einzeln.</p>
+                <p><strong>Abgemeldete Tage zählen nicht.</strong> Wer zwei Wochen still war und davon zehn Tage
+                abgemeldet, kommt auf vier Tage ohne Lebenszeichen. Läuft gerade eine Abmeldung, steht in der
+                Zeile <em>abgemeldet bis …</em>. Ein frisch freigegebenes, entsperrtes oder wieder aufgenommenes
+                Konto zählt erst ab diesem Tag.</p>
+                <p>Die Liste ist nach Dauer gestuft, und jede Stufe bringt ihren Knopf mit:</p>
+                <ul>
+                <li><strong>Nachfassen</strong> (Grundwert ab 14 Tagen): Der Agent bekommt eine Benachrichtigung
+                und - wenn der Kanal dafür eingerichtet ist - einen Discord-Ping mit der Bitte, sich zu melden
+                oder eine Abmeldung einzutragen. Diese
+                Nachricht lässt sich nicht stummschalten. Die Zeile merkt sich, wer wann nachgefasst hat, und
+                ein zweites Nachfassen geht frühestens nach 24 Stunden - so schreibt niemand doppelt.</li>
+                <li><strong>Vermerk</strong> (ab 30 Tagen): Ein vorausgefüllter Eintrag in der Personalakte, Art
+                <em>Disziplinarisch</em>. Text und Art lassen sich vor dem Eintragen ändern.</li>
+                <li><strong>Kündigung prüfen</strong> (ab 60 Tagen): Der übliche Kündigungsdialog, der Grund ist
+                schon ausgefüllt.</li>
+                </ul>
+                <p>Die drei Schwellen stellt die Führung unter <em>Einstellungen → Inaktivitäts-Radar</em> ein.
+                Das Radar entscheidet nichts von selbst: es meldet sich nicht in der Glocke und kündigt niemanden.
+                Sobald der Agent wieder ein Lebenszeichen gibt, verschwindet er aus der Liste.</p>
+                <p>Die Seite sieht nur, was auf der Seite passiert. Wer im Spiel aktiv ist, aber nie hier
+                hereinschaut, steht trotzdem im Radar - deshalb ist Nachfassen der erste Schritt, nicht der
+                Vermerk. Wer gerade abgemeldet ist, bekommt keine Bitte um Rückmeldung.</p>
+                <p>Seitenbesuche zählt die Seite erst seit dem Update, mit dem das Radar kam. Vorher hinterließ wer
+                nur Listen oder das Brett las gar keine Spur. Steht ein Agent nur mit einer älteren Spur im Radar,
+                ist die Zeile deshalb <em>vorläufig</em>: bis die Besuche so lange gezählt wurden wie die erste
+                Schwelle, bietet das Radar dort nur <em>Nachfassen</em> an.</p>
+                """),
+
             new Article("art-befoerderung", "befoerderung", "Beförderung",
                 "Vom Antrag bis zum neuen Dienstgrad.",
                 """
@@ -47,6 +83,39 @@ internal static class PersonnelChapter
                 die Seite; die Begründung des Antrags ist der Ort, an dem sie belegt werden.</p>
                 """,
                 DiagramKey: "befoerderung"),
+
+            new Article("art-ehrungen", "ehrungen-und-urkunden", "Ehrungen und Urkunden",
+                "Ehrenzeichen verleihen, bekanntgeben, aberkennen und als Urkunde drucken.",
+                """
+                <p>Die Führung kann einem Agenten ein <strong>Ehrenzeichen</strong> verleihen - etwa eine
+                Verdienst- oder Tapferkeitsmedaille. Welche es gibt, legt die Führung unter
+                <em>Einstellungen → Ehrenzeichen</em> fest. Dort steht zu jedem auch ein Standardtext, der beim
+                Verleihen schon eingetragen ist.</p>
+                <p>Verliehen wird in der Personalakte, Reiter <em>Auszeichnungen</em>, über
+                <em>Ehrenzeichen verleihen</em>: Ehrenzeichen wählen, Tag der Verleihung und Verleihungstext
+                eintragen. Drei Schalter entscheiden über die Bekanntgabe: ein Eintrag am Schwarzen Brett, ein
+                Beitrag im Discord-Kanal für Ehrungen, der den Geehrten erwähnt, und eine Meldung in seiner Glocke.
+                Genannt wird immer nur der Codename. Dasselbe Ehrenzeichen kann ein Agent mehrfach bekommen; sich
+                selbst kann niemand etwas verleihen.</p>
+                <p>Verliehene Ehrenzeichen erscheinen als kleine <strong>Plaketten</strong> in der Personalakte, im
+                eigenen Profil, im Organigramm, in der Bestenliste und einige Wochen lang im Lagezentrum. Auf dem
+                öffentlichen Führungsprofil stehen nur die, die die Führung dort ausdrücklich angehakt hat.</p>
+                <p>Eine Ehrung lässt sich korrigieren - dann ändern sich auch der Eintrag am Schwarzen Brett und das
+                Führungsprofil - oder <strong>aberkennen</strong>. Eine aberkannte Ehrung bleibt mit dem Grund
+                durchgestrichen und ausgegraut in der Personalakte stehen, verschwindet aber aus Profil, Organigramm,
+                Bestenliste, Lagezentrum und vom Führungsprofil, und ihr Eintrag am Schwarzen Brett wandert in den
+                Papierkorb. Über die eigenen Ehrungen entscheidet immer jemand anderes.</p>
+                <p>Zu jeder Ehrung gibt es eine <strong>Urkunde</strong> im Querformat, ebenso zu jeder Ernennung
+                und Beförderung im Dienstgrad-Verlauf. Drucken dürfen die Führung und der Geehrte selbst. Vor dem
+                Druck wählst du, ob der Codename oder der Klarname darauf steht. Unterschrieben ist sie von der
+                Behördenleitung, die unter <em>Einstellungen → Ehrenzeichen</em> eingetragen ist; eine
+                Ehrungs-Urkunde behält die Unterschrift vom Tag der Verleihung.</p>
+                """,
+                RoleplayHtml: """
+                <p>Eine Ehrung ist ein feierlicher Moment. Trag sie hier ein - mit dem Tag der Übergabe als Datum -,
+                druck die Urkunde aus und übergib Medaille und Urkunde dann im Spiel, bei einem Antreten oder einer
+                Besprechung.</p>
+                """),
 
             new Article("art-ausbildung", "ausbildungsmodule", "Ausbildungsmodule",
                 "Die Abhak-Liste der Einarbeitung.",

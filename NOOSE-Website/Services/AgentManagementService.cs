@@ -564,6 +564,8 @@ public class AgentManagementService(
         agent.PartnerAgency = null;
         agent.PartnerRank = null;
         agent.Rank = rank;
+        // the inactivity radar starts counting from here
+        agent.ActiveSinceAt = DateTime.UtcNow;
 
         HistoryEntryAdd(agent.Id, null, rank, actor, "Von Partner zu intern");
         Audit(agent, AuditAction.Modified, actor, $"Zugehörigkeit → intern NOOSE ({rank})");
@@ -682,6 +684,11 @@ public class AgentManagementService(
         Permission.RequireWriteAccess(actor);
 
         var agent = await GetOrThrow(agentId);
+        if (agent.IsTeamLead && !isTeamLead)
+        {
+            // selectable again: the inactivity radar starts counting from here
+            agent.ActiveSinceAt = DateTime.UtcNow;
+        }
         agent.IsTeamLead = isTeamLead;
 
         Audit(agent, AuditAction.Modified, actor,
@@ -751,6 +758,8 @@ public class AgentManagementService(
         }
         agent.Status = AgentStatus.Active;
         agent.BlockedReason = null;
+        // a blocked agent could not log in; the inactivity radar starts counting from here
+        agent.ActiveSinceAt = DateTime.UtcNow;
 
         Audit(agent, AuditAction.Modified, actor, "Entsperrt");
         await Save(agent, newStamp: true);
@@ -852,6 +861,8 @@ public class AgentManagementService(
         agent.TerminatedById = null;
         agent.TerminatedByName = null;
         agent.TerminationReason = null;
+        // the inactivity radar starts counting from here
+        agent.ActiveSinceAt = DateTime.UtcNow;
 
         var blacklisted = await db.Bewerbungssperren
             .Where(s => s.AgentId == agentId && s.IsBlacklist)
@@ -948,6 +959,7 @@ public class AgentManagementService(
         await db.Absences.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.Feedbacks.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentBadges.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.DecorationAwards.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.DocumentAccessExclusions.IgnoreQueryFilters().Where(x => x.AgentId == agentId)
             .ExecuteDeleteAsync(cancellationToken);
         await db.MeetingAttendances.IgnoreQueryFilters().Where(x => x.AgentId == agentId)

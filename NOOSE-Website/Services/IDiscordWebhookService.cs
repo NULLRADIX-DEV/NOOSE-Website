@@ -15,6 +15,11 @@ public interface IDiscordWebhookService
         DateTime entryDate, string reasonPlain, IReadOnlyList<string> executorDisplays,
         string? href, CancellationToken cancellationToken = default);
 
+    /// <summary>Post a decoration as a golden "EHRUNG" embed to the DecorationAwarded channel, pinging the recipient. Names the codename only. Best-effort; no-op if disabled or no URL configured.</summary>
+    Task PushDecorationAsync(string recipientAgentId, string recipientCodename, string decorationName,
+        DateTime awardedOn, string citationPlain, string? awardedByName, string? href,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Post a termination as a rich "KÜNDIGUNG" embed to the AgentTerminated channel. Pings nobody — the subject and the executor appear as inert mention chips inside the embed. Best-effort; no-op if disabled or no URL configured.</summary>
     Task PushTerminationAsync(string subjectAgentId, string subjectDisplay, string? executorAgentId,
         string? executorDisplay, DateTime terminatedAt, string reasonPlain, string? href,

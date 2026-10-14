@@ -1,0 +1,44 @@
+@* Dashboard card with the newest standing decorations; renders nothing while there are none. *@
+@inject IDecorationService Decorations
+
+@if (_recent.Count > 0)
+{
+    <MudPaper Class="pa-4 mt-6" Elevation="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+            <MudIcon Icon="@Icons.Material.Filled.MilitaryTech" Color="Color.Warning" />
+            <MudText Typo="Typo.h6">Neueste Ehrungen</MudText>
+        </MudStack>
+        <MudList T="string" Dense="true">
+            @foreach (var r in _recent)
+            {
+                <MudListItem T="string" Href="@($"/personal/{r.AgentId}?tab=auszeichnungen")">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <DecorationPlaque Name="@r.DecorationName" Symbol="@r.Symbol" Tier="@r.Tier" AwardedOn="@r.AwardedOn" />
+                        <MudText Typo="Typo.body2">
+                            <b>@r.Codename</b> · @r.DecorationName
+                            <span class="mud-text-secondary"> · @r.AwardedOn.ToString("dd.MM.yyyy")</span>
+                        </MudText>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private IReadOnlyList<RecentDecorationView> _recent = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _recent = await Decorations.GetRecentAsync((await AuthStateTask).User);
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+}

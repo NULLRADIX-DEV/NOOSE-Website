@@ -1,0 +1,46 @@
+@* No-render: stamps "last seen" for the inactivity radar on arrival and on navigation, throttled. *@
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Routing
+@inject IInactivityRadarService Radar
+@inject NavigationManager Nav
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    // the service stamps at most hourly; this only spares it a round trip per click
+    private static readonly TimeSpan LocalThrottle = TimeSpan.FromMinutes(10);
+
+    private ClaimsPrincipal? _user;
+    private DateTime _lastAttempt = DateTime.MinValue;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            _user = (await AuthStateTask).User;
+        }
+        Nav.LocationChanged += OnLocationChanged;
+        await StampAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(StampAsync);
+
+    private async Task StampAsync()
+    {
+        if (_user is null || DateTime.UtcNow - _lastAttempt < LocalThrottle)
+        {
+            return;
+        }
+        _lastAttempt = DateTime.UtcNow;
+        try
+        {
+            await Radar.StampSeenAsync(_user);
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

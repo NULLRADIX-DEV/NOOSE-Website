@@ -1,0 +1,84 @@
+@* Day thresholds of the inactivity radar on /personal. *@
+@using NOOSE_Website.Models.Personnel
+@inject IInactivityRadarService RadarService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    Das Inaktivitäts-Radar unter <MudLink Href="/personal" Typo="Typo.body2">Personal</MudLink> → <em>Inaktiv</em>
+    zeigt Agenten, die so viele Tage kein Lebenszeichen gegeben haben: nichts geschrieben, keine Akte geöffnet, die
+    Seite nicht besucht. Abgemeldete Tage zählen nicht mit. Die Stufe entscheidet, welche Knöpfe neben dem Namen stehen.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width:640px;">
+        <MudStack Spacing="3">
+            <MudNumericField T="int" @bind-Value="_followUp" Label="Nachfassen ab (Tage)" Min="1"
+                             Max="InactivityThresholds.MaxDays" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Disabled="!_mayWrite" HelperText="Eine Nachricht an den Agenten mit der Bitte, sich zu melden." />
+            <MudNumericField T="int" @bind-Value="_note" Label="Vermerk ab (Tage)" Min="1"
+                             Max="InactivityThresholds.MaxDays" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Disabled="!_mayWrite" HelperText="Ein vorausgefüllter Vermerk in der Personalakte." />
+            <MudNumericField T="int" @bind-Value="_termination" Label="Kündigung prüfen ab (Tage)" Min="1"
+                             Max="InactivityThresholds.MaxDays" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Disabled="!_mayWrite" HelperText="Der Kündigungsdialog mit vorausgefülltem Grund." />
+            @if (_mayWrite)
+            {
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                               Disabled="_saves" OnClick="SaveAsync">Speichern</MudButton>
+                    <MudButton Variant="Variant.Text" Disabled="_saves" OnClick="ResetDefaults">Grundwerte</MudButton>
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _saves;
+    private bool _mayWrite;
+    private ClaimsPrincipal _user = default!;
+    private int _followUp;
+    private int _note;
+    private int _termination;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        // mirrors the service guard: write access before leadership
+        _mayWrite = _user.MayWrite() && _user.IsLeadership();
+        Fill(await RadarService.GetThresholdsAsync());
+        _load = false;
+    }
+
+    private void Fill(InactivityThresholds t)
+    {
+        _followUp = t.FollowUpDays;
+        _note = t.NoteDays;
+        _termination = t.TerminationDays;
+    }
+
+    private void ResetDefaults() => Fill(InactivityThresholds.Default);
+
+    private async Task SaveAsync()
+    {
+        _saves = true;
+        try
+        {
+            await RadarService.SaveThresholdsAsync(new InactivityThresholds(_followUp, _note, _termination), _user);
+            Snackbar.Add("Schwellen gespeichert.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+}

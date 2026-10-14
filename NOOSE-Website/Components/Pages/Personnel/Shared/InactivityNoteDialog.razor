@@ -1,0 +1,69 @@
+@* Personnel note suggested by the inactivity radar: kind and text prefilled, the caller saves. *@
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="min-width:420px;">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Vermerk in der Personalakte von <b>@Codename</b>. Wie jeder Vermerk wird er auf Discord bekanntgegeben
+                und pingt den Agenten.
+            </MudText>
+            <MudSelect T="AgentNoteKind" @bind-Value="_kind" Label="Art" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var k in AgentNoteKindDisplay.Creatable)
+                {
+                    <MudSelectItem T="AgentNoteKind" Value="@k">@AgentNoteKindDisplay.Name(k)</MudSelectItem>
+                }
+            </MudSelect>
+            <RichTextEditor @ref="_editor" @bind-Value="_html" MinHeight="160px" Ai="TextAssistContext.PersonnelNote"
+                            Mentions="true" DraftKey="@DraftKeyFor(AgentId)" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Eintragen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public string AgentId { get; set; } = string.Empty;
+    [Parameter] public string Codename { get; set; } = string.Empty;
+    [Parameter] public string InitialHtml { get; set; } = string.Empty;
+
+    private AgentNoteKind _kind = AgentNoteKind.Disciplinary;
+    private string _html = string.Empty;
+    private RichTextEditor _editor = default!;
+
+    /// <summary>What the operator confirmed.</summary>
+    public record Choice(AgentNoteKind Kind, string Html);
+
+    /// <summary>Draft key of this dialog; the caller drops the draft after the note is written.</summary>
+    public static string DraftKeyFor(string agentId) => $"personalnotiz:{agentId}:inaktiv";
+
+    protected override void OnInitialized() => _html = InitialHtml;
+
+    private async Task Save()
+    {
+        var html = await _editor.GetHtmlAsync();
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(new Choice(_kind, html)));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public static async Task<Choice?> ShowAsync(IDialogService dialog, string agentId, string codename, string initialHtml)
+    {
+        var parameters = new DialogParameters<InactivityNoteDialog>
+        {
+            { x => x.AgentId, agentId },
+            { x => x.Codename, codename },
+            { x => x.InitialHtml, initialHtml },
+        };
+        var reference = await dialog.ShowAsync<InactivityNoteDialog>("Vermerk wegen Inaktivität", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: Choice choice } ? choice : null;
+    }
+}

@@ -1,0 +1,158 @@
+@* Award a decoration, or correct a standing award; the announcement switches only exist for a new one. *@
+@inject IPlaceholderService Placeholder
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudStack Spacing="3">
+                <MudSelect T="string" Label="Ehrenzeichen" Value="_decorationId" ValueChanged="OnDecorationChangedAsync"
+                           Variant="Variant.Outlined" Required="true" RequiredError="Bitte ein Ehrenzeichen wählen"
+                           AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var d in Choices)
+                    {
+                        <MudSelectItem T="string" Value="@d.Id">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <DecorationPlaque Name="@d.Name" Symbol="@d.Symbol" Tier="@d.Tier" />
+                                <span>@d.Name</span>
+                            </MudStack>
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+                @if (Selected?.Description is { Length: > 0 } description)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@description</MudText>
+                }
+
+                <MudDatePicker @bind-Date="_awardedOn" Label="Verliehen am" Variant="Variant.Outlined"
+                               MaxDate="DateTime.Today" Required="true" RequiredError="Bitte ein Datum wählen"
+                               HelperText="Der Tag der Verleihung im Spiel, nicht in der Zukunft." />
+
+                <TextDraft DraftKey='@DraftKeys.In(DraftScopeFor(AgentId, Existing?.Id), "text")' OnRestore="@(t => _citation = t)">
+                    <MudTextField @bind-Value="_citation" Label="Verleihungstext" Variant="Variant.Outlined" Lines="6"
+                                  Immediate="true" Required="true" RequiredError="Bitte einen Verleihungstext angeben"
+                                  MaxLength="@DecorationRules.MaxCitationLength" Counter="@DecorationRules.MaxCitationLength"
+                                  HelperText="Steht so auf der Urkunde und am Schwarzen Brett." />
+                </TextDraft>
+
+                @if (Existing is null)
+                {
+                    <MudDivider />
+                    <MudText Typo="Typo.subtitle2">Bekanntgabe</MudText>
+                    <MudSwitch T="bool" @bind-Value="_postToBoard" Color="Color.Primary"
+                               Label="Am Schwarzen Brett bekanntgeben" />
+                    <MudSwitch T="bool" @bind-Value="_postToDiscord" Color="Color.Primary"
+                               Label="@($"Auf Discord bekanntgeben (pingt {AgentCodename})")" />
+                    <MudSwitch T="bool" @bind-Value="_notifyAgent" Color="Color.Primary"
+                               Label="@($"{AgentCodename} in der Glocke benachrichtigen")" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Genannt wird nur der Codename, nie der Klarname.
+                    </MudText>
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save"
+                   StartIcon="@Icons.Material.Filled.MilitaryTech">@(Existing is null ? "Verleihen" : "Speichern")</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string AgentId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string AgentCodename { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<DecorationView> Catalog { get; set; } = [];
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public DecorationAwardView? Existing { get; set; }
+
+    private MudForm _form = default!;
+    private string? _decorationId;
+    private DateTime? _awardedOn = DateTime.Today;
+    private string _citation = string.Empty;
+    private string? _prefilled;
+    private bool _postToBoard = true;
+    private bool _postToDiscord = true;
+    private bool _notifyAgent = true;
+
+    // a switched-off decoration stays selectable only on the award that already carries it
+    private IEnumerable<DecorationView> Choices
+        => Catalog.Where(d => d.IsActive || d.Id == Existing?.DecorationId);
+
+    private DecorationView? Selected => Catalog.FirstOrDefault(d => d.Id == _decorationId);
+
+    protected override void OnInitialized()
+    {
+        if (Existing is not null)
+        {
+            _decorationId = Existing.DecorationId;
+            _awardedOn = Existing.AwardedOn;
+            _citation = Existing.Citation;
+        }
+    }
+
+    private async Task OnDecorationChangedAsync(string? id)
+    {
+        _decorationId = id;
+        // replace the citation only while it is empty or still the previous prefill
+        if (Selected?.DefaultCitation is { Length: > 0 } template
+            && (string.IsNullOrWhiteSpace(_citation) || _citation == _prefilled))
+        {
+            try
+            {
+                _citation = await Placeholder.ApplyPlainAsync(template, nameof(Agent), AgentId, User);
+            }
+            catch
+            {
+                /* best effort */
+                _citation = template;
+            }
+            _prefilled = _citation;
+        }
+    }
+
+    private async Task Save()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid || _decorationId is null)
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(new DecorationAwardInput
+        {
+            AgentId = AgentId,
+            DecorationId = _decorationId,
+            AwardedOn = _awardedOn,
+            Citation = _citation,
+            PostToBoard = _postToBoard,
+            PostToDiscord = _postToDiscord,
+            NotifyAgent = _notifyAgent,
+        }));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Draft scope of one award form; a new award is scoped to its agent.</summary>
+    public static string DraftScopeFor(string agentId, string? awardId)
+        => awardId is null ? $"ehrung:neu:{agentId}" : $"ehrung:{awardId}";
+
+    /// <summary>Shows the dialog; null on cancel. The caller drops <see cref="DraftScopeFor"/> once stored.</summary>
+    public static async Task<DecorationAwardInput?> ShowAsync(IDialogService dialog, string agentId, string agentCodename,
+        IReadOnlyList<DecorationView> catalog, ClaimsPrincipal user, DecorationAwardView? existing = null)
+    {
+        var parameters = new DialogParameters<DecorationAwardDialog>
+        {
+            { x => x.AgentId, agentId },
+            { x => x.AgentCodename, agentCodename },
+            { x => x.Catalog, catalog },
+            { x => x.User, user },
+            { x => x.Existing, existing },
+        };
+        var reference = await dialog.ShowAsync<DecorationAwardDialog>(
+            existing is null ? $"Ehrenzeichen an {agentCodename} verleihen" : "Ehrung korrigieren", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: DecorationAwardInput input } ? input : null;
+    }
+}

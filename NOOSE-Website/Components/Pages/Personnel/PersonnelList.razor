@@ -1,5 +1,7 @@
 @page "/personal"
+@using NOOSE_Website.Models.Personnel
 @inject IAgentManagementService AgentService
+@inject IInactivityRadarService RadarService
 @inject NavigationManager Nav
 
 <PageTitle>Personal · NOOSE</PageTitle>
@@ -26,115 +28,136 @@ else
                      Text="@($"Partner ({CountPartner})")" />
         @if (_isLeadership)
         {
+            <MudTabPanel Icon="@Icons.Material.Filled.HourglassBottom" IconColor="Color.Warning"
+                         Text="@($"Inaktiv ({_radar?.Rows.Count ?? 0})")" />
             <MudTabPanel Icon="@Icons.Material.Filled.PersonOff" IconColor="Color.Error"
                          Text="@($"Gekündigt ({CountTerminated})")" />
         }
     </MudTabs>
 
-    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
-        <MudTextField @bind-Value="_search" Placeholder="Suchen (Codename, Dienstnummer)…" Immediate="true"
-                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" Style="min-width:220px;" />
-        @if (_tab == 1)
+    @if (_tab == TabInactive)
+    {
+        @if (_radar is null)
         {
-            <MudSelect T="PartnerAgency?" Value="_agencyFilter" ValueChanged="@(v => _agencyFilter = v)"
-                       Label="Behörde" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                       Style="min-width:160px;">
-                <MudSelectItem T="PartnerAgency?" Value="@((PartnerAgency?)null)">Alle Behörden</MudSelectItem>
-                @foreach (var ag in PartnerAgencyDisplay.All)
-                {
-                    <MudSelectItem T="PartnerAgency?" Value="@ag">@PartnerAgencyDisplay.Name(ag)</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="PartnerRank?" Value="_rankFilter" ValueChanged="@(v => _rankFilter = v)"
-                       Label="Rang" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                       Style="min-width:160px;">
-                <MudSelectItem T="PartnerRank?" Value="@((PartnerRank?)null)">Alle Ränge</MudSelectItem>
-                @foreach (var pr in PartnerRankDisplay.All)
-                {
-                    <MudSelectItem T="PartnerRank?" Value="@pr">@pr</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Das Radar konnte nicht geladen werden.</MudAlert>
         }
-    </MudStack>
+        else
+        {
+            <InactivityRadarPanel Radar="_radar" Changed="ReloadAsync" />
+        }
+    }
+    else
+    {
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+            <MudTextField @bind-Value="_search" Placeholder="Suchen (Codename, Dienstnummer)…" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" Style="min-width:220px;" />
+            @if (_tab == TabPartner)
+            {
+                <MudSelect T="PartnerAgency?" Value="_agencyFilter" ValueChanged="@(v => _agencyFilter = v)"
+                           Label="Behörde" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                           Style="min-width:160px;">
+                    <MudSelectItem T="PartnerAgency?" Value="@((PartnerAgency?)null)">Alle Behörden</MudSelectItem>
+                    @foreach (var ag in PartnerAgencyDisplay.All)
+                    {
+                        <MudSelectItem T="PartnerAgency?" Value="@ag">@PartnerAgencyDisplay.Name(ag)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="PartnerRank?" Value="_rankFilter" ValueChanged="@(v => _rankFilter = v)"
+                           Label="Rang" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                           Style="min-width:160px;">
+                    <MudSelectItem T="PartnerRank?" Value="@((PartnerRank?)null)">Alle Ränge</MudSelectItem>
+                    @foreach (var pr in PartnerRankDisplay.All)
+                    {
+                        <MudSelectItem T="PartnerRank?" Value="@pr">@pr</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        </MudStack>
 
-    <MudTable Items="_filtered" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
-              OnRowClick="@((TableRowClickEventArgs<Agent> e) => Open(e.Item))" T="Agent">
-        <HeaderContent>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Codename)">Codename</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.BadgeNumber)">Dienstnummer</MudTableSortLabel></MudTh>
-            @if (_mayRealName)
-            {
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.RealName)">Klarname</MudTableSortLabel></MudTh>
-            }
-            @if (_tab == 2)
-            {
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Letzter Dienstgrad</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedAt)" InitialDirection="SortDirection.Descending">Gekündigt am</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedByName)">Gekündigt von</MudTableSortLabel></MudTh>
-                <MudTh>Grund</MudTh>
-            }
-            else if (_tab == 1)
-            {
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerAgency)">Behörde</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerRank)">Partner-Rang</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
-            }
-            else
-            {
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTRU)">TRU</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">HRB</MudTableSortLabel></MudTh>
-            }
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Codename">
-                <MudLink Href="@($"/personal/{context.Id}")" @onclick:stopPropagation="true">
-                    @(string.IsNullOrWhiteSpace(context.Codename) ? "Unbenannter Agent" : context.Codename)
-                </MudLink>
-            </MudTd>
-            <MudTd DataLabel="Dienstnummer"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.BadgeNumber ?? "—")</MudText></MudTd>
-            @if (_mayRealName)
-            {
-                <MudTd DataLabel="Klarname"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.RealName ?? "—")</MudText></MudTd>
-            }
-            @if (_tab == 2)
-            {
-                <MudTd DataLabel="Letzter Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
-                <MudTd DataLabel="Gekündigt am">@(context.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</MudTd>
-                <MudTd DataLabel="Gekündigt von">@(context.TerminatedByName ?? "—")</MudTd>
-                <MudTd DataLabel="Grund">
-                    <MudTooltip Text="@context.TerminationReason">
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Shorten(context.TerminationReason)</MudText>
-                    </MudTooltip>
+        <MudTable Items="_filtered" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
+                  OnRowClick="@((TableRowClickEventArgs<Agent> e) => Open(e.Item))" T="Agent">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Codename)">Codename</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.BadgeNumber)">Dienstnummer</MudTableSortLabel></MudTh>
+                @if (_mayRealName)
+                {
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.RealName)">Klarname</MudTableSortLabel></MudTh>
+                }
+                @if (_tab == TabTerminated)
+                {
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Letzter Dienstgrad</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedAt)" InitialDirection="SortDirection.Descending">Gekündigt am</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedByName)">Gekündigt von</MudTableSortLabel></MudTh>
+                    <MudTh>Grund</MudTh>
+                }
+                else if (_tab == TabPartner)
+                {
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerAgency)">Behörde</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerRank)">Partner-Rang</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
+                }
+                else
+                {
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTRU)">TRU</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">HRB</MudTableSortLabel></MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Codename">
+                    <MudLink Href="@($"/personal/{context.Id}")" @onclick:stopPropagation="true">
+                        @(string.IsNullOrWhiteSpace(context.Codename) ? "Unbenannter Agent" : context.Codename)
+                    </MudLink>
                 </MudTd>
-            }
-            else if (_tab == 1)
-            {
-                <MudTd DataLabel="Behörde">@PartnerAgencyDisplay.Name(context.PartnerAgency)</MudTd>
-                <MudTd DataLabel="Partner-Rang">@PartnerRankDisplay.Full(context.PartnerAgency, context.PartnerRank)</MudTd>
-                <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
-            }
-            else
-            {
-                <MudTd DataLabel="Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
-                <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
-                <MudTd DataLabel="TRU">@(context.IsTRU ? "TRU" : "")</MudTd>
-                <MudTd DataLabel="HRB">@(context.IsHRB ? "HRB" : "")</MudTd>
-            }
-        </RowTemplate>
-        <NoRecordsContent>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Keine Agenten gefunden.</MudText>
-        </NoRecordsContent>
-        <PagerContent>
-            <MudTablePager />
-        </PagerContent>
-    </MudTable>
+                <MudTd DataLabel="Dienstnummer"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.BadgeNumber ?? "—")</MudText></MudTd>
+                @if (_mayRealName)
+                {
+                    <MudTd DataLabel="Klarname"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.RealName ?? "—")</MudText></MudTd>
+                }
+                @if (_tab == TabTerminated)
+                {
+                    <MudTd DataLabel="Letzter Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
+                    <MudTd DataLabel="Gekündigt am">@(context.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</MudTd>
+                    <MudTd DataLabel="Gekündigt von">@(context.TerminatedByName ?? "—")</MudTd>
+                    <MudTd DataLabel="Grund">
+                        <MudTooltip Text="@context.TerminationReason">
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@Shorten(context.TerminationReason)</MudText>
+                        </MudTooltip>
+                    </MudTd>
+                }
+                else if (_tab == TabPartner)
+                {
+                    <MudTd DataLabel="Behörde">@PartnerAgencyDisplay.Name(context.PartnerAgency)</MudTd>
+                    <MudTd DataLabel="Partner-Rang">@PartnerRankDisplay.Full(context.PartnerAgency, context.PartnerRank)</MudTd>
+                    <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
+                }
+                else
+                {
+                    <MudTd DataLabel="Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
+                    <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
+                    <MudTd DataLabel="TRU">@(context.IsTRU ? "TRU" : "")</MudTd>
+                    <MudTd DataLabel="HRB">@(context.IsHRB ? "HRB" : "")</MudTd>
+                }
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Keine Agenten gefunden.</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    // positions of the MudTabPanels; the last two are leadership-only
+    private const int TabPartner = 1;
+    private const int TabInactive = 2;
+    private const int TabTerminated = 3;
 
     private bool _load = true;
     private bool _mayRealName;
@@ -144,6 +167,8 @@ else
     private PartnerAgency? _agencyFilter;
     private PartnerRank? _rankFilter;
     private List<Agent> _agents = new();
+    private InactivityRadar? _radar;
+    private ClaimsPrincipal _user = default!;
 
     private IEnumerable<Agent> _filtered
     {
@@ -151,11 +176,11 @@ else
         {
             var query = _tab switch
             {
-                2 => _agents.Where(a => a.Status == AgentStatus.Terminated),
-                1 => _agents.Where(a => a.PartnerAgency != null && a.Status != AgentStatus.Terminated),
+                TabTerminated => _agents.Where(a => a.Status == AgentStatus.Terminated),
+                TabPartner => _agents.Where(a => a.PartnerAgency != null && a.Status != AgentStatus.Terminated),
                 _ => _agents.Where(a => a.PartnerAgency == null && a.Status != AgentStatus.Terminated),
             };
-            if (_tab == 1)
+            if (_tab == TabPartner)
             {
                 if (_agencyFilter is { } agency)
                 {
@@ -183,16 +208,37 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        var user = (await AuthStateTask).User;
-        _mayRealName = user.MayRealNameSee();
-        _isLeadership = user.IsLeadership();
+        _user = (await AuthStateTask).User;
+        _mayRealName = _user.MayRealNameSee();
+        _isLeadership = _user.IsLeadership();
+        await LoadAsync();
+        _load = false;
+    }
+
+    private async Task LoadAsync()
+    {
         // TeamLeads invisible in RP; blocked accounts hidden too. Named in AgentSelection so the global
         // search over personnel files answers the same, instead of being wider than this page.
         _agents = (await AgentService.GetAllAsync())
             .Where(AgentSelection.HasPersonnelFile)
             .ToList();
-        _load = false;
+        if (_isLeadership)
+        {
+            try
+            {
+                _radar = await RadarService.GetAsync(_user);
+            }
+            // a null radar makes the tab say it could not load
+            catch
+            {
+                /* best effort */
+                _radar = null;
+            }
+        }
     }
+
+    // a termination from the radar also moves the agent to the terminated tab
+    private Task ReloadAsync() => LoadAsync();
 
     private void Open(Agent? a)
     {

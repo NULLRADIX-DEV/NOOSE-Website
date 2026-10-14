@@ -44,6 +44,7 @@ using NOOSE_Website.Infrastructure.Public;
 using NOOSE_Website.Infrastructure.Recruiting;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Services;
+using NOOSE_Website.Services.Decorations;
 using NOOSE_Website.Services.Public;
 using NOOSE_Website.Services.Search;
 using NOOSE_Website.Services.Statistics;
@@ -298,6 +299,7 @@ builder.Services.AddHostedService<ThreatScoreSweepWorker>();
 builder.Services.AddScoped<IGamificationService, GamificationService>();
 builder.Services.AddHostedService<GamificationSweepWorker>();
 builder.Services.AddScoped<ITopAgentAwardService, TopAgentAwardService>();
+builder.Services.AddScoped<IDecorationService, DecorationService>();
 builder.Services.AddHostedService<TopAgentAwardWorker>();
 // ---- global search: one provider per SearchCatalog category, coverage-tested against the catalog ----
 builder.Services.Configure<SearchOptions>(builder.Configuration.GetSection(SearchOptions.SectionName));
@@ -325,6 +327,7 @@ builder.Services.AddScoped<IObservationService, ObservationService>();
 // fans the global recycle bin out over every record service, so restore keeps its guards
 builder.Services.AddScoped<ITrashService, TrashService>();
 builder.Services.AddScoped<IPersonnelFileService, PersonnelFileService>();
+builder.Services.AddScoped<IInactivityRadarService, InactivityRadarService>();
 builder.Services.AddScoped<ITrainingModuleService, TrainingModuleService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
