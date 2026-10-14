@@ -210,7 +210,7 @@ public sealed class DiscordPingTests
     public void Every_category_that_pings_its_recipients_is_a_personal_choice_except_the_notices_about_you()
     {
         var recipientPings = DiscordRouting.RoutableTypes.Where(DiscordRouting.PingsRecipients)
-            .Except([NotificationType.PersonnelEntry, NotificationType.PingDigest])
+            .Except([NotificationType.PersonnelEntry, NotificationType.DecorationAwarded, NotificationType.PingDigest])
             .OrderBy(t => t);
 
         Assert.Equal(recipientPings, DiscordPings.Personal.OrderBy(t => t));

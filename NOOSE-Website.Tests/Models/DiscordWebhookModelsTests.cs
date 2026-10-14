@@ -23,6 +23,7 @@ public class DiscordWebhookModelsTests
         NotificationType.AppointmentScheduled,
         NotificationType.PersonnelEntry,
         NotificationType.AgentTerminated,
+        NotificationType.DecorationAwarded,
         NotificationType.PublicWantedPublished,
         NotificationType.PublicWantedBountyRaised,
         NotificationType.PublicTicketCreated,
@@ -103,6 +104,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.PingDigest)]
     [InlineData(NotificationType.AcknowledgmentReminder)]
     [InlineData(NotificationType.SavedSearchHit)]
+    [InlineData(NotificationType.DecorationAwarded)]
     public void PingsRecipients_forRecipientCategories_returnsTrue(NotificationType type)
     {
         Assert.True(DiscordRouting.PingsRecipients(type));

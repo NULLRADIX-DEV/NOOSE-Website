@@ -35,6 +35,9 @@ public static class AuditEntityDisplay
         "MeetingAttendance" => "Anwesenheit",
         "MeetingSignOff" => "Abmeldung (Besprechung)",
         "Absence" => "Abmeldung",
+        "Decoration" => "Ehrenzeichen",
+        // no route: the row carries the award id, the personnel file needs the agent's
+        "DecorationAward" => "Ehrung",
         "Feedback" => "Feedback-Meldung",
         "TextSnippet" => "Textbaustein",
         "KassenBuchung" => "Kassenbuchung",
@@ -138,6 +141,7 @@ public static class AuditEntityDisplay
         "TicketNachricht" => "/tickets",
         "TicketParticipant" => "/tickets",
         "OeffentlichesFuehrungsprofil" => "/einstellungen?tab=oeffentliche-fuehrung",
+        "Decoration" => "/einstellungen?tab=ehrenzeichen",
         "OeffentlicheVorlage" => "/einstellungen?tab=oeffentliche-vorlagen",
         "OeffentlichesFraktionsprofil" => "/fahndung?tab=organisationen",
         "FahndungEinspruch" => "/fahndung?tab=einsprueche",

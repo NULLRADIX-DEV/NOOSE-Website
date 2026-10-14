@@ -54,6 +54,12 @@ public static class SystemSettingKeys
     /// <summary>Since when the NOOSEI anomaly watch reports (round-trip UTC); empty = lay a silent baseline first. Not user-edited.</summary>
     public const string NooseiAnomalyWatchArmedAt = "KiAuffaelligkeitenScharfAb";
 
+    /// <summary>Agent id of the office head who signs certificates; empty prints the plain office line.</summary>
+    public const string CertificateSignatoryId = "UrkundeUnterzeichnerId";
+
+    /// <summary>Place line printed next to the date on every certificate.</summary>
+    public const string CertificatePlace = "UrkundeOrt";
+
     /// <summary>Set once the one-shot search side-index backfill has fully completed; guards against re-scanning. Not user-edited.</summary>
     public const string SearchIndexBackfillDone = "SuchIndexBackfillFertig";
 

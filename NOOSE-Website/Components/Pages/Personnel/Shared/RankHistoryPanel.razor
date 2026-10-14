@@ -1,3 +1,4 @@
+@* Rank history of one agent; appointments and promotions carry a certificate for leadership and the agent. *@
 @inject IPersonnelFileService PersonnelFileService
 
 <MudStack Spacing="2">
@@ -16,7 +17,18 @@
             @foreach (var v in _history)
             {
                 <MudTimelineItem Color="Color.Info" Size="Size.Small">
-                    <MudText Typo="Typo.body2"><b>@RankDisplay.Name(v.Alt) → @RankDisplay.Name(v.New)</b></MudText>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2"><b>@RankDisplay.Name(v.Alt) → @RankDisplay.Name(v.New)</b></MudText>
+                        @if (DecorationRules.RankCertificateKind(v.Alt, v.New) is { } kind
+                             && DecorationRules.MayPrint(_user, AgentId, revoked: false))
+                        {
+                            var label = kind == CertificateKind.Appointment ? "Ernennungsurkunde drucken" : "Beförderungsurkunde drucken";
+                            <MudTooltip Text="@label">
+                                <MudIconButton Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Small"
+                                               Href="@($"/urkunden/dienstgrad/{v.Id}")" Target="_blank" aria-label="@label" />
+                            </MudTooltip>
+                        }
+                    </MudStack>
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                         @v.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @(v.ActorName ?? "System")@(string.IsNullOrWhiteSpace(v.Reason) ? "" : " · " + v.Reason)
                     </MudText>
@@ -28,12 +40,15 @@
 
 @code {
     [Parameter, EditorRequired] public string AgentId { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _load = true;
+    private ClaimsPrincipal _user = new();
     private List<AgentRankHistory> _history = new();
 
     protected override async Task OnInitializedAsync()
     {
+        _user = (await AuthStateTask).User;
         _history = await PersonnelFileService.GetRankHistoryAsync(AgentId);
         _load = false;
     }

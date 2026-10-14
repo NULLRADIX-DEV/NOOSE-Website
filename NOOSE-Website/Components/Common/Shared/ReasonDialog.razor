@@ -13,7 +13,7 @@
         else
         {
             <MudTextField @bind-Value="_reason" Label="@Label" Lines="@Lines" Variant="Variant.Outlined"
-                          AutoFocus="true" Immediate="true"
+                          AutoFocus="true" Immediate="true" MaxLength="@(MaxLength ?? 524288)" Counter="@MaxLength"
                           Required="@MandatoryReason" RequiredError="Bitte eine Begründung angeben." />
         }
         @if (_error)
@@ -47,6 +47,9 @@
     /// <summary>One line for a name, two for a reason.</summary>
     [Parameter] public int Lines { get; set; } = 2;
 
+    /// <summary>Cap matching the service, so a long reason is not typed for nothing.</summary>
+    [Parameter] public int? MaxLength { get; set; }
+
     private string _reason = string.Empty;
     private bool _error;
 
@@ -67,7 +70,7 @@
     /// <summary>Shows the dialog; returns the reason or null on cancel.</summary>
     public static async Task<string?> ShowAsync(IDialogService dialog, string title, string? text,
         string confirmText = "Bestätigen", string label = "Begründung", bool mandatoryReason = false,
-        Color colour = Color.Primary, bool mentions = false, string? preset = null, int lines = 2)
+        Color colour = Color.Primary, bool mentions = false, string? preset = null, int lines = 2, int? maxLength = null)
     {
         var parameters = new DialogParameters<ReasonDialog>
         {
@@ -80,6 +83,7 @@
             { x => x.Mentions, mentions },
             { x => x.Preset, preset },
             { x => x.Lines, lines },
+            { x => x.MaxLength, maxLength },
         };
         var reference = await dialog.ShowAsync<ReasonDialog>(title, parameters);
         var result = await reference.Result;

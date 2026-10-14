@@ -1,5 +1,6 @@
 @page "/organigramm"
 @inject IOrgChartService OrgChartService
+@inject IDecorationService Decorations
 
 <PageTitle>Organigramm · NOOSE</PageTitle>
 
@@ -53,6 +54,7 @@
                                             {
                                                 <span class="org-card-badge org-card-badge--hrb">HRB</span>
                                             }
+                                            <DecorationStrip Plaques="@PlaquesOf(a.Id)" Max="3" Class="org-card-ehrenzeichen" />
                                         </a>
                                     </li>
                                 }
@@ -76,7 +78,7 @@
                     @foreach (var a in _data.Tru)
                     {
                         <MudItem xs="12" sm="6" md="4" lg="3">
-                            <AgentTile Agent="a" MayRealName="_mayRealName" />
+                            <AgentTile Agent="a" MayRealName="_mayRealName" Plaques="@PlaquesOf(a.Id)" />
                         </MudItem>
                     }
                 </MudGrid>
@@ -96,7 +98,7 @@
                     @foreach (var a in _data.Hrb)
                     {
                         <MudItem xs="12" sm="6" md="4" lg="3">
-                            <AgentTile Agent="a" MayRealName="_mayRealName" />
+                            <AgentTile Agent="a" MayRealName="_mayRealName" Plaques="@PlaquesOf(a.Id)" />
                         </MudItem>
                     }
                 </MudGrid>
@@ -134,7 +136,7 @@
                                     @foreach (var m in tf.Members)
                                     {
                                         <MudItem xs="12" sm="6" md="4" lg="3">
-                                            <AgentTile Agent="m.Agent!" MayRealName="_mayRealName"
+                                            <AgentTile Agent="m.Agent!" MayRealName="_mayRealName" Plaques="@PlaquesOf(m.AgentId)"
                                                          RoleText="@(TaskforceRoleDisplay.IsLead(m.Role) ? TaskforceRoleDisplay.Name(m.Role) : null)"
                                                          IsLead="@TaskforceRoleDisplay.IsLead(m.Role)" />
                                         </MudItem>
@@ -155,6 +157,8 @@
     private bool _load = true;
     private bool _mayRealName;
     private OrgChartData? _data;
+    private IReadOnlyDictionary<string, IReadOnlyList<DecorationPlaqueView>> _plaques
+        = new Dictionary<string, IReadOnlyList<DecorationPlaqueView>>();
     private string _taskforceEmptyText = "Keine genehmigten Taskforces vorhanden.";
 
     protected override async Task OnInitializedAsync()
@@ -165,8 +169,23 @@
             ? "Keine genehmigten Taskforces vorhanden."
             : "Dir sind keine genehmigten Taskforces zugeteilt.";
         _data = await OrgChartService.GetAsync(user);
+        try
+        {
+            var ids = _data.Ranks.SelectMany(r => r.Agents).Select(a => a.Id)
+                .Concat(_data.Tru.Select(a => a.Id))
+                .Concat(_data.Hrb.Select(a => a.Id))
+                .Concat(_data.Taskforces.SelectMany(t => t.Members).Select(m => m.AgentId))
+                .ToList();
+            _plaques = await Decorations.GetPlaquesAsync(ids, user);
+        }
+        catch
+        {
+            /* best effort */
+        }
         _load = false;
     }
+
+    private IReadOnlyList<DecorationPlaqueView>? PlaquesOf(string agentId) => _plaques.GetValueOrDefault(agentId);
 
     private static string Initials(string? codename)
     {

@@ -33,6 +33,8 @@ public static class AuditDisplay
         "NudgedAt",
         // moves along with the definition; the definition change is the news
         "ReportFrom",
+        // decoration ids and rank snapshots; a decoration switch is logged by name by hand
+        "DecorationId", "AnnouncementId", "AwardedById", "RecipientRank", "SignatoryRank",
     };
 
     // Document bodies, layouts and score snapshots are unreadable as a before/after pair and swamp
@@ -105,12 +107,16 @@ public static class AuditDisplay
         ["Section"] = "Abschnitt", ["SortOrder"] = "Reihenfolge", ["Abbreviation"] = "Kürzel",
         ["IsPublic"] = "Öffentlich",
         ["Notify"] = "Meldet sich in der Glocke",
+        ["Citation"] = "Verleihungstext", ["DefaultCitation"] = "Standardtext", ["AwardedOn"] = "Verliehen am",
+        ["AwardedByName"] = "Verliehen von", ["SignatoryName"] = "Unterzeichner",
+        ["RevokedAt"] = "Aberkannt am", ["RevokedByName"] = "Aberkannt von", ["RevocationReason"] = "Grund der Aberkennung",
+        ["Symbol"] = "Symbol", ["Tier"] = "Stufe", ["IsActive"] = "Aktiv", ["Order"] = "Reihenfolge",
     };
 
     // whole-day values carry no instant, so they must never be shifted into a time zone
     private static readonly HashSet<string> DayOnlyFields = new(StringComparer.Ordinal)
     {
-        "VonDatum", "BisDatum", "FromDate", "ToDate",
+        "VonDatum", "BisDatum", "FromDate", "ToDate", "AwardedOn",
     };
 
     private static readonly HashSet<string> InstantFields = new(StringComparer.Ordinal)
@@ -118,6 +124,7 @@ public static class AuditDisplay
         "Zeitpunkt", "TotBis", "Beginn", "Ende",
         "Timestamp", "DeadUntil", "Start", "End", "Expiry",
         "DueDate", "DueAt", "DoneAt", "CompletedAt", "ScoreCalculatedAt", "AcknowledgedAt", "DecidedAt",
+        "RevokedAt",
     };
 
     /// <summary>Parses JSON into field changes; empty on null/invalid.
@@ -184,6 +191,12 @@ public static class AuditDisplay
                 {
                     return day.ToString("dd.MM.yyyy");
                 }
+                // a calendar day kept in a DateTime column serializes with midnight attached
+                if (DayOnlyFields.Contains(field)
+                    && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dayTime))
+                {
+                    return dayTime.ToString("dd.MM.yyyy");
+                }
                 if (InstantFields.Contains(field)
                     && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt))
                 {
@@ -208,6 +221,7 @@ public static class AuditDisplay
         // Scope is a RadioChannel block here and a Taskforce Geltungsbereich elsewhere, so it must be qualified
         "Bereich" or "Scope" when entityType == nameof(RadioChannel) => RadioScopeDisplay.Name((RadioScope)n),
         "Partnerbehoerde" or "Agency" => PartnerAgencyDisplay.Name((PartnerAgency)n),
+        "Tier" => DecorationTierDisplay.Name((DecorationTier)n),
         "Status" when entityType == nameof(Ticket) => TicketStatusDisplay.Name((TicketStatus)n),
         "ClosingReason" when entityType == nameof(Ticket)
             => TicketAbschlussgrundDisplay.Name((TicketAbschlussgrund)n),

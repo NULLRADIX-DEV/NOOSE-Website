@@ -81,6 +81,7 @@ public partial class DemoDataService(
         added += await SeedMeetingsAsync(db, cancellationToken);
         added += await SeedAbsencesAsync(db, cancellationToken);
         added += await SeedBadgesAsync(db, cancellationToken);
+        added += await SeedDecorationsAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
         await ApplyTimestampsAsync(db, stamps, cancellationToken);

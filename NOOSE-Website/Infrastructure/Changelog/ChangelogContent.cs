@@ -453,6 +453,15 @@ public static class ChangelogContent
                 + "beim Neuladen der Seite nicht mehr, bevor du sie gesehen hast.", "Chronik"),
             Fix("2.2.37-lagebild-farbe", "Das Lagebild der Gegenaufklärung warnt jetzt auch, wenn nur Auffälligkeiten "
                 + "der Stufe „Hoch“ vorliegen.", "Gegenaufklärung"),
+            Neu("2.2.38-ehrenzeichen", "Die Führung kann Ehrenzeichen verleihen. Die Ehrung wird am Schwarzen Brett und "
+                + "auf Discord bekanntgegeben, und der Geehrte bekommt eine Meldung in der Glocke.", "Personal"),
+            Neu("2.2.39-urkunden", "Zu jeder Ehrung, Ernennung und Beförderung lässt sich eine Urkunde im Querformat "
+                + "drucken, wahlweise mit Codename oder Klarname.", "Personal"),
+            Neu("2.2.40-ehrenzeichen-plaketten", "Verliehene Ehrenzeichen erscheinen als Plaketten im Profil, im "
+                + "Organigramm, in der Bestenliste, im Lagezentrum und auf Wunsch am öffentlichen Führungsprofil.",
+                "Personal"),
+            Fix("2.2.41-personalakte-druck", "Die Druckansicht der Personalakte zeigt den Kündigungsgrund nur noch der "
+                + "Führung, so wie die Akte selbst.", "Personal"),
         ]),
     ];
 }

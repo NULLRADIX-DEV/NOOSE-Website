@@ -5,6 +5,7 @@
 @inject IGamificationService Gamification
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject IDecorationService Decorations
 
 <PageTitle>Bestenliste · NOOSE</PageTitle>
 
@@ -52,7 +53,12 @@ else
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="#">@RankBadge(context.Position)</MudTd>
-                    <MudTd DataLabel="Agent"><MudLink Href="@($"/personal/{context.AgentId}")">@context.Codename</MudLink></MudTd>
+                    <MudTd DataLabel="Agent">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                            <MudLink Href="@($"/personal/{context.AgentId}")">@context.Codename</MudLink>
+                            <DecorationStrip Plaques="@_plaques.GetValueOrDefault(context.AgentId)" />
+                        </MudStack>
+                    </MudTd>
                     <MudTd DataLabel="Punkte" Style="text-align:right;"><b>@context.Points</b></MudTd>
                     <MudTd DataLabel="Akten" Style="text-align:right;">@context.Records</MudTd>
                     <MudTd DataLabel="Doks" Style="text-align:right;">@context.Docs</MudTd>
@@ -87,7 +93,12 @@ else
                     <MudTh Style="text-align:right;">Gelöst</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Agent"><MudLink Href="@($"/personal/{context.AgentId}")">@context.Codename</MudLink></MudTd>
+                    <MudTd DataLabel="Agent">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                            <MudLink Href="@($"/personal/{context.AgentId}")">@context.Codename</MudLink>
+                            <DecorationStrip Plaques="@_plaques.GetValueOrDefault(context.AgentId)" />
+                        </MudStack>
+                    </MudTd>
                     <MudTd DataLabel="Punkte" Style="text-align:right;"><b>@context.Points</b></MudTd>
                     <MudTd DataLabel="Akten" Style="text-align:right;">@context.Records</MudTd>
                     <MudTd DataLabel="Doks" Style="text-align:right;">@context.Docs</MudTd>
@@ -105,6 +116,10 @@ else
     private bool _load = true;
     private GamificationPeriod _period = GamificationPeriod.AllTime;
     private LeaderboardView _view = LeaderboardView.Empty;
+    private IReadOnlyDictionary<string, IReadOnlyList<DecorationPlaqueView>> _plaques
+        = new Dictionary<string, IReadOnlyList<DecorationPlaqueView>>();
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,6 +131,16 @@ else
     {
         _load = true;
         _view = await Gamification.GetLeaderboardAsync(_period);
+        try
+        {
+            var user = (await AuthStateTask).User;
+            _plaques = await Decorations.GetPlaquesAsync(
+                _view.Ranked.Concat(_view.OutOfCompetition).Select(e => e.AgentId).ToList(), user);
+        }
+        catch
+        {
+            /* best effort */
+        }
         _load = false;
     }
 

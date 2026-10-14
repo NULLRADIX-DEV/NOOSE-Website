@@ -39,6 +39,7 @@
                              Icon="@(IsLead ? Icons.Material.Filled.LocalPolice : null)">@RoleText</MudChip>
                 }
             </MudStack>
+            <DecorationStrip Plaques="Plaques" Class="mt-1" />
         </MudStack>
     </MudStack>
 </MudPaper>
@@ -49,4 +50,5 @@
     [Parameter] public bool ShowRank { get; set; } = true;
     [Parameter] public string? RoleText { get; set; }
     [Parameter] public bool IsLead { get; set; }
+    [Parameter] public IReadOnlyList<DecorationPlaqueView>? Plaques { get; set; }
 }

@@ -1,0 +1,44 @@
+@* The signed-in agent's standing decorations with their certificates; revoked ones only show in the personnel file. *@
+@inject IDecorationService Decorations
+
+@if (_awards.Count > 0)
+{
+    <MudStack Spacing="1" Class="mb-3">
+        @foreach (var a in _awards)
+        {
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <DecorationPlaque Name="@a.DecorationName" Symbol="@a.Symbol" Tier="@a.Tier" AwardedOn="@a.AwardedOn" />
+                <MudText Typo="Typo.body2" Style="flex:1;min-width:0;">
+                    <b>@a.DecorationName</b>
+                    <span class="mud-text-secondary"> · @a.AwardedOn.ToString("dd.MM.yyyy")</span>
+                </MudText>
+                <MudTooltip Text="Urkunde drucken">
+                    <MudIconButton Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Small"
+                                   Href="@($"/urkunden/ehrung/{a.Id}")" Target="_blank" aria-label="Urkunde drucken" />
+                </MudTooltip>
+            </MudStack>
+        }
+    </MudStack>
+}
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<DecorationAwardView> _awards = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (User.GetAgentId() is not { } id)
+        {
+            return;
+        }
+        try
+        {
+            _awards = (await Decorations.GetForAgentAsync(id, User)).Where(a => !a.IsRevoked).ToList();
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+}
