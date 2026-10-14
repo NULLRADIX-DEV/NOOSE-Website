@@ -1,5 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using NOOSE_Website.Data;
+using NOOSE_Website.Infrastructure.Threat;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -335,6 +339,24 @@ public sealed class FactionThreatBoardServiceTests : IDisposable
         await _service.RunAsync();
 
         await _discord.Received(1).DeleteThreatBoardAsync(rotated + "?thread_id=9", "555", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task The_container_builds_the_service_and_its_worker_without_a_registered_clock()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IDbContextFactory<AppDbContext>>(_ctx.Factory);
+        services.AddScoped(_ => _discord);
+        services.AddScoped<IFactionThreatBoardService, FactionThreatBoardService>();
+        services.AddHostedService<FactionThreatBoardWorker>();
+        await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+        await using var scope = provider.CreateAsyncScope();
+
+        var service = scope.ServiceProvider.GetRequiredService<IFactionThreatBoardService>();
+
+        Assert.Equal(ThreatBoardOutcome.Posted, await service.RunAsync());
+        Assert.Single(provider.GetServices<IHostedService>().OfType<FactionThreatBoardWorker>());
     }
 
     private sealed class ManualClock(DateTimeOffset now) : TimeProvider

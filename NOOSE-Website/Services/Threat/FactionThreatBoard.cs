@@ -94,7 +94,7 @@ public static partial class FactionThreatBoard
             canonical.Append(entry.Id).Append('\t').Append(entry.Name).Append('\t')
                 .Append(entry.Score.ToString(CultureInfo.InvariantCulture)).Append('\n');
         }
-        // a hash, not the list: the row is a system setting, and its first write lands in the change log
+        // a hash, not the list: the message already shows the list, the row only has to tell it apart
         return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical.ToString())));
     }
 

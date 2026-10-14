@@ -177,17 +177,19 @@ public sealed class FactionThreatBoardService(
             rows.GetValueOrDefault(SystemSettingKeys.DiscordThreatBoardState));
     }
 
-    // ExecuteUpdate keeps every board change out of the change log; only the very first row is a tracked insert
+    // ExecuteUpdate keeps every board change out of the change log; only the very first row is a tracked insert.
+    // Existence is asked, not the update count: MySQL may count only changed rows, and rewriting the same hash is normal
     private async Task StoreAsync(string key, string value)
     {
         await using var db = await dbFactory.CreateDbContextAsync(CancellationToken.None);
-        var updated = await db.SystemSettings
-            .Where(s => s.Key == key)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Value, value), CancellationToken.None);
-        if (updated == 0)
+        if (await db.SystemSettings.AnyAsync(s => s.Key == key, CancellationToken.None))
         {
-            db.SystemSettings.Add(new SystemSetting { Key = key, Value = value });
-            await db.SaveChangesAsync(CancellationToken.None);
+            await db.SystemSettings
+                .Where(s => s.Key == key)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Value, value), CancellationToken.None);
+            return;
         }
+        db.SystemSettings.Add(new SystemSetting { Key = key, Value = value });
+        await db.SaveChangesAsync(CancellationToken.None);
     }
 }
