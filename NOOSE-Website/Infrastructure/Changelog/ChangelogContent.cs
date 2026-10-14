@@ -465,6 +465,9 @@ public static class ChangelogContent
             Neu("2.2.42-inaktivitaets-radar", "Unter Personal zeigt der neue Reiter „Inaktiv“ der Führung, wer seit "
                 + "Wochen kein Lebenszeichen auf der Seite gegeben hat – abgemeldete Tage zählen nicht mit. Von dort aus "
                 + "lässt sich nachfassen, ein Vermerk schreiben oder eine Kündigung prüfen.", "Personal"),
+            Neu("2.2.43-gefahrenlage-discord", "Ein eigener Discord-Kanal zeigt jetzt laufend alle Fraktionen mit einem "
+                + "Bedrohungs-Score über 90, die höchste zuerst. Die Nachricht wird aktualisiert statt neu gepostet; "
+                + "Verschlusssachen stehen nie darauf.", "Discord"),
         ]),
     ];
 }

@@ -198,6 +198,11 @@ internal static class InvestigationChapter
                 Zahl offenlässt: bewegt sich der Wert - und wohin? Fahre mit der Maus darüber, dann nennt sie
                 dir Anfang, Ende und die Differenz. Wurde ein Score erst einmal berechnet, gibt es noch keinen
                 Verlauf; dann steht dort ein Strich.</p>
+                <p>Fraktionen, deren Score über einer Schwelle liegt (anfangs 90, die Führung stellt sie unter
+                <em>Einstellungen</em> ein), stehen zusätzlich auf einer <strong>Liste im eigenen
+                Discord-Kanal</strong>, die höchste zuerst. Das ist eine einzige Nachricht, die sich selbst
+                aktualisiert, kein neuer Post - ein Neuzugang pingt deshalb niemanden. Verschlusssachen stehen nie
+                darauf.</p>
                 <p>Zwei Dinge solltest du wissen. Erstens: Eine niedrige Konfidenz heißt nicht „ungefährlich“,
                 sondern „wir wissen zu wenig“. Zweitens: Der Score misst, was <em>dokumentiert</em> ist. Eine
                 gefährliche Fraktion mit leerer Akte hat eine niedrige Zahl - das ist ein Befund über uns,

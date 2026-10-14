@@ -1,5 +1,6 @@
 @* Discord webhook routing: one channel per notification category. Managed by leadership. *@
 @inject IDiscordWebhookService Discord
+@inject IFactionThreatBoardService ThreatBoard
 @inject ISnackbar Snackbar
 
 
@@ -22,6 +23,13 @@
     anpingen: sofort, nie oder <b>gesammelt</b>. Gesammeltes geht einmal am Tag um @DiscordPings.DigestHour Uhr in den
     Channel <b>Tagesüberblick</b>, eine Zeile je Agent mit Ping und der Zahl der ungelesenen Meldungen, ohne Titel.
     Ohne diesen Channel lässt sich „gesammelt“ im Profil nicht wählen.
+</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
+    Auch <b>Gefahrenlage (Fraktionen)</b> nennt Namen, ist aber kein Hinweis, sondern eine feste Nachricht: Sie
+    listet jede Fraktion, deren Bedrohungs-Score über der eingestellten Schwelle liegt, mit Score und wird bei jeder
+    Änderung bearbeitet statt neu gepostet (geprüft wird etwa alle zwei Minuten, der Stand wird mindestens stündlich
+    erneuert). Verschlusssachen, Staatsfraktionen und archivierte Fraktionen stehen nie darauf, gepingt wird niemand.
+    Wechselst du den Webhook, leerst ihn oder schaltest Discord aus, löscht der nächste Durchlauf die alte Nachricht.
 </MudText>
 
 @if (_load)
@@ -67,6 +75,14 @@ else
                         </div>
                         <MudTextField @bind-Value="_webhooks[type]" Placeholder="https://discord.com/api/webhooks/…"
                                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                        @if (type == NotificationType.FactionThreatBoard)
+                        {
+                            <MudNumericField T="int" @bind-Value="_input.ThreatBoardThreshold" Label="Score über"
+                                             Min="DiscordWebhookConfig.MinThreatBoardThreshold"
+                                             Max="DiscordWebhookConfig.MaxThreatBoardThreshold"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:130px;"
+                                             HelperText="Schwelle der Liste." />
+                        }
                         @if (DiscordRouting.PingsRole(type))
                         {
                             <MudTextField @bind-Value="_roles[type]" Label="Rollen-ID" Placeholder="@DiscordRouting.DefaultRole(type)"
@@ -75,7 +91,9 @@ else
                         }
                         else if (DiscordRouting.PingsNobody(type))
                         {
-                            <MudTooltip Text="Diese Kategorie pingt niemanden – die Namen stehen als Mention im Embed, lösen aber keine Benachrichtigung aus.">
+                            <MudTooltip Text="@(type == NotificationType.FactionThreatBoard
+                                                   ? "Die Gefahrenlage pingt niemanden – die Nachricht wird nur bearbeitet."
+                                                   : "Diese Kategorie pingt niemanden – die Namen stehen als Mention im Embed, lösen aber keine Benachrichtigung aus.")">
                                 <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
                                          Icon="@Icons.Material.Filled.NotificationsOff">ohne Ping</MudChip>
                             </MudTooltip>
@@ -87,10 +105,22 @@ else
                                          Icon="@Icons.Material.Filled.AlternateEmail">pingt Empfänger</MudChip>
                             </MudTooltip>
                         }
-                        <MudTooltip Text="Test verwendet die zuletzt gespeicherte URL.">
-                            <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Primary"
-                                           OnClick="@(() => TestAsync(type))" aria-label="Test senden" />
-                        </MudTooltip>
+                        @if (type == NotificationType.FactionThreatBoard)
+                        {
+                            @* a test post would sit in the board's channel; refreshing posts the board itself *@
+                            <MudTooltip Text="Gefahrenlage jetzt aktualisieren (verwendet die zuletzt gespeicherten Einstellungen).">
+                                <MudIconButton Icon="@Icons.Material.Filled.Refresh" Color="Color.Primary"
+                                               Disabled="@(_refreshing || !_user.MayWrite())"
+                                               OnClick="RefreshBoardAsync" aria-label="Gefahrenlage aktualisieren" />
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Test verwendet die zuletzt gespeicherte URL.">
+                                <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Primary"
+                                               OnClick="@(() => TestAsync(type))" aria-label="Test senden" />
+                            </MudTooltip>
+                        }
                     </MudStack>
                 }
             </MudStack>
@@ -114,6 +144,7 @@ else
     private readonly Dictionary<NotificationType, string?> _roles = new();
     private bool _load = true;
     private bool _saving;
+    private bool _refreshing;
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,6 +155,7 @@ else
             Enabled = config.Enabled,
             SiteBaseUrl = config.SiteBaseUrl == DiscordWebhookConfig.DefaultBaseUrl ? null : config.SiteBaseUrl,
             IncludeHeadline = config.IncludeHeadline,
+            ThreatBoardThreshold = config.ThreatBoardThreshold,
         };
         foreach (var type in _types)
         {
@@ -167,6 +199,31 @@ else
         catch (Exception ex)
         {
             Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task RefreshBoardAsync()
+    {
+        _refreshing = true;
+        try
+        {
+            var outcome = await ThreatBoard.RefreshAsync(_user);
+            var (text, severity) = outcome switch
+            {
+                ThreatBoardOutcome.Posted => ("Gefahrenlage gepostet.", Severity.Success),
+                ThreatBoardOutcome.Edited or ThreatBoardOutcome.Unchanged => ("Gefahrenlage aktualisiert.", Severity.Success),
+                ThreatBoardOutcome.Off => ("Discord ist aus oder für die Gefahrenlage ist kein Webhook gespeichert (erst speichern).", Severity.Warning),
+                _ => ("Discord hat die Gefahrenlage nicht angenommen. Webhook prüfen; der nächste Durchlauf versucht es erneut.", Severity.Error),
+            };
+            Snackbar.Add(text, severity);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _refreshing = false;
         }
     }
 

@@ -41,6 +41,15 @@ public static class SystemSettingKeys
     /// <summary>Whether role-ping Discord posts include the record header/title (Announcement, Recruiting). Default on.</summary>
     public const string DiscordIncludeHeadline = "DiscordHeaderInhalt";
 
+    /// <summary>Score a faction must exceed to appear on the Discord threat board.</summary>
+    public const string DiscordThreatBoardThreshold = "DiscordGefahrenlageSchwelle";
+
+    /// <summary>The threat board's Discord message as "messageId|webhookUrl"; worker state, not user-edited.</summary>
+    public const string DiscordThreatBoardMessage = "DiscordGefahrenlageNachricht";
+
+    /// <summary>Hash of the threat board content last delivered; worker state, not user-edited.</summary>
+    public const string DiscordThreatBoardState = "DiscordGefahrenlageStand";
+
     // periodic top-3 agent announcement; the interval also drives its wording
     public const string BestAgentEnabled = "BesterAgentAktiv";
     public const string BestAgentIntervalDays = "BesterAgentIntervallTage";

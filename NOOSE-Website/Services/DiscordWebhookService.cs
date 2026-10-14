@@ -1,7 +1,9 @@
-﻿using System.Net.Http;
+﻿using System.Globalization;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -21,6 +23,9 @@ public class DiscordWebhookService(
     ILogger<DiscordWebhookService> logger) : IDiscordWebhookService
 {
     private const string CacheKey = "DiscordWebhookConfig";
+
+    /// <summary>Named client of the threat board; a longer timeout, so a slow post is not mistaken for a lost one.</summary>
+    public const string BoardClient = "discord-board";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
     // Discord takes 2000 characters and 100 mentions per message
@@ -277,6 +282,118 @@ public class DiscordWebhookService(
         }
     }
 
+    // wait=true makes Discord answer with the message, whose id the board edits from then on
+    public async Task<string?> PostThreatBoardAsync(string webhookUrl, ThreatBoardEmbed embed,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var payload = new
+            {
+                username = "NOOSE",
+                embeds = new[] { BoardEmbed(embed) },
+                allowed_mentions = new { parse = Array.Empty<string>() },
+            };
+            var client = httpFactory.CreateClient(BoardClient);
+            using var response = await client.PostAsJsonAsync(FactionThreatBoard.PostUrl(webhookUrl), payload, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Discord threat board post returned {Status}.", (int)response.StatusCode);
+                return null;
+            }
+            await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var doc = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+            return doc.RootElement.TryGetProperty("id", out var id) && id.GetString() is { } messageId && IsSnowflake(messageId)
+                ? messageId
+                : null;
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            logger.LogWarning(ex, "Discord threat board post failed.");
+            return null;
+        }
+    }
+
+    // an edit carries no username: the message keeps the one it was posted with
+    public async Task<ThreatBoardEdit> EditThreatBoardAsync(string webhookUrl, string messageId, ThreatBoardEmbed embed,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var payload = new
+            {
+                embeds = new[] { BoardEmbed(embed) },
+                allowed_mentions = new { parse = Array.Empty<string>() },
+            };
+            var client = httpFactory.CreateClient(BoardClient);
+            using var response = await client.PatchAsJsonAsync(
+                FactionThreatBoard.EditUrl(webhookUrl, messageId), payload, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                return ThreatBoardEdit.Edited;
+            }
+            var code = await DiscordErrorCodeAsync(response, cancellationToken);
+            logger.LogWarning("Discord threat board edit returned {Status} (code {Code}).", (int)response.StatusCode, code);
+            return FactionThreatBoard.RefusedEdit((int)response.StatusCode, code);
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            logger.LogWarning(ex, "Discord threat board edit failed.");
+            return ThreatBoardEdit.Failed;
+        }
+    }
+
+    public async Task<ThreatBoardRemoval> DeleteThreatBoardAsync(string webhookUrl, string messageId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var client = httpFactory.CreateClient(BoardClient);
+            using var response = await client.DeleteAsync(FactionThreatBoard.EditUrl(webhookUrl, messageId), cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                return ThreatBoardRemoval.Removed;
+            }
+            var code = await DiscordErrorCodeAsync(response, cancellationToken);
+            logger.LogWarning("Discord threat board delete returned {Status} (code {Code}).", (int)response.StatusCode, code);
+            return FactionThreatBoard.RefusedDelete((int)response.StatusCode, code);
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            logger.LogWarning(ex, "Discord threat board delete failed.");
+            return ThreatBoardRemoval.Failed;
+        }
+    }
+
+    private static object BoardEmbed(ThreatBoardEmbed embed) => new
+    {
+        title = embed.Title,
+        description = embed.Description,
+        color = embed.Color,
+        // Discord renders it in each reader's own time zone
+        timestamp = embed.AsOfUtc.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
+        footer = new { text = embed.Footer },
+    };
+
+    // Discord's JSON error carries a numeric code beside the HTTP status
+    private static async Task<int?> DiscordErrorCodeAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var body = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var doc = await JsonDocument.ParseAsync(body, cancellationToken: cancellationToken);
+            return doc.RootElement.TryGetProperty("code", out var code) && code.TryGetInt32(out var value) ? value : null;
+        }
+        catch
+        {
+            /* ignore */
+            return null;
+        }
+    }
+
     // Discord rejects empty field values
     private static string Field(string? value) => string.IsNullOrWhiteSpace(value) ? "—" : value;
 
@@ -396,11 +513,19 @@ public class DiscordWebhookService(
                 throw new InvalidOperationException($"Die Rollen-ID für „{NotificationTypeDisplay.Name(type)}“ darf nur Ziffern enthalten.");
             }
         }
+        if (!FactionThreatBoard.IsValidThreshold(input.ThreatBoardThreshold))
+        {
+            throw new InvalidOperationException(
+                $"Die Schwelle der Gefahrenlage muss zwischen {DiscordWebhookConfig.MinThreatBoardThreshold} und "
+                + $"{DiscordWebhookConfig.MaxThreatBoardThreshold} liegen.");
+        }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         await SetAsync(db, SystemSettingKeys.DiscordEnabled, input.Enabled ? "true" : "false", cancellationToken);
         await SetAsync(db, SystemSettingKeys.SiteBaseUrl, baseUrl, cancellationToken);
         await SetAsync(db, SystemSettingKeys.DiscordIncludeHeadline, input.IncludeHeadline ? "true" : "false", cancellationToken);
+        await SetAsync(db, SystemSettingKeys.DiscordThreatBoardThreshold,
+            input.ThreatBoardThreshold.ToString(CultureInfo.InvariantCulture), cancellationToken);
         foreach (var type in DiscordRouting.RoutableTypes)
         {
             input.Webhooks.TryGetValue(type, out var raw);
@@ -535,6 +660,7 @@ public class DiscordWebhookService(
         NotificationType.AcknowledgmentReminder => "/brett",
         NotificationType.SavedSearchHit => "/suche",
         NotificationType.InactivityNudge => "/abmeldungen",
+        NotificationType.FactionThreatBoard => "/fraktionen",
         _ => "/dashboard",
     };
 
@@ -562,6 +688,7 @@ public class DiscordWebhookService(
         NotificationType.AcknowledgmentReminder => "📋 Eine Ankündigung wartet noch auf deine Quittierung.",
         NotificationType.SavedSearchHit => "🔍 Eine deiner gespeicherten Suchen hat neue Treffer.",
         NotificationType.InactivityNudge => "👋 Die Führung bittet dich um eine kurze Rückmeldung.",
+        NotificationType.FactionThreatBoard => "🚨 Gefahrenlage der Fraktionen.",
         _ => "🔔 Neue Benachrichtigung.",
     };
 
@@ -597,7 +724,8 @@ public class DiscordWebhookService(
         }
         // default on: only an explicit "false" suppresses headers
         var includeHeadline = !string.Equals(values.GetValueOrDefault(SystemSettingKeys.DiscordIncludeHeadline), "false", StringComparison.OrdinalIgnoreCase);
-        return new DiscordWebhookConfig(enabled, baseUrl, map, roles, includeHeadline);
+        var threshold = FactionThreatBoard.ParseThreshold(values.GetValueOrDefault(SystemSettingKeys.DiscordThreatBoardThreshold));
+        return new DiscordWebhookConfig(enabled, baseUrl, map, roles, includeHeadline, threshold);
     }
 
     private static string? Trim(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

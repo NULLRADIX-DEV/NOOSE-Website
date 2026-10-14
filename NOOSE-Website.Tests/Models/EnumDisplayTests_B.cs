@@ -35,6 +35,7 @@ public class EnumDisplayTests_B
     [InlineData(NotificationType.PublicWantedExpired, "Ausschreibung abgelaufen")]
     [InlineData(NotificationType.PublicTicketCreated, "Neues Ticket")]
     [InlineData(NotificationType.PublicTipCreated, "Neuer Bürgerhinweis")]
+    [InlineData(NotificationType.FactionThreatBoard, "Gefahrenlage (Fraktionen)")]
     public void NotificationTypeName_definedValue_mapsToLabel(NotificationType type, string expected)
         => Assert.Equal(expected, NotificationTypeDisplay.Name(type));
 

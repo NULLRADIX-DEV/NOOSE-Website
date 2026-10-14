@@ -61,6 +61,8 @@ public static class DiscordRouting
         NotificationType.SavedSearchHit,
         // leadership asking one silent agent to check in; the post says no more than that, the bell has the date
         NotificationType.InactivityNudge,
+        // one standing message, edited in place; classified factions never appear on it
+        NotificationType.FactionThreatBoard,
     };
 
     public static bool IsRoutable(NotificationType type) => RoutableTypes.Contains(type);
@@ -79,8 +81,9 @@ public static class DiscordRouting
     /// <summary>Category whose Discord post pings nobody: the embed carries inert mention chips instead.</summary>
     public static bool PingsNobody(NotificationType type)
         // an official announcement, not a summons: the terminated agent is named in the embed and rendered as a
-        // mention chip, but nobody gets a notification about someone else's dismissal
-        => type is NotificationType.AgentTerminated;
+        // mention chip, but nobody gets a notification about someone else's dismissal. The threat board is edited,
+        // not posted, and an edit notifies nobody anyway
+        => type is NotificationType.AgentTerminated or NotificationType.FactionThreatBoard;
 
     /// <summary>Category whose Discord post pings a configured role instead of individuals.</summary>
     public static bool PingsRole(NotificationType type)
@@ -103,10 +106,20 @@ public sealed record DiscordWebhookConfig(
     bool Enabled, string SiteBaseUrl,
     IReadOnlyDictionary<NotificationType, string?> Webhooks,
     IReadOnlyDictionary<NotificationType, string?> Roles,
-    bool IncludeHeadline)
+    bool IncludeHeadline,
+    int ThreatBoardThreshold = DiscordWebhookConfig.DefaultThreatBoardThreshold)
 {
     /// <summary>Default site base for absolute links in Discord messages when unset.</summary>
     public const string DefaultBaseUrl = "https://noose.info";
+
+    /// <summary>A faction appears on the threat board when its score lies above this.</summary>
+    public const int DefaultThreatBoardThreshold = 90;
+
+    /// <summary>Lowest threshold the settings accept; 0 lists every faction scored above zero.</summary>
+    public const int MinThreatBoardThreshold = 0;
+
+    /// <summary>Highest threshold the settings accept; above it nothing could ever qualify.</summary>
+    public const int MaxThreatBoardThreshold = 99;
 }
 
 /// <summary>Admin input for the Discord webhook config page.</summary>
@@ -123,4 +136,7 @@ public sealed class DiscordWebhookConfigInput
 
     /// <summary>Include the record header/title in role-ping posts (Announcement, Recruiting, AppointmentScheduled).</summary>
     public bool IncludeHeadline { get; set; } = true;
+
+    /// <summary>Score a faction must exceed to appear on the threat board.</summary>
+    public int ThreatBoardThreshold { get; set; } = DiscordWebhookConfig.DefaultThreatBoardThreshold;
 }

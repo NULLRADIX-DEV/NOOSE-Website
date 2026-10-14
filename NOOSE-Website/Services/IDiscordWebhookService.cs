@@ -39,4 +39,41 @@ public interface IDiscordWebhookService
 
     /// <summary>Post an app-authored message to a category's channel with that category's ping (role or none) and an optional login-gated link. Best-effort; returns true on 2xx.</summary>
     Task<bool> PushCustomAsync(NotificationType type, string content, string? href = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Post the threat board as a new message and return its Discord id; null when Discord refused. Pings nobody.</summary>
+    Task<string?> PostThreatBoardAsync(string webhookUrl, ThreatBoardEmbed embed, CancellationToken cancellationToken = default);
+
+    /// <summary>Edit the threat board message in place. <see cref="ThreatBoardEdit.Missing"/> means Discord no longer has it.</summary>
+    Task<ThreatBoardEdit> EditThreatBoardAsync(string webhookUrl, string messageId, ThreatBoardEmbed embed, CancellationToken cancellationToken = default);
+
+    /// <summary>Delete a threat board message the settings no longer point at.</summary>
+    Task<ThreatBoardRemoval> DeleteThreatBoardAsync(string webhookUrl, string messageId, CancellationToken cancellationToken = default);
+}
+
+/// <summary>Outcome of deleting an old threat board message.</summary>
+public enum ThreatBoardRemoval
+{
+    /// <summary>Deleted, or Discord no longer had it.</summary>
+    Removed,
+
+    /// <summary>The URL may no longer touch it (new token, archived thread); nothing more to try.</summary>
+    Unreachable,
+
+    /// <summary>Rate limit or outage; retry on the next pass.</summary>
+    Failed,
+}
+
+/// <summary>Outcome of editing the threat board message.</summary>
+public enum ThreatBoardEdit
+{
+    Edited,
+
+    /// <summary>Deleted in Discord or the webhook is gone; a fresh post is due.</summary>
+    Missing,
+
+    /// <summary>Its thread was archived; a fresh post reopens the thread, after which the old message can go.</summary>
+    Archived,
+
+    /// <summary>Rate limit, outage or a refused body; retry later, never repost (that would duplicate the board).</summary>
+    Failed,
 }
