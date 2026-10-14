@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data.Entities;
@@ -320,6 +321,123 @@ public sealed class InactivityRadarTests
             Arg.Any<CancellationToken>());
         using var db = ctx.NewContext();
         Assert.Single(db.AuditLogs.Where(l => l.EntityType == nameof(Agent)));
+    }
+
+    [Theory]
+    [InlineData(23, false)]
+    [InlineData(25, true)]
+    public async Task The_server_lets_a_nudge_follow_only_after_the_cooldown(int hoursAgo, bool allowed)
+    {
+        using var ctx = new SqliteTestContext();
+        // another leader nudged earlier; row and server must agree on when the next one may go out
+        Add(ctx, Silent("a", 20, a =>
+        {
+            a.InactivityNudgedAt = Now.AddHours(-hoursAgo);
+            a.InactivityNudgedByName = "Vorher";
+        }));
+        var (svc, notifications) = Build(ctx);
+        var row = Assert.Single((await svc.GetAsync(Leader())).Rows);
+        Assert.Equal(!allowed, row.NudgeLockedUntil > DateTime.UtcNow);
+
+        if (allowed)
+        {
+            await svc.NudgeAsync("a", Leader());
+            await notifications.ReceivedWithAnyArgs(1).NotifyManyAsync(default!, default, default!, default, default);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<InvalidOperationException>(() => svc.NudgeAsync("a", Leader()));
+            await notifications.DidNotReceiveWithAnyArgs().NotifyManyAsync(default!, default, default!, default, default);
+        }
+    }
+
+    [Fact]
+    public async Task An_agent_who_is_signed_off_today_is_not_nudged()
+    {
+        using var ctx = new SqliteTestContext();
+        Add(ctx,
+            Silent("a", 40),
+            new Absence { AgentId = "a", FromDate = Today.AddDays(-2), ToDate = Today.AddDays(5), Days = 8 });
+        var (svc, notifications) = Build(ctx);
+
+        var row = Assert.Single((await svc.GetAsync(Leader())).Rows);
+        Assert.NotNull(row.AbsentUntil);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.NudgeAsync("a", Leader()));
+        Assert.Contains("abgemeldet", refused.Message);
+        await notifications.DidNotReceiveWithAnyArgs().NotifyManyAsync(default!, default, default!, default, default);
+    }
+
+    [Fact]
+    public async Task A_message_that_fails_hands_the_claim_back_and_logs_nothing()
+    {
+        using var ctx = new SqliteTestContext();
+        Add(ctx, Silent("a", 20));
+        var (svc, notifications) = Build(ctx);
+        notifications.NotifyManyAsync(default!, default, default!, default, default, default)
+            .ReturnsForAnyArgs(Task.FromException(new InvalidOperationException("Datenbank weg")), Task.CompletedTask);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.NudgeAsync("a", Leader()));
+        using (var db = ctx.NewContext())
+        {
+            Assert.Null(db.Users.Single(u => u.Id == "a").InactivityNudgedAt);
+            Assert.Empty(db.AuditLogs);
+        }
+
+        // the retry is not blocked by a cooldown nobody was notified about
+        await svc.NudgeAsync("a", Leader());
+        using (var db = ctx.NewContext())
+        {
+            Assert.NotNull(db.Users.Single(u => u.Id == "a").InactivityNudgedAt);
+            Assert.Single(db.AuditLogs);
+        }
+    }
+
+    [Theory]
+    [InlineData(2, true, InactivityTier.FollowUp)]
+    [InlineData(20, false, InactivityTier.Termination)]
+    public async Task An_old_log_trace_stays_provisional_until_visits_were_counted_for_the_first_threshold(
+        int countedForDays, bool provisional, InactivityTier tier)
+    {
+        using var ctx = new SqliteTestContext();
+        Add(ctx,
+            Seed.Agent("a", Rank.SpecialAgent),
+            new AuditLog { AgentId = "a", Timestamp = Now.AddDays(-80), EntityType = "Person", EntityId = "p1", Action = AuditAction.Created },
+            new SystemSetting
+            {
+                Key = InactivityRadarService.VisitsCountedFromKey,
+                // the shape migration Phase94 writes
+                Value = Now.AddDays(-countedForDays).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
+            });
+        var (svc, _) = Build(ctx);
+
+        var radar = await svc.GetAsync(Leader());
+        var row = Assert.Single(radar.Rows);
+
+        Assert.NotNull(radar.VisitsCountedFrom);
+        Assert.Equal(provisional, row.Provisional);
+        Assert.Equal(tier, row.Tier);
+        Assert.Equal(DaysSince(Now.AddDays(-80)), row.InactiveDays);
+    }
+
+    [Fact]
+    public async Task A_visit_since_counting_began_is_never_provisional()
+    {
+        using var ctx = new SqliteTestContext();
+        Add(ctx,
+            // seen once after counting began, silent since: certain, not provisional
+            Silent("a", 20),
+            new SystemSetting
+            {
+                Key = InactivityRadarService.VisitsCountedFromKey,
+                Value = Now.AddDays(-25).ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture),
+            });
+        var (svc, _) = Build(ctx);
+
+        var row = Assert.Single((await svc.GetAsync(Leader())).Rows);
+
+        Assert.False(row.Provisional);
+        Assert.Equal(InactivityTier.FollowUp, row.Tier);
     }
 
     [Fact]

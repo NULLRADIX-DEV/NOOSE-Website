@@ -43,7 +43,8 @@ internal static class PersonnelChapter
                 <p>Die Liste ist nach Dauer gestuft, und jede Stufe bringt ihren Knopf mit:</p>
                 <ul>
                 <li><strong>Nachfassen</strong> (Grundwert ab 14 Tagen): Der Agent bekommt eine Benachrichtigung
-                und einen Discord-Ping mit der Bitte, sich zu melden oder eine Abmeldung einzutragen. Diese
+                und - wenn der Kanal dafür eingerichtet ist - einen Discord-Ping mit der Bitte, sich zu melden
+                oder eine Abmeldung einzutragen. Diese
                 Nachricht lässt sich nicht stummschalten. Die Zeile merkt sich, wer wann nachgefasst hat, und
                 ein zweites Nachfassen geht frühestens nach 24 Stunden - so schreibt niemand doppelt.</li>
                 <li><strong>Vermerk</strong> (ab 30 Tagen): Ein vorausgefüllter Eintrag in der Personalakte, Art
@@ -56,7 +57,11 @@ internal static class PersonnelChapter
                 Sobald der Agent wieder ein Lebenszeichen gibt, verschwindet er aus der Liste.</p>
                 <p>Die Seite sieht nur, was auf der Seite passiert. Wer im Spiel aktiv ist, aber nie hier
                 hereinschaut, steht trotzdem im Radar - deshalb ist Nachfassen der erste Schritt, nicht der
-                Vermerk.</p>
+                Vermerk. Wer gerade abgemeldet ist, bekommt keine Bitte um Rückmeldung.</p>
+                <p>Seitenbesuche zählt die Seite erst seit dem Update, mit dem das Radar kam. Vorher hinterließ wer
+                nur Listen oder das Brett las gar keine Spur. Steht ein Agent nur mit einer älteren Spur im Radar,
+                ist die Zeile deshalb <em>vorläufig</em>: bis die Besuche so lange gezählt wurden wie die erste
+                Schwelle, bietet das Radar dort nur <em>Nachfassen</em> an.</p>
                 """),
 
             new Article("art-befoerderung", "befoerderung", "Beförderung",

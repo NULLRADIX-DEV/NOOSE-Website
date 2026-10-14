@@ -80,6 +80,12 @@ else
                         Nachgefasst am @nudged.ToLocalTime().ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(context.NudgedByName) ? "" : $" von {context.NudgedByName}")
                     </MudText>
                 }
+                @if (context.Provisional)
+                {
+                    <MudTooltip Text="@ProvisionalHint">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">vorläufig</MudChip>
+                    </MudTooltip>
+                }
             </MudTd>
             @if (_mayWrite)
             {
@@ -88,7 +94,7 @@ else
                         @if (context.AgentId != _me)
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info"
-                                       Disabled="@(_busy || !InactivityRules.MayNudge(context.NudgedAt, DateTime.UtcNow))"
+                                       Disabled="@(_busy || context.AbsentUntil is not null || context.NudgeLockedUntil > DateTime.UtcNow)"
                                        StartIcon="@Icons.Material.Filled.ContactSupport" OnClick="@(() => NudgeAsync(context))">
                                 @(context.NudgedAt is null ? "Nachfassen" : "Erneut nachfassen")
                             </MudButton>
@@ -141,7 +147,12 @@ else
 
     private static string Stamp(DateTime? utc) => utc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
 
-    private async Task NudgeAsync(InactivityRow row)
+    private string ProvisionalHint => Radar.VisitsCountedFrom is { } from
+        ? $"Seitenbesuche werden erst seit dem {from.ToLocalTime():dd.MM.yyyy} gezählt. Bis sie {Radar.Thresholds.FollowUpDays} Tage "
+          + "lang gezählt wurden, bietet das Radar hier nur Nachfassen an."
+        : "Seitenbesuche werden erst seit kurzem gezählt.";
+
+    private Task NudgeAsync(InactivityRow row) => ExclusiveAsync(async () =>
     {
         var text = row.NudgedAt is { } at
             ? $"{row.NudgedByName ?? "Jemand"} hat am {at.ToLocalTime():dd.MM.yyyy} schon nachgefasst. Noch einmal schreiben?"
@@ -156,9 +167,9 @@ else
             await RadarService.NudgeAsync(row.AgentId, _user);
             Snackbar.Add($"Bei {row.Codename} nachgefasst.", Severity.Success);
         });
-    }
+    });
 
-    private async Task NoteAsync(InactivityRow row)
+    private Task NoteAsync(InactivityRow row) => ExclusiveAsync(async () =>
     {
         // the page may be an hour old; the agent could be back by now
         if (await StillDueAsync(row, InactivityTier.Note) is not { } fresh)
@@ -179,9 +190,9 @@ else
             await RichTextEditor.DiscardDraftAsync(JS, _me, InactivityNoteDialog.DraftKeyFor(fresh.AgentId));
             Snackbar.Add($"Vermerk für {fresh.Codename} eingetragen.", Severity.Success);
         });
-    }
+    });
 
-    private async Task TerminateAsync(InactivityRow row)
+    private Task TerminateAsync(InactivityRow row) => ExclusiveAsync(async () =>
     {
         if (await StillDueAsync(row, InactivityTier.Termination) is not { } fresh)
         {
@@ -201,6 +212,24 @@ else
             await AgentService.TerminateAsync(fresh.AgentId, choice.Reason, choice.CreateNote, choice.PostDiscord, _user);
             Snackbar.Add($"{display} wurde gekündigt.", Severity.Warning);
         });
+    });
+
+    /// <summary>One flow at a time, from the first check to the reload, so a double click cannot open two dialogs.</summary>
+    private async Task ExclusiveAsync(Func<Task> flow)
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await flow();
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     /// <summary>The agent's row as of now if it still reaches the tier; otherwise says so and reloads the list.</summary>
@@ -225,11 +254,6 @@ else
 
     private async Task RunAsync(Func<Task> action)
     {
-        if (_busy)
-        {
-            return;
-        }
-        _busy = true;
         try
         {
             await action();
@@ -238,10 +262,6 @@ else
         catch (Exception ex)
         {
             Snackbar.Add(ex.Message, Severity.Error);
-        }
-        finally
-        {
-            _busy = false;
         }
     }
 }

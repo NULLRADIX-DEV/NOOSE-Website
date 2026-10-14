@@ -96,6 +96,22 @@ public static class InactivityRules
     public static bool MayNudge(DateTime? nudgedAt, DateTime nowUtc)
         => nudgedAt is not { } at || at <= nowUtc - NudgeCooldown;
 
+    /// <summary>When the cooldown of a stored nudge ends, or null when it already has.</summary>
+    public static DateTime? NudgeLockedUntil(DateTime? nudgedAt, DateTime nowUtc)
+        => MayNudge(nudgedAt, nowUtc) ? null : nudgedAt!.Value + NudgeCooldown;
+
+    /// <summary>Whether the silence rests on logs from before page visits were counted, and visits have not been
+    /// counted for a full first threshold yet.</summary>
+    /// <remarks>
+    /// Before the stamp existed, reading lists or the board left no trace at all, so an old log entry is weak
+    /// evidence. Once visits have been counted for the first threshold and the agent still never came, it holds.
+    /// </remarks>
+    public static bool IsProvisional(DateTime lastTraceAt, DateTime? visitsCountedFrom, DateOnly today,
+        InactivityThresholds thresholds)
+        => visitsCountedFrom is { } from
+           && lastTraceAt < from
+           && today.DayNumber - MeetingTime.Day(from).DayNumber < thresholds.FollowUpDays;
+
     /// <summary>Bell title of a nudge; names the day, not the count, which the agent cannot check.</summary>
     public static string NudgeTitle(DateOnly lastTraceDay)
         => $"Die Führung hat seit dem {lastTraceDay:dd.MM.yyyy} kein Lebenszeichen von dir gesehen. "

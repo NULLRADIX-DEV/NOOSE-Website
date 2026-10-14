@@ -41,11 +41,18 @@ namespace NOOSE_Website.Data.Migrations
                 name: "IX_AuditLogs_AgentId_Zeitpunkt",
                 table: "AuditLogs",
                 columns: new[] { "AgentId", "Zeitpunkt" });
+
+            // page visits are counted from now on; the radar holds older evidence provisional until it has been long enough
+            migrationBuilder.Sql(
+                "INSERT INTO SystemEinstellungen (Schluessel, Wert, ErstelltAm) " +
+                "VALUES ('InaktivitaetBesucheAb', DATE_FORMAT(UTC_TIMESTAMP(), '%Y-%m-%dT%H:%i:%sZ'), UTC_TIMESTAMP(6));");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("DELETE FROM SystemEinstellungen WHERE Schluessel = 'InaktivitaetBesucheAb';");
+
             migrationBuilder.DropIndex(
                 name: "IX_AuditLogs_AgentId_Zeitpunkt",
                 table: "AuditLogs");

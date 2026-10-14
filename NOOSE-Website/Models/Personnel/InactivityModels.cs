@@ -36,7 +36,9 @@ public enum InactivityTraceKind
 /// <remarks>
 /// <see cref="SilentDays"/> counts every calendar day since the last trace, <see cref="AbsentDays"/> the ones an
 /// absence covers, <see cref="InactiveDays"/> the difference the tier is read from. A nudge only shows when it is
-/// newer than the last trace: an agent who answered and fell silent again starts over.
+/// newer than the last trace: an agent who answered and fell silent again starts over. <see cref="NudgeLockedUntil"/>
+/// reads the stored nudge regardless, as the service does. <see cref="Provisional"/>: the trace predates the counting
+/// of page visits, so the tier is held at <see cref="InactivityTier.FollowUp"/> for now.
 /// </remarks>
 public sealed record InactivityRow(
     string AgentId,
@@ -55,10 +57,14 @@ public sealed record InactivityRow(
     InactivityTier Tier,
     DateOnly? AbsentUntil,
     DateTime? NudgedAt,
-    string? NudgedByName);
+    string? NudgedByName,
+    DateTime? NudgeLockedUntil,
+    bool Provisional);
 
 /// <summary>The radar as the personnel page shows it.</summary>
-public sealed record InactivityRadar(InactivityThresholds Thresholds, IReadOnlyList<InactivityRow> Rows);
+/// <param name="VisitsCountedFrom">When page visits started being stamped; null where nothing recorded it.</param>
+public sealed record InactivityRadar(InactivityThresholds Thresholds, IReadOnlyList<InactivityRow> Rows,
+    DateTime? VisitsCountedFrom);
 
 /// <summary>Display labels and chip colours.</summary>
 public static class InactivityDisplay

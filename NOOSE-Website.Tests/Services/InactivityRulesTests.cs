@@ -102,6 +102,22 @@ public sealed class InactivityRulesTests
         Assert.True(InactivityRules.MayNudge(null, now));
         Assert.False(InactivityRules.MayNudge(now.AddHours(-23), now));
         Assert.True(InactivityRules.MayNudge(now.AddHours(-24), now));
+        Assert.Equal(now.AddHours(1), InactivityRules.NudgeLockedUntil(now.AddHours(-23), now));
+        Assert.Null(InactivityRules.NudgeLockedUntil(now.AddHours(-24), now));
+    }
+
+    [Fact]
+    public void Evidence_older_than_the_visit_count_is_provisional_for_one_first_threshold()
+    {
+        var from = new DateTime(2026, 10, 14, 10, 0, 0, DateTimeKind.Utc);
+        var old = from.AddDays(-60);
+
+        Assert.True(InactivityRules.IsProvisional(old, from, new DateOnly(2026, 10, 27), InactivityThresholds.Default));
+        Assert.False(InactivityRules.IsProvisional(old, from, new DateOnly(2026, 10, 28), InactivityThresholds.Default));
+        // a trace after counting began is certain
+        Assert.False(InactivityRules.IsProvisional(from.AddHours(1), from, new DateOnly(2026, 10, 15), InactivityThresholds.Default));
+        // nothing recorded when counting began: no hold
+        Assert.False(InactivityRules.IsProvisional(old, null, new DateOnly(2026, 10, 15), InactivityThresholds.Default));
     }
 
     [Fact]

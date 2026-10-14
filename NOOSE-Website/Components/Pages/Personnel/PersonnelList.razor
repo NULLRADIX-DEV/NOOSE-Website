@@ -228,9 +228,10 @@ else
             {
                 _radar = await RadarService.GetAsync(_user);
             }
+            // a null radar makes the tab say it could not load
             catch
             {
-                /* best effort: the tab says it could not load */
+                /* best effort */
                 _radar = null;
             }
         }

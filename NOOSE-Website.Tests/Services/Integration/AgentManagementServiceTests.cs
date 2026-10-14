@@ -895,7 +895,9 @@ public class AgentManagementServiceTests
         await f.Svc.TerminationRevokeAsync("gone", Admin());
         await f.Svc.ConvertToInternalAsync("partner", Rank.SpecialAgent, Admin());
         await f.Svc.TeamLeadSetAsync("tl", false, Admin());
-        // becoming oversight is no return to the roster
+        // becoming oversight is no return to the roster, and clearing a flag that was never set is none either
+        await f.Svc.TeamLeadSetAsync("plain", false, Admin());
+        Assert.Null(Reload(f, "plain").ActiveSinceAt);
         await f.Svc.TeamLeadSetAsync("plain", true, Admin());
 
         foreach (var id in new[] { "blocked", "gone", "partner", "tl" })

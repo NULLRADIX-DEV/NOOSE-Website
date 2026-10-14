@@ -145,7 +145,8 @@ internal static class DutyChapter
                 Benachrichtigungen</em> ein - je Art ein Schalter. Eine ausgeschaltete Art geht nicht verloren:
                 sie landet gelesen im Posteingang, nur die Zahl an der Glocke bleibt still. Mit <em>Ruhe während
                 meiner Abmeldung</em> gilt das für alle Arten, solange eine Abmeldung den heutigen Tag abdeckt.
-                Erwähnungen und Meldungen zu deinem Konto kommen immer an.</p>
+                Erwähnungen, Meldungen zu deinem Konto und die Bitte der Führung um eine Rückmeldung kommen immer
+                an.</p>
                 <p>Ein Teil davon geht zusätzlich nach <strong>Discord</strong>. Was dort ankommt, ist bewusst
                 inhaltsarm - eine Zeile, die sagt, dass es etwas gibt, nicht was es ist.</p>
                 <p>Erwähnungen, Aufgaben, fällige Wiedervorlagen und überfällige Quittierungen pingen dich dort
@@ -155,7 +156,9 @@ internal static class DutyChapter
                 Ping und der Zahl der Meldungen, die du bis dahin noch nicht gelesen hast. Was du vorher in der
                 Glocke liest, pingt dich also gar nicht mehr. Eine Art, die du für die Glocke ausgeschaltet hast,
                 kommt schon gelesen an und fehlt deshalb auch im Tagesüberblick. Ankündigungen, Besprechungen und
-                andere Rundrufe pingen eine ganze Rolle; die schaltest du in Discord selbst stumm.</p>
+                andere Rundrufe pingen eine ganze Rolle; die schaltest du in Discord selbst stumm. Bittet dich die
+                Führung um eine Rückmeldung, weil sie lange nichts von dir gesehen hat, pingt das immer sofort -
+                abgemeldet bekommst du diese Bitte gar nicht erst.</p>
                 """,
                 NavKey: "benachrichtigungen",
                 Steps:

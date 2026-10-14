@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -15,12 +16,16 @@ namespace NOOSE_Website.Services;
 /// <remarks>
 /// Three traces, the latest wins: a write in the change log, a record opened in the access log, and the page-visit
 /// stamp on the account. The stamp only exists from this feature on; for the time before it the two logs carry the
-/// history. No worker and no store of its own: the radar is one query in the other direction.
+/// history, and a row resting on them alone stays provisional until visits have been counted long enough. No worker
+/// and no store of its own: the radar is one query in the other direction.
 /// </remarks>
 public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, INotificationService notifications)
     : IInactivityRadarService
 {
     private const string SettingKey = "InaktivitaetSchwellen";
+
+    /// <summary>When page visits started being stamped; written once by migration Phase94.</summary>
+    public const string VisitsCountedFromKey = "InaktivitaetBesucheAb";
 
     /// <summary>Audit entity type for the thresholds row.</summary>
     public const string AuditType = "InactivityThresholds";
@@ -34,13 +39,14 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var thresholds = await LoadThresholdsAsync(db, cancellationToken);
-        var rows = await ComputeAsync(db, thresholds, onlyAgentId: null, viewer.MayRealNameSee(), DateTime.UtcNow,
-            cancellationToken);
+        var visitsFrom = await LoadVisitsCountedFromAsync(db, cancellationToken);
+        var rows = await ComputeAsync(db, thresholds, visitsFrom, onlyAgentId: null, viewer.MayRealNameSee(),
+            DateTime.UtcNow, cancellationToken);
         return new InactivityRadar(thresholds, rows
             .Where(r => r.Tier != InactivityTier.None)
             .OrderByDescending(r => r.InactiveDays)
             .ThenBy(r => r.Codename, StringComparer.OrdinalIgnoreCase)
-            .ToList());
+            .ToList(), visitsFrom);
     }
 
     public async Task<InactivityRow?> GetRowAsync(string agentId, ClaimsPrincipal viewer,
@@ -49,9 +55,7 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
         Permission.RequireLeadership(viewer);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var thresholds = await LoadThresholdsAsync(db, cancellationToken);
-        var row = (await ComputeAsync(db, thresholds, agentId, viewer.MayRealNameSee(), DateTime.UtcNow,
-            cancellationToken)).SingleOrDefault();
+        var row = await CurrentRowAsync(db, agentId, viewer.MayRealNameSee(), DateTime.UtcNow, cancellationToken);
         return row is { Tier: not InactivityTier.None } ? row : null;
     }
 
@@ -66,40 +70,67 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var thresholds = await LoadThresholdsAsync(db, cancellationToken);
+        // whole microseconds: the column keeps six digits, and the release below compares on equality
         var now = DateTime.UtcNow;
+        now = now.AddTicks(-(now.Ticks % 10));
         // recomputed, not trusted from the page: the agent may have come back meanwhile
-        var row = (await ComputeAsync(db, thresholds, agentId, withRealName: false, now, cancellationToken))
-            .SingleOrDefault();
+        var row = await CurrentRowAsync(db, agentId, withRealName: false, now, cancellationToken);
         if (row is null || row.Tier == InactivityTier.None)
         {
             throw new InvalidOperationException("Dieser Agent steht nicht mehr im Inaktivitäts-Radar.");
         }
-
-        var by = actor.GetCodename();
-        var cooledDown = now - InactivityRules.NudgeCooldown;
-        await using (var tx = await db.Database.BeginTransactionAsync(cancellationToken))
+        if (row.AbsentUntil is { } until)
         {
-            // compare-and-set: of two leaders clicking together only one gets the row
-            var claimed = await db.Users
-                .Where(u => u.Id == agentId && (u.InactivityNudgedAt == null || u.InactivityNudgedAt <= cooledDown))
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(u => u.InactivityNudgedAt, (DateTime?)now)
-                    .SetProperty(u => u.InactivityNudgedByName, by), cancellationToken);
-            if (claimed == 0)
-            {
-                throw new InvalidOperationException(
-                    "Bei diesem Agenten wurde in den letzten 24 Stunden schon nachgefasst.");
-            }
-            db.AuditLogs.Add(ManualAudit.Row(nameof(Agent), agentId, AuditAction.Modified, actor,
-                ManualAudit.Change("Wegen Inaktivität nachgefasst", null, $"{row.InactiveDays} Tage ohne Lebenszeichen")));
-            await db.SaveChangesAsync(cancellationToken);
-            await tx.CommitAsync(cancellationToken);
+            throw new InvalidOperationException(
+                $"{row.Codename} ist bis {until:dd.MM.yyyy} abgemeldet; Nachfassen geht erst danach.");
         }
 
-        // the stamp is spent; the message must follow even if the caller gives up now
-        await notifications.NotifyManyAsync([agentId], NotificationType.InactivityNudge,
-            InactivityRules.NudgeTitle(MeetingTime.Day(row.LastTraceAt)), NudgeHref, actorId, CancellationToken.None);
+        var previous = await db.Users.AsNoTracking()
+            .Where(u => u.Id == agentId)
+            .Select(u => new { u.InactivityNudgedAt, u.InactivityNudgedByName })
+            .SingleAsync(cancellationToken);
+        var by = actor.GetCodename();
+        var cooledDown = now - InactivityRules.NudgeCooldown;
+        // compare-and-set: of two leaders clicking together only one gets the row
+        var claimed = await db.Users
+            .Where(u => u.Id == agentId && (u.InactivityNudgedAt == null || u.InactivityNudgedAt <= cooledDown))
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.InactivityNudgedAt, (DateTime?)now)
+                .SetProperty(u => u.InactivityNudgedByName, by), cancellationToken);
+        if (claimed == 0)
+        {
+            throw new InvalidOperationException("Bei diesem Agenten wurde in den letzten 24 Stunden schon nachgefasst.");
+        }
+
+        // from the claim on the caller may not cancel: a stamp without its message would block a retry for a day
+        try
+        {
+            await notifications.NotifyManyAsync([agentId], NotificationType.InactivityNudge,
+                InactivityRules.NudgeTitle(MeetingTime.Day(row.LastTraceAt)), NudgeHref, actorId, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                // nothing went out: hand the claim back so the next click can try again
+                await db.Users
+                    .Where(u => u.Id == agentId && u.InactivityNudgedAt == now)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(u => u.InactivityNudgedAt, previous.InactivityNudgedAt)
+                        .SetProperty(u => u.InactivityNudgedByName, previous.InactivityNudgedByName), CancellationToken.None);
+            }
+            catch
+            {
+                /* best effort */
+            }
+            throw new InvalidOperationException(
+                $"Die Nachricht an {row.Codename} konnte nicht zugestellt werden. Bitte versuch es noch einmal.", ex);
+        }
+
+        // logged once the message is out, so the log never claims a nudge nobody received
+        db.AuditLogs.Add(ManualAudit.Row(nameof(Agent), agentId, AuditAction.Modified, actor,
+            ManualAudit.Change("Wegen Inaktivität nachgefasst", null, $"{row.InactiveDays} Tage ohne Lebenszeichen")));
+        await db.SaveChangesAsync(CancellationToken.None);
     }
 
     public async Task<InactivityThresholds> GetThresholdsAsync(CancellationToken cancellationToken = default)
@@ -153,9 +184,20 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
             .ExecuteUpdateAsync(s => s.SetProperty(u => u.LastSeenAt, (DateTime?)now), cancellationToken);
     }
 
+    /// <summary>One agent's row as of now, tier None included; null when not selectable.</summary>
+    private static async Task<InactivityRow?> CurrentRowAsync(AppDbContext db, string agentId, bool withRealName,
+        DateTime nowUtc, CancellationToken cancellationToken)
+    {
+        var thresholds = await LoadThresholdsAsync(db, cancellationToken);
+        var visitsFrom = await LoadVisitsCountedFromAsync(db, cancellationToken);
+        return (await ComputeAsync(db, thresholds, visitsFrom, agentId, withRealName, nowUtc, cancellationToken))
+            .SingleOrDefault();
+    }
+
     /// <summary>One row per selectable agent, tier included; the caller filters.</summary>
     private static async Task<List<InactivityRow>> ComputeAsync(AppDbContext db, InactivityThresholds thresholds,
-        string? onlyAgentId, bool withRealName, DateTime nowUtc, CancellationToken cancellationToken)
+        DateTime? visitsFrom, string? onlyAgentId, bool withRealName, DateTime nowUtc,
+        CancellationToken cancellationToken)
     {
         var query = db.Users.AsNoTracking()
             .OnlySelectable()
@@ -211,6 +253,13 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
             var spans = absences[a.Id].ToList();
             var (silent, absent) = InactivityRules.Count(MeetingTime.Day(at), today, spans);
             var inactive = silent - absent;
+            var tier = InactivityRules.Tier(inactive, thresholds);
+            var provisional = tier != InactivityTier.None
+                && InactivityRules.IsProvisional(at, visitsFrom, today, thresholds);
+            if (provisional && tier > InactivityTier.FollowUp)
+            {
+                tier = InactivityTier.FollowUp;
+            }
             var nudged = InactivityRules.NudgeIsCurrent(a.InactivityNudgedAt, at);
             rows.Add(new InactivityRow(
                 a.Id, a.Codename, withRealName ? a.RealName : null, a.BadgeNumber, a.Rank,
@@ -218,10 +267,12 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
                 writes.TryGetValue(a.Id, out var lastWrite) ? lastWrite : null,
                 reads.TryGetValue(a.Id, out var lastRead) ? lastRead : null,
                 a.LastSeenAt,
-                silent, absent, inactive, InactivityRules.Tier(inactive, thresholds),
+                silent, absent, inactive, tier,
                 InactivityRules.AbsentUntil(today, spans),
                 nudged ? a.InactivityNudgedAt : null,
-                nudged ? a.InactivityNudgedByName : null));
+                nudged ? a.InactivityNudgedByName : null,
+                InactivityRules.NudgeLockedUntil(a.InactivityNudgedAt, nowUtc),
+                provisional));
         }
         return rows;
     }
@@ -256,6 +307,19 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
         {
             return InactivityThresholds.Default;
         }
+    }
+
+    /// <summary>When the migration started counting page visits; null when the row is missing or unreadable.</summary>
+    private static async Task<DateTime?> LoadVisitsCountedFromAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var raw = await db.SystemSettings.AsNoTracking()
+            .Where(s => s.Key == VisitsCountedFromKey)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+        return DateTime.TryParse(raw, CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var at)
+            ? at
+            : null;
     }
 
     private static string Summarise(InactivityThresholds t)
