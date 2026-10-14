@@ -23,6 +23,9 @@ public static class DiscordRouting
         // its own channel, separate from PersonnelEntry: a termination is announced to the whole agency, the
         // other personnel entries are house bookkeeping
         NotificationType.AgentTerminated,
+        // a ceremony, announced like a personnel entry: its own embed pings the honoured agent. The bell goes
+        // through NotifyManyInAppAsync, so no generic post ever reaches this channel
+        NotificationType.DecorationAwarded,
         // PublicWantedExpired is deliberately absent: NotificationService.NotifyManyAsync pushes every routable
         // category on its own, so a routable operating category would post each expiry into the public channel
         NotificationType.PublicWantedPublished,
@@ -70,6 +73,7 @@ public static class DiscordRouting
                 or NotificationType.JobAssigned or NotificationType.JobDueSoon
                 or NotificationType.PersonnelEntry or NotificationType.PingDigest
                 or NotificationType.AcknowledgmentReminder or NotificationType.SavedSearchHit
+                or NotificationType.DecorationAwarded
                 or NotificationType.InactivityNudge;
 
     /// <summary>Category whose Discord post pings nobody: the embed carries inert mention chips instead.</summary>

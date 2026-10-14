@@ -446,6 +446,8 @@ public static class SearchCatalog
             ["MeetingAttendance"] = "Kein Freitext; wäre ein Anwesenheits-Orakel über Agenten.",
             ["AgentModuleCompletion"] = "Kein eigener Text; das Modul trägt ihn.",
             ["AgentBadge"] = "Auszeichnung ohne Freitext.",
+            ["Decoration"] = "Katalog der Ehrenzeichen; Konfiguration, keine Akte.",
+            ["DecorationAward"] = "Ehrung eines Agenten; gefunden wird sie über seine Personalakte, nicht über ihren Text.",
             ["FactionMember"] = "Mitgliedschaft; die Person und die Fraktion sind je eigene Kategorien.",
             ["PersonGroupPhoto"] = "Binärdatei ohne Text.",
             ["PartyPhoto"] = "Binärdatei ohne Text.",

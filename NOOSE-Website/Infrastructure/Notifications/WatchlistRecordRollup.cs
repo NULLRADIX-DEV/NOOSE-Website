@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Announcements;
+using NOOSE_Website.Data.Entities.Decorations;
 using NOOSE_Website.Data.Entities.Requests;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Notifications;
@@ -52,6 +53,7 @@ public static class WatchlistRecordRollup
             case TaskforceAgent ta: return One(nameof(Taskforce), ta.TaskforceId);
             case TaskforceMessage tn: return One(nameof(Taskforce), tn.TaskforceId);
             case AgentNote av: return One(nameof(Agent), av.AgentId);
+            case DecorationAward da: return One(nameof(Agent), da.AgentId);
             case AgentPromotionRequest from: return One(nameof(Agent), from.AgentId);
             case Agent ag: return One(nameof(Agent), ag.Id);
             case AgentRankHistory adv: return One(nameof(Agent), adv.AgentId);
@@ -134,6 +136,8 @@ public static class WatchlistRecordRollup
             // statutes are reference text, not casework, and nobody follows a law book
             case Law:
             case LawBook:
+            // the decoration catalog is configuration; the award is what a follower of a file hears about
+            case Decoration:
                 return Array.Empty<(string, string)>();
 
             default:

@@ -53,7 +53,8 @@ else
                                 @(_agent.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")@(string.IsNullOrWhiteSpace(_agent.TerminatedByName) ? "" : $" durch {_agent.TerminatedByName}")
                             </td>
                         </tr>
-                        @if (!string.IsNullOrWhiteSpace(_agent.TerminationReason))
+                        @* the file shows the reason to leadership only; the printout must not show more *@
+                        @if (_isLeadership && !string.IsNullOrWhiteSpace(_agent.TerminationReason))
                         {
                             <tr><th>Kündigungsgrund</th><td>@_agent.TerminationReason</td></tr>
                         }
@@ -137,6 +138,7 @@ else
 
     private bool _load = true;
     private bool _mayRealName;
+    private bool _isLeadership;
     private string? _printBy;
     private Agent? _agent;
     private List<AgentRankHistory> _rankHistory = new();
@@ -154,6 +156,7 @@ else
     {
         var user = (await AuthStateTask).User;
         _mayRealName = user.MayRealNameSee();
+        _isLeadership = user.IsLeadership();
         _printBy = user.GetCodename();
 
         _agent = await AgentService.FindAsync(Id);

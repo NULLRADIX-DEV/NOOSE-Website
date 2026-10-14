@@ -44,6 +44,7 @@ using NOOSE_Website.Infrastructure.Public;
 using NOOSE_Website.Infrastructure.Recruiting;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Services;
+using NOOSE_Website.Services.Decorations;
 using NOOSE_Website.Services.Public;
 using NOOSE_Website.Services.Search;
 using NOOSE_Website.Services.Statistics;
@@ -298,6 +299,7 @@ builder.Services.AddHostedService<ThreatScoreSweepWorker>();
 builder.Services.AddScoped<IGamificationService, GamificationService>();
 builder.Services.AddHostedService<GamificationSweepWorker>();
 builder.Services.AddScoped<ITopAgentAwardService, TopAgentAwardService>();
+builder.Services.AddScoped<IDecorationService, DecorationService>();
 builder.Services.AddHostedService<TopAgentAwardWorker>();
 // ---- global search: one provider per SearchCatalog category, coverage-tested against the catalog ----
 builder.Services.Configure<SearchOptions>(builder.Configuration.GetSection(SearchOptions.SectionName));

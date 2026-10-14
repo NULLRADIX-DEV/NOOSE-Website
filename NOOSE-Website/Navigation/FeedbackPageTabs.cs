@@ -23,6 +23,7 @@ public static class FeedbackPageTabs
         new("vorlagen-personal", "Personal-Vorlagen"),
         new("module", "Ausbildungsmodule"),
         new("einladungen", "Einladungen"),
+        new("ehrenzeichen", "Ehrenzeichen"),
         new("inaktivitaet", "Inaktivitäts-Radar"),
         new("finanzierung", "Budget-Regeln"),
         new("noosei", "NOOSEI-Betrieb"),

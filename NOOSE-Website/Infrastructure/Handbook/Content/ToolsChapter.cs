@@ -165,8 +165,8 @@ internal static class ToolsChapter
                 """
                 <p>Unter <em>Einstellungen</em> liegt alles, was an dieser Seite eingestellt werden kann -
                 nach Abschnitten gegliedert: System und Aussehen, Stichworte, Zusatzfelder, Vorlagen,
-                Aktualitäts-Schwellen, Bedrohungs-Score, öffentliche Module, Partner, Einladungen, Protokolle,
-                NOOSEI.</p>
+                Aktualitäts-Schwellen, Bedrohungs-Score, öffentliche Module, Partner, Einladungen, Ehrenzeichen,
+                Protokolle, NOOSEI.</p>
                 <p>Drei davon greifen weit: der <strong>Wartungsmodus</strong> (alle außer Admins sehen nur
                 einen Hinweis), der <strong>Not-Aus</strong> für den öffentlichen Bereich und die
                 <strong>Schwellen des Bedrohungs-Scores</strong>, die jede Zahl im ganzen Bestand

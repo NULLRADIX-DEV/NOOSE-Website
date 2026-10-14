@@ -211,7 +211,7 @@ public sealed class DiscordPingTests
     {
         // a nudge from the inactivity radar is leadership addressing you, like a personnel entry
         var recipientPings = DiscordRouting.RoutableTypes.Where(DiscordRouting.PingsRecipients)
-            .Except([NotificationType.PersonnelEntry, NotificationType.PingDigest, NotificationType.InactivityNudge])
+            .Except([NotificationType.PersonnelEntry, NotificationType.DecorationAwarded, NotificationType.PingDigest, NotificationType.InactivityNudge])
             .OrderBy(t => t);
 
         Assert.Equal(recipientPings, DiscordPings.Personal.OrderBy(t => t));

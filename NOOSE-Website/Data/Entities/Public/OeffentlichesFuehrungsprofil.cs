@@ -54,6 +54,10 @@ public class OeffentlichesFuehrungsprofil : IAuditable
     [Column("FotoTyp")]
     public string? PhotoContentType { get; set; }
 
+    /// <summary>Released decorations as a JSON copy, set in the editor; a correction rewrites its entry, a revocation drops it.</summary>
+    [Column("EhrenzeichenJson")]
+    public string? DecorationsJson { get; set; }
+
     [Column("VeroeffentlichtAm")]
     public DateTime? PublishedAt { get; set; }
 

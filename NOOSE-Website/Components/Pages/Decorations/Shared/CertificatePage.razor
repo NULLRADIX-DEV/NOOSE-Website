@@ -1,0 +1,52 @@
+@* Shared body of both certificate pages: action bar with the name choice, then the sheet. *@
+@inject IJSRuntime JS
+
+@if (Loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (View is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Diese Urkunde gibt es nicht, oder du darfst sie nicht drucken.
+    </MudAlert>
+}
+else
+{
+    <div class="no-print druck-aktionen">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
+            Drucken / als PDF speichern
+        </MudButton>
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.ArrowBack"
+                   Href="@BackHref">Zurück</MudButton>
+        @if (View.RealName is not null)
+        {
+            <MudToggleGroup T="bool" @bind-Value="_useRealName" Size="Size.Small" Color="Color.Primary" Outlined="true">
+                <MudToggleItem Value="false" Text="Codename" />
+                <MudToggleItem Value="true" Text="Klarname" />
+            </MudToggleGroup>
+        }
+    </div>
+    <CertificateSheet View="View" UseRealName="_useRealName" LogoSrc="@LogoSrc" />
+}
+
+@code {
+    [Parameter] public CertificateView? View { get; set; }
+    [Parameter] public bool Loading { get; set; }
+    [Parameter, EditorRequired] public string BackHref { get; set; } = "/personal";
+    [Parameter] public string LogoSrc { get; set; } = "NooseIcon.png";
+
+    private bool _useRealName;
+
+    private async Task PrintAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("window.print");
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException)
+        {
+            /* best effort */
+        }
+    }
+}

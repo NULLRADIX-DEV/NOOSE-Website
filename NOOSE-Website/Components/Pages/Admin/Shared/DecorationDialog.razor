@@ -1,0 +1,109 @@
+@* Create or edit one decoration of the catalog. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudStack Spacing="3">
+                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+                    <DecorationPlaque Name="@(string.IsNullOrWhiteSpace(_input.Name) ? "Vorschau" : _input.Name)"
+                                      Symbol="@_input.Symbol" Tier="@_input.Tier" Large="true" />
+                    <MudTextField @bind-Value="_input.Name" Label="Name" Variant="Variant.Outlined" Immediate="true"
+                                  Required="true" RequiredError="Bitte einen Namen angeben" MaxLength="80" AutoFocus="true" />
+                </MudStack>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudSelect T="string" @bind-Value="_input.Symbol" Label="Symbol" Variant="Variant.Outlined"
+                               Style="min-width:200px;" AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var s in DecorationSymbols.All)
+                        {
+                            <MudSelectItem T="string" Value="@s.Key">
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@s.Icon" Size="Size.Small" />
+                                    <span>@s.Label</span>
+                                </MudStack>
+                            </MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="DecorationTier" @bind-Value="_input.Tier" Label="Stufe" Variant="Variant.Outlined"
+                               Style="min-width:180px;">
+                        @foreach (var t in DecorationTierDisplay.All)
+                        {
+                            <MudSelectItem T="DecorationTier" Value="@t">@DecorationTierDisplay.Name(t)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
+                <MudTextField @bind-Value="_input.Description" Label="Beschreibung" Variant="Variant.Outlined" Lines="2"
+                              MaxLength="500" HelperText="Wofür es verliehen wird; erscheint bei der Auswahl." />
+                <TextDraft DraftKey='@DraftKeys.In(DraftScopeFor(Existing?.Id), "standardtext")' OnRestore="@(t => _input.DefaultCitation = t)">
+                    <MudTextField @bind-Value="_input.DefaultCitation" Label="Standardtext" Variant="Variant.Outlined" Lines="4"
+                                  Immediate="true" MaxLength="@DecorationRules.MaxCitationLength"
+                                  HelperText="Vorschlag für den Verleihungstext; {{Name}} wird zum Codenamen des Geehrten." />
+                </TextDraft>
+                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+                    <MudSwitch T="bool" @bind-Value="_input.IsActive" Color="Color.Primary" Label="Verleihbar" />
+                    <MudNumericField @bind-Value="_input.Order" Label="Reihenfolge" Variant="Variant.Outlined"
+                                     Min="0" Max="9999" Style="max-width:160px;" />
+                </MudStack>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public DecorationView? Existing { get; set; }
+    [Parameter] public int Order { get; set; }
+
+    private MudForm _form = default!;
+    private DecorationInput _input = new();
+
+    protected override void OnInitialized()
+    {
+        _input = Existing is null
+            ? new DecorationInput { Order = Order }
+            : new DecorationInput
+            {
+                Id = Existing.Id,
+                Name = Existing.Name,
+                Description = Existing.Description,
+                DefaultCitation = Existing.DefaultCitation,
+                Symbol = Existing.Symbol,
+                Tier = Existing.Tier,
+                IsActive = Existing.IsActive,
+                Order = Existing.Order,
+            };
+    }
+
+    private async Task Save()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(_input));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Draft scope of one catalog form.</summary>
+    public static string DraftScopeFor(string? id) => id is null ? "ehrenzeichen:neu" : $"ehrenzeichen:{id}";
+
+    /// <summary>Shows the dialog; null on cancel. The caller drops <see cref="DraftScopeFor"/> once stored.</summary>
+    public static async Task<DecorationInput?> ShowAsync(IDialogService dialog, DecorationView? existing, int order = 0)
+    {
+        var parameters = new DialogParameters<DecorationDialog>
+        {
+            { x => x.Existing, existing },
+            { x => x.Order, order },
+        };
+        var reference = await dialog.ShowAsync<DecorationDialog>(existing is null ? "Neues Ehrenzeichen" : "Ehrenzeichen bearbeiten",
+            parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: DecorationInput input } ? input : null;
+    }
+}

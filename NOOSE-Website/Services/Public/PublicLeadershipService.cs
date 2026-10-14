@@ -5,7 +5,9 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Infrastructure.Storage;
+using NOOSE_Website.Models.Decorations;
 using NOOSE_Website.Models.Public;
+using NOOSE_Website.Services.Decorations;
 
 namespace NOOSE_Website.Services.Public;
 
@@ -40,12 +42,29 @@ public class PublicLeadershipService(
             .Where(p => p.PublishedAt != null)
             .OrderBy(p => p.SortOrder)
             .ThenBy(p => p.DisplayName)
-            .Select(p => new PublicLeadershipCard(p.PublicKey, p.DisplayName, p.Title, p.RoleText,
-                p.PhotoFileName != null))
+            .Select(p => new { p.PublicKey, p.DisplayName, p.Title, p.RoleText, HasPhoto = p.PhotoFileName != null,
+                p.DecorationsJson })
             .ToListAsync(cancellationToken);
+        // a revocation that raced the editor or failed its cleanup must still never show outside
+        var copied = rows.SelectMany(p => DecorationRules.ParseCopies(p.DecorationsJson)).Select(c => c.AwardId)
+            .Distinct().ToList();
+        var standing = copied.Count == 0
+            ? new HashSet<string>()
+            : (await db.DecorationAwards.AsNoTracking()
+                .Where(a => copied.Contains(a.Id) && a.RevokedAt == null)
+                .Select(a => a.Id)
+                .ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        // the copy carries award ids for the editor; outwards only name, symbol and grade leave
+        var cards = rows
+            .Select(p => new PublicLeadershipCard(p.PublicKey, p.DisplayName, p.Title, p.RoleText, p.HasPhoto,
+                DecorationRules.ParseCopies(p.DecorationsJson)
+                    .Where(c => standing.Contains(c.AwardId))
+                    .Select(c => new PublicLeadershipDecoration(c.Name, c.Symbol, c.Tier))
+                    .ToList()))
+            .ToList();
 
-        cache.Set(CacheKey, (IReadOnlyList<PublicLeadershipCard>)rows, CacheFor);
-        return rows;
+        cache.Set(CacheKey, (IReadOnlyList<PublicLeadershipCard>)cards, CacheFor);
+        return cards;
     }
 
     /// <inheritdoc />
@@ -77,13 +96,22 @@ public class PublicLeadershipService(
     {
         Permission.RequireLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return await db.OeffentlicheFuehrungsprofile.AsNoTracking()
+        var rows = await db.OeffentlicheFuehrungsprofile.AsNoTracking()
             .OrderBy(p => p.SortOrder)
             .ThenBy(p => p.DisplayName)
-            .Select(p => new PublicLeadershipEdit(p.Id, p.PublicKey, p.AgentId, p.Agent!.Codename, p.DisplayName,
-                p.Title, p.RoleText, p.SortOrder, p.PhotoFileName != null, p.PublishedAt,
-                db.Users.Where(u => u.Id == p.PublishedById).Select(u => u.Codename).FirstOrDefault()))
+            .Select(p => new
+            {
+                p.Id, p.PublicKey, p.AgentId, Codename = p.Agent!.Codename, p.DisplayName, p.Title, p.RoleText,
+                p.SortOrder, HasPhoto = p.PhotoFileName != null, p.PublishedAt,
+                PublishedBy = db.Users.Where(u => u.Id == p.PublishedById).Select(u => u.Codename).FirstOrDefault(),
+                p.DecorationsJson,
+            })
             .ToListAsync(cancellationToken);
+        return rows
+            .Select(p => new PublicLeadershipEdit(p.Id, p.PublicKey, p.AgentId, p.Codename, p.DisplayName, p.Title,
+                p.RoleText, p.SortOrder, p.HasPhoto, p.PublishedAt, p.PublishedBy,
+                DecorationRules.ParseCopies(p.DecorationsJson).Select(c => c.AwardId).ToList()))
+            .ToList();
     }
 
     public async Task<string> SaveAsync(PublicLeadershipInput input, ClaimsPrincipal actor,
@@ -126,10 +154,20 @@ public class PublicLeadershipService(
             }
         }
 
+        var agentChanged = row is not null && !string.Equals(row.AgentId, input.AgentId, StringComparison.Ordinal);
         if (row is null)
         {
             row = new OeffentlichesFuehrungsprofil();
             db.OeffentlicheFuehrungsprofile.Add(row);
+        }
+        if (input.DecorationAwardIds is not null)
+        {
+            row.DecorationsJson = await CopyDecorationsAsync(db, input.AgentId, input.DecorationAwardIds, cancellationToken);
+        }
+        else if (agentChanged)
+        {
+            // copies of one agent's awards never travel to someone else
+            row.DecorationsJson = null;
         }
         row.AgentId = input.AgentId;
         row.DisplayName = name;
@@ -224,6 +262,51 @@ public class PublicLeadershipService(
             catch { /* best effort */ }
         }
         Invalidate();
+    }
+
+    /// <inheritdoc />
+    /// <remarks>Callers gate: the decoration service runs it after its own write guard.</remarks>
+    public async Task SyncDecorationAsync(string awardId, PublicDecorationCopy? copy,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await db.OeffentlicheFuehrungsprofile
+            .Where(p => p.DecorationsJson != null && p.DecorationsJson.Contains(awardId))
+            .ToListAsync(cancellationToken);
+        var touched = false;
+        foreach (var row in rows)
+        {
+            var json = DecorationRules.ReplaceCopy(row.DecorationsJson, awardId, copy, out var changed);
+            if (changed)
+            {
+                row.DecorationsJson = json;
+                touched = true;
+            }
+        }
+        if (touched)
+        {
+            await db.SaveChangesAsync(cancellationToken);
+            Invalidate();
+        }
+    }
+
+    /// <summary>Copies the chosen awards that still stand and belong to this agent.</summary>
+    private static async Task<string?> CopyDecorationsAsync(AppDbContext db, string agentId,
+        IReadOnlyCollection<string> awardIds, CancellationToken cancellationToken)
+    {
+        if (awardIds.Count == 0)
+        {
+            return null;
+        }
+        var ids = awardIds.Distinct(StringComparer.Ordinal).ToList();
+        var rows = await db.DecorationAwards.AsNoTracking()
+            .Where(a => ids.Contains(a.Id) && a.AgentId == agentId && a.RevokedAt == null)
+            .OrderBy(a => a.AwardedOn)
+            .Select(a => new { a.Id, a.Decoration!.Name, a.Decoration.Symbol, a.Decoration.Tier, a.AwardedOn })
+            .ToListAsync(cancellationToken);
+        return DecorationRules.CopiesJson(rows
+            .Select(a => new PublicDecorationCopy(a.Id, a.Name, a.Symbol, a.Tier, a.AwardedOn.Year))
+            .ToList());
     }
 
     /// <summary>Module on and kill switch off; the same pair every outward read asks.</summary>

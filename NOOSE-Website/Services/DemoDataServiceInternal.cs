@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Absences;
+using NOOSE_Website.Data.Entities.Decorations;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
@@ -645,5 +646,29 @@ public partial class DemoDataService
             added++;
         }
         return added;
+    }
+
+    /// <summary>One decoration from the starter catalog, so the personnel file shows a certificate to print.</summary>
+    private static async Task<int> SeedDecorationsAsync(AppDbContext db, CancellationToken ct)
+    {
+        if (await db.DecorationAwards.AnyAsync(a => a.AgentId == DemoIdentity.AgentId, ct))
+        {
+            return 0;
+        }
+        var decoration = await db.Decorations.Where(d => d.IsActive).OrderBy(d => d.Order).FirstOrDefaultAsync(ct);
+        if (decoration is null)
+        {
+            return 0;
+        }
+        db.DecorationAwards.Add(new DecorationAward
+        {
+            AgentId = DemoIdentity.AgentId,
+            DecorationId = decoration.Id,
+            AwardedOn = DateTime.Now.Date.AddDays(-12),
+            Citation = decoration.DefaultCitation ?? "In Anerkennung besonderer Verdienste.",
+            RecipientRank = Rank.Director,
+            AwardedByName = "Behördenleitung",
+        });
+        return 1;
     }
 }
