@@ -143,6 +143,8 @@
                 <NavBreadcrumbs />
                 @* once after an update: what changed since the last visit; not over the maintenance page *@
                 <ChangelogNewsPrompt />
+                @* someone presents live: a notice with a way in, for whoever may watch *@
+                <LivePresentationBanner />
                 @* safety net: a single page error must not kill the whole circuit *@
                 <ErrorBoundary @key="CurrentPath">
                     <ChildContent>

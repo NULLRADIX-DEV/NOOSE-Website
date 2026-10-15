@@ -666,6 +666,18 @@ public static class Permission
         }
     }
 
+    /// <summary>Require an internal agent who may write, for building and presenting presentations.</summary>
+    /// <remarks>Ownership and group membership are the service's checks; this shuts out partners, the read-only
+    /// supervision and the demo principal before anything is read.</remarks>
+    public static void RequirePresentationWrite(ClaimsPrincipal actor)
+    {
+        if (!actor.MayWrite() || !actor.IsInternalAgent())
+        {
+            throw new UnauthorizedAccessException(
+                "Präsentationen erstellen und vorführen können nur aktive interne Agenten.");
+        }
+    }
+
     /// <summary>Require an internal agent who may write, for taking an assigned internal test.</summary>
     /// <remarks>Ownership of the assignment is the service's check; this only shuts out partners, the read-only
     /// supervision and the demo principal, whose answers could not be saved anyway.</remarks>

@@ -59,6 +59,8 @@ public class DiscordWebhookModelsTests
         // the hand-in is for the grader's bell, the result for the agent's: neither belongs in a channel
         NotificationType.TestSubmitted,
         NotificationType.TestGraded,
+        // a closed group or an invite list must not show in a shared channel
+        NotificationType.PresentationLive,
     };
 
     // ----- IsRoutable: true branch -----

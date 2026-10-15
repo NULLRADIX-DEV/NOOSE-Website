@@ -66,6 +66,9 @@ public static class TrashProjection
         => new("aktivitaeten", x.Id, null, x.Title, x.OwnerName, x.DeletedAt);
 
     // absences carry no Aktenzeichen, so the agent identifies the row and the period is the detail
+    public static TrashItem Presentation(Data.Entities.Presentations.Presentation x)
+        => new("praesentationen", x.Id, null, x.Title, x.Description, x.DeletedAt);
+
     public static TrashItem Absence(Absence x)
         => new("abmeldungen", x.Id, null, x.Agent?.Codename ?? x.AgentId,
             Join($"{x.FromDate:dd.MM.yyyy} – {x.ToDate:dd.MM.yyyy}",

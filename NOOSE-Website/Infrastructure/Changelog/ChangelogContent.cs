@@ -512,6 +512,10 @@ public static class ChangelogContent
             Neu("2.7.01-google-docs-import", "Google-Docs lassen sich in die Dokumenten-Bibliothek holen, per "
                 + "Freigabe-Link oder als hochgeladene Datei: als Original, das aussieht wie in Google und sich "
                 + "aktualisieren lässt, oder als bearbeitbare Kopie.", "Dokumente"),
+            Neu("2.7.02-praesentationen", "Neu unter Dienststelle: Präsentationen. Du legst Folien aus Vorlagen an "
+                + "und führst sie live vor; wer zuschauen darf, sieht oben auf der Seite einen Hinweis. Sichtbar sind "
+                + "sie für alle, für eine Gruppe wie TRU, HRB oder eine Taskforce, oder nur für Eingeladene.",
+                "Präsentationen"),
         ]),
     ];
 }

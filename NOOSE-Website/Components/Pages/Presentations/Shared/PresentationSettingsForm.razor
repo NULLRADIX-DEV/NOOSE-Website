@@ -1,0 +1,113 @@
+@* Title, description and who may see a presentation. The service checks every choice again; the lists here only
+   leave out what it would refuse. *@
+@inject ITaskforceService TaskforceService
+@inject IAgentManagementService Agents
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudTextField @bind-Value="Input.Title" Label="Titel" Required="true" RequiredError="Titel ist erforderlich"
+                      MaxLength="200" Variant="Variant.Outlined" />
+    </MudItem>
+    <MudItem xs="12">
+        <MudTextField @bind-Value="Input.Description" Label="Beschreibung (optional)" Lines="2" MaxLength="2000"
+                      Variant="Variant.Outlined" HelperText="Erscheint in der Liste unter dem Titel." />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Wer darf sie sehen?</MudText>
+        <MudRadioGroup T="PresentationAccess" @bind-Value="Input.Access">
+            @foreach (var access in PresentationDisplay.AllAccess)
+            {
+                <MudRadio T="PresentationAccess" Value="@access" Color="Color.Primary">@PresentationDisplay.Name(access)</MudRadio>
+            }
+        </MudRadioGroup>
+    </MudItem>
+
+    @if (Input.Access == PresentationAccess.Closed)
+    {
+        <MudItem xs="12" md="6">
+            <MudSelect T="AnnouncementAudience?" @bind-Value="Input.Audience" Label="Gruppe" Variant="Variant.Outlined"
+                       HelperText="@(_leadership ? null : "Nur Gruppen, zu denen du selbst gehörst.")">
+                @foreach (var audience in _audiences)
+                {
+                    <MudSelectItem T="AnnouncementAudience?" Value="@((AnnouncementAudience?)audience)">@AnnouncementAudienceDisplay.Name(audience)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        @if (Input.Audience == AnnouncementAudience.Taskforce)
+        {
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" @bind-Value="Input.TargetId" Label="Taskforce" Variant="Variant.Outlined">
+                    @foreach (var t in _taskforces)
+                    {
+                        <MudSelectItem T="string" Value="@t.Id">@t.Name (@t.CaseNumber)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+        else if (Input.Audience == AnnouncementAudience.FromRank)
+        {
+            <MudItem xs="12" md="6">
+                <MudSelect T="Rank?" @bind-Value="Input.MinRank" Label="Mindest-Dienstgrad" Variant="Variant.Outlined">
+                    @foreach (var rank in _ranks)
+                    {
+                        <MudSelectItem T="Rank?" Value="@((Rank?)rank)">@RankDisplay.Name(rank)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        }
+    }
+    else if (Input.Access == PresentationAccess.Private)
+    {
+        <MudItem xs="12" md="8">
+            <MudSelect T="string" Label="Eingeladene Agenten" MultiSelection="true" Variant="Variant.Outlined"
+                       SelectedValues="Input.InviteIds" SelectedValuesChanged="@(v => Input.InviteIds = v.ToList())"
+                       MultiSelectionTextFunc="@(ids => $"{ids.Count} eingeladen")"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.PersonAdd"
+                       HelperText="Du selbst und die Führung sehen sie immer.">
+                @foreach (var a in _agents)
+                {
+                    <MudSelectItem T="string" Value="@a.Id">@a.Codename (@RankDisplay.Name(a.Rank))@(_gone.Contains(a.Id) ? " · nicht mehr auswählbar" : "")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public PresentationInput Input { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _leadership;
+    private List<AnnouncementAudience> _audiences = [];
+    private List<Rank> _ranks = [];
+    private List<Taskforce> _taskforces = [];
+    private List<Agent> _agents = [];
+    private readonly HashSet<string> _gone = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _leadership = User.IsLeadership();
+        var own = User.GetRank();
+        _audiences = PresentationDisplay.ClosedAudiences.Where(a => _leadership || a switch
+        {
+            AnnouncementAudience.TruUnit => User.IsTRU(),
+            AnnouncementAudience.HrbUnit => User.IsHRB(),
+            AnnouncementAudience.FromRank => own is not null,
+            _ => true,
+        }).ToList();
+        _ranks = RankDisplay.All.Where(r => _leadership || (own is { } mine && r <= mine)).ToList();
+        _taskforces = await TaskforceService.GetListAsync(_leadership, User.GetAgentId());
+        var agents = await Agents.GetSelectableAsync();
+        // a stored invite of an agent who is no longer selectable still shows by name; the next save drops it
+        foreach (var id in Input.InviteIds.Where(id => agents.All(a => a.Id != id)).ToList())
+        {
+            if (await Agents.FindAsync(id) is { } gone)
+            {
+                agents.Add(gone);
+                _gone.Add(id);
+            }
+        }
+        _agents = agents.OrderBy(a => a.Codename, StringComparer.CurrentCultureIgnoreCase).ToList();
+    }
+}

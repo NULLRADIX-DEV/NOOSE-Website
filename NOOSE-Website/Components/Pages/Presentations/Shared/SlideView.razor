@@ -1,0 +1,97 @@
+@* One slide in a 16:9 frame. Sizes are container units, so the same slide reads alike as a thumbnail, in the
+   editor and full screen on a projector. The slide keeps its own dark look in both site themes: presenter and
+   audience see the same picture. *@
+
+<div class="slide-frame @Class">
+    @if (Slide is null)
+    {
+        <div class="slide slide--empty"><span>Keine Folie</span></div>
+    }
+    else
+    {
+        var layout = Slide.Layout;
+        <div class="slide @LayoutClass(layout)">
+            @switch (layout)
+            {
+                case SlideLayout.Title:
+                case SlideLayout.Section:
+                    <div class="slide-center">
+                        <h1 class="slide-title">@Slide.Title</h1>
+                        <div class="slide-accent"></div>
+                        @Body
+                    </div>
+                    break;
+                case SlideLayout.TextImageLeft:
+                case SlideLayout.TextImageRight:
+                    <h2 class="slide-heading">@Slide.Title</h2>
+                    <div class="slide-columns">
+                        <div class="slide-picture">@Picture</div>
+                        <div class="slide-text">@Body</div>
+                    </div>
+                    break;
+                case SlideLayout.Image:
+                    <div class="slide-picture slide-picture--full">@Picture</div>
+                    @if (!string.IsNullOrWhiteSpace(Slide.Title))
+                    {
+                        <div class="slide-caption">@Slide.Title</div>
+                    }
+                    break;
+                case SlideLayout.PdfPage:
+                    <div class="slide-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Slideshow" Style="font-size:8cqw;" />
+                        <div class="slide-caption">Google-Folie</div>
+                    </div>
+                    break;
+                default:
+                    <h2 class="slide-heading">@Slide.Title</h2>
+                    <div class="slide-text">@Body</div>
+                    break;
+            }
+            @if (Number is int n)
+            {
+                <span class="slide-number">@n</span>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public PresentationSlide? Slide { get; set; }
+
+    /// <summary>Shown bottom right; null for none.</summary>
+    [Parameter] public int? Number { get; set; }
+
+    [Parameter] public string? Class { get; set; }
+
+    private RenderFragment Body => __builder =>
+    {
+        if (!string.IsNullOrWhiteSpace(Slide?.BodyHtml))
+        {
+            // cleaned by HtmlCleanup on save, so it is safe as markup
+            <div class="slide-body">@((MarkupString)Slide.BodyHtml)</div>
+        }
+    };
+
+    private RenderFragment Picture => __builder =>
+    {
+        if (Slide?.ImageId is { } imageId)
+        {
+            <img src="@($"/dateien/textbilder/{imageId}")" alt="" loading="lazy" />
+        }
+        else
+        {
+            <div class="slide-picture-empty"><MudIcon Icon="@Icons.Material.Filled.Image" /></div>
+        }
+    };
+
+    private static string LayoutClass(SlideLayout layout) => layout switch
+    {
+        SlideLayout.Title => "slide--title",
+        SlideLayout.Section => "slide--section",
+        SlideLayout.TextImageLeft => "slide--image-left",
+        SlideLayout.TextImageRight => "slide--image-right",
+        SlideLayout.Image => "slide--image",
+        SlideLayout.PdfPage => "slide--pdf",
+        _ => "slide--text",
+    };
+}

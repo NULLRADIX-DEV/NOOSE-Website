@@ -204,6 +204,12 @@ builder.Services.AddScoped<IProfileSuggestionService, ProfileSuggestionService>(
 builder.Services.AddScoped<IValueListLabelService, ValueListLabelService>();
 builder.Services.AddScoped<IDocTemplateService, DocTemplateService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+// presentations: decks in the database, live sessions in memory on this host
+builder.Services.AddScoped<IPresentationService, PresentationService>();
+builder.Services.AddScoped<IPresentationLiveService, PresentationLiveService>();
+builder.Services.AddSingleton<NOOSE_Website.Infrastructure.Presentations.PresentationLiveRegistry>();
+builder.Services.AddSingleton<NOOSE_Website.Infrastructure.Presentations.PresentationBroadcaster>();
+builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Presentations.PresentationLiveSweeper>();
 // Google import: the client follows no redirect by itself, the fetcher allows only Google's own download hosts
 builder.Services.AddHttpClient(NOOSE_Website.Services.Import.GoogleExportFetcher.ClientName,
         client => client.Timeout = TimeSpan.FromSeconds(30))

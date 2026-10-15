@@ -1,0 +1,64 @@
+@* Print view of a presentation: one slide per page, the speaker notes beneath for whoever may present it. *@
+@page "/praesentationen/{Id}/druck"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@layout PrintLayout
+@inject IPresentationService Presentations
+@inject IAccessLogService AccessLog
+
+<PageTitle>@(_view is null ? "Druckansicht" : _view.Presentation.Title) · NOOSE</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Diese Präsentation existiert nicht (mehr) oder ist nicht für dich freigegeben.</MudAlert>
+}
+else
+{
+    <PrintFrame Title="@_view.Presentation.Title" BackHref="@($"/praesentationen/{Id}")" BackText="Zurück zur Präsentation"
+                PrintedBy="@_printedBy" Footer="NOOSE-interne Präsentation · Weitergabe nur nach Freigabe durch die Führung.">
+        <section>
+            <table class="druck-felder">
+                <tbody>
+                    <tr><th>Sichtbar für</th><td>@_view.AccessLabel</td></tr>
+                    <tr><th>Von</th><td>@_view.OwnerCodename</td></tr>
+                    <tr><th>Folien</th><td>@_view.Slides.Count</td></tr>
+                </tbody>
+            </table>
+        </section>
+        @for (var i = 0; i < _view.Slides.Count; i++)
+        {
+            var slide = _view.Slides[i];
+            <section class="praesentation-druck">
+                <SlideView Slide="slide" Number="@(i + 1)" />
+                @if (_view.MayManage && !string.IsNullOrWhiteSpace(slide.Notes))
+                {
+                    <p class="praesentation-druck-notiz"><b>Notizen:</b> @slide.Notes</p>
+                }
+            </section>
+        }
+    </PrintFrame>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _loading = true;
+    private string? _printedBy;
+    private PresentationView? _view;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _printedBy = user.GetCodename();
+        _view = await Presentations.GetAsync(Id, user);
+        if (_view is not null)
+        {
+            await AccessLog.LogViewAsync(nameof(Presentation), Id);
+        }
+        _loading = false;
+    }
+}
