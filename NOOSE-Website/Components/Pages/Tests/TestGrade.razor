@@ -1,0 +1,186 @@
+@page "/tests/korrektur/{AssignmentId}"
+@attribute [Authorize(Policy = Policies.HrbOrLeadership)]
+@implements IDisposable
+@inject IAgentTestService AgentTests
+@inject AgentTestBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Test-Korrektur · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.FactCheck" Title="Test-Korrektur" Subtitle="@_subtitle"
+            BackHref="/tests?tab=korrektur" />
+
+@if (_first)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_assignment is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Quiz" Title="Zuweisung nicht gefunden" />
+}
+else
+{
+    <MudPaper Elevation="2" Class="pa-4">
+        @if (_assignment.CompletedAt is null)
+        {
+            @if (_assignment.StartedAt is null)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Zugewiesen, noch nicht begonnen.@(_assignment.DueAt is { } due ? $" Fällig bis {due.ToLocalTime():dd.MM.yyyy HH:mm} Uhr." : "")
+                </MudAlert>
+            }
+            else if (!Ueberfaellig)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Der Agent bearbeitet den Test seit @_assignment.StartedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")@Restzeittext
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    Zeit abgelaufen. Die Abgabe wird gerade abgeschlossen; die Auswertung erscheint in Kürze.
+                </MudAlert>
+            }
+        }
+        else if (_eval is not null)
+        {
+            <TestGradingView Evaluation="_eval" Attempt="_assignment" CanWrite="_canWrite" Busy="_busy" Subject="der Agent"
+                             OnSetPoints="@(p => RunAsync(() => AgentTests.SetAwardedPointsAsync(_assignment.Id, p.QuestionId, p.Points, _user)))"
+                             OnComplete="@(() => RunAsync(() => AgentTests.CompleteGradingAsync(_assignment.Id, _user)))"
+                             OnReopen="@(() => RunAsync(() => AgentTests.ReopenGradingAsync(_assignment.Id, _user)))" />
+            @if (_eval.GradedAt is not null)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+                    Das Ergebnis steht in der Personalakte; ein verknüpftes Ausbildungsmodul wurde bei Bestehen abgehakt.
+                </MudText>
+            }
+        }
+
+        @if (_canWrite && _assignment.GradedAt is null)
+        {
+            <MudDivider Class="my-3" />
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                @if (Verlaengerbar)
+                {
+                    <MudMenu Label="Zeit verlängern" Icon="@Icons.Material.Filled.MoreTime" Dense="true"
+                             Variant="Variant.Outlined" Size="Size.Small" Disabled="_busy">
+                        <MudMenuItem OnClick="@(() => ExtendAsync(5))">+ 5 Minuten</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => ExtendAsync(10))">+ 10 Minuten</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => ExtendAsync(15))">+ 15 Minuten</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => ExtendAsync(30))">+ 30 Minuten</MudMenuItem>
+                    </MudMenu>
+                }
+                <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.RestartAlt" OnClick="ResetAsync" Disabled="_busy">
+                    Test neu freigeben
+                </MudButton>
+            </MudStack>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string AssignmentId { get; set; } = string.Empty;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private string? _loadedId;
+    private bool _first = true;
+    private bool _busy;
+    private bool _canWrite;
+    private AgentTestAssignment? _assignment;
+    private TestEvaluation? _eval;
+    private AgentTestRow? _row;
+    private string? _subtitle;
+
+    protected override void OnInitialized() => Broadcaster.Modified += OnModified;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == AssignmentId)
+        {
+            return;
+        }
+        _loadedId = AssignmentId;
+        _user = (await AuthStateTask).User;
+        // mirrors RequireHrbOrLeadershipWrite; the page policy only checks access
+        _canWrite = _user.MayWrite() && _user.IsHrbOrLeadership();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _assignment = await AgentTests.GetAssignmentAsync(AssignmentId, _user);
+        _eval = null;
+        if (_assignment is not null)
+        {
+            _row = await AgentTests.GetRowAsync(AssignmentId, _user);
+            _subtitle = _row is null ? null : $"{_row.AgentCodename} · {_row.TestTitle}";
+            if (_assignment.CompletedAt is not null)
+            {
+                _eval = await AgentTests.GetEvaluationAsync(AssignmentId, _user);
+            }
+        }
+        _first = false;
+    }
+
+    private bool Verlaengerbar => _assignment is not null
+        && _row?.TimeLimitMinutes is not null
+        && _assignment is not { CompletedAt: not null, TimedOut: false };
+
+    private bool Ueberfaellig => _assignment is { CompletedAt: null }
+        && TestDeadline.IsExpired(_assignment.DeadlineAt, DateTime.UtcNow);
+
+    private string Restzeittext => TestAttemptLogic.RemainingMinutes(_assignment?.DeadlineAt, DateTime.UtcNow) is { } left
+        ? $" · Restzeit ca. {left} Min"
+        : _assignment?.DeadlineAt is null ? " (ohne Bearbeitungszeit)" : string.Empty;
+
+    private Task ExtendAsync(int minutes) => RunAsync(async () =>
+    {
+        await AgentTests.ExtendAsync(AssignmentId, minutes, _user);
+        Snackbar.Add($"Bearbeitungszeit um {minutes} Minuten verlängert.", Severity.Success);
+    });
+
+    private async Task ResetAsync()
+    {
+        var reason = await ReasonDialog.ShowAsync(DialogService, "Test neu freigeben?",
+            "Die bisherigen Antworten werden verworfen. Der Test gilt wieder als nicht begonnen; die "
+            + "Bearbeitungszeit startet erneut, sobald der Agent ihn startet.",
+            confirmText: "Neu freigeben", label: "Begründung", mandatoryReason: true, colour: Color.Warning);
+        if (reason is null)
+        {
+            return;
+        }
+        await RunAsync(() => AgentTests.ResetAsync(AssignmentId, reason, _user));
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void OnModified(string assignmentId, string agentId)
+    {
+        if (assignmentId != AssignmentId)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+    }
+
+    public void Dispose() => Broadcaster.Modified -= OnModified;
+}

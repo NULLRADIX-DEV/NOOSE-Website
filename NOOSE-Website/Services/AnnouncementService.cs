@@ -466,20 +466,8 @@ public class AnnouncementService(
     }
 
     /// <summary>Active agent ids in an announcement's audience.</summary>
-    private static async Task<List<string>> RecipientIdsAsync(AppDbContext db, Announcement a, CancellationToken cancellationToken)
-    {
-        // Team leads (read-only supervision) and external partners are never acknowledgment recipients.
-        var query = db.Users.OnlySelectable();
-        query = a.Audience switch
-        {
-            AnnouncementAudience.TruUnit => query.Where(u => u.IsTRU),
-            AnnouncementAudience.HrbUnit => query.Where(u => u.IsHRB),
-            AnnouncementAudience.FromRank => query.Where(u => u.Rank != null && u.Rank >= a.MinRank),
-            AnnouncementAudience.Taskforce => query.Where(u => db.TaskforceAgents.Any(ta => ta.TaskforceId == a.TargetId && ta.AgentId == u.Id)),
-            _ => query,
-        };
-        return await query.Select(u => u.Id).ToListAsync(cancellationToken);
-    }
+    private static Task<List<string>> RecipientIdsAsync(AppDbContext db, Announcement a, CancellationToken cancellationToken)
+        => AudienceRules.RecipientIdsAsync(db, a.Audience, a.TargetId, a.MinRank, cancellationToken);
 
     private static string TargetDisplay(AnnouncementAudience audience, string? targetId, Rank? minRank,
         IReadOnlyDictionary<string, string> taskforceNames) => audience switch

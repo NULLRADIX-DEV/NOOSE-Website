@@ -58,16 +58,8 @@ public static class AnnouncementVisibility
     }
 
     /// <summary>Whether the viewer is in an announcement's audience; the author and leadership are handled by the caller.</summary>
-    public static async Task<bool> IsRecipientAsync(AppDbContext db, Announcement a, string? meId, bool isTru,
+    public static Task<bool> IsRecipientAsync(AppDbContext db, Announcement a, string? meId, bool isTru,
         bool isHrb, Rank? myRank, CancellationToken cancellationToken = default)
-        => a.Audience switch
-        {
-            AnnouncementAudience.AllActive => true,
-            AnnouncementAudience.TruUnit => isTru,
-            AnnouncementAudience.HrbUnit => isHrb,
-            AnnouncementAudience.FromRank => myRank != null && a.MinRank != null && myRank >= a.MinRank,
-            AnnouncementAudience.Taskforce => a.TargetId != null && !string.IsNullOrEmpty(meId)
-                && await db.TaskforceAgents.AnyAsync(ta => ta.TaskforceId == a.TargetId && ta.AgentId == meId, cancellationToken),
-            _ => false,
-        };
+        => AudienceRules.IsMemberAsync(db, a.Audience, a.TargetId, a.MinRank, meId, isTru, isHrb, myRank,
+            cancellationToken);
 }

@@ -7831,6 +7831,214 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("AgentDienstgradVerlaeufe");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentTestAnswer", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AssignmentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("FreeTextAnswer")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Freitext");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<bool?>("ManualCorrect")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("ManuellRichtig");
+
+                    b.Property<int?>("ManualPoints")
+                        .HasColumnType("int")
+                        .HasColumnName("ManuellPunkte");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("QuestionId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("SelectedOptionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("OptionId");
+
+                    b.Property<string>("SelectedOptionIds")
+                        .HasMaxLength(2048)
+                        .HasColumnType("varchar(2048)")
+                        .HasColumnName("OptionIds");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("AssignmentId", "QuestionId");
+
+                    b.ToTable("AgentTestAntworten");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentTestAssignment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AssignedById")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ZugewiesenVonId");
+
+                    b.Property<string>("AssignedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("ZugewiesenVon");
+
+                    b.Property<int>("AttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("Versuch");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AbgeschlossenAm");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeadlineAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("FristBis");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<DateTime?>("DueAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("FaelligAm");
+
+                    b.Property<DateTime?>("DueReminderSentAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("FaelligErinnertAm");
+
+                    b.Property<int>("ExtraMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("ZusatzMinuten");
+
+                    b.Property<int?>("FinalMaxPoints")
+                        .HasColumnType("int")
+                        .HasColumnName("ErgebnisMaxPunkte");
+
+                    b.Property<int?>("FinalPassPercent")
+                        .HasColumnType("int")
+                        .HasColumnName("ErgebnisBestehensgrenze");
+
+                    b.Property<int?>("FinalPoints")
+                        .HasColumnType("int")
+                        .HasColumnName("ErgebnisPunkte");
+
+                    b.Property<DateTime?>("GradedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("BewertetAm");
+
+                    b.Property<string>("GradedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("BewertetVon");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<DateTime?>("OverdueReminderSentAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("UeberfaelligErinnertAm");
+
+                    b.Property<bool?>("Passed")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("Bestanden");
+
+                    b.Property<string>("PersonnelNoteId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("PersonalakteVermerkId");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GestartetAm");
+
+                    b.Property<string>("TestId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int?>("TimeLimitMinutes")
+                        .HasColumnType("int")
+                        .HasColumnName("BearbeitungszeitMinuten");
+
+                    b.Property<bool>("TimedOut")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("ZeitAbgelaufen");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DueAt");
+
+                    b.HasIndex("AgentId", "CompletedAt");
+
+                    b.HasIndex("CompletedAt", "DeadlineAt");
+
+                    b.HasIndex("TestId", "CompletedAt");
+
+                    b.ToTable("AgentTestZuweisungen");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.TrainingModule", b =>
                 {
                     b.Property<string>("Id")
@@ -10131,6 +10339,17 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(200)")
                         .HasColumnName("Titel");
 
+                    b.Property<string>("TrainingModuleId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("AusbildungsmodulId");
+
+                    b.Property<int>("Usage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0)
+                        .HasColumnName("Verwendung");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IsActive");
@@ -11996,6 +12215,44 @@ namespace NOOSE_Website.Data.Migrations
                         .HasForeignKey("AgentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentTestAnswer", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Personnel.AgentTestAssignment", "Assignment")
+                        .WithMany()
+                        .HasForeignKey("AssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Recruiting.BewerbungTestQuestion", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignment");
+
+                    b.Navigation("Question");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentTestAssignment", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Recruiting.BewerbungTest", "Test")
+                        .WithMany()
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("Test");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.BuergerProfil", b =>

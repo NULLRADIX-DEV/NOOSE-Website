@@ -1,0 +1,25 @@
+@page "/tests"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+
+<PageTitle>Interne Tests · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.Quiz"
+            Title="Interne Tests"
+            Subtitle="Zugewiesene Tests ablegen; HRB und Führung vergeben und korrigieren sie." />
+
+@* the HRB sections neither render nor register for anyone else *@
+<RecordSectionRail>
+    <RecordSection Slug="meine" Label="Meine Tests" Icon="@Icons.Material.Filled.Assignment">
+        <MyAgentTestsPanel />
+    </RecordSection>
+
+    <AuthorizeView Policy="@Policies.HrbOrLeadership" Context="hrbSections">
+        <RecordSection Group="HRB und Führung" Slug="korrektur" Label="Zuweisungen & Korrektur"
+                       Icon="@Icons.Material.Filled.FactCheck">
+            <AgentTestOverviewPanel />
+        </RecordSection>
+        <RecordSection Group="HRB und Führung" Slug="katalog" Label="Katalog" Icon="@Icons.Material.Filled.LibraryBooks">
+            <TestsPanel Internal="true" />
+        </RecordSection>
+    </AuthorizeView>
+</RecordSectionRail>

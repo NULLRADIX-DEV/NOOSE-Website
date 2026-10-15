@@ -138,6 +138,28 @@ internal static class PersonnelChapter
                 erwartet wird, bevor ihn jemand danach fragt.</p>
                 """),
 
+            new Article("art-interne-tests", "interne-tests", "Interne Tests",
+                "Tests für Agenten: zuweisen, ablegen, korrigieren.",
+                """
+                <p>Unter <em>Interne Tests</em> findest du die Tests, die dir das <strong>HRB</strong> oder die
+                <strong>Führung</strong> zugewiesen hat. Es ist derselbe Baukasten wie beim Eignungstest der
+                Bewerber: Auswahlfragen, Ja/Nein und Freitext, auf Wunsch mit Bearbeitungszeit.</p>
+                <p>Hat ein Test eine Bearbeitungszeit, startet die Uhr erst, wenn du auf <em>Test jetzt
+                starten</em> klickst. Sie läuft dann durch, auch wenn du das Fenster schließt; bei Ablauf wird
+                abgegeben, was du eingetragen hast. Deine Antworten werden laufend gespeichert. Steht eine
+                <strong>Frist</strong> dabei, wirst du einen Tag vorher und bei Überschreitung erinnert.</p>
+                <p>Nach der Korrektur siehst du deine <strong>Punkte</strong>, den Prozentwert und ob du
+                bestanden hast - nicht, welche Frage falsch war. Das Ergebnis steht als Vermerk in deiner
+                Personalakte. Ist mit dem Test ein <strong>Ausbildungsmodul</strong> verknüpft, wird es beim
+                Bestehen automatisch abgehakt.</p>
+                <p>HRB und Führung weisen Tests einzelnen Agenten oder einer Gruppe zu (TRU, HRB, eine Taskforce
+                oder ab einem Dienstgrad). Wer den Test schon offen hat, wird übersprungen. Nach einem nicht
+                bestandenen Test kannst du ihn <em>erneut zuweisen</em>; der alte Versuch bleibt sichtbar.
+                Den Katalog teilen sich interne Tests und Eignungstests - die <em>Verwendung</em> am Test legt
+                fest, wohin er vergeben werden darf.</p>
+                """,
+                NavKey: "tests"),
+
             new Article("art-agenten-verwalten", "agenten-verwalten", "Konten freigeben und verwalten",
                 "Wer hereinkommt, mit welchem Dienstgrad und welchen Kennzeichen.",
                 """

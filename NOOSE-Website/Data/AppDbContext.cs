@@ -37,6 +37,7 @@ using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Models.Abstractions;
+using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Data;
 
@@ -162,6 +163,8 @@ public class AppDbContext : IdentityDbContext<Agent>
     // training modules + per-agent completion
     public DbSet<TrainingModule> TrainingModules => Set<TrainingModule>();
     public DbSet<AgentModuleCompletion> AgentModuleCompletions => Set<AgentModuleCompletion>();
+    public DbSet<AgentTestAssignment> AgentTestAssignments => Set<AgentTestAssignment>();
+    public DbSet<AgentTestAnswer> AgentTestAnswers => Set<AgentTestAnswer>();
 
     // request/inbox workflow
     public DbSet<Request> Requests => Set<Request>();
@@ -1765,6 +1768,8 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(t => t.Title).HasMaxLength(200).IsRequired();
             b.Property(t => t.Description).HasColumnType("longtext");
             b.HasIndex(t => t.IsActive);
+            b.Property(t => t.Usage).HasDefaultValue(TestUsage.Bewerbung);
+            b.Property(t => t.TrainingModuleId).HasMaxLength(64);
         });
 
         modelBuilder.Entity<BewerbungTestQuestion>(b =>
@@ -1803,6 +1808,36 @@ public class AppDbContext : IdentityDbContext<Agent>
         {
             b.Property(a => a.SelectedOptionId).HasMaxLength(64);
             // a guid list, not one id: an option-rich question would overflow a 64-char column
+            b.Property(a => a.SelectedOptionIds).HasMaxLength(2048);
+            b.Property(a => a.FreeTextAnswer).HasColumnType("longtext");
+            b.HasIndex(a => new { a.AssignmentId, a.QuestionId });
+            b.HasOne(a => a.Assignment).WithMany()
+                .HasForeignKey(a => a.AssignmentId).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(a => a.Question).WithMany()
+                .HasForeignKey(a => a.QuestionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AgentTestAssignment>(b =>
+        {
+            b.Property(a => a.AssignedById).HasMaxLength(64);
+            b.Property(a => a.AssignedByName).HasMaxLength(128);
+            b.Property(a => a.GradedByName).HasMaxLength(128);
+            b.Property(a => a.PersonnelNoteId).HasMaxLength(64);
+            b.Property(a => a.AttemptCount).HasDefaultValue(1);
+            // the expiry sweep's predicate, null-check first and the range last
+            b.HasIndex(a => new { a.CompletedAt, a.DeadlineAt });
+            b.HasIndex(a => new { a.AgentId, a.CompletedAt });
+            b.HasIndex(a => new { a.TestId, a.CompletedAt });
+            b.HasIndex(a => a.DueAt);
+            b.HasOne(a => a.Agent).WithMany()
+                .HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(a => a.Test).WithMany()
+                .HasForeignKey(a => a.TestId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AgentTestAnswer>(b =>
+        {
+            b.Property(a => a.SelectedOptionId).HasMaxLength(64);
             b.Property(a => a.SelectedOptionIds).HasMaxLength(2048);
             b.Property(a => a.FreeTextAnswer).HasColumnType("longtext");
             b.HasIndex(a => new { a.AssignmentId, a.QuestionId });

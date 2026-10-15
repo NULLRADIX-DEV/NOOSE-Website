@@ -1,11 +1,21 @@
-@* Catalogue of aptitude tests; a single test is edited on /bewerbungs-tests/{Id}. *@
+@* Catalogue of tests, shared by the recruiting page and the internal test page; a single test is edited on
+   /bewerbungs-tests/{Id}. Each page lists the tests it may hand out. *@
 @inject IBewerbungTestService TestService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-    Wiederverwendbare Eignungstests. Lege Fragen (Multiple Choice, Ja/Nein, Freitext) an und weise einen Test
-    in einer Bewerbung dem Bewerber zu.
+    @if (Internal)
+    {
+        @:Tests für Agenten. Lege Fragen (Multiple Choice, Ja/Nein, Freitext) an, verknüpfe auf Wunsch ein
+        @:Ausbildungsmodul und weise den Test einzelnen Agenten oder einer Gruppe zu.
+    }
+    else
+    {
+        @:Wiederverwendbare Eignungstests. Lege Fragen (Multiple Choice, Ja/Nein, Freitext) an und weise einen Test
+        @:in einer Bewerbung dem Bewerber zu.
+    }
 </MudText>
 
 <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -27,7 +37,7 @@ else
 {
     <MudTable Items="_tests" Dense="true" Hover="true">
         <HeaderContent>
-            <MudTh>Titel</MudTh><MudTh>Zeit</MudTh><MudTh>Status</MudTh><MudTh></MudTh>
+            <MudTh>Titel</MudTh><MudTh>Zeit</MudTh><MudTh>Verwendung</MudTh><MudTh>Status</MudTh><MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Titel">@context.Title</MudTd>
@@ -37,12 +47,22 @@ else
                     @(context.TimeLimitMinutes is int m ? $"{m} Min" : "—")
                 </MudText>
             </MudTd>
+            <MudTd DataLabel="Verwendung">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@TestUsageDisplay.Name(context.Usage)</MudText>
+            </MudTd>
             <MudTd DataLabel="Status">
                 <MudChip T="string" Size="Size.Small" Color="@(context.IsActive ? Color.Success : Color.Default)">
                     @(context.IsActive ? "Aktiv" : "Inaktiv")
                 </MudChip>
             </MudTd>
             <MudTd>
+                @if (Internal && context.IsActive && _mayAssign)
+                {
+                    <MudTooltip Text="Zuweisen">
+                        <MudIconButton Icon="@Icons.Material.Filled.AssignmentInd" Size="Size.Small"
+                                       OnClick="@(() => AssignAsync(context.Id))" />
+                    </MudTooltip>
+                }
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Href="@($"/bewerbungs-tests/{context.Id}")" />
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteTestAsync(context.Id))" />
             </MudTd>
@@ -53,7 +73,11 @@ else
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
+    /// <summary>The internal catalog: lists tests for agents and creates new ones as internal.</summary>
+    [Parameter] public bool Internal { get; set; }
+
     private ClaimsPrincipal _user = default!;
+    private bool _mayAssign;
     private bool _load = true;
     private List<BewerbungTest> _tests = new();
     private string? _newTitle;
@@ -61,13 +85,16 @@ else
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
+        _mayAssign = _user.MayWrite() && _user.IsHrbOrLeadership();
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _load = true;
-        _tests = await TestService.GetTestsAsync(_user);
+        var all = await TestService.GetTestsAsync(_user);
+        _tests = all.Where(t => Internal ? TestUsageDisplay.ForAgents(t.Usage) : TestUsageDisplay.ForApplicants(t.Usage))
+            .ToList();
         _load = false;
     }
 
@@ -80,9 +107,23 @@ else
         try
         {
             var t = await TestService.CreateTestAsync(_newTitle, null, _user);
+            if (Internal)
+            {
+                await TestService.UpdateUsageAsync(t.Id, TestUsage.Intern, null, _user);
+            }
             Nav.NavigateTo($"/bewerbungs-tests/{t.Id}");
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task AssignAsync(string testId)
+    {
+        var result = await AgentTestAssignDialog.ShowAsync(DialogService, _user, testId);
+        if (result is not null)
+        {
+            Snackbar.Add($"{result.Created} zugewiesen{(result.Skipped > 0 ? $", {result.Skipped} übersprungen" : "")}.",
+                Severity.Success);
+        }
     }
 
     private async Task DeleteTestAsync(string id)

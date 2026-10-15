@@ -23,6 +23,8 @@ public static class DiscordPings
         NotificationType.Followup,
         NotificationType.AcknowledgmentReminder,
         NotificationType.SavedSearchHit,
+        NotificationType.TestAssigned,
+        NotificationType.TestDueReminder,
     ];
 
     /// <summary>Whether an agent decides for themselves when this category pings them.</summary>

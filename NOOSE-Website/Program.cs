@@ -387,6 +387,10 @@ builder.Services.AddScoped<IBewerbungssperreService, BewerbungssperreService>();
 builder.Services.AddScoped<IBewerbungTestService, BewerbungTestService>();
 builder.Services.AddScoped<IBewerbungTestExpiryService, BewerbungTestExpiryService>();
 builder.Services.AddHostedService<BewerbungTestExpiryWorker>();
+// internal tests: the same catalog, assigned to agents and graded by HRB/leadership
+builder.Services.AddScoped<IAgentTestService, AgentTestService>();
+builder.Services.AddScoped<IAgentTestExpiryService, AgentTestExpiryService>();
+builder.Services.AddHostedService<AgentTestWorker>();
 builder.Services.AddScoped<IBewerbungTemplateService, BewerbungTemplateService>();
 
 // ---- public area (citizen accounts, module switches) ----
@@ -416,6 +420,7 @@ builder.Services.AddScoped<IPublicTemplateService, PublicTemplateService>();
 builder.Services.AddScoped<IPublicFactionProfileService, PublicFactionProfileService>();
 builder.Services.AddScoped<IObjectionService, ObjectionService>();
 builder.Services.AddSingleton<BewerbungBroadcaster>();
+builder.Services.AddSingleton<AgentTestBroadcaster>();
 builder.Services.AddSingleton<TipsBroadcaster>();
 builder.Services.AddSingleton<TicketBroadcaster>();
 

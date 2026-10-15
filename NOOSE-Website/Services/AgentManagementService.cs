@@ -952,6 +952,11 @@ public class AgentManagementService(
         await db.AgentNotes.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentPromotionRequests.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentModuleCompletions.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        // internal tests go with the account like the module ticks; answers first, they point at the assignment
+        await db.AgentTestAnswers.IgnoreQueryFilters()
+            .Where(x => db.AgentTestAssignments.IgnoreQueryFilters().Any(a => a.Id == x.AssignmentId && a.AgentId == agentId))
+            .ExecuteDeleteAsync(cancellationToken);
+        await db.AgentTestAssignments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
 
         // The account's own working state: nothing here means anything without the account it belonged to, so
         // the rows go rather than the pointer. Badges, quota and KI logs are derived or per-account bookkeeping;

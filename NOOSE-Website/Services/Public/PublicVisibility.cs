@@ -187,6 +187,8 @@ public static class PublicVisibility
             ["AgentPromotionRequest"] = Personnel,
             ["TrainingModule"] = Personnel,
             ["AgentModuleCompletion"] = Personnel,
+            ["AgentTestAssignment"] = Personnel,
+            ["AgentTestAnswer"] = Personnel,
             ["AgentBadge"] = Personnel,
             // released only as an editorial copy on the leadership profile, never projected from here
             ["Decoration"] = Personnel,

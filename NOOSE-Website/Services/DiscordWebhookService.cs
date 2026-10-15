@@ -661,6 +661,8 @@ public class DiscordWebhookService(
         NotificationType.SavedSearchHit => "/suche",
         NotificationType.InactivityNudge => "/abmeldungen",
         NotificationType.FactionThreatBoard => "/fraktionen",
+        NotificationType.TestAssigned => "/tests",
+        NotificationType.TestDueReminder => "/tests",
         _ => "/dashboard",
     };
 
@@ -689,6 +691,8 @@ public class DiscordWebhookService(
         NotificationType.SavedSearchHit => "🔍 Eine deiner gespeicherten Suchen hat neue Treffer.",
         NotificationType.InactivityNudge => "👋 Die Führung bittet dich um eine kurze Rückmeldung.",
         NotificationType.FactionThreatBoard => "🚨 Gefahrenlage der Fraktionen.",
+        NotificationType.TestAssigned => "📝 Dir wurde ein Test zugewiesen.",
+        NotificationType.TestDueReminder => "⏰ Ein Test wird bald fällig.",
         _ => "🔔 Neue Benachrichtigung.",
     };
 

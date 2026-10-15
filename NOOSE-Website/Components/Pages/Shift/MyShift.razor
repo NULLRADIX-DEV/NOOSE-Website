@@ -5,6 +5,7 @@
 @using NOOSE_Website.Models.Shift
 @using NOOSE_Website.Models.Timeline
 @inject IJobService Jobs
+@inject IAgentTestService AgentTests
 @inject IFollowupService Followups
 @inject INotificationService Notifications
 @inject IAnnouncementService Announcements
@@ -71,6 +72,28 @@ else
     <MudGrid>
         <MudItem xs="12" md="6">
             <MudStack Spacing="4">
+                @* only when something is open: a block that is empty for almost everyone is noise *@
+                @if (_tests.Count > 0)
+                {
+                    <MudPaper Class="pa-4" Elevation="2">
+                        @Head(Icons.Material.Filled.Quiz, "Offene Tests", "/tests", "Alle Tests")
+                        <MudList T="string" Dense="true">
+                            @foreach (var t in _tests.Take(ShiftRules.ListCap))
+                            {
+                                var late = t.IsOverdue(_now);
+                                <MudListItem T="string" Href="@($"/tests/{t.AssignmentId}")" Icon="@Icons.Material.Filled.Quiz"
+                                             IconColor="@(late ? Color.Error : Color.Primary)">
+                                    <MudText Typo="Typo.body2"><b>@t.TestTitle</b></MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        @(t.StartedAt is null ? "noch nicht begonnen" : "begonnen")@(t.DueAt is { } due ? (late ? $" · überfällig seit {due.ToLocalTime():dd.MM.yyyy}" : $" · fällig {due.ToLocalTime():dd.MM.yyyy}") : "")
+                                    </MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                        @More(_tests.Count)
+                    </MudPaper>
+                }
+
                 <MudPaper Class="pa-4" Elevation="2">
                     @Head(Icons.Material.Filled.AssignmentTurnedIn, "Meine Aufgaben", "/aufgaben?meine=1", "Zum Board")
                     @if (_jobs.Count == 0)
@@ -261,6 +284,7 @@ else
     private bool _offerStart;
 
     private List<JobRow> _jobs = [];
+    private List<AgentTestRow> _tests = [];
     private List<FollowupDashboardItem> _due = [];
     private List<FollowupDashboardItem> _upcoming = [];
     private NotificationInboxPage _mentions = NotificationInboxPage.Empty;
@@ -294,6 +318,10 @@ else
         }
 
         _jobs = await Jobs.GetMyOpenAsync(_user);
+        // the read-only supervision takes no tests, and the guard would refuse it
+        _tests = _user.MayWrite()
+            ? (await AgentTests.GetMineAsync(_user)).Where(t => t.CompletedAt is null).ToList()
+            : [];
         var followups = await Followups.GetMineUntilAsync(_user, _now + ShiftRules.UpcomingFollowups);
         _due = followups.Where(f => f.DueAt <= _now).ToList();
         _upcoming = followups.Where(f => f.DueAt > _now).ToList();
@@ -325,7 +353,7 @@ else
             new NotificationInboxQuery([type], null, null, OnlyUnread: true, Page: 1, PageSize: ShiftRules.ListCap));
 
     private bool NothingOpen => _jobs.Count == 0 && _due.Count == 0 && _mentions.Total == 0 && _watched.Total == 0
-        && _acks.Count == 0 && _taskforces.Count == 0;
+        && _acks.Count == 0 && _taskforces.Count == 0 && _tests.Count == 0;
 
     private string SinceText => _window.Kind switch
     {

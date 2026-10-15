@@ -1,0 +1,164 @@
+@implements IDisposable
+@inject IAgentTestService AgentTests
+@inject AgentTestBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="mb-3">
+    <MudChipSet T="AgentTestFilter" SelectedValue="_filter" SelectedValueChanged="OnFilterAsync"
+                SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
+        <MudChip T="AgentTestFilter" Value="AgentTestFilter.Offen" Variant="Variant.Outlined">Offen</MudChip>
+        <MudChip T="AgentTestFilter" Value="AgentTestFilter.ZuKorrigieren" Variant="Variant.Outlined">Zu korrigieren</MudChip>
+        <MudChip T="AgentTestFilter" Value="AgentTestFilter.Ueberfaellig" Variant="Variant.Outlined">Überfällig</MudChip>
+        <MudChip T="AgentTestFilter" Value="AgentTestFilter.Erledigt" Variant="Variant.Outlined">Korrigiert</MudChip>
+        <MudChip T="AgentTestFilter" Value="AgentTestFilter.Alle" Variant="Variant.Outlined">Alle</MudChip>
+    </MudChipSet>
+    <MudSpacer />
+    @if (_canWrite)
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AssignmentInd"
+                   OnClick="@(() => AssignAsync(null, null))">Test zuweisen</MudButton>
+    }
+</MudStack>
+
+@if (_rows is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Quiz" Title="Nichts in dieser Ansicht" />
+}
+else
+{
+    <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Agent</MudTh><MudTh>Test</MudTh><MudTh>Fällig</MudTh><MudTh>Stand</MudTh><MudTh>Ergebnis</MudTh><MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Agent">@context.AgentCodename</MudTd>
+            <MudTd DataLabel="Test">
+                <MudText Typo="Typo.body2">@context.TestTitle</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @context.AssignedAt.ToLocalTime().ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(context.AssignedByName) ? "" : " · " + context.AssignedByName)
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Fällig">
+                @(context.DueAt is { } due ? due.ToLocalTime().ToString("dd.MM.yyyy") : "—")
+            </MudTd>
+            <MudTd DataLabel="Stand"><AgentTestStateChip Row="context" Now="_now" /></MudTd>
+            <MudTd DataLabel="Ergebnis">
+                @if (context.State == AgentTestState.Korrigiert)
+                {
+                    <MudText Typo="Typo.body2">
+                        @context.Points / @context.MaxPoints (@context.Percent %)
+                        @if (context.Passed is true)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                        }
+                        else if (context.Passed is false)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                        }
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
+                }
+            </MudTd>
+            <MudTd>
+                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                    <MudTooltip Text="Öffnen und korrigieren">
+                        <MudIconButton Icon="@Icons.Material.Filled.FactCheck" Size="Size.Small"
+                                       Href="@($"/tests/korrektur/{context.AssignmentId}")" />
+                    </MudTooltip>
+                    @if (_canWrite && context.State == AgentTestState.Korrigiert)
+                    {
+                        <MudTooltip Text="Erneut zuweisen (Wiederholung)">
+                            <MudIconButton Icon="@Icons.Material.Filled.Replay" Size="Size.Small"
+                                           OnClick="@(() => AssignAsync(context.TestId, context.AgentId))" />
+                        </MudTooltip>
+                    }
+                    @if (_canWrite && context.State != AgentTestState.Korrigiert)
+                    {
+                        <MudTooltip Text="Zuweisung zurückziehen">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => WithdrawAsync(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal User { get; set; } = default!;
+
+    private AgentTestFilter _filter = AgentTestFilter.ZuKorrigieren;
+    private List<AgentTestRow>? _rows;
+    private bool _canWrite;
+    private DateTime _now = DateTime.UtcNow;
+
+    protected override async Task OnInitializedAsync()
+    {
+        User = (await AuthStateTask).User;
+        // mirrors RequireHrbOrLeadershipWrite; the page section itself only checks access
+        _canWrite = User.MayWrite() && User.IsHrbOrLeadership();
+        Broadcaster.Modified += OnModified;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _now = DateTime.UtcNow;
+        _rows = await AgentTests.GetOverviewAsync(_filter, User);
+    }
+
+    private async Task OnFilterAsync(AgentTestFilter filter)
+    {
+        _filter = filter;
+        _rows = null;
+        await LoadAsync();
+    }
+
+    private async Task AssignAsync(string? testId, string? agentId)
+    {
+        var result = await AgentTestAssignDialog.ShowAsync(DialogService, User, testId,
+            agentId is null ? null : [agentId]);
+        if (result is null)
+        {
+            return;
+        }
+        Snackbar.Add(result.Skipped > 0
+                ? $"{result.Created} zugewiesen, {result.Skipped} übersprungen (Test noch offen)."
+                : $"{result.Created} zugewiesen.",
+            result.Created > 0 ? Severity.Success : Severity.Info);
+        await LoadAsync();
+    }
+
+    private async Task WithdrawAsync(AgentTestRow row)
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync("Zuweisung zurückziehen?",
+            $"„{row.TestTitle}“ wird {row.AgentCodename} entzogen. Bisherige Antworten bleiben nachvollziehbar.",
+            yesText: "Zurückziehen", cancelText: "Abbrechen");
+        if (confirmed != true)
+        {
+            return;
+        }
+        try
+        {
+            await AgentTests.WithdrawAsync(row.AssignmentId, User);
+            await LoadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private void OnModified(string assignmentId, string agentId)
+        => _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+
+    public void Dispose() => Broadcaster.Modified -= OnModified;
+}

@@ -5,7 +5,7 @@ namespace NOOSE_Website.Data.Entities.Recruiting;
 
 /// <summary>Assigns one test to one application; the applicant fills it in the portal.</summary>
 [Table("BewerbungTestZuweisungen")]
-public class BewerbungTestAssignment : IAuditable, ISoftDelete
+public class BewerbungTestAssignment : IAuditable, ISoftDelete, ITestAttempt
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 

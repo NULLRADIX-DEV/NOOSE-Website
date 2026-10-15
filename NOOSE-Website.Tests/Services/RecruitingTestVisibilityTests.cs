@@ -68,6 +68,9 @@ public class RecruitingTestVisibilityTests
         // which are the applicant's own clock and their own input. Declared rather than inert, so it is
         // scanned like everything else on the surface.
         Path.Combine("Pages", "Portal", "Shared", "PruefungStatusBar.razor"),
+        // the questionnaire of a running attempt, shared with the internal test page: prompts, options and the
+        // taker's own typed answers, never a key or a verdict. Declared so it is scanned like the page was.
+        Path.Combine("Pages", "Portal", "Shared", "TestQuestionnaire.razor"),
     ];
 
     /// <summary>Framework and inert tags that need no decision.</summary>
@@ -327,6 +330,8 @@ public class RecruitingTestVisibilityTests
         // never sees, so the rank check alone would let the read-only supervision and the demo principal
         // through. One combined guard, because every member may carry exactly one.
         string[] attemptWriteMembers = ["ExtendAttemptAsync", "ResetAttemptAsync"];
+        // newer than the rest of the catalogue writes, so it carries the write check of its own
+        string[] catalogWriteMembers = ["UpdateUsageAsync"];
         var members = typeof(IBewerbungTestService).GetMethods()
             .Select(m => m.Name).Distinct(StringComparer.Ordinal).ToArray();
         Assert.True(members.Length >= 17, $"Unerwartet wenige Schnittstellen-Methoden: {members.Length}");
@@ -341,7 +346,9 @@ public class RecruitingTestVisibilityTests
                 ? "Permission.RequireApplicant("
                 : attemptWriteMembers.Contains(name, StringComparer.Ordinal)
                     ? "Permission.RequireTestAttemptWrite("
-                    : "Permission.RequireHrbOrLeadership(";
+                    : catalogWriteMembers.Contains(name, StringComparer.Ordinal)
+                        ? "Permission.RequireHrbOrLeadershipWrite("
+                        : "Permission.RequireHrbOrLeadership(";
 
             var regions = new List<string>();
             for (var i = 0; i < starts.Length - 1; i++)

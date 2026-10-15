@@ -1,0 +1,378 @@
+@page "/tests/{AssignmentId}"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@inject IAgentTestService AgentTests
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NOOSE_Website.Infrastructure.Chat.AgentTestBroadcaster Broadcaster
+@implements IAsyncDisposable
+
+<PageTitle>@(string.IsNullOrEmpty(Title) ? "Interner Test" : Title) · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.Quiz" Title="@(string.IsNullOrEmpty(Title) ? "Interner Test" : Title)"
+            Subtitle="@Description" BackHref="/tests" />
+
+@if (!_ready)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_status is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Quiz" Title="Test nicht gefunden"
+                Text="Diese Zuweisung gibt es nicht oder sie gehört nicht dir." />
+}
+else if (Completed)
+{
+    @if (_result is not null)
+    {
+        <AgentTestResultCard Result="_result" />
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" role="status">
+            @(TimedOut
+                ? "Deine Bearbeitungszeit ist abgelaufen. Was du bis dahin eingetragen hattest, wurde automatisch abgegeben."
+                : "Du hast diesen Test abgegeben.")
+            Die Korrektur steht noch aus; du bekommst eine Benachrichtigung, sobald sie abgeschlossen ist.
+        </MudAlert>
+    }
+    <MudButton Variant="Variant.Outlined" Href="/tests" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mt-3">Zurück</MudButton>
+}
+else if (_test is null && _status is { StartedAt: null, TimeLimitMinutes: int limit })
+{
+    @* the start gate: the clock starts with the click, not with a curious look at the page *@
+    <MudPaper Elevation="2" Class="pa-4">
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3">
+            Bearbeitungszeit: <b>@limit Minuten</b>. Die Uhr startet, sobald du auf „Test jetzt starten“ klickst,
+            und läuft dann durchgehend weiter — auch wenn du das Fenster schließt. Bei Ablauf wird automatisch
+            abgegeben, was du bis dahin eingetragen hast.
+        </MudAlert>
+        @if (_status.DueAt is { } due)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3">Fällig bis @due.ToLocalTime().ToString("dd.MM.yyyy HH:mm") Uhr.</MudText>
+        }
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <MudButton Variant="Variant.Text" Href="/tests" StartIcon="@Icons.Material.Filled.ArrowBack">Zurück</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PlayArrow"
+                       OnClick="StartAsync" Disabled="_busy">Test jetzt starten</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+else if (_test is null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" role="status">
+        Dieser Test steht gerade nicht zur Bearbeitung offen. Bitte lade die Seite neu.
+    </MudAlert>
+}
+else
+{
+    @* every way off the page keeps what was typed: the back arrow, the sidebar, a link in the bell *@
+    <NavigationLock OnBeforeInternalNavigation="FlushBeforeLeaveAsync" />
+    <MudStack Spacing="3">
+        <MudText Typo="Typo.body2" Class="noose-pruefung-druckhinweis">
+            Der Fragebogen wird nicht gedruckt. Bitte beantworte den Test online.
+        </MudText>
+
+        @* rendered without a deadline too: this bar owns the autosave *@
+        <div class="noose-pruefung-leiste">
+            <PruefungStatusBar DeadlineAt="_test.DeadlineAt" Dirty="IsDirty" Save="SaveDraftAsync"
+                               OnExpired="OnExpiredAsync" OnFiveMinutes="OnFiveMinutes" />
+        </div>
+
+        <TestQuestionnaire @ref="_questionnaire" Questions="_test.Questions" Watermark="@Watermark"
+                           Disabled="_expiring" ContainerId="@ContainerId" />
+
+        @if (_expiring)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Dense="true" role="status">
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                Die Zeit ist abgelaufen. Deine Antworten werden abgegeben …
+            </MudAlert>
+        }
+
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+            <MudButton Variant="Variant.Text" OnClick="LeaveAsync" StartIcon="@Icons.Material.Filled.ArrowBack"
+                       Disabled="_expiring">Zurück</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                       OnClick="@(() => SubmitAsync(false))" Disabled="@(_busy || _expiring)">Test abgeben</MudButton>
+        </MudStack>
+    </MudStack>
+}
+
+@code {
+    [Parameter] public string AssignmentId { get; set; } = string.Empty;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private const string ContainerId = "noose-pruefung-bogen";
+
+    private ClaimsPrincipal _user = default!;
+    private string? _loadedId;
+    private bool _ready;
+    private bool _busy;
+    private bool _expiring;
+    private AgentTestStatusView? _status;
+    private AgentTestView? _test;
+    private AgentTestResult? _result;
+    private TestQuestionnaire? _questionnaire;
+    private IJSObjectReference? _module;
+    private bool _guarded;
+    private bool _protectionTried;
+
+    private string Title => _test?.Title ?? _status?.Title ?? string.Empty;
+    private string? Description => _test?.Description ?? _status?.Description;
+    private bool Completed => _test?.Completed ?? _status?.Completed ?? false;
+    private bool TimedOut => _test?.TimedOut ?? _status?.TimedOut ?? false;
+
+    /// <summary>Traceability, not prevention: a leaked screenshot points back at one agent.</summary>
+    private string Watermark => $"{_user.GetCodename()} · {DateTime.Now:dd.MM.yyyy HH:mm}";
+
+    private bool IsDirty() => _questionnaire?.IsDirty() ?? false;
+
+    protected override void OnInitialized() => Broadcaster.Modified += OnModified;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == AssignmentId)
+        {
+            return;
+        }
+        _loadedId = AssignmentId;
+        _ready = false;
+        _test = null;
+        _result = null;
+        _user = (await AuthStateTask).User;
+        await LoadStatusAsync();
+        _ready = true;
+    }
+
+    /// <summary>Reads where the attempt stands and opens it when it runs; starts no clock behind the gate.</summary>
+    private async Task LoadStatusAsync()
+    {
+        try
+        {
+            // the summary first, because it starts nothing: only OpenAsync stamps the clock
+            _status = await AgentTests.GetMyStatusAsync(AssignmentId, _user);
+            if (_status is { Completed: true })
+            {
+                _result = await AgentTests.GetMyResultAsync(AssignmentId, _user);
+            }
+            else if (_status is not null && (_status.StartedAt is not null || _status.TimeLimitMinutes is null))
+            {
+                // a running attempt is resumed, and one without a limit needs no gate
+                await LoadTestAsync();
+            }
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _status = null;
+        }
+    }
+
+    /// <summary>HRB extended, released or graded this attempt. Only a page that shows no questionnaire reloads:
+    /// a running one learns it from its next save, and reloading it would drop what is being typed.</summary>
+    private void OnModified(string assignmentId, string agentId)
+    {
+        if (assignmentId != _loadedId || _test is not null)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                _result = null;
+                await LoadStatusAsync();
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+                /* the next event or a reload shows it */
+            }
+        });
+    }
+
+    private async Task LoadTestAsync()
+    {
+        _test = await AgentTests.OpenAsync(AssignmentId, _user);
+        _protectionTried = false;
+        if (_test is { Completed: true })
+        {
+            await ReloadClosedAsync();
+        }
+    }
+
+    private async Task StartAsync()
+    {
+        _busy = true;
+        try
+        {
+            await LoadTestAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        _busy = false;
+    }
+
+    private void OnFiveMinutes()
+        => Snackbar.Add("Noch 5 Minuten. Danach wird automatisch abgegeben.", Severity.Warning);
+
+    private async Task<TestDraftResult> SaveDraftAsync()
+    {
+        TestDraftResult result;
+        if (!IsDirty())
+        {
+            // nothing new here: sending this page's answers could overwrite newer ones a second tab stored
+            result = await AgentTests.CheckAsync(_test!.AssignmentId, _test.AttemptNumber, _user);
+            if (result.Outcome == TestDraftOutcome.Closed)
+            {
+                await ReloadClosedAsync();
+            }
+            return result;
+        }
+        _questionnaire?.MarkClean();
+        try
+        {
+            result = await AgentTests.SaveDraftAsync(_test!.AssignmentId, _test.AttemptNumber, Collect(), _user);
+        }
+        catch
+        {
+            // still unsaved, so the next flush must carry these edits again
+            _questionnaire?.MarkDirty();
+            throw;
+        }
+        if (result.Outcome == TestDraftOutcome.Closed)
+        {
+            await ReloadClosedAsync();
+        }
+        return result;
+    }
+
+    private async Task OnExpiredAsync()
+    {
+        if (_expiring)
+        {
+            return;
+        }
+        _expiring = true;
+        StateHasChanged();
+        if (_test is not null)
+        {
+            if (IsDirty())
+            {
+                await SubmitAsync(auto: true);
+            }
+            else
+            {
+                // a page with nothing new closes the attempt with what is stored, never with its older copy
+                try { await AgentTests.CheckAsync(_test.AssignmentId, _test.AttemptNumber, _user); } catch { /* the sweep closes it */ }
+            }
+        }
+        await ReloadClosedAsync();
+    }
+
+    // the navigation lock saves on the way out
+    private void LeaveAsync() => Nav.NavigateTo("/tests");
+
+    private async Task FlushBeforeLeaveAsync(LocationChangingContext context)
+    {
+        if (_test is not null && !_expiring && IsDirty())
+        {
+            try { await SaveDraftAsync(); } catch { /* best effort: leaving is not blocked by a failed save */ }
+        }
+    }
+
+    private List<TestAnswerInput> Collect() => _questionnaire?.Collect() ?? [];
+
+    private async Task SubmitAsync(bool auto)
+    {
+        if (_test is null)
+        {
+            return;
+        }
+        if (!auto && _questionnaire is not null && !_questionnaire.AllRequiredAnswered())
+        {
+            Snackbar.Add("Bitte beantworte alle Pflichtfragen.", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var outcome = await AgentTests.SubmitAsync(_test.AssignmentId, _test.AttemptNumber, Collect(), _user);
+            if (auto || outcome == TestSubmitOutcome.ClosedByTimeout)
+            {
+                _busy = false;
+                if (!auto)
+                {
+                    await ReloadClosedAsync();
+                }
+                return;
+            }
+            Snackbar.Add("Test abgegeben.", Severity.Success);
+            await ReloadClosedAsync();
+        }
+        catch (Exception ex)
+        {
+            if (!auto)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+        _busy = false;
+    }
+
+    /// <summary>Re-reads the attempt after it closed, so the page shows the hand-in screen.</summary>
+    private async Task ReloadClosedAsync()
+    {
+        try
+        {
+            _status = await AgentTests.GetMyStatusAsync(AssignmentId, _user) ?? _status;
+            _test = null;
+        }
+        catch { /* best effort */ }
+        _expiring = false;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // not gated on firstRender: behind the start gate the questionnaire first appears on a later render; and
+        // again after a release and restart, whose questionnaire is a new element
+        if (_protectionTried || _test is null || _test.Completed)
+        {
+            return;
+        }
+        _protectionTried = true;
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/pruefung.js?v=2");
+            if (_guarded)
+            {
+                // forgets the element of the previous attempt, which is gone from the page
+                await _module.InvokeVoidAsync("freigeben", ContainerId);
+            }
+            await _module.InvokeVoidAsync("schuetzen", ContainerId);
+            _guarded = true;
+        }
+        catch (JSDisconnectedException) { /* ignore */ }
+        catch { /* best effort */ }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Broadcaster.Modified -= OnModified;
+        try
+        {
+            if (_module is not null && _guarded)
+            {
+                await _module.InvokeVoidAsync("freigeben", ContainerId);
+            }
+            if (_module is not null)
+            {
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { /* ignore */ }
+        catch { /* ignore */ }
+    }
+}

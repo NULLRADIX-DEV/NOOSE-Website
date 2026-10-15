@@ -502,5 +502,13 @@ public static class ChangelogContent
                 + "Bedrohungs-Score über 90, die höchste zuerst. Die Nachricht wird aktualisiert statt neu gepostet; "
                 + "Verschlusssachen stehen nie darauf.", "Discord", "2.2.43-gefahrenlage-discord"),
         ]),
+
+        new("2.7.00", new DateTime(2026, 10, 15), "Interne Tests",
+        [
+            Neu("2.7.00-interne-tests", "HRB und Führung können Agenten jetzt Tests zuweisen, einzeln oder als Gruppe "
+                + "und auf Wunsch mit Frist. Du legst sie unter „Interne Tests“ ab und siehst nach der Korrektur deine "
+                + "Punkte; das Ergebnis steht in der Personalakte, und ein verknüpftes Ausbildungsmodul wird beim "
+                + "Bestehen abgehakt.", "Personal"),
+        ]),
     ];
 }

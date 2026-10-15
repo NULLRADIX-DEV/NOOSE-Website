@@ -38,6 +38,8 @@ public static class NavCatalog
             Description: "Diensteinträge, die Agenten über sich selbst führen — für alle sichtbar"),
         new NavEntry("abmeldungen", "/abmeldungen", Icons.Material.Filled.EventBusy, "Abmeldungen", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Eigene Abwesenheiten melden und einsehen"),
+        new NavEntry("tests", "/tests", Icons.Material.Filled.Quiz, "Interne Tests", NavSection.MeinDienst, NavArea.MeinDienst,
+            Description: "Zugewiesene Tests ablegen; HRB und Führung vergeben und korrigieren"),
         new NavEntry("finanzierungen", "/finanzierungen", Icons.Material.Filled.RequestQuote, "Finanzierungen", NavSection.MeinDienst, NavArea.MeinDienst, BadgeKey: "financing",
             Description: "Finanzierungsanträge stellen und das eigene Monatsbudget einsehen"),
         new NavEntry("feedback", "/feedback", Icons.Material.Filled.Feedback, "Feedback", NavSection.MeinDienst, NavArea.MeinDienst, Description: "Feedback zur Website"),

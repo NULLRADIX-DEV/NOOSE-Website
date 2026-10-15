@@ -5,7 +5,7 @@ namespace NOOSE_Website.Data.Entities.Recruiting;
 
 /// <summary>An applicant's answer to one test question (selected option and/or free text).</summary>
 [Table("BewerbungTestAntworten")]
-public class BewerbungTestAnswer : IAuditable, ISoftDelete
+public class BewerbungTestAnswer : IAuditable, ISoftDelete, ITestAnswer
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
