@@ -169,6 +169,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<Presentation> Presentations => Set<Presentation>();
     public DbSet<PresentationSlide> PresentationSlides => Set<PresentationSlide>();
     public DbSet<PresentationInvite> PresentationInvites => Set<PresentationInvite>();
+    public DbSet<PresentationFile> PresentationFiles => Set<PresentationFile>();
 
     // request/inbox workflow
     public DbSet<Request> Requests => Set<Request>();
@@ -1861,6 +1862,22 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(s => new { s.PresentationId, s.Sorting });
             b.HasOne(s => s.Presentation).WithMany(p => p.Slides)
                 .HasForeignKey(s => s.PresentationId).OnDelete(DeleteBehavior.Cascade);
+            // removing an import deletes its row; the slides it leaves in the trash just lose the reference
+            b.HasOne(s => s.PdfFile).WithMany()
+                .HasForeignKey(s => s.PdfFileId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PresentationFile>(b =>
+        {
+            b.Property(f => f.FileNameSaved).HasMaxLength(128).IsRequired();
+            b.Property(f => f.Title).HasMaxLength(300).IsRequired();
+            b.Property(f => f.SourceId).HasMaxLength(128);
+            b.Property(f => f.ImportedById).HasMaxLength(64);
+            // two refreshes, or a refresh and a removal, at once: the second fails instead of doubling slides
+            b.Property(f => f.Revision).IsConcurrencyToken();
+            b.HasIndex(f => f.PresentationId);
+            b.HasOne(f => f.Presentation).WithMany(p => p.Files)
+                .HasForeignKey(f => f.PresentationId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<PresentationInvite>(b =>

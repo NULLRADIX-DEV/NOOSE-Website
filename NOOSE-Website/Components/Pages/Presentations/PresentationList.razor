@@ -4,6 +4,8 @@
 @inject IPresentationService Presentations
 @inject IPresentationLiveService Live
 @inject PresentationBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject NavigationManager Nav
 
 <PageTitle>Präsentationen · NOOSE</PageTitle>
 
@@ -13,6 +15,8 @@
     <Actions>
         @if (_mayCreate)
         {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudDownload"
+                       OnClick="ImportAsync">Aus Google Slides importieren</MudButton>
             <MudButton Href="/praesentationen/neu" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add">Neue Präsentation</MudButton>
         }
@@ -156,6 +160,14 @@ else
                 /* the next event refreshes it */
             }
         });
+    }
+
+    private async Task ImportAsync()
+    {
+        if (await SlidesImportDialog.ShowNewAsync(DialogService, _user) is { } id)
+        {
+            Nav.NavigateTo($"/praesentationen/{id}/bearbeiten");
+        }
     }
 
     public void Dispose() => Broadcaster.Changed -= OnLiveChanged;

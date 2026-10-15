@@ -20,6 +20,32 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
+/* a Google slide: the page drawn by pdf.js, letterboxed when the deck is not 16:9 */
+.slide--pdf {
+    padding: 0;
+    background: #000;
+}
+
+.slide-pdf {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .slide-pdf ::deep canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    .slide-pdf ::deep .slide-pdf-hinweis {
+        color: #8a97a8;
+        font-size: 2.3cqw;
+    }
+
 .slide--empty {
     align-items: center;
     justify-content: center;

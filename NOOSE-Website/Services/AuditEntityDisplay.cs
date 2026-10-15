@@ -78,6 +78,7 @@ public static class AuditEntityDisplay
         "Presentation" => "Präsentation",
         "PresentationSlide" => "Folie",
         "PresentationInvite" => "Einladung (Präsentation)",
+        "PresentationFile" => "Google-Import (Präsentation)",
         _ => type,
     };
 

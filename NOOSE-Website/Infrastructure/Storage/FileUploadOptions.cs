@@ -58,6 +58,12 @@ public class FileUploadOptions
     /// <summary>Max sources size.</summary>
     public long SourcesMaxBytes { get; set; } = 25 * 1024 * 1024;
 
+    /// <summary>Imported Google Slides decks as PDF; own base path so no other file endpoint reaches them.</summary>
+    public string PresentationsPath { get; set; } = "App_Data/uploads/praesentationen";
+
+    /// <summary>Max size of one imported deck; the browser upload streams, so this is the real cap.</summary>
+    public long PresentationMaxBytes { get; set; } = 50 * 1024 * 1024;
+
     /// <summary>Library upload path.</summary>
     public string LibraryPath { get; set; } = "App_Data/uploads/bibliothek";
 

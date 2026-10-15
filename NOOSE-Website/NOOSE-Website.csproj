@@ -45,6 +45,9 @@
     <PackageReference Include="Markdig" Version="1.4.0" />
     <PackageReference Include="MudBlazor" Version="9.11.0" />
 
+    <!-- Import: liest Seitenzahl und Titel importierter Google-Slides-PDFs (gerendert wird im Browser mit pdf.js) -->
+    <PackageReference Include="PdfPig" Version="0.1.16" />
+
     <!-- Datenbank: MySQL 8.0 / MariaDB via Pomelo (EF Core 9, laeuft auf .NET 10) -->
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">

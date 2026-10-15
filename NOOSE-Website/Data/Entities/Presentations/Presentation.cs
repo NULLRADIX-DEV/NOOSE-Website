@@ -37,6 +37,7 @@ public class Presentation : IAuditable, ISoftDelete
 
     public List<PresentationSlide> Slides { get; set; } = [];
     public List<PresentationInvite> Invites { get; set; } = [];
+    public List<PresentationFile> Files { get; set; } = [];
 
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }

@@ -516,6 +516,10 @@ public static class ChangelogContent
                 + "und führst sie live vor; wer zuschauen darf, sieht oben auf der Seite einen Hinweis. Sichtbar sind "
                 + "sie für alle, für eine Gruppe wie TRU, HRB oder eine Taskforce, oder nur für Eingeladene.",
                 "Präsentationen"),
+            Neu("2.7.03-google-slides-import", "Präsentationen aus Google Slides lassen sich importieren, per "
+                + "Freigabe-Link oder als PDF-Datei. Jede Seite wird eine Folie, sieht aus wie in Google und bleibt "
+                + "auch im Vollbild am Beamer scharf; eine geänderte Fassung holst du mit „Aktualisieren“, deine "
+                + "Notizen bleiben.", "Präsentationen"),
         ]),
     ];
 }

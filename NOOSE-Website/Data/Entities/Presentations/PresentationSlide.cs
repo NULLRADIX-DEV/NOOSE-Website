@@ -30,6 +30,15 @@ public class PresentationSlide : IAuditable, ISoftDelete
     [Column("BildId")]
     public string? ImageId { get; set; }
 
+    /// <summary>Imported deck a Google slide comes from; with <see cref="PageNumber"/> the page it shows.</summary>
+    [Column("PdfDateiId")]
+    public string? PdfFileId { get; set; }
+    public PresentationFile? PdfFile { get; set; }
+
+    /// <summary>Page of <see cref="PdfFile"/>, from 1; also where the notes stay when the deck is refreshed.</summary>
+    [Column("Seite")]
+    public int? PageNumber { get; set; }
+
     /// <summary>Speaker notes; only the presenter's view shows them.</summary>
     [Column("Notizen")]
     public string? Notes { get; set; }

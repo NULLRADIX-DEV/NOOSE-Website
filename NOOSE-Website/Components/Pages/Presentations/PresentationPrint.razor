@@ -4,6 +4,8 @@
 @layout PrintLayout
 @inject IPresentationService Presentations
 @inject IAccessLogService AccessLog
+@inject PresentationScript Script
+@inject IJSRuntime JS
 
 <PageTitle>@(_view is null ? "Druckansicht" : _view.Presentation.Title) · NOOSE</PageTitle>
 
@@ -17,8 +19,10 @@ else if (_view is null)
 }
 else
 {
+    @* Google slides are drawn in the browser first; with any of them the dialog opens only once they are there *@
     <PrintFrame Title="@_view.Presentation.Title" BackHref="@($"/praesentationen/{Id}")" BackText="Zurück zur Präsentation"
-                PrintedBy="@_printedBy" Footer="NOOSE-interne Präsentation · Weitergabe nur nach Freigabe durch die Führung.">
+                PrintedBy="@_printedBy" Footer="NOOSE-interne Präsentation · Weitergabe nur nach Freigabe durch die Führung."
+                AutomaticPrint="@(GoogleSlides == 0)">
         <section>
             <table class="druck-felder">
                 <tbody>
@@ -32,7 +36,7 @@ else
         {
             var slide = _view.Slides[i];
             <section class="praesentation-druck">
-                <SlideView Slide="slide" Number="@(i + 1)" />
+                <SlideView Slide="slide" Number="@(i + 1)" Eager="true" />
                 @if (_view.MayManage && !string.IsNullOrWhiteSpace(slide.Notes))
                 {
                     <p class="praesentation-druck-notiz"><b>Notizen:</b> @slide.Notes</p>
@@ -47,8 +51,12 @@ else
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _loading = true;
+    private bool _printStarted;
     private string? _printedBy;
     private PresentationView? _view;
+
+    // the slides SlideView draws from a PDF
+    private int GoogleSlides => _view?.Slides.Count(s => s.Layout == SlideLayout.PdfPage && s.PdfFileId is not null && s.PageNumber > 0) ?? 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -60,5 +68,24 @@ else
             await AccessLog.LogViewAsync(nameof(Presentation), Id);
         }
         _loading = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_printStarted || _view is null || GoogleSlides == 0)
+        {
+            return;
+        }
+        _printStarted = true;
+        try
+        {
+            // after a while the dialog opens anyway; a slide that never comes shows its note
+            await Script.WhenDrawnAsync(GoogleSlides, TimeSpan.FromSeconds(45));
+            await JS.InvokeVoidAsync("window.print");
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or TaskCanceledException)
+        {
+            /* the button prints by hand */
+        }
     }
 }

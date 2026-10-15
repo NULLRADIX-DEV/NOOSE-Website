@@ -5,8 +5,8 @@
 
 <MudGrid>
     <MudItem xs="12" md="7">
-        <MudTextField @bind-Value="Input.Title" Label="Titel" Required="true" RequiredError="Titel ist erforderlich"
-                      MaxLength="200" Variant="Variant.Outlined" />
+        <MudTextField @bind-Value="Input.Title" Label="@(TitleOptional ? "Titel (leer = Titel aus Google)" : "Titel")"
+                      Required="@(!TitleOptional)" RequiredError="Titel ist erforderlich" MaxLength="200" Variant="Variant.Outlined" />
     </MudItem>
     <MudItem xs="12">
         <MudTextField @bind-Value="Input.Description" Label="Beschreibung (optional)" Lines="2" MaxLength="2000"
@@ -77,6 +77,9 @@
 @code {
     [Parameter, EditorRequired] public PresentationInput Input { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    /// <summary>An import takes the deck's own title when none is typed.</summary>
+    [Parameter] public bool TitleOptional { get; set; }
 
     private bool _leadership;
     private List<AnnouncementAudience> _audiences = [];
