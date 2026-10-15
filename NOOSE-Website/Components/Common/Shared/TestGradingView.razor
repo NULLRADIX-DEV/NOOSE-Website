@@ -1,0 +1,191 @@
+@using NOOSE_Website.Models.Abstractions
+
+@* The grading block of a completed attempt, shared by applicant and agent tests. Stateless: the owner
+   loads, writes and reloads on its broadcast. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="mb-2">
+    <MudText Typo="Typo.subtitle2">
+        @Evaluation.Title · abgeschlossen am @Attempt.CompletedAt!.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+    </MudText>
+    @if (Attempt.TimedOut)
+    {
+        @* Warning, never Error: Error is already the failed-verdict colour two chips along *@
+        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled"
+                 Icon="@Icons.Material.Filled.TimerOff">Zeit abgelaufen</MudChip>
+    }
+    @if (Bearbeitungsdauer is { Length: > 0 } dauer)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                 Icon="@Icons.Material.Filled.Timer">@dauer</MudChip>
+    }
+    @if (Attempt.AttemptCount > 1)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+            @Attempt.AttemptCount. Versuch
+        </MudChip>
+    }
+    <MudSpacer />
+    @if (Evaluation.GradedAt is null && Evaluation.OpenCount > 0)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+            @(Evaluation.Items.Count - Evaluation.OpenCount) von @Evaluation.Items.Count korrigiert
+        </MudChip>
+    }
+    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+        @Evaluation.TotalPoints / @Evaluation.MaxPoints Punkte (@Evaluation.Percent %)
+    </MudChip>
+    @if (Evaluation.Passed is true)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Bestanden (≥@Evaluation.PassPercent %)</MudChip>
+    }
+    else if (Evaluation.Passed is false)
+    {
+        <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.Cancel">Nicht bestanden (≥@Evaluation.PassPercent %)</MudChip>
+    }
+</MudStack>
+
+@if (Attempt.TimedOut)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+        Die Bearbeitungszeit war abgelaufen. Abgegeben wurde automatisch, was @Subject bis dahin
+        eingetragen hatte — leere Antworten sind hier nicht zwingend Wissenslücken.
+    </MudAlert>
+}
+
+@if (Evaluation.GradedAt is not null)
+{
+    @* once the grading is closed the single questions are noise; the result is the statement *@
+    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+        Korrektur abgeschlossen am @Evaluation.GradedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")@(string.IsNullOrWhiteSpace(Evaluation.GradedByName) ? "" : " von " + Evaluation.GradedByName).
+    </MudAlert>
+    @if (CanWrite)
+    {
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.LockOpen" OnClick="OnReopen" Disabled="Busy">
+            Korrektur wieder öffnen
+        </MudButton>
+    }
+}
+else
+{
+    <MudStack Spacing="2">
+        @foreach (var (item, i) in Evaluation.Items.Select((x, i) => (x, i + 1)))
+        {
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2"><b>@i. @item.Prompt</b></MudText>
+                    <MudSpacer />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.AwardedPoints / @item.Points P.</MudText>
+                </MudStack>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-1">
+                    @if (item.EffectiveCorrect is true)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
+                    }
+                    else if (item.EffectiveCorrect is false)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" Size="Size.Small" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Default" Size="Size.Small" />
+                    }
+                    <MudText Typo="Typo.body2">@(string.IsNullOrWhiteSpace(item.AnswerText) ? "— keine Antwort —" : item.AnswerText)</MudText>
+                    @if (item.ManualCorrect is not null)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">manuell</MudChip>
+                    }
+                </MudStack>
+
+                @if (item.EffectiveCorrect is not true && !string.IsNullOrWhiteSpace(item.CorrectAnswer))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Richtig: @item.CorrectAnswer</MudText>
+                }
+
+                @if (item.Type == TestQuestionType.FreeText && (item.MatchedKeywords.Count > 0 || item.MissedKeywords.Count > 0))
+                {
+                    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-1">
+                        @foreach (var k in item.MatchedKeywords)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Check">@k</MudChip>
+                        }
+                        @foreach (var k in item.MissedKeywords)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Close">@k</MudChip>
+                        }
+                    </MudStack>
+                }
+
+                @if (CanWrite)
+                {
+                    @* keyed on the question, so a question added after the submission is gradeable too *@
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-2" Wrap="Wrap.Wrap">
+                        <MudNumericField T="int?" Value="@item.ManualPoints"
+                                         ValueChanged="@(v => OnSetPoints.InvokeAsync((item.QuestionId, v)))"
+                                         Label="Punkte" Min="0" Max="@item.Points" Clearable="true"
+                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                         Style="max-width:130px;" Disabled="Busy" />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">von @item.Points</MudText>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                                   StartIcon="@Icons.Material.Filled.AutoFixHigh" Disabled="Busy"
+                                   OnClick="@(() => OnSetPoints.InvokeAsync((item.QuestionId, (int?)null)))">Auto</MudButton>
+                        @if (!item.IsGraded)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                                noch offen
+                            </MudChip>
+                        }
+                    </MudStack>
+                }
+            </MudPaper>
+        }
+    </MudStack>
+
+    @if (CanWrite)
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-3" Wrap="Wrap.Wrap">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.TaskAlt" OnClick="OnComplete"
+                       Disabled="@(Busy || Evaluation.OpenCount > 0)">
+                Als korrigiert markieren
+            </MudButton>
+            @if (Evaluation.OpenCount > 0)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Noch @Evaluation.OpenCount Frage(n) ohne Wertung.
+                </MudText>
+            }
+        </MudStack>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public TestEvaluation Evaluation { get; set; } = default!;
+    [Parameter, EditorRequired] public ITestAttempt Attempt { get; set; } = default!;
+    [Parameter] public bool CanWrite { get; set; }
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>Who filled the test in, for the timed-out notice.</summary>
+    [Parameter] public string Subject { get; set; } = "der Bewerber";
+
+    [Parameter] public EventCallback<(string QuestionId, int? Points)> OnSetPoints { get; set; }
+    [Parameter] public EventCallback OnComplete { get; set; }
+    [Parameter] public EventCallback OnReopen { get; set; }
+
+    /// <summary>No data, no chip: an attempt assigned before the clock existed has no start.</summary>
+    /// <remarks>The denominator is dropped once time was granted: after a rescue extension the span from the
+    /// start to the hand-in also covers the hours the attempt sat expired, so the two are not comparable.</remarks>
+    private string Bearbeitungsdauer
+    {
+        get
+        {
+            if (TestDeadline.UsedMinutes(Attempt.StartedAt, Attempt.CompletedAt) is not { } used)
+            {
+                return string.Empty;
+            }
+            return Attempt.ExtraMinutes == 0 && TestDeadline.AllowedMinutes(Attempt) is { } allowed
+                ? $"Bearbeitungsdauer: {used} von {allowed} Min"
+                : $"Bearbeitungsdauer: {used} Min";
+        }
+    }
+}

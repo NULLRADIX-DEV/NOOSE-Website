@@ -9,87 +9,6 @@
 
 <PageTitle>Eignungstest · NOOSE</PageTitle>
 
-<style>
-    /* Deterrent, not protection: the prompts are in the DOM either way. */
-    .noose-pruefung {
-        user-select: none;
-        -webkit-user-select: none;
-        position: relative;
-        /* clips the rotated watermark layer to the questions */
-        overflow: hidden;
-    }
-    /* The applicant must still be able to edit their own free-text answer. */
-    .noose-pruefung input,
-    .noose-pruefung textarea {
-        user-select: text;
-        -webkit-user-select: text;
-    }
-    .noose-pruefung-wasserzeichen {
-        position: absolute;
-        /* oversized so the rotated layer still covers every corner */
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        z-index: 3;
-        pointer-events: none;
-        display: flex;
-        flex-wrap: wrap;
-        align-content: center;
-        justify-content: center;
-        gap: 48px 64px;
-        transform: rotate(-30deg);
-        transform-origin: center;
-        opacity: 0.08;
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        white-space: nowrap;
-        color: var(--mud-palette-text-primary);
-    }
-    /* Sibling of .noose-pruefung, never a child: that div is overflow:hidden, which breaks position:sticky. */
-    .noose-pruefung-leiste {
-        position: sticky;
-        /* not 0: the portal shell has no app bar, and flush against the edge the bar reads as detached */
-        top: 8px;
-        /* above the watermark layer */
-        z-index: 5;
-        display: flex;
-        align-items: center;
-        gap: 8px 12px;
-        flex-wrap: wrap;
-        padding: 8px 12px;
-        /* opaque, or the questions scroll through it */
-        background: var(--mud-palette-surface);
-        border: 1px solid var(--mud-palette-lines-default);
-        border-radius: 8px;
-        box-shadow: var(--mud-elevation-4);
-    }
-    .noose-nur-vorlesen {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        margin: -1px;
-        padding: 0;
-        border: 0;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-    }
-    .noose-restzeit-kritisch { animation: noose-restzeit-puls 1s ease-in-out infinite; }
-    @@keyframes noose-restzeit-puls { 50% { opacity: 0.55; } }
-    @@media (prefers-reduced-motion: reduce) {
-        /* colour, fill and the mm:ss value carry the state; the pulse is redundancy */
-        .noose-restzeit-kritisch { animation: none; }
-    }
-    .noose-pruefung-druckhinweis { display: none; }
-    @@media print {
-        .noose-pruefung { display: none !important; }
-        .noose-pruefung-leiste { display: none !important; }
-        .noose-pruefung-druckhinweis { display: block !important; }
-    }
-</style>
-
 @if (_ready)
 {
     <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
@@ -157,71 +76,8 @@
                                        OnExpired="OnExpiredAsync" OnFiveMinutes="OnFiveMinutes" />
                 </div>
 
-                <div id="@ContainerId" class="noose-pruefung"
-                     @oncopy:preventDefault="true" @oncut:preventDefault="true"
-                     @oncontextmenu:preventDefault="true" @ondragstart:preventDefault="true">
-                <div class="noose-pruefung-wasserzeichen" aria-hidden="true">
-                    @for (var i = 0; i < 40; i++)
-                    {
-                        <span>@Watermark</span>
-                    }
-                </div>
-                @foreach (var (q, index) in _test.Questions.Select((q, i) => (q, i + 1)))
-                {
-                    <MudPaper Outlined="true" Class="pa-4">
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">
-                            @index. @q.Prompt @(q.Required ? "*" : "")
-                        </MudText>
-
-                        @switch (q.Type)
-                        {
-                            case TestQuestionType.MultipleChoice:
-                                if (q.AllowMultiple)
-                                {
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-1">
-                                        Mehrere Antworten möglich.
-                                    </MudText>
-                                    foreach (var o in q.Options)
-                                    {
-                                        var optionId = o.OptionId;
-                                        <MudCheckBox T="bool" Dense="true" Label="@o.Label" Disabled="_expiring"
-                                                     Value="@Ticked(q.QuestionId).Contains(optionId)"
-                                                     ValueChanged="@(v => Tick(q.QuestionId, optionId, v))" />
-                                    }
-                                }
-                                else
-                                {
-                                    <MudRadioGroup T="string" Value="@_choice.GetValueOrDefault(q.QuestionId)"
-                                                   ValueChanged="@(v => Set(_choice, q.QuestionId, v))">
-                                        @foreach (var o in q.Options)
-                                        {
-                                            <MudRadio T="string" Value="@o.OptionId" Disabled="_expiring">@o.Label</MudRadio>
-                                        }
-                                    </MudRadioGroup>
-                                }
-                                break;
-
-                            case TestQuestionType.YesNo:
-                                <MudRadioGroup T="string" Value="@_text.GetValueOrDefault(q.QuestionId)"
-                                               ValueChanged="@(v => Set(_text, q.QuestionId, v))">
-                                    <MudRadio T="string" Value="@("Ja")" Disabled="_expiring">Ja</MudRadio>
-                                    <MudRadio T="string" Value="@("Nein")" Disabled="_expiring">Nein</MudRadio>
-                                </MudRadioGroup>
-                                break;
-
-                            default:
-                                @* Immediate with a debounce, and the debounce is load-bearing: without Immediate
-                                   the field only updates on blur, so text typed and never left would be lost at
-                                   the deadline. Without the interval it would write on every keystroke. *@
-                                <MudTextField T="string" Value="@_text.GetValueOrDefault(q.QuestionId)"
-                                              ValueChanged="@(v => Set(_text, q.QuestionId, v))"
-                                              Immediate="true" DebounceInterval="1500" Disabled="_expiring"
-                                              Variant="Variant.Outlined" Lines="3" />
-                                break;
-                        }
-                    </MudPaper>
-                }
-                </div>
+                <TestQuestionnaire @ref="_questionnaire" Questions="_test.Questions" Watermark="@Watermark"
+                                   Disabled="_expiring" ContainerId="@ContainerId" />
 
                 @if (_expiring)
                 {
@@ -252,46 +108,16 @@
     private bool _ready;
     private bool _busy;
     private bool _expiring;
-    private bool _dirty;
     private TestStatusView? _status;
     private TestView? _test;
-    private readonly Dictionary<string, string> _choice = new();
-    private readonly Dictionary<string, HashSet<string>> _ticked = new();
-    private readonly Dictionary<string, string> _text = new();
+    private TestQuestionnaire? _questionnaire;
 
     private string Title => _test?.Title ?? _status?.Title ?? string.Empty;
     private string? Description => _test?.Description ?? _status?.Description;
     private bool Completed => _test?.Completed ?? _status?.Completed ?? false;
     private bool TimedOut => _test?.TimedOut ?? _status?.TimedOut ?? false;
 
-    private bool IsDirty() => _dirty;
-
-    private HashSet<string> Ticked(string questionId)
-        => _ticked.TryGetValue(questionId, out var set) ? set : [];
-
-    private void Set(Dictionary<string, string> target, string questionId, string value)
-    {
-        target[questionId] = value;
-        _dirty = true;
-    }
-
-    private void Tick(string questionId, string optionId, bool on)
-    {
-        if (!_ticked.TryGetValue(questionId, out var set))
-        {
-            set = [];
-            _ticked[questionId] = set;
-        }
-        if (on)
-        {
-            set.Add(optionId);
-        }
-        else
-        {
-            set.Remove(optionId);
-        }
-        _dirty = true;
-    }
+    private bool IsDirty() => _questionnaire?.IsDirty() ?? false;
 
     private const string ContainerId = "noose-pruefung-bogen";
     private IJSObjectReference? _module;
@@ -339,28 +165,6 @@
         {
             return;
         }
-        _choice.Clear();
-        _ticked.Clear();
-        _text.Clear();
-        foreach (var q in _test.Questions)
-        {
-            if (q.Type == TestQuestionType.MultipleChoice)
-            {
-                if (q.AllowMultiple)
-                {
-                    _ticked[q.QuestionId] = q.SavedOptionIds.ToHashSet(StringComparer.Ordinal);
-                }
-                else if (q.SavedOptionIds.FirstOrDefault() is { Length: > 0 } one)
-                {
-                    _choice[q.QuestionId] = one;
-                }
-            }
-            else if (q.SavedFreeText is { Length: > 0 } saved)
-            {
-                _text[q.QuestionId] = saved;
-            }
-        }
-        _dirty = false;
         _protectionTried = false;
     }
 
@@ -383,7 +187,7 @@
     /// <summary>Flushes the draft; the status bar re-reads the deadline from the result.</summary>
     private async Task<TestDraftResult> SaveDraftAsync()
     {
-        _dirty = false;
+        _questionnaire?.MarkClean();
         TestDraftResult result;
         try
         {
@@ -392,7 +196,7 @@
         catch
         {
             // still unsaved, so the next flush must carry these edits again
-            _dirty = true;
+            _questionnaire?.MarkDirty();
             throw;
         }
         if (result.Outcome == TestDraftOutcome.Closed)
@@ -422,33 +226,14 @@
     /// <summary>Saves before leaving, so the last edits are not lost to the ten-second cadence.</summary>
     private async Task LeaveAsync()
     {
-        if (_test?.DeadlineAt is not null && _dirty)
+        if (_test?.DeadlineAt is not null && IsDirty())
         {
             try { await SaveDraftAsync(); } catch { /* best effort */ }
         }
         Nav.NavigateTo("/portal/status");
     }
 
-    private List<TestAnswerInput> Collect()
-    {
-        var answers = new List<TestAnswerInput>();
-        foreach (var q in _test!.Questions)
-        {
-            var input = new TestAnswerInput { QuestionId = q.QuestionId };
-            if (q.Type == TestQuestionType.MultipleChoice)
-            {
-                input.SelectedOptionIds = q.AllowMultiple
-                    ? Ticked(q.QuestionId).ToList()
-                    : _choice.GetValueOrDefault(q.QuestionId) is { Length: > 0 } one ? [one] : [];
-            }
-            else
-            {
-                input.FreeText = _text.GetValueOrDefault(q.QuestionId);
-            }
-            answers.Add(input);
-        }
-        return answers;
-    }
+    private List<TestAnswerInput> Collect() => _questionnaire?.Collect() ?? [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -495,16 +280,10 @@
         if (!auto)
         {
             // the applicant's own safety net; the automatic hand-in must never be stopped by it
-            foreach (var q in _test.Questions.Where(q => q.Required))
+            if (_questionnaire is not null && !_questionnaire.AllRequiredAnswered())
             {
-                var answered = q.Type == TestQuestionType.MultipleChoice
-                    ? (q.AllowMultiple ? Ticked(q.QuestionId).Count > 0 : _choice.ContainsKey(q.QuestionId))
-                    : !string.IsNullOrWhiteSpace(_text.GetValueOrDefault(q.QuestionId));
-                if (!answered)
-                {
-                    Snackbar.Add("Bitte beantworte alle Pflichtfragen.", Severity.Warning);
-                    return;
-                }
+                Snackbar.Add("Bitte beantworte alle Pflichtfragen.", Severity.Warning);
+                return;
             }
         }
 

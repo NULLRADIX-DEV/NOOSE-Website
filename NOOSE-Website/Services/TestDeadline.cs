@@ -1,4 +1,4 @@
-using NOOSE_Website.Data.Entities.Recruiting;
+using NOOSE_Website.Models.Abstractions;
 
 namespace NOOSE_Website.Services;
 
@@ -45,11 +45,11 @@ public static class TestDeadline
     /// <summary>Minutes a started attempt was granted in total, extension included.</summary>
     /// <remarks>TimeLimitMinutes is the base frozen at the start and an extension never rewrites it, so the
     /// two columns add up exactly once.</remarks>
-    public static int? AllowedMinutes(BewerbungTestAssignment assignment)
+    public static int? AllowedMinutes(ITestAttempt assignment)
         => assignment.TimeLimitMinutes is { } minutes ? minutes + assignment.ExtraMinutes : null;
 
     /// <summary>Same, but before the start, where the base still comes from the test.</summary>
-    public static int? AllowedMinutes(BewerbungTestAssignment assignment, int? testMinutes)
+    public static int? AllowedMinutes(ITestAttempt assignment, int? testMinutes)
         => (assignment.TimeLimitMinutes ?? Clamp(testMinutes)) is { } baseMinutes
             ? baseMinutes + assignment.ExtraMinutes
             : null;
@@ -63,7 +63,7 @@ public static class TestDeadline
     /// <summary>A running attempt blocks structural edits to its test; deliberately bounded by the deadline.</summary>
     /// <remarks>An attempt without a limit is never "live" here. Otherwise a started but never submitted
     /// attempt would block the test's questions forever, which is worse than today.</remarks>
-    public static bool IsLive(BewerbungTestAssignment assignment, DateTime now)
+    public static bool IsLive(ITestAttempt assignment, DateTime now)
         => assignment is { StartedAt: not null, CompletedAt: null, DeadlineAt: not null }
             && assignment.DeadlineAt.Value > now;
 

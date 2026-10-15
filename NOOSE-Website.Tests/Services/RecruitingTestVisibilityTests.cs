@@ -68,6 +68,9 @@ public class RecruitingTestVisibilityTests
         // which are the applicant's own clock and their own input. Declared rather than inert, so it is
         // scanned like everything else on the surface.
         Path.Combine("Pages", "Portal", "Shared", "PruefungStatusBar.razor"),
+        // the questionnaire of a running attempt, shared with the internal test page: prompts, options and the
+        // taker's own typed answers, never a key or a verdict. Declared so it is scanned like the page was.
+        Path.Combine("Pages", "Portal", "Shared", "TestQuestionnaire.razor"),
     ];
 
     /// <summary>Framework and inert tags that need no decision.</summary>

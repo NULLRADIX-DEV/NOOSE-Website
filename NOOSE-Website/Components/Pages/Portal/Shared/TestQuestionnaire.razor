@@ -1,0 +1,262 @@
+@* The questionnaire of a running attempt, shared by the applicant portal and the internal test page. It holds
+   the typed answers; the page owns the service calls, the clock and the hand-in. *@
+
+<style>
+    /* Deterrent, not protection: the prompts are in the DOM either way. */
+    .noose-pruefung {
+        user-select: none;
+        -webkit-user-select: none;
+        position: relative;
+        /* clips the rotated watermark layer to the questions */
+        overflow: hidden;
+    }
+    /* The test taker must still be able to edit their own free-text answer. */
+    .noose-pruefung input,
+    .noose-pruefung textarea {
+        user-select: text;
+        -webkit-user-select: text;
+    }
+    .noose-pruefung-wasserzeichen {
+        position: absolute;
+        /* oversized so the rotated layer still covers every corner */
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        z-index: 3;
+        pointer-events: none;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: center;
+        justify-content: center;
+        gap: 48px 64px;
+        transform: rotate(-30deg);
+        transform-origin: center;
+        opacity: 0.08;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+        color: var(--mud-palette-text-primary);
+    }
+    /* Sibling of .noose-pruefung, never a child: that div is overflow:hidden, which breaks position:sticky. */
+    .noose-pruefung-leiste {
+        position: sticky;
+        /* not 0: flush against the edge the bar reads as detached */
+        top: 8px;
+        /* above the watermark layer */
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 8px 12px;
+        flex-wrap: wrap;
+        padding: 8px 12px;
+        /* opaque, or the questions scroll through it */
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+        border-radius: 8px;
+        box-shadow: var(--mud-elevation-4);
+    }
+    .noose-nur-vorlesen {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        padding: 0;
+        border: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .noose-restzeit-kritisch { animation: noose-restzeit-puls 1s ease-in-out infinite; }
+    @@keyframes noose-restzeit-puls { 50% { opacity: 0.55; } }
+    @@media (prefers-reduced-motion: reduce) {
+        /* colour, fill and the mm:ss value carry the state; the pulse is redundancy */
+        .noose-restzeit-kritisch { animation: none; }
+    }
+    .noose-pruefung-druckhinweis { display: none; }
+    @@media print {
+        .noose-pruefung { display: none !important; }
+        .noose-pruefung-leiste { display: none !important; }
+        .noose-pruefung-druckhinweis { display: block !important; }
+    }
+</style>
+
+<div id="@ContainerId" class="noose-pruefung"
+     @oncopy:preventDefault="true" @oncut:preventDefault="true"
+     @oncontextmenu:preventDefault="true" @ondragstart:preventDefault="true">
+    <div class="noose-pruefung-wasserzeichen" aria-hidden="true">
+        @for (var i = 0; i < 40; i++)
+        {
+            <span>@Watermark</span>
+        }
+    </div>
+    @foreach (var (q, index) in Questions.Select((q, i) => (q, i + 1)))
+    {
+        <MudPaper Outlined="true" Class="pa-4">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">
+                @index. @q.Prompt @(q.Required ? "*" : "")
+            </MudText>
+
+            @switch (q.Type)
+            {
+                case TestQuestionType.MultipleChoice:
+                    if (q.AllowMultiple)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-1">
+                            Mehrere Antworten möglich.
+                        </MudText>
+                        foreach (var o in q.Options)
+                        {
+                            var optionId = o.OptionId;
+                            <MudCheckBox T="bool" Dense="true" Label="@o.Label" Disabled="Disabled"
+                                         Value="@Ticked(q.QuestionId).Contains(optionId)"
+                                         ValueChanged="@(v => Tick(q.QuestionId, optionId, v))" />
+                        }
+                    }
+                    else
+                    {
+                        <MudRadioGroup T="string" Value="@_choice.GetValueOrDefault(q.QuestionId)"
+                                       ValueChanged="@(v => Set(_choice, q.QuestionId, v))">
+                            @foreach (var o in q.Options)
+                            {
+                                <MudRadio T="string" Value="@o.OptionId" Disabled="Disabled">@o.Label</MudRadio>
+                            }
+                        </MudRadioGroup>
+                    }
+                    break;
+
+                case TestQuestionType.YesNo:
+                    <MudRadioGroup T="string" Value="@_text.GetValueOrDefault(q.QuestionId)"
+                                   ValueChanged="@(v => Set(_text, q.QuestionId, v))">
+                        <MudRadio T="string" Value="@("Ja")" Disabled="Disabled">Ja</MudRadio>
+                        <MudRadio T="string" Value="@("Nein")" Disabled="Disabled">Nein</MudRadio>
+                    </MudRadioGroup>
+                    break;
+
+                default:
+                    @* Immediate with a debounce, and the debounce is load-bearing: without Immediate
+                       the field only updates on blur, so text typed and never left would be lost at
+                       the deadline. Without the interval it would write on every keystroke. *@
+                    <MudTextField T="string" Value="@_text.GetValueOrDefault(q.QuestionId)"
+                                  ValueChanged="@(v => Set(_text, q.QuestionId, v))"
+                                  Immediate="true" DebounceInterval="1500" Disabled="Disabled"
+                                  Variant="Variant.Outlined" Lines="3" />
+                    break;
+            }
+        </MudPaper>
+    }
+</div>
+
+@code {
+    /// <summary>The questions with the saved draft; a new list resets the typed state.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TestQuestionView> Questions { get; set; } = default!;
+
+    /// <summary>Traceability, not prevention: a leaked screenshot points back at one person.</summary>
+    [Parameter] public string Watermark { get; set; } = string.Empty;
+
+    [Parameter] public bool Disabled { get; set; }
+
+    /// <summary>Element id the copy guard in pruefung.js attaches to.</summary>
+    [Parameter] public string ContainerId { get; set; } = "noose-pruefung-bogen";
+
+    private IReadOnlyList<TestQuestionView>? _loaded;
+    private bool _dirty;
+    private readonly Dictionary<string, string> _choice = new();
+    private readonly Dictionary<string, HashSet<string>> _ticked = new();
+    private readonly Dictionary<string, string> _text = new();
+
+    protected override void OnParametersSet()
+    {
+        // only a fresh questionnaire reseeds: a re-render must not throw away what was typed
+        if (ReferenceEquals(_loaded, Questions))
+        {
+            return;
+        }
+        _loaded = Questions;
+        _choice.Clear();
+        _ticked.Clear();
+        _text.Clear();
+        foreach (var q in Questions)
+        {
+            if (q.Type == TestQuestionType.MultipleChoice)
+            {
+                if (q.AllowMultiple)
+                {
+                    _ticked[q.QuestionId] = q.SavedOptionIds.ToHashSet(StringComparer.Ordinal);
+                }
+                else if (q.SavedOptionIds.FirstOrDefault() is { Length: > 0 } one)
+                {
+                    _choice[q.QuestionId] = one;
+                }
+            }
+            else if (q.SavedFreeText is { Length: > 0 } saved)
+            {
+                _text[q.QuestionId] = saved;
+            }
+        }
+        _dirty = false;
+    }
+
+    /// <summary>Whether input changed since the last save. A plain call, so asking costs no render.</summary>
+    public bool IsDirty() => _dirty;
+
+    public void MarkClean() => _dirty = false;
+
+    public void MarkDirty() => _dirty = true;
+
+    /// <summary>The page's own safety net before a manual hand-in; the automatic one never asks.</summary>
+    public bool AllRequiredAnswered()
+        => Questions.Where(q => q.Required).All(q => q.Type == TestQuestionType.MultipleChoice
+            ? (q.AllowMultiple ? Ticked(q.QuestionId).Count > 0 : _choice.ContainsKey(q.QuestionId))
+            : !string.IsNullOrWhiteSpace(_text.GetValueOrDefault(q.QuestionId)));
+
+    /// <summary>The typed answers in the shape the services accept.</summary>
+    public List<TestAnswerInput> Collect()
+    {
+        var answers = new List<TestAnswerInput>();
+        foreach (var q in Questions)
+        {
+            var input = new TestAnswerInput { QuestionId = q.QuestionId };
+            if (q.Type == TestQuestionType.MultipleChoice)
+            {
+                input.SelectedOptionIds = q.AllowMultiple
+                    ? Ticked(q.QuestionId).ToList()
+                    : _choice.GetValueOrDefault(q.QuestionId) is { Length: > 0 } one ? [one] : [];
+            }
+            else
+            {
+                input.FreeText = _text.GetValueOrDefault(q.QuestionId);
+            }
+            answers.Add(input);
+        }
+        return answers;
+    }
+
+    private HashSet<string> Ticked(string questionId)
+        => _ticked.TryGetValue(questionId, out var set) ? set : [];
+
+    private void Set(Dictionary<string, string> target, string questionId, string value)
+    {
+        target[questionId] = value;
+        _dirty = true;
+    }
+
+    private void Tick(string questionId, string optionId, bool on)
+    {
+        if (!_ticked.TryGetValue(questionId, out var set))
+        {
+            set = [];
+            _ticked[questionId] = set;
+        }
+        if (on)
+        {
+            set.Add(optionId);
+        }
+        else
+        {
+            set.Remove(optionId);
+        }
+        _dirty = true;
+    }
+}
