@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Text;
+using NOOSE_Website.Services;
 using NOOSE_Website.Services.Import;
 
 namespace NOOSE_Website.Tests.Services.Import;
@@ -139,6 +140,144 @@ public class GoogleDocConverterTests
         Assert.DoesNotContain("font-weight", result.EditableHtml);
         Assert.Contains("Zwischentext", result.EditableHtml);
         Assert.Contains("<table", result.EditableHtml);
+    }
+
+    // ---------- review fixes ----------
+
+    private static Task<GoogleDocConversion> ConvertHtmlAsync(string html)
+        => GoogleDocConverter.ConvertAsync(html, new Dictionary<string, ImportedImage>(),
+            _ => Task.FromResult<string?>(null));
+
+    [Fact]
+    public void A_quoted_value_cannot_smuggle_live_css_past_the_import_profile()
+    {
+        var html = HtmlCleanup.CleanImported(
+            "<p style=\"font-family:&quot;url(a);background-image:image-set('https://evil.example/t.png' 1x);x:&quot;\">t</p>"
+            + "<p style=\"font-family:&quot;url(b);position:/**/fixed;z-index:9999;x:&quot;\">u</p>"
+            + "<p style=\"color:#ff0000;font-family:Lato\">v</p>");
+
+        Assert.DoesNotContain("evil.example", html);
+        Assert.DoesNotContain("image-set", html);
+        Assert.DoesNotContain("fixed", html);
+        Assert.DoesNotContain("z-index", html);
+        Assert.Contains("Lato", html);
+        Assert.Matches(@"color:\s*(#ff0000|rgba?\(255,\s*0,\s*0)", html);
+    }
+
+    [Fact]
+    public async Task Many_rules_each_reach_exactly_their_elements()
+    {
+        const int rules = 3_000;
+        var css = string.Concat(Enumerable.Range(0, rules).Select(i => $".x{i}{{margin-left:{i}px}}"));
+        var body = string.Concat(Enumerable.Range(0, rules).Select(i => $"<p class=\"x{i}\">p{i}</p>"));
+
+        var result = await ConvertHtmlAsync($"<html><head><style>{css}</style></head><body>{body}</body></html>");
+
+        Assert.Matches(@"margin-left:\s*2999px[^""]*"">p2999<", result.OriginalHtml);
+        Assert.Matches(@"margin-left:\s*17px[^""]*"">p17<", result.OriginalHtml);
+    }
+
+    [Fact]
+    public async Task Exports_past_the_caps_are_refused()
+    {
+        var rules = string.Concat(Enumerable.Range(0, GoogleDocConverter.MaxRules + 1).Select(i => $".x{i}{{color:red}}"));
+
+        await Assert.ThrowsAsync<GoogleExportException>(
+            () => ConvertHtmlAsync($"<html><head><style>{rules}</style></head><body><p>x</p></body></html>"));
+        await Assert.ThrowsAsync<GoogleExportException>(
+            () => ConvertHtmlAsync("<p>" + new string('x', GoogleDocConverter.MaxHtmlChars) + "</p>"));
+    }
+
+    [Fact]
+    public async Task Child_and_descendant_selectors_still_apply()
+    {
+        var result = await ConvertHtmlAsync(
+            "<html><head><style>.a>p{color:#ff0000}.b span{font-weight:700}ol.c.d{margin-left:12pt}</style></head><body>"
+            + "<div class=\"a\"><p>rot</p></div><p>nicht</p><div class=\"b\"><p><span>fett</span></p></div>"
+            + "<ol class=\"c d\"><li>x</li></ol></body></html>");
+
+        Assert.Matches(@"<p style=""color:\s*(#ff0000|rgba?\(255,\s*0,\s*0)[^""]*"">rot", result.OriginalHtml);
+        Assert.Matches(@"<p>nicht", result.OriginalHtml);
+        Assert.Matches(@"font-weight:\s*(700|bold)[^""]*"">fett", result.OriginalHtml);
+        Assert.Contains("12pt", result.OriginalHtml);
+    }
+
+    [Fact]
+    public async Task Rules_inside_a_media_block_are_not_folded()
+    {
+        var result = await ConvertHtmlAsync(
+            "<html><head><style>.c1{color:#ff0000}@media print{.c1{color:#00ff00}}</style></head>"
+            + "<body><p class=\"c1\">x</p></body></html>");
+
+        Assert.Matches(@"color:\s*(#ff0000|rgba?\(255,\s*0,\s*0)", result.OriginalHtml);
+        Assert.DoesNotMatch(@"#00ff00|rgba?\(0,\s*255,\s*0", result.OriginalHtml);
+    }
+
+    [Fact]
+    public async Task A_later_shorthand_overrides_an_earlier_longhand()
+    {
+        var result = await ConvertHtmlAsync(
+            "<html><head><style>p{margin:0}.c1{margin-left:36pt}</style></head>"
+            + "<body><p class=\"c1\" style=\"margin:5px\">x</p></body></html>");
+
+        var style = System.Text.RegularExpressions.Regex.Match(result.OriginalHtml, @"<p style=""([^""]*)""").Groups[1].Value;
+        var shorthand = System.Text.RegularExpressions.Regex.Matches(style, @"margin:\s*5px").LastOrDefault()?.Index ?? -1;
+        Assert.True(shorthand >= 0 && style.LastIndexOf("36pt", StringComparison.Ordinal) < shorthand, style);
+    }
+
+    [Fact]
+    public async Task Google_start_numbers_and_restart_bases_are_kept()
+    {
+        var result = await ConvertHtmlAsync(
+            "<html><head><style>ol.lst-kix_a-0.start{counter-reset:lst-ctn-kix_a-0 4}ol.lst-kix_b-0.start{counter-reset:lst-ctn-kix_b-0 4}</style></head><body>"
+            + "<ol class=\"lst-kix_a-0 start\" start=\"5\"><li>E</li><li>F</li></ol><p>x</p><ol class=\"lst-kix_a-0\" start=\"7\"><li>G</li></ol>"
+            + "<ol class=\"lst-kix_b-0 start\"><li>E</li></ol><p>y</p><ol class=\"lst-kix_b-0\"><li>F</li></ol>"
+            + "</body></html>");
+
+        var starts = System.Text.RegularExpressions.Regex.Matches(result.OriginalHtml, @"start=""(\d+)""")
+            .Select(m => m.Groups[1].Value).ToList();
+        Assert.Equal(["5", "7", "5", "6"], starts);
+    }
+
+    [Fact]
+    public async Task The_editable_copy_keeps_the_list_hierarchy_in_one_list()
+    {
+        var result = await ConvertHtmlAsync(
+            "<html><body><ol class=\"lst-kix_a-0 start\"><li>A</li><li>B</li></ol>"
+            + "<ol class=\"lst-kix_a-1 start\"><li>Ba</li><li>Bb</li></ol><ol class=\"lst-kix_a-0\"><li>C</li></ol></body></html>");
+
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(result.EditableHtml, "<ol"));
+        Assert.Matches(@"<li class=""ql-indent-1"">Ba</li>", result.EditableHtml);
+        Assert.Matches(@"<li>C</li>", result.EditableHtml);
+        Assert.DoesNotContain("data-gdoc", result.EditableHtml);
+        Assert.DoesNotContain("data-gdoc", result.OriginalHtml);
+    }
+
+    [Fact]
+    public async Task The_editable_copy_stays_readable_on_light_fills_and_drops_dark_greys()
+    {
+        var result = await ConvertHtmlAsync(
+            "<html><body><h3 style=\"color:#434343\">Grau</h3>"
+            + "<p><span style=\"background-color:#ffff00;color:#000000\">markiert</span></p>"
+            + "<table><tr><td style=\"background-color:#cfe2f3\"><p><span style=\"color:#000000\">Zelle</span></p></td></tr></table>"
+            + "<p><span style=\"color:#ff0000\">rot</span></p></body></html>");
+
+        Assert.DoesNotMatch(@"rgba?\(67,\s*67,\s*67|#434343", result.EditableHtml);
+        // the highlight stays, and the text on it stays dark whatever the app's own colour
+        Assert.Matches(@"background-color:\s*(#ffff00|rgba?\(255,\s*255,\s*0)[^""]*color:\s*(#1f2328|#000000|rgba?\((31,\s*35,\s*40|0,\s*0,\s*0))", result.EditableHtml);
+        Assert.Matches(@"<td style=""[^""]*color:\s*(#1f2328|rgba?\(31,\s*35,\s*40)", result.EditableHtml);
+        Assert.Matches(@"color:\s*(#ff0000|rgba?\(255,\s*0,\s*0)", result.EditableHtml);
+    }
+
+    [Fact]
+    public async Task The_editable_copy_keeps_footnote_marks_and_hides_page_breaks()
+    {
+        var result = await ConvertHtmlAsync(
+            "<html><body><p>a<sup><a href=\"#ftnt1\" id=\"ftnt_ref1\">[1]</a></sup>b</p>"
+            + "<hr style=\"page-break-before:always;display:none\"><p>Seite 2</p><hr></body></html>");
+
+        Assert.Contains("[1]", result.EditableHtml);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(result.EditableHtml, "<hr"));
     }
 
     [Fact]

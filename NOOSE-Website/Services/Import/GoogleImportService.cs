@@ -71,9 +71,8 @@ public sealed partial class GoogleImportService(
         Permission.RequireWriteAccess(actor);
         Permission.RequireInternalAgent(actor);
         Permission.RequireMayAssignClassification(actor, input.Classification);
-        TakeQuota(actor);
 
-        var (sourceKind, sourceId, zip) = await ResolveSourceAsync(input.Link, input.UploadZip, cancellationToken);
+        var (sourceKind, sourceId, zip) = await ResolveSourceAsync(input.Link, input.UploadZip, actor, cancellationToken);
         var (html, images) = GoogleDocConverter.ReadZip(zip);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -85,8 +84,8 @@ public sealed partial class GoogleImportService(
                 image => StoreImageAsync(db, document.Id, image, saved, cancellationToken));
             RequireContent(conversion);
 
-            document.Title = TestEngine.Trim(input.Title) ?? conversion.Title ?? "Google-Dokument";
-            document.Category = input.Category.TrimToNull();
+            document.Title = Cap(TestEngine.Trim(input.Title) ?? conversion.Title ?? "Google-Dokument", 300);
+            document.Category = input.Category.TrimToNull() is { } category ? Cap(category, 120) : null;
             document.Classification = input.Classification;
             document.ContentHtml = conversion.EditableHtml;
             document.ImportedHtml = input.Mode == GoogleImportMode.Original ? conversion.OriginalHtml : null;
@@ -128,9 +127,7 @@ public sealed partial class GoogleImportService(
         {
             throw new InvalidOperationException("Lade die aktuelle Fassung als Zip hoch („Webseite (.html, gezippt)“).");
         }
-        TakeQuota(actor);
-
-        var (sourceKind, sourceId, zip) = await ResolveSourceAsync(link, uploadZip, cancellationToken);
+        var (sourceKind, sourceId, zip) = await ResolveSourceAsync(link, uploadZip, actor, cancellationToken);
         var (html, images) = GoogleDocConverter.ReadZip(zip);
         var before = await ImageIdsAsync(db, document.Id, cancellationToken);
 
@@ -178,14 +175,16 @@ public sealed partial class GoogleImportService(
     }
 
     /// <summary>The export's bytes and where they came from; a link wins over an upload.</summary>
+    /// <summary>The export's bytes; the quota is taken only once the source is valid, so a mistyped link costs none.</summary>
     private async Task<(ImportSourceKind Kind, string? Id, byte[] Zip)> ResolveSourceAsync(string? link, byte[]? upload,
-        CancellationToken cancellationToken)
+        ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(link))
         {
             var fileId = GoogleLinks.FileId(link, GoogleFileKind.Document)
                 ?? throw new GoogleExportException(
                     "Das ist kein Link auf ein Google-Dokument (https://docs.google.com/document/d/…).");
+            TakeQuota(actor);
             return (ImportSourceKind.Link, fileId, await fetcher.FetchDocumentZipAsync(fileId, cancellationToken));
         }
         if (upload is { Length: > 0 })
@@ -194,6 +193,7 @@ public sealed partial class GoogleImportService(
             {
                 throw new GoogleExportException("Die Datei ist zu groß (höchstens 25 MB).");
             }
+            TakeQuota(actor);
             return (ImportSourceKind.Upload, null, upload);
         }
         throw new InvalidOperationException("Gib einen Freigabe-Link an oder lade die Datei hoch.");
@@ -284,6 +284,8 @@ public sealed partial class GoogleImportService(
     }
 
     /// <summary>Takes one slot of the agent's import quota or refuses.</summary>
+    private static string Cap(string value, int length) => value.Length > length ? value[..length].TrimEnd() : value;
+
     private static void TakeQuota(ClaimsPrincipal actor)
     {
         var key = actor.GetAgentId() ?? string.Empty;

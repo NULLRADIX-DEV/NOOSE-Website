@@ -2346,6 +2346,11 @@ div.vis-tooltip {
         max-width: none;
     }
 
+    /* the table of contents jumps here; without the offset the heading lands under the app bar */
+    .google-import [id] {
+        scroll-margin-top: 88px;
+    }
+
 .google-import-druck {
     box-shadow: none;
     border-radius: 0;

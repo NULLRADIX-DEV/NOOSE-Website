@@ -92,6 +92,27 @@ public sealed class GoogleExportFetcher(IHttpClientFactory httpClientFactory) : 
 
     private async Task<byte[]> FetchAsync(string url, string[] acceptedTypes, CancellationToken cancellationToken)
     {
+        // a network fault or a timeout is Google's state, not a bug: it reaches the page as a message like any refusal
+        try
+        {
+            return await FetchOnceAsync(url, acceptedTypes, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            throw new GoogleExportException("Google ist gerade nicht erreichbar. Versuche es später oder lade die Datei hoch.");
+        }
+        catch (IOException)
+        {
+            throw new GoogleExportException("Die Verbindung zu Google ist abgebrochen. Versuche es später oder lade die Datei hoch.");
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new GoogleExportException("Google hat zu lange gebraucht. Versuche es später oder lade die Datei hoch.");
+        }
+    }
+
+    private async Task<byte[]> FetchOnceAsync(string url, string[] acceptedTypes, CancellationToken cancellationToken)
+    {
         var client = httpClientFactory.CreateClient(ClientName);
         var target = new Uri(url);
         for (var hop = 0; hop <= MaxRedirects; hop++)

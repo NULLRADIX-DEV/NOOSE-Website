@@ -1,13 +1,14 @@
 @using NOOSE_Website.Services.Import
 @inject IGoogleImportService GoogleImport
 @inject ISnackbar Snackbar
+@inject ILogger<GoogleImportDialog> Logger
 
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="3">
             <MudTabs Elevation="0" @bind-ActivePanelIndex="_sourceTab" Class="mb-1">
                 <MudTabPanel Text="Freigabe-Link" Icon="@Icons.Material.Filled.Link">
-                    <MudTextField @bind-Value="_link" Label="Link zum Google-Dokument" Variant="Variant.Outlined"
+                    <MudTextField @bind-Value="_link" Label="Link zum Google-Dokument" Variant="Variant.Outlined" Immediate="true"
                                   Placeholder="https://docs.google.com/document/d/…/edit"
                                   HelperText="In Google: Teilen → Allgemeiner Zugriff → „Jeder mit dem Link“ (Betrachter)." />
                 </MudTabPanel>
@@ -36,8 +37,8 @@
                 </MudRadio>
             </MudRadioGroup>
 
-            <MudTextField @bind-Value="_title" Label="Titel (leer = Titel aus Google)" Variant="Variant.Outlined" />
-            <MudTextField @bind-Value="_category" Label="Kategorie (optional)" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_title" Label="Titel (leer = Titel aus Google)" Variant="Variant.Outlined" MaxLength="300" />
+            <MudTextField @bind-Value="_category" Label="Kategorie (optional)" Variant="Variant.Outlined" MaxLength="120" />
             @if (_classificationOptions.Count > 1)
             {
                 <MudSelect T="DocumentClassification" @bind-Value="_classification" Label="Verschluss-Stufe"
@@ -121,6 +122,13 @@
             Snackbar.Add(ex.Message, Severity.Error);
             _busy = false;
         }
+        catch (Exception ex)
+        {
+            // the dialog sits outside the page's error boundary: anything escaping here would end the circuit
+            Logger.LogError(ex, "Google import failed.");
+            Snackbar.Add("Der Import ist fehlgeschlagen. Versuche es später erneut.", Severity.Error);
+            _busy = false;
+        }
     }
 
     private void Cancel() => MudDialog.Cancel();
@@ -130,7 +138,8 @@
     {
         var parameters = new DialogParameters<GoogleImportDialog> { { x => x.User, user } };
         var reference = await dialog.ShowAsync<GoogleImportDialog>("Aus Google Docs importieren", parameters,
-            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+            // no closing beside the dialog while it imports: the import would finish unseen and invite a second one
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, BackdropClick = false, CloseOnEscapeKey = false });
         var result = await reference.Result;
         return result is { Canceled: false, Data: string id } ? id : null;
     }

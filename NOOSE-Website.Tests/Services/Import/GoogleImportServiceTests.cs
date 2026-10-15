@@ -221,6 +221,50 @@ public sealed class GoogleImportServiceTests
     }
 
     [Fact]
+    public async Task A_mistyped_link_costs_no_quota_and_a_long_title_is_capped()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+        var actor = Agent();
+
+        for (var i = 0; i <= GoogleImportService.QuotaPerWindow; i++)
+        {
+            await Assert.ThrowsAsync<GoogleExportException>(() => svc.ImportDocumentAsync(
+                new GoogleDocImportInput { Link = "https://example.org/not-google" }, actor));
+        }
+        var document = await svc.ImportDocumentAsync(new GoogleDocImportInput
+        {
+            UploadZip = Export("Inhalt", withImage: false), Title = new string('T', 400), Category = new string('K', 200),
+        }, actor);
+
+        Assert.Equal(300, document.Title.Length);
+        Assert.Equal(120, document.Category!.Length);
+    }
+
+    [Fact]
+    public async Task A_locked_editor_cannot_overwrite_a_copy_converted_and_edited_since()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+        var actor = Agent();
+        var document = await svc.ImportDocumentAsync(new GoogleDocImportInput { Link = Link }, actor);
+        var documents = new DocumentService(ctx.Factory);
+
+        await svc.ConvertToEditableAsync(document.Id, actor);
+        await documents.RefreshAsync(document.Id, new DocumentInput { Title = "B", ContentHtml = "<p>Neu von B</p>" }, actor);
+        // tab A still shows the original locked and saves only its title
+        await documents.RefreshAsync(document.Id, new DocumentInput
+        {
+            Title = "A", ContentHtml = "<p>Alte Kopie</p>", KeepContent = true,
+        }, actor);
+
+        using var db = ctx.NewContext();
+        var row = db.Documents.Single(d => d.Id == document.Id);
+        Assert.Equal("A", row.Title);
+        Assert.Contains("Neu von B", row.ContentHtml);
+    }
+
+    [Fact]
     public async Task The_quota_stops_the_eleventh_import_within_the_window()
     {
         using var ctx = new SqliteTestContext();

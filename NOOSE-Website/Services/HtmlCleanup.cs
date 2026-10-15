@@ -138,7 +138,9 @@ public static partial class HtmlCleanup
         s.AllowedClasses.Clear();
         s.AllowedAttributes.Remove("class");
 
-        // a style that leaves the box (fixed/sticky) or loads something (url) has no business in a document
+        // a style that leaves the box (fixed/sticky) or loads something (url) has no business in a document. The
+        // declarations are split quote-aware and dropped whole; editing the serialised text with a pattern let a
+        // quoted value end a match early and turned the rest of the string into live CSS.
         s.PostProcessNode += (_, e) =>
         {
             if (e.Node is not IElement element)
@@ -149,17 +151,17 @@ public static partial class HtmlCleanup
             {
                 element.RemoveAttribute("id");
             }
-            if (element.GetAttribute("style") is { } style
-                && (PinnedPosition().IsMatch(style) || UrlDeclaration().IsMatch(style)))
+            if (element.GetAttribute("style") is { } style)
             {
-                var kept = UrlDeclaration().Replace(PinnedPosition().Replace(style, string.Empty), string.Empty).Trim();
-                if (kept.Length == 0)
+                var declarations = Import.GoogleDocConverter.ParseDeclarations(style);
+                var kept = declarations.Where(d => !UnsafeImportDeclaration(d.Name, d.Value)).ToList();
+                if (kept.Count == 0)
                 {
                     element.RemoveAttribute("style");
                 }
-                else
+                else if (kept.Count != declarations.Count)
                 {
-                    element.SetAttribute("style", kept);
+                    element.SetAttribute("style", string.Join("; ", kept.Select(d => $"{d.Name}: {d.Value}")));
                 }
             }
             if (element is { NodeName: "A" } anchor
@@ -171,11 +173,22 @@ public static partial class HtmlCleanup
         return s;
     }
 
-    [GeneratedRegex(@"position\s*:\s*(fixed|sticky)\s*;?", RegexOptions.IgnoreCase)]
-    private static partial Regex PinnedPosition();
+    /// <summary>A declaration the import profile drops: one that loads something, escapes its characters (and so
+    /// could hide either), or pins itself outside the document box.</summary>
+    private static bool UnsafeImportDeclaration(string name, string value)
+    {
+        var bare = CssComments().Replace(value, string.Empty);
+        return bare.Contains('\\')
+            || bare.Contains("url(", StringComparison.OrdinalIgnoreCase)
+            || bare.Contains("image-set(", StringComparison.OrdinalIgnoreCase)
+            || bare.Contains("image(", StringComparison.OrdinalIgnoreCase)
+            || bare.Contains("expression(", StringComparison.OrdinalIgnoreCase)
+            || (name == "position" && (bare.Contains("fixed", StringComparison.OrdinalIgnoreCase)
+                || bare.Contains("sticky", StringComparison.OrdinalIgnoreCase)));
+    }
 
-    [GeneratedRegex(@"[\w-]+\s*:[^;]*url\([^)]*\)[^;]*;?", RegexOptions.IgnoreCase)]
-    private static partial Regex UrlDeclaration();
+    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
+    private static partial Regex CssComments();
 
     /// <summary>Tags out, entities decoded, whitespace collapsed to single spaces. For search snippets, Discord
     /// embeds, LLM context and emptiness probes.</summary>

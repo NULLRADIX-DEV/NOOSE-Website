@@ -108,6 +108,18 @@ public class GoogleExportFetcherTests
     }
 
     [Fact]
+    public async Task A_network_fault_or_a_timeout_reads_as_a_message_not_a_crash()
+    {
+        var (unreachable, _) = Build(_ => throw new HttpRequestException("no route"));
+        var (slow, _) = Build(_ => throw new TaskCanceledException("timeout"));
+
+        await Assert.ThrowsAsync<GoogleExportException>(
+            () => unreachable.FetchDocumentZipAsync("1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"));
+        await Assert.ThrowsAsync<GoogleExportException>(
+            () => slow.FetchDocumentZipAsync("1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"));
+    }
+
+    [Fact]
     public async Task The_cap_counts_the_bytes_actually_read()
     {
         using var stream = new MemoryStream(new byte[2048]);
