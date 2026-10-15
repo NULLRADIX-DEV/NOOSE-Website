@@ -98,7 +98,11 @@
         _shown = key;
         try
         {
-            await Script.ShowPageAsync(_pdfHost, url, Slide.PageNumber!.Value, Eager);
+            if (!await Script.ShowPageAsync(_pdfHost, url, Slide.PageNumber!.Value, Eager) && _shown == key)
+            {
+                // the element was gone when the call arrived; the next render tries again
+                _shown = null;
+            }
         }
         catch (JSDisconnectedException)
         {

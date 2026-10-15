@@ -14,9 +14,13 @@ public enum PresentationLiveEvent
 
     /// <summary>A slide was added, edited, moved or removed while the deck runs; live pages load it again.</summary>
     SlidesChanged,
+
+    /// <summary>The presenter invited or uninvited agents; whoever watches only by invitation checks again.</summary>
+    InvitesChanged,
 }
 
 /// <summary>An immutable picture of one live session, safe to hand to any circuit.</summary>
+/// <param name="InvitedIds">Agents the presenter invited to this very session; the invitation ends with it.</param>
 public sealed record LiveSessionSnapshot(
     string PresentationId,
     string Title,
@@ -25,7 +29,8 @@ public sealed record LiveSessionSnapshot(
     DateTime StartedAt,
     int SlideIndex,
     PresentationFollowMode Mode,
-    IReadOnlyList<string> ViewerCodenames);
+    IReadOnlyList<string> ViewerCodenames,
+    IReadOnlyList<string> InvitedIds);
 
 /// <summary>Process-wide in-memory broadcaster for live presentation sessions.</summary>
 public sealed class PresentationBroadcaster
@@ -61,10 +66,12 @@ public sealed class PresentationLiveRegistry
         public Dictionary<string, string> Viewers { get; } = new(StringComparer.Ordinal);
         public HashSet<string> PresenterConnections { get; } = new(StringComparer.Ordinal);
         public DateTime? PresenterGoneSince { get; set; } = startedAt;
+        public HashSet<string> Invited { get; } = new(StringComparer.Ordinal);
 
         public LiveSessionSnapshot Snapshot()
             => new(PresentationId, Title, PresenterId, PresenterCodename, StartedAt, SlideIndex, Mode,
-                Viewers.Values.Distinct(StringComparer.Ordinal).Order(StringComparer.CurrentCulture).ToList());
+                Viewers.Values.Distinct(StringComparer.Ordinal).Order(StringComparer.CurrentCulture).ToList(),
+                Invited.Order(StringComparer.Ordinal).ToList());
     }
 
     private readonly ConcurrentDictionary<string, State> _sessions = new(StringComparer.Ordinal);
@@ -113,6 +120,34 @@ public sealed class PresentationLiveRegistry
         lock (state.Gate)
         {
             state.Title = title;
+        }
+    }
+
+    /// <summary>Invites agents to the running session; returns the ones not invited before, or null when there is
+    /// no session or the actor is not its presenter.</summary>
+    public IReadOnlyList<string>? Invite(string presentationId, string presenterId, IEnumerable<string> agentIds)
+    {
+        List<string>? added = null;
+        return Mutate(presentationId, presenterId, s => added = agentIds.Where(s.Invited.Add).ToList()) ? added : null;
+    }
+
+    /// <summary>Takes an invitation back; false when nothing was taken, also when the actor is not the presenter.</summary>
+    public bool Uninvite(string presentationId, string presenterId, string agentId)
+    {
+        var removed = false;
+        return Mutate(presentationId, presenterId, s => removed = s.Invited.Remove(agentId)) && removed;
+    }
+
+    /// <summary>Whether the agent is invited to the session running now.</summary>
+    public bool IsInvited(string presentationId, string agentId)
+    {
+        if (!_sessions.TryGetValue(presentationId, out var state))
+        {
+            return false;
+        }
+        lock (state.Gate)
+        {
+            return state.Invited.Contains(agentId);
         }
     }
 
