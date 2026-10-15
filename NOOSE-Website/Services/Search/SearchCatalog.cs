@@ -494,6 +494,8 @@ public static class SearchCatalog
             ["BewerbungTestOption"] = "Lösungsschlüssel.",
             ["BewerbungTestAssignment"] = "Zuteilung ohne Text.",
             ["BewerbungTestAnswer"] = "Bewertetes Material.",
+            ["AgentTestAssignment"] = "Zuteilung ohne Text.",
+            ["AgentTestAnswer"] = "Bewertetes Material.",
             ["NooseiMessage"] = "Der Rechte-Stempel macht gespeicherte Werkzeug-Antworten gegenüber dem aktuellen "
                 + "Scope potenziell veraltet; nur der Titel der Unterhaltung ist durchsuchbar.",
 

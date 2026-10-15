@@ -152,6 +152,19 @@ public enum NotificationType
 
     /// <summary>Channel of the standing Discord board of factions above the threat threshold; never a notice.</summary>
     FactionThreatBoard = 44,
+
+    /// <summary>HRB or leadership assigned the recipient an internal test. Routable — pings the recipient, like a
+    /// task; the post names no test.</summary>
+    TestAssigned = 45,
+
+    /// <summary>An agent handed in an internal test. Bell for whoever assigned it; not routable.</summary>
+    TestSubmitted = 46,
+
+    /// <summary>The recipient's internal test was graded. Bell only: the result is theirs, not a channel's.</summary>
+    TestGraded = 47,
+
+    /// <summary>An internal test is due soon or overdue. Routable — pings the recipient, like a due task.</summary>
+    TestDueReminder = 48,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -204,6 +217,10 @@ public static class NotificationTypeDisplay
         NotificationType.DecorationAwarded => "Ehrung",
         NotificationType.InactivityNudge => "Rückmeldung erbeten",
         NotificationType.FactionThreatBoard => "Gefahrenlage (Fraktionen)",
+        NotificationType.TestAssigned => "Test zugewiesen",
+        NotificationType.TestSubmitted => "Test abgegeben",
+        NotificationType.TestGraded => "Test korrigiert",
+        NotificationType.TestDueReminder => "Test fällig",
         _ => "Benachrichtigung",
     };
 
@@ -255,6 +272,10 @@ public static class NotificationTypeDisplay
         NotificationType.DecorationAwarded => Icons.Material.Filled.MilitaryTech,
         NotificationType.InactivityNudge => Icons.Material.Filled.ContactSupport,
         NotificationType.FactionThreatBoard => Icons.Material.Filled.Dangerous,
+        NotificationType.TestAssigned => Icons.Material.Filled.Quiz,
+        NotificationType.TestSubmitted => Icons.Material.Filled.AssignmentTurnedIn,
+        NotificationType.TestGraded => Icons.Material.Filled.FactCheck,
+        NotificationType.TestDueReminder => Icons.Material.Filled.AlarmOn,
         _ => Icons.Material.Filled.Notifications,
     };
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Data.Entities.Recruiting;
 
 namespace NOOSE_Website.Services;
@@ -45,6 +46,41 @@ public static class TestAttemptClose
         bool onlyWhenOverdue, CancellationToken cancellationToken)
     {
         var claim = db.BewerbungTestAssignments.Where(a => a.Id == assignmentId && a.CompletedAt == null);
+        if (onlyWhenOverdue)
+        {
+            claim = claim.Where(a => a.DeadlineAt != null && a.DeadlineAt <= now && a.StartedAt != null);
+        }
+        return await claim.ExecuteUpdateAsync(s => s
+            .SetProperty(a => a.CompletedAt, now)
+            .SetProperty(a => a.TimedOut, timedOut), cancellationToken) == 1;
+    }
+
+    /// <summary>Same as <see cref="FillMissingAnswersAsync(AppDbContext, BewerbungTestAssignment, CancellationToken)"/>
+    /// for an internal test.</summary>
+    public static async Task FillMissingAnswersAsync(AppDbContext db, AgentTestAssignment assignment,
+        CancellationToken cancellationToken)
+    {
+        var answered = await db.AgentTestAnswers.AsNoTracking()
+            .Where(a => a.AssignmentId == assignment.Id)
+            .Select(a => a.QuestionId).ToListAsync(cancellationToken);
+        var missing = await db.BewerbungTestQuestions.AsNoTracking()
+            .Where(q => q.TestId == assignment.TestId && !answered.Contains(q.Id))
+            .Select(q => q.Id).ToListAsync(cancellationToken);
+        foreach (var questionId in missing)
+        {
+            db.AgentTestAnswers.Add(new AgentTestAnswer
+            {
+                AssignmentId = assignment.Id,
+                QuestionId = questionId,
+            });
+        }
+    }
+
+    /// <summary>Same as <see cref="ClaimAsync"/> for an internal test; the same rules about onlyWhenOverdue apply.</summary>
+    public static async Task<bool> ClaimAgentAsync(AppDbContext db, string assignmentId, DateTime now, bool timedOut,
+        bool onlyWhenOverdue, CancellationToken cancellationToken)
+    {
+        var claim = db.AgentTestAssignments.Where(a => a.Id == assignmentId && a.CompletedAt == null);
         if (onlyWhenOverdue)
         {
             claim = claim.Where(a => a.DeadlineAt != null && a.DeadlineAt <= now && a.StartedAt != null);

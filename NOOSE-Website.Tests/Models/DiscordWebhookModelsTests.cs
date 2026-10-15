@@ -35,6 +35,8 @@ public class DiscordWebhookModelsTests
         NotificationType.SavedSearchHit,
         NotificationType.InactivityNudge,
         NotificationType.FactionThreatBoard,
+        NotificationType.TestAssigned,
+        NotificationType.TestDueReminder,
     };
 
     // Enum members NOT in the routable list.
@@ -54,6 +56,9 @@ public class DiscordWebhookModelsTests
         // who stands out is for the leadership bell alone; a shared channel would show it was rung
         NotificationType.CounterIntelFinding,
         NotificationType.NooseiAnomaly,
+        // the hand-in is for the grader's bell, the result for the agent's: neither belongs in a channel
+        NotificationType.TestSubmitted,
+        NotificationType.TestGraded,
     };
 
     // ----- IsRoutable: true branch -----
@@ -108,6 +113,8 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.SavedSearchHit)]
     [InlineData(NotificationType.DecorationAwarded)]
     [InlineData(NotificationType.InactivityNudge)]
+    [InlineData(NotificationType.TestAssigned)]
+    [InlineData(NotificationType.TestDueReminder)]
     public void PingsRecipients_forRecipientCategories_returnsTrue(NotificationType type)
     {
         Assert.True(DiscordRouting.PingsRecipients(type));

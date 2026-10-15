@@ -1,5 +1,7 @@
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
+using NOOSE_Website.Data.Entities.Personnel;
+using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Public;
 
 namespace NOOSE_Website.Infrastructure.Audit;
@@ -37,6 +39,15 @@ public static class AuditRedaction
         // a folded notice rewrites its title, and the title is written for one recipient's eyes: a watch report
         // names hits only its owner may see
         $"{nameof(Notification)}.{nameof(Notification.Title)}",
+        // the answer key and an agent's own answers: internal tests are taken by the same agents who read the
+        // protocol, so a toggled option or a colleague's draft would be a crib sheet
+        $"{nameof(BewerbungTestOption)}.{nameof(BewerbungTestOption.IsCorrect)}",
+        $"{nameof(BewerbungTestQuestion)}.{nameof(BewerbungTestQuestion.CorrectYesNo)}",
+        $"{nameof(BewerbungTestQuestion)}.{nameof(BewerbungTestQuestion.Keywords)}",
+        $"{nameof(BewerbungTestQuestion)}.{nameof(BewerbungTestQuestion.MinKeywordHits)}",
+        $"{nameof(AgentTestAnswer)}.{nameof(AgentTestAnswer.FreeTextAnswer)}",
+        $"{nameof(AgentTestAnswer)}.{nameof(AgentTestAnswer.SelectedOptionId)}",
+        $"{nameof(AgentTestAnswer)}.{nameof(AgentTestAnswer.SelectedOptionIds)}",
     };
 
     /// <summary>Whether this field's before/after pair stays out of the audit row.</summary>

@@ -63,6 +63,9 @@ public static class DiscordRouting
         NotificationType.InactivityNudge,
         // one standing message, edited in place; classified factions never appear on it
         NotificationType.FactionThreatBoard,
+        // personal like a task: pings the agent, and the post names no test
+        NotificationType.TestAssigned,
+        NotificationType.TestDueReminder,
     };
 
     public static bool IsRoutable(NotificationType type) => RoutableTypes.Contains(type);
@@ -76,7 +79,8 @@ public static class DiscordRouting
                 or NotificationType.PersonnelEntry or NotificationType.PingDigest
                 or NotificationType.AcknowledgmentReminder or NotificationType.SavedSearchHit
                 or NotificationType.DecorationAwarded
-                or NotificationType.InactivityNudge;
+                or NotificationType.InactivityNudge
+                or NotificationType.TestAssigned or NotificationType.TestDueReminder;
 
     /// <summary>Category whose Discord post pings nobody: the embed carries inert mention chips instead.</summary>
     public static bool PingsNobody(NotificationType type)

@@ -666,6 +666,18 @@ public static class Permission
         }
     }
 
+    /// <summary>Require an internal agent who may write, for taking an assigned internal test.</summary>
+    /// <remarks>Ownership of the assignment is the service's check; this only shuts out partners, the read-only
+    /// supervision and the demo principal, whose answers could not be saved anyway.</remarks>
+    public static void RequireTestTaker(ClaimsPrincipal actor)
+    {
+        if (!actor.MayWrite() || !actor.IsInternalAgent())
+        {
+            throw new UnauthorizedAccessException(
+                "Interne Tests können nur aktive interne Agenten ablegen.");
+        }
+    }
+
     /// <summary>Require an account that may use the citizen area; every signed-in account qualifies, not only Civilian.</summary>
     public static void RequireCitizenPortal(ClaimsPrincipal actor)
     {

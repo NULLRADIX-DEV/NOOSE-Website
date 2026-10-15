@@ -58,6 +58,23 @@ public class BewerbungTestService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task UpdateUsageAsync(string id, TestUsage usage, string? trainingModuleId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireHrbOrLeadership(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var test = await db.BewerbungTests.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
+            ?? throw new InvalidOperationException("Test nicht gefunden.");
+        var module = Trim(trainingModuleId);
+        if (module is not null && !await db.TrainingModules.AnyAsync(m => m.Id == module, cancellationToken))
+        {
+            throw new InvalidOperationException("Das gewählte Ausbildungsmodul wurde nicht gefunden.");
+        }
+        test.Usage = usage;
+        // only an internal test can tick a module; an applicant has no personnel file
+        test.TrainingModuleId = TestUsageDisplay.ForAgents(usage) ? module : null;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task DeleteTestAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadership(actor);
@@ -70,7 +87,9 @@ public class BewerbungTestService(
         // an open assignment points at this test, and there is no way to un-assign one: deleting it left the
         // applicant unable to finish and the HRB unable to decide, with no route out for either
         if (await db.BewerbungTestAssignments
-                .AnyAsync(a => a.TestId == id && a.CompletedAt == null, cancellationToken))
+                .AnyAsync(a => a.TestId == id && a.CompletedAt == null, cancellationToken)
+            || await db.AgentTestAssignments
+                .AnyAsync(a => a.TestId == id && a.GradedAt == null, cancellationToken))
         {
             throw new InvalidOperationException("Dieser Test ist noch zugewiesen und nicht abgeschlossen. "
                 + "Setze ihn auf inaktiv, damit er nicht mehr vergeben wird.");
@@ -217,9 +236,9 @@ public class BewerbungTestService(
         {
             throw new InvalidOperationException("Dieser Bewerbung ist bereits ein Test zugewiesen.");
         }
-        if (!await db.BewerbungTests.AnyAsync(t => t.Id == testId, cancellationToken))
+        if (!await db.BewerbungTests.AnyAsync(t => t.Id == testId && t.Usage != TestUsage.Intern, cancellationToken))
         {
-            throw new InvalidOperationException("Test nicht gefunden.");
+            throw new InvalidOperationException("Test nicht gefunden oder nur für interne Tests freigegeben.");
         }
 
         db.BewerbungTestAssignments.Add(new BewerbungTestAssignment
@@ -683,7 +702,8 @@ public class BewerbungTestService(
             throw new InvalidOperationException("Über diese Bewerbung ist bereits entschieden.");
         }
         var target = testId ?? assignment.TestId;
-        if (!await db.BewerbungTests.AnyAsync(t => t.Id == target && t.IsActive, cancellationToken))
+        if (!await db.BewerbungTests.AnyAsync(t => t.Id == target && t.IsActive && t.Usage != TestUsage.Intern,
+                cancellationToken))
         {
             throw new InvalidOperationException("Der Test ist nicht mehr aktiv oder wurde gelöscht.");
         }
@@ -859,12 +879,16 @@ public class BewerbungTestService(
         var now = DateTime.UtcNow;
         var live = await db.BewerbungTestAssignments.AsNoTracking()
             .AnyAsync(a => a.TestId == testId && a.StartedAt != null && a.CompletedAt == null
-                && a.DeadlineAt != null && a.DeadlineAt > now, cancellationToken);
+                && a.DeadlineAt != null && a.DeadlineAt > now, cancellationToken)
+            // an agent mid-attempt is graded on the same questions
+            || await db.AgentTestAssignments.AsNoTracking()
+                .AnyAsync(a => a.TestId == testId && a.StartedAt != null && a.CompletedAt == null
+                    && a.DeadlineAt != null && a.DeadlineAt > now, cancellationToken);
         if (live)
         {
             throw new InvalidOperationException(
-                "Ein Bewerber bearbeitet diesen Test gerade. Fragen und Antwortoptionen sind bis zum Ablauf "
-                + "seiner Bearbeitungszeit gesperrt; Titel, Bestehensgrenze und Bearbeitungszeit gehen weiter.");
+                "Jemand bearbeitet diesen Test gerade. Fragen und Antwortoptionen sind bis zum Ablauf "
+                + "der Bearbeitungszeit gesperrt; Titel, Bestehensgrenze und Bearbeitungszeit gehen weiter.");
         }
     }
 
