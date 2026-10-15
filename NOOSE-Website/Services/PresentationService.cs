@@ -29,9 +29,9 @@ public interface IPresentationService
     Task SetSlideImageAsync(string slideId, Stream content, string contentType, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RemoveSlideImageAsync(string slideId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Stored name of an imported deck's PDF for the file endpoint; null when the file is gone or its
+    /// <summary>The stored PDF of an imported deck for the file endpoint; null when the file is gone or its
     /// presentation is hidden from the actor.</summary>
-    Task<string?> GetPdfFileNameAsync(string fileId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    Task<PresentationPdfAccess?> GetPdfAccessAsync(string fileId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     Task<List<Presentation>> GetTrashAsync(CancellationToken cancellationToken = default);
     Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
@@ -298,14 +298,15 @@ public sealed partial class PresentationService(
         await DeleteImageAsync(previous, cancellationToken);
     }
 
-    public async Task<string?> GetPdfFileNameAsync(string fileId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task<PresentationPdfAccess?> GetPdfAccessAsync(string fileId, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
     {
         Permission.RequireInternalAgent(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // the deck decides, exactly like for its slides: one 404 for "gone" and "not yours"
         return await db.PresentationFiles.AsNoTracking().Where(f => f.Id == fileId)
             .Join(PresentationVisibility.OnlyVisible(db.Presentations.AsNoTracking(), db, ViewerScope.From(actor)),
-                f => f.PresentationId, p => p.Id, (f, p) => f.FileNameSaved)
+                f => f.PresentationId, p => p.Id, (f, p) => new PresentationPdfAccess(f.FileNameSaved, f.Revision, f.ImportedAt))
             .FirstOrDefaultAsync(cancellationToken);
     }
 

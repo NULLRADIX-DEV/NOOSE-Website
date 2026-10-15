@@ -1873,6 +1873,8 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(f => f.Title).HasMaxLength(300).IsRequired();
             b.Property(f => f.SourceId).HasMaxLength(128);
             b.Property(f => f.ImportedById).HasMaxLength(64);
+            // two refreshes, or a refresh and a removal, at once: the second fails instead of doubling slides
+            b.Property(f => f.Revision).IsConcurrencyToken();
             b.HasIndex(f => f.PresentationId);
             b.HasOne(f => f.Presentation).WithMany(p => p.Files)
                 .HasForeignKey(f => f.PresentationId).OnDelete(DeleteBehavior.Cascade);

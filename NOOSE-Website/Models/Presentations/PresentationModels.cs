@@ -52,6 +52,10 @@ public sealed record PresentationView(
     bool MayManage,
     IReadOnlyList<PresentationFileItem> Files);
 
+/// <summary>The stored PDF of an imported deck, for the file endpoint.</summary>
+/// <param name="Revision">Counts the refreshes; a request for another revision gets nothing.</param>
+public sealed record PresentationPdfAccess(string FileNameSaved, int Revision, DateTime ImportedAt);
+
 /// <summary>One imported Google Slides deck of a presentation.</summary>
 /// <param name="SlideCount">Slides of the presentation that show one of its pages.</param>
 public sealed record PresentationFileItem(

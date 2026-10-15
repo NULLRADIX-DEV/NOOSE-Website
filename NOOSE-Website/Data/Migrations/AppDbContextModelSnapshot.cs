@@ -8240,6 +8240,7 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.Property<int>("Revision")
+                        .IsConcurrencyToken()
                         .HasColumnType("int")
                         .HasColumnName("Revision");
 

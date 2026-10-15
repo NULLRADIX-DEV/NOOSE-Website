@@ -113,6 +113,10 @@
         {
             return;
         }
+        // the previous choice goes first: while the new file streams in, importing must not send the old one
+        _upload = null;
+        _fileName = null;
+        _busy = true;
         try
         {
             await using var stream = file.OpenReadStream(FileStorage.MaxBytes);
@@ -123,9 +127,17 @@
         }
         catch (IOException)
         {
-            _upload = null;
-            _fileName = null;
             Snackbar.Add($"Die Datei ist zu groß (höchstens {FileStorage.MaxBytes / 1024 / 1024} MB).", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            // outside the page's error boundary: a file the browser cannot read must not end the circuit
+            Logger.LogWarning(ex, "Reading an uploaded PDF failed.");
+            Snackbar.Add("Die Datei ließ sich nicht lesen. Wähle sie noch einmal.", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
         }
     }
 

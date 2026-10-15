@@ -59,7 +59,8 @@ public sealed class SlidesImportServiceTests
         var broadcaster = new PresentationBroadcaster();
         var images = Substitute.For<ITextImageStorageService>();
         return new Rig(
-            new SlidesImportService(ctx.Factory, fetcher, storage, registry, broadcaster, NullLogger<SlidesImportService>.Instance),
+            new SlidesImportService(ctx.Factory, fetcher, storage, new InProcessPdfInspector(), registry, broadcaster,
+                NullLogger<SlidesImportService>.Instance),
             new PresentationService(ctx.Factory, images, registry, broadcaster),
             fetcher, storage, registry, broadcaster);
     }
@@ -410,9 +411,59 @@ public sealed class SlidesImportServiceTests
             (fileId, stored) = (file.Id, file.FileNameSaved);
         }
 
-        var name = await rig.Presentations.GetPdfFileNameAsync(fileId, PresentationServiceTests.Viewers[viewer]());
+        var access = await rig.Presentations.GetPdfAccessAsync(fileId, PresentationServiceTests.Viewers[viewer]());
 
-        Assert.Equal(sees ? stored : null, name);
+        Assert.Equal(sees ? stored : null, access?.FileNameSaved);
+    }
+
+    [Fact]
+    public async Task A_refresh_that_lost_the_race_leaves_no_doubled_slides_and_no_file_behind()
+    {
+        using var ctx = new SqliteTestContext();
+        var rig = Build(ctx);
+        var owner = Owner();
+        var id = await rig.Svc.ImportAsync(NewDeck(), owner);
+        string fileId;
+        using (var db = ctx.NewContext())
+        {
+            fileId = db.PresentationFiles.Single().Id;
+        }
+        // while Google renders, someone else's refresh commits
+        rig.Fetcher.FetchPresentationPdfAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                using var other = ctx.NewContext();
+                other.PresentationFiles.Single().Revision = 2;
+                other.SaveChanges();
+                return TestPdf.Make(5);
+            });
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Svc.RefreshAsync(fileId, null, null, owner));
+
+        Assert.Contains("gerade von jemand anderem geändert", error.Message);
+        Assert.Equal("p1,p2,p3", Order(ctx, id));
+        Assert.Single(rig.Storage.Files);
+    }
+
+    [Fact]
+    public async Task The_file_carries_its_revision_so_an_old_url_is_told_apart()
+    {
+        using var ctx = new SqliteTestContext();
+        var rig = Build(ctx);
+        var owner = Owner();
+        await rig.Svc.ImportAsync(NewDeck(), owner);
+        string fileId;
+        using (var db = ctx.NewContext())
+        {
+            fileId = db.PresentationFiles.Single().Id;
+        }
+
+        var before = await rig.Presentations.GetPdfAccessAsync(fileId, owner);
+        await rig.Svc.RefreshAsync(fileId, null, null, owner);
+        var after = await rig.Presentations.GetPdfAccessAsync(fileId, owner);
+
+        Assert.Equal((1, 2), (before!.Revision, after!.Revision));
+        Assert.NotEqual(before.FileNameSaved, after.FileNameSaved);
     }
 
     [Fact]

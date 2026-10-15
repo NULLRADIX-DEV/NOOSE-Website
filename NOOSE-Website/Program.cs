@@ -49,6 +49,13 @@ using NOOSE_Website.Services.Public;
 using NOOSE_Website.Services.Search;
 using NOOSE_Website.Services.Statistics;
 
+// a child process of the Slides import: reads one PDF and exits, so a hostile file can only bring down itself
+if (args is [NOOSE_Website.Services.Import.PdfInspectorProcess.Switch, var pdfPath])
+{
+    Environment.Exit(NOOSE_Website.Services.Import.PdfInspectorProcess.Run(pdfPath));
+    return;
+}
+
 var germanCulture = new CultureInfo("de-DE");
 CultureInfo.DefaultThreadCurrentCulture = germanCulture;
 CultureInfo.DefaultThreadCurrentUICulture = germanCulture;
@@ -221,6 +228,8 @@ builder.Services.AddHttpClient(NOOSE_Website.Services.Import.GoogleExportFetcher
 builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleExportFetcher, NOOSE_Website.Services.Import.GoogleExportFetcher>();
 builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleImportService, NOOSE_Website.Services.Import.GoogleImportService>();
 builder.Services.AddScoped<NOOSE_Website.Services.Import.ISlidesImportService, NOOSE_Website.Services.Import.SlidesImportService>();
+builder.Services.AddSingleton(NOOSE_Website.Services.Import.PdfInspectorCommand.ForThisApp());
+builder.Services.AddSingleton<NOOSE_Website.Services.Import.IPdfInspector, NOOSE_Website.Services.Import.IsolatedPdfInspector>();
 builder.Services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
 builder.Services.AddScoped<IDocumentAccessService, DocumentAccessService>();
 builder.Services.AddScoped<IPlaceholderService, PlaceholderService>();

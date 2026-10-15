@@ -12,7 +12,7 @@ using NOOSE_Website.Data;
 namespace NOOSE_Website.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261015131909_Phase98_GoogleSlidesImport")]
+    [Migration("20261015165404_Phase98_GoogleSlidesImport")]
     partial class Phase98_GoogleSlidesImport
     {
         /// <inheritdoc />
@@ -8243,6 +8243,7 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.Property<int>("Revision")
+                        .IsConcurrencyToken()
                         .HasColumnType("int")
                         .HasColumnName("Revision");
 

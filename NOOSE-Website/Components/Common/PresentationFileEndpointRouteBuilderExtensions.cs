@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Services;
@@ -18,14 +19,16 @@ public static class PresentationFileEndpointRouteBuilderExtensions
 
         group.MapGet("/{fileId}", async (
             string fileId,
+            [FromQuery] int? r,
             [FromServices] IPresentationService presentations,
             [FromServices] IPresentationFileStorageService storage,
             HttpContext http,
             CancellationToken cancellationToken) =>
         {
             // one 404 for "gone" and "not yours", like every other file endpoint
-            var fileName = await presentations.GetPdfFileNameAsync(fileId, http.User, cancellationToken);
-            if (fileName is null)
+            var access = await presentations.GetPdfAccessAsync(fileId, http.User, cancellationToken);
+            // a page still reading the deck it loaded before a refresh must not get pieces of the new file
+            if (access is null || (r is { } revision && revision != access.Revision))
             {
                 return Results.NotFound();
             }
@@ -33,7 +36,7 @@ public static class PresentationFileEndpointRouteBuilderExtensions
             Stream stream;
             try
             {
-                stream = storage.OpenRead(fileName);
+                stream = storage.OpenRead(access.FileNameSaved);
             }
             catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
             {
@@ -42,7 +45,8 @@ public static class PresentationFileEndpointRouteBuilderExtensions
 
             // the bytes were checked as a PDF on import; no browser may read them as anything else
             http.Response.Headers.XContentTypeOptions = "nosniff";
-            return Results.File(stream, "application/pdf", enableRangeProcessing: true);
+            return Results.File(stream, "application/pdf",
+                entityTag: new EntityTagHeaderValue($"\"{fileId}-{access.Revision}\""), enableRangeProcessing: true);
         })
         .RequireAuthorization(Policies.ActiveAgent, Policies.InternalAgent);
 

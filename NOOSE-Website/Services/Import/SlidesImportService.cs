@@ -47,18 +47,24 @@ public interface ISlidesImportService
 /// <inheritdoc cref="ISlidesImportService" />
 /// <remarks>
 /// The same gate as creating a presentation, and the owner or leadership for an existing one; the quota is the one
-/// the Docs import draws from. The server only checks the PDF and counts its pages, the browser draws them with
-/// pdf.js, so the slides stay sharp on a projector and the container needs no native renderer.
+/// the Docs import draws from. The server only checks the PDF and counts its pages - in a child process, see
+/// <see cref="IsolatedPdfInspector"/> - and the browser draws them with pdf.js, so the slides stay sharp on a projector
+/// and the container needs no native renderer. <see cref="PresentationFile.Revision"/> is a concurrency token: of two
+/// refreshes or a refresh and a removal at once, the second fails instead of doubling slides or orphaning files.
 /// </remarks>
 public sealed class SlidesImportService(
     IDbContextFactory<AppDbContext> dbFactory,
     IGoogleExportFetcher fetcher,
     IPresentationFileStorageService storage,
+    IPdfInspector inspector,
     PresentationLiveRegistry live,
     PresentationBroadcaster broadcaster,
     ILogger<SlidesImportService> logger) : ISlidesImportService
 {
     private const string DefaultTitle = "Google-Präsentation";
+
+    private const string ChangedMeanwhile =
+        "Dieser Import wurde gerade von jemand anderem geändert. Lade die Seite neu und versuche es noch einmal.";
 
     public async Task<string> ImportAsync(SlidesImportInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
@@ -201,9 +207,13 @@ public sealed class SlidesImportService(
             presentation.ModifiedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(cancellationToken);
         }
-        catch
+        catch (Exception ex)
         {
             storage.Delete(fileName);
+            if (ex is DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(ChangedMeanwhile);
+            }
             throw;
         }
         if (dropped.Count > 0)
@@ -224,14 +234,22 @@ public sealed class SlidesImportService(
         db.PresentationSlides.RemoveRange(slides); // soft-delete
         db.PresentationFiles.Remove(file);
         presentation.ModifiedAt = DateTime.UtcNow;
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new InvalidOperationException(ChangedMeanwhile);
+        }
         await PresentationService.RenumberAsync(db, presentation.Id, cancellationToken);
         DeleteStored(file.FileNameSaved);
         ReportSlides(presentation.Id);
     }
 
-    /// <summary>The PDF, where it came from and what it holds. The quota is taken only once the source is valid -
-    /// a mistyped link or an upload that is no PDF costs none.</summary>
+    /// <summary>The PDF, where it came from and what it holds. The quota is taken once the source is plausible - a
+    /// mistyped link or an upload without a PDF header costs none - and before the file is parsed, so every parse
+    /// costs its author a slot.</summary>
     private async Task<(ImportSourceKind Kind, string? Id, byte[] Pdf, PdfInfo Info)> ResolveSourceAsync(string? link,
         byte[]? upload, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
@@ -242,7 +260,7 @@ public sealed class SlidesImportService(
                     "Das ist kein Link auf eine Google-Präsentation (https://docs.google.com/presentation/d/…).");
             GoogleImportQuota.Take(actor);
             var pdf = await fetcher.FetchPresentationPdfAsync(fileId, storage.MaxBytes, cancellationToken);
-            return (ImportSourceKind.Link, fileId, pdf, PdfInspector.Read(pdf));
+            return (ImportSourceKind.Link, fileId, pdf, await inspector.InspectAsync(pdf, cancellationToken));
         }
         if (upload is { Length: > 0 })
         {
@@ -250,9 +268,12 @@ public sealed class SlidesImportService(
             {
                 throw new GoogleExportException($"Die Datei ist zu groß (höchstens {storage.MaxBytes / 1024 / 1024} MB).");
             }
-            var info = PdfInspector.Read(upload);
+            if (!PdfInspector.HasHeader(upload))
+            {
+                throw new GoogleExportException(PdfInspector.NotAPdf);
+            }
             GoogleImportQuota.Take(actor);
-            return (ImportSourceKind.Upload, null, upload, info);
+            return (ImportSourceKind.Upload, null, upload, await inspector.InspectAsync(upload, cancellationToken));
         }
         throw new InvalidOperationException("Gib einen Freigabe-Link an oder lade die PDF-Datei hoch.");
     }
