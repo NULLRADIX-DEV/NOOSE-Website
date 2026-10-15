@@ -19,7 +19,8 @@
                     <MudTabPanel Text="Google-Anmeldung" Icon="@Icons.Custom.Brands.Google">
                         <MudText Typo="Typo.body2" Class="mb-2">
                             Melde dich bei Google an und wähle das Dokument. Geht auch mit Dokumenten, die nicht freigegeben
-                            sind; NOOSE darf nur die Datei lesen, die du wählst.
+                            sind; NOOSE darf nur die Datei lesen, die du wählst
+                            (<MudLink Href="/datenschutz#google" Target="_blank" rel="noopener noreferrer">Datenschutz</MudLink>).
                         </MudText>
                         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                             <GoogleDrivePicker Kind="GoogleFileKind.Document" Disabled="_busy" OnPicked="Picked" />
