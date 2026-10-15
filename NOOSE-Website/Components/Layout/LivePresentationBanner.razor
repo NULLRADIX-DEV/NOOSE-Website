@@ -1,0 +1,106 @@
+@* Running presentations the agent may watch, above every page. Internal agents only: a partner never gets one. *@
+@implements IDisposable
+@inject IPresentationLiveService Live
+@inject PresentationBroadcaster Broadcaster
+@inject NavigationManager Nav
+
+@foreach (var session in Shown)
+{
+    var mine = session.PresenterId == _me;
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-3 no-print"
+              Icon="@Icons.Material.Filled.CoPresent" ShowCloseIcon="true" CloseIconClicked="@(() => _hidden.Add(session.PresentationId))">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+            @if (mine)
+            {
+                <span>
+                    Du präsentierst gerade <b>@session.Title</b>. Ohne offene Vortragsseite endet die Vorführung nach
+                    @((int)PresentationLiveRegistry.PresenterGrace.TotalMinutes) Minuten.
+                </span>
+            }
+            else
+            {
+                <span><b>@session.PresenterCodename</b> präsentiert jetzt: <b>@session.Title</b></span>
+            }
+            <MudButton Href="@($"/praesentationen/{session.PresentationId}/live")" Size="Size.Small"
+                       Variant="Variant.Filled" Color="Color.Error">@(mine ? "Zum Vortrag" : "Zuschauen")</MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private ClaimsPrincipal? _user;
+    private string? _me;
+    private List<LiveSessionSnapshot> _sessions = [];
+    private readonly HashSet<string> _hidden = [];
+
+    // not on the live page of the same presentation: that page says it all
+    private IEnumerable<LiveSessionSnapshot> Shown
+    {
+        get
+        {
+            var path = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
+            return _sessions.Where(s => !_hidden.Contains(s.PresentationId)
+                && !path.Equals($"/praesentationen/{s.PresentationId}/live", StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is null)
+        {
+            return;
+        }
+        var user = (await AuthStateTask).User;
+        if (!user.IsInternalAgent())
+        {
+            return;
+        }
+        _user = user;
+        _me = user.GetAgentId();
+        Broadcaster.Changed += OnLiveChanged;
+        Nav.LocationChanged += OnLocationChanged;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_user is null)
+        {
+            return;
+        }
+        _sessions = await Live.GetVisibleLiveAsync(_user);
+        // a hidden notice comes back when that presentation starts again
+        _hidden.IntersectWith(_sessions.Select(s => s.PresentationId));
+    }
+
+    private void OnLiveChanged(string presentationId, PresentationLiveEvent kind)
+    {
+        // only starting and ending change what the banner shows; paging and viewers do not
+        if (kind is not (PresentationLiveEvent.Started or PresentationLiveEvent.Ended))
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await LoadAsync();
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+                /* the next event refreshes it */
+            }
+        });
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Broadcaster.Changed -= OnLiveChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}
