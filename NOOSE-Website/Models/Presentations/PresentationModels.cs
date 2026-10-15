@@ -43,6 +43,8 @@ public sealed record PresentationListItem(
 /// <summary>A presentation with its slides in order, for viewing, presenting and editing.</summary>
 /// <param name="MayManage">Owner or leadership with write access: may edit, delete and present.</param>
 /// <param name="Files">The Google Slides decks imported into it, oldest first.</param>
+/// <param name="LiveInviteOnly">The viewer only watches the running session by invitation: slides without notes,
+/// and nothing about owner, audience, invites or imports.</param>
 public sealed record PresentationView(
     Presentation Presentation,
     IReadOnlyList<PresentationSlide> Slides,
@@ -50,7 +52,8 @@ public sealed record PresentationView(
     string OwnerCodename,
     string AccessLabel,
     bool MayManage,
-    IReadOnlyList<PresentationFileItem> Files);
+    IReadOnlyList<PresentationFileItem> Files,
+    bool LiveInviteOnly = false);
 
 /// <summary>The stored PDF of an imported deck, for the file endpoint.</summary>
 /// <param name="Revision">Counts the refreshes; a request for another revision gets nothing.</param>

@@ -17,6 +17,11 @@ public interface IPresentationService
 {
     Task<List<PresentationListItem>> GetListAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<PresentationView?> GetAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>The deck for the live page: as <see cref="GetAsync"/>, or for an agent invited to the running
+    /// session only its slides without notes; null otherwise.</summary>
+    Task<PresentationView?> GetForLiveAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     Task<Presentation> CreateAsync(PresentationInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task UpdateAsync(string id, PresentationInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
@@ -92,6 +97,33 @@ public sealed partial class PresentationService(
         return new PresentationView(presentation, slides, invites, names.GetValueOrDefault(presentation.OwnerId) ?? "—",
             AccessLabel(presentation.Access, presentation.Audience, presentation.TargetId, presentation.MinRank, taskforces),
             actor.MayWrite() && PresentationVisibility.MayManage(actor, presentation), imports);
+    }
+
+    public async Task<PresentationView?> GetForLiveAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        if (await GetAsync(id, actor, cancellationToken) is { } view)
+        {
+            return view;
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        if (!await PresentationLiveAccess.IsInvitedViewerAsync(db, live, id, actor, cancellationToken))
+        {
+            return null;
+        }
+        var title = await db.Presentations.AsNoTracking().Where(p => p.Id == id).Select(p => p.Title).FirstOrDefaultAsync(cancellationToken);
+        if (title is null)
+        {
+            return null;
+        }
+        var slides = await db.PresentationSlides.AsNoTracking().Include(s => s.PdfFile)
+            .Where(s => s.PresentationId == id).OrderBy(s => s.Sorting).ToListAsync(cancellationToken);
+        foreach (var slide in slides)
+        {
+            // the speaker notes stay with the presenter
+            slide.Notes = null;
+        }
+        return new PresentationView(new Presentation { Id = id, Title = title }, slides, [], string.Empty, string.Empty, false, [],
+            LiveInviteOnly: true);
     }
 
     public async Task<Presentation> CreateAsync(PresentationInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -304,10 +336,22 @@ public sealed partial class PresentationService(
         Permission.RequireInternalAgent(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // the deck decides, exactly like for its slides: one 404 for "gone" and "not yours"
-        return await db.PresentationFiles.AsNoTracking().Where(f => f.Id == fileId)
+        var access = await db.PresentationFiles.AsNoTracking().Where(f => f.Id == fileId)
             .Join(PresentationVisibility.OnlyVisible(db.Presentations.AsNoTracking(), db, ViewerScope.From(actor)),
                 f => f.PresentationId, p => p.Id, (f, p) => new PresentationPdfAccess(f.FileNameSaved, f.Revision, f.ImportedAt))
             .FirstOrDefaultAsync(cancellationToken);
+        if (access is not null)
+        {
+            return access;
+        }
+        // an agent invited to the running session gets the pages it shows, or the stage stays empty
+        var file = await db.PresentationFiles.AsNoTracking().Where(f => f.Id == fileId)
+            .Join(db.Presentations.AsNoTracking(), f => f.PresentationId, p => p.Id,
+                (f, p) => new { f.PresentationId, Access = new PresentationPdfAccess(f.FileNameSaved, f.Revision, f.ImportedAt) })
+            .FirstOrDefaultAsync(cancellationToken);
+        return file is not null && await PresentationLiveAccess.IsInvitedViewerAsync(db, live, file.PresentationId, actor, cancellationToken)
+            ? file.Access
+            : null;
     }
 
     public async Task<List<Presentation>> GetTrashAsync(CancellationToken cancellationToken = default)

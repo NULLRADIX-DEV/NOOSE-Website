@@ -35,7 +35,7 @@ public class TextImageServiceTests
     private static (TextImageService Service, FakeStorage Storage) Build(SqliteTestContext ctx)
     {
         var storage = new FakeStorage();
-        return (new TextImageService(ctx.Factory, storage), storage);
+        return (new TextImageService(ctx.Factory, storage, new NOOSE_Website.Infrastructure.Presentations.PresentationLiveRegistry()), storage);
     }
 
     private static async Task<string> RowAsync(SqliteTestContext ctx, string entityType, string entityId)

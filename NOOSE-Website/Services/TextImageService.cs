@@ -4,6 +4,8 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Presentations;
+using NOOSE_Website.Infrastructure.Presentations;
 using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Common;
 
@@ -12,7 +14,8 @@ namespace NOOSE_Website.Services;
 /// <inheritdoc />
 public class TextImageService(
     IDbContextFactory<AppDbContext> dbFactory,
-    ITextImageStorageService storage) : ITextImageService
+    ITextImageStorageService storage,
+    PresentationLiveRegistry live) : ITextImageService
 {
     public async Task<string?> SaveAsync(string entityType, string entityId, byte[] content, string contentType,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -63,8 +66,24 @@ public class TextImageService(
             return null;
         }
         return await MaySeeOwnerAsync(db, row.EntityType, row.EntityId, user, cancellationToken)
+            || await InvitedToSlideAsync(db, row.EntityType, row.EntityId, user, cancellationToken)
             ? new TextImageAccess(row.FileNameSaved, row.ContentType)
             : null;
+    }
+
+    /// <summary>A picture on a slide also reaches an agent invited to the running session of its presentation.</summary>
+    /// <remarks>Read only: pasting a picture still needs the slide itself, see <see cref="SaveAsync"/>.</remarks>
+    private async Task<bool> InvitedToSlideAsync(AppDbContext db, string entityType, string entityId, ClaimsPrincipal user,
+        CancellationToken cancellationToken)
+    {
+        if (entityType != nameof(PresentationSlide))
+        {
+            return false;
+        }
+        var presentationId = await db.PresentationSlides.AsNoTracking().Where(s => s.Id == entityId)
+            .Select(s => s.PresentationId).FirstOrDefaultAsync(cancellationToken);
+        return presentationId is not null
+            && await PresentationLiveAccess.IsInvitedViewerAsync(db, live, presentationId, user, cancellationToken);
     }
 
     /// <summary>Whether the viewer may see the record the picture hangs on; the token itself grants nothing.</summary>
