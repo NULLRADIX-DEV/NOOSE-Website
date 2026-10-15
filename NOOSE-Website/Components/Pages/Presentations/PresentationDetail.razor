@@ -1,0 +1,238 @@
+@page "/praesentationen/{Id}"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@implements IAsyncDisposable
+@inject IPresentationService Presentations
+@inject PresentationLiveRegistry Registry
+@inject PresentationBroadcaster Broadcaster
+@inject IAccessLogService AccessLog
+@inject IJSRuntime JS
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>@(_view?.Presentation.Title ?? "Präsentation") · NOOSE</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Diese Präsentation existiert nicht (mehr) oder ist nicht für dich freigegeben.</MudAlert>
+}
+else
+{
+    var p = _view.Presentation;
+    <PageHeader Icon="@Icons.Material.Filled.CoPresent" Title="@p.Title" Subtitle="@p.Description"
+                BackHref="/praesentationen" BackText="Zur Übersicht">
+        <Actions>
+            @if (_live is not null)
+            {
+                <MudButton Href="@($"/praesentationen/{Id}/live")" Variant="Variant.Filled" Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.FiberManualRecord">
+                    @(_live.PresenterId == _me ? "Zum Vortrag" : "Live zuschauen")
+                </MudButton>
+            }
+            else if (_view.MayManage)
+            {
+                <MudButton Href="@($"/praesentationen/{Id}/live")" Variant="Variant.Filled" Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.PlayArrow" Disabled="@(_view.Slides.Count == 0)">Vorführen</MudButton>
+            }
+            @if (_view.MayManage)
+            {
+                <MudButton Href="@($"/praesentationen/{Id}/bearbeiten")" Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
+            }
+            <MudTooltip Text="Drucken">
+                <MudIconButton Href="@($"/praesentationen/{Id}/druck")" Icon="@Icons.Material.Filled.Print" />
+            </MudTooltip>
+            @if (_view.MayManage)
+            {
+                <MudTooltip Text="Löschen">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="DeleteAsync" />
+                </MudTooltip>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudStack Row="true" Spacing="2" Class="mb-3 flex-wrap" AlignItems="AlignItems.Center">
+        <MudChip T="string" Size="Size.Small" Icon="@PresentationDisplay.Icon(p.Access)">@_view.AccessLabel</MudChip>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            von @_view.OwnerCodename · @_view.Slides.Count Folien · geändert @((p.ModifiedAt ?? p.CreatedAt).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))
+        </MudText>
+    </MudStack>
+
+    @if (_view.Slides.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Diese Präsentation hat noch keine Folien.</MudAlert>
+    }
+    else
+    {
+        var slide = _view.Slides[_index];
+        <div class="praesentation-blaettern" tabindex="0" @ref="_keys" @onkeydown="OnKey">
+            <div class="praesentation-buehne" @ref="_stage">
+                <SlideView Slide="slide" Number="@(_index + 1)" />
+            </div>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2" Class="my-2">
+                <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Disabled="@(_index == 0)" OnClick="@(() => Go(_index - 1))" />
+                <MudText Typo="Typo.body2">@(_index + 1) / @_view.Slides.Count</MudText>
+                <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Disabled="@(_index >= _view.Slides.Count - 1)" OnClick="@(() => Go(_index + 1))" />
+                <MudTooltip Text="Vollbild (F)">
+                    <MudIconButton Icon="@Icons.Material.Filled.Fullscreen" OnClick="FullscreenAsync" />
+                </MudTooltip>
+            </MudStack>
+        </div>
+        @if (_view.MayManage && !string.IsNullOrWhiteSpace(slide.Notes))
+        {
+            <MudPaper Class="pa-3 mb-3" Outlined="true">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Sprechernotizen (nur für dich)</MudText>
+                <MudText Typo="Typo.body2" Style="white-space:pre-line;">@slide.Notes</MudText>
+            </MudPaper>
+        }
+        <div class="praesentation-uebersicht">
+            @for (var i = 0; i < _view.Slides.Count; i++)
+            {
+                var n = i;
+                <div class="@($"praesentation-leiste-eintrag{(n == _index ? " ausgewaehlt" : "")}")" @onclick="@(() => Go(n))">
+                    <SlideView Slide="_view.Slides[n]" Number="@(n + 1)" />
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    private string? _me;
+    private bool _loading = true;
+    private string? _loadedId;
+    private PresentationView? _view;
+    private LiveSessionSnapshot? _live;
+    private int _index;
+    private ElementReference _keys;
+    private ElementReference _stage;
+    private IJSObjectReference? _module;
+
+    protected override void OnInitialized() => Broadcaster.Changed += OnLiveChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Id == _loadedId)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _loading = true;
+        _user = (await AuthStateTask).User;
+        _me = _user.GetAgentId();
+        _view = await Presentations.GetAsync(Id, _user);
+        _index = 0;
+        _live = _view is null ? null : Registry.Get(Id);
+        if (_view is not null)
+        {
+            await AccessLog.LogViewAsync(nameof(Presentation), Id);
+        }
+        _loading = false;
+    }
+
+    private void Go(int index)
+    {
+        if (_view is null || _view.Slides.Count == 0)
+        {
+            return;
+        }
+        _index = Math.Clamp(index, 0, _view.Slides.Count - 1);
+    }
+
+    private async Task OnKey(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "ArrowRight" or "PageDown" or " ":
+                Go(_index + 1);
+                break;
+            case "ArrowLeft" or "PageUp":
+                Go(_index - 1);
+                break;
+            case "Home":
+                Go(0);
+                break;
+            case "End":
+                Go(int.MaxValue);
+                break;
+            case "f" or "F":
+                await FullscreenAsync();
+                break;
+        }
+    }
+
+    private async Task FullscreenAsync()
+    {
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/praesentation.js?v=1");
+            await _module.InvokeVoidAsync("vollbild", _stage);
+            await _keys.FocusAsync(preventScroll: true);
+        }
+        catch (JSDisconnectedException)
+        {
+            /* ignore */
+        }
+        catch (JSException)
+        {
+            /* the browser refused full screen */
+        }
+    }
+
+    private void OnLiveChanged(string presentationId, PresentationLiveEvent kind)
+    {
+        if (presentationId != _loadedId || kind is not (PresentationLiveEvent.Started or PresentationLiveEvent.Ended))
+        {
+            return;
+        }
+        _ = InvokeAsync(() =>
+        {
+            _live = Registry.Get(presentationId);
+            StateHasChanged();
+        });
+    }
+
+    private async Task DeleteAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Präsentation löschen?",
+            $"„{_view!.Presentation.Title}“ wird in den Papierkorb verschoben. Eine laufende Vorführung endet.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await Presentations.DeleteAsync(Id, _user);
+            Snackbar.Add("Präsentation gelöscht.", Severity.Success);
+            Nav.NavigateTo("/praesentationen");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Broadcaster.Changed -= OnLiveChanged;
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                /* ignore */
+            }
+        }
+    }
+}

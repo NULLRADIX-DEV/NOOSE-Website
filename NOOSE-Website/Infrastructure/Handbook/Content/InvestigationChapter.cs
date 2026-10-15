@@ -237,6 +237,13 @@ internal static class InvestigationChapter
                 <p>Hier liegt auch die <strong>Dienstverordnung</strong> selbst. Das Kapitel
                 <em>Dienstvorschrift</em> in diesem Handbuch ist nur ihre Kurzfassung - im Zweifel gilt das
                 Dokument.</p>
+                <p>Ein Dokument aus <strong>Google Docs</strong> holst du mit <em>Aus Google Docs</em>: entweder per
+                Freigabe-Link (in Google auf „Jeder mit dem Link“ stellen) oder als hochgeladene Datei
+                (<em>Datei → Herunterladen → Webseite (.html, gezippt)</em>). Als <strong>Original</strong> sieht es
+                aus wie in Google, der Text bleibt dort und kommt mit <em>Aktualisieren</em> neu. Als
+                <strong>bearbeitbare Kopie</strong> wird es ein normales Dokument; Schriften und Abstände, die der
+                Editor nicht kennt, gehen dabei verloren. Ein Original lässt sich später noch in eine Kopie
+                umwandeln, zurück geht es nicht.</p>
                 """,
                 NavKey: "dokumente"),
 

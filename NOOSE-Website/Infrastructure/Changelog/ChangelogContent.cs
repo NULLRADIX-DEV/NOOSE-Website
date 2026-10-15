@@ -503,12 +503,19 @@ public static class ChangelogContent
                 + "Verschlusssachen stehen nie darauf.", "Discord", "2.2.43-gefahrenlage-discord"),
         ]),
 
-        new("2.7.00", new DateTime(2026, 10, 15), "Interne Tests",
+        new("2.7.00", new DateTime(2026, 10, 15), "Interne Tests und Google-Import",
         [
             Neu("2.7.00-interne-tests", "HRB und Führung können Agenten jetzt Tests zuweisen, einzeln oder als Gruppe "
                 + "und auf Wunsch mit Frist. Du legst sie unter „Interne Tests“ ab und siehst nach der Korrektur deine "
                 + "Punkte; das Ergebnis steht in der Personalakte, und ein verknüpftes Ausbildungsmodul wird beim "
                 + "Bestehen abgehakt.", "Personal"),
+            Neu("2.7.01-google-docs-import", "Google-Docs lassen sich in die Dokumenten-Bibliothek holen, per "
+                + "Freigabe-Link oder als hochgeladene Datei: als Original, das aussieht wie in Google und sich "
+                + "aktualisieren lässt, oder als bearbeitbare Kopie.", "Dokumente"),
+            Neu("2.7.02-praesentationen", "Neu unter Dienststelle: Präsentationen. Du legst Folien aus Vorlagen an "
+                + "und führst sie live vor; wer zuschauen darf, sieht oben auf der Seite einen Hinweis. Sichtbar sind "
+                + "sie für alle, für eine Gruppe wie TRU, HRB oder eine Taskforce, oder nur für Eingeladene.",
+                "Präsentationen"),
         ]),
     ];
 }

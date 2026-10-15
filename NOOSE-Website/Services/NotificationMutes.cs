@@ -59,6 +59,7 @@ public static class NotificationMutes
             NotificationType.AppointmentScheduled,
             NotificationType.MeetingScheduled,
             NotificationType.MeetingReminder,
+            NotificationType.PresentationLive,
         ]),
         new("Behörde und Personal", MudBlazor.Icons.Material.Filled.Apartment,
         [

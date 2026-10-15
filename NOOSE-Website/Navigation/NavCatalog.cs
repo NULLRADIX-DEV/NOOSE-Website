@@ -110,6 +110,8 @@ public static class NavCatalog
             Description: "Dienstbesprechungen mit Tagesordnung und Protokoll"),
         new NavEntry("kalender", "/kalender", Icons.Material.Filled.CalendarMonth, "Kalender", NavSection.Dienststelle, NavArea.Dienststelle,
             Description: "Termine der Behörde in der Monatsansicht"),
+        new NavEntry("praesentationen", "/praesentationen", Icons.Material.Filled.CoPresent, "Präsentationen", NavSection.Dienststelle, NavArea.Dienststelle,
+            Description: "Folien anlegen und live für die Agenten vorführen, die gerade online sind"),
 
         new NavEntry("admin.freigaben", "/admin/freigaben", Icons.Material.Filled.HowToReg, "Freigaben", NavSection.VerwaltungFreigaben, NavArea.Verwaltung, BadgeKey: "shares",
             Description: "Posteingang für Anträge, Registrierungen und Freigaben"),

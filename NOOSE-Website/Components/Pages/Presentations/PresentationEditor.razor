@@ -1,0 +1,469 @@
+@page "/praesentationen/neu"
+@page "/praesentationen/{Id}/bearbeiten"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@inject IPresentationService Presentations
+@inject ITextImageStorageService ImageStorage
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>@(IsNew ? "Neue Präsentation" : _view?.Presentation.Title ?? "Präsentation") · NOOSE</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (IsNew)
+{
+    <PageHeader Icon="@Icons.Material.Filled.CoPresent" Title="Neue Präsentation" BackHref="/praesentationen" BackText="Zur Übersicht" />
+    @if (!_mayCreate)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Präsentationen anlegen dürfen interne Agenten mit Schreibrecht.</MudAlert>
+    }
+    else
+    {
+        <MudPaper Class="pa-4" Elevation="1">
+            <PresentationSettingsForm Input="_input" User="_user" />
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettingsAsync" Disabled="_busy"
+                           StartIcon="@Icons.Material.Filled.Add">Anlegen und Folien bearbeiten</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+else if (_view is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Diese Präsentation existiert nicht (mehr), oder du darfst sie nicht bearbeiten.
+    </MudAlert>
+}
+else
+{
+    <PageHeader Icon="@Icons.Material.Filled.CoPresent" Title="@_view.Presentation.Title"
+                Subtitle="@($"Bearbeiten · {_view.AccessLabel}")" BackHref="@($"/praesentationen/{Id}")" BackText="Zur Ansicht">
+        <Actions>
+            <MudButton Href="@($"/praesentationen/{Id}/live")" Variant="Variant.Filled" Color="Color.Error"
+                       StartIcon="@Icons.Material.Filled.PlayArrow" Disabled="@(_slides.Count == 0)">Vorführen</MudButton>
+        </Actions>
+    </PageHeader>
+
+    <MudExpansionPanels Class="mb-4" Elevation="1">
+        <MudExpansionPanel Text="Titel und Sichtbarkeit">
+            <PresentationSettingsForm @key="Id" Input="_input" User="_user" />
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettingsAsync" Disabled="_busy">Speichern</MudButton>
+            </MudStack>
+        </MudExpansionPanel>
+    </MudExpansionPanels>
+
+    <MudGrid>
+        <MudItem xs="12" md="3">
+            <MudPaper Class="pa-2" Elevation="1">
+                <MudMenu Label="Folie hinzufügen" StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Outlined"
+                         Color="Color.Primary" FullWidth="true" Class="mb-2" Disabled="_busy">
+                    @foreach (var layout in PresentationDisplay.EditableLayouts)
+                    {
+                        <MudMenuItem Icon="@PresentationDisplay.Icon(layout)" OnClick="@(() => AddSlideAsync(layout))">
+                            @PresentationDisplay.Name(layout)
+                        </MudMenuItem>
+                    }
+                </MudMenu>
+                <div class="praesentation-leiste">
+                    @for (var i = 0; i < _slides.Count; i++)
+                    {
+                        var slide = _slides[i];
+                        var selected = slide.Id == _selected?.Id;
+                        <div class="@($"praesentation-leiste-eintrag{(selected ? " ausgewaehlt" : "")}")" @onclick="@(() => SelectAsync(slide))">
+                            <SlideView Slide="slide" Number="@(i + 1)" />
+                        </div>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="9">
+            @if (_selected is null)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Noch keine Folie. Lege links eine an.</MudAlert>
+            }
+            else
+            {
+                var index = _slides.FindIndex(s => s.Id == _selected.Id);
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-3 flex-wrap">
+                        <MudText Typo="Typo.subtitle1"><b>Folie @(index + 1) von @_slides.Count</b></MudText>
+                        <MudSpacer />
+                        <MudTooltip Text="Nach vorne">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                           Disabled="@(_busy || index <= 0)" OnClick="@(() => MoveAsync(index - 1))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Nach hinten">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                           Disabled="@(_busy || index >= _slides.Count - 1)" OnClick="@(() => MoveAsync(index + 1))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Duplizieren">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Disabled="_busy" OnClick="DuplicateAsync" />
+                        </MudTooltip>
+                        <MudTooltip Text="Folie löschen">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           Disabled="_busy" OnClick="DeleteSlideAsync" />
+                        </MudTooltip>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Class="ml-2"
+                                   StartIcon="@Icons.Material.Filled.Save" Disabled="_busy" OnClick="@(() => SaveSlideAsync(false))">
+                            Speichern
+                        </MudButton>
+                    </MudStack>
+
+                    <MudGrid>
+                        <MudItem xs="12" lg="7">
+                            @if (_selected.Layout == SlideLayout.PdfPage)
+                            {
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+                                    Diese Folie stammt aus Google Slides. Ihren Inhalt änderst du dort und aktualisierst den Import;
+                                    hier pflegst du nur die Notizen.
+                                </MudAlert>
+                            }
+                            else
+                            {
+                                <MudSelect T="SlideLayout" Value="_slideInput.Layout" ValueChanged="ChangeLayoutAsync"
+                                           Label="Layout" Variant="Variant.Outlined" Class="mb-3">
+                                    @foreach (var layout in PresentationDisplay.EditableLayouts)
+                                    {
+                                        <MudSelectItem T="SlideLayout" Value="layout">@PresentationDisplay.Name(layout)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                <MudTextField @bind-Value="_slideInput.Title" Label="@(_slideInput.Layout == SlideLayout.Image ? "Bildunterschrift" : "Titel")"
+                                              Variant="Variant.Outlined" MaxLength="300" Immediate="true" Class="mb-3" />
+                                @if (PresentationDisplay.HasText(_slideInput.Layout))
+                                {
+                                    <MudText Typo="Typo.subtitle2" Class="mb-1">
+                                        @(_slideInput.Layout is SlideLayout.Title or SlideLayout.Section ? "Untertitel" : "Text")
+                                    </MudText>
+                                    <RichTextEditor @key="@($"{_selected.Id}:{_editorRevision}")" @ref="_editor" Value="@_bodySeed" MinHeight="220px"
+                                                    DraftKey='@($"folie:{_selected.Id}:text")' />
+                                }
+                            }
+                            <TextDraft @key="@($"{_selected.Id}:notizen")" @ref="_notesDraft" DraftKey='@($"folie:{_selected.Id}:notizen")'
+                                       OnRestore="@(t => _slideInput.Notes = t)">
+                                <MudTextField @bind-Value="_slideInput.Notes" Label="Sprechernotizen" Lines="3" Variant="Variant.Outlined"
+                                              Immediate="true" Class="mt-3"
+                                              HelperText="Siehst nur du beim Vortrag, nicht die Zuschauer." />
+                            </TextDraft>
+                        </MudItem>
+                        <MudItem xs="12" lg="5">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Vorschau (Text nach dem Speichern)</MudText>
+                            <SlideView Slide="Preview" />
+                            @if (_selected.Layout != SlideLayout.PdfPage && PresentationDisplay.HasImage(_slideInput.Layout))
+                            {
+                                <MudStack Row="true" Spacing="2" Class="mt-2 flex-wrap">
+                                    <MudFileUpload T="IBrowserFile" Accept=".png,.jpg,.jpeg,.webp,.gif" FilesChanged="UploadImageAsync">
+                                        <CustomContent>
+                                            <MudButton Variant="Variant.Outlined" Size="Size.Small" Disabled="_busy"
+                                                       StartIcon="@Icons.Material.Filled.Image" OnClick="@context.OpenFilePickerAsync">
+                                                @(_selected.ImageId is null ? "Bild wählen" : "Bild ersetzen")
+                                            </MudButton>
+                                        </CustomContent>
+                                    </MudFileUpload>
+                                    @if (_selected.ImageId is not null)
+                                    {
+                                        <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error" Disabled="_busy"
+                                                   StartIcon="@Icons.Material.Filled.HideImage" OnClick="RemoveImageAsync">Bild entfernen</MudButton>
+                                    }
+                                </MudStack>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    JPG, PNG, WebP oder GIF bis @(ImageStorage.MaxBytes / 1024 / 1024) MB.
+                                </MudText>
+                            }
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    private bool _mayCreate;
+    private bool _loading = true;
+    private bool _busy;
+    private string? _loadedId;
+    private PresentationView? _view;
+    private PresentationInput _input = new();
+    private List<PresentationSlide> _slides = [];
+    private PresentationSlide? _selected;
+    private SlideInput _slideInput = new();
+    private string? _bodySeed;
+    private RichTextEditor? _editor;
+    private int _editorRevision;
+    private TextDraft? _notesDraft;
+
+    private bool IsNew => string.IsNullOrEmpty(Id);
+
+    private PresentationSlide? Preview => _selected is null
+        ? null
+        : new PresentationSlide
+        {
+            Layout = _selected.Layout == SlideLayout.PdfPage ? SlideLayout.PdfPage : _slideInput.Layout,
+            Title = _slideInput.Title,
+            BodyHtml = _bodySeed,
+            ImageId = _selected.ImageId,
+        };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // the same instance serves "new" and every edit route; load again only when the route changed
+        var key = Id ?? string.Empty;
+        if (key == _loadedId)
+        {
+            return;
+        }
+        _loadedId = key;
+        _loading = true;
+        _user = (await AuthStateTask).User;
+        _mayCreate = _user.MayWrite() && _user.IsInternalAgent();
+        if (IsNew)
+        {
+            _view = null;
+            _input = new PresentationInput();
+        }
+        else
+        {
+            await LoadAsync(null, settings: true);
+        }
+        _loading = false;
+    }
+
+    /// <summary>Loads the slides; the title and access fields only with <paramref name="settings"/>, so what is
+    /// typed there and not saved yet survives every slide action.</summary>
+    private async Task LoadAsync(string? selectId, bool settings = false)
+    {
+        var view = await Presentations.GetAsync(Id!, _user);
+        _view = view is { MayManage: true } ? view : null;
+        if (_view is null)
+        {
+            return;
+        }
+        if (settings)
+        {
+            var p = _view.Presentation;
+            _input = new PresentationInput
+            {
+                Title = p.Title,
+                Description = p.Description,
+                Access = p.Access,
+                Audience = p.Audience,
+                TargetId = p.TargetId,
+                MinRank = p.MinRank,
+                InviteIds = _view.InviteIds.ToList(),
+            };
+        }
+        _slides = _view.Slides.ToList();
+        Select(_slides.FirstOrDefault(s => s.Id == selectId) ?? _slides.FirstOrDefault());
+        // the editor reads its value once; a fresh one shows the stored text, so a pasted picture is not sent again
+        // as base64 with the next save and filed a second time
+        _editorRevision++;
+    }
+
+    private void Select(PresentationSlide? slide)
+    {
+        _selected = slide;
+        _slideInput = slide is null
+            ? new SlideInput()
+            : new SlideInput { Layout = slide.Layout, Title = slide.Title, BodyHtml = slide.BodyHtml, Notes = slide.Notes };
+        _bodySeed = slide?.BodyHtml;
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        _busy = true;
+        try
+        {
+            if (IsNew)
+            {
+                var created = await Presentations.CreateAsync(_input, _user);
+                Nav.NavigateTo($"/praesentationen/{created.Id}/bearbeiten");
+                return;
+            }
+            await Presentations.UpdateAsync(Id!, _input, _user);
+            // the header only: reloading the slides would throw away what is typed into the open one
+            if (await Presentations.GetAsync(Id!, _user) is { MayManage: true } fresh)
+            {
+                _view = fresh;
+            }
+            Snackbar.Add("Gespeichert.", Severity.Success);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>Stores the open slide; false when that failed, so the caller stays on it.</summary>
+    private async Task<bool> SaveSlideAsync(bool quiet)
+    {
+        if (_selected is null || IsNew)
+        {
+            return true;
+        }
+        _busy = true;
+        try
+        {
+            if (_editor is not null && PresentationDisplay.HasText(_slideInput.Layout))
+            {
+                _bodySeed = await _editor.GetHtmlAsync();
+            }
+            await Presentations.UpdateSlideAsync(_selected.Id, new SlideInput
+            {
+                Layout = _slideInput.Layout,
+                Title = _slideInput.Title,
+                BodyHtml = _bodySeed,
+                Notes = _slideInput.Notes,
+            }, _user);
+            if (_editor is not null)
+            {
+                await _editor.MarkSavedAsync();
+            }
+            if (_notesDraft is not null)
+            {
+                await _notesDraft.MarkSavedAsync();
+            }
+            if (!quiet)
+            {
+                await LoadAsync(_selected.Id);
+                Snackbar.Add("Folie gespeichert.", Severity.Success);
+            }
+            return true;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return false;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SelectAsync(PresentationSlide slide)
+    {
+        if (_busy || slide.Id == _selected?.Id || !await SaveSlideAsync(true))
+        {
+            return;
+        }
+        await LoadAsync(slide.Id);
+    }
+
+    private async Task ChangeLayoutAsync(SlideLayout layout)
+    {
+        // keep the text when a layout without one hides the editor, so switching back brings it again
+        if (_editor is not null && PresentationDisplay.HasText(_slideInput.Layout))
+        {
+            _bodySeed = await _editor.GetHtmlAsync();
+        }
+        if (!PresentationDisplay.HasText(layout))
+        {
+            _editor = null;
+        }
+        _slideInput.Layout = layout;
+    }
+
+    private Task AddSlideAsync(SlideLayout layout)
+        => RunAsync(async () =>
+        {
+            var slide = await Presentations.AddSlideAsync(Id!, layout, _user);
+            return slide.Id;
+        });
+
+    private Task MoveAsync(int newIndex)
+        => RunAsync(async () =>
+        {
+            await Presentations.MoveSlideAsync(_selected!.Id, newIndex, _user);
+            return _selected.Id;
+        });
+
+    private Task DuplicateAsync()
+        => RunAsync(async () => (await Presentations.DuplicateSlideAsync(_selected!.Id, _user)).Id);
+
+    private async Task DeleteSlideAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Folie löschen?", "Die Folie wird aus der Präsentation entfernt.");
+        if (!ok || _selected is null)
+        {
+            return;
+        }
+        var index = _slides.FindIndex(s => s.Id == _selected.Id);
+        var neighbour = index > 0 ? _slides[index - 1].Id : _slides.Count > 1 ? _slides[1].Id : null;
+        _busy = true;
+        try
+        {
+            await Presentations.DeleteSlideAsync(_selected.Id, _user);
+            if (_editor is not null)
+            {
+                await _editor.MarkSavedAsync();
+            }
+            _editor = null;
+            await LoadAsync(neighbour);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private Task UploadImageAsync(IBrowserFile? file)
+        => file is null
+            ? Task.CompletedTask
+            : RunAsync(async () =>
+            {
+                if (file.Size > ImageStorage.MaxBytes)
+                {
+                    throw new InvalidOperationException($"Das Bild ist zu groß (höchstens {ImageStorage.MaxBytes / 1024 / 1024} MB).");
+                }
+                await using var stream = file.OpenReadStream(ImageStorage.MaxBytes);
+                await Presentations.SetSlideImageAsync(_selected!.Id, stream, file.ContentType, _user);
+                return _selected.Id;
+            });
+
+    private Task RemoveImageAsync()
+        => RunAsync(async () =>
+        {
+            await Presentations.RemoveSlideImageAsync(_selected!.Id, _user);
+            return _selected.Id;
+        });
+
+    /// <summary>Saves the open slide, runs a slide action and reloads on the slide it names.</summary>
+    private async Task RunAsync(Func<Task<string?>> action)
+    {
+        if (_busy || !await SaveSlideAsync(true))
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var selectId = await action();
+            await LoadAsync(selectId);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or IOException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

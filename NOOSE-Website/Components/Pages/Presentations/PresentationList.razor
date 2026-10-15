@@ -1,0 +1,162 @@
+@page "/praesentationen"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@implements IDisposable
+@inject IPresentationService Presentations
+@inject IPresentationLiveService Live
+@inject PresentationBroadcaster Broadcaster
+
+<PageTitle>Präsentationen · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.CoPresent"
+            Title="Präsentationen"
+            Subtitle="Folien anlegen und live für die Agenten vorführen, die gerade online sind.">
+    <Actions>
+        @if (_mayCreate)
+        {
+            <MudButton Href="/praesentationen/neu" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">Neue Präsentation</MudButton>
+        }
+    </Actions>
+</PageHeader>
+
+@if (_live.Count > 0)
+{
+    <MudStack Spacing="2" Class="mb-4">
+        @foreach (var session in _live)
+        {
+            <MudPaper Class="pa-3" Elevation="2" Style="border-left:4px solid var(--mud-palette-error);">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.FiberManualRecord">LIVE</MudChip>
+                    <MudText Typo="Typo.subtitle1"><b>@session.Title</b></MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        @session.PresenterCodename präsentiert · @session.ViewerCodenames.Count Zuschauer
+                    </MudText>
+                    <MudSpacer />
+                    <MudButton Href="@($"/praesentationen/{session.PresentationId}/live")" Variant="Variant.Filled"
+                               Color="Color.Error" StartIcon="@Icons.Material.Filled.PlayArrow" Size="Size.Small">
+                        @(session.PresenterId == _me ? "Zum Vortrag" : "Zuschauen")
+                    </MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+    </MudStack>
+}
+
+@if (_items is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3 flex-wrap">
+        <MudChipSet T="string" @bind-SelectedValue="_filter" SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
+            <MudChip T="string" Value="@("alle")" Text="Alle" />
+            <MudChip T="string" Value="@("meine")" Text="Meine" />
+        </MudChipSet>
+        <MudSpacer />
+        <MudTextField @bind-Value="_search" Placeholder="Suchen …" Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Immediate="true" Clearable="true" Style="max-width:320px;" />
+    </MudStack>
+
+    @if (Shown.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+            @(_items.Count == 0 ? "Noch keine Präsentation, die du sehen kannst." : "Keine Präsentation passt zum Filter.")
+        </MudAlert>
+    }
+    else
+    {
+        <MudTable Items="Shown" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Titel</MudTh>
+                <MudTh>Sichtbar für</MudTh>
+                <MudTh>Von</MudTh>
+                <MudTh>Folien</MudTh>
+                <MudTh>Geändert</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Titel">
+                    <MudLink Href="@($"/praesentationen/{context.Id}")"><b>@context.Title</b></MudLink>
+                    @if (_liveIds.Contains(context.Id))
+                    {
+                        <MudChip T="string" Color="Color.Error" Size="Size.Small" Class="ml-2">LIVE</MudChip>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(context.Description))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.Description</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Sichtbar für">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@PresentationDisplay.Icon(context.Access)" Size="Size.Small" />
+                        <span>@context.AccessLabel</span>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Von">@context.OwnerCodename</MudTd>
+                <MudTd DataLabel="Folien">@context.SlideCount</MudTd>
+                <MudTd DataLabel="Geändert">@context.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    private string? _me;
+    private bool _mayCreate;
+    private List<PresentationListItem>? _items;
+    private List<LiveSessionSnapshot> _live = [];
+    private HashSet<string> _liveIds = [];
+    private string? _filter = "alle";
+    private string? _search;
+
+    private List<PresentationListItem> Shown => (_items ?? [])
+        .Where(p => _filter != "meine" || p.OwnerId == _me)
+        .Where(p => string.IsNullOrWhiteSpace(_search)
+            || p.Title.Contains(_search, StringComparison.CurrentCultureIgnoreCase)
+            || (p.Description?.Contains(_search, StringComparison.CurrentCultureIgnoreCase) ?? false)
+            || p.OwnerCodename.Contains(_search, StringComparison.CurrentCultureIgnoreCase))
+        .ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _me = _user.GetAgentId();
+        _mayCreate = _user.MayWrite() && _user.IsInternalAgent();
+        Broadcaster.Changed += OnLiveChanged;
+        _items = await Presentations.GetListAsync(_user);
+        await LoadLiveAsync();
+    }
+
+    private async Task LoadLiveAsync()
+    {
+        _live = await Live.GetVisibleLiveAsync(_user);
+        _liveIds = _live.Select(s => s.PresentationId).ToHashSet();
+    }
+
+    private void OnLiveChanged(string presentationId, PresentationLiveEvent kind)
+    {
+        // paging and slide edits do not show here; viewer counts do
+        if (kind is PresentationLiveEvent.SlideChanged or PresentationLiveEvent.SlidesChanged)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                await LoadLiveAsync();
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+                /* the next event refreshes it */
+            }
+        });
+    }
+
+    public void Dispose() => Broadcaster.Changed -= OnLiveChanged;
+}

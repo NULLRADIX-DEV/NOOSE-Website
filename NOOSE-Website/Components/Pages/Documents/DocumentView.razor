@@ -57,9 +57,16 @@ else
 
     <MudGrid>
         <MudItem xs="12" md="8" lg="9">
-            <MudPaper Class="pa-6" Elevation="2">
-                <RichHtml Html="@_document.ContentHtml" />
-            </MudPaper>
+            @if (_document.ImportedHtml is { } original)
+            {
+                <ImportedDocument Html="@original" />
+            }
+            else
+            {
+                <MudPaper Class="pa-6" Elevation="2">
+                    <RichHtml Html="@_document.ContentHtml" />
+                </MudPaper>
+            }
             @if (!_isPartner)
             {
                 <MudPaper Class="pa-4 mt-4" Elevation="1">
@@ -76,6 +83,12 @@ else
                 @if (!string.IsNullOrWhiteSpace(_document.Category))
                 {
                     <MudText Typo="Typo.body2"><b>Kategorie:</b> @_document.Category</MudText>
+                }
+                @if (_document.ImportedAt is { } imported)
+                {
+                    <MudText Typo="Typo.body2">
+                        <b>Aus Google Docs</b> importiert am @imported.ToLocalTime().ToString("dd.MM.yyyy HH:mm")@(_document.ImportedHtml is null ? " (bearbeitbare Kopie)" : "")
+                    </MudText>
                 }
                 <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
                     Erstellt: @_document.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")

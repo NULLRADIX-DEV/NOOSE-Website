@@ -496,6 +496,9 @@ public static class SearchCatalog
             ["BewerbungTestAnswer"] = "Bewertetes Material.",
             ["AgentTestAssignment"] = "Zuteilung ohne Text.",
             ["AgentTestAnswer"] = "Bewertetes Material.",
+            ["Presentation"] = "Eigene Liste unter /praesentationen; die Sichtbarkeit je Gruppe und Einladung hat noch keinen Suchprovider.",
+            ["PresentationSlide"] = "Teil einer Präsentation.",
+            ["PresentationInvite"] = "Zuordnung ohne Text.",
             ["NooseiMessage"] = "Der Rechte-Stempel macht gespeicherte Werkzeug-Antworten gegenüber dem aktuellen "
                 + "Scope potenziell veraltet; nur der Titel der Unterhaltung ist durchsuchbar.",
 

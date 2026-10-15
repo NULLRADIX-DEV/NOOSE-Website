@@ -122,7 +122,12 @@ public class DocumentService(IDbContextFactory<AppDbContext> dbFactory) : IDocum
 
         document.Title = title;
         document.Category = input.Category.TrimToNull();
-        document.ContentHtml = HtmlCleanup.Clean(input.ContentHtml);
+        // an imported original keeps its text: the editor shows it locked, and a stale editor payload must not
+        // replace the copy that belongs to the original still on display - nor a copy converted and edited since
+        if (document.ImportedHtml is null && !input.KeepContent)
+        {
+            document.ContentHtml = HtmlCleanup.Clean(input.ContentHtml);
+        }
         document.Classification = input.Classification;
         await db.SaveChangesAsync(cancellationToken);
     }

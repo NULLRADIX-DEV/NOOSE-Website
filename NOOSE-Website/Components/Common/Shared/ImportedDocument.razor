@@ -1,0 +1,32 @@
+@using NOOSE_Website.Services.Import
+
+@* An imported Google original, shown as the white page it is in Google. Deliberately outside RichHtml: its
+   .dokument-html rules are more specific than anything here and would restyle the original, and the mention
+   and glossary passes have no business in a foreign document. The html was sanitized on import. *@
+
+@foreach (var href in _fontHrefs)
+{
+    <link rel="stylesheet" href="@href" />
+}
+<div class="google-import @(Print ? "google-import-druck" : null)">
+    @((MarkupString)Html)
+</div>
+
+@code {
+    /// <summary>Document.ImportedHtml, already cleaned with the import profile.</summary>
+    [Parameter, EditorRequired] public string Html { get; set; } = string.Empty;
+
+    /// <summary>Paper rendering: no frame, no shadow, no horizontal scroll box.</summary>
+    [Parameter] public bool Print { get; set; }
+
+    private IReadOnlyList<string> _fontHrefs = [];
+
+    protected override void OnParametersSet()
+    {
+        // one request per family: Google answers 400 for the whole request when one name is unknown. The app already
+        // loads Google Fonts, and the names passed a strict pattern on the way
+        _fontHrefs = GoogleDocConverter.FontFamilies(Html)
+            .Select(f => $"https://fonts.googleapis.com/css2?family={Uri.EscapeDataString(f).Replace("%20", "+")}&display=swap")
+            .ToList();
+    }
+}

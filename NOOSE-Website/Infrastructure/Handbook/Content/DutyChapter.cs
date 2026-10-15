@@ -56,6 +56,28 @@ internal static class DutyChapter
                 """,
                 NavKey: "besprechungen"),
 
+            new Article("art-praesentationen", "praesentationen", "Präsentationen",
+                "Folien anlegen und live vorführen - für alle, eine Gruppe oder Eingeladene.",
+                """
+                <p>Unter <em>Präsentationen</em> legt jeder interne Agent mit Schreibrecht Folien an. Jede Folie
+                folgt einer <strong>Vorlage</strong>: Titelfolie, Titel und Text, Text mit Bild links oder rechts,
+                nur Bild oder Abschnitt. Zu jeder Folie kannst du <strong>Sprechernotizen</strong> schreiben, die nur
+                du beim Vortrag siehst.</p>
+                <p>Wer eine Präsentation sieht, legst du beim Anlegen fest: <strong>öffentlich</strong> für alle
+                internen Agenten, <strong>geschlossen</strong> für eine Gruppe (TRU, HRB, eine Taskforce oder ab einem
+                Dienstgrad) oder <strong>privat</strong> nur für die Eingeladenen. Schließen kannst du sie nur für eine
+                Gruppe, zu der du selbst gehörst. Du und die Führung sehen deine Präsentationen immer.</p>
+                <p>Mit <em>Vorführen</em> startest du den Vortrag. Wer die Präsentation sehen darf und gerade online
+                ist, bekommt oben auf der Seite einen Hinweis und eine Benachrichtigung in der Glocke und kann mit
+                einem Klick zuschauen. Du blätterst mit den Pfeiltasten, siehst die nächste Folie, deine Notizen und
+                wer zuschaut. Im Modus <em>Alle folgen mir</em> sehen die Zuschauer immer deine Folie; im Modus
+                <em>Frei blättern</em> dürfen sie vor- und zurückblättern und springen mit einem Knopf zurück zum
+                Vortrag.</p>
+                <p>Schließt du die Vortragsseite, endet die Vorführung nach zwei Minuten von selbst. Bearbeiten,
+                vorführen und löschen dürfen nur, wer die Präsentation angelegt hat, und die Führung.</p>
+                """,
+                NavKey: "praesentationen"),
+
             new Article("art-abmeldungen", "abmeldungen", "Abmeldungen",
                 "Abwesenheit ankündigen, damit niemand auf dich wartet.",
                 """

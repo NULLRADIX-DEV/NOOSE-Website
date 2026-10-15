@@ -48,6 +48,8 @@ public static class AuditRedaction
         $"{nameof(AgentTestAnswer)}.{nameof(AgentTestAnswer.FreeTextAnswer)}",
         $"{nameof(AgentTestAnswer)}.{nameof(AgentTestAnswer.SelectedOptionId)}",
         $"{nameof(AgentTestAnswer)}.{nameof(AgentTestAnswer.SelectedOptionIds)}",
+        // the full Google original would land twice in the protocol on every refresh; ContentHtml keeps the text
+        $"{nameof(Document)}.{nameof(Document.ImportedHtml)}",
     };
 
     /// <summary>Whether this field's before/after pair stays out of the audit row.</summary>
