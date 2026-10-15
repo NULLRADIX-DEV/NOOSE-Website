@@ -523,6 +523,8 @@ public static class ChangelogContent
             Neu("2.7.04-google-anmeldung", "Google-Docs und -Präsentationen, die nicht freigegeben sind, holst du "
                 + "jetzt über die Google-Anmeldung: Du wählst die Datei im Google-Fenster, und NOOSE liest nur diese "
                 + "eine. Einen Zugang merkt sich die Seite nicht.", "Dokumente"),
+            Fix("2.7.05-eingeschraenkte-aufgabe-verknuepft", "Eine eingeschränkte Aufgabe, die mit einer anderen Akte "
+                + "verknüpft ist, steht dort nur noch für die, die sie auch sehen dürfen.", "Dienstbetrieb"),
         ]),
     ];
 }
