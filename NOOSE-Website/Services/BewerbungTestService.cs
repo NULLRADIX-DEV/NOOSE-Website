@@ -60,7 +60,7 @@ public class BewerbungTestService(
 
     public async Task UpdateUsageAsync(string id, TestUsage usage, string? trainingModuleId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireHrbOrLeadership(actor);
+        Permission.RequireHrbOrLeadershipWrite(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var test = await db.BewerbungTests.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new InvalidOperationException("Test nicht gefunden.");

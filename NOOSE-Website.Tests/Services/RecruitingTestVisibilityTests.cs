@@ -330,6 +330,8 @@ public class RecruitingTestVisibilityTests
         // never sees, so the rank check alone would let the read-only supervision and the demo principal
         // through. One combined guard, because every member may carry exactly one.
         string[] attemptWriteMembers = ["ExtendAttemptAsync", "ResetAttemptAsync"];
+        // newer than the rest of the catalogue writes, so it carries the write check of its own
+        string[] catalogWriteMembers = ["UpdateUsageAsync"];
         var members = typeof(IBewerbungTestService).GetMethods()
             .Select(m => m.Name).Distinct(StringComparer.Ordinal).ToArray();
         Assert.True(members.Length >= 17, $"Unerwartet wenige Schnittstellen-Methoden: {members.Length}");
@@ -344,7 +346,9 @@ public class RecruitingTestVisibilityTests
                 ? "Permission.RequireApplicant("
                 : attemptWriteMembers.Contains(name, StringComparer.Ordinal)
                     ? "Permission.RequireTestAttemptWrite("
-                    : "Permission.RequireHrbOrLeadership(";
+                    : catalogWriteMembers.Contains(name, StringComparer.Ordinal)
+                        ? "Permission.RequireHrbOrLeadershipWrite("
+                        : "Permission.RequireHrbOrLeadership(";
 
             var regions = new List<string>();
             for (var i = 0; i < starts.Length - 1; i++)

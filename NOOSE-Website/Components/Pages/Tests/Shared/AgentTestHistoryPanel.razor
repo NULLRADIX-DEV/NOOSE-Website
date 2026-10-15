@@ -52,9 +52,16 @@ else
 
     private List<AgentTestRow>? _rows;
     private DateTime _now = DateTime.UtcNow;
+    private string? _loadedFor;
 
     protected override async Task OnParametersSetAsync()
     {
+        // the personnel file re-renders this panel with every change elsewhere on the page
+        if (AgentId == _loadedFor)
+        {
+            return;
+        }
+        _loadedFor = AgentId;
         var user = (await AuthStateTask).User;
         _now = DateTime.UtcNow;
         _rows = await AgentTests.GetForAgentAsync(AgentId, user);

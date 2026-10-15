@@ -4,6 +4,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject NOOSE_Website.Infrastructure.Chat.AgentTestBroadcaster Broadcaster
 @implements IAsyncDisposable
 
 <PageTitle>@(string.IsNullOrEmpty(Title) ? "Interner Test" : Title) · NOOSE</PageTitle>
@@ -65,6 +66,8 @@ else if (_test is null)
 }
 else
 {
+    @* every way off the page keeps what was typed: the back arrow, the sidebar, a link in the bell *@
+    <NavigationLock OnBeforeInternalNavigation="FlushBeforeLeaveAsync" />
     <MudStack Spacing="3">
         <MudText Typo="Typo.body2" Class="noose-pruefung-druckhinweis">
             Der Fragebogen wird nicht gedruckt. Bitte beantworte den Test online.
@@ -126,6 +129,8 @@ else
 
     private bool IsDirty() => _questionnaire?.IsDirty() ?? false;
 
+    protected override void OnInitialized() => Broadcaster.Modified += OnModified;
+
     protected override async Task OnParametersSetAsync()
     {
         if (_loadedId == AssignmentId)
@@ -137,6 +142,13 @@ else
         _test = null;
         _result = null;
         _user = (await AuthStateTask).User;
+        await LoadStatusAsync();
+        _ready = true;
+    }
+
+    /// <summary>Reads where the attempt stands and opens it when it runs; starts no clock behind the gate.</summary>
+    private async Task LoadStatusAsync()
+    {
         try
         {
             // the summary first, because it starts nothing: only OpenAsync stamps the clock
@@ -155,7 +167,29 @@ else
         {
             _status = null;
         }
-        _ready = true;
+    }
+
+    /// <summary>HRB extended, released or graded this attempt. Only a page that shows no questionnaire reloads:
+    /// a running one learns it from its next save, and reloading it would drop what is being typed.</summary>
+    private void OnModified(string assignmentId, string agentId)
+    {
+        if (assignmentId != _loadedId || _test is not null)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            try
+            {
+                _result = null;
+                await LoadStatusAsync();
+                StateHasChanged();
+            }
+            catch (Exception)
+            {
+                /* the next event or a reload shows it */
+            }
+        });
     }
 
     private async Task LoadTestAsync()
@@ -184,8 +218,18 @@ else
 
     private async Task<TestDraftResult> SaveDraftAsync()
     {
-        _questionnaire?.MarkClean();
         TestDraftResult result;
+        if (!IsDirty())
+        {
+            // nothing new here: sending this page's answers could overwrite newer ones a second tab stored
+            result = await AgentTests.CheckAsync(_test!.AssignmentId, _test.AttemptNumber, _user);
+            if (result.Outcome == TestDraftOutcome.Closed)
+            {
+                await ReloadClosedAsync();
+            }
+            return result;
+        }
+        _questionnaire?.MarkClean();
         try
         {
             result = await AgentTests.SaveDraftAsync(_test!.AssignmentId, _test.AttemptNumber, Collect(), _user);
@@ -213,18 +257,28 @@ else
         StateHasChanged();
         if (_test is not null)
         {
-            await SubmitAsync(auto: true);
+            if (IsDirty())
+            {
+                await SubmitAsync(auto: true);
+            }
+            else
+            {
+                // a page with nothing new closes the attempt with what is stored, never with its older copy
+                try { await AgentTests.CheckAsync(_test.AssignmentId, _test.AttemptNumber, _user); } catch { /* the sweep closes it */ }
+            }
         }
         await ReloadClosedAsync();
     }
 
-    private async Task LeaveAsync()
+    // the navigation lock saves on the way out
+    private void LeaveAsync() => Nav.NavigateTo("/tests");
+
+    private async Task FlushBeforeLeaveAsync(LocationChangingContext context)
     {
-        if (_test?.DeadlineAt is not null && IsDirty())
+        if (_test is not null && !_expiring && IsDirty())
         {
-            try { await SaveDraftAsync(); } catch { /* best effort */ }
+            try { await SaveDraftAsync(); } catch { /* best effort: leaving is not blocked by a failed save */ }
         }
-        Nav.NavigateTo("/tests");
     }
 
     private List<TestAnswerInput> Collect() => _questionnaire?.Collect() ?? [];
@@ -282,15 +336,21 @@ else
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // not gated on firstRender: behind the start gate the questionnaire first appears on a later render
-        if (_protectionTried || _module is not null || _test is null || _test.Completed)
+        // not gated on firstRender: behind the start gate the questionnaire first appears on a later render; and
+        // again after a release and restart, whose questionnaire is a new element
+        if (_protectionTried || _test is null || _test.Completed)
         {
             return;
         }
         _protectionTried = true;
         try
         {
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/pruefung.js?v=2");
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/pruefung.js?v=2");
+            if (_guarded)
+            {
+                // forgets the element of the previous attempt, which is gone from the page
+                await _module.InvokeVoidAsync("freigeben", ContainerId);
+            }
             await _module.InvokeVoidAsync("schuetzen", ContainerId);
             _guarded = true;
         }
@@ -300,6 +360,7 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        Broadcaster.Modified -= OnModified;
         try
         {
             if (_module is not null && _guarded)
