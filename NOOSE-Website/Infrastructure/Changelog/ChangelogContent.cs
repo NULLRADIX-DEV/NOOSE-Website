@@ -523,7 +523,10 @@ public static class ChangelogContent
             Neu("2.7.04-google-anmeldung", "Google-Docs und -Präsentationen, die nicht freigegeben sind, holst du "
                 + "jetzt über die Google-Anmeldung: Du wählst die Datei im Google-Fenster, und NOOSE liest nur diese "
                 + "eine. Einen Zugang merkt sich die Seite nicht.", "Dokumente"),
-            Fix("2.7.05-eingeschraenkte-aufgabe-verknuepft", "Eine eingeschränkte Aufgabe, die mit einer anderen Akte "
+            Neu("2.7.05-praesentationen-verknuepfen", "Präsentationen lassen sich mit anderen Akten verknüpfen, etwa "
+                + "mit einem Vorgang, einer Person oder einer Besprechung: auf der Präsentation selbst oder dort beim "
+                + "Verknüpfen. Die Suche und Strg+K finden Präsentationen jetzt auch.", "Präsentationen"),
+            Fix("2.7.06-eingeschraenkte-aufgabe-verknuepft", "Eine eingeschränkte Aufgabe, die mit einer anderen Akte "
                 + "verknüpft ist, steht dort nur noch für die, die sie auch sehen dürfen.", "Dienstbetrieb"),
         ]),
     ];

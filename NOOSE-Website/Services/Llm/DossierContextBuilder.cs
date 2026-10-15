@@ -9,6 +9,7 @@ using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Search;
@@ -856,14 +857,26 @@ public static partial class DossierContextBuilder
             // taskforce's name and case number lands in the dossier regardless of who is reading it
             var resolved = await RecordsReference.ResolveAsync(db, refs.Distinct().ToList(), ct,
                 mayAllTaskforces: view.MayAllTaskforces, meId: view.MeId);
-            sb.AppendLine($"— Verknüpfungen ({linksTotal}) —");
+            // groups and invites decide; a hidden one is left out like on the link list, label and all
+            var presentations = await PresentationVisibility.VisibleTitlesAsync(db,
+                refs.Where(r => r.Item1 == nameof(Presentation)).Select(r => r.Item2).Distinct().ToList(), view, ct);
+            var hiddenPresentations = refs.Count(r => r.Item1 == nameof(Presentation) && !presentations.ContainsKey(r.Item2));
+            sb.AppendLine($"— Verknüpfungen ({linksTotal - hiddenPresentations}) —");
             foreach (var l in links)
             {
                 var other = l.SourceType == type && l.SourceId == id
                     ? (l.TargetType, l.TargetId)
                     : (l.SourceType, l.SourceId);
                 string display;
-                if (resolved.TryGetValue(other, out var r))
+                if (other.Item1 == nameof(Presentation))
+                {
+                    if (!presentations.TryGetValue(other.Item2, out var title))
+                    {
+                        continue;
+                    }
+                    display = title;
+                }
+                else if (resolved.TryGetValue(other, out var r))
                 {
                     // the resolver only reports a bool, so this masks conservatively: a TRU-classified link
                     // stays hidden from a TRU agent too, which is never a leak, only an omission

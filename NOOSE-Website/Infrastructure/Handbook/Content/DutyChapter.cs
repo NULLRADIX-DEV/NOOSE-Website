@@ -85,6 +85,13 @@ internal static class DutyChapter
                 Vortrag.</p>
                 <p>Schließt du die Vortragsseite, endet die Vorführung nach zwei Minuten von selbst. Bearbeiten,
                 vorführen und löschen dürfen nur, wer die Präsentation angelegt hat, und die Führung.</p>
+                <p>Unter den Folien steht <em>Verknüpfte Akten</em>. Mit <em>Akte verknüpfen</em> hängst du die
+                Präsentation an eine andere Akte, etwa einen Vorgang, eine Person oder eine Besprechung; das darf
+                jeder mit Schreibrecht, der die Präsentation sieht. Umgekehrt wählst du an einem Vorgang, einer
+                Person, einer Aufgabe, einem Gesetz oder einer Besprechung beim Verknüpfen den Aktentyp
+                <em>Präsentation</em>. Wer die Präsentation nicht sehen darf, findet die Verknüpfung weder in der
+                Liste noch im Zeitstrahl. Die Suche findet Präsentationen über Titel, Beschreibung und Folientitel,
+                <em>Strg+K</em> über den Titel.</p>
                 """,
                 NavKey: "praesentationen"),
 

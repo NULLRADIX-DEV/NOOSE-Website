@@ -28,6 +28,7 @@ using NOOSE_Website.Data.Entities.Watchlist;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Taskforces;
@@ -406,6 +407,11 @@ public static class SearchCatalog
             Icons.Material.Filled.SettingsInputAntenna, SearchHitShape.Record,
             SearchTraits.Quick | SearchTraits.Assistant,
             "/funk?kanal={0}"),
+        // in the palette, but no mention or compromise target: LinkService.ReferenceTypes leaves it out
+        new(nameof(Presentation), "Präsentation", "Präsentationen", SearchGroup.Content,
+            Icons.Material.Filled.CoPresent, SearchHitShape.Record,
+            SearchTraits.Quick | SearchTraits.Assistant,
+            "/praesentationen/{0}"),
     ];
 
     /// <summary>Entities deliberately left out of the search, each with the reason.</summary>
@@ -496,8 +502,8 @@ public static class SearchCatalog
             ["BewerbungTestAnswer"] = "Bewertetes Material.",
             ["AgentTestAssignment"] = "Zuteilung ohne Text.",
             ["AgentTestAnswer"] = "Bewertetes Material.",
-            ["Presentation"] = "Eigene Liste unter /praesentationen; die Sichtbarkeit je Gruppe und Einladung hat noch keinen Suchprovider.",
-            ["PresentationSlide"] = "Teil einer Präsentation.",
+            ["PresentationSlide"] = "Teil einer Präsentation; der Folientitel findet die Präsentation, Folientext "
+                + "und Notizen bleiben draußen.",
             ["PresentationInvite"] = "Zuordnung ohne Text.",
             ["PresentationFile"] = "PDF-Datei; ihr Text wird nicht gelesen.",
             ["NooseiMessage"] = "Der Rechte-Stempel macht gespeicherte Werkzeug-Antworten gegenüber dem aktuellen "

@@ -63,6 +63,9 @@ public static class SavedSearchRules
         .Select(c => c.Clr)
         .ToList();
 
+    // part of the stamp: a new category would report every old match as new
+    private static readonly string CatalogStamp = Fingerprint(string.Join(',', WatchableCategories))[..8];
+
     /// <summary>Whether a search says enough to be watched; an empty one would report every new record.</summary>
     public static bool IsWatchable(SearchCriteria criteria)
         => ((criteria.Text?.Trim().Length ?? 0) >= 2 || criteria.TagIds.Count > 0)
@@ -88,15 +91,16 @@ public static class SavedSearchRules
         };
     }
 
-    /// <summary>Fingerprint of everything that decides what this viewer may find.</summary>
+    /// <summary>Fingerprint of everything that decides what this viewer may find, and of where a watch looks.</summary>
     /// <remarks>A changed stamp makes the next run a silent baseline: after a promotion every newly visible record
-    /// would otherwise arrive as a "new" hit.</remarks>
+    /// would otherwise arrive as a "new" hit, and after a deploy that makes a category watchable every old record
+    /// of it would.</remarks>
     public static string ScopeStamp(ViewerScope scope)
         => string.Join('|',
             Bit(scope.MayClassifiedRead), Bit(scope.MayAllTaskforces), Bit(scope.IsTru), Bit(scope.IsHrb),
             Bit(scope.IsLeadership), Bit(scope.MayAgenda), Bit(scope.IsAdmin), Bit(scope.MayRealName),
             Bit(scope.IsInternalAgent), scope.Rank is { } rank ? ((int)rank).ToString() : "-",
-            scope.PartnerAgency is { } agency ? ((int)agency).ToString() : "-");
+            scope.PartnerAgency is { } agency ? ((int)agency).ToString() : "-", CatalogStamp);
 
     /// <summary>Marks a baseline that ran short and gets one more try; it never equals a real stamp.</summary>
     public static string RetryStamp(string stamp) => "~" + stamp;

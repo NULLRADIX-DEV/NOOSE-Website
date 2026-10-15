@@ -60,7 +60,7 @@ public sealed class MentionServiceTests
 
     /// <summary>A palette category that cannot carry a mention has to be one of the known exceptions.</summary>
     /// <remarks>
-    /// The mention token is <c>@{Typ:GUID}</c> and only resolves for a type in <see cref="LinkService.KnownTypes"/>.
+    /// The mention token is <c>@{Typ:GUID}</c> and only resolves for a type in <see cref="LinkService.ReferenceTypes"/>.
     /// Offering any other category in the @-picker would write a token the parser never matches again, and the
     /// reader would see it raw. The filter in <c>CandidatesAsync</c> is what keeps them out; this list is what
     /// keeps a new category from joining them unnoticed.
@@ -71,13 +71,14 @@ public sealed class MentionServiceTests
         var notMentionable = NOOSE_Website.Services.Search.SearchCatalog.Categories
             .Where(c => c.Has(NOOSE_Website.Services.Search.SearchTraits.Quick))
             .Select(c => c.Clr)
-            .Where(clr => !LinkService.KnownTypes.Contains(clr, StringComparer.Ordinal))
+            .Where(clr => !LinkService.ReferenceTypes.Contains(clr, StringComparer.Ordinal))
             .Order(StringComparer.Ordinal)
             .ToArray();
 
         // handbook article and glossary term are addressed by slug and by id-in-a-query, never as a record;
-        // a radio channel has no record page at all - the plan opens on it
-        Assert.Equal(["GlossaryTerm", "HandbookArticle", "RadioChannel"], notMentionable);
+        // a radio channel has no record page at all - the plan opens on it; a presentation's readers depend on
+        // groups and invites, which the mention resolver is never handed
+        Assert.Equal(["GlossaryTerm", "HandbookArticle", "Presentation", "RadioChannel"], notMentionable);
     }
 
     /// <summary>A known type is not enough: the id still has to be one the parser accepts.</summary>

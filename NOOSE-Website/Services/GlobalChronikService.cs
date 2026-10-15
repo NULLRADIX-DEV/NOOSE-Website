@@ -9,6 +9,7 @@ using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Models.Enums;
@@ -390,6 +391,17 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
 
         var records = await ResolveVisibleAsync(db, scope, byType, ct);
 
+        // a link may name a presentation: groups and invites decide, and a hidden one drops the whole line
+        var presentationIds = details.Values
+            .Select(d => d.Reference)
+            .Where(r => r is { Type: nameof(Presentation) })
+            .Select(r => r!.Value.Id).Distinct().ToList();
+        var presentations = await PresentationVisibility.VisibleTitlesAsync(db, presentationIds, scope, ct);
+        foreach (var (id, title) in presentations)
+        {
+            records[(nameof(Presentation), id)] = new RecordRef(title, false);
+        }
+
         // ---- 7) build ----
         var events = new List<ChronikEvent>(pending.Count + classRows.Count + scoreRows.Count);
 
@@ -399,8 +411,13 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
             {
                 continue;
             }
+            var hasDetail = details.TryGetValue((p.Row.EntityType, p.Row.EntityId), out var d);
+            if (hasDetail && d.Reference is { Type: nameof(Presentation) } named && !presentations.ContainsKey(named.Id))
+            {
+                continue;
+            }
             var (category, title) = TimelineDisplay.MapAudit(p.Row.EntityType, p.Row.Action);
-            var detail = details.TryGetValue((p.Row.EntityType, p.Row.EntityId), out var d) ? Render(d, records) : null;
+            var detail = hasDetail ? Render(d, records) : null;
             // the feed reads at a glance; the full before/after stays in the audit log view
             var changes = AuditDisplay.Parse(p.Row.ChangesJson, maxValueLength: 90, entityType: p.Row.EntityType);
             // same rule as the record timeline: a tip's actor is the submitting account, and naming it here would

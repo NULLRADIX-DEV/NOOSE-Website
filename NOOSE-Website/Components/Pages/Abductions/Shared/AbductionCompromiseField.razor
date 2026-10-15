@@ -51,9 +51,9 @@
         var user = (await AuthStateTask).User;
         // the quick search also answers with categories that are not records at all - a handbook article, a
         // glossary term. Stored as a compromised item they resolve to nothing and the row reads "(gelöschte
-        // Akte)" forever. KnownTypes is the set that resolves to a reference, same filter as the @-picker.
+        // Akte)" forever. ReferenceTypes is the set that resolves to a reference, same filter as the @-picker.
         var records = (await SearchService.QuickSearchAsync(term, user, 10, token))
-            .Where(h => LinkService.KnownTypes.Contains(h.Category, StringComparer.Ordinal))
+            .Where(h => LinkService.ReferenceTypes.Contains(h.Category, StringComparer.Ordinal))
             .ToList();
         if (string.IsNullOrWhiteSpace(term))
         {
