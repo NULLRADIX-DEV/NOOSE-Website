@@ -8195,6 +8195,80 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("Praesentationen");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationFile", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<string>("FileNameSaved")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("DateiName");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ImportiertAm");
+
+                    b.Property<string>("ImportedById")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ImportiertVonId");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("int")
+                        .HasColumnName("Seiten");
+
+                    b.Property<string>("PresentationId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int")
+                        .HasColumnName("Revision");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("Groesse");
+
+                    b.Property<string>("SourceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("ImportQuelleId");
+
+                    b.Property<int>("SourceKind")
+                        .HasColumnType("int")
+                        .HasColumnName("ImportQuelle");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("Titel");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PresentationId");
+
+                    b.ToTable("PraesentationDateien");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationInvite", b =>
                 {
                     b.Property<string>("Id")
@@ -8284,6 +8358,14 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("Notizen");
 
+                    b.Property<int?>("PageNumber")
+                        .HasColumnType("int")
+                        .HasColumnName("Seite");
+
+                    b.Property<string>("PdfFileId")
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("PdfDateiId");
+
                     b.Property<string>("PresentationId")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
@@ -8298,6 +8380,8 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnName("Titel");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PdfFileId");
 
                     b.HasIndex("PresentationId", "Sorting");
 
@@ -12462,6 +12546,17 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Test");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationFile", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Presentations.Presentation", "Presentation")
+                        .WithMany("Files")
+                        .HasForeignKey("PresentationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Presentation");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationInvite", b =>
                 {
                     b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
@@ -12483,11 +12578,18 @@ namespace NOOSE_Website.Data.Migrations
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationSlide", b =>
                 {
+                    b.HasOne("NOOSE_Website.Data.Entities.Presentations.PresentationFile", "PdfFile")
+                        .WithMany()
+                        .HasForeignKey("PdfFileId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("NOOSE_Website.Data.Entities.Presentations.Presentation", "Presentation")
                         .WithMany("Slides")
                         .HasForeignKey("PresentationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("PdfFile");
 
                     b.Navigation("Presentation");
                 });
@@ -13106,6 +13208,8 @@ namespace NOOSE_Website.Data.Migrations
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.Presentation", b =>
                 {
+                    b.Navigation("Files");
+
                     b.Navigation("Invites");
 
                     b.Navigation("Slides");

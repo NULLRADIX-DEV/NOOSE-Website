@@ -29,6 +29,10 @@ public interface IPresentationService
     Task SetSlideImageAsync(string slideId, Stream content, string contentType, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RemoveSlideImageAsync(string slideId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Stored name of an imported deck's PDF for the file endpoint; null when the file is gone or its
+    /// presentation is hidden from the actor.</summary>
+    Task<string?> GetPdfFileNameAsync(string fileId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     Task<List<Presentation>> GetTrashAsync(CancellationToken cancellationToken = default);
     Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 }
@@ -73,16 +77,21 @@ public sealed partial class PresentationService(
         {
             return null;
         }
-        var slides = await db.PresentationSlides.AsNoTracking()
+        var slides = await db.PresentationSlides.AsNoTracking().Include(s => s.PdfFile)
             .Where(s => s.PresentationId == id).OrderBy(s => s.Sorting).ToListAsync(cancellationToken);
+        var files = await db.PresentationFiles.AsNoTracking().Where(f => f.PresentationId == id)
+            .OrderBy(f => f.CreatedAt).ToListAsync(cancellationToken);
         var invites = await db.PresentationInvites.AsNoTracking()
             .Where(i => i.PresentationId == id).Select(i => i.AgentId).ToListAsync(cancellationToken);
-        var owner = await db.Users.AsNoTracking().Where(u => u.Id == presentation.OwnerId)
-            .Select(u => u.Codename).FirstOrDefaultAsync(cancellationToken);
+        var names = await CodenamesAsync(db, files.Select(f => f.ImportedById ?? string.Empty).Append(presentation.OwnerId),
+            cancellationToken);
         var taskforces = await TaskforceNamesAsync(db, [presentation.TargetId], cancellationToken);
-        return new PresentationView(presentation, slides, invites, owner ?? "—",
+        var imports = files.Select(f => new PresentationFileItem(f.Id, f.Title, f.PageCount, f.SourceKind, f.ImportedAt,
+            names.GetValueOrDefault(f.ImportedById ?? string.Empty) ?? "—",
+            slides.Count(s => s.PdfFileId == f.Id))).ToList();
+        return new PresentationView(presentation, slides, invites, names.GetValueOrDefault(presentation.OwnerId) ?? "—",
             AccessLabel(presentation.Access, presentation.Audience, presentation.TargetId, presentation.MinRank, taskforces),
-            actor.MayWrite() && PresentationVisibility.MayManage(actor, presentation));
+            actor.MayWrite() && PresentationVisibility.MayManage(actor, presentation), imports);
     }
 
     public async Task<Presentation> CreateAsync(PresentationInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -221,6 +230,8 @@ public sealed partial class PresentationService(
             Title = source.Title,
             BodyHtml = source.BodyHtml,
             Notes = source.Notes,
+            PdfFileId = source.PdfFileId,
+            PageNumber = source.PageNumber,
         };
         // pictures are copied, not shared: each is filed under one slide, and replacing, removing or deleting it there
         // must not break the other - the slide picture as well as those pasted into the text
@@ -287,6 +298,17 @@ public sealed partial class PresentationService(
         await DeleteImageAsync(previous, cancellationToken);
     }
 
+    public async Task<string?> GetPdfFileNameAsync(string fileId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireInternalAgent(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        // the deck decides, exactly like for its slides: one 404 for "gone" and "not yours"
+        return await db.PresentationFiles.AsNoTracking().Where(f => f.Id == fileId)
+            .Join(PresentationVisibility.OnlyVisible(db.Presentations.AsNoTracking(), db, ViewerScope.From(actor)),
+                f => f.PresentationId, p => p.Id, (f, p) => f.FileNameSaved)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<List<Presentation>> GetTrashAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -309,7 +331,7 @@ public sealed partial class PresentationService(
     }
 
     /// <summary>Validates and writes title, description and audience; the guard is the caller's.</summary>
-    private static async Task ApplyAsync(AppDbContext db, Presentation presentation, PresentationInput input,
+    internal static async Task ApplyAsync(AppDbContext db, Presentation presentation, PresentationInput input,
         ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         var title = TestEngine.Trim(input.Title) ?? throw new InvalidOperationException("Ein Titel ist erforderlich.");
@@ -346,7 +368,7 @@ public sealed partial class PresentationService(
     }
 
     /// <summary>Makes the invite rows match the input; selectable agents only, and only for a private deck.</summary>
-    private static async Task SyncInvitesAsync(AppDbContext db, Presentation presentation, PresentationInput input,
+    internal static async Task SyncInvitesAsync(AppDbContext db, Presentation presentation, PresentationInput input,
         CancellationToken cancellationToken)
     {
         var wanted = input.Access == PresentationAccess.Private
@@ -365,7 +387,7 @@ public sealed partial class PresentationService(
         }
     }
 
-    private static async Task<Presentation> LoadManagedAsync(AppDbContext db, string id, ClaimsPrincipal actor,
+    internal static async Task<Presentation> LoadManagedAsync(AppDbContext db, string id, ClaimsPrincipal actor,
         CancellationToken cancellationToken)
     {
         var presentation = await db.Presentations.FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
@@ -472,7 +494,7 @@ public sealed partial class PresentationService(
     [GeneratedRegex("/dateien/textbilder/(?<id>[0-9a-fA-F-]{36})")]
     private static partial Regex ImageUrl();
 
-    private static async Task RenumberAsync(AppDbContext db, string presentationId, CancellationToken cancellationToken)
+    internal static async Task RenumberAsync(AppDbContext db, string presentationId, CancellationToken cancellationToken)
     {
         var slides = await db.PresentationSlides.Where(s => s.PresentationId == presentationId)
             .OrderBy(s => s.Sorting).ToListAsync(cancellationToken);

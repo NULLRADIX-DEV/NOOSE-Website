@@ -192,6 +192,7 @@ public static class PublicVisibility
             ["Presentation"] = "Interne Präsentation; nach außen nie.",
             ["PresentationSlide"] = "Folie einer internen Präsentation; nach außen nie.",
             ["PresentationInvite"] = "Einladung zu einer internen Präsentation; nach außen nie.",
+            ["PresentationFile"] = "Importierte Folien einer internen Präsentation; nach außen nie.",
             ["AgentBadge"] = Personnel,
             // released only as an editorial copy on the leadership profile, never projected from here
             ["Decoration"] = Personnel,

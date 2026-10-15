@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
@@ -48,8 +47,9 @@ public interface IGoogleImportService
 /// <inheritdoc cref="IGoogleImportService" />
 /// <remarks>
 /// Internal agents with write access only: partners may author documents, but not make the server fetch from
-/// outside. The quota sits here and not in the rate-limit middleware, because an import started from a Blazor
-/// button travels over SignalR and never passes it. Pictures become <see cref="TextImage"/> rows of the document,
+/// outside. The quota (<see cref="GoogleImportQuota"/>, shared with the Slides import) is taken here and not in the
+/// rate-limit middleware, because an import started from a Blazor button travels over SignalR and never passes it.
+/// Pictures become <see cref="TextImage"/> rows of the document,
 /// so they are served under the document's own classification like every other picture in a document.
 /// </remarks>
 public sealed partial class GoogleImportService(
@@ -58,12 +58,8 @@ public sealed partial class GoogleImportService(
     ITextImageStorageService imageStorage,
     ILogger<GoogleImportService> logger) : IGoogleImportService
 {
-    /// <summary>Imports and refreshes one agent may start within <see cref="QuotaWindow"/>.</summary>
-    public const int QuotaPerWindow = 10;
-
-    public static readonly TimeSpan QuotaWindow = TimeSpan.FromMinutes(10);
-
-    private static readonly ConcurrentDictionary<string, Queue<DateTime>> Recent = new(StringComparer.Ordinal);
+    /// <summary>Imports and refreshes one agent may start within the quota window, Docs and Slides together.</summary>
+    public const int QuotaPerWindow = GoogleImportQuota.PerWindow;
 
     public async Task<Document> ImportDocumentAsync(GoogleDocImportInput input, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
@@ -174,8 +170,8 @@ public sealed partial class GoogleImportService(
         await SweepImagesAsync(document.Id, before, document.ContentHtml, cancellationToken);
     }
 
-    /// <summary>The export's bytes and where they came from; a link wins over an upload.</summary>
-    /// <summary>The export's bytes; the quota is taken only once the source is valid, so a mistyped link costs none.</summary>
+    /// <summary>The export's bytes and where they came from; a link wins over an upload. The quota is taken only once
+    /// the source is valid, so a mistyped link costs none.</summary>
     private async Task<(ImportSourceKind Kind, string? Id, byte[] Zip)> ResolveSourceAsync(string? link, byte[]? upload,
         ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
@@ -184,7 +180,7 @@ public sealed partial class GoogleImportService(
             var fileId = GoogleLinks.FileId(link, GoogleFileKind.Document)
                 ?? throw new GoogleExportException(
                     "Das ist kein Link auf ein Google-Dokument (https://docs.google.com/document/d/…).");
-            TakeQuota(actor);
+            GoogleImportQuota.Take(actor);
             return (ImportSourceKind.Link, fileId, await fetcher.FetchDocumentZipAsync(fileId, cancellationToken));
         }
         if (upload is { Length: > 0 })
@@ -193,7 +189,7 @@ public sealed partial class GoogleImportService(
             {
                 throw new GoogleExportException("Die Datei ist zu groß (höchstens 25 MB).");
             }
-            TakeQuota(actor);
+            GoogleImportQuota.Take(actor);
             return (ImportSourceKind.Upload, null, upload);
         }
         throw new InvalidOperationException("Gib einen Freigabe-Link an oder lade die Datei hoch.");
@@ -283,31 +279,7 @@ public sealed partial class GoogleImportService(
         }
     }
 
-    /// <summary>Takes one slot of the agent's import quota or refuses.</summary>
     private static string Cap(string value, int length) => value.Length > length ? value[..length].TrimEnd() : value;
-
-    private static void TakeQuota(ClaimsPrincipal actor)
-    {
-        var key = actor.GetAgentId() ?? string.Empty;
-        var queue = Recent.GetOrAdd(key, _ => new Queue<DateTime>());
-        lock (queue)
-        {
-            var now = DateTime.UtcNow;
-            while (queue.Count > 0 && now - queue.Peek() > QuotaWindow)
-            {
-                queue.Dequeue();
-            }
-            if (queue.Count >= QuotaPerWindow)
-            {
-                throw new InvalidOperationException(
-                    $"Du hast in den letzten {QuotaWindow.TotalMinutes:0} Minuten {QuotaPerWindow} Importe gestartet. Warte kurz.");
-            }
-            queue.Enqueue(now);
-        }
-    }
-
-    /// <summary>Test hook: forgets all quota slots.</summary>
-    public static void ResetQuota() => Recent.Clear();
 
     [GeneratedRegex("/dateien/textbilder/(?<id>[0-9a-fA-F-]{36})")]
     private static partial Regex StoredImage();

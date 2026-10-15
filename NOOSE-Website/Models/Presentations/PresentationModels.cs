@@ -42,10 +42,23 @@ public sealed record PresentationListItem(
 
 /// <summary>A presentation with its slides in order, for viewing, presenting and editing.</summary>
 /// <param name="MayManage">Owner or leadership with write access: may edit, delete and present.</param>
+/// <param name="Files">The Google Slides decks imported into it, oldest first.</param>
 public sealed record PresentationView(
     Presentation Presentation,
     IReadOnlyList<PresentationSlide> Slides,
     IReadOnlyList<string> InviteIds,
     string OwnerCodename,
     string AccessLabel,
-    bool MayManage);
+    bool MayManage,
+    IReadOnlyList<PresentationFileItem> Files);
+
+/// <summary>One imported Google Slides deck of a presentation.</summary>
+/// <param name="SlideCount">Slides of the presentation that show one of its pages.</param>
+public sealed record PresentationFileItem(
+    string Id,
+    string Title,
+    int PageCount,
+    ImportSourceKind SourceKind,
+    DateTime ImportedAt,
+    string ImportedByCodename,
+    int SlideCount);

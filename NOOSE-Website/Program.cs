@@ -210,12 +210,17 @@ builder.Services.AddScoped<IPresentationLiveService, PresentationLiveService>();
 builder.Services.AddSingleton<NOOSE_Website.Infrastructure.Presentations.PresentationLiveRegistry>();
 builder.Services.AddSingleton<NOOSE_Website.Infrastructure.Presentations.PresentationBroadcaster>();
 builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Presentations.PresentationLiveSweeper>();
-// Google import: the client follows no redirect by itself, the fetcher allows only Google's own download hosts
+builder.Services.AddScoped<IPresentationFileStorageService, PresentationFileStorageService>();
+// one import of the slide renderer per circuit, shared by every slide on the page
+builder.Services.AddScoped<NOOSE_Website.Infrastructure.Presentations.PresentationScript>();
+// Google import: the client follows no redirect by itself, the fetcher allows only Google's own download hosts.
+// A minute, because Google renders a large Slides deck to PDF before the first byte comes
 builder.Services.AddHttpClient(NOOSE_Website.Services.Import.GoogleExportFetcher.ClientName,
-        client => client.Timeout = TimeSpan.FromSeconds(30))
+        client => client.Timeout = TimeSpan.FromSeconds(60))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleExportFetcher, NOOSE_Website.Services.Import.GoogleExportFetcher>();
 builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleImportService, NOOSE_Website.Services.Import.GoogleImportService>();
+builder.Services.AddScoped<NOOSE_Website.Services.Import.ISlidesImportService, NOOSE_Website.Services.Import.SlidesImportService>();
 builder.Services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
 builder.Services.AddScoped<IDocumentAccessService, DocumentAccessService>();
 builder.Services.AddScoped<IPlaceholderService, PlaceholderService>();
@@ -566,6 +571,7 @@ app.MapNoosePublicLeadershipFileEndpoints();
 app.MapNooseTipFileEndpoints();
 app.MapNooseTicketFileEndpoints();
 app.MapNooseTextImageFileEndpoints();
+app.MapNoosePresentationFileEndpoints();
 
 // apply pending migrations on startup
 using (var scope = app.Services.CreateScope())

@@ -120,6 +120,18 @@ public class GoogleExportFetcherTests
     }
 
     [Fact]
+    public async Task A_presentation_comes_as_pdf_under_the_cap_its_caller_sets()
+    {
+        var (fetcher, handler) = Build(_ => Content("application/pdf", new byte[2048]));
+
+        var bytes = await fetcher.FetchPresentationPdfAsync(Id, 4096);
+
+        Assert.Equal(2048, bytes.Length);
+        Assert.Equal($"https://docs.google.com/presentation/d/{Id}/export/pdf", handler.Visited[0].ToString());
+        await Assert.ThrowsAsync<GoogleExportException>(() => fetcher.FetchPresentationPdfAsync(Id, 1024));
+    }
+
+    [Fact]
     public async Task The_cap_counts_the_bytes_actually_read()
     {
         using var stream = new MemoryStream(new byte[2048]);

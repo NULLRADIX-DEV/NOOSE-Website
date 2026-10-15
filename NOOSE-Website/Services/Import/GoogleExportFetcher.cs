@@ -54,8 +54,8 @@ public interface IGoogleExportFetcher
     /// <summary>The document as Google's zipped HTML export.</summary>
     Task<byte[]> FetchDocumentZipAsync(string fileId, CancellationToken cancellationToken = default);
 
-    /// <summary>The presentation as a PDF.</summary>
-    Task<byte[]> FetchPresentationPdfAsync(string fileId, CancellationToken cancellationToken = default);
+    /// <summary>The presentation as a PDF, no larger than <paramref name="maxBytes"/>.</summary>
+    Task<byte[]> FetchPresentationPdfAsync(string fileId, long maxBytes, CancellationToken cancellationToken = default);
 }
 
 /// <inheritdoc cref="IGoogleExportFetcher" />
@@ -75,11 +75,11 @@ public sealed class GoogleExportFetcher(IHttpClientFactory httpClientFactory) : 
 
     public Task<byte[]> FetchDocumentZipAsync(string fileId, CancellationToken cancellationToken = default)
         => FetchAsync($"https://docs.google.com/document/d/{Checked(fileId)}/export?format=zip",
-            ["application/zip", "application/x-zip-compressed"], cancellationToken);
+            ["application/zip", "application/x-zip-compressed"], MaxBytes, cancellationToken);
 
-    public Task<byte[]> FetchPresentationPdfAsync(string fileId, CancellationToken cancellationToken = default)
+    public Task<byte[]> FetchPresentationPdfAsync(string fileId, long maxBytes, CancellationToken cancellationToken = default)
         => FetchAsync($"https://docs.google.com/presentation/d/{Checked(fileId)}/export/pdf",
-            ["application/pdf"], cancellationToken);
+            ["application/pdf"], maxBytes, cancellationToken);
 
     private static string Checked(string fileId)
         => GoogleLinks.IsFileId(fileId) ? fileId : throw new GoogleExportException("Das ist kein gültiger Google-Link.");
@@ -90,12 +90,12 @@ public sealed class GoogleExportFetcher(IHttpClientFactory httpClientFactory) : 
             && (string.Equals(uri.Host, "docs.google.com", StringComparison.OrdinalIgnoreCase)
                 || uri.Host.EndsWith(".googleusercontent.com", StringComparison.OrdinalIgnoreCase));
 
-    private async Task<byte[]> FetchAsync(string url, string[] acceptedTypes, CancellationToken cancellationToken)
+    private async Task<byte[]> FetchAsync(string url, string[] acceptedTypes, long maxBytes, CancellationToken cancellationToken)
     {
         // a network fault or a timeout is Google's state, not a bug: it reaches the page as a message like any refusal
         try
         {
-            return await FetchOnceAsync(url, acceptedTypes, cancellationToken);
+            return await FetchOnceAsync(url, acceptedTypes, maxBytes, cancellationToken);
         }
         catch (HttpRequestException)
         {
@@ -111,7 +111,7 @@ public sealed class GoogleExportFetcher(IHttpClientFactory httpClientFactory) : 
         }
     }
 
-    private async Task<byte[]> FetchOnceAsync(string url, string[] acceptedTypes, CancellationToken cancellationToken)
+    private async Task<byte[]> FetchOnceAsync(string url, string[] acceptedTypes, long maxBytes, CancellationToken cancellationToken)
     {
         var client = httpClientFactory.CreateClient(ClientName);
         var target = new Uri(url);
@@ -159,12 +159,12 @@ public sealed class GoogleExportFetcher(IHttpClientFactory httpClientFactory) : 
                 throw new GoogleExportException(
                     "Die Datei ist nicht per Link freigegeben. Stelle in Google „Jeder mit dem Link“ ein oder lade sie hoch.");
             }
-            if (response.Content.Headers.ContentLength is > MaxBytes)
+            if (response.Content.Headers.ContentLength > maxBytes)
             {
-                throw new GoogleExportException("Die Datei ist zu groß (höchstens 25 MB).");
+                throw new GoogleExportException($"Die Datei ist zu groß (höchstens {maxBytes / 1024 / 1024} MB).");
             }
             await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            return await ReadCappedAsync(stream, MaxBytes, cancellationToken);
+            return await ReadCappedAsync(stream, maxBytes, cancellationToken);
         }
         throw new GoogleExportException("Google hat zu oft umgeleitet.");
     }
