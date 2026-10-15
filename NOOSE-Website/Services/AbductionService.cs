@@ -255,7 +255,7 @@ public class AbductionService(
         }
         // filtering the picker is not enough, the socket takes whatever it is sent: a type that resolves to no
         // reference would be stored and then read back as a deleted record on every load, with no way to remove it
-        if (!LinkService.KnownTypes.Contains(targetType, StringComparer.Ordinal))
+        if (!LinkService.ReferenceTypes.Contains(targetType, StringComparer.Ordinal))
         {
             throw new InvalidOperationException("Dieser Aktentyp kann nicht als kompromittiert vermerkt werden.");
         }
@@ -478,7 +478,7 @@ public class AbductionService(
             .ToList();
         foreach (var target in desired)
         {
-            if (!LinkService.KnownTypes.Contains(target.TargetType, StringComparer.Ordinal))
+            if (!LinkService.ReferenceTypes.Contains(target.TargetType, StringComparer.Ordinal))
             {
                 throw new InvalidOperationException("Dieser Aktentyp kann nicht als kompromittiert vermerkt werden.");
             }

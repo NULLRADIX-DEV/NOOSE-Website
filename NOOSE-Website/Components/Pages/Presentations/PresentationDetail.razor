@@ -99,6 +99,11 @@ else
             }
         </div>
     }
+
+    @* keyed: loads on init, a new Id needs a new instance *@
+    <MudPaper Outlined="true" Class="pa-4 mt-4">
+        <RecordLinksPanel @key="Id" EntityType="@nameof(Presentation)" EntityId="@Id" User="@_user" />
+    </MudPaper>
 }
 
 @code {

@@ -18,6 +18,7 @@ using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Taskforces;
@@ -309,6 +310,15 @@ public static class SearchParentResolver
                          .Select(h => new { h.Id, h.CaseNumber }).ToListAsync(cancellationToken))
             {
                 Put(nameof(Hinweis), x.Id, "Bürgerhinweis " + x.CaseNumber, x.CaseNumber);
+            }
+        }
+
+        // a link endpoint too; group, rank and invites decide, as on the presentation list
+        if (!viewer.IsPartner && Ids(nameof(Presentation)) is { Count: > 0 } presentationIds)
+        {
+            foreach (var (id, title) in await PresentationVisibility.VisibleTitlesAsync(db, presentationIds, scope, cancellationToken))
+            {
+                Put(nameof(Presentation), id, title, null);
             }
         }
 

@@ -5,7 +5,9 @@ using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Informants;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Taskforces;
+using NOOSE_Website.Infrastructure.Presentations;
 using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -88,6 +90,15 @@ public class SearchPageParityTests
 
         db.EvidenceItems.Add(new EvidenceItem { Id = "e1", Name = "Schalldämpfer", Category = "Waffenteil" });
 
+        db.Presentations.Add(new Presentation { Id = "pr-pub", Title = "Lagebild", Access = PresentationAccess.Public, OwnerId = "someone" });
+        db.Presentations.Add(new Presentation
+        {
+            Id = "pr-tru", Title = "TRU-Briefing", Access = PresentationAccess.Closed,
+            Audience = AnnouncementAudience.TruUnit, OwnerId = "someone",
+        });
+        db.Presentations.Add(new Presentation { Id = "pr-priv", Title = "Privat", Access = PresentationAccess.Private, OwnerId = "someone" });
+        db.Presentations.Add(new Presentation { Id = "pr-mine", Title = "Meins", Access = PresentationAccess.Private, OwnerId = "me" });
+
         // the account states the personnel roster distinguishes
         db.Users.Add(Seed.Agent("me", configure: a => a.Codename = "Ich"));
         db.Users.Add(Seed.Agent("a-active", configure: a => a.Codename = "Aktiv"));
@@ -167,6 +178,11 @@ public class SearchPageParityTests
                     Substitute.For<IEvidenceImageStorageService>(), suggest);
                 return (await evidence.GetItemsAsync()).Select(x => x.Item.Id).ToList();
 
+            case nameof(Presentation):
+                var presentations = new PresentationService(ctx.Factory, Substitute.For<ITextImageStorageService>(),
+                    new PresentationLiveRegistry(), new PresentationBroadcaster());
+                return (await presentations.GetListAsync(user)).Select(x => x.Id).ToList();
+
             case nameof(Agent):
                 // AgentManagementService needs a UserManager, so the roster rule stands in for it directly. Not
                 // circular in the way that matters: it catches a provider that forgot the helper, which is the bug
@@ -215,6 +231,8 @@ public class SearchPageParityTests
     [InlineData("Informant", "lead")]
     [InlineData("EvidenceItem", "plain")]
     [InlineData("EvidenceItem", "lead")]
+    [InlineData("Presentation", "plain")]
+    [InlineData("Presentation", "lead")]
     [InlineData("Agent", "lead")]
     public async Task The_search_returns_exactly_what_the_page_lists(string category, string viewerKind)
     {
@@ -238,7 +256,7 @@ public class SearchPageParityTests
         var covered = new[]
         {
             "Person", "Faction", "PersonGroup", "Party", "Operation", "Case", "Taskforce",
-            "Document", "Law", "LibraryFile", "Informant", "EvidenceItem", "Agent",
+            "Document", "Law", "LibraryFile", "Informant", "EvidenceItem", "Presentation", "Agent",
         };
 
         Assert.All(covered, c => Assert.NotNull(NOOSE_Website.Services.Search.SearchCatalog.Find(c)));

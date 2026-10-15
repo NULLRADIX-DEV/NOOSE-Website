@@ -15,6 +15,7 @@
 @inject IMeetingService MeetingService
 @inject ITipService TipService
 @inject ITicketService TicketService
+@inject IPresentationService PresentationService
 
 <MudDialog>
     <DialogContent>
@@ -322,6 +323,22 @@
                         </ItemTemplate>
                     </MudAutocomplete>
                     break;
+
+                case nameof(Presentation):
+                    <MudAutocomplete T="PresentationListItem" Label="Präsentation" @bind-Value="_presentation" AutoFocus="true"
+                                     SearchFunc="@SearchPresentations" ToStringFunc="@(p => p?.Title ?? string.Empty)"
+                                     Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
+                                     ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.CoPresent">
+                        <ItemTemplate Context="p">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.CoPresent" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.body2">@p.Title</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.OwnerCodename · @p.AccessLabel</MudText>
+                            </MudStack>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                    break;
             }
 
             @if (RoleContext)
@@ -371,6 +388,7 @@
     private bool _mayBewerbung;
     private bool _mayTip;
     private bool _mayTicket;
+    private bool _mayPresentation;
     private DocumentViewerScope _docScope;
     private ViewerScope _scope;
 
@@ -386,6 +404,7 @@
             _mayBewerbung = user.IsHrbOrLeadership();
             _mayTip = user.IsInternalAgent();
             _mayTicket = user.IsInternalAgent() && user.MayClassifiedRead();
+            _mayPresentation = user.IsInternalAgent();
             _docScope = DocumentViewerScope.From(user);
             _scope = ViewerScope.From(user);
         }
@@ -414,8 +433,8 @@
         new(nameof(Meeting), "Besprechung"),
     };
 
-    // three types are offered by audience rather than to everyone: applications are HRB/leadership-only, a citizen
-    // tip is readable by every internal agent but by no partner, and a ticket picker is the desk's — the search
+    // four types are offered by audience rather than to everyone: applications are HRB/leadership-only, a citizen
+    // tip and a presentation are for internal agents only, and a ticket picker is the desk's — the search
     // behind it carries RequireTicketRead. An agent attached to a single ticket therefore cannot pick one here,
     // while an existing link to their own ticket still resolves for them (LinkService asks per row).
     private IEnumerable<TypeOption> ShownTypes
@@ -434,6 +453,10 @@
             if (_mayTicket)
             {
                 shown = shown.Append(new(nameof(Ticket), "Bürger-Ticket"));
+            }
+            if (_mayPresentation)
+            {
+                shown = shown.Append(new(nameof(Presentation), "Präsentation"));
             }
             if (AllowedTypes is not null)
             {
@@ -474,12 +497,14 @@
     private Meeting? _meeting;
     private TipPickRow? _tip;
     private TicketPickRow? _ticket;
+    private PresentationListItem? _presentation;
 
     // loaded on demand for client-side search
     private List<Agent>? _allAgents;
     private List<PersonDocDisplay>? _allDocs;
     private List<ObservationDisplay>? _allObservations;
     private List<Bewerbung>? _allBewerbungen;
+    private List<PresentationListItem>? _allPresentations;
 
     private string? CurrentTargetId => _targetType switch
     {
@@ -500,6 +525,7 @@
         nameof(Meeting) => _meeting?.Id,
         nameof(Hinweis) => _tip?.Id,
         nameof(Ticket) => _ticket?.Id,
+        nameof(Presentation) => _presentation?.Id,
         _ => null,
     };
 
@@ -507,7 +533,7 @@
     {
         _person = null; _faction = null; _group = null; _party = null; _operation = null; _taskforce = null;
         _case = null; _job = null; _agent = null; _doc = null; _observation = null; _law = null; _document = null;
-        _bewerbung = null; _meeting = null; _tip = null; _ticket = null;
+        _bewerbung = null; _meeting = null; _tip = null; _ticket = null; _presentation = null;
         if (_targetType == nameof(Agent) && _allAgents is null)
         {
             // TeamLeads are never selectable
@@ -524,6 +550,10 @@
         if (_targetType == nameof(Bewerbung) && _allBewerbungen is null && _user is not null)
         {
             _allBewerbungen = await BewerbungService.ListAsync(_user);
+        }
+        if (_targetType == nameof(Presentation) && _allPresentations is null && _user is not null)
+        {
+            _allPresentations = await PresentationService.GetListAsync(_user);
         }
     }
 
@@ -596,6 +626,19 @@
         return Task.FromResult(Allowed(nameof(Bewerbung), all, b => b.Id));
     }
 
+    private Task<IEnumerable<PresentationListItem>> SearchPresentations(string value, CancellationToken token)
+    {
+        var all = (IEnumerable<PresentationListItem>?)_allPresentations ?? Array.Empty<PresentationListItem>();
+        var s = value?.Trim();
+        if (!string.IsNullOrWhiteSpace(s))
+        {
+            all = all.Where(p => p.Title.Contains(s, StringComparison.OrdinalIgnoreCase)
+                                || (p.Description ?? string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase)
+                                || p.OwnerCodename.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(Allowed(nameof(Presentation), all, p => p.Id).Take(20));
+    }
+
     private Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
     {
         var all = (IEnumerable<Agent>?)_allAgents ?? Array.Empty<Agent>();
@@ -658,6 +701,7 @@
         nameof(Meeting) => _meeting?.Title,
         nameof(Hinweis) => _tip is null ? null : TipText(_tip),
         nameof(Ticket) => _ticket is null ? null : TicketText(_ticket),
+        nameof(Presentation) => _presentation?.Title,
         _ => null,
     };
 

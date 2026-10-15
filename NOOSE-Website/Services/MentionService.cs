@@ -221,11 +221,11 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
         var records = await search.QuickSearchAsync(s, actor, 8, cancellationToken);
         hit.AddRange(records
             // not everything the palette offers can carry a mention: the token is @{Typ:GUID}, and an offer the
-            // parser cannot match again would be stored raw in the comment and rendered literally. KnownTypes
+            // parser cannot match again would be stored raw in the comment and rendered literally. ReferenceTypes
             // names the types that resolve to a reference at all - necessary, but not sufficient: the demo
-            // agent's row id is "demo-agent", which is in a known type and still not a GUID. The second test is
+            // agent's row id is "demo-agent", which is in a reference type and still not a GUID. The second test is
             // the parser's own acceptance condition, so it can only drop offers that were already broken.
-            .Where(a => LinkService.KnownTypes.Contains(a.Category, StringComparer.Ordinal)
+            .Where(a => LinkService.ReferenceTypes.Contains(a.Category, StringComparer.Ordinal)
                 && Guid.TryParse(a.TargetId, out _))
             .Select(a => new MentionHit(a.Category, a.TargetId, a.Name, a.CaseNumber)));
 

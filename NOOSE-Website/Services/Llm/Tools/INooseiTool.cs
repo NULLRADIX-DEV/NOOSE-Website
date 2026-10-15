@@ -323,6 +323,9 @@ public static class NooseiRecordTypes
             // searchable, but not openable: the hit already carries everything the row holds
             ["RadioChannel"] = "die Trefferzeile ist schon der ganze Kanal — Frequenz und Bezeichnung; "
                 + "ein Aktenaufruf hätte nichts hinzuzufügen",
+            // searchable, but not openable yet: that needs its own dossier branch
+            ["Presentation"] = "über suche_akten auffindbar (Titel, Beschreibung, Folientitel); die Folien als Akte "
+                + "zu öffnen braucht einen eigenen Dossier-Zweig, der Sprechernotizen nur Ersteller und Führung zeigt",
         };
 
     /// <summary>The enum values offered where a type must be openable as a record.</summary>

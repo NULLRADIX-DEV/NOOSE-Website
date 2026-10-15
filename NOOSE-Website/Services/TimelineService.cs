@@ -16,6 +16,7 @@ using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Meetings;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Timeline;
 using NOOSE_Website.Services.Public;
@@ -208,9 +209,21 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
 
             var refs = link.Select(v => Counterpart(v.SourceType, v.SourceId, v.TargetType, v.TargetId)).Distinct().ToList();
             var map = await RecordsReference.ResolveAsync(db, refs, cancellationToken, mayAllTf, meId);
+            // groups and invites decide; a hidden one is left out like on the link list, label and all
+            var presentationIds = refs.Where(r => r.Item1 == nameof(Presentation)).Select(r => r.Item2).ToList();
+            var presentations = await PresentationVisibility.VisibleTitlesAsync(db, presentationIds, scope, cancellationToken);
+            foreach (var (id, title) in presentations)
+            {
+                map[(nameof(Presentation), id)] = new(title, false, $"/praesentationen/{id}");
+            }
             foreach (var v in link)
             {
-                var (name, href) = CounterpartDisplay(map, Counterpart(v.SourceType, v.SourceId, v.TargetType, v.TargetId), "Akte");
+                var counterpart = Counterpart(v.SourceType, v.SourceId, v.TargetType, v.TargetId);
+                if (counterpart.Item1 == nameof(Presentation) && !presentations.ContainsKey(counterpart.Item2))
+                {
+                    continue;
+                }
+                var (name, href) = CounterpartDisplay(map, counterpart, "Akte");
                 Remember(actorIds, v.CreatedById);
                 raw.Add(new Raw(v.CreatedAt, TimelineCategory.Link, $"Verknüpft mit {name}",
                     v.Label, null, v.CreatedById, href, null));

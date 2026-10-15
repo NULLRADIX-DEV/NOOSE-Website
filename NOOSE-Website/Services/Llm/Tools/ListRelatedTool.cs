@@ -6,6 +6,7 @@ using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Llm;
 
@@ -268,6 +269,24 @@ public sealed class ListRelatedTool(IDbContextFactory<AppDbContext> dbFactory) :
         // the resolver reports it but does not withhold anything on its own
         var resolved = await RecordsReference.ResolveAsync(db, others, ct,
             mayAllTaskforces: scope.MayAllTaskforces, meId: scope.MeId);
+        // groups and invites decide; a hidden one is left out like on the link list, label and all
+        var presentations = await PresentationVisibility.VisibleTitlesAsync(db,
+            others.Where(o => o.Item1 == nameof(Presentation)).Select(o => o.Item2).ToList(), scope, ct);
+        foreach (var (presentationId, title) in presentations)
+        {
+            resolved[(nameof(Presentation), presentationId)] = new(title, false, null);
+        }
+        links = links.Where(l =>
+        {
+            var (otherType, otherId) = l.SourceType == type && l.SourceId == id
+                ? (l.TargetType, l.TargetId)
+                : (l.SourceType, l.SourceId);
+            return otherType != nameof(Presentation) || presentations.ContainsKey(otherId);
+        }).ToList();
+        if (links.Count == 0)
+        {
+            return 0;
+        }
 
         sb.Append("— Verknüpfungen (").Append(links.Count).AppendLine(") —");
         foreach (var link in links)

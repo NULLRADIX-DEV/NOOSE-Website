@@ -10,6 +10,7 @@ using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Services.Search;
@@ -45,7 +46,7 @@ public static class RecordBatch
     public static readonly IReadOnlySet<string> LinkAnchors = new HashSet<string>(StringComparer.Ordinal)
     {
         nameof(Case), nameof(Operation), nameof(Taskforce), nameof(Job),
-        nameof(Person), nameof(Meeting), nameof(Law), nameof(Bewerbung),
+        nameof(Person), nameof(Meeting), nameof(Law), nameof(Bewerbung), nameof(Presentation),
     };
 
     private static readonly IReadOnlySet<string> Involved = LinkService.InvolvedTypes.ToHashSet(StringComparer.Ordinal);

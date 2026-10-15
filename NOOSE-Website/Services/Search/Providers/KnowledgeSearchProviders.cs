@@ -4,6 +4,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Handbook;
 using NOOSE_Website.Data.Entities.Meetings;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Models.Common;
 
@@ -401,4 +402,52 @@ public sealed class RadioChannelSearchProvider(IDbContextFactory<AppDbContext> d
 
     private static IQueryable<RadioChannel> Visible(AppDbContext db, SearchQuery query)
         => db.Funkkanaele.OnlyVisible(db, query.Scope);
+}
+
+/// <summary>Presentations: title, description and slide titles, never the slide bodies or the speaker notes.</summary>
+/// <remarks>
+/// The palette offers them by title; the @-picker and the compromise picker drop them again through
+/// <see cref="LinkService.ReferenceTypes"/>, because their resolver knows neither groups nor invites.
+/// <para>Visibility is <see cref="PresentationVisibility.OnlyVisible"/>, the same expression the list reads.</para>
+/// </remarks>
+public sealed class PresentationSearchProvider(IDbContextFactory<AppDbContext> dbFactory) : ISearchProvider
+{
+    public string Category => nameof(Presentation);
+
+    public PartnerAccess Partner => PartnerAccess.Never;
+
+    public bool AppliesTo(SearchViewer viewer) => viewer.Scope.IsInternalAgent;
+
+    public async Task<IReadOnlyList<SearchHit>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var q = PresentationVisibility.OnlyVisible(db.Presentations, db, query.Scope);
+        if (query.HasText)
+        {
+            var s = query.Text;
+            q = q.Where(p => p.Title.Contains(s)
+                || (p.Description != null && p.Description.Contains(s))
+                || db.PresentationSlides.Any(f => f.PresentationId == p.Id && f.Title != null && f.Title.Contains(s)));
+        }
+        var rows = await q.OrderByDescending(p => p.ModifiedAt ?? p.CreatedAt).Take(query.PerCategory)
+            .Select(p => new { p.Id, p.Title, p.Description, Updated = p.ModifiedAt ?? p.CreatedAt })
+            .ToListAsync(cancellationToken);
+        return rows.Select(p => new SearchHit(nameof(Presentation), p.Id, p.Title, p.Description ?? string.Empty, string.Empty)
+            {
+                Timestamp = p.Updated,
+            })
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<QuickHit>> QuickAsync(SearchQuery query, int max, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var s = query.Text;
+        // title only: the palette fires while the agent is still typing
+        return await PresentationVisibility.OnlyVisible(db.Presentations, db, query.Scope)
+            .Where(p => p.Title.Contains(s))
+            .OrderByDescending(p => p.ModifiedAt ?? p.CreatedAt).Take(max)
+            .Select(p => new QuickHit(nameof(Presentation), p.Id, p.Title, string.Empty))
+            .ToListAsync(cancellationToken);
+    }
 }
