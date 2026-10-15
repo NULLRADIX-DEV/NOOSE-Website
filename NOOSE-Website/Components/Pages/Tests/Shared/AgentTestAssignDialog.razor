@@ -1,0 +1,147 @@
+@inject IAgentTestService AgentTests
+@inject IAgentManagementService Agents
+@inject ITaskforceService TaskforceService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSelect T="string" @bind-Value="_testId" Label="Test" Variant="Variant.Outlined" Required="true">
+                @foreach (var t in _tests)
+                {
+                    <MudSelectItem T="string" Value="@t.Id">@t.Title@(t.TimeLimitMinutes is int m ? $" · {m} Min" : "")</MudSelectItem>
+                }
+            </MudSelect>
+            @if (_tests.Count == 0 && !_loading)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Noch kein aktiver Test für interne Zwecke. Lege im Katalog einen an oder stelle bei einem
+                    bestehenden die Verwendung auf „Intern“.
+                </MudText>
+            }
+
+            <MudSelect T="string" Label="Agenten" MultiSelection="true" Variant="Variant.Outlined"
+                       SelectedValues="_agentIds" SelectedValuesChanged="@(v => _agentIds = v.ToHashSet())"
+                       MultiSelectionTextFunc="@(ids => $"{ids.Count} ausgewählt")"
+                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.ManageAccounts">
+                @foreach (var a in _agents)
+                {
+                    <MudSelectItem T="string" Value="@a.Id">@a.Codename (@RankDisplay.Name(a.Rank))</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudSelect T="AnnouncementAudience?" @bind-Value="_audience" Label="Und/oder eine Gruppe"
+                       Variant="Variant.Outlined" Clearable="true">
+                @foreach (var z in AnnouncementAudienceDisplay.All)
+                {
+                    <MudSelectItem T="AnnouncementAudience?" Value="@((AnnouncementAudience?)z)">@AnnouncementAudienceDisplay.Name(z)</MudSelectItem>
+                }
+            </MudSelect>
+            @if (_audience == AnnouncementAudience.Taskforce)
+            {
+                <MudSelect T="string" @bind-Value="_targetId" Label="Taskforce" Variant="Variant.Outlined" Clearable="true">
+                    @foreach (var t in _taskforces)
+                    {
+                        <MudSelectItem T="string" Value="@t.Id">@t.Name (@t.CaseNumber)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else if (_audience == AnnouncementAudience.FromRank)
+            {
+                <MudSelect T="Rank?" @bind-Value="_minRank" Label="Mindest-Dienstgrad" Variant="Variant.Outlined">
+                    @foreach (var d in RankDisplay.All)
+                    {
+                        <MudSelectItem T="Rank?" Value="@((Rank?)d)">@RankDisplay.Name(d)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+
+            <MudDatePicker @bind-Date="_due" Label="Fällig bis (optional)" Variant="Variant.Outlined"
+                           Clearable="true" MinDate="DateTime.Today" DateFormat="dd.MM.yyyy"
+                           HelperText="Ende des Tages. Einen Tag vorher und bei Überschreitung wird erinnert." />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Wer denselben Test schon offen oder unkorrigiert hat, wird übersprungen.
+            </MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="AssignAsync"
+                   Disabled="@(_busy || string.IsNullOrEmpty(_testId) || (_agentIds.Count == 0 && _audience is null))">
+            Zuweisen
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public string? TestId { get; set; }
+    [Parameter] public IReadOnlyCollection<string>? AgentIds { get; set; }
+
+    private bool _loading = true;
+    private bool _busy;
+    private string? _testId;
+    private HashSet<string> _agentIds = [];
+    private AnnouncementAudience? _audience;
+    private string? _targetId;
+    private Rank? _minRank;
+    private DateTime? _due;
+    private List<BewerbungTest> _tests = [];
+    private List<Agent> _agents = [];
+    private List<Taskforce> _taskforces = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _testId = TestId;
+        _agentIds = AgentIds?.ToHashSet() ?? [];
+        _tests = await AgentTests.GetAssignableTestsAsync(User);
+        _agents = await Agents.GetSelectableAsync();
+        _taskforces = await TaskforceService.GetListAsync(User.MayAllTaskforcesSee(), User.GetAgentId());
+        _loading = false;
+    }
+
+    private async Task AssignAsync()
+    {
+        _busy = true;
+        try
+        {
+            // the end of the chosen local day, stored in UTC like every other instant
+            DateTime? dueAt = _due is { } d
+                ? new DateTime(d.Year, d.Month, d.Day, 23, 59, 0, DateTimeKind.Local).ToUniversalTime()
+                : null;
+            var result = await AgentTests.AssignAsync(_testId!, new AgentTestTargets
+            {
+                AgentIds = _agentIds.ToList(),
+                Audience = _audience,
+                TargetId = _targetId,
+                MinRank = _minRank,
+            }, dueAt, User);
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Opens the dialog; returns the outcome, or null when cancelled.</summary>
+    public static async Task<AgentTestAssignResult?> ShowAsync(IDialogService dialog, ClaimsPrincipal user,
+        string? testId = null, IReadOnlyCollection<string>? agentIds = null)
+    {
+        var parameters = new DialogParameters<AgentTestAssignDialog>
+        {
+            { x => x.User, user },
+            { x => x.TestId, testId },
+            { x => x.AgentIds, agentIds },
+        };
+        var reference = await dialog.ShowAsync<AgentTestAssignDialog>("Test zuweisen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: AgentTestAssignResult outcome } ? outcome : null;
+    }
+}

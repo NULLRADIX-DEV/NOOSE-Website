@@ -157,6 +157,16 @@ public class AgentTestService(
             .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken);
     }
 
+    public async Task<AgentTestRow?> GetRowAsync(string assignmentId, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+    {
+        Permission.RequireHrbOrLeadership(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await ToRowsAsync(db,
+            db.AgentTestAssignments.AsNoTracking().Where(a => a.Id == assignmentId), cancellationToken);
+        return rows.FirstOrDefault();
+    }
+
     public async Task<TestEvaluation?> GetEvaluationAsync(string assignmentId, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
@@ -785,17 +795,17 @@ public class AgentTestService(
         var agentIds = rows.Select(r => r.AgentId).Distinct().ToList();
         var tests = await db.BewerbungTests.IgnoreQueryFilters().AsNoTracking()
             .Where(t => testIds.Contains(t.Id))
-            .Select(t => new { t.Id, t.Title })
-            .ToDictionaryAsync(t => t.Id, t => t.Title, cancellationToken);
+            .Select(t => new { t.Id, t.Title, t.TimeLimitMinutes })
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
         var agents = await db.Users.AsNoTracking()
             .Where(u => agentIds.Contains(u.Id))
             .Select(u => new { u.Id, u.Codename })
             .ToDictionaryAsync(u => u.Id, u => u.Codename, cancellationToken);
         return rows.Select(a => new AgentTestRow(
             a.Id, a.AgentId, agents.GetValueOrDefault(a.AgentId) ?? "—",
-            a.TestId, tests.GetValueOrDefault(a.TestId) ?? "Test",
+            a.TestId, tests.GetValueOrDefault(a.TestId)?.Title ?? "Test",
             a.CreatedAt, a.AssignedByName, a.DueAt, a.StartedAt, a.CompletedAt, a.TimedOut,
-            a.TimeLimitMinutes, a.GradedAt,
+            TestDeadline.AllowedMinutes(a, tests.GetValueOrDefault(a.TestId)?.TimeLimitMinutes), a.GradedAt,
             a.GradedAt is null ? null : a.FinalPoints,
             a.GradedAt is null ? null : a.FinalMaxPoints,
             a.GradedAt is null ? null : a.Passed)).ToList();

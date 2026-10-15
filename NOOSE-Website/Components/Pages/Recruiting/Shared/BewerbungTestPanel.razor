@@ -126,7 +126,8 @@
         _eval = null;
         // always loaded: before the start the minutes still live on the test, not on the assignment
         var all = await TestService.GetTestsAsync(User);
-        _tests = all.Where(x => x.IsActive).ToList();
+        // an internal-only test cannot go to an applicant; the service refuses it as well
+        _tests = all.Where(x => x.IsActive && TestUsageDisplay.ForApplicants(x.Usage)).ToList();
         _testMinutes = _assignment is null
             ? null
             : all.FirstOrDefault(x => x.Id == _assignment.TestId)?.TimeLimitMinutes;

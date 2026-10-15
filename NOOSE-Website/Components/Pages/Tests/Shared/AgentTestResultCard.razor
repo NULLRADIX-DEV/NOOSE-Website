@@ -1,0 +1,32 @@
+@* An agent's own graded result: points, percent and verdict. Never which question was wrong, never the key. *@
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudStack Spacing="2">
+        <MudText Typo="Typo.h6">Ergebnis</MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+            <MudChip T="string" Color="Color.Primary" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Scoreboard">
+                @Result.Points von @Result.MaxPoints Punkten (@Result.Percent %)
+            </MudChip>
+            @if (Result.Passed is true)
+            {
+                <MudChip T="string" Color="Color.Success" Icon="@Icons.Material.Filled.CheckCircle">Bestanden</MudChip>
+            }
+            else if (Result.Passed is false)
+            {
+                <MudChip T="string" Color="Color.Error" Icon="@Icons.Material.Filled.Cancel">Nicht bestanden</MudChip>
+            }
+        </MudStack>
+        @if (Result.PassPercent is int threshold)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Bestehensgrenze: @threshold %.</MudText>
+        }
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Korrigiert am @Result.GradedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm").
+            Bei Fragen zum Ergebnis wende dich an HRB oder die Führung.
+        </MudText>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public AgentTestResult Result { get; set; } = default!;
+}

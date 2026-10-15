@@ -19,6 +19,8 @@ public interface IAgentTestService
     /// <summary>Every assignment of one agent, newest first; for the personnel file.</summary>
     Task<List<AgentTestRow>> GetForAgentAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<AgentTestAssignment?> GetAssignmentAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>One assignment as a list row (codename, title, allowed minutes).</summary>
+    Task<AgentTestRow?> GetRowAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<TestEvaluation?> GetEvaluationAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task SetAwardedPointsAsync(string assignmentId, string questionId, int? points, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task CompleteGradingAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);

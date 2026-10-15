@@ -1,0 +1,29 @@
+@* Where an assignment stands, as one chip; overdue wins over "open" so a late test stands out. *@
+
+@if (Row.IsOverdue(Now))
+{
+    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.AlarmOn">überfällig</MudChip>
+}
+else
+{
+    @switch (Row.State)
+    {
+        case AgentTestState.Offen:
+            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">offen</MudChip>
+            break;
+        case AgentTestState.Laeuft:
+            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Timer">läuft</MudChip>
+            break;
+        case AgentTestState.ZuKorrigieren:
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">abgegeben</MudChip>
+            break;
+        default:
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.FactCheck">korrigiert</MudChip>
+            break;
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public AgentTestRow Row { get; set; } = default!;
+    [Parameter] public DateTime Now { get; set; } = DateTime.UtcNow;
+}

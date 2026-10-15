@@ -112,6 +112,14 @@ else
                 </MudTabPanel>
                 <MudTabPanel Text="Module" Icon="@Icons.Material.Filled.School">
                     <ModulesPanel AgentId="@_agent.Id" MayMark="@AgentSelection.IsSelectable(_agent)" />
+                    @if (_isHrbOrLeadership)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-6 mb-2">
+                            <MudIcon Icon="@Icons.Material.Filled.Quiz" Color="Color.Primary" />
+                            <MudText Typo="Typo.h6">Interne Tests</MudText>
+                        </MudStack>
+                        <AgentTestHistoryPanel AgentId="@_agent.Id" />
+                    }
                 </MudTabPanel>
                 <MudTabPanel Text="Auszeichnungen" Icon="@Icons.Material.Filled.EmojiEvents">
                     <DecorationsPanel Agent="_agent" />

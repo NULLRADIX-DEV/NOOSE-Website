@@ -1,0 +1,109 @@
+@implements IDisposable
+@inject IAgentTestService AgentTests
+@inject AgentTestBroadcaster Broadcaster
+
+@if (_rows is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Quiz" Title="Keine Tests"
+                Text="Dir wurde noch kein interner Test zugewiesen." />
+}
+else
+{
+    <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Test</MudTh><MudTh>Fällig</MudTh><MudTh>Stand</MudTh><MudTh>Ergebnis</MudTh><MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Test">
+                <MudText Typo="Typo.body2">@context.TestTitle</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    zugewiesen am @context.AssignedAt.ToLocalTime().ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(context.AssignedByName) ? "" : " von " + context.AssignedByName)
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Fällig">
+                @if (context.DueAt is { } due)
+                {
+                    <MudText Typo="Typo.body2" Color="@(context.IsOverdue(_now) ? Color.Error : Color.Default)">
+                        @due.ToLocalTime().ToString("dd.MM.yyyy")
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Stand"><AgentTestStateChip Row="context" Now="_now" /></MudTd>
+            <MudTd DataLabel="Ergebnis">
+                @if (context.State == AgentTestState.Korrigiert)
+                {
+                    <MudText Typo="Typo.body2">
+                        @context.Points / @context.MaxPoints (@context.Percent %)
+                        @if (context.Passed is true)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success">bestanden</MudChip>
+                        }
+                        else if (context.Passed is false)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error">nicht bestanden</MudChip>
+                        }
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
+                }
+            </MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="@(context.CompletedAt is null ? Variant.Filled : Variant.Text)"
+                           Color="Color.Primary" Href="@($"/tests/{context.AssignmentId}")">
+                    @(context.State switch
+                    {
+                        AgentTestState.Offen => "Starten",
+                        AgentTestState.Laeuft => "Fortsetzen",
+                        _ => "Ansehen",
+                    })
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal User { get; set; } = default!;
+
+    private List<AgentTestRow>? _rows;
+    private string? _me;
+    private DateTime _now = DateTime.UtcNow;
+
+    protected override async Task OnInitializedAsync()
+    {
+        User = (await AuthStateTask).User;
+        _me = User.GetAgentId();
+        Broadcaster.Modified += OnModified;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _now = DateTime.UtcNow;
+        // read-only supervision, partners and demo take no tests; the guard would refuse them
+        _rows = User.MayWrite() && User.IsInternalAgent() ? await AgentTests.GetMineAsync(User) : [];
+    }
+
+    private void OnModified(string assignmentId, string agentId)
+    {
+        if (agentId != _me)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+    }
+
+    public void Dispose() => Broadcaster.Modified -= OnModified;
+}

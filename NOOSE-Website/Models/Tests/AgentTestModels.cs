@@ -42,6 +42,7 @@ public enum AgentTestFilter
 }
 
 /// <summary>One assignment in a list; results only once graded, never an answer key.</summary>
+/// <param name="TimeLimitMinutes">Minutes the attempt is allowed, extension included; before the start from the test.</param>
 public sealed record AgentTestRow(
     string AssignmentId,
     string AgentId,
