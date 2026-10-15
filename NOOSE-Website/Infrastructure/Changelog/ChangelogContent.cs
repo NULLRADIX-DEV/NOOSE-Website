@@ -532,6 +532,8 @@ public static class ChangelogContent
             Fix("2.7.07-vorfuehrung-schwarz", "Google-Folien erscheinen bei Zuschauern jetzt auch, wenn die Seite die "
                 + "Bühne beim Start noch nicht als sichtbar erkannt hat; vorher blieb sie dann schwarz, bis man selbst "
                 + "blätterte.", "Präsentationen"),
+            Fix("2.7.08-eingeschraenkte-aufgabe-verknuepft", "Eine eingeschränkte Aufgabe, die mit einer anderen Akte "
+                + "verknüpft ist, steht dort nur noch für die, die sie auch sehen dürfen.", "Dienstbetrieb"),
         ]),
     ];
 }

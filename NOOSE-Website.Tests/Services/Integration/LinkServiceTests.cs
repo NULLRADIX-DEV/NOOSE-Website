@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
@@ -241,6 +242,49 @@ public sealed class LinkServiceTests
         Assert.Equal("f1", link.OtherId);
     }
 
+    // ---- restricted jobs ---------------------------------------------------
+
+    // Person p1 linked to a restricted job that only its creator and "assignee" may see.
+    private static void SeedPersonLinkedToRestrictedJob(SqliteTestContext ctx)
+    {
+        using var db = ctx.NewContext();
+        db.Users.Add(Seed.Agent("creator"));
+        db.Users.Add(Seed.Agent("assignee"));
+        db.Users.Add(Seed.Agent("outsider"));
+        db.People.Add(Seed.Person("p1", "Max"));
+        db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
+        db.JobAssignments.Add(new JobAssignment { JobId = "j1", AgentId = "assignee" });
+        db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Job", TargetId = "j1" });
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task GetForRecordAsync_HidesRestrictedJob_FromUninvolvedAgent()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPersonLinkedToRestrictedJob(ctx);
+        var (svc, _) = NewService(ctx);
+
+        var result = await svc.GetForRecordAsync("Person", "p1", JuniorScope("outsider"));
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetForRecordAsync_ShowsRestrictedJob_ToAssignee()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPersonLinkedToRestrictedJob(ctx);
+        var (svc, _) = NewService(ctx);
+
+        var result = await svc.GetForRecordAsync("Person", "p1", JuniorScope("assignee"));
+
+        var link = Assert.Single(result);
+        Assert.Equal("j1", link.OtherId);
+        Assert.Equal("Zugriff Lager (NOOSE-A-2026-0001)", link.OtherDesignation);
+        Assert.Equal("/aufgaben/j1", link.Href);
+    }
+
     // ---- CreateAsync -------------------------------------------------------
 
     [Fact]
@@ -366,6 +410,49 @@ public sealed class LinkServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.CreateAsync("Person", "p1", "Faction", "f1", null, NonLeader()));
+    }
+
+    [Fact]
+    public async Task CreateAsync_Throws_WhenTargetIsRestrictedJob_TheActorCannotSee()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("creator"));
+            db.People.Add(Seed.Person("p1", "Max"));
+            db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
+            db.SaveChanges();
+        }
+        var (svc, _) = NewService(ctx);
+
+        // forged call: the picker never offers this job to the actor
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => svc.CreateAsync("Person", "p1", "Job", "j1", null, NonLeader()));
+
+        using var check = ctx.NewContext();
+        Assert.False(await check.Links.AnyAsync());
+    }
+
+    [Fact]
+    public async Task CreateAsync_LinksRestrictedJob_ForAssignee()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("creator"));
+            db.Users.Add(Seed.Agent("assignee"));
+            db.People.Add(Seed.Person("p1", "Max"));
+            db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
+            db.JobAssignments.Add(new JobAssignment { JobId = "j1", AgentId = "assignee" });
+            db.SaveChanges();
+        }
+        var (svc, _) = NewService(ctx);
+        var assignee = ClaimsPrincipalBuilder.Agent("assignee").WithRank(Rank.JuniorAgent).Build();
+
+        await svc.CreateAsync("Person", "p1", "Job", "j1", null, assignee);
+
+        using var check = ctx.NewContext();
+        Assert.Equal("j1", (await check.Links.SingleAsync()).TargetId);
     }
 
     // ---- UpdateLabelAsync --------------------------------------------------
