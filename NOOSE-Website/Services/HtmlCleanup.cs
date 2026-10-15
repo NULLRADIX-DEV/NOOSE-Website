@@ -61,6 +61,122 @@ public static partial class HtmlCleanup
         return Generate(allowImagePlaceholder: true).Sanitize(html);
     }
 
+    /// <summary>Sanitizes an imported Google original with the wider import allowlist; never returns null.</summary>
+    /// <remarks>
+    /// Only for <c>Document.ImportedHtml</c>, which is rendered read-only and never loaded into the editor. The
+    /// profile keeps what a Google export needs to look like itself - fonts, spacing, borders, cropped images,
+    /// positioned pictures - but no classes, no scripts, no data: or remote URLs in styles, ids only with the
+    /// <c>gdoc-</c> prefix the converter writes, and no position that could leave the document's box.
+    /// </remarks>
+    public static string CleanImported(string? html)
+    {
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return string.Empty;
+        }
+        return ImportSanitizer().Sanitize(html);
+    }
+
+    private static readonly string[] ImportTagNames =
+    [
+        "p", "br", "span", "b", "strong", "i", "em", "u", "s", "sub", "sup",
+        "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "blockquote", "pre", "code", "a", "img",
+        "table", "thead", "tbody", "tfoot", "tr", "td", "th", "caption", "colgroup", "col", "div", "hr",
+        "figure", "figcaption",
+    ];
+
+    private static readonly string[] ImportAttributeNames =
+    [
+        "href", "target", "rel", "style", "src", "alt", "title", "colspan", "rowspan", "width", "height",
+        "start", "id",
+    ];
+
+    private static readonly string[] ImportCssPropertyNames =
+    [
+        "color", "background-color", "text-align", "font-size", "font-family", "font-weight", "font-style",
+        "text-decoration", "text-decoration-line", "text-decoration-color", "text-decoration-style",
+        "vertical-align", "line-height", "letter-spacing", "word-spacing", "text-indent", "text-transform",
+        "white-space", "direction", "list-style-type", "list-style-position",
+        "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+        "padding", "padding-top", "padding-right", "padding-bottom", "padding-left",
+        "border", "border-color", "border-style", "border-width", "border-collapse", "border-spacing",
+        "border-top", "border-right", "border-bottom", "border-left",
+        "border-top-color", "border-right-color", "border-bottom-color", "border-left-color",
+        "border-top-style", "border-right-style", "border-bottom-style", "border-left-style",
+        "border-top-width", "border-right-width", "border-bottom-width", "border-left-width",
+        "width", "height", "min-width", "max-width", "min-height", "max-height",
+        "overflow", "display", "transform", "position", "left", "top", "right", "bottom",
+        "float", "clear", "table-layout",
+    ];
+
+    private static readonly string[] ImportSchemeNames = ["http", "https", "mailto"];
+
+    private static HtmlSanitizer ImportSanitizer()
+    {
+        var s = new HtmlSanitizer();
+        s.AllowedTags.Clear();
+        foreach (var tag in ImportTagNames)
+        {
+            s.AllowedTags.Add(tag);
+        }
+        s.AllowedAttributes.Clear();
+        foreach (var attr in ImportAttributeNames)
+        {
+            s.AllowedAttributes.Add(attr);
+        }
+        s.AllowedCssProperties.Clear();
+        foreach (var prop in ImportCssPropertyNames)
+        {
+            s.AllowedCssProperties.Add(prop);
+        }
+        s.AllowedSchemes.Clear();
+        foreach (var scheme in ImportSchemeNames)
+        {
+            s.AllowedSchemes.Add(scheme);
+        }
+        s.AllowedAtRules.Clear();
+        s.AllowedClasses.Clear();
+        s.AllowedAttributes.Remove("class");
+
+        // a style that leaves the box (fixed/sticky) or loads something (url) has no business in a document
+        s.PostProcessNode += (_, e) =>
+        {
+            if (e.Node is not IElement element)
+            {
+                return;
+            }
+            if (element.GetAttribute("id") is { } id && !id.StartsWith("gdoc-", StringComparison.Ordinal))
+            {
+                element.RemoveAttribute("id");
+            }
+            if (element.GetAttribute("style") is { } style
+                && (PinnedPosition().IsMatch(style) || UrlDeclaration().IsMatch(style)))
+            {
+                var kept = UrlDeclaration().Replace(PinnedPosition().Replace(style, string.Empty), string.Empty).Trim();
+                if (kept.Length == 0)
+                {
+                    element.RemoveAttribute("style");
+                }
+                else
+                {
+                    element.SetAttribute("style", kept);
+                }
+            }
+            if (element is { NodeName: "A" } anchor
+                && anchor.GetAttribute("href")?.StartsWith("data:", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                anchor.RemoveAttribute("href");
+            }
+        };
+        return s;
+    }
+
+    [GeneratedRegex(@"position\s*:\s*(fixed|sticky)\s*;?", RegexOptions.IgnoreCase)]
+    private static partial Regex PinnedPosition();
+
+    [GeneratedRegex(@"[\w-]+\s*:[^;]*url\([^)]*\)[^;]*;?", RegexOptions.IgnoreCase)]
+    private static partial Regex UrlDeclaration();
+
     /// <summary>Tags out, entities decoded, whitespace collapsed to single spaces. For search snippets, Discord
     /// embeds, LLM context and emptiness probes.</summary>
     /// <remarks>

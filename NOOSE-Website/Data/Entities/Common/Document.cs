@@ -60,6 +60,25 @@ public class Document : IAuditable, ISoftDelete
     [Column("BesitzerTaskforceId")]
     public string? OwnerTaskforceId { get; set; }
 
+    /// <summary>The Google original 1:1, sanitized with the import profile; null for an ordinary document.</summary>
+    /// <remarks>While set, view and print render it and the editor locks the text; ContentHtml carries the
+    /// simplified copy that search, NOOSEI and links read.</remarks>
+    [Column("ImportHtml")]
+    public string? ImportedHtml { get; set; }
+
+    [Column("ImportQuelle")]
+    public ImportSourceKind? ImportSourceKind { get; set; }
+
+    /// <summary>Google file id the import came from; null for an upload.</summary>
+    [Column("ImportQuelleId")]
+    public string? ImportSourceId { get; set; }
+
+    [Column("ImportiertAm")]
+    public DateTime? ImportedAt { get; set; }
+
+    [Column("ImportiertVonId")]
+    public string? ImportedById { get; set; }
+
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }
     [Column("ErstelltVonId")]

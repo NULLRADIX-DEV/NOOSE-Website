@@ -1621,6 +1621,28 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("GeloeschtVonId");
 
+                    b.Property<string>("ImportSourceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("ImportQuelleId");
+
+                    b.Property<int?>("ImportSourceKind")
+                        .HasColumnType("int")
+                        .HasColumnName("ImportQuelle");
+
+                    b.Property<DateTime?>("ImportedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ImportiertAm");
+
+                    b.Property<string>("ImportedById")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ImportiertVonId");
+
+                    b.Property<string>("ImportedHtml")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ImportHtml");
+
                     b.Property<bool>("IsClassified")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IstVerschlusssache");

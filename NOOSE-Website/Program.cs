@@ -204,6 +204,12 @@ builder.Services.AddScoped<IProfileSuggestionService, ProfileSuggestionService>(
 builder.Services.AddScoped<IValueListLabelService, ValueListLabelService>();
 builder.Services.AddScoped<IDocTemplateService, DocTemplateService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+// Google import: the client follows no redirect by itself, the fetcher allows only Google's own download hosts
+builder.Services.AddHttpClient(NOOSE_Website.Services.Import.GoogleExportFetcher.ClientName,
+        client => client.Timeout = TimeSpan.FromSeconds(30))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleExportFetcher, NOOSE_Website.Services.Import.GoogleExportFetcher>();
+builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleImportService, NOOSE_Website.Services.Import.GoogleImportService>();
 builder.Services.AddScoped<IDocumentTemplateService, DocumentTemplateService>();
 builder.Services.AddScoped<IDocumentAccessService, DocumentAccessService>();
 builder.Services.AddScoped<IPlaceholderService, PlaceholderService>();
