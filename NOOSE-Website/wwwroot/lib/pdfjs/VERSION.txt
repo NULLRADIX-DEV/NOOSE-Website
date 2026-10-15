@@ -1,0 +1,4 @@
+pdf.js 6.3.289 (pdfjs-dist from the npm registry, Apache-2.0).
+Only what drawing imported Google slides needs: pdf.min.mjs and pdf.worker.min.mjs from legacy/build/ (the
+legacy build carries polyfills; the modern one needs browser APIs of 2026), plus standard_fonts, cmaps, iccs and the
+image decoders in wasm. Update all of it together and bump PDFJS in js/praesentation.js.
