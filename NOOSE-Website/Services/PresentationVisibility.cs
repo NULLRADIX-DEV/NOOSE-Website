@@ -67,7 +67,14 @@ public static class PresentationVisibility
 
     /// <summary>Owner or leadership; the write check is the caller's guard.</summary>
     public static bool MayManage(ClaimsPrincipal actor, Presentation presentation)
-        => actor.IsLeadership() || (presentation.OwnerId.Length > 0 && presentation.OwnerId == actor.GetAgentId());
+        => MayManage(actor.IsLeadership(), actor.GetAgentId(), presentation.OwnerId);
+
+    /// <summary>The same rule for a viewer scope; decides whether NOOSEI reads out the speaker notes.</summary>
+    public static bool MayManage(ViewerScope scope, Presentation presentation)
+        => MayManage(scope.IsLeadership, scope.MeId, presentation.OwnerId);
+
+    private static bool MayManage(bool isLeadership, string? meId, string ownerId)
+        => isLeadership || (ownerId.Length > 0 && ownerId == meId);
 
     /// <summary>Whether the author belongs to the group they want to close the presentation to; leadership may pick any.</summary>
     /// <remarks>Otherwise any agent could address a briefing "to HRB only" from outside HRB and use the group as a

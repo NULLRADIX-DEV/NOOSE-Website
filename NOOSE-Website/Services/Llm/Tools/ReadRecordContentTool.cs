@@ -9,6 +9,7 @@ using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Taskforces;
@@ -209,6 +210,8 @@ public sealed class ReadRecordContentTool(
             // notes hang off a personnel file, meetings off an informant — each already shown (truncated) in the dossier
             nameof(Agent) => [.. Universal, Notes],
             nameof(Informant) => [.. Universal, Meetings2],
+            // the deck page carries links and nothing else of the universal set
+            nameof(Presentation) => [Links],
             _ => Universal,
         };
         // who viewed this record — requestable on any record, but leadership/supervision-gated and never in "alles"
@@ -589,6 +592,12 @@ public sealed class ReadRecordContentTool(
     private static async Task<string> TitleAsync(
         AppDbContext db, string type, string id, ViewerScope scope, CancellationToken ct)
     {
+        // groups and invites decide, which the shared resolver is never handed
+        if (type == nameof(Presentation))
+        {
+            var titles = await PresentationVisibility.VisibleTitlesAsync(db, [id], scope, ct);
+            return titles.GetValueOrDefault(id) ?? NooseiRecordTypes.German(type);
+        }
         var resolved = await RecordsReference.ResolveAsync(db, [(type, id)], ct,
             mayAllTaskforces: scope.MayAllTaskforces, meId: scope.MeId);
         return resolved.TryGetValue((type, id), out var row) && !string.IsNullOrWhiteSpace(row.Display)

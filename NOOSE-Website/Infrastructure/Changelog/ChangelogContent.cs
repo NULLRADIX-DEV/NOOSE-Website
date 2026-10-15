@@ -526,6 +526,9 @@ public static class ChangelogContent
             Neu("2.7.05-praesentationen-verknuepfen", "Präsentationen lassen sich mit anderen Akten verknüpfen, etwa "
                 + "mit einem Vorgang, einer Person oder einer Besprechung: auf der Präsentation selbst oder dort beim "
                 + "Verknüpfen. Die Suche und Strg+K finden Präsentationen jetzt auch.", "Präsentationen"),
+            Neu("2.7.06-noosei-praesentationen", "NOOSEI öffnet jetzt auch Präsentationen und liest ihre Folien, "
+                + "soweit du sie selbst sehen darfst. Die Sprechernotizen bekommt nur, wer die Präsentation angelegt "
+                + "hat, und die Führung.", "NOOSEI"),
         ]),
     ];
 }

@@ -25,6 +25,14 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory, IPartnerVis
     private const int MaxPathDepth = 12;
     private const int MaxVisited = 8000;
 
+    /// <summary>Record types the graph resolves as nodes; an edge to any other type is dropped.</summary>
+    public static readonly IReadOnlySet<string> NodeTypes = new HashSet<string>(StringComparer.Ordinal)
+    {
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party),
+        nameof(Operation), nameof(Case), nameof(Taskforce), nameof(Job),
+        nameof(Agent), nameof(Law), nameof(PersonDoc), nameof(Observation),
+    };
+
     /// <summary>Node types a partner may ever see in the graph; docs, observations, jobs and agents never.</summary>
     public static readonly IReadOnlySet<string> PartnerNodeTypes = new HashSet<string>
     {
