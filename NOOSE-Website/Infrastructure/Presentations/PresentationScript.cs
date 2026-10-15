@@ -8,16 +8,16 @@ namespace NOOSE_Website.Infrastructure.Presentations;
 public sealed class PresentationScript(IJSRuntime js) : IAsyncDisposable
 {
     /// <summary>Every page imports the module under this one URL, so the browser keeps a single instance of it.</summary>
-    public const string ModulePath = "./js/praesentation.js?v=2";
+    public const string ModulePath = "./js/praesentation.js?v=3";
 
     private Task<IJSObjectReference>? _module;
 
-    /// <summary>Draws a page of an imported deck into <paramref name="host"/>: once it scrolls into view, or at once
-    /// with <paramref name="eager"/> (print).</summary>
-    public async Task ShowPageAsync(ElementReference host, string url, int page, bool eager)
+    /// <summary>Draws a page of an imported deck into <paramref name="host"/>: once it is in view, or at once with
+    /// <paramref name="eager"/> (print). False when the element was no longer on the page.</summary>
+    public async Task<bool> ShowPageAsync(ElementReference host, string url, int page, bool eager)
     {
         var module = await ModuleAsync();
-        await module.InvokeVoidAsync("seite", host, url, page, eager);
+        return await module.InvokeAsync<bool>("seite", host, url, page, eager);
     }
 
     /// <summary>Waits until <paramref name="count"/> slides of the print view are drawn (or failed), at most

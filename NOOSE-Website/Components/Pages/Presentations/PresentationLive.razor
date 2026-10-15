@@ -6,6 +6,7 @@
 @inject PresentationLiveRegistry Registry
 @inject PresentationBroadcaster Broadcaster
 @inject PresentationScript Script
+@inject IAgentManagementService Agents
 @inject ISnackbar Snackbar
 
 <PageTitle>@(_view is null ? "Live" : $"Live: {_view.Presentation.Title}") · NOOSE</PageTitle>
@@ -13,6 +14,13 @@
 @if (_loading)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null && _ended)
+{
+    @* an invitation ends with the session: the invited keep nothing of the deck *@
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Die Vorführung ist beendet. <MudLink Href="/praesentationen">Zu den Präsentationen</MudLink>
+    </MudAlert>
 }
 else if (_view is null)
 {
@@ -75,7 +83,7 @@ else if (_role == LiveRole.Presenter && _session is not null)
                         @(string.IsNullOrWhiteSpace(current?.Notes) ? "—" : current!.Notes)
                     </MudText>
                 </MudPaper>
-                <MudPaper Outlined="true" Class="pa-3">
+                <MudPaper Outlined="true" Class="pa-3 mb-3">
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                         @_session.ViewerCodenames.Count Zuschauer
                     </MudText>
@@ -84,6 +92,38 @@ else if (_role == LiveRole.Presenter && _session is not null)
                         <MudText Typo="Typo.body2">@string.Join(", ", _session.ViewerCodenames)</MudText>
                     }
                 </MudPaper>
+                @* typing in the picker must not page the slides *@
+                <div @onkeydown:stopPropagation="true">
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Zu dieser Vorführung eingeladen</MudText>
+                        @if (_session.InvitedIds.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2">Niemand</MudText>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap gap-1 my-1">
+                                @foreach (var invited in _session.InvitedIds)
+                                {
+                                    var agentId = invited;
+                                    <MudChip T="string" Size="Size.Small" OnClose="@(() => Uninvite(agentId))">@AgentName(agentId)</MudChip>
+                                }
+                            </div>
+                        }
+                        <MudSelect T="string" Label="Agenten einladen" MultiSelection="true" Variant="Variant.Outlined" Dense="true"
+                                   Class="mt-2" SelectedValues="_toInvite" SelectedValuesChanged="@(v => _toInvite = v.ToList())"
+                                   MultiSelectionTextFunc="@(ids => $"{ids.Count} ausgewählt")"
+                                   HelperText="Sie sehen nur diese Vorführung, nicht die Präsentation selbst.">
+                            @foreach (var a in Invitable)
+                            {
+                                <MudSelectItem T="string" Value="@a.Id">@a.Codename (@RankDisplay.Name(a.Rank))</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="mt-2"
+                                   StartIcon="@Icons.Material.Filled.PersonAdd" Disabled="@(_busy || _toInvite.Count == 0)"
+                                   OnClick="InviteAsync">Einladen</MudButton>
+                    </MudPaper>
+                </div>
             </MudItem>
         </MudGrid>
     </div>
@@ -147,6 +187,16 @@ else
                 Wer die Präsentation sehen darf, bekommt einen Hinweis und kann zuschauen. Du blätterst für alle;
                 während der Vorführung kannst du das freie Blättern erlauben.
             </MudText>
+            <MudSelect T="string" Label="Zusätzlich einladen (optional)" MultiSelection="true" Variant="Variant.Outlined"
+                       Class="mb-3" Style="max-width:520px;" SelectedValues="_toInvite" SelectedValuesChanged="@(v => _toInvite = v.ToList())"
+                       MultiSelectionTextFunc="@(ids => $"{ids.Count} eingeladen")" Adornment="Adornment.Start"
+                       AdornmentIcon="@Icons.Material.Filled.PersonAdd"
+                       HelperText="Eingeladene sehen nur diese Vorführung, nicht die Präsentation selbst; die Einladung endet mit ihr.">
+                @foreach (var a in Invitable)
+                {
+                    <MudSelectItem T="string" Value="@a.Id">@a.Codename (@RankDisplay.Name(a.Rank))</MudSelectItem>
+                }
+            </MudSelect>
             <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.PlayArrow"
                        Disabled="_busy" OnClick="StartAsync">Vorführung starten</MudButton>
         </MudPaper>
@@ -183,8 +233,18 @@ else
     private bool _following = true;
     private ElementReference _keys;
     private ElementReference _stage;
+    // the picker for whoever may present; empty for everyone else
+    private List<Agent> _agents = [];
+    private List<string> _toInvite = [];
 
     private bool Following => _session is null || _session.Mode == PresentationFollowMode.Strict || _following;
+
+    /// <summary>Watching only by the presenter's invitation: the session is all this page may show.</summary>
+    private bool LiveOnly => _view?.LiveInviteOnly == true;
+
+    private IEnumerable<Agent> Invitable => _agents.Where(a => a.Id != _me && _session?.InvitedIds.Contains(a.Id) != true);
+
+    private string AgentName(string id) => _agents.FirstOrDefault(a => a.Id == id)?.Codename ?? "nicht mehr auswählbar";
 
     protected override void OnInitialized() => Broadcaster.Changed += OnLiveChanged;
 
@@ -201,7 +261,8 @@ else
         _ended = false;
         _user = (await AuthStateTask).User;
         _me = _user.GetAgentId();
-        _view = await Presentations.GetAsync(Id, _user);
+        _toInvite = [];
+        _view = await Presentations.GetForLiveAsync(Id, _user);
         if (_disposed)
         {
             return;
@@ -209,6 +270,10 @@ else
         if (_view is not null)
         {
             await AttachAsync();
+        }
+        if (_view?.MayManage == true && _agents.Count == 0)
+        {
+            _agents = await Agents.GetSelectableAsync();
         }
         _loading = false;
     }
@@ -244,6 +309,7 @@ else
         {
             _role = LiveRole.None;
             _session = null;
+            DropIfLiveOnly();
             return;
         }
         if (running.PresenterId == _me && Live.PresenterConnected(id, _key, _user))
@@ -261,6 +327,20 @@ else
         _role = _session is null ? LiveRole.None : LiveRole.Viewer;
         _localIndex = _session?.SlideIndex ?? 0;
         _following = true;
+        DropIfLiveOnly();
+    }
+
+    /// <summary>Invited when this page last looked and no more now; only then may the seat have lost its ground.</summary>
+    private bool LostInvite(string presentationId)
+        => _me is not null && _session?.InvitedIds.Contains(_me) == true && !Registry.IsInvited(presentationId, _me);
+
+    /// <summary>Without a seat, an invited viewer keeps nothing of the deck.</summary>
+    private void DropIfLiveOnly()
+    {
+        if (LiveOnly && _role == LiveRole.None)
+        {
+            _view = null;
+        }
     }
 
     private void Detach()
@@ -290,7 +370,8 @@ else
         _busy = true;
         try
         {
-            await Live.StartAsync(Id, _user);
+            await Live.StartAsync(Id, _user, _toInvite);
+            _toInvite = [];
             _ended = false;
             await AttachAsync();
         }
@@ -345,6 +426,39 @@ else
             Snackbar.Add(ex.Message, Severity.Error);
         }
         return Task.CompletedTask;
+    }
+
+    private async Task InviteAsync()
+    {
+        _busy = true;
+        try
+        {
+            var added = await Live.InviteAsync(Id, _toInvite, _user);
+            _toInvite = [];
+            _session = Registry.Get(Id) ?? _session;
+            Snackbar.Add(added == 0 ? "Niemand neu eingeladen." : $"{added} eingeladen.", added == 0 ? Severity.Info : Severity.Success);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Uninvite(string agentId)
+    {
+        try
+        {
+            Live.Uninvite(Id, agentId, _user);
+            _session = Registry.Get(Id) ?? _session;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private Task EndAsync()
@@ -426,8 +540,25 @@ else
 
     private async Task ApplyAsync(string presentationId, PresentationLiveEvent kind)
     {
-        if (presentationId != _loadedId || _view is null)
+        if (presentationId != _loadedId)
         {
+            return;
+        }
+        if (_view is null)
+        {
+            // invited while this page waited without access: the deck comes now
+            if (kind is PresentationLiveEvent.Started or PresentationLiveEvent.InvitesChanged)
+            {
+                var invited = await Presentations.GetForLiveAsync(presentationId, _user);
+                // a handler that overlapped this one may have loaded and attached already
+                if (_disposed || _view is not null || invited is null)
+                {
+                    return;
+                }
+                _view = invited;
+                _ended = false;
+                await AttachAsync();
+            }
             return;
         }
         switch (kind)
@@ -437,10 +568,18 @@ else
                 _role = LiveRole.None;
                 _session = null;
                 _focused = false;
+                DropIfLiveOnly();
                 break;
             case PresentationLiveEvent.Started when _role == LiveRole.Viewer:
-                // also sent when the audience changed; whoever lost the right leaves at once
-                _session = await Live.JoinAsync(presentationId, _key, _user);
+            case PresentationLiveEvent.InvitesChanged when _role == LiveRole.Viewer && LostInvite(presentationId):
+                // also sent when the audience or the invites changed: deck and seat are checked again, so whoever
+                // lost the right leaves at once and whoever now watches only by invitation keeps no notes
+                var deck = await Presentations.GetForLiveAsync(presentationId, _user);
+                if (_disposed)
+                {
+                    return;
+                }
+                _session = deck is null ? null : await Live.JoinAsync(presentationId, _key, _user);
                 if (_disposed)
                 {
                     Live.Leave(presentationId, _key);
@@ -448,11 +587,17 @@ else
                 }
                 if (_session is null)
                 {
+                    Live.Leave(presentationId, _key);
                     _role = LiveRole.None;
+                    _view = deck is { LiveInviteOnly: false } ? deck : null;
+                }
+                else
+                {
+                    _view = deck;
                 }
                 break;
             case PresentationLiveEvent.SlidesChanged:
-                var fresh = await Presentations.GetAsync(presentationId, _user);
+                var fresh = await Presentations.GetForLiveAsync(presentationId, _user);
                 if (_disposed)
                 {
                     return;
