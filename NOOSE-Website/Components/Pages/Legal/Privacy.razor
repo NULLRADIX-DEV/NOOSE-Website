@@ -153,18 +153,109 @@
     keine Dienste zur Reichweitenmessung eingesetzt. Rechtsgrundlage für die Verarbeitung ist
     Art. 6 Abs. 1 lit. f DSGVO bzw. Art. 6 Abs. 1 lit. b DSGVO.
 </MudText>
-<MudDivider Class="my-5" />
-
-<MudText Typo="Typo.h6" GutterBottom="true">8. Empfänger der Daten</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">
-    Eine Übermittlung deiner Daten findet nur an die in dieser Erklärung genannten Stellen statt:
-    an den Hoster als Auftragsverarbeiter (Ziffer 3) sowie an den Anmeldedienst Discord (Ziffer 5).
-    Eine darüber hinausgehende Weitergabe an Dritte erfolgt nicht, es sei denn, wir sind gesetzlich
-    dazu verpflichtet.
+    Nutzt du beim Import die Google-Anmeldung (Ziffer 9), setzt Google in seinem Anmeldefenster und in
+    seiner Dateiauswahl eigene Cookies. Dafür ist Google verantwortlich; diese Website liest sie nicht.
 </MudText>
 <MudDivider Class="my-5" />
 
-<MudText Typo="Typo.h6" GutterBottom="true">9. Deine Rechte</MudText>
+<MudText Typo="Typo.h6" GutterBottom="true">8. Schriftarten von Google (Google Fonts)</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">
+    Für eine einheitliche, gut lesbare Darstellung lädt diese Website die Schriftart „Roboto“ von den
+    Servern von Google (fonts.googleapis.com, fonts.gstatic.com). Zeigt die Website ein aus Google Docs
+    importiertes Original an (Ziffer 9), lädt sie zusätzlich die darin verwendeten Schriftarten von dort.
+    Dabei übermittelt dein Browser insbesondere deine IP-Adresse, Angaben zu Browser und Betriebssystem
+    sowie die Adresse der aufgerufenen Seite an Google. Cookies setzt Google dabei nach eigenen Angaben
+    nicht.
+</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">
+    Anbieter ist die Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Dabei kann es
+    zu einer Übermittlung an die Google LLC in den USA (Drittland) kommen; Google LLC ist nach dem
+    EU-US Data Privacy Framework zertifiziert. Rechtsgrundlage ist unser berechtigtes Interesse an einer
+    einheitlichen Darstellung (Art. 6 Abs. 1 lit. f DSGVO). Mehr dazu in der Datenschutzerklärung von
+    Google:
+    <MudLink Href="https://policies.google.com/privacy" Target="_blank" rel="noopener noreferrer">https://policies.google.com/privacy</MudLink>.
+</MudText>
+<MudDivider Class="my-5" />
+
+<MudText Typo="Typo.h6" GutterBottom="true" id="google">9. Import aus Google Docs und Google Slides</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">
+    Mitglieder mit Schreibrecht können Dokumente aus Google Docs und Präsentationen aus Google Slides in das
+    interne Werkzeug übernehmen. Dafür gibt es drei Wege:
+</MudText>
+<ul style="margin:0 0 12px 20px;">
+    <li><MudText Typo="Typo.body2"><b>Freigabe-Link:</b> Du gibst den Link einer Datei an, die bei Google für
+        „Jeder mit dem Link“ freigegeben ist. Unser Server ruft die Datei dann selbst bei Google ab
+        (docs.google.com) und übermittelt dabei nur die Kennung der Datei aus dem Link, keine Daten über dich.</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Hochladen:</b> Du lädst eine bei Google heruntergeladene Datei hoch.
+        Google ist dabei nicht beteiligt.</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Google-Anmeldung:</b> Du meldest dich in einem Fenster von Google mit
+        deinem Google-Konto an und wählst dort eine Datei aus. Dieser Weg ist freiwillig; die beiden anderen
+        funktionieren ohne Google-Konto.</MudText></li>
+</ul>
+<MudText Typo="Typo.body2" Class="mb-2">
+    Für die <b>Google-Anmeldung</b> gilt im Einzelnen:
+</MudText>
+<ul style="margin:0 0 12px 20px;">
+    <li><MudText Typo="Typo.body2"><b>Google in deinem Browser:</b> Erst wenn du den Knopf für die
+        Google-Anmeldung ansteuerst, lädt dein Browser Programmcode von Google (accounts.google.com,
+        apis.google.com). Anmeldung und Dateiauswahl laufen in Fenstern und Rahmen von Google
+        (accounts.google.com, docs.google.com). Google erhält dabei insbesondere deine IP-Adresse,
+        Browserangaben, die Adresse unserer Seite und die Angaben deines Google-Kontos. Für diese
+        Verarbeitung ist Google selbst verantwortlich.</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Welche Berechtigung wir anfragen:</b> ausschließlich „drive.file“.
+        Damit können wir nur die eine Datei lesen, die du in der Dateiauswahl von Google ausdrücklich
+        auswählst. Auf deine übrigen Dateien, dein Postfach, deine Kontakte oder andere Daten deines
+        Google-Kontos haben wir keinen Zugriff.</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Welche Daten wir von Google erhalten:</b> ein kurzlebiges
+        Zugriffstoken (etwa eine Stunde gültig), die Kennung und den Namen der gewählten Datei sowie ihren
+        Inhalt in exportierter Form (ein Dokument als HTML-Archiv, eine Präsentation als PDF). Deinen
+        Google-Namen und deine Google-E-Mail-Adresse erhalten wir nicht.</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Wie wir sie verwenden:</b> Das Zugriffstoken dient nur dem einen
+        Abruf der gewählten Datei. Unser Server sendet es dafür ausschließlich an Google (www.googleapis.com,
+        docs.google.com) und speichert es weder in der Datenbank noch in Protokollen. Gespeichert werden
+        der Inhalt der Datei als Dokument bzw. Präsentation im internen Werkzeug, die Kennung der Datei (damit
+        ein späteres Aktualisieren dieselbe Datei liest), der Zeitpunkt und das importierende Konto.</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Wer sie sieht:</b> Der importierte Inhalt ist im internen Werkzeug für
+        die Mitglieder sichtbar, die die dort gewählte Verschluss-Stufe bzw. Sichtbarkeit erlaubt, wie jeder
+        andere Inhalt. Daten aus Google werden nicht verkauft, nicht für Werbung genutzt und nicht an Dritte
+        weitergegeben.</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Google-Richtlinie:</b> Die Nutzung und Weitergabe von Informationen,
+        die wir über Google-APIs erhalten, richtet sich nach der
+        <MudLink Href="https://developers.google.com/terms/api-services-user-data-policy" Target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</MudLink>,
+        einschließlich der Anforderungen zur eingeschränkten Nutzung („Limited Use“).</MudText></li>
+    <li><MudText Typo="Typo.body2"><b>Löschen und Widerrufen:</b> Importierte Inhalte werden wie andere
+        Inhalte gelöscht (Papierkorb, Löschung durch Berechtigte). Den Zugriff dieser Website auf dein
+        Google-Konto kannst du jederzeit in deinem Google-Konto widerrufen:
+        <MudLink Href="https://myaccount.google.com/connections" Target="_blank" rel="noopener noreferrer">https://myaccount.google.com/connections</MudLink>.</MudText></li>
+</ul>
+<MudText Typo="Typo.body2" Class="mb-2">
+    Rechtsgrundlage für die Google-Anmeldung ist deine Einwilligung, die du mit der Anmeldung und Freigabe
+    bei Google erteilst (Art. 6 Abs. 1 lit. a DSGVO); das Laden des Programmcodes von Google ist für diesen
+    von dir ausdrücklich gewünschten Dienst erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Für den Abruf per
+    Freigabe-Link und das Speichern importierter Inhalte ist Rechtsgrundlage die Durchführung des
+    Nutzungsverhältnisses (Art. 6 Abs. 1 lit. b DSGVO) und unser berechtigtes Interesse an einer
+    einfachen Übernahme vorhandener Unterlagen (Art. 6 Abs. 1 lit. f DSGVO).
+</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">
+    Anbieter ist die Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland. Dabei kann es
+    zu einer Übermittlung an die Google LLC in den USA (Drittland) kommen; Google LLC ist nach dem
+    EU-US Data Privacy Framework zertifiziert. Einzelheiten in der Datenschutzerklärung von Google:
+    <MudLink Href="https://policies.google.com/privacy" Target="_blank" rel="noopener noreferrer">https://policies.google.com/privacy</MudLink>.
+</MudText>
+<MudDivider Class="my-5" />
+
+<MudText Typo="Typo.h6" GutterBottom="true">10. Empfänger der Daten</MudText>
+<MudText Typo="Typo.body2" Class="mb-2">
+    Eine Übermittlung deiner Daten findet nur an die in dieser Erklärung genannten Stellen statt:
+    an den Hoster als Auftragsverarbeiter (Ziffer 3), an den Anmeldedienst Discord (Ziffer 5) sowie an
+    Google beim Laden der Schriftarten (Ziffer 8) und, wenn du sie nutzt, bei der Google-Anmeldung für den
+    Import (Ziffer 9). Eine darüber hinausgehende Weitergabe an Dritte erfolgt nicht, es sei denn, wir sind
+    gesetzlich dazu verpflichtet.
+</MudText>
+<MudDivider Class="my-5" />
+
+<MudText Typo="Typo.h6" GutterBottom="true">11. Deine Rechte</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">
     Dir stehen als betroffene Person folgende Rechte zu:
 </MudText>
@@ -174,7 +265,7 @@
     <li><MudText Typo="Typo.body2">Löschung (Art. 17 DSGVO)</MudText></li>
     <li><MudText Typo="Typo.body2">Einschränkung der Verarbeitung (Art. 18 DSGVO)</MudText></li>
     <li><MudText Typo="Typo.body2">Datenübertragbarkeit (Art. 20 DSGVO)</MudText></li>
-    <li><MudText Typo="Typo.body2">Widerspruch gegen die Verarbeitung (Art. 21 DSGVO, siehe Ziffer 10)</MudText></li>
+    <li><MudText Typo="Typo.body2">Widerspruch gegen die Verarbeitung (Art. 21 DSGVO, siehe Ziffer 12)</MudText></li>
 </ul>
 <MudText Typo="Typo.body2" Class="mb-2">
     Zur Ausübung deiner Rechte genügt eine formlose Mitteilung an den unter Ziffer 1 genannten
@@ -183,7 +274,7 @@
 </MudText>
 <MudDivider Class="my-5" />
 
-<MudText Typo="Typo.h6" GutterBottom="true">10. Widerspruchsrecht</MudText>
+<MudText Typo="Typo.h6" GutterBottom="true">12. Widerspruchsrecht</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">
     Soweit wir Daten auf Grundlage unseres berechtigten Interesses (Art. 6 Abs. 1 lit. f DSGVO)
     verarbeiten, hast du das Recht, aus Gründen, die sich aus deiner besonderen Situation ergeben,
@@ -194,7 +285,7 @@
 </MudText>
 <MudDivider Class="my-5" />
 
-<MudText Typo="Typo.h6" GutterBottom="true">11. Beschwerderecht bei einer Aufsichtsbehörde</MudText>
+<MudText Typo="Typo.h6" GutterBottom="true">13. Beschwerderecht bei einer Aufsichtsbehörde</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">
     Unbeschadet anderweitiger Rechtsbehelfe hast du das Recht, dich bei einer Datenschutz-
     Aufsichtsbehörde zu beschweren, wenn du der Ansicht bist, dass die Verarbeitung deiner Daten
@@ -203,7 +294,7 @@
 </MudText>
 <MudDivider Class="my-5" />
 
-<MudText Typo="Typo.h6" GutterBottom="true">12. Datensicherheit</MudText>
+<MudText Typo="Typo.h6" GutterBottom="true">14. Datensicherheit</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">
     Diese Website nutzt aus Sicherheitsgründen eine TLS-/SSL-Verschlüsselung. Eine verschlüsselte
     Verbindung erkennst du an „https://" in der Adresszeile deines Browsers. Dadurch können die
@@ -211,7 +302,7 @@
 </MudText>
 <MudDivider Class="my-5" />
 
-<MudText Typo="Typo.h6" GutterBottom="true">13. Aktualität und Änderung dieser Erklärung</MudText>
+<MudText Typo="Typo.h6" GutterBottom="true">15. Aktualität und Änderung dieser Erklärung</MudText>
 <MudText Typo="Typo.body2" Class="mb-2">
     Diese Datenschutzerklärung hat den Stand <b>@LegalData.Stand</b>. Durch die Weiterentwicklung
     der Website oder geänderte rechtliche Vorgaben kann es notwendig werden, diese Erklärung

@@ -13,5 +13,5 @@ public static class LegalData
     public const string PrivacyEmail = "tristan.atze@gmail.com";
 
     /// <summary>Policy last updated.</summary>
-    public const string Stand = "Juni 2026";
+    public const string Stand = "Oktober 2026";
 }
