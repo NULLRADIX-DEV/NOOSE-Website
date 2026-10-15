@@ -37,6 +37,11 @@ public interface IAgentTestService
     /// <summary>The questionnaire, and the only path that starts the attempt clock.</summary>
     Task<AgentTestView?> OpenAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<TestDraftResult> SaveDraftAsync(string assignmentId, int attemptNumber, IReadOnlyList<TestAnswerInput> answers, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Reads the deadline and closes an expired attempt without writing answers; for a page with no
+    /// unsaved input, whose answers may be older than those another tab stored.</summary>
+    Task<TestDraftResult> CheckAsync(string assignmentId, int attemptNumber, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default);
+
     Task<TestSubmitOutcome> SubmitAsync(string assignmentId, int attemptNumber, IReadOnlyList<TestAnswerInput> answers, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     /// <summary>Own result once graded: points, percent, verdict; null before.</summary>
     Task<AgentTestResult?> GetMyResultAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);

@@ -33,6 +33,17 @@ public static partial class GoogleDocConverter
     public const long MaxEntryBytes = 25L * 1024 * 1024;
     public const long MaxTotalBytes = 60L * 1024 * 1024;
 
+    /// <summary>Characters of HTML one import converts; a long Google document stays far below.</summary>
+    public const int MaxHtmlChars = 10_000_000;
+
+    /// <summary>Style rules and elements one import folds. The cascade is a lookup per rule now, so what these bound
+    /// is mostly the sanitizer, at roughly a tenth of a millisecond per styled element and pass.</summary>
+    public const int MaxRules = 10_000;
+    public const int MaxElements = 100_000;
+
+    /// <summary>Rules whose selector the indexed matcher cannot read; each costs a walk over the whole document.</summary>
+    private const int MaxComplexRules = 100;
+
     /// <summary>Fonts every browser has; no stylesheet needs to be loaded for them.</summary>
     private static readonly HashSet<string> SystemFonts = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -103,17 +114,25 @@ public static partial class GoogleDocConverter
     public static async Task<GoogleDocConversion> ConvertAsync(string html, IReadOnlyDictionary<string, ImportedImage> images,
         Func<ImportedImage, Task<string?>> storeImage)
     {
+        if (html.Length > MaxHtmlChars)
+        {
+            throw new GoogleExportException("Das Dokument ist zu groß für den Import.");
+        }
         var document = new HtmlParser().ParseDocument(html);
         var title = TrimToNull(document.Title);
 
         var rules = ParseRules(string.Concat(document.QuerySelectorAll("style").Select(s => s.TextContent)));
+        if (rules.Count > MaxRules)
+        {
+            throw new GoogleExportException("Das Dokument hat zu viele Formatvorlagen für den Import.");
+        }
         var listTypes = ListStyleTypes(rules);
         TagLists(document);
         var bodyStyle = InlineCascade(document, rules);
 
         RemoveComments(document);
         RewriteLinksAndIds(document);
-        MapLists(document, listTypes);
+        MapLists(document, listTypes, RestartBases(rules));
         await ResolveImagesAsync(document, images, storeImage);
 
         var body = document.Body?.InnerHtml ?? string.Empty;
@@ -138,6 +157,8 @@ public static partial class GoogleDocConverter
         var rules = new List<CssRule>();
         css = CssComment().Replace(css, string.Empty);
         css = AtImport().Replace(css, string.Empty);
+        // a block at-rule (@media print, @supports) only applies conditionally; folding its rules would apply them always
+        css = StripBlockAtRules(css);
         var order = 0;
         foreach (Match block in RuleBlock().Matches(css))
         {
@@ -230,45 +251,66 @@ public static partial class GoogleDocConverter
     /// <see cref="ListStyleTypes"/>.</remarks>
     private static string InlineCascade(IHtmlDocument document, List<CssRule> rules)
     {
-        var applied = new Dictionary<IElement, Dictionary<string, string>>();
+        var all = document.All.ToList();
+        if (all.Count > MaxElements)
+        {
+            throw new GoogleExportException("Das Dokument ist zu groß für den Import.");
+        }
+        // indexed once: a selector is then a lookup over the elements it can match, not a walk over the whole
+        // document per rule, which made a crafted export with many rules and elements run for hours
+        var index = new SelectorIndex(all);
+        var applied = new Dictionary<IElement, OrderedDictionary<string, string>>();
+        var complex = 0;
         foreach (var rule in rules
                      .Where(r => !r.Selector.Contains(':'))
                      .OrderBy(r => r.Specificity.Ids).ThenBy(r => r.Specificity.Classes)
                      .ThenBy(r => r.Specificity.Elements).ThenBy(r => r.Order))
         {
             IEnumerable<IElement> matched;
-            try
+            if (index.TryMatch(rule.Selector, out var fast))
             {
-                matched = document.QuerySelectorAll(rule.Selector).ToList();
+                matched = fast;
             }
-            catch
+            else
             {
-                continue; /* ignore */
+                // Google writes plain class, tag and child selectors; anything else is rare and capped
+                if (++complex > MaxComplexRules)
+                {
+                    continue;
+                }
+                try
+                {
+                    matched = document.QuerySelectorAll(rule.Selector).ToList();
+                }
+                catch
+                {
+                    continue; /* ignore */
+                }
             }
             foreach (var element in matched)
             {
                 if (!applied.TryGetValue(element, out var style))
                 {
-                    style = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    style = new OrderedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     applied[element] = style;
                 }
                 foreach (var (name, value) in rule.Declarations)
                 {
-                    style[name] = value;
+                    Declare(style, name, value);
                 }
             }
         }
 
         string bodyStyle = string.Empty;
-        foreach (var element in document.All.ToList())
+        foreach (var element in all)
         {
             applied.TryGetValue(element, out var style);
-            style ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            style ??= new OrderedDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (element.GetAttribute("style") is { } own)
             {
                 foreach (var (name, value) in ParseDeclarations(own))
                 {
-                    style[name] = value;
+                    Declare(style, name, value);
                 }
             }
             var kept = style.Where(d => !DroppedPrefixes.Any(p => d.Key.StartsWith(p, StringComparison.Ordinal)))
@@ -288,7 +330,210 @@ public static partial class GoogleDocConverter
         return bodyStyle;
     }
 
+    /// <summary>Sets a declaration as the last one: a later shorthand must override an earlier longhand and the
+    /// other way round, and a browser reads them in the order they stand.</summary>
+    private static void Declare(OrderedDictionary<string, string> style, string name, string value)
+    {
+        style.Remove(name);
+        style.Add(name, value);
+    }
+
+    /// <summary>Matches the selectors Google writes - compounds of tag, classes and id, joined by child or
+    /// descendant combinators - through lookups by class, tag and id.</summary>
+    private sealed partial class SelectorIndex
+    {
+        private readonly List<IElement> _all;
+        private readonly Dictionary<string, List<IElement>> _byClass = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<IElement>> _byTag = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, List<IElement>> _byId = new(StringComparer.Ordinal);
+
+        private sealed record Compound(string? Tag, IReadOnlyList<string> Classes, string? Id);
+
+        public SelectorIndex(List<IElement> all)
+        {
+            _all = all;
+            foreach (var element in all)
+            {
+                Add(_byTag, element.LocalName, element);
+                foreach (var name in element.ClassList)
+                {
+                    Add(_byClass, name, element);
+                }
+                if (!string.IsNullOrEmpty(element.Id))
+                {
+                    Add(_byId, element.Id, element);
+                }
+            }
+        }
+
+        private static void Add(Dictionary<string, List<IElement>> map, string key, IElement element)
+        {
+            if (!map.TryGetValue(key, out var list))
+            {
+                list = [];
+                map[key] = list;
+            }
+            list.Add(element);
+        }
+
+        /// <summary>False when the selector is outside the simple form; the caller falls back to the engine.</summary>
+        public bool TryMatch(string selector, out List<IElement> matched)
+        {
+            matched = [];
+            var tokens = Token().Matches(selector.Trim()).Select(m => m.Value.Trim()).ToList();
+            if (tokens.Count == 0)
+            {
+                return false;
+            }
+            var compounds = new List<Compound>();
+            var combinators = new List<char>();
+            var expectCompound = true;
+            foreach (var token in tokens)
+            {
+                if (token is ">" or "")
+                {
+                    if (expectCompound)
+                    {
+                        return false;
+                    }
+                    combinators.Add(token == ">" ? '>' : ' ');
+                    expectCompound = true;
+                    continue;
+                }
+                var parsed = CompoundPattern().Match(token);
+                if (!parsed.Success || !expectCompound)
+                {
+                    return false;
+                }
+                var tag = parsed.Groups["tag"].Success && parsed.Groups["tag"].Value != "*" ? parsed.Groups["tag"].Value : null;
+                var classes = parsed.Groups["part"].Captures.Where(c => c.Value[0] == '.').Select(c => c.Value[1..]).ToList();
+                var ids = parsed.Groups["part"].Captures.Where(c => c.Value[0] == '#').Select(c => c.Value[1..]).ToList();
+                if (ids.Count > 1)
+                {
+                    return false;
+                }
+                compounds.Add(new Compound(tag, classes, ids.FirstOrDefault()));
+                expectCompound = false;
+            }
+            if (expectCompound)
+            {
+                return false;
+            }
+
+            var last = compounds[^1];
+            IEnumerable<IElement> candidates = last.Id is { } id ? _byId.GetValueOrDefault(id) ?? []
+                : last.Classes.Count > 0 ? _byClass.GetValueOrDefault(last.Classes[0]) ?? []
+                : last.Tag is { } t ? _byTag.GetValueOrDefault(t) ?? []
+                : _all;
+            foreach (var element in candidates)
+            {
+                if (Is(element, last) && Ancestry(element, compounds, combinators, compounds.Count - 2))
+                {
+                    matched.Add(element);
+                }
+            }
+            return true;
+        }
+
+        private static bool Ancestry(IElement element, List<Compound> compounds, List<char> combinators, int at)
+        {
+            if (at < 0)
+            {
+                return true;
+            }
+            var compound = compounds[at];
+            if (combinators[at] == '>')
+            {
+                return element.ParentElement is { } parent && Is(parent, compound)
+                    && Ancestry(parent, compounds, combinators, at - 1);
+            }
+            for (var up = element.ParentElement; up is not null; up = up.ParentElement)
+            {
+                if (Is(up, compound) && Ancestry(up, compounds, combinators, at - 1))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool Is(IElement element, Compound compound)
+            => (compound.Tag is null || string.Equals(element.LocalName, compound.Tag, StringComparison.OrdinalIgnoreCase))
+                && (compound.Id is null || element.Id == compound.Id)
+                && compound.Classes.All(element.ClassList.Contains);
+
+        [GeneratedRegex(@"\s*>\s*|\s+|[^\s>]+")]
+        private static partial Regex Token();
+
+        [GeneratedRegex(@"^(?<tag>[a-zA-Z][\w-]*|\*)?(?<part>[.#][\w-]+)*$")]
+        private static partial Regex CompoundPattern();
+    }
+
+    /// <summary>Removes at-rules with a block (<c>@media</c>, <c>@supports</c>, <c>@font-face</c>), nested braces
+    /// included, and statement at-rules up to their semicolon.</summary>
+    private static string StripBlockAtRules(string css)
+    {
+        var result = new StringBuilder(css.Length);
+        var i = 0;
+        while (i < css.Length)
+        {
+            var at = css.IndexOf('@', i);
+            if (at < 0)
+            {
+                result.Append(css, i, css.Length - i);
+                break;
+            }
+            result.Append(css, i, at - i);
+            var j = at;
+            while (j < css.Length && css[j] != '{' && css[j] != ';')
+            {
+                j++;
+            }
+            if (j >= css.Length)
+            {
+                break;
+            }
+            if (css[j] == ';')
+            {
+                i = j + 1;
+                continue;
+            }
+            var depth = 0;
+            var k = j;
+            for (; k < css.Length; k++)
+            {
+                if (css[k] == '{')
+                {
+                    depth++;
+                }
+                else if (css[k] == '}' && --depth == 0)
+                {
+                    break;
+                }
+            }
+            i = k + 1;
+        }
+        return result.ToString();
+    }
+
     // ---------- lists ----------
+
+    /// <summary>The number a restarted Google list counts on from, read from its <c>.start</c> rule's counter-reset.</summary>
+    public static Dictionary<string, int> RestartBases(IEnumerable<CssRule> rules)
+    {
+        var map = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var rule in rules.Where(r => r.Selector.Contains(".start", StringComparison.Ordinal)))
+        {
+            var listClass = ListClass().Match(rule.Selector);
+            var reset = rule.Declarations.LastOrDefault(d => d.Name == "counter-reset").Value;
+            if (listClass.Success && reset is not null
+                && int.TryParse(reset.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault(), out var start) && start > 0)
+            {
+                map[listClass.Value] = start;
+            }
+        }
+        return map;
+    }
 
     /// <summary>The marker each Google list class draws, read from its <c>::before</c> content.</summary>
     public static Dictionary<string, string> ListStyleTypes(IEnumerable<CssRule> rules)
@@ -345,7 +590,8 @@ public static partial class GoogleDocConverter
     }
 
     /// <summary>Native markers instead of Google's ::before bullets, and numbering that survives an interruption.</summary>
-    private static void MapLists(IHtmlDocument document, Dictionary<string, string> listTypes)
+    private static void MapLists(IHtmlDocument document, Dictionary<string, string> listTypes,
+        Dictionary<string, int> restartBases)
     {
         // a Google list without "start" continues the numbering of the list with the same class above it
         var counters = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -363,13 +609,25 @@ public static partial class GoogleDocConverter
             }
             if (list.LocalName == "ol")
             {
-                var done = restart ? 0 : counters.GetValueOrDefault(key);
+                // Google's own start attribute is the truth; otherwise a restart counts from its counter-reset
+                // and a continuation from where the same list stopped
+                var done = int.TryParse(list.GetAttribute("start"), out var given) && given > 0 ? given - 1
+                    : restart ? restartBases.GetValueOrDefault(key)
+                    : counters.GetValueOrDefault(key);
                 if (done > 0)
                 {
                     list.SetAttribute("start", (done + 1).ToString());
                 }
+                else
+                {
+                    list.RemoveAttribute("start");
+                }
                 counters[key] = done + list.Children.Count(c => c.LocalName == "li");
             }
+            // for the editable copy, which nests by indent; the import profile drops both attributes
+            var level = ListLevel().Match(key);
+            list.SetAttribute("data-gdoc-group", level.Groups["group"].Value);
+            list.SetAttribute("data-gdoc-level", level.Groups["level"].Value);
         }
     }
 
@@ -496,15 +754,73 @@ public static partial class GoogleDocConverter
                 span.AppendChild(wrapper);
             }
         }
-        // the app is dark: Google's black text and white fills would be unreadable there, and sizes in pt fight the
-        // editor's own scale; the copy keeps colour only where the author chose one
+        // Google writes each level and each run of a list as its own sibling list; the editor stores one flat list
+        // whose items carry ql-indent-N, like the Word paste. Adjacent lists of one Google list and one kind merge
+        // into it, so a sub-item is no longer a new list numbered from 1.
+        foreach (var list in document.QuerySelectorAll("ul[data-gdoc-group], ol[data-gdoc-group]").ToList())
+        {
+            var group = list.GetAttribute("data-gdoc-group");
+            _ = int.TryParse(list.GetAttribute("data-gdoc-level"), out var level);
+            foreach (var item in list.Children.Where(c => c.LocalName == "li"))
+            {
+                if (level > 0)
+                {
+                    item.ClassList.Add($"ql-indent-{Math.Min(level, 8)}");
+                }
+            }
+            if (list.PreviousElementSibling is { } previous && previous.LocalName == list.LocalName
+                && previous.GetAttribute("data-gdoc-group") == group)
+            {
+                while (list.FirstChild is { } child)
+                {
+                    previous.AppendChild(child);
+                }
+                list.Remove();
+            }
+        }
+        foreach (var list in document.QuerySelectorAll("[data-gdoc-group]"))
+        {
+            list.RemoveAttribute("data-gdoc-group");
+            list.RemoveAttribute("data-gdoc-level");
+        }
+        // the editor has no sup/sub; unwrapped, a footnote marker stays as text instead of vanishing with its tag
+        foreach (var mark in document.QuerySelectorAll("sup, sub").ToList())
+        {
+            while (mark.FirstChild is { } child)
+            {
+                mark.Parent!.InsertBefore(child, mark);
+            }
+            mark.Remove();
+        }
+        // a Google page break is a hidden rule, and the copy would show it as a line
+        foreach (var rule in document.QuerySelectorAll("hr[style]").ToList())
+        {
+            if (ParseDeclarations(rule.GetAttribute("style")!).Any(d => d.Name == "display" && d.Value.Contains("none")))
+            {
+                rule.Remove();
+            }
+        }
+        // the app is dark: Google's dark text and white fills would be unreadable there, and sizes in pt fight the
+        // editor's own scale. A light fill the author chose (highlight, shaded cell) stays, with dark text on it.
         foreach (var element in document.QuerySelectorAll("[style]").ToList())
         {
-            var kept = ParseDeclarations(element.GetAttribute("style")!)
-                .Where(d => !(d.Name == "color" && IsBlack(d.Value))
-                    && !(d.Name == "background-color" && IsWhite(d.Value))
-                    && d.Name is not ("font-size" or "vertical-align" or "font-family"))
+            var declarations = ParseDeclarations(element.GetAttribute("style")!);
+            var fill = declarations.LastOrDefault(d => d.Name == "background-color").Value;
+            var ink = declarations.LastOrDefault(d => d.Name == "color").Value;
+            var whiteFill = fill is not null && (IsWhite(fill) || (TryRgb(fill, out var w) && IsGrey(w) && Luminance(w) > 0.9));
+            var lightFill = !whiteFill && fill is not null && TryRgb(fill, out var f) && Luminance(f) > 0.5;
+            var kept = declarations
+                .Where(d => d.Name is not ("font-size" or "vertical-align" or "font-family" or "color")
+                    && !(d.Name == "background-color" && whiteFill))
                 .ToList();
+            if (lightFill)
+            {
+                kept.Add(("color", ink is not null && TryRgb(ink, out var dark) && Luminance(dark) < 0.45 ? ink : "#1f2328"));
+            }
+            else if (ink is not null && !IsUnreadableInk(ink))
+            {
+                kept.Add(("color", ink));
+            }
             if (kept.Count == 0)
             {
                 element.RemoveAttribute("style");
@@ -575,8 +891,57 @@ public static partial class GoogleDocConverter
 
     private static string Attr(string value) => value.Replace("\"", "&quot;", StringComparison.Ordinal);
 
-    private static bool IsBlack(string value)
-        => Compact(value) is "#000" or "#000000" or "black" or "rgb(0,0,0)" or "rgba(0,0,0,1)";
+    /// <summary>Text colour that disappears on the dark app: black, dark greys, and any very dark hue.</summary>
+    private static bool IsUnreadableInk(string value)
+        => TryRgb(value, out var rgb) && ((IsGrey(rgb) && Luminance(rgb) < 0.45) || Luminance(rgb) < 0.15);
+
+    /// <summary>Reads #rgb, #rrggbb(aa), rgb() and rgba() as channels between 0 and 1.</summary>
+    private static bool TryRgb(string value, out (double R, double G, double B) rgb)
+    {
+        rgb = default;
+        var compact = Compact(value);
+        if (compact is "black")
+        {
+            return true;
+        }
+        if (compact is "white")
+        {
+            rgb = (1, 1, 1);
+            return true;
+        }
+        if (compact.StartsWith('#'))
+        {
+            var hex = compact[1..];
+            if (hex.Length is 3 or 4)
+            {
+                hex = string.Concat(hex.Take(3).Select(c => $"{c}{c}"));
+            }
+            if (hex.Length is not (6 or 8) || !int.TryParse(hex[..6], System.Globalization.NumberStyles.HexNumber, null, out var n))
+            {
+                return false;
+            }
+            rgb = (((n >> 16) & 255) / 255d, ((n >> 8) & 255) / 255d, (n & 255) / 255d);
+            return true;
+        }
+        var channels = RgbFunction().Match(compact);
+        if (!channels.Success)
+        {
+            return false;
+        }
+        double Channel(int i) => Math.Clamp(double.Parse(channels.Groups[i].Value, System.Globalization.CultureInfo.InvariantCulture) / 255d, 0, 1);
+        rgb = (Channel(1), Channel(2), Channel(3));
+        return true;
+    }
+
+    /// <summary>Relative luminance after WCAG.</summary>
+    private static double Luminance((double R, double G, double B) rgb)
+    {
+        static double Linear(double c) => c <= 0.03928 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4);
+        return 0.2126 * Linear(rgb.R) + 0.7152 * Linear(rgb.G) + 0.0722 * Linear(rgb.B);
+    }
+
+    private static bool IsGrey((double R, double G, double B) rgb)
+        => Math.Max(rgb.R, Math.Max(rgb.G, rgb.B)) - Math.Min(rgb.R, Math.Min(rgb.G, rgb.B)) < 0.12;
 
     private static bool IsWhite(string value)
         => Compact(value) is "#fff" or "#ffffff" or "white" or "transparent" or "rgb(255,255,255)" or "rgba(255,255,255,1)";
@@ -640,6 +1005,12 @@ public static partial class GoogleDocConverter
 
     [GeneratedRegex(@"lst-kix_[\w]+-\d+")]
     private static partial Regex ListClass();
+
+    [GeneratedRegex(@"^(?<group>lst-kix_[\w]+)-(?<level>\d+)$")]
+    private static partial Regex ListLevel();
+
+    [GeneratedRegex(@"^rgba?\((\d+(?:\.\d+)?),(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)")]
+    private static partial Regex RgbFunction();
 
     [GeneratedRegex(@"counter\(\s*[\w-]+\s*,\s*(?<style>[\w-]+)\s*\)", RegexOptions.IgnoreCase)]
     private static partial Regex CounterStyle();

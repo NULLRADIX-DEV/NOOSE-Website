@@ -253,6 +253,8 @@ else
                 Title = title,
                 Category = _category,
                 ContentHtml = html,
+                // the text was shown locked: whatever happened to it since must not be replaced by this old copy
+                KeepContent = _edit && _original is not null,
                 Classification = _classification,
                 OwnerTaskforceId = isTaskforceDoc ? _entityId : null,
             };
@@ -342,6 +344,10 @@ else
         {
             Snackbar.Add(ex.Message, Severity.Error);
         }
+        catch (Exception)
+        {
+            Snackbar.Add("Das Aktualisieren ist fehlgeschlagen. Versuche es später erneut.", Severity.Error);
+        }
         finally
         {
             _importing = false;
@@ -371,6 +377,10 @@ else
         catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
         {
             Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Das Umwandeln ist fehlgeschlagen. Versuche es später erneut.", Severity.Error);
         }
         finally
         {

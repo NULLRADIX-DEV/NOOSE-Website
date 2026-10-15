@@ -31,7 +31,7 @@ public class AgentTestVisibilityTests
         var text = File.ReadAllText(path);
 
         string[] takerMembers =
-            ["GetMineAsync", "GetMyStatusAsync", "OpenAsync", "SaveDraftAsync", "SubmitAsync", "GetMyResultAsync"];
+            ["GetMineAsync", "GetMyStatusAsync", "OpenAsync", "SaveDraftAsync", "CheckAsync", "SubmitAsync", "GetMyResultAsync"];
         string[] readMembers =
             ["GetAssignableTestsAsync", "GetOverviewAsync", "GetForAgentAsync", "GetAssignmentAsync", "GetRowAsync", "GetEvaluationAsync"];
         var members = typeof(IAgentTestService).GetMethods().Select(m => m.Name).Distinct(StringComparer.Ordinal).ToArray();
