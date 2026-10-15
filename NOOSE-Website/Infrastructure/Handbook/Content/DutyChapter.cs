@@ -83,6 +83,13 @@ internal static class DutyChapter
                 wer zuschaut. Im Modus <em>Alle folgen mir</em> sehen die Zuschauer immer deine Folie; im Modus
                 <em>Frei blättern</em> dürfen sie vor- und zurückblättern und springen mit einem Knopf zurück zum
                 Vortrag.</p>
+                <p>Willst du jemanden dabeihaben, der die Präsentation sonst nicht sieht, lädst du ihn zur
+                <strong>Vorführung</strong> ein: schon vor dem Start unter <em>Zusätzlich einladen</em> oder während
+                des Vortrags rechts unter <em>Zu dieser Vorführung eingeladen</em>. Eingeladene bekommen den Hinweis
+                und die Glocke und schauen live zu wie alle anderen, aber nur die Folien dieser Vorführung (im Modus
+                <em>Frei blättern</em> also alle): keine Notizen, keine Ansicht der Präsentation, keinen Druck,
+                keinen Editor, und in der Suche taucht sie für sie nicht auf. Die Einladung gilt nur für diese eine Vorführung und endet mit ihr; über das
+                Kreuz an einem Namen nimmst du sie vorher zurück.</p>
                 <p>Schließt du die Vortragsseite, endet die Vorführung nach zwei Minuten von selbst. Bearbeiten,
                 vorführen und löschen dürfen nur, wer die Präsentation angelegt hat, und die Führung.</p>
                 <p>Unter den Folien steht <em>Verknüpfte Akten</em>. Mit <em>Akte verknüpfen</em> hängst du die

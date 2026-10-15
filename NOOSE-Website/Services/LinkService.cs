@@ -146,9 +146,10 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
             targets[(nameof(Case), x.Id)] = ($"{x.Title} ({x.CaseNumber})", false, $"/vorgaenge/{x.Id}");
         }
 
-        // jobs have no classification concept (team board)
+        // restricted jobs stay hidden
         var jobIds = pairs.Where(p => p.OtherType == nameof(Job)).Select(p => p.OtherId).Distinct().ToList();
-        foreach (var x in await db.Jobs.Where(a => jobIds.Contains(a.Id))
+        var visibleJobs = await JobVisibility.VisibleIdsAsync(db, jobIds, scope.MayAllTaskforces, meId, cancellationToken);
+        foreach (var x in await db.Jobs.Where(a => visibleJobs.Contains(a.Id))
                      .Select(a => new { a.Id, a.Title, a.CaseNumber }).ToListAsync(cancellationToken))
         {
             targets[(nameof(Job), x.Id)] = ($"{x.Title} ({x.CaseNumber})", false, $"/aufgaben/{x.Id}");
@@ -328,7 +329,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
 
         // don't let forged calls link to a classified/restricted target the actor can't see
         if (targetType is nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party)
-                or nameof(Operation) or nameof(Taskforce) or nameof(Case) or nameof(Document) or nameof(Bewerbung)
+                or nameof(Operation) or nameof(Taskforce) or nameof(Job) or nameof(Case) or nameof(Document) or nameof(Bewerbung)
                 or nameof(Meeting) or nameof(MeetingAgendaItem) or nameof(Hinweis) or nameof(Ticket)
                 or nameof(Presentation)
             && !await Visibility.IsRecordVisibleAsync(db, targetType, targetId, ViewerScope.From(actor), cancellationToken))

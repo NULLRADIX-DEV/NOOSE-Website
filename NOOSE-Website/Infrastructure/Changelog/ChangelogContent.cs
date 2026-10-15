@@ -526,7 +526,15 @@ public static class ChangelogContent
             Neu("2.7.05-praesentationen-verknuepfen", "Präsentationen lassen sich mit anderen Akten verknüpfen, etwa "
                 + "mit einem Vorgang, einer Person oder einer Besprechung: auf der Präsentation selbst oder dort beim "
                 + "Verknüpfen. Die Suche und Strg+K finden Präsentationen jetzt auch.", "Präsentationen"),
-            Neu("2.7.06-noosei-praesentationen", "NOOSEI öffnet jetzt auch Präsentationen und liest ihre Folien, "
+            Neu("2.7.06-vorfuehrung-einladen", "Zu einer Vorführung lädst du jetzt Agenten ein, die die Präsentation "
+                + "sonst nicht sehen: Sie bekommen einen Hinweis und schauen live zu, aber nur diese eine Vorführung "
+                + "und ohne Zugriff auf die Präsentation selbst.", "Präsentationen"),
+            Fix("2.7.07-vorfuehrung-schwarz", "Google-Folien erscheinen bei Zuschauern jetzt auch, wenn die Seite die "
+                + "Bühne beim Start noch nicht als sichtbar erkannt hat; vorher blieb sie dann schwarz, bis man selbst "
+                + "blätterte.", "Präsentationen"),
+            Fix("2.7.08-eingeschraenkte-aufgabe-verknuepft", "Eine eingeschränkte Aufgabe, die mit einer anderen Akte "
+                + "verknüpft ist, steht dort nur noch für die, die sie auch sehen dürfen.", "Dienstbetrieb"),
+            Neu("2.7.09-noosei-praesentationen", "NOOSEI öffnet jetzt auch Präsentationen und liest ihre Folien, "
                 + "soweit du sie selbst sehen darfst. Die Sprechernotizen bekommt nur, wer die Präsentation angelegt "
                 + "hat, und die Führung.", "NOOSEI"),
         ]),

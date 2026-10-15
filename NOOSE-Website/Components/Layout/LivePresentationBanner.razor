@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject IPresentationLiveService Live
 @inject PresentationBroadcaster Broadcaster
+@inject PresentationLiveRegistry Registry
 @inject NavigationManager Nav
 
 @foreach (var session in Shown)
@@ -77,8 +78,9 @@
 
     private void OnLiveChanged(string presentationId, PresentationLiveEvent kind)
     {
-        // only starting and ending change what the banner shows; paging and viewers do not
-        if (kind is not (PresentationLiveEvent.Started or PresentationLiveEvent.Ended))
+        // only starting, ending and an invite that concerns this agent change what the banner shows
+        if (kind is not (PresentationLiveEvent.Started or PresentationLiveEvent.Ended)
+            && !(kind == PresentationLiveEvent.InvitesChanged && ConcernsMe(presentationId)))
         {
             return;
         }
@@ -95,6 +97,11 @@
             }
         });
     }
+
+    /// <summary>Invited now, or invited when the banner last loaded.</summary>
+    private bool ConcernsMe(string presentationId)
+        => _me is not null && (Registry.IsInvited(presentationId, _me)
+            || _sessions.Any(s => s.PresentationId == presentationId && s.InvitedIds.Contains(_me)));
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
 

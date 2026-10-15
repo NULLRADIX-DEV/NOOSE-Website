@@ -20,7 +20,7 @@ const lib = new URL('../lib/pdfjs/', import.meta.url);
 let pdfjs = null;
 let worker = null;
 const decks = new Map();   // url -> deck { url, users, failed, dropped, idle, task, promise }
-const hosts = new Map();   // element -> { url, page, eager, deck, visible, drawn, settled, gen, task, timer, picture }
+const hosts = new Map();   // element -> { url, page, eager, deck, visible, reported, drawn, settled, gen, task, timer, picture, waits }
 let seen = null;
 let sized = null;
 let sweeper = null;
@@ -115,6 +115,7 @@ function observers() {
             const state = hosts.get(entry.target);
             if (state) {
                 state.visible = entry.isIntersecting;
+                state.reported = true;
                 if (state.visible) {
                     schedule(entry.target, state);
                 }
@@ -160,8 +161,35 @@ function forget(host, state) {
     release(state.deck);
 }
 
+// until the first observer report: the slide's own position
+function nearView(host) {
+    if (!host.isConnected) {
+        return false;
+    }
+    const box = host.getBoundingClientRect();
+    return box.bottom > -300 && box.top < window.innerHeight + 300 && box.right > -300 && box.left < window.innerWidth + 300;
+}
+
+// back in view: retry owed slides
+function wake() {
+    for (const [host, state] of hosts) {
+        // a running render finishes by itself
+        if (!state.settled && !state.task && host.isConnected) {
+            schedule(host, state);
+        }
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        wake();
+    }
+});
+window.addEventListener('focus', wake);
+window.addEventListener('pageshow', wake);
+
 function schedule(host, state) {
-    if (!state.visible && !state.eager) {
+    if (!state.visible && !state.eager && (state.reported || !nearView(host))) {
         return;
     }
     clearTimeout(state.timer);
@@ -195,9 +223,19 @@ function pumpPrint() {
 async function draw(host, state) {
     const width = host.clientWidth;
     const height = host.clientHeight;
-    if (!width || !height || hosts.get(host) !== state) {
+    if (hosts.get(host) !== state) {
         return;
     }
+    if (!width || !height) {
+        // not laid out yet
+        if (host.isConnected && state.waits < 20) {
+            state.waits++;
+            clearTimeout(state.timer);
+            state.timer = setTimeout(() => schedule(host, state), 250);
+        }
+        return;
+    }
+    state.waits = 0;
     const { url, page: number, eager } = state;
     // print wants more pixels than the screen shows, but not without limit: a long deck prints many pages
     const ratio = eager ? Math.min(Math.max(window.devicePixelRatio || 1, 1.5), 2) : (window.devicePixelRatio || 1);
@@ -299,17 +337,17 @@ function fail(host, state, text) {
 }
 
 // Shows page `page` of the PDF at `url` in `host`. Called again whenever the slide changes; `eager` draws at once
-// instead of on scrolling into view, for the print view.
+// instead of on scrolling into view, for the print view. False when the element is gone.
 export function seite(host, url, page, eager) {
-    if (!host) {
-        return;
+    if (!host || !host.isConnected) {
+        return false;
     }
     observers();
     let state = hosts.get(host);
     if (!state) {
         state = {
-            url: null, page: 0, eager: false, deck: null, visible: false, drawn: null, settled: false, gen: 0,
-            task: null, timer: 0, picture: null,
+            url: null, page: 0, eager: false, deck: null, visible: false, reported: false, drawn: null, settled: false,
+            gen: 0, task: null, timer: 0, picture: null, waits: 0,
         };
         hosts.set(host, state);
         seen.observe(host);
@@ -326,8 +364,10 @@ export function seite(host, url, page, eager) {
     state.url = url;
     state.page = page;
     state.eager = !!eager;
+    state.waits = 0;
     state.drawn = state.drawn && state.drawn.startsWith(`${url}#${page}@`) ? state.drawn : null;
     schedule(host, state);
+    return true;
 }
 
 // Resolves once `count` slides of the print view are drawn or failed, at the latest after `timeout` ms; the print
