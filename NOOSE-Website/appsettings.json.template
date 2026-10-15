@@ -16,6 +16,11 @@
       "ClientSecret": ""
     }
   },
+  "GoogleDrive": {
+    "ClientId": "",
+    "ApiKey": "",
+    "AppId": ""
+  },
   "Bootstrap": {
     "AdminDiscordId": "",
     "AdminDiscordIds": []

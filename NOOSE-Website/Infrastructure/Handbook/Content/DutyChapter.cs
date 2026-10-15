@@ -64,8 +64,10 @@ internal static class DutyChapter
                 nur Bild oder Abschnitt. Zu jeder Folie kannst du <strong>Sprechernotizen</strong> schreiben, die nur
                 du beim Vortrag siehst.</p>
                 <p>Liegt die Präsentation schon in <strong>Google Slides</strong>, holst du sie mit <em>Aus Google
-                Slides importieren</em>: per Freigabe-Link (in Google „Jeder mit dem Link“) oder als hochgeladene
-                PDF-Datei (<em>Datei → Herunterladen → PDF-Dokument</em>). Jede Seite wird eine Folie und sieht aus
+                Slides importieren</em>: per Freigabe-Link (in Google „Jeder mit dem Link“), über die
+                <strong>Google-Anmeldung</strong> (auch für Präsentationen, die nicht freigegeben sind; NOOSE liest
+                nur die eine Datei, die du im Google-Fenster wählst) oder als hochgeladene PDF-Datei (<em>Datei →
+                Herunterladen → PDF-Dokument</em>). Jede Seite wird eine Folie und sieht aus
                 wie in Google, auch im Vollbild am Beamer; Animationen, Übergänge und eingebettete Videos gehen dabei
                 verloren. Im Editor fügst du so auch Folien in eine bestehende Präsentation ein. Unter
                 <em>Google-Importe</em> holst du eine geänderte Fassung mit <em>Aktualisieren</em>: Jede Folie behält

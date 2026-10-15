@@ -93,15 +93,17 @@ else
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
                                        OnClick="@(() => ReimportAsync(null))" Disabled="_importing">Aktualisieren</MudButton>
                         }
-                        else
-                        {
-                            <MudFileUpload T="IBrowserFile" Accept=".zip" FilesChanged="ReimportUploadAsync" Disabled="_importing">
-                                <CustomContent>
-                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
-                                               Disabled="_importing" OnClick="@context.OpenFilePickerAsync">Neue Fassung hochladen (.zip)</MudButton>
-                                </CustomContent>
-                            </MudFileUpload>
-                        }
+                        @* the sign-in reads the Google file the document came from (the server checks that); hidden while it is
+                           not configured. Only a file that came through the sign-in is preselected: a link's id is its share key *@
+                        <GoogleDrivePicker Kind="GoogleFileKind.Document" Label="Über Google aktualisieren" Disabled="_importing"
+                                           FileId="@(_importKind == ImportSourceKind.Drive ? _importSourceId : null)"
+                                           OnPicked="@(choice => ReimportAsync(null, choice.Pick))" />
+                        <MudFileUpload T="IBrowserFile" Accept=".zip" FilesChanged="ReimportUploadAsync" Disabled="_importing">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
+                                           Disabled="_importing" OnClick="@context.OpenFilePickerAsync">Neue Fassung hochladen (.zip)</MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
                         <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.EditNote"
                                    OnClick="ConvertAsync" Disabled="_importing">In bearbeitbare Kopie umwandeln</MudButton>
                         @if (_importing)
@@ -130,6 +132,7 @@ else
     private ClaimsPrincipal _user = default!;
     private string? _original;
     private ImportSourceKind? _importKind;
+    private string? _importSourceId;
     private bool _mayImport;
     private bool _importing;
 
@@ -180,6 +183,7 @@ else
                 _contentHtml = document.ContentHtml;
                 _original = document.ImportedHtml;
                 _importKind = document.ImportSourceKind;
+                _importSourceId = document.ImportSourceId;
                 // mirrors the import service: partners author documents but never make the server fetch
                 _mayImport = _user.MayWrite() && _user.IsInternalAgent();
             }
@@ -316,36 +320,53 @@ else
         {
             return;
         }
+        // busy while the file streams in, so the other ways to refresh wait
+        _importing = true;
+        byte[] zip;
         try
         {
             await using var stream = file.OpenReadStream(GoogleExportFetcher.MaxBytes);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-            await ReimportAsync(buffer.ToArray());
+            zip = buffer.ToArray();
         }
         catch (IOException)
         {
+            _importing = false;
             Snackbar.Add("Die Datei ist zu groß (höchstens 25 MB).", Severity.Error);
+            return;
         }
+        catch (Exception ex)
+        {
+            _importing = false;
+            Logger.LogWarning(ex, "Reading an uploaded Google Docs zip failed.");
+            Snackbar.Add("Die Datei ließ sich nicht lesen. Wähle sie noch einmal.", Severity.Error);
+            return;
+        }
+        await ReimportAsync(zip);
     }
 
-    private async Task ReimportAsync(byte[]? upload)
+    private async Task ReimportAsync(byte[]? upload, GoogleDrivePick? drive = null)
     {
         _importing = true;
         try
         {
-            await GoogleImport.ReimportDocumentAsync(Id!, upload, _user);
+            await GoogleImport.ReimportDocumentAsync(Id!, upload, drive, _user);
             var document = await DocumentService.GetAsync(Id!, DocumentViewerScope.From(_user));
             _original = document?.ImportedHtml;
             _contentHtml = document?.ContentHtml;
+            // the source is now where this version came from
+            _importKind = document?.ImportSourceKind;
+            _importSourceId = document?.ImportSourceId;
             Snackbar.Add("Aus Google aktualisiert.", Severity.Success);
         }
         catch (Exception ex) when (ex is GoogleExportException or InvalidOperationException or UnauthorizedAccessException)
         {
             Snackbar.Add(ex.Message, Severity.Error);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Logger.LogError(ex, "Refreshing the Google import of {DocumentId} failed.", Id);
             Snackbar.Add("Das Aktualisieren ist fehlgeschlagen. Versuche es später erneut.", Severity.Error);
         }
         finally

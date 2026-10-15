@@ -10,10 +10,12 @@ using NOOSE_Website.Models.Presentations;
 
 namespace NOOSE_Website.Services.Import;
 
-/// <summary>A Google Slides import: a shared link or an uploaded PDF, into a new presentation or an existing one.</summary>
+/// <summary>A Google Slides import: a shared link, a deck picked through the Google sign-in or an uploaded PDF, into a
+/// new presentation or an existing one.</summary>
 public sealed class SlidesImportInput
 {
     public string? Link { get; set; }
+    public GoogleDrivePick? Drive { get; set; }
     public byte[]? UploadPdf { get; set; }
 
     /// <summary>Name of the uploaded file; the deck's title when the PDF carries none.</summary>
@@ -35,10 +37,11 @@ public interface ISlidesImportService
     /// <summary>Imports a deck; returns the id of the presentation that holds its slides.</summary>
     Task<string> ImportAsync(SlidesImportInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Fetches an imported deck again and swaps its pages in place; a link is fetched by itself, an upload
-    /// needs the new PDF. Slides keep their place and notes by page number.</summary>
-    Task<SlidesRefreshResult> RefreshAsync(string fileId, byte[]? uploadPdf, string? uploadName, ClaimsPrincipal actor,
-        CancellationToken cancellationToken = default);
+    /// <summary>Fetches an imported deck again and swaps its pages in place: from a new PDF, from the deck picked
+    /// through the Google sign-in (the one the import came from), or, with neither, from the stored link. Slides keep
+    /// their place and notes by page number.</summary>
+    Task<SlidesRefreshResult> RefreshAsync(string fileId, byte[]? uploadPdf, string? uploadName, GoogleDrivePick? drive,
+        ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Removes an imported deck and every slide that shows one of its pages.</summary>
     Task RemoveAsync(string fileId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
@@ -100,9 +103,10 @@ public sealed class SlidesImportService(
             RequireRoom(existing, 1);
         }
 
-        var (kind, sourceId, pdf, info) = await ResolveSourceAsync(input.Link, input.UploadPdf, actor, cancellationToken);
+        var (kind, sourceId, pdf, info, sourceName) = await ResolveSourceAsync(input.Link, input.Drive, input.UploadPdf, actor,
+            cancellationToken);
         RequireRoom(existing, info.PageCount);
-        var deckTitle = Cap(info.Title ?? BaseName(input.UploadName) ?? DefaultTitle, 300);
+        var deckTitle = Cap(sourceName ?? info.Title ?? BaseName(input.UploadName) ?? DefaultTitle, 300);
         if (isNew && ownTitle is null)
         {
             presentation.Title = Cap(deckTitle, 200);
@@ -150,24 +154,24 @@ public sealed class SlidesImportService(
         return presentation.Id;
     }
 
-    public async Task<SlidesRefreshResult> RefreshAsync(string fileId, byte[]? uploadPdf, string? uploadName, ClaimsPrincipal actor,
-        CancellationToken cancellationToken = default)
+    public async Task<SlidesRefreshResult> RefreshAsync(string fileId, byte[]? uploadPdf, string? uploadName, GoogleDrivePick? drive,
+        ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequirePresentationWrite(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var (file, presentation) = await LoadManagedFileAsync(db, fileId, actor, cancellationToken);
-        var link = file.SourceKind switch
+        GoogleImportService.RequireSameFile(drive, file.SourceId);
+        var link = file.SourceKind == ImportSourceKind.Link && uploadPdf is null && drive is null
+            ? $"https://docs.google.com/presentation/d/{file.SourceId}/"
+            : null;
+        if (link is null && uploadPdf is null && drive is null)
         {
-            ImportSourceKind.Link when uploadPdf is null => $"https://docs.google.com/presentation/d/{file.SourceId}/",
-            ImportSourceKind.Drive when uploadPdf is null => throw new InvalidOperationException(
-                "Diese Präsentation kam über die Google-Anmeldung; lade die PDF-Datei für die Aktualisierung hoch."),
-            _ => null,
-        };
-        if (link is null && uploadPdf is null)
-        {
-            throw new InvalidOperationException("Lade die aktuelle Fassung als PDF hoch („Datei → Herunterladen → PDF-Dokument“).");
+            throw new InvalidOperationException(file.SourceKind == ImportSourceKind.Drive
+                ? "Wähle die Präsentation über die Google-Anmeldung oder lade die aktuelle Fassung als PDF hoch."
+                : "Lade die aktuelle Fassung als PDF hoch („Datei → Herunterladen → PDF-Dokument“).");
         }
-        var (kind, sourceId, pdf, info) = await ResolveSourceAsync(link, uploadPdf, actor, cancellationToken);
+        var (kind, sourceId, pdf, info, sourceName) = await ResolveSourceAsync(link, drive, uploadPdf, actor, cancellationToken);
+        kind = GoogleImportService.KeptKind(file.SourceKind, kind);
 
         // a slide shows "page n" of the deck: it keeps its place and notes while the deck still has page n. Pages the
         // author deleted from the presentation stay deleted; only pages beyond the old count are new
@@ -202,7 +206,7 @@ public sealed class SlidesImportService(
             file.SizeBytes = pdf.Length;
             file.PageCount = info.PageCount;
             file.Revision++;
-            file.Title = Cap(info.Title ?? BaseName(uploadName) ?? file.Title, 300);
+            file.Title = Cap(sourceName ?? info.Title ?? BaseName(uploadName) ?? file.Title, 300);
             Stamp(file, kind, sourceId, actor);
             presentation.ModifiedAt = DateTime.UtcNow;
             await db.SaveChangesAsync(cancellationToken);
@@ -247,11 +251,11 @@ public sealed class SlidesImportService(
         ReportSlides(presentation.Id);
     }
 
-    /// <summary>The PDF, where it came from and what it holds. The quota is taken once the source is plausible - a
-    /// mistyped link or an upload without a PDF header costs none - and before the file is parsed, so every parse
-    /// costs its author a slot.</summary>
-    private async Task<(ImportSourceKind Kind, string? Id, byte[] Pdf, PdfInfo Info)> ResolveSourceAsync(string? link,
-        byte[]? upload, ClaimsPrincipal actor, CancellationToken cancellationToken)
+    /// <summary>The PDF, where it came from, what it holds and, through the sign-in, the deck's name in Drive. The
+    /// quota is taken once the source is plausible - a mistyped link or an upload without a PDF header costs none - and
+    /// before the file is parsed, so every parse costs its author a slot.</summary>
+    private async Task<(ImportSourceKind Kind, string? Id, byte[] Pdf, PdfInfo Info, string? Name)> ResolveSourceAsync(
+        string? link, GoogleDrivePick? drive, byte[]? upload, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(link))
         {
@@ -260,7 +264,15 @@ public sealed class SlidesImportService(
                     "Das ist kein Link auf eine Google-Präsentation (https://docs.google.com/presentation/d/…).");
             GoogleImportQuota.Take(actor);
             var pdf = await fetcher.FetchPresentationPdfAsync(fileId, storage.MaxBytes, cancellationToken);
-            return (ImportSourceKind.Link, fileId, pdf, await inspector.InspectAsync(pdf, cancellationToken));
+            return (ImportSourceKind.Link, fileId, pdf, await inspector.InspectAsync(pdf, cancellationToken), null);
+        }
+        if (drive is not null)
+        {
+            GoogleExportFetcher.RequireUsable(drive, fetcher.IsDriveConfigured);
+            GoogleImportQuota.Take(actor);
+            var export = await fetcher.FetchDrivePresentationPdfAsync(drive, storage.MaxBytes, cancellationToken);
+            return (ImportSourceKind.Drive, drive.FileId, export.Bytes,
+                await inspector.InspectAsync(export.Bytes, cancellationToken), export.Name);
         }
         if (upload is { Length: > 0 })
         {
@@ -273,9 +285,9 @@ public sealed class SlidesImportService(
                 throw new GoogleExportException(PdfInspector.NotAPdf);
             }
             GoogleImportQuota.Take(actor);
-            return (ImportSourceKind.Upload, null, upload, await inspector.InspectAsync(upload, cancellationToken));
+            return (ImportSourceKind.Upload, null, upload, await inspector.InspectAsync(upload, cancellationToken), null);
         }
-        throw new InvalidOperationException("Gib einen Freigabe-Link an oder lade die PDF-Datei hoch.");
+        throw new InvalidOperationException("Gib einen Freigabe-Link an, wähle die Präsentation über Google oder lade die PDF-Datei hoch.");
     }
 
     private static async Task<(PresentationFile File, Presentation Presentation)> LoadManagedFileAsync(AppDbContext db,

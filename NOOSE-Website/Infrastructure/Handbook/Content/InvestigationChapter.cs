@@ -237,9 +237,12 @@ internal static class InvestigationChapter
                 <p>Hier liegt auch die <strong>Dienstverordnung</strong> selbst. Das Kapitel
                 <em>Dienstvorschrift</em> in diesem Handbuch ist nur ihre Kurzfassung - im Zweifel gilt das
                 Dokument.</p>
-                <p>Ein Dokument aus <strong>Google Docs</strong> holst du mit <em>Aus Google Docs</em>: entweder per
-                Freigabe-Link (in Google auf „Jeder mit dem Link“ stellen) oder als hochgeladene Datei
-                (<em>Datei → Herunterladen → Webseite (.html, gezippt)</em>). Als <strong>Original</strong> sieht es
+                <p>Ein Dokument aus <strong>Google Docs</strong> holst du mit <em>Aus Google Docs</em>: per
+                Freigabe-Link (in Google auf „Jeder mit dem Link“ stellen), über die <strong>Google-Anmeldung</strong>
+                oder als hochgeladene Datei (<em>Datei → Herunterladen → Webseite (.html, gezippt)</em>). Bei der
+                Anmeldung meldest du dich im Google-Fenster an und wählst das Dokument; das geht auch, wenn es nicht
+                freigegeben ist. NOOSE darf dabei nur diese eine Datei lesen und merkt sich keinen Zugang, zum
+                Aktualisieren meldest du dich wieder an. Als <strong>Original</strong> sieht es
                 aus wie in Google, der Text bleibt dort und kommt mit <em>Aktualisieren</em> neu. Als
                 <strong>bearbeitbare Kopie</strong> wird es ein normales Dokument; Schriften und Abstände, die der
                 Editor nicht kennt, gehen dabei verloren. Ein Original lässt sich später noch in eine Kopie

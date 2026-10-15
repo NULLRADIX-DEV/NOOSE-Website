@@ -1,15 +1,17 @@
 @* Google Slides import: a new presentation, more pages for an existing one, or a refresh of an imported deck. The
    service checks everything again; the dialog only collects the source. *@
+@using Microsoft.Extensions.Options
 @using NOOSE_Website.Services.Import
 @inject ISlidesImportService SlidesImport
 @inject IPresentationFileStorageService FileStorage
+@inject IOptions<GoogleDriveOptions> DriveOptions
 @inject ISnackbar Snackbar
 @inject ILogger<SlidesImportDialog> Logger
 
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="3">
-            @if (UploadOnly)
+            @if (Sources.Count == 1)
             {
                 <MudText Typo="Typo.body2">
                     Diese Präsentation kam als Datei. Lade die aktuelle Fassung hoch:
@@ -20,25 +22,58 @@
             else
             {
                 <MudTabs Elevation="0" @bind-ActivePanelIndex="_sourceTab" Class="mb-1">
-                    <MudTabPanel Text="@(IsRefresh ? "Von Google holen" : "Freigabe-Link")" Icon="@Icons.Material.Filled.Link">
-                        @if (IsRefresh)
+                    @foreach (var source in Sources)
+                    {
+                        @switch (source)
                         {
-                            <MudText Typo="Typo.body2">Holt die aktuelle Fassung über den gespeicherten Freigabe-Link.</MudText>
+                            case Source.Link:
+                                <MudTabPanel Text="@(IsRefresh ? "Von Google holen" : "Freigabe-Link")" Icon="@Icons.Material.Filled.Link">
+                                    @if (IsRefresh)
+                                    {
+                                        <MudText Typo="Typo.body2">Holt die aktuelle Fassung über den gespeicherten Freigabe-Link.</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudTextField @bind-Value="_link" Label="Link zur Google-Präsentation" Variant="Variant.Outlined" Immediate="true"
+                                                      Placeholder="https://docs.google.com/presentation/d/…/edit"
+                                                      HelperText="In Google: Teilen → Allgemeiner Zugriff → „Jeder mit dem Link“ (Betrachter)." />
+                                    }
+                                </MudTabPanel>
+                                break;
+                            case Source.Drive:
+                                <MudTabPanel Text="Google-Anmeldung" Icon="@Icons.Custom.Brands.Google">
+                                    <MudText Typo="Typo.body2" Class="mb-2">
+                                        @if (IsRefresh)
+                                        {
+                                            @:Melde dich bei Google an und wähle die Präsentation, aus der dieser Import stammt. Das
+                                            @:geht auch, wenn sie nicht mehr freigegeben ist.
+                                        }
+                                        else
+                                        {
+                                            @:Melde dich bei Google an und wähle die Präsentation. Geht auch mit Präsentationen, die nicht
+                                            @:freigegeben sind; NOOSE darf nur die Datei lesen, die du wählst.
+                                        }
+                                    </MudText>
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                        <GoogleDrivePicker Kind="GoogleFileKind.Presentation" FileId="@KnownFile" Disabled="_busy" OnPicked="Picked" />
+                                        @if (_drive is not null)
+                                        {
+                                            <MudText Typo="Typo.body2">Gewählt: <b>@_drive.Name</b></MudText>
+                                        }
+                                    </MudStack>
+                                </MudTabPanel>
+                                break;
+                            default:
+                                <MudTabPanel Text="Datei hochladen" Icon="@Icons.Material.Filled.Upload">
+                                    <MudText Typo="Typo.body2" Class="mb-2">
+                                        In Google Slides: <i>Datei → Herunterladen → PDF-Dokument (.pdf)</i>. Geht auch mit Präsentationen,
+                                        die nicht freigegeben sind.
+                                    </MudText>
+                                    @Upload
+                                </MudTabPanel>
+                                break;
                         }
-                        else
-                        {
-                            <MudTextField @bind-Value="_link" Label="Link zur Google-Präsentation" Variant="Variant.Outlined" Immediate="true"
-                                          Placeholder="https://docs.google.com/presentation/d/…/edit"
-                                          HelperText="In Google: Teilen → Allgemeiner Zugriff → „Jeder mit dem Link“ (Betrachter)." />
-                        }
-                    </MudTabPanel>
-                    <MudTabPanel Text="Datei hochladen" Icon="@Icons.Material.Filled.Upload">
-                        <MudText Typo="Typo.body2" Class="mb-2">
-                            In Google Slides: <i>Datei → Herunterladen → PDF-Dokument (.pdf)</i>. Geht auch mit Präsentationen,
-                            die nicht freigegeben sind.
-                        </MudText>
-                        @Upload
-                    </MudTabPanel>
+                    }
                 </MudTabs>
             }
 
@@ -80,8 +115,11 @@
     /// <summary>Imported deck to refresh.</summary>
     [Parameter] public PresentationFileItem? File { get; set; }
 
+    private enum Source { Link, Drive, Upload }
+
     private int _sourceTab;
     private string? _link;
+    private GoogleDriveChoice? _drive;
     private byte[]? _upload;
     private string? _fileName;
     private readonly PresentationInput _settings = new();
@@ -90,10 +128,40 @@
     private bool IsRefresh => File is not null;
     private bool IsNew => !IsRefresh && PresentationId is null;
 
-    // a deck that came as a file or through Google sign-in can only be refreshed with a new file
-    private bool UploadOnly => File is { SourceKind: not ImportSourceKind.Link };
+    // the stored link only for a deck that came by link; the sign-in only where it is configured
+    private IReadOnlyList<Source> Sources
+    {
+        get
+        {
+            var sources = new List<Source>(3);
+            if (File is null or { SourceKind: ImportSourceKind.Link })
+            {
+                sources.Add(Source.Link);
+            }
+            if (DriveOptions.Value.IsConfigured)
+            {
+                sources.Add(Source.Drive);
+            }
+            sources.Add(Source.Upload);
+            return sources;
+        }
+    }
 
-    private bool Ready => UploadOnly || _sourceTab == 1 ? _upload is not null : IsRefresh || !string.IsNullOrWhiteSpace(_link);
+    private Source Chosen => Sources[Math.Clamp(_sourceTab, 0, Sources.Count - 1)];
+
+    // a refresh through the sign-in reads the Google file the import came from (the server checks that). The Picker
+    // shows only that file for a deck that came through the sign-in; a link deck's id is its share key and stays on
+    // the server, the agent picks the deck themselves
+    private string? KnownFile => File?.SourceKind is ImportSourceKind.Drive ? File.SourceId : null;
+
+    private bool Ready => Chosen switch
+    {
+        Source.Link => IsRefresh || !string.IsNullOrWhiteSpace(_link),
+        Source.Drive => _drive is not null,
+        _ => _upload is not null,
+    };
+
+    private void Picked(GoogleDriveChoice choice) => _drive = choice;
 
     private RenderFragment Upload => __builder =>
     {
@@ -143,19 +211,23 @@
 
     private async Task RunAsync()
     {
-        var useUpload = UploadOnly || _sourceTab == 1;
+        var source = Chosen;
+        var useUpload = source == Source.Upload;
+        var drive = source == Source.Drive ? _drive?.Pick : null;
         _busy = true;
         try
         {
             if (IsRefresh)
             {
-                var result = await SlidesImport.RefreshAsync(File!.Id, useUpload ? _upload : null, useUpload ? _fileName : null, User);
+                var result = await SlidesImport.RefreshAsync(File!.Id, useUpload ? _upload : null, useUpload ? _fileName : null,
+                    drive, User);
                 MudDialog.Close(DialogResult.Ok(result));
                 return;
             }
             var id = await SlidesImport.ImportAsync(new SlidesImportInput
             {
-                Link = useUpload ? null : _link,
+                Link = source == Source.Link ? _link : null,
+                Drive = drive,
                 UploadPdf = useUpload ? _upload : null,
                 UploadName = useUpload ? _fileName : null,
                 PresentationId = PresentationId,

@@ -86,7 +86,7 @@ public sealed partial class PresentationService(
         var names = await CodenamesAsync(db, files.Select(f => f.ImportedById ?? string.Empty).Append(presentation.OwnerId),
             cancellationToken);
         var taskforces = await TaskforceNamesAsync(db, [presentation.TargetId], cancellationToken);
-        var imports = files.Select(f => new PresentationFileItem(f.Id, f.Title, f.PageCount, f.SourceKind, f.ImportedAt,
+        var imports = files.Select(f => new PresentationFileItem(f.Id, f.Title, f.PageCount, f.SourceKind, f.SourceId, f.ImportedAt,
             names.GetValueOrDefault(f.ImportedById ?? string.Empty) ?? "—",
             slides.Count(s => s.PdfFileId == f.Id))).ToList();
         return new PresentationView(presentation, slides, invites, names.GetValueOrDefault(presentation.OwnerId) ?? "—",

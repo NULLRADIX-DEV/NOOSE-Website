@@ -15,7 +15,9 @@ namespace NOOSE_Website.Tests.Services.Import;
 /// <summary>Integration tests for <see cref="GoogleImportService"/> against in-memory SQLite.</summary>
 public sealed class GoogleImportServiceTests
 {
-    private const string Link = "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789/edit";
+    private const string LinkId = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789";
+    private const string Link = $"https://docs.google.com/document/d/{LinkId}/edit";
+    private const string DriveId = "1ZyXwVuTsRqPoNmLkJiHgFeDcBa9876543210";
     private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 1, 2, 3];
 
     /// <summary>Keeps saved pictures in memory and records deletions.</summary>
@@ -62,9 +64,12 @@ public sealed class GoogleImportServiceTests
     {
         var fetcher = Substitute.For<IGoogleExportFetcher>();
         fetcher.FetchDocumentZipAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Export("Erste Fassung"));
+        fetcher.IsDriveConfigured.Returns(true);
         var storage = new FakeImageStorage();
         return (new GoogleImportService(ctx.Factory, fetcher, storage, NullLogger<GoogleImportService>.Instance), fetcher, storage);
     }
+
+    private static GoogleDrivePick Pick(string id = DriveId) => new(id, "ya29.a0-test-token-for-one-fetch");
 
     // a unique agent per test keeps the process-wide quota out of the other tests' way
     private static ClaimsPrincipal Agent(string? id = null, Rank rank = Rank.SpecialAgent)
@@ -176,7 +181,7 @@ public sealed class GoogleImportServiceTests
         var document = await svc.ImportDocumentAsync(new GoogleDocImportInput { Link = Link }, actor);
         fetcher.FetchDocumentZipAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Export("Zweite Fassung"));
 
-        await svc.ReimportDocumentAsync(document.Id, null, actor);
+        await svc.ReimportDocumentAsync(document.Id, null, null, actor);
 
         using var db = ctx.NewContext();
         var row = db.Documents.Single(d => d.Id == document.Id);
@@ -204,7 +209,7 @@ public sealed class GoogleImportServiceTests
         var row = db.Documents.Single(d => d.Id == document.Id);
         Assert.Null(row.ImportedHtml);
         Assert.Contains("jetzt bearbeitbar", row.ContentHtml);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ReimportDocumentAsync(document.Id, null, actor));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ReimportDocumentAsync(document.Id, null, null, actor));
     }
 
     [Fact]
@@ -216,7 +221,7 @@ public sealed class GoogleImportServiceTests
         var document = await svc.ImportDocumentAsync(
             new GoogleDocImportInput { Link = Link, Classification = DocumentClassification.Leadership }, leader);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ReimportDocumentAsync(document.Id, null, Agent()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ReimportDocumentAsync(document.Id, null, null, Agent()));
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ConvertToEditableAsync(document.Id, Agent()));
     }
 
@@ -280,4 +285,117 @@ public sealed class GoogleImportServiceTests
             svc.ImportDocumentAsync(new GoogleDocImportInput { UploadZip = Export("zu viel", withImage: false) }, actor));
         Assert.Contains("Importe", error.Message);
     }
+
+    [Fact]
+    public async Task A_document_picked_through_the_sign_in_keeps_its_drive_id_and_no_token()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, fetcher, _) = Build(ctx);
+        var pick = Pick();
+        fetcher.FetchDriveDocumentZipAsync(pick, Arg.Any<CancellationToken>())
+            .Returns(new DriveExport(Export("Privat in Drive"), "Name in Drive"));
+
+        var document = await svc.ImportDocumentAsync(new GoogleDocImportInput { Drive = pick }, Agent());
+
+        using var db = ctx.NewContext();
+        var row = db.Documents.Single(d => d.Id == document.Id);
+        Assert.Equal((ImportSourceKind.Drive, DriveId), (row.ImportSourceKind!.Value, row.ImportSourceId));
+        Assert.Contains("Privat in Drive", row.ImportedHtml);
+        Assert.Equal("Titel aus Google", row.Title);
+        await fetcher.DidNotReceive().FetchDocumentZipAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_sign_in_refresh_reads_only_the_file_the_document_came_from()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, fetcher, _) = Build(ctx);
+        var actor = Agent();
+        fetcher.FetchDriveDocumentZipAsync(Arg.Any<GoogleDrivePick>(), Arg.Any<CancellationToken>())
+            .Returns(new DriveExport(Export("Erste Fassung"), null), new DriveExport(Export("Zweite Fassung"), null));
+        var document = await svc.ImportDocumentAsync(new GoogleDocImportInput { Drive = Pick() }, actor);
+
+        var other = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.ReimportDocumentAsync(document.Id, null, Pick(LinkId), actor));
+        var none = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.ReimportDocumentAsync(document.Id, null, null, actor));
+        await svc.ReimportDocumentAsync(document.Id, null, Pick(), actor);
+
+        Assert.Contains("andere Google-Datei", other.Message);
+        Assert.Contains("Google-Anmeldung", none.Message);
+        using var db = ctx.NewContext();
+        Assert.Contains("Zweite Fassung", db.Documents.Single(d => d.Id == document.Id).ImportedHtml);
+        await fetcher.Received(2).FetchDriveDocumentZipAsync(Arg.Any<GoogleDrivePick>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_link_import_whose_share_was_withdrawn_refreshes_through_the_sign_in_and_stays_a_link_import()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, fetcher, _) = Build(ctx);
+        var actor = Agent();
+        var document = await svc.ImportDocumentAsync(new GoogleDocImportInput { Link = Link }, actor);
+        fetcher.FetchDriveDocumentZipAsync(Arg.Any<GoogleDrivePick>(), Arg.Any<CancellationToken>())
+            .Returns(new DriveExport(Export("Nur noch privat"), null));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ReimportDocumentAsync(document.Id, null, Pick(), actor));
+        await svc.ReimportDocumentAsync(document.Id, null, Pick(LinkId), actor);
+
+        using var db = ctx.NewContext();
+        var row = db.Documents.Single(d => d.Id == document.Id);
+        // anyone can still refresh it by link, without a Google account of their own
+        Assert.Equal((ImportSourceKind.Link, LinkId), (row.ImportSourceKind!.Value, row.ImportSourceId));
+        Assert.Contains("Nur noch privat", row.ImportedHtml);
+    }
+
+    [Fact]
+    public async Task An_uploaded_original_may_take_any_google_document_through_the_sign_in()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, fetcher, _) = Build(ctx);
+        var actor = Agent();
+        var document = await svc.ImportDocumentAsync(new GoogleDocImportInput { UploadZip = Export("Hochgeladen") }, actor);
+        fetcher.FetchDriveDocumentZipAsync(Arg.Any<GoogleDrivePick>(), Arg.Any<CancellationToken>())
+            .Returns(new DriveExport(Export("Jetzt aus Drive"), null));
+
+        await svc.ReimportDocumentAsync(document.Id, null, Pick(), actor);
+
+        using var db = ctx.NewContext();
+        var row = db.Documents.Single(d => d.Id == document.Id);
+        Assert.Equal((ImportSourceKind.Drive, DriveId), (row.ImportSourceKind!.Value, row.ImportSourceId));
+        Assert.Contains("Jetzt aus Drive", row.ImportedHtml);
+    }
+
+    [Fact]
+    public async Task An_unusable_pick_costs_no_quota_and_partners_never_reach_google()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, fetcher, _) = Build(ctx);
+        var actor = Agent();
+
+        for (var i = 0; i <= GoogleImportService.QuotaPerWindow; i++)
+        {
+            await Assert.ThrowsAsync<GoogleExportException>(() => svc.ImportDocumentAsync(
+                new GoogleDocImportInput { Drive = Pick("../../files?x=") }, actor));
+            await Assert.ThrowsAsync<GoogleExportException>(() => svc.ImportDocumentAsync(
+                new GoogleDocImportInput { Drive = new GoogleDrivePick(DriveId, string.Empty) }, actor));
+        }
+        fetcher.IsDriveConfigured.Returns(false);
+        for (var i = 0; i <= GoogleImportService.QuotaPerWindow; i++)
+        {
+            var off = await Assert.ThrowsAsync<GoogleExportException>(() => svc.ImportDocumentAsync(
+                new GoogleDocImportInput { Drive = Pick() }, actor));
+            Assert.Contains("nicht eingerichtet", off.Message);
+        }
+        await svc.ImportDocumentAsync(new GoogleDocImportInput { UploadZip = Export("Inhalt", withImage: false) }, actor);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ImportDocumentAsync(
+            new GoogleDocImportInput { Drive = Pick() },
+            ClaimsPrincipalBuilder.Agent("p").AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build()));
+
+        await fetcher.DidNotReceive().FetchDriveDocumentZipAsync(Arg.Any<GoogleDrivePick>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void A_pick_prints_without_its_token()
+        => Assert.DoesNotContain("ya29", Pick().ToString() + new GoogleDriveChoice(Pick(), "x"));
 }

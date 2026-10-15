@@ -520,6 +520,9 @@ public static class ChangelogContent
                 + "Freigabe-Link oder als PDF-Datei. Jede Seite wird eine Folie, sieht aus wie in Google und bleibt "
                 + "auch im Vollbild am Beamer scharf; eine geänderte Fassung holst du mit „Aktualisieren“, deine "
                 + "Notizen bleiben.", "Präsentationen"),
+            Neu("2.7.04-google-anmeldung", "Google-Docs und -Präsentationen, die nicht freigegeben sind, holst du "
+                + "jetzt über die Google-Anmeldung: Du wählst die Datei im Google-Fenster, und NOOSE liest nur diese "
+                + "eine. Einen Zugang merkt sich die Seite nicht.", "Dokumente"),
         ]),
     ];
 }
