@@ -3,6 +3,7 @@
 @inject IDocumentService DocumentService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <PageTitle>Dokumenten-Bibliothek · NOOSE</PageTitle>
 
@@ -10,6 +11,11 @@
     <MudIcon Icon="@Icons.Material.Filled.MenuBook" Color="Color.Primary" Size="Size.Large" />
     <MudText Typo="Typo.h4">Dokumenten-Bibliothek</MudText>
     <MudSpacer />
+    @if (_mayImport)
+    {
+        <MudButton OnClick="ImportAsync" Variant="Variant.Outlined" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.CloudDownload">Aus Google Docs</MudButton>
+    }
     <AuthorizeView Policy="@Policies.DocumentAuthor" Context="schreib">
         <MudButton Href="/dokumente/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neues Dokument</MudButton>
     </AuthorizeView>
@@ -149,6 +155,16 @@ else
     private bool _isPartner;
     private string _search = string.Empty;
     private ClaimsPrincipal _user = default!;
+    private bool _mayImport;
+
+    private async Task ImportAsync()
+    {
+        if (await GoogleImportDialog.ShowAsync(DialogService, _user) is { } id)
+        {
+            Snackbar.Add("Dokument importiert.", Severity.Success);
+            Nav.NavigateTo($"/dokumente/{id}");
+        }
+    }
     private List<DocumentListItem> _rows = new();      // Nicht angepinnte – im Grid darunter.
     private List<DocumentListItem> _pinned = new();   // Angepinnte – im Block oben.
 
@@ -156,6 +172,8 @@ else
     {
         _user = (await AuthStateTask).User;
         _isLeadership = _user.IsLeadership();
+        // mirrors the import service: partners author documents but never make the server fetch
+        _mayImport = _user.MayWrite() && _user.IsInternalAgent();
         _isPartner = _user.IsPartner();
         await LoadAsync();
     }

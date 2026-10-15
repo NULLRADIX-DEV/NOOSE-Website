@@ -38,7 +38,14 @@ else
 
         <section>
             <h2>Inhalt</h2>
-            <RichHtml Html="@_document.ContentHtml" Plain="true" />
+            @if (_document.ImportedHtml is { } original)
+            {
+                <ImportedDocument Html="@original" Print="true" />
+            }
+            else
+            {
+                <RichHtml Html="@_document.ContentHtml" Plain="true" />
+            }
         </section>
 
         @if (_attachments.Count > 0)

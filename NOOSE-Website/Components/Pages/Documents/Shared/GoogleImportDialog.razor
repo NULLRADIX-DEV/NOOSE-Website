@@ -1,0 +1,137 @@
+@using NOOSE_Website.Services.Import
+@inject IGoogleImportService GoogleImport
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudTabs Elevation="0" @bind-ActivePanelIndex="_sourceTab" Class="mb-1">
+                <MudTabPanel Text="Freigabe-Link" Icon="@Icons.Material.Filled.Link">
+                    <MudTextField @bind-Value="_link" Label="Link zum Google-Dokument" Variant="Variant.Outlined"
+                                  Placeholder="https://docs.google.com/document/d/…/edit"
+                                  HelperText="In Google: Teilen → Allgemeiner Zugriff → „Jeder mit dem Link“ (Betrachter)." />
+                </MudTabPanel>
+                <MudTabPanel Text="Datei hochladen" Icon="@Icons.Material.Filled.Upload">
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        In Google: <i>Datei → Herunterladen → Webseite (.html, gezippt)</i>. Geht auch mit Dokumenten,
+                        die nicht freigegeben sind.
+                    </MudText>
+                    <MudFileUpload T="IBrowserFile" Accept=".zip" FilesChanged="PickAsync">
+                        <CustomContent>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FolderZip"
+                                       OnClick="@context.OpenFilePickerAsync">
+                                @(_fileName ?? "Zip-Datei wählen")
+                            </MudButton>
+                        </CustomContent>
+                    </MudFileUpload>
+                </MudTabPanel>
+            </MudTabs>
+
+            <MudRadioGroup T="GoogleImportMode" @bind-Value="_mode">
+                <MudRadio T="GoogleImportMode" Value="GoogleImportMode.Original" Color="Color.Primary">
+                    <b>Original 1:1</b> - sieht aus wie in Google, Text nur lesen, später aktualisierbar
+                </MudRadio>
+                <MudRadio T="GoogleImportMode" Value="GoogleImportMode.Editable" Color="Color.Primary">
+                    <b>Bearbeitbare Kopie</b> - im Editor änderbar, Schriften und Abstände gehen verloren
+                </MudRadio>
+            </MudRadioGroup>
+
+            <MudTextField @bind-Value="_title" Label="Titel (leer = Titel aus Google)" Variant="Variant.Outlined" />
+            <MudTextField @bind-Value="_category" Label="Kategorie (optional)" Variant="Variant.Outlined" />
+            @if (_classificationOptions.Count > 1)
+            {
+                <MudSelect T="DocumentClassification" @bind-Value="_classification" Label="Verschluss-Stufe"
+                           Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock">
+                    @foreach (var option in _classificationOptions)
+                    {
+                        <MudSelectItem T="DocumentClassification" Value="@option">@DocumentClassificationDisplay.Label(option)</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ImportAsync" Disabled="@(_busy || !Ready)"
+                   StartIcon="@Icons.Material.Filled.CloudDownload">
+            @(_busy ? "Importiere …" : "Importieren")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ClaimsPrincipal User { get; set; } = default!;
+
+    private int _sourceTab;
+    private string? _link;
+    private byte[]? _upload;
+    private string? _fileName;
+    private GoogleImportMode _mode = GoogleImportMode.Original;
+    private string? _title;
+    private string? _category;
+    private DocumentClassification _classification;
+    private IReadOnlyList<DocumentClassification> _classificationOptions = [];
+    private bool _busy;
+
+    private bool Ready => _sourceTab == 0 ? !string.IsNullOrWhiteSpace(_link) : _upload is not null;
+
+    protected override void OnInitialized() => _classificationOptions = DocumentViewerScope.AssignableOptions(User);
+
+    private async Task PickAsync(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+        try
+        {
+            await using var stream = file.OpenReadStream(GoogleExportFetcher.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            _upload = buffer.ToArray();
+            _fileName = file.Name;
+        }
+        catch (IOException)
+        {
+            _upload = null;
+            _fileName = null;
+            Snackbar.Add("Die Datei ist zu groß (höchstens 25 MB).", Severity.Error);
+        }
+    }
+
+    private async Task ImportAsync()
+    {
+        _busy = true;
+        try
+        {
+            var document = await GoogleImport.ImportDocumentAsync(new GoogleDocImportInput
+            {
+                Link = _sourceTab == 0 ? _link : null,
+                UploadZip = _sourceTab == 1 ? _upload : null,
+                Mode = _mode,
+                Title = _title,
+                Category = _category,
+                Classification = _classification,
+            }, User);
+            MudDialog.Close(DialogResult.Ok(document.Id));
+        }
+        catch (Exception ex) when (ex is GoogleExportException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Opens the dialog; returns the new document's id, or null when cancelled.</summary>
+    public static async Task<string?> ShowAsync(IDialogService dialog, ClaimsPrincipal user)
+    {
+        var parameters = new DialogParameters<GoogleImportDialog> { { x => x.User, user } };
+        var reference = await dialog.ShowAsync<GoogleImportDialog>("Aus Google Docs importieren", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: string id } ? id : null;
+    }
+}

@@ -496,6 +496,33 @@ public static partial class GoogleDocConverter
                 span.AppendChild(wrapper);
             }
         }
+        // the app is dark: Google's black text and white fills would be unreadable there, and sizes in pt fight the
+        // editor's own scale; the copy keeps colour only where the author chose one
+        foreach (var element in document.QuerySelectorAll("[style]").ToList())
+        {
+            var kept = ParseDeclarations(element.GetAttribute("style")!)
+                .Where(d => !(d.Name == "color" && IsBlack(d.Value))
+                    && !(d.Name == "background-color" && IsWhite(d.Value))
+                    && d.Name is not ("font-size" or "vertical-align" or "font-family"))
+                .ToList();
+            if (kept.Count == 0)
+            {
+                element.RemoveAttribute("style");
+            }
+            else
+            {
+                element.SetAttribute("style", string.Join(";", kept.Select(d => $"{d.Name}:{d.Value}")));
+            }
+        }
+        // jumps inside the original point at ids the copy does not carry; the editor assigns its own on save
+        foreach (var jump in document.QuerySelectorAll("a[href^='#']").ToList())
+        {
+            while (jump.FirstChild is { } child)
+            {
+                jump.Parent!.InsertBefore(child, jump);
+            }
+            jump.Remove();
+        }
         foreach (var heading in document.QuerySelectorAll("h4, h5, h6").ToList())
         {
             var h3 = document.CreateElement("h3");
@@ -547,6 +574,14 @@ public static partial class GoogleDocConverter
     }
 
     private static string Attr(string value) => value.Replace("\"", "&quot;", StringComparison.Ordinal);
+
+    private static bool IsBlack(string value)
+        => Compact(value) is "#000" or "#000000" or "black" or "rgb(0,0,0)" or "rgba(0,0,0,1)";
+
+    private static bool IsWhite(string value)
+        => Compact(value) is "#fff" or "#ffffff" or "white" or "transparent" or "rgb(255,255,255)" or "rgba(255,255,255,1)";
+
+    private static string Compact(string value) => value.Replace(" ", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

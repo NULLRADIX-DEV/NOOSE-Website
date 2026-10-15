@@ -2,7 +2,10 @@
 @page "/dokumente/neu"
 @page "/dokumente/{Id}/bearbeiten"
 @using NOOSE_Website.Infrastructure
+@using NOOSE_Website.Services.Import
 @inject IDocumentService DocumentService
+@inject IGoogleImportService GoogleImport
+@inject IDialogService DialogService
 @inject IDocumentTemplateService TemplateService
 @inject IPlaceholderService Placeholder
 @inject ISourceService SourceService
@@ -73,9 +76,48 @@ else
                 </MudSelect>
             }
 
-            <RichTextEditor @ref="_editor" Value="@_contentHtml" Ai="TextAssistContext.Document" AiSubject="@_title" Mentions="true"
-                            OnSaveRequested="SaveAsync"
-                            DraftKey='@(_edit ? $"dokument:{Id}" : $"dokument:neu:{_entityType}:{_entityId}")' />
+            @if (_original is not null)
+            {
+                @* the text of an imported original lives in Google: editing here would have to drop its formatting *@
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Dieses Dokument ist ein Original aus Google Docs. Den Text änderst du in Google und holst ihn mit
+                    <b>Aktualisieren</b> neu; Titel, Kategorie und Verschluss-Stufe speicherst du hier. Erst eine
+                    <b>bearbeitbare Kopie</b> lässt sich im Editor ändern - dabei geht Formatierung verloren, die der
+                    Editor nicht kennt (Schriften, Abstände, Spalten).
+                </MudAlert>
+                @if (_mayImport)
+                {
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        @if (_importKind == ImportSourceKind.Link)
+                        {
+                            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
+                                       OnClick="@(() => ReimportAsync(null))" Disabled="_importing">Aktualisieren</MudButton>
+                        }
+                        else
+                        {
+                            <MudFileUpload T="IBrowserFile" Accept=".zip" FilesChanged="ReimportUploadAsync" Disabled="_importing">
+                                <CustomContent>
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
+                                               Disabled="_importing" OnClick="@context.OpenFilePickerAsync">Neue Fassung hochladen (.zip)</MudButton>
+                                </CustomContent>
+                            </MudFileUpload>
+                        }
+                        <MudButton Variant="Variant.Text" Color="Color.Warning" StartIcon="@Icons.Material.Filled.EditNote"
+                                   OnClick="ConvertAsync" Disabled="_importing">In bearbeitbare Kopie umwandeln</MudButton>
+                        @if (_importing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        }
+                    </MudStack>
+                }
+                <ImportedDocument Html="@_original" />
+            }
+            else
+            {
+                <RichTextEditor @ref="_editor" Value="@_contentHtml" Ai="TextAssistContext.Document" AiSubject="@_title" Mentions="true"
+                                OnSaveRequested="SaveAsync"
+                                DraftKey='@(_edit ? $"dokument:{Id}" : $"dokument:neu:{_entityType}:{_entityId}")' />
+            }
         </MudStack>
     </MudPaper>
 }
@@ -84,8 +126,12 @@ else
     [Parameter] public string? Id { get; set; }
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
-    private RichTextEditor _editor = default!;
+    private RichTextEditor? _editor;
     private ClaimsPrincipal _user = default!;
+    private string? _original;
+    private ImportSourceKind? _importKind;
+    private bool _mayImport;
+    private bool _importing;
 
     private bool _load = true;
     private bool _edit;
@@ -132,6 +178,10 @@ else
                 _category = document.Category;
                 _classification = document.Classification;
                 _contentHtml = document.ContentHtml;
+                _original = document.ImportedHtml;
+                _importKind = document.ImportSourceKind;
+                // mirrors the import service: partners author documents but never make the server fetch
+                _mayImport = _user.MayWrite() && _user.IsInternalAgent();
             }
         }
         else
@@ -172,7 +222,10 @@ else
             return;
         }
         var html = await Placeholder.ApplyAsync(template.ContentHtml, _entityType, _entityId, _user);
-        await _editor.SetHtmlAsync(html);
+        if (_editor is not null)
+        {
+            await _editor.SetHtmlAsync(html);
+        }
         if (string.IsNullOrWhiteSpace(_title))
         {
             _title = template.Name;
@@ -191,7 +244,8 @@ else
         _saves = true;
         try
         {
-            var html = await _editor.GetHtmlAsync();
+            // an imported original sends its stored copy; the service keeps that text anyway
+            var html = _editor is null ? _contentHtml ?? string.Empty : await _editor.GetHtmlAsync();
             // documents created from a taskforce's sources are taskforce-internal
             var isTaskforceDoc = !_edit && HasRecordsContext() && _entityType == nameof(Taskforce);
             var input = new DocumentInput
@@ -214,7 +268,10 @@ else
                 var document = await DocumentService.CreateAsync(input, _user);
                 id = document.Id;
                 // stored from here on: a failing source link below must not leave the text offered as unsaved
-                await _editor.MarkSavedAsync();
+                if (_editor is not null)
+                {
+                    await _editor.MarkSavedAsync();
+                }
 
                 // Attach as a source when created from a record. Taskforce docs stay internal via
                 // Document.OwnerTaskforceId, so the source row itself need not be marked internal-only
@@ -231,7 +288,10 @@ else
                 }
             }
 
-            await _editor.MarkSavedAsync();
+            if (_editor is not null)
+            {
+                await _editor.MarkSavedAsync();
+            }
             Snackbar.Add("Dokument gespeichert.", Severity.Success);
             Nav.NavigateTo(TargetBySave(id));
         }
@@ -245,6 +305,76 @@ else
         finally
         {
             _saves = false;
+        }
+    }
+
+    private async Task ReimportUploadAsync(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+        try
+        {
+            await using var stream = file.OpenReadStream(GoogleExportFetcher.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            await ReimportAsync(buffer.ToArray());
+        }
+        catch (IOException)
+        {
+            Snackbar.Add("Die Datei ist zu groß (höchstens 25 MB).", Severity.Error);
+        }
+    }
+
+    private async Task ReimportAsync(byte[]? upload)
+    {
+        _importing = true;
+        try
+        {
+            await GoogleImport.ReimportDocumentAsync(Id!, upload, _user);
+            var document = await DocumentService.GetAsync(Id!, DocumentViewerScope.From(_user));
+            _original = document?.ImportedHtml;
+            _contentHtml = document?.ContentHtml;
+            Snackbar.Add("Aus Google aktualisiert.", Severity.Success);
+        }
+        catch (Exception ex) when (ex is GoogleExportException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _importing = false;
+        }
+    }
+
+    private async Task ConvertAsync()
+    {
+        var confirmed = await DialogService.ShowMessageBoxAsync("In bearbeitbare Kopie umwandeln?",
+            "Das Google-Original wird verworfen. Übrig bleibt eine vereinfachte Fassung, die du hier bearbeiten kannst; "
+            + "Schriften, Abstände und andere Formatierung, die der Editor nicht kennt, gehen verloren. "
+            + "Aktualisieren aus Google ist danach nicht mehr möglich.",
+            yesText: "Umwandeln", cancelText: "Abbrechen");
+        if (confirmed != true)
+        {
+            return;
+        }
+        _importing = true;
+        try
+        {
+            await GoogleImport.ConvertToEditableAsync(Id!, _user);
+            var document = await DocumentService.GetAsync(Id!, DocumentViewerScope.From(_user));
+            _contentHtml = document?.ContentHtml;
+            // the editor renders fresh and reads the copy on its first render
+            _original = null;
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _importing = false;
         }
     }
 

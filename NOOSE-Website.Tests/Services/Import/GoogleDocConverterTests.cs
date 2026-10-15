@@ -131,6 +131,11 @@ public class GoogleDocConverterTests
 
         Assert.Contains("<strong>Fett</strong>", result.EditableHtml);
         Assert.DoesNotContain("font-family", result.EditableHtml);
+        // black on the dark app would be unreadable; a colour the author chose stays
+        Assert.DoesNotMatch(@"color:\s*(#000000|rgba?\(0,\s*0,\s*0)", result.EditableHtml);
+        Assert.Matches(@"color:\s*(#ff0000|rgba?\(255,\s*0,\s*0)", result.EditableHtml);
+        Assert.DoesNotContain("#gdoc-", result.EditableHtml);
+        Assert.Contains("Sprung", result.EditableHtml);
         Assert.DoesNotContain("font-weight", result.EditableHtml);
         Assert.Contains("Zwischentext", result.EditableHtml);
         Assert.Contains("<table", result.EditableHtml);

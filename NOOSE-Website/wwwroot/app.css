@@ -2319,3 +2319,40 @@ div.vis-tooltip {
         break-inside: avoid;
     }
 }
+
+/* An imported Google original: a white page, every author style reverted so only its own inline styles apply.
+   contain keeps positioned pictures inside the page box; nothing in it can overlay the app. */
+.google-import {
+    background: #ffffff;
+    color: #000000;
+    font-family: Arial, sans-serif;
+    border-radius: 4px;
+    box-shadow: var(--mud-elevation-2);
+    overflow-x: auto;
+    position: relative;
+    contain: layout paint;
+}
+
+    .google-import * {
+        all: revert;
+    }
+
+    .google-import > div {
+        margin: 0 auto;
+        box-sizing: content-box;
+    }
+
+    .google-import img {
+        max-width: none;
+    }
+
+.google-import-druck {
+    box-shadow: none;
+    border-radius: 0;
+    overflow: visible;
+}
+
+    .google-import-druck > div {
+        padding: 0 !important;
+        max-width: none !important;
+    }
