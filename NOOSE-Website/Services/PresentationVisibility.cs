@@ -41,6 +41,25 @@ public static class PresentationVisibility
                 && db.PresentationInvites.Any(i => i.PresentationId == p.Id && i.AgentId == meId)));
     }
 
+    /// <summary>Titles of the given presentations the viewer may see, by id; the rest are left out.</summary>
+    /// <remarks>For a link, a timeline or chronicle row, a link-label search hit or a NOOSEI link listing pointing
+    /// at a presentation. The shared reference resolver cannot ask here, because it is handed no scope and so knows
+    /// neither the group nor the invites.</remarks>
+    public static async Task<Dictionary<string, string>> VisibleTitlesAsync(AppDbContext db, IReadOnlyCollection<string> ids,
+        ViewerScope scope, CancellationToken cancellationToken = default)
+    {
+        if (ids.Count == 0)
+        {
+            return new(StringComparer.Ordinal);
+        }
+        var rows = await OnlyVisible(db.Presentations, db, scope)
+            .Where(p => ids.Contains(p.Id))
+            .Select(p => new { p.Id, p.Title })
+            .ToListAsync(cancellationToken);
+        return rows.ToDictionary(p => p.Id, p => string.IsNullOrWhiteSpace(p.Title) ? "Präsentation" : p.Title,
+            StringComparer.Ordinal);
+    }
+
     /// <summary>Whether the viewer may see one presentation.</summary>
     public static Task<bool> IsVisibleAsync(AppDbContext db, string presentationId, ViewerScope scope,
         CancellationToken cancellationToken = default)

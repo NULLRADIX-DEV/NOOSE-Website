@@ -15,6 +15,7 @@ using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Meetings;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Services.Public;
@@ -35,7 +36,14 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         nameof(Operation), nameof(Taskforce), nameof(Case), nameof(Agent),
         nameof(PersonDoc), nameof(Observation), nameof(Job), nameof(Law), nameof(Document),
         nameof(Bewerbung), nameof(Meeting), nameof(MeetingAgendaItem), nameof(Hinweis), nameof(Ticket),
+        nameof(Presentation),
     ];
+
+    /// <summary>Known types the scope-free <see cref="RecordsReference"/> also names, for mentions and compromises.</summary>
+    /// <remarks>A presentation is left out: who sees one depends on groups and invites, which that resolver is
+    /// never handed, so a reference to it would never resolve.</remarks>
+    public static readonly IReadOnlyList<string> ReferenceTypes =
+        KnownTypes.Where(t => t != nameof(Presentation)).ToList();
 
     /// <summary>What an operation or taskforce lists as involved: people and organisations, nothing else.</summary>
     public static readonly IReadOnlyList<string> InvolvedTypes =
@@ -249,6 +257,13 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
             }
         }
 
+        // vetted by PresentationVisibility, never flagged classified
+        var presentationIds = pairs.Where(p => p.OtherType == nameof(Presentation)).Select(p => p.OtherId).Distinct().ToList();
+        foreach (var (id, title) in await PresentationVisibility.VisibleTitlesAsync(db, presentationIds, scope, cancellationToken))
+        {
+            targets[(nameof(Presentation), id)] = (title, false, $"/praesentationen/{id}");
+        }
+
         // partners: only links to released, releasable-type records
         HashSet<(string, string)>? releasedTargets = null;
         if (scope.PartnerAgency is { } agency)
@@ -315,6 +330,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         if (targetType is nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party)
                 or nameof(Operation) or nameof(Taskforce) or nameof(Case) or nameof(Document) or nameof(Bewerbung)
                 or nameof(Meeting) or nameof(MeetingAgendaItem) or nameof(Hinweis) or nameof(Ticket)
+                or nameof(Presentation)
             && !await Visibility.IsRecordVisibleAsync(db, targetType, targetId, ViewerScope.From(actor), cancellationToken))
         {
             throw new UnauthorizedAccessException("Auf diese Akte darfst du nicht verlinken (Verschlusssache oder nicht vorhanden).");
