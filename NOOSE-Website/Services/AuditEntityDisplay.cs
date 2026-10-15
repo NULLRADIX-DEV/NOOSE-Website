@@ -75,6 +75,9 @@ public static class AuditEntityDisplay
         "FahndungEinspruch" => "Einspruch gegen eine Ausschreibung",
         "PublicArea" => "Öffentlicher Bereich",
         "PublicSituation" => "Gefahrenlage",
+        "Presentation" => "Präsentation",
+        "PresentationSlide" => "Folie",
+        "PresentationInvite" => "Einladung (Präsentation)",
         _ => type,
     };
 
@@ -99,6 +102,7 @@ public static class AuditEntityDisplay
         "RadioChannel" => $"/funk?kanal={id}",
         "Agent" => $"/personal/{id}",
         "Meeting" => $"/besprechungen/{id}",
+        "Presentation" => $"/praesentationen/{id}",
         // absences have no detail page; the audit viewer is admin-only, so point at the overview
         "Absence" => "/abmeldungen/uebersicht",
         // feedback entries have no detail page either; point at the feedback hub

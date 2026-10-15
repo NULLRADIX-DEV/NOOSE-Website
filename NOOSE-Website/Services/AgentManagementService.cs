@@ -957,6 +957,7 @@ public class AgentManagementService(
             .Where(x => db.AgentTestAssignments.IgnoreQueryFilters().Any(a => a.Id == x.AssignmentId && a.AgentId == agentId))
             .ExecuteDeleteAsync(cancellationToken);
         await db.AgentTestAssignments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.PresentationInvites.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
 
         // The account's own working state: nothing here means anything without the account it belonged to, so
         // the rows go rather than the pointer. Badges, quota and KI logs are derived or per-account bookkeeping;

@@ -189,6 +189,9 @@ public static class PublicVisibility
             ["AgentModuleCompletion"] = Personnel,
             ["AgentTestAssignment"] = Personnel,
             ["AgentTestAnswer"] = Personnel,
+            ["Presentation"] = "Interne Präsentation; nach außen nie.",
+            ["PresentationSlide"] = "Folie einer internen Präsentation; nach außen nie.",
+            ["PresentationInvite"] = "Einladung zu einer internen Präsentation; nach außen nie.",
             ["AgentBadge"] = Personnel,
             // released only as an editorial copy on the leadership profile, never projected from here
             ["Decoration"] = Personnel,

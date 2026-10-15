@@ -8119,6 +8119,191 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("AusbildungsModule");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.Presentation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Access")
+                        .HasColumnType("int")
+                        .HasColumnName("Sichtbarkeit");
+
+                    b.Property<int?>("Audience")
+                        .HasColumnType("int")
+                        .HasColumnName("Zielgruppe");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Beschreibung");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<int?>("MinRank")
+                        .HasColumnType("int")
+                        .HasColumnName("MindestDienstgrad");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("OwnerId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("BesitzerId");
+
+                    b.Property<string>("TargetId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ZielId");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Titel");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Access");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("Praesentationen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationInvite", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("PresentationId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("PresentationId", "AgentId")
+                        .IsUnique();
+
+                    b.ToTable("PraesentationEinladungen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationSlide", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("BodyHtml")
+                        .HasColumnType("longtext")
+                        .HasColumnName("InhaltHtml");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("ImageId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("BildId");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<int>("Layout")
+                        .HasColumnType("int")
+                        .HasColumnName("Layout");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Notizen");
+
+                    b.Property<string>("PresentationId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Sorting")
+                        .HasColumnType("int")
+                        .HasColumnName("Sortierung");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("Titel");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PresentationId", "Sorting");
+
+                    b.ToTable("PraesentationFolien");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.BuergerProfil", b =>
                 {
                     b.Property<string>("Id")
@@ -12277,6 +12462,36 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Test");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationInvite", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Presentations.Presentation", "Presentation")
+                        .WithMany("Invites")
+                        .HasForeignKey("PresentationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("Presentation");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationSlide", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Presentations.Presentation", "Presentation")
+                        .WithMany("Slides")
+                        .HasForeignKey("PresentationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Presentation");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.BuergerProfil", b =>
                 {
                     b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
@@ -12887,6 +13102,13 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Vehicles");
 
                     b.Navigation("Weapons");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.Presentation", b =>
+                {
+                    b.Navigation("Invites");
+
+                    b.Navigation("Slides");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.OeffentlicheFaqRubrik", b =>

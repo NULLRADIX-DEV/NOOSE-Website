@@ -25,6 +25,7 @@ using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Meetings;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Public;
 
@@ -135,6 +136,15 @@ public static class Visibility
                 return await db.Absences
                     .OnlyVisible(db, scope.MayClassifiedRead ? AbsenceViewScope.All : AbsenceViewScope.Team, scope.MeId)
                     .AnyAsync(a => a.Id == entityId, cancellationToken);
+            // a slide and its pictures are visible exactly as far as their presentation is
+            case nameof(PresentationSlide):
+                return await db.PresentationSlides
+                    .Where(s => s.Id == entityId)
+                    .Join(PresentationVisibility.OnlyVisible(db.Presentations, db, scope), s => s.PresentationId, p => p.Id, (s, p) => s)
+                    .AnyAsync(cancellationToken);
+            case nameof(Presentation):
+                return await PresentationVisibility.OnlyVisible(db.Presentations, db, scope)
+                    .AnyAsync(p => p.Id == entityId, cancellationToken);
             case nameof(LibraryFile):
                 return await db.LibraryFiles.OnlyVisible(scope.AsDocumentScope())
                     .AnyAsync(f => f.Id == entityId, cancellationToken);

@@ -3,6 +3,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Personnel;
+using NOOSE_Website.Data.Entities.Presentations;
 
 namespace NOOSE_Website.Services;
 
@@ -23,6 +24,7 @@ public static class RichTextImageFields
         [typeof(MeetingAgendaItem)] = ["NotesHtml"],
         [typeof(Announcement)] = ["Content"],
         [typeof(AgentNote)] = ["Text"],
+        [typeof(PresentationSlide)] = ["BodyHtml"],
     };
 
     /// <summary>The registered carrier types, for the invariants that hold the table against the model.</summary>

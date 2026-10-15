@@ -165,6 +165,10 @@ public enum NotificationType
 
     /// <summary>An internal test is due soon or overdue. Routable — pings the recipient, like a due task.</summary>
     TestDueReminder = 48,
+
+    /// <summary>Someone started presenting a presentation the recipient may see. Bell only: who is in a closed group
+    /// or on an invite list is not for a shared channel.</summary>
+    PresentationLive = 49,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -221,6 +225,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestSubmitted => "Test abgegeben",
         NotificationType.TestGraded => "Test korrigiert",
         NotificationType.TestDueReminder => "Test fällig",
+        NotificationType.PresentationLive => "Präsentation live",
         _ => "Benachrichtigung",
     };
 
@@ -276,6 +281,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestSubmitted => Icons.Material.Filled.AssignmentTurnedIn,
         NotificationType.TestGraded => Icons.Material.Filled.FactCheck,
         NotificationType.TestDueReminder => Icons.Material.Filled.AlarmOn,
+        NotificationType.PresentationLive => Icons.Material.Filled.CoPresent,
         _ => Icons.Material.Filled.Notifications,
     };
 }

@@ -14,6 +14,7 @@ using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Activities;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.Personnel;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Radio;
@@ -165,6 +166,9 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<AgentModuleCompletion> AgentModuleCompletions => Set<AgentModuleCompletion>();
     public DbSet<AgentTestAssignment> AgentTestAssignments => Set<AgentTestAssignment>();
     public DbSet<AgentTestAnswer> AgentTestAnswers => Set<AgentTestAnswer>();
+    public DbSet<Presentation> Presentations => Set<Presentation>();
+    public DbSet<PresentationSlide> PresentationSlides => Set<PresentationSlide>();
+    public DbSet<PresentationInvite> PresentationInvites => Set<PresentationInvite>();
 
     // request/inbox workflow
     public DbSet<Request> Requests => Set<Request>();
@@ -1836,6 +1840,37 @@ public class AppDbContext : IdentityDbContext<Agent>
                 .HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(a => a.Test).WithMany()
                 .HasForeignKey(a => a.TestId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Presentation>(b =>
+        {
+            b.Property(p => p.Title).HasMaxLength(200).IsRequired();
+            b.Property(p => p.Description).HasMaxLength(2000);
+            b.Property(p => p.TargetId).HasMaxLength(64);
+            b.Property(p => p.OwnerId).HasMaxLength(64).IsRequired();
+            b.HasIndex(p => p.OwnerId);
+            b.HasIndex(p => p.Access);
+        });
+
+        modelBuilder.Entity<PresentationSlide>(b =>
+        {
+            b.Property(s => s.Title).HasMaxLength(300);
+            b.Property(s => s.BodyHtml).HasColumnType("longtext");
+            b.Property(s => s.Notes).HasColumnType("longtext");
+            b.Property(s => s.ImageId).HasMaxLength(64);
+            b.HasIndex(s => new { s.PresentationId, s.Sorting });
+            b.HasOne(s => s.Presentation).WithMany(p => p.Slides)
+                .HasForeignKey(s => s.PresentationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PresentationInvite>(b =>
+        {
+            b.HasIndex(i => new { i.PresentationId, i.AgentId }).IsUnique();
+            b.HasIndex(i => i.AgentId);
+            b.HasOne(i => i.Presentation).WithMany(p => p.Invites)
+                .HasForeignKey(i => i.PresentationId).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(i => i.Agent).WithMany()
+                .HasForeignKey(i => i.AgentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<AgentTestAnswer>(b =>
