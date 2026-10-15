@@ -534,6 +534,9 @@ public static class ChangelogContent
                 + "blätterte.", "Präsentationen"),
             Fix("2.7.08-eingeschraenkte-aufgabe-verknuepft", "Eine eingeschränkte Aufgabe, die mit einer anderen Akte "
                 + "verknüpft ist, steht dort nur noch für die, die sie auch sehen dürfen.", "Dienstbetrieb"),
+            Neu("2.7.09-noosei-praesentationen", "NOOSEI öffnet jetzt auch Präsentationen und liest ihre Folien, "
+                + "soweit du sie selbst sehen darfst. Die Sprechernotizen bekommt nur, wer die Präsentation angelegt "
+                + "hat, und die Führung.", "NOOSEI"),
         ]),
     ];
 }

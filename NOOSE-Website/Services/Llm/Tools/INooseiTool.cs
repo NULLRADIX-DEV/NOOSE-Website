@@ -23,6 +23,7 @@ using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Personnel;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Requests;
 using NOOSE_Website.Data.Entities.Taskforces;
@@ -160,7 +161,8 @@ public enum NooseiUse
     None = 0,
 
     /// <summary>Openable as a record — <c>lies_akte</c>, <c>hole_kurzbrief</c>, <c>lies_zeitstrahl</c> and both
-    /// graph tools. Requires a branch in <see cref="DossierContextBuilder" />.</summary>
+    /// graph tools, though <c>finde_verbindungsweg</c> walks only <see cref="GraphService.NodeTypes" />.
+    /// Requires a branch in <see cref="DossierContextBuilder" />.</summary>
     Read = 1,
 
     /// <summary>Enumerable by attribute in <c>finde_akten</c>. Requires a scope-filtered list service.</summary>
@@ -221,6 +223,7 @@ public static class NooseiRecordTypes
         [nameof(EvidenceEntry)] = NooseiUse.Read,   // lies_bereich asservatenkammer
         [nameof(KassenBuchung)] = NooseiUse.Read,   // lies_bereich kasse
         [nameof(Request)] = NooseiUse.Read,         // no scope-filtered list; open one by id only
+        [nameof(Presentation)] = NooseiUse.Read,    // suche_akten finds them; nothing to filter by
 
         // readable and enumerable by attribute — each has a scope-/actor-filtered list or is visible to every
         // internal agent; the matching branch lives in FilterRecordsTool
@@ -323,9 +326,6 @@ public static class NooseiRecordTypes
             // searchable, but not openable: the hit already carries everything the row holds
             ["RadioChannel"] = "die Trefferzeile ist schon der ganze Kanal — Frequenz und Bezeichnung; "
                 + "ein Aktenaufruf hätte nichts hinzuzufügen",
-            // searchable, but not openable yet: that needs its own dossier branch
-            ["Presentation"] = "über suche_akten auffindbar (Titel, Beschreibung, Folientitel); die Folien als Akte "
-                + "zu öffnen braucht einen eigenen Dossier-Zweig, der Sprechernotizen nur Ersteller und Führung zeigt",
         };
 
     /// <summary>The enum values offered where a type must be openable as a record.</summary>
@@ -339,6 +339,11 @@ public static class NooseiRecordTypes
 
     /// <summary>Types <c>letzte_aenderungen</c> can filter on.</summary>
     public static readonly string ChronicleEnumJson = Json(NooseiUse.Chronicle);
+
+    /// <summary>Types <c>finde_verbindungsweg</c> can walk between: openable, and a node of the graph.</summary>
+    /// <remarks>Derived, not listed: a node kind the graph gains or loses changes the offer with it.</remarks>
+    public static readonly string GraphEnumJson = "[" + string.Join(",", Names(NooseiUse.Read)
+        .Where(n => GraphService.NodeTypes.Contains(ByGerman[n].Clr)).Select(n => "\"" + n + "\"")) + "]";
 
     /// <summary>CLR name for a German type name; null when the name is unknown.</summary>
     public static string? Clr(string? german) => Find(german)?.Clr;

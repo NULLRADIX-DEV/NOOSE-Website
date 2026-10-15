@@ -27,9 +27,9 @@ public sealed class FindPathTool(IGraphService graph) : INooseiTool
           "additionalProperties": false,
           "required": ["von_typ", "von_id", "nach_typ", "nach_id"],
           "properties": {
-            "von_typ": { "type": "string", "enum": {{NooseiRecordTypes.EnumJson}} },
+            "von_typ": { "type": "string", "enum": {{NooseiRecordTypes.GraphEnumJson}} },
             "von_id": { "type": "string" },
-            "nach_typ": { "type": "string", "enum": {{NooseiRecordTypes.EnumJson}} },
+            "nach_typ": { "type": "string", "enum": {{NooseiRecordTypes.GraphEnumJson}} },
             "nach_id": { "type": "string" }
           }
         }
@@ -44,6 +44,12 @@ public sealed class FindPathTool(IGraphService graph) : INooseiTool
         if (fromType is null || fromId is null || toType is null || toId is null)
         {
             return NooseiToolResult.NotFound();
+        }
+        // the schema is a hint; else a false "unconnected". Names the kind, never the record
+        if (new[] { fromType, toType }.FirstOrDefault(t => !GraphService.NodeTypes.Contains(t)) is { } outside)
+        {
+            return new NooseiToolResult($"{NooseiRecordTypes.Plural(outside)} sind nicht Teil des Beziehungsgraphen. "
+                + "Ihre direkten Verbindungen liefert zeige_verbindungen.");
         }
 
         var path = await graph.FindPathAsync(fromType, fromId, toType, toId, context.Actor, cancellationToken);

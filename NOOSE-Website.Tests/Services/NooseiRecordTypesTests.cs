@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using NOOSE_Website.Services;
 using NOOSE_Website.Services.Llm.Tools;
 using NOOSE_Website.Services.Search;
 
@@ -133,6 +134,17 @@ public class NooseiRecordTypesTests
     }
 
     [Fact]
+    public void Presentation_IsReadableAndSearchable_ButNotListedOrChronicled()
+    {
+        Assert.Equal("Presentation", NooseiRecordTypes.Clr("Präsentation", NooseiUse.Read));
+        Assert.Equal("Presentation", NooseiRecordTypes.Clr("Präsentation", NooseiUse.Search));
+        // the filter vocabulary is record-shaped, and the chronicle does not collect decks
+        Assert.Null(NooseiRecordTypes.Clr("Präsentation", NooseiUse.List));
+        Assert.Null(NooseiRecordTypes.Clr("Präsentation", NooseiUse.Chronicle));
+        Assert.False(NooseiRecordTypes.NotAssistantReadable.ContainsKey("Presentation"));
+    }
+
+    [Fact]
     public void Document_IsNowBothReadableAndSearchable()
     {
         // inverted deliberately: the search emitted no document category at all, so offering it as a filter
@@ -180,10 +192,16 @@ public class NooseiRecordTypesTests
 
     /// <summary>Drift guard: a type flagged <see cref="NooseiUse.Read" /> without a dossier branch answers
     /// <c>lies_akte</c> with "not found" — indistinguishable from a record the agent may not see.</summary>
+    /// <remarks>Only the dispatch arms count. The link section names <c>Presentation</c> for its own reasons, and a
+    /// scan over every <c>nameof</c> turned that into a builder that did not exist.</remarks>
     [Fact]
     public void EveryReadableType_HasADossierBuilder()
     {
-        var builder = NamedTypes(Sources(Path.Combine("Services", "Llm"), "DossierContextBuilder*.cs"));
+        var builder = Regex.Matches(Sources(Path.Combine("Services", "Llm"), "DossierContextBuilder*.cs"),
+                @"nameof\(([\w.]+)\)\s*=>\s*await\s+Build")
+            .Select(m => m.Groups[1].Value.Split('.')[^1])
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.Contains("Person", builder);
 
         var missing = NooseiRecordTypes.Names(NooseiUse.Read)
             .Select(n => NooseiRecordTypes.Clr(n)!)
@@ -209,6 +227,33 @@ public class NooseiRecordTypesTests
             .ToArray();
 
         Assert.Empty(missing);
+    }
+
+    /// <summary>Drift guard: <c>finde_verbindungsweg</c> answers "not in the graph" for every kind outside
+    /// <see cref="GraphService.NodeTypes" />, so the set must be exactly what the node resolver resolves.</summary>
+    /// <remarks>Too narrow, and a real path is denied; too wide, and a kind the graph drops reads as unconnected.</remarks>
+    [Fact]
+    public void GraphNodeTypes_AreExactlyTheKindsTheGraphResolves()
+    {
+        var resolved = Regex.Matches(Source("Services", "Graph", "GraphService.cs"), @"\bIds\(nameof\((\w+)\)\)")
+            .Select(m => m.Groups[1].Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.NotEmpty(resolved);
+        Assert.Equal(resolved.Order(StringComparer.Ordinal), GraphService.NodeTypes.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void ThePathTool_OffersOnlyReadableKindsOfTheGraph()
+    {
+        var offered = JsonSerializer.Deserialize<string[]>(NooseiRecordTypes.GraphEnumJson)!;
+
+        Assert.Contains("Person", offered);
+        Assert.Contains("Fraktion", offered);
+        // readable, but no node: offering them spends a round on an answer known in advance
+        Assert.DoesNotContain("Präsentation", offered);
+        Assert.DoesNotContain("Dokument", offered);
+        Assert.All(offered, n => Assert.True(GraphService.NodeTypes.Contains(NooseiRecordTypes.Clr(n, NooseiUse.Read)!)));
     }
 
     /// <summary>Drift guard: a type flagged <see cref="NooseiUse.List" /> without a branch in the filter tool is

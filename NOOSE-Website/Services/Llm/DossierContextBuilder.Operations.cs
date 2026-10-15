@@ -16,6 +16,7 @@ using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Personnel;
+using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Requests;
@@ -48,6 +49,7 @@ public static partial class DossierContextBuilder
             nameof(FinancingRequest) => await BuildFinancingRequestAsync(db, entityId, scope, ct),
             nameof(AgentAbduction) => await BuildAbductionAsync(db, entityId, scope, ct),
             nameof(Announcement) => await BuildAnnouncementAsync(db, entityId, scope, ct),
+            nameof(Presentation) => await BuildPresentationAsync(db, entityId, scope, ct),
             nameof(Absence) => await BuildAbsenceAsync(db, entityId, scope, ct),
             nameof(SituationReport) => await BuildSituationReportAsync(db, entityId, ct),
             nameof(LibraryFile) => await BuildLibraryFileAsync(db, entityId, ct),
@@ -750,6 +752,123 @@ public static partial class DossierContextBuilder
         await AppendAttachmentsAsync(sb, db, nameof(Announcement), id, includeClassificationHistory: false, view, ct);
         return new DossierContext(a.Title, sb.ToString(), IsClassified: false);
     }
+
+    /// <summary>What the slide section may take: per title, per text, for all slide lines, for all notes.</summary>
+    /// <remarks>Two pools, so the notes an owner gets never cost them slide text the audience sees; together they
+    /// leave room inside the tool budget for the links behind the slides.</remarks>
+    const int SlideTitleCap = 80;
+    const int SlideTextCap = 400;
+    const int SlidesBudget = 3_000;
+    const int SlideNotesBudget = 1_000;
+
+    /// <summary>A presentation with its slides in order, as plain text.</summary>
+    /// <remarks>
+    /// Speaker notes go out only to the owner and leadership, the rule the page shows them by. A cached brief is
+    /// built without a viewer, so it never carries them. A Google slide is a picture of a PDF page; its text lives
+    /// in Google, so only its page is named. Classified unless public, like a non-public appointment, for the egress
+    /// guard of a generated brief.
+    /// </remarks>
+    static async Task<DossierContext?> BuildPresentationAsync(AppDbContext db, string id, ViewerScope? scope, CancellationToken ct)
+    {
+        var p = await db.Presentations.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (p is null)
+        {
+            return null;
+        }
+        var view = scope ?? DossierScope.ForRecord(DocumentClassification.None);
+        var withNotes = PresentationVisibility.MayManage(view, p);
+
+        var taskforces = p.Audience == AnnouncementAudience.Taskforce && p.TargetId is { } taskforceId
+            ? await db.Taskforces.AsNoTracking().Where(t => t.Id == taskforceId)
+                .ToDictionaryAsync(t => t.Id, t => t.Name, ct)
+            : new Dictionary<string, string>();
+        var owner = await CodenamesAsync(db, [p.OwnerId], ct);
+        var title = string.IsNullOrWhiteSpace(p.Title) ? "Präsentation" : p.Title;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Präsentation");
+        Line(sb, "Titel", title);
+        Line(sb, "Beschreibung", p.Description);
+        Line(sb, "Sichtbarkeit", PresentationService.AccessLabel(p.Access, p.Audience, p.TargetId, p.MinRank, taskforces));
+        Line(sb, "Erstellt von", Codename(owner, p.OwnerId));
+        Line(sb, "Geändert am", Fmt(p.ModifiedAt ?? p.CreatedAt));
+
+        var (slides, slidesTotal) = await TakeAsync(
+            db.PresentationSlides.AsNoTracking().Where(s => s.PresentationId == id)
+                .OrderBy(s => s.Sorting)
+                .Select(s => new { s.Layout, s.Title, s.BodyHtml, s.ImageId, s.PageNumber, s.Notes }), ct);
+        if (slidesTotal > 0)
+        {
+            sb.AppendLine($"— Folien ({slidesTotal}) —");
+            var listed = 0;
+            var slidesRoom = SlidesBudget;
+            var notesRoom = SlideNotesBudget;
+            var notesCut = false;
+            foreach (var s in slides)
+            {
+                var entry = new StringBuilder().Append(listed + 1).Append(". ");
+                if (s.Layout == SlideLayout.PdfPage)
+                {
+                    entry.Append("Google-Folie");
+                    if (s.PageNumber is { } page)
+                    {
+                        entry.Append(", Seite ").Append(page);
+                    }
+                }
+                else
+                {
+                    entry.Append(OneLine(Free(s.Title)) is { Length: > 0 } slideTitle ? Cap(slideTitle, SlideTitleCap) : "(ohne Titel)");
+                    // stale body after a layout switch
+                    if (PresentationDisplay.HasText(s.Layout) && Free(StripHtml(s.BodyHtml)) is { Length: > 0 } body)
+                    {
+                        entry.Append(" — ").Append(Cap(body, SlideTextCap));
+                    }
+                    if (PresentationDisplay.HasImage(s.Layout) && s.ImageId is not null)
+                    {
+                        entry.Append(" [Bild]");
+                    }
+                }
+                // whole slides only: the list stops where the next one no longer fits
+                if (entry.Length > slidesRoom && listed > 0)
+                {
+                    break;
+                }
+                slidesRoom -= entry.Length;
+                sb.Append(entry).AppendLine();
+                listed++;
+
+                if (withNotes && OneLine(Free(s.Notes)) is { Length: > 0 } notes)
+                {
+                    if (notesRoom <= 0)
+                    {
+                        notesCut = true;
+                        continue;
+                    }
+                    var shown = Cap(notes, Math.Min(SlideTextCap, notesRoom));
+                    notesRoom -= shown.Length;
+                    sb.Append("   Notizen: ").AppendLine(shown);
+                }
+            }
+            if (listed < slidesTotal)
+            {
+                sb.AppendLine($"Folien {listed + 1} bis {slidesTotal} nicht aufgeführt; den vollen Inhalt zeigt die Präsentation.");
+            }
+            if (notesCut)
+            {
+                sb.AppendLine("Weitere Sprechernotizen nicht aufgeführt.");
+            }
+        }
+
+        await AppendAttachmentsAsync(sb, db, nameof(Presentation), id, includeClassificationHistory: false, view, ct);
+        return new DossierContext(title, sb.ToString(), p.Access != PresentationAccess.Public);
+    }
+
+    /// <summary>Plain text on one line, so a slide stays one entry.</summary>
+    static string OneLine(string text)
+        => string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    /// <summary>Text cut to a length, marked when cut.</summary>
+    static string Cap(string text, int max) => text.Length <= max ? text : text[..max] + " …";
 
     static async Task<DossierContext?> BuildActivityAsync(AppDbContext db, string id, ViewerScope? scope, CancellationToken ct)
     {
