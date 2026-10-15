@@ -1,6 +1,7 @@
 @* One slide in a 16:9 frame. Sizes are container units, so the same slide reads alike as a thumbnail, in the
    editor and full screen on a projector. The slide keeps its own dark look in both site themes: presenter and
-   audience see the same picture. *@
+   audience see the same picture. A Google slide is a page of the imported PDF, drawn by pdf.js at the size shown. *@
+@inject PresentationScript Script
 
 <div class="slide-frame @Class">
     @if (Slide is null)
@@ -37,10 +38,17 @@
                     }
                     break;
                 case SlideLayout.PdfPage:
-                    <div class="slide-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Slideshow" Style="font-size:8cqw;" />
-                        <div class="slide-caption">Google-Folie</div>
-                    </div>
+                    @if (PdfUrl is not null)
+                    {
+                        <div class="slide-pdf" @ref="_pdfHost"></div>
+                    }
+                    else
+                    {
+                        <div class="slide-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Slideshow" Style="font-size:8cqw;" />
+                            <div class="slide-caption">Google-Folie nicht mehr vorhanden</div>
+                        </div>
+                    }
                     break;
                 default:
                     <h2 class="slide-heading">@Slide.Title</h2>
@@ -62,6 +70,46 @@
     [Parameter] public int? Number { get; set; }
 
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>Draw a Google slide at once instead of when it scrolls into view; for printing.</summary>
+    [Parameter] public bool Eager { get; set; }
+
+    private ElementReference _pdfHost;
+    private string? _shown;
+
+    /// <summary>The imported PDF of a Google slide; the revision keeps a refreshed deck from showing old pages.</summary>
+    private string? PdfUrl => Slide is { Layout: SlideLayout.PdfPage, PdfFileId: { } fileId, PageNumber: > 0 }
+        ? $"/dateien/praesentationen/{fileId}?r={Slide.PdfFile?.Revision ?? 0}"
+        : null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (PdfUrl is not { } url)
+        {
+            _shown = null;
+            return;
+        }
+        // the element counts too: switching to another layout and back renders a new one with the same page
+        var key = $"{_pdfHost.Id}|{url}|{Slide!.PageNumber}";
+        if (key == _shown)
+        {
+            return;
+        }
+        _shown = key;
+        try
+        {
+            await Script.ShowPageAsync(_pdfHost, url, Slide.PageNumber!.Value, Eager);
+        }
+        catch (JSDisconnectedException)
+        {
+            /* the circuit is gone */
+        }
+        catch (JSException)
+        {
+            // tried again with the next render
+            _shown = null;
+        }
+    }
 
     private RenderFragment Body => __builder =>
     {

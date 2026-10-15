@@ -63,6 +63,14 @@ internal static class DutyChapter
                 folgt einer <strong>Vorlage</strong>: Titelfolie, Titel und Text, Text mit Bild links oder rechts,
                 nur Bild oder Abschnitt. Zu jeder Folie kannst du <strong>Sprechernotizen</strong> schreiben, die nur
                 du beim Vortrag siehst.</p>
+                <p>Liegt die Präsentation schon in <strong>Google Slides</strong>, holst du sie mit <em>Aus Google
+                Slides importieren</em>: per Freigabe-Link (in Google „Jeder mit dem Link“) oder als hochgeladene
+                PDF-Datei (<em>Datei → Herunterladen → PDF-Dokument</em>). Jede Seite wird eine Folie und sieht aus
+                wie in Google, auch im Vollbild am Beamer; Animationen, Übergänge und eingebettete Videos gehen dabei
+                verloren. Im Editor fügst du so auch Folien in eine bestehende Präsentation ein. Unter
+                <em>Google-Importe</em> holst du eine geänderte Fassung mit <em>Aktualisieren</em>: Jede Folie behält
+                Platz und Notizen ihrer Seitennummer, neue Seiten kommen dahinter. Den Inhalt einer Google-Folie
+                änderst du in Google, hier pflegst du nur ihre Notizen.</p>
                 <p>Wer eine Präsentation sieht, legst du beim Anlegen fest: <strong>öffentlich</strong> für alle
                 internen Agenten, <strong>geschlossen</strong> für eine Gruppe (TRU, HRB, eine Taskforce oder ab einem
                 Dienstgrad) oder <strong>privat</strong> nur für die Eingeladenen. Schließen kannst du sie nur für eine

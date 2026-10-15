@@ -1,0 +1,208 @@
+@* Google Slides import: a new presentation, more pages for an existing one, or a refresh of an imported deck. The
+   service checks everything again; the dialog only collects the source. *@
+@using NOOSE_Website.Services.Import
+@inject ISlidesImportService SlidesImport
+@inject IPresentationFileStorageService FileStorage
+@inject ISnackbar Snackbar
+@inject ILogger<SlidesImportDialog> Logger
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            @if (UploadOnly)
+            {
+                <MudText Typo="Typo.body2">
+                    Diese Präsentation kam als Datei. Lade die aktuelle Fassung hoch:
+                    <i>Datei → Herunterladen → PDF-Dokument (.pdf)</i>.
+                </MudText>
+                @Upload
+            }
+            else
+            {
+                <MudTabs Elevation="0" @bind-ActivePanelIndex="_sourceTab" Class="mb-1">
+                    <MudTabPanel Text="@(IsRefresh ? "Von Google holen" : "Freigabe-Link")" Icon="@Icons.Material.Filled.Link">
+                        @if (IsRefresh)
+                        {
+                            <MudText Typo="Typo.body2">Holt die aktuelle Fassung über den gespeicherten Freigabe-Link.</MudText>
+                        }
+                        else
+                        {
+                            <MudTextField @bind-Value="_link" Label="Link zur Google-Präsentation" Variant="Variant.Outlined" Immediate="true"
+                                          Placeholder="https://docs.google.com/presentation/d/…/edit"
+                                          HelperText="In Google: Teilen → Allgemeiner Zugriff → „Jeder mit dem Link“ (Betrachter)." />
+                        }
+                    </MudTabPanel>
+                    <MudTabPanel Text="Datei hochladen" Icon="@Icons.Material.Filled.Upload">
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            In Google Slides: <i>Datei → Herunterladen → PDF-Dokument (.pdf)</i>. Geht auch mit Präsentationen,
+                            die nicht freigegeben sind.
+                        </MudText>
+                        @Upload
+                    </MudTabPanel>
+                </MudTabs>
+            }
+
+            @if (IsRefresh)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Jede Folie behält Platz und Notizen ihrer Seitennummer. Neue Seiten kommen hinter die letzte Folie dieser
+                    Präsentation; Folien zu Seiten, die es nicht mehr gibt, werden entfernt.
+                </MudAlert>
+            }
+            else if (IsNew)
+            {
+                <PresentationSettingsForm Input="_settings" User="User" TitleOptional="true" />
+            }
+
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Jede Seite wird eine Folie. Animationen, Übergänge und eingebettete Videos gehen beim PDF-Export verloren,
+                Links in den Folien sind nicht anklickbar. Höchstens @(FileStorage.MaxBytes / 1024 / 1024) MB und
+                @PresentationService.MaxSlides Folien je Präsentation.
+            </MudText>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_busy">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="RunAsync" Disabled="@(_busy || !Ready)"
+                   StartIcon="@(IsRefresh ? Icons.Material.Filled.Sync : Icons.Material.Filled.CloudDownload)">
+            @(_busy ? "Lädt …" : IsRefresh ? "Aktualisieren" : "Importieren")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ClaimsPrincipal User { get; set; } = default!;
+
+    /// <summary>Presentation the pages are appended to; null with no file either creates a new one.</summary>
+    [Parameter] public string? PresentationId { get; set; }
+
+    /// <summary>Imported deck to refresh.</summary>
+    [Parameter] public PresentationFileItem? File { get; set; }
+
+    private int _sourceTab;
+    private string? _link;
+    private byte[]? _upload;
+    private string? _fileName;
+    private readonly PresentationInput _settings = new();
+    private bool _busy;
+
+    private bool IsRefresh => File is not null;
+    private bool IsNew => !IsRefresh && PresentationId is null;
+
+    // a deck that came as a file or through Google sign-in can only be refreshed with a new file
+    private bool UploadOnly => File is { SourceKind: not ImportSourceKind.Link };
+
+    private bool Ready => UploadOnly || _sourceTab == 1 ? _upload is not null : IsRefresh || !string.IsNullOrWhiteSpace(_link);
+
+    private RenderFragment Upload => __builder =>
+    {
+        <MudFileUpload T="IBrowserFile" Accept=".pdf" FilesChanged="PickAsync">
+            <CustomContent>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           OnClick="@context.OpenFilePickerAsync" Disabled="_busy">
+                    @(_fileName ?? "PDF-Datei wählen")
+                </MudButton>
+            </CustomContent>
+        </MudFileUpload>
+    };
+
+    private async Task PickAsync(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+        try
+        {
+            await using var stream = file.OpenReadStream(FileStorage.MaxBytes);
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            _upload = buffer.ToArray();
+            _fileName = file.Name;
+        }
+        catch (IOException)
+        {
+            _upload = null;
+            _fileName = null;
+            Snackbar.Add($"Die Datei ist zu groß (höchstens {FileStorage.MaxBytes / 1024 / 1024} MB).", Severity.Error);
+        }
+    }
+
+    private async Task RunAsync()
+    {
+        var useUpload = UploadOnly || _sourceTab == 1;
+        _busy = true;
+        try
+        {
+            if (IsRefresh)
+            {
+                var result = await SlidesImport.RefreshAsync(File!.Id, useUpload ? _upload : null, useUpload ? _fileName : null, User);
+                MudDialog.Close(DialogResult.Ok(result));
+                return;
+            }
+            var id = await SlidesImport.ImportAsync(new SlidesImportInput
+            {
+                Link = useUpload ? null : _link,
+                UploadPdf = useUpload ? _upload : null,
+                UploadName = useUpload ? _fileName : null,
+                PresentationId = PresentationId,
+                Settings = IsNew ? _settings : null,
+            }, User);
+            MudDialog.Close(DialogResult.Ok(id));
+        }
+        catch (Exception ex) when (ex is GoogleExportException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _busy = false;
+        }
+        catch (Exception ex)
+        {
+            // the dialog sits outside the page's error boundary: anything escaping here would end the circuit
+            Logger.LogError(ex, "Google Slides import failed.");
+            Snackbar.Add("Der Import ist fehlgeschlagen. Versuche es später erneut.", Severity.Error);
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    // no closing beside the dialog while it imports: the import would finish unseen and invite a second one
+    private static DialogOptions Options(MaxWidth width)
+        => new() { MaxWidth = width, FullWidth = true, BackdropClick = false, CloseOnEscapeKey = false };
+
+    /// <summary>Imports a deck as a new presentation; returns its id, or null when cancelled.</summary>
+    public static async Task<string?> ShowNewAsync(IDialogService dialog, ClaimsPrincipal user)
+    {
+        var parameters = new DialogParameters<SlidesImportDialog> { { x => x.User, user } };
+        var reference = await dialog.ShowAsync<SlidesImportDialog>("Aus Google Slides importieren", parameters, Options(MaxWidth.Medium));
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: string id } ? id : null;
+    }
+
+    /// <summary>Appends a deck's pages to a presentation; true when it did.</summary>
+    public static async Task<bool> ShowAppendAsync(IDialogService dialog, ClaimsPrincipal user, string presentationId)
+    {
+        var parameters = new DialogParameters<SlidesImportDialog>
+        {
+            { x => x.User, user },
+            { x => x.PresentationId, presentationId },
+        };
+        var reference = await dialog.ShowAsync<SlidesImportDialog>("Folien aus Google Slides einfügen", parameters, Options(MaxWidth.Small));
+        var result = await reference.Result;
+        return result is { Canceled: false };
+    }
+
+    /// <summary>Refreshes an imported deck; what changed, or null when cancelled.</summary>
+    public static async Task<SlidesRefreshResult?> ShowRefreshAsync(IDialogService dialog, ClaimsPrincipal user, PresentationFileItem file)
+    {
+        var parameters = new DialogParameters<SlidesImportDialog>
+        {
+            { x => x.User, user },
+            { x => x.File, file },
+        };
+        var reference = await dialog.ShowAsync<SlidesImportDialog>($"„{file.Title}“ aktualisieren", parameters, Options(MaxWidth.Small));
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: SlidesRefreshResult changed } ? changed : null;
+    }
+}

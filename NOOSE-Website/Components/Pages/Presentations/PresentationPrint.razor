@@ -32,7 +32,7 @@ else
         {
             var slide = _view.Slides[i];
             <section class="praesentation-druck">
-                <SlideView Slide="slide" Number="@(i + 1)" />
+                <SlideView Slide="slide" Number="@(i + 1)" Eager="true" />
                 @if (_view.MayManage && !string.IsNullOrWhiteSpace(slide.Notes))
                 {
                     <p class="praesentation-druck-notiz"><b>Notizen:</b> @slide.Notes</p>

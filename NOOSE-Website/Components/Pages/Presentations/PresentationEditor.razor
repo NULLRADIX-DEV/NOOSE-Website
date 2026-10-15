@@ -2,6 +2,7 @@
 @page "/praesentationen/{Id}/bearbeiten"
 @attribute [Authorize(Policy = Policies.InternalAgent)]
 @inject IPresentationService Presentations
+@inject NOOSE_Website.Services.Import.ISlidesImportService SlidesImport
 @inject ITextImageStorageService ImageStorage
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -54,6 +55,38 @@ else
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettingsAsync" Disabled="_busy">Speichern</MudButton>
             </MudStack>
         </MudExpansionPanel>
+        @if (_view.Files.Count > 0)
+        {
+            <MudExpansionPanel Text="@($"Google-Importe ({_view.Files.Count})")">
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr><th>Präsentation</th><th>Seiten</th><th>Folien</th><th>Quelle</th><th>Importiert</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var file in _view.Files)
+                        {
+                            <tr>
+                                <td>@file.Title</td>
+                                <td>@file.PageCount</td>
+                                <td>@file.SlideCount</td>
+                                <td>@(file.SourceKind switch { ImportSourceKind.Link => "Freigabe-Link", ImportSourceKind.Drive => "Google-Anmeldung", _ => "Datei" })</td>
+                                <td>@file.ImportedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @file.ImportedByCodename</td>
+                                <td style="text-align:right; white-space:nowrap;">
+                                    <MudTooltip Text="Aktualisieren">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Sync" Size="Size.Small" Disabled="_busy"
+                                                       OnClick="@(() => RefreshImportAsync(file))" />
+                                    </MudTooltip>
+                                    <MudTooltip Text="Mit allen Folien entfernen">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="_busy"
+                                                       OnClick="@(() => RemoveImportAsync(file))" />
+                                    </MudTooltip>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudExpansionPanel>
+        }
     </MudExpansionPanels>
 
     <MudGrid>
@@ -67,6 +100,8 @@ else
                             @PresentationDisplay.Name(layout)
                         </MudMenuItem>
                     }
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.CloudDownload" OnClick="ImportSlidesAsync">Aus Google Slides einfügen</MudMenuItem>
                 </MudMenu>
                 <div class="praesentation-leiste">
                     @for (var i = 0; i < _slides.Count; i++)
@@ -211,6 +246,9 @@ else
             Title = _slideInput.Title,
             BodyHtml = _bodySeed,
             ImageId = _selected.ImageId,
+            PdfFileId = _selected.PdfFileId,
+            PdfFile = _selected.PdfFile,
+            PageNumber = _selected.PageNumber,
         };
 
     protected override async Task OnParametersSetAsync()
@@ -420,6 +458,47 @@ else
         finally
         {
             _busy = false;
+        }
+    }
+
+    private Task ImportSlidesAsync()
+        => RunAsync(async () =>
+        {
+            var before = _slides.Count;
+            if (!await SlidesImportDialog.ShowAppendAsync(DialogService, _user, Id!))
+            {
+                return _selected?.Id;
+            }
+            Snackbar.Add("Folien eingefügt.", Severity.Success);
+            // the first imported page, so the author sees where they went
+            var fresh = await Presentations.GetAsync(Id!, _user);
+            return fresh is not null && fresh.Slides.Count > before ? fresh.Slides[before].Id : _selected?.Id;
+        });
+
+    private Task RefreshImportAsync(PresentationFileItem file)
+        => RunAsync(async () =>
+        {
+            if (await SlidesImportDialog.ShowRefreshAsync(DialogService, _user, file) is { } changed)
+            {
+                Snackbar.Add(
+                    $"Aktualisiert: {changed.Pages} Seiten" + (changed.Added > 0 ? $", {changed.Added} neue Folien" : "")
+                        + (changed.Removed > 0 ? $", {changed.Removed} Folien entfernt" : "") + ".",
+                    Severity.Success);
+            }
+            return _selected?.Id;
+        });
+
+    private async Task RemoveImportAsync(PresentationFileItem file)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Import entfernen?",
+            $"„{file.Title}“ wird mit allen {file.SlideCount} Folien daraus aus der Präsentation entfernt.");
+        if (ok)
+        {
+            await RunAsync(async () =>
+            {
+                await SlidesImport.RemoveAsync(file.Id, _user);
+                return _selected?.PdfFileId == file.Id ? null : _selected?.Id;
+            });
         }
     }
 
