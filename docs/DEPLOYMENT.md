@@ -38,6 +38,7 @@ Secrets und Umgebung liegen nur auf dem Server, nie im Repo. Die Schlüssel schr
 
 - `ConnectionStrings__ProductionConnection` mit `Server=db;...`
 - `Authentication__Discord__ClientId` und `Authentication__Discord__ClientSecret`
+- optional `GoogleDrive__ClientId`, `GoogleDrive__ApiKey` und `GoogleDrive__AppId` für den Import über die Google-Anmeldung (siehe unten). Fehlt einer der drei Werte, blendet die App den Weg aus.
 - `Bootstrap__AdminDiscordId`
 - `Llm__ApiKey` für OpenRouter und `Llm__DeepSeek__ApiKey` für DeepSeek direkt. Welchen Anbieter die App nutzt, wählt der KI-Eigner unter `/einstellungen?tab=ki-anbieter`. Wer das ist, bestimmt `Ki__OwnerDiscordId`.
 - `TZ=Europe/Berlin`. Ohne diese Zeile läuft der Container in UTC. Weil `.ToLocalTime()` in Blazor Server die Zeitzone des Servers nimmt, sind dann alle Zeiten 2 Stunden zu früh, kurz nach Mitternacht sogar am falschen Tag.
@@ -47,6 +48,31 @@ Prod setzt `Demo__AutoSetup=false` fest in `deploy/compose.yml`.
 Nach einer Änderung der Umgebung muss der Container neu erstellt werden, ein Neustart reicht nicht. `restart` liest die Env-Datei nicht neu, und `TimeZoneInfo.Local` merkt sich der Prozess. Lass also den Deploy-Workflow laufen.
 
 Für den Login braucht Discord im Developer Portal unter OAuth2 → Redirects die Adresse `https://noose.info/signin-discord`, für die Demo `https://demo.noose.info/signin-discord`.
+
+### Google-Anmeldung für den Import
+
+Google meldet niemanden bei NOOSE an. Agents verbinden Google nur, um ein Dokument oder eine Präsentation zu importieren, die nicht per Link freigegeben ist. Die App fragt nur den Scope `drive.file` an: Sie liest damit allein die Datei, die der Agent im Google-Fenster wählt. Ein Token speichert sie nicht.
+
+Einrichtung in der [Google Cloud Console](https://console.cloud.google.com/):
+
+1. Ein Projekt anlegen. Die **Projektnummer** (nur Ziffern, auf der Startseite des Projekts) wird `GoogleDrive__AppId`.
+2. Unter „APIs & Dienste → Bibliothek“ die **Google Picker API** und die **Google Drive API** aktivieren.
+3. Unter „Google Auth Platform“ den Zustimmungsbildschirm einrichten: Typ „Extern“, App-Name, Support-Adresse und die Domain `noose.info`. Als Scope nur `.../auth/drive.file` eintragen. Er gilt nicht als sensibel, deshalb entfällt Googles Sicherheitsprüfung; nur ein hochgeladenes Logo lässt Google das Branding prüfen. Danach die App auf „In Produktion“ stellen, sonst kommen nur eingetragene Testnutzer hinein.
+4. Unter „Clients“ einen OAuth-Client vom Typ „Webanwendung“ anlegen. Autorisierte JavaScript-Quelle ist `https://noose.info`. Eine Weiterleitungs-URI braucht er nicht. Die Client-ID wird `GoogleDrive__ClientId`.
+5. Unter „Anmeldedaten“ einen API-Schlüssel anlegen und einschränken: Anwendungen auf „Websites“ mit `https://noose.info/*` **und** `https://docs.google.com/*` (der Picker läuft in einem Rahmen von docs.google.com, ohne diesen Eintrag meldet er „API developer key is invalid“), APIs auf die Google Picker API und die Google Drive API. Er wird `GoogleDrive__ApiKey`.
+
+Für lokale Tests nicht den Prod-Client erweitern, sondern im selben Projekt einen zweiten Client und Schlüssel anlegen: JavaScript-Quellen `http://localhost` und `http://localhost:5174`, Schlüssel für `http://localhost/*` und `https://docs.google.com/*`. Die Werte kommen in die User-Secrets.
+
+Client-ID, API-Schlüssel und Projektnummer sind keine Geheimnisse, der Browser bekommt sie ohnehin. Trotzdem stehen sie nur in der Env-Datei auf dem Server, damit Demo und Prod getrennt bleiben.
+
+Setzt ein Reverse-Proxy eine Content-Security-Policy, braucht sie:
+
+- `script-src`: `https://accounts.google.com/gsi/client` und `https://apis.google.com`
+- `connect-src`: `https://accounts.google.com/gsi/`
+- `style-src`: `https://accounts.google.com/gsi/style`
+- `frame-src`: `https://docs.google.com` und `https://accounts.google.com/gsi/`
+
+Eine `Cross-Origin-Opener-Policy` muss `same-origin-allow-popups` sein, sonst bleibt das Google-Fenster leer.
 
 ## Das Image
 

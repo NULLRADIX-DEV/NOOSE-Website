@@ -57,12 +57,14 @@ public sealed record PresentationView(
 public sealed record PresentationPdfAccess(string FileNameSaved, int Revision, DateTime ImportedAt);
 
 /// <summary>One imported Google Slides deck of a presentation.</summary>
+/// <param name="SourceId">Google file id of a deck that came by link or sign-in; a refresh reads that file.</param>
 /// <param name="SlideCount">Slides of the presentation that show one of its pages.</param>
 public sealed record PresentationFileItem(
     string Id,
     string Title,
     int PageCount,
     ImportSourceKind SourceKind,
+    string? SourceId,
     DateTime ImportedAt,
     string ImportedByCodename,
     int SlideCount);

@@ -1,5 +1,7 @@
+@using Microsoft.Extensions.Options
 @using NOOSE_Website.Services.Import
 @inject IGoogleImportService GoogleImport
+@inject IOptions<GoogleDriveOptions> DriveOptions
 @inject ISnackbar Snackbar
 @inject ILogger<GoogleImportDialog> Logger
 
@@ -12,6 +14,22 @@
                                   Placeholder="https://docs.google.com/document/d/…/edit"
                                   HelperText="In Google: Teilen → Allgemeiner Zugriff → „Jeder mit dem Link“ (Betrachter)." />
                 </MudTabPanel>
+                @if (DriveOptions.Value.IsConfigured)
+                {
+                    <MudTabPanel Text="Google-Anmeldung" Icon="@Icons.Custom.Brands.Google">
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Melde dich bei Google an und wähle das Dokument. Geht auch mit Dokumenten, die nicht freigegeben
+                            sind; NOOSE darf nur die Datei lesen, die du wählst.
+                        </MudText>
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                            <GoogleDrivePicker Kind="GoogleFileKind.Document" Disabled="_busy" OnPicked="Picked" />
+                            @if (_drive is not null)
+                            {
+                                <MudText Typo="Typo.body2">Gewählt: <b>@_drive.Name</b></MudText>
+                            }
+                        </MudStack>
+                    </MudTabPanel>
+                }
                 <MudTabPanel Text="Datei hochladen" Icon="@Icons.Material.Filled.Upload">
                     <MudText Typo="Typo.body2" Class="mb-2">
                         In Google: <i>Datei → Herunterladen → Webseite (.html, gezippt)</i>. Geht auch mit Dokumenten,
@@ -64,8 +82,11 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public ClaimsPrincipal User { get; set; } = default!;
 
+    private enum Source { Link, Drive, Upload }
+
     private int _sourceTab;
     private string? _link;
+    private GoogleDriveChoice? _drive;
     private byte[]? _upload;
     private string? _fileName;
     private GoogleImportMode _mode = GoogleImportMode.Original;
@@ -75,9 +96,24 @@
     private IReadOnlyList<DocumentClassification> _classificationOptions = [];
     private bool _busy;
 
-    private bool Ready => _sourceTab == 0 ? !string.IsNullOrWhiteSpace(_link) : _upload is not null;
+    // the sign-in tab sits between link and upload only when it is configured
+    private Source Chosen => _sourceTab switch
+    {
+        0 => Source.Link,
+        1 when DriveOptions.Value.IsConfigured => Source.Drive,
+        _ => Source.Upload,
+    };
+
+    private bool Ready => Chosen switch
+    {
+        Source.Link => !string.IsNullOrWhiteSpace(_link),
+        Source.Drive => _drive is not null,
+        _ => _upload is not null,
+    };
 
     protected override void OnInitialized() => _classificationOptions = DocumentViewerScope.AssignableOptions(User);
+
+    private void Picked(GoogleDriveChoice choice) => _drive = choice;
 
     private async Task PickAsync(IBrowserFile? file)
     {
@@ -85,6 +121,10 @@
         {
             return;
         }
+        // the previous choice goes first: while the new file streams in, importing must not send the old one
+        _upload = null;
+        _fileName = null;
+        _busy = true;
         try
         {
             await using var stream = file.OpenReadStream(GoogleExportFetcher.MaxBytes);
@@ -95,21 +135,31 @@
         }
         catch (IOException)
         {
-            _upload = null;
-            _fileName = null;
             Snackbar.Add("Die Datei ist zu groß (höchstens 25 MB).", Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            // outside the page's error boundary: a file the browser cannot read must not end the circuit
+            Logger.LogWarning(ex, "Reading an uploaded Google Docs zip failed.");
+            Snackbar.Add("Die Datei ließ sich nicht lesen. Wähle sie noch einmal.", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
         }
     }
 
     private async Task ImportAsync()
     {
+        var source = Chosen;
         _busy = true;
         try
         {
             var document = await GoogleImport.ImportDocumentAsync(new GoogleDocImportInput
             {
-                Link = _sourceTab == 0 ? _link : null,
-                UploadZip = _sourceTab == 1 ? _upload : null,
+                Link = source == Source.Link ? _link : null,
+                Drive = source == Source.Drive ? _drive?.Pick : null,
+                UploadZip = source == Source.Upload ? _upload : null,
                 Mode = _mode,
                 Title = _title,
                 Category = _category,

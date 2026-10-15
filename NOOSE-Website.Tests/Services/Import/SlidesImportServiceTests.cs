@@ -54,6 +54,7 @@ public sealed class SlidesImportServiceTests
         var fetcher = Substitute.For<IGoogleExportFetcher>();
         fetcher.FetchPresentationPdfAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
             .Returns(TestPdf.Make(googlePages, "Deck aus Google"));
+        fetcher.IsDriveConfigured.Returns(true);
         var storage = new FakeFileStorage();
         var registry = new PresentationLiveRegistry();
         var broadcaster = new PresentationBroadcaster();
@@ -253,7 +254,7 @@ public sealed class SlidesImportServiceTests
         await rig.Presentations.UpdateSlideAsync(page2, new SlideInput { Layout = SlideLayout.PdfPage, Notes = "Hier Pause" }, owner);
         GoogleAnswers(rig, 5);
 
-        var result = await rig.Svc.RefreshAsync(fileId, null, null, owner);
+        var result = await rig.Svc.RefreshAsync(fileId, null, null, null, owner);
 
         Assert.Equal(new SlidesRefreshResult(5, 2, 0), result);
         Assert.Equal("p1,p2,p3,p4,p5,TitleText", Order(ctx, id));
@@ -284,7 +285,7 @@ public sealed class SlidesImportServiceTests
         await rig.Presentations.DeleteSlideAsync(page2, owner);
         GoogleAnswers(rig, 3);
 
-        var result = await rig.Svc.RefreshAsync(fileId, null, null, owner);
+        var result = await rig.Svc.RefreshAsync(fileId, null, null, null, owner);
 
         Assert.Equal(new SlidesRefreshResult(3, 0, 1), result);
         Assert.Equal("p1,p3", Order(ctx, id));
@@ -307,9 +308,9 @@ public sealed class SlidesImportServiceTests
             linkFile = db.PresentationFiles.Single(f => f.PresentationId == linked).Id;
         }
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Svc.RefreshAsync(uploadFile, null, null, owner));
-        await rig.Svc.RefreshAsync(uploadFile, TestPdf.Make(3), "Neu.pdf", owner);
-        await rig.Svc.RefreshAsync(linkFile, TestPdf.Make(1), "Lokal.pdf", owner);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Svc.RefreshAsync(uploadFile, null, null, null, owner));
+        await rig.Svc.RefreshAsync(uploadFile, TestPdf.Make(3), "Neu.pdf", null, owner);
+        await rig.Svc.RefreshAsync(linkFile, TestPdf.Make(1), "Lokal.pdf", null, owner);
 
         Assert.Equal("p1,p2,p3", Order(ctx, uploaded));
         Assert.Equal("p1", Order(ctx, linked));
@@ -331,7 +332,7 @@ public sealed class SlidesImportServiceTests
             fileId = db.PresentationFiles.Single().Id;
         }
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => rig.Svc.RefreshAsync(fileId, null, null, Owner()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => rig.Svc.RefreshAsync(fileId, null, null, null, Owner()));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => rig.Svc.RemoveAsync(fileId, Owner()));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => rig.Svc.RemoveAsync(fileId,
             ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build()));
@@ -378,7 +379,7 @@ public sealed class SlidesImportServiceTests
         {
             fileId = db.PresentationFiles.Single().Id;
         }
-        await rig.Svc.RefreshAsync(fileId, null, null, owner);
+        await rig.Svc.RefreshAsync(fileId, null, null, null, owner);
         await rig.Svc.RemoveAsync(fileId, owner);
 
         Assert.Equal(
@@ -438,7 +439,7 @@ public sealed class SlidesImportServiceTests
                 return TestPdf.Make(5);
             });
 
-        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Svc.RefreshAsync(fileId, null, null, owner));
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => rig.Svc.RefreshAsync(fileId, null, null, null, owner));
 
         Assert.Contains("gerade von jemand anderem geändert", error.Message);
         Assert.Equal("p1,p2,p3", Order(ctx, id));
@@ -459,7 +460,7 @@ public sealed class SlidesImportServiceTests
         }
 
         var before = await rig.Presentations.GetPdfAccessAsync(fileId, owner);
-        await rig.Svc.RefreshAsync(fileId, null, null, owner);
+        await rig.Svc.RefreshAsync(fileId, null, null, null, owner);
         var after = await rig.Presentations.GetPdfAccessAsync(fileId, owner);
 
         Assert.Equal((1, 2), (before!.Revision, after!.Revision));
@@ -486,6 +487,91 @@ public sealed class SlidesImportServiceTests
         Assert.Equal("p1,p2,p3,p3", Order(ctx, id));
         var import = Assert.Single(view!.Files);
         Assert.Equal(("Deck aus Google", 3, 4, ImportSourceKind.Link), (import.Title, import.PageCount, import.SlideCount, import.SourceKind));
+        Assert.Equal(GoogleId, import.SourceId);
         Assert.All(view.Slides, s => Assert.Equal(1, s.PdfFile!.Revision));
+    }
+
+    // ---------- Google sign-in ----------
+
+    private const string DriveId = "1ZyXwVuTsRqPoNmLkJiHgFeDcBa9876543210";
+
+    private static GoogleDrivePick Pick(string id = DriveId) => new(id, "ya29.a0-test-token-for-one-fetch");
+
+    private static void DriveAnswers(Rig rig, int pages, string? name = "Deck in Drive")
+        => rig.Fetcher.FetchDrivePresentationPdfAsync(Arg.Any<GoogleDrivePick>(), Arg.Any<long>(), Arg.Any<CancellationToken>())
+            .Returns(new DriveExport(TestPdf.Make(pages, "Titel im PDF"), name));
+
+    [Fact]
+    public async Task A_deck_picked_through_the_sign_in_is_named_as_in_drive_and_keeps_its_id()
+    {
+        using var ctx = new SqliteTestContext();
+        var rig = Build(ctx);
+        DriveAnswers(rig, 2);
+
+        var id = await rig.Svc.ImportAsync(new SlidesImportInput
+        {
+            Drive = Pick(),
+            Settings = new PresentationInput { Title = string.Empty, Access = PresentationAccess.Public },
+        }, Owner());
+
+        using var db = ctx.NewContext();
+        Assert.Equal("Deck in Drive", db.Presentations.Single(p => p.Id == id).Title);
+        var file = db.PresentationFiles.Single(f => f.PresentationId == id);
+        Assert.Equal((ImportSourceKind.Drive, DriveId, "Deck in Drive"), (file.SourceKind, file.SourceId, file.Title));
+        Assert.Equal("p1,p2", Order(ctx, id));
+        await rig.Fetcher.Received(1).FetchDrivePresentationPdfAsync(Pick(), rig.Storage.MaxBytes, Arg.Any<CancellationToken>());
+        await rig.Fetcher.DidNotReceive().FetchPresentationPdfAsync(Arg.Any<string>(), Arg.Any<long>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_sign_in_refresh_takes_only_the_deck_the_import_came_from()
+    {
+        using var ctx = new SqliteTestContext();
+        var rig = Build(ctx);
+        var owner = Owner();
+        DriveAnswers(rig, 2);
+        var id = await rig.Svc.ImportAsync(new SlidesImportInput { Drive = Pick(), Settings = NewDeck().Settings }, owner);
+        string fileId;
+        using (var db = ctx.NewContext())
+        {
+            fileId = db.PresentationFiles.Single().Id;
+        }
+        DriveAnswers(rig, 3, name: "Umbenannt in Drive");
+
+        var other = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            rig.Svc.RefreshAsync(fileId, null, null, Pick(GoogleId), owner));
+        var none = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            rig.Svc.RefreshAsync(fileId, null, null, null, owner));
+        var result = await rig.Svc.RefreshAsync(fileId, null, null, Pick(), owner);
+
+        Assert.Contains("andere Google-Datei", other.Message);
+        Assert.Contains("Google-Anmeldung", none.Message);
+        Assert.Equal(new SlidesRefreshResult(3, 1, 0), result);
+        Assert.Equal("p1,p2,p3", Order(ctx, id));
+        using var check = ctx.NewContext();
+        Assert.Equal("Umbenannt in Drive", check.PresentationFiles.Single().Title);
+    }
+
+    [Fact]
+    public async Task A_link_deck_whose_share_was_withdrawn_refreshes_through_the_sign_in_and_stays_a_link_deck()
+    {
+        using var ctx = new SqliteTestContext();
+        var rig = Build(ctx);
+        var owner = Owner();
+        var id = await rig.Svc.ImportAsync(NewDeck(), owner);
+        string fileId;
+        using (var db = ctx.NewContext())
+        {
+            fileId = db.PresentationFiles.Single().Id;
+        }
+        DriveAnswers(rig, 3, name: null);
+
+        await rig.Svc.RefreshAsync(fileId, null, null, Pick(GoogleId), owner);
+
+        using var check = ctx.NewContext();
+        var file = check.PresentationFiles.Single();
+        // without a name from Drive the PDF's own title stands; the stored link still serves everyone else
+        Assert.Equal((ImportSourceKind.Link, GoogleId, "Titel im PDF", 2), (file.SourceKind, file.SourceId, file.Title, file.Revision));
+        Assert.Equal("p1,p2,p3", Order(ctx, id));
     }
 }

@@ -221,10 +221,14 @@ builder.Services.AddScoped<IPresentationFileStorageService, PresentationFileStor
 // one import of the slide renderer per circuit, shared by every slide on the page
 builder.Services.AddScoped<NOOSE_Website.Infrastructure.Presentations.PresentationScript>();
 // Google import: the client follows no redirect by itself, the fetcher allows only Google's own download hosts.
-// A minute, because Google renders a large Slides deck to PDF before the first byte comes
+// A minute, because Google renders a large Slides deck to PDF before the first byte comes. No cookies: the pooled
+// handler is shared by every agent, and some requests carry an agent's own Google token
 builder.Services.AddHttpClient(NOOSE_Website.Services.Import.GoogleExportFetcher.ClientName,
         client => client.Timeout = TimeSpan.FromSeconds(60))
-    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+// Google sign-in for the import only (Picker + drive.file); Discord stays the login. Unset values hide it
+builder.Services.Configure<NOOSE_Website.Services.Import.GoogleDriveOptions>(
+    builder.Configuration.GetSection(NOOSE_Website.Services.Import.GoogleDriveOptions.Section));
 builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleExportFetcher, NOOSE_Website.Services.Import.GoogleExportFetcher>();
 builder.Services.AddScoped<NOOSE_Website.Services.Import.IGoogleImportService, NOOSE_Website.Services.Import.GoogleImportService>();
 builder.Services.AddScoped<NOOSE_Website.Services.Import.ISlidesImportService, NOOSE_Website.Services.Import.SlidesImportService>();

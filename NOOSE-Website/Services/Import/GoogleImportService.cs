@@ -19,10 +19,12 @@ public enum GoogleImportMode
     Editable = 1,
 }
 
-/// <summary>A Google Docs import: a shared link or an uploaded zip, plus the library fields.</summary>
+/// <summary>A Google Docs import: a shared link, a file picked through the Google sign-in or an uploaded zip, plus the
+/// library fields.</summary>
 public sealed class GoogleDocImportInput
 {
     public string? Link { get; set; }
+    public GoogleDrivePick? Drive { get; set; }
     public byte[]? UploadZip { get; set; }
     public GoogleImportMode Mode { get; set; }
 
@@ -37,8 +39,10 @@ public interface IGoogleImportService
 {
     Task<Document> ImportDocumentAsync(GoogleDocImportInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Fetches an imported original again; an upload needs the new zip, a link is fetched by itself.</summary>
-    Task ReimportDocumentAsync(string documentId, byte[]? uploadZip, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Fetches an imported original again: from a new zip, from the file picked through the Google sign-in,
+    /// or, with neither, from the stored link. A picked file must be the one the document came from.</summary>
+    Task ReimportDocumentAsync(string documentId, byte[]? uploadZip, GoogleDrivePick? drive, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Drops the 1:1 original and keeps the simplified copy as an ordinary editable document.</summary>
     Task ConvertToEditableAsync(string documentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
@@ -68,7 +72,8 @@ public sealed partial class GoogleImportService(
         Permission.RequireInternalAgent(actor);
         Permission.RequireMayAssignClassification(actor, input.Classification);
 
-        var (sourceKind, sourceId, zip) = await ResolveSourceAsync(input.Link, input.UploadZip, actor, cancellationToken);
+        var (sourceKind, sourceId, zip, sourceName) = await ResolveSourceAsync(input.Link, input.Drive, input.UploadZip, actor,
+            cancellationToken);
         var (html, images) = GoogleDocConverter.ReadZip(zip);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -80,7 +85,7 @@ public sealed partial class GoogleImportService(
                 image => StoreImageAsync(db, document.Id, image, saved, cancellationToken));
             RequireContent(conversion);
 
-            document.Title = Cap(TestEngine.Trim(input.Title) ?? conversion.Title ?? "Google-Dokument", 300);
+            document.Title = Cap(TestEngine.Trim(input.Title) ?? conversion.Title ?? sourceName ?? "Google-Dokument", 300);
             document.Category = input.Category.TrimToNull() is { } category ? Cap(category, 120) : null;
             document.Classification = input.Classification;
             document.ContentHtml = conversion.EditableHtml;
@@ -100,7 +105,7 @@ public sealed partial class GoogleImportService(
         }
     }
 
-    public async Task ReimportDocumentAsync(string documentId, byte[]? uploadZip, ClaimsPrincipal actor,
+    public async Task ReimportDocumentAsync(string documentId, byte[]? uploadZip, GoogleDrivePick? drive, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
         Permission.RequireWriteAccess(actor);
@@ -112,18 +117,18 @@ public sealed partial class GoogleImportService(
         {
             throw new InvalidOperationException("Nur ein importiertes Original lässt sich aktualisieren.");
         }
-        var link = document.ImportSourceKind switch
+        RequireSameFile(drive, document.ImportSourceId);
+        var link = document.ImportSourceKind == ImportSourceKind.Link && uploadZip is null && drive is null
+            ? $"https://docs.google.com/document/d/{document.ImportSourceId}/"
+            : null;
+        if (link is null && uploadZip is null && drive is null)
         {
-            ImportSourceKind.Link when uploadZip is null => $"https://docs.google.com/document/d/{document.ImportSourceId}/",
-            ImportSourceKind.Drive when uploadZip is null => throw new InvalidOperationException(
-                "Dieses Dokument kam über die Google-Anmeldung; lade die Datei für die Aktualisierung hoch."),
-            _ => null,
-        };
-        if (link is null && uploadZip is null)
-        {
-            throw new InvalidOperationException("Lade die aktuelle Fassung als Zip hoch („Webseite (.html, gezippt)“).");
+            throw new InvalidOperationException(document.ImportSourceKind == ImportSourceKind.Drive
+                ? "Wähle die Datei über die Google-Anmeldung oder lade die aktuelle Fassung als Zip hoch."
+                : "Lade die aktuelle Fassung als Zip hoch („Webseite (.html, gezippt)“).");
         }
-        var (sourceKind, sourceId, zip) = await ResolveSourceAsync(link, uploadZip, actor, cancellationToken);
+        var (sourceKind, sourceId, zip, _) = await ResolveSourceAsync(link, drive, uploadZip, actor, cancellationToken);
+        sourceKind = KeptKind(document.ImportSourceKind, sourceKind);
         var (html, images) = GoogleDocConverter.ReadZip(zip);
         var before = await ImageIdsAsync(db, document.Id, cancellationToken);
 
@@ -170,10 +175,11 @@ public sealed partial class GoogleImportService(
         await SweepImagesAsync(document.Id, before, document.ContentHtml, cancellationToken);
     }
 
-    /// <summary>The export's bytes and where they came from; a link wins over an upload. The quota is taken only once
-    /// the source is valid, so a mistyped link costs none.</summary>
-    private async Task<(ImportSourceKind Kind, string? Id, byte[] Zip)> ResolveSourceAsync(string? link, byte[]? upload,
-        ClaimsPrincipal actor, CancellationToken cancellationToken)
+    /// <summary>The export's bytes, where they came from and, through the sign-in, the file's name in Drive; a link
+    /// wins over a picked file, a picked file over an upload. The quota is taken only once the source is valid, so a
+    /// mistyped link costs none.</summary>
+    private async Task<(ImportSourceKind Kind, string? Id, byte[] Zip, string? Name)> ResolveSourceAsync(string? link,
+        GoogleDrivePick? drive, byte[]? upload, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(link))
         {
@@ -181,7 +187,14 @@ public sealed partial class GoogleImportService(
                 ?? throw new GoogleExportException(
                     "Das ist kein Link auf ein Google-Dokument (https://docs.google.com/document/d/…).");
             GoogleImportQuota.Take(actor);
-            return (ImportSourceKind.Link, fileId, await fetcher.FetchDocumentZipAsync(fileId, cancellationToken));
+            return (ImportSourceKind.Link, fileId, await fetcher.FetchDocumentZipAsync(fileId, cancellationToken), null);
+        }
+        if (drive is not null)
+        {
+            GoogleExportFetcher.RequireUsable(drive, fetcher.IsDriveConfigured);
+            GoogleImportQuota.Take(actor);
+            var export = await fetcher.FetchDriveDocumentZipAsync(drive, cancellationToken);
+            return (ImportSourceKind.Drive, drive.FileId, export.Bytes, export.Name);
         }
         if (upload is { Length: > 0 })
         {
@@ -190,9 +203,23 @@ public sealed partial class GoogleImportService(
                 throw new GoogleExportException("Die Datei ist zu groß (höchstens 25 MB).");
             }
             GoogleImportQuota.Take(actor);
-            return (ImportSourceKind.Upload, null, upload);
+            return (ImportSourceKind.Upload, null, upload, null);
         }
-        throw new InvalidOperationException("Gib einen Freigabe-Link an oder lade die Datei hoch.");
+        throw new InvalidOperationException("Gib einen Freigabe-Link an, wähle die Datei über Google oder lade sie hoch.");
+    }
+
+    /// <summary>The same Google file read through the sign-in leaves a link import a link import: everyone can still
+    /// refresh it by link, without a Google account of their own.</summary>
+    internal static ImportSourceKind KeptKind(ImportSourceKind? before, ImportSourceKind now)
+        => before == ImportSourceKind.Link && now == ImportSourceKind.Drive ? ImportSourceKind.Link : now;
+
+    /// <summary>A refresh through the sign-in reads the file the import came from, not another one.</summary>
+    internal static void RequireSameFile(GoogleDrivePick? drive, string? sourceId)
+    {
+        if (drive is not null && sourceId is not null && !string.Equals(drive.FileId, sourceId, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Das ist eine andere Google-Datei als die, aus der dieser Import stammt.");
+        }
     }
 
     private static async Task<Document> LoadVisibleAsync(AppDbContext db, string documentId, ClaimsPrincipal actor,

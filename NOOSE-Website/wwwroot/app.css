@@ -2431,3 +2431,12 @@ div.vis-tooltip {
     margin-top: 6px;
     white-space: pre-line;
 }
+
+/* the Google Picker opens over a dialog; MudBlazor dialogs sit at z-index 1400 */
+.picker-dialog-bg {
+    z-index: 2000 !important;
+}
+
+.picker-dialog {
+    z-index: 2001 !important;
+}
