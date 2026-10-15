@@ -67,6 +67,14 @@ public class AgentTestService(
             {
                 throw new InvalidOperationException("Bitte wähle eine Taskforce.");
             }
+            // the result counts and the overview names the members: a taskforce the assigner may not see must not
+            // become a way to list who is in it
+            if (audience == AnnouncementAudience.Taskforce
+                && !await db.Taskforces.OnlyVisible(db, actor.MayAllTaskforcesSee(), actor.GetAgentId())
+                    .AnyAsync(t => t.Id == targets.TargetId, cancellationToken))
+            {
+                throw new UnauthorizedAccessException("Diese Taskforce kannst du nicht als Zielgruppe wählen.");
+            }
             if (audience == AnnouncementAudience.FromRank && targets.MinRank is null)
             {
                 throw new InvalidOperationException("Bitte wähle einen Mindest-Dienstgrad.");
@@ -75,9 +83,13 @@ public class AgentTestService(
                 targets.MinRank, cancellationToken));
         }
         recipients = recipients.Distinct(StringComparer.Ordinal).ToList();
+        // whoever grades does not take the test: a grader could otherwise pass themselves and write their own entry
+        var self = recipients.Remove(actor.GetAgentId() ?? string.Empty);
         if (recipients.Count == 0)
         {
-            throw new InvalidOperationException("Niemand ausgewählt, an den der Test gehen kann.");
+            throw new InvalidOperationException(self
+                ? "Einen Test kannst du dir nicht selbst zuweisen."
+                : "Niemand ausgewählt, an den der Test gehen kann.");
         }
 
         // an ungraded assignment of the same test is still running; a second one would split the attempt
@@ -188,6 +200,7 @@ public class AgentTestService(
 
         var assignment = await db.AgentTestAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
+        RequireNotOwn(assignment, actor);
         if (assignment.CompletedAt is null)
         {
             throw new InvalidOperationException("Der Test ist noch nicht abgegeben.");
@@ -225,8 +238,9 @@ public class AgentTestService(
         Permission.RequireHrbOrLeadershipWrite(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
-        var assignment = await db.AgentTestAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
+        var assignment = await db.AgentTestAssignments.AsNoTracking().FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
+        RequireNotOwn(assignment, actor);
         if (assignment.CompletedAt is null)
         {
             throw new InvalidOperationException("Der Agent hat den Test noch nicht abgegeben.");
@@ -242,12 +256,25 @@ public class AgentTestService(
                 $"Noch {report.OpenCount} Frage(n) ohne Wertung. Bitte zuerst alle bewerten.");
         }
 
-        assignment.GradedAt = DateTime.UtcNow;
-        assignment.GradedByName = actor.GetCodename();
-        assignment.FinalPoints = report.TotalPoints;
-        assignment.FinalMaxPoints = report.MaxPoints;
-        assignment.FinalPassPercent = report.PassPercent;
-        assignment.Passed = report.Passed;
+        // claimed, not checked: two graders closing at once would otherwise both write a personnel entry
+        var now = DateTime.UtcNow;
+        var graderName = actor.GetCodename();
+        var claimed = await db.AgentTestAssignments
+            .Where(a => a.Id == assignment.Id && a.GradedAt == null && a.CompletedAt != null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(a => a.GradedAt, now)
+                .SetProperty(a => a.GradedByName, graderName)
+                .SetProperty(a => a.FinalPoints, report.TotalPoints)
+                .SetProperty(a => a.FinalMaxPoints, report.MaxPoints)
+                .SetProperty(a => a.FinalPassPercent, report.PassPercent)
+                .SetProperty(a => a.Passed, report.Passed), cancellationToken);
+        if (claimed != 1)
+        {
+            return;
+        }
+        // ExecuteUpdate bypasses the interceptors
+        db.AuditLogs.Add(ManualAudit.Row(nameof(AgentTestAssignment), assignment.Id, AuditAction.Modified, actor,
+            ManualAudit.Change("Korrektur abgeschlossen", null, $"{report.TotalPoints}/{report.MaxPoints}")));
         await db.SaveChangesAsync(cancellationToken);
         broadcaster.Report(assignment.Id, assignment.AgentId);
 
@@ -255,9 +282,17 @@ public class AgentTestService(
         var test = await db.BewerbungTests.IgnoreQueryFilters().AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == assignment.TestId, cancellationToken);
         var title = test?.Title ?? report.Title;
-        if (report.Passed == true && !string.IsNullOrEmpty(test?.TrainingModuleId))
+        if (!string.IsNullOrEmpty(test?.TrainingModuleId))
         {
-            await TickModuleAsync(assignment.AgentId, test.TrainingModuleId, title, actor, cancellationToken);
+            if (report.Passed == true)
+            {
+                await TickModuleAsync(assignment.AgentId, test.TrainingModuleId, title, actor, cancellationToken);
+            }
+            else
+            {
+                // a regrade from passed to failed takes back the tick this test set, never one set by hand
+                await UntickModuleAsync(assignment.AgentId, test.TrainingModuleId, title, actor, cancellationToken);
+            }
         }
         await WritePersonnelNoteAsync(assignment.Id, title, report, actor, cancellationToken);
 
@@ -279,9 +314,22 @@ public class AgentTestService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var assignment = await db.AgentTestAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
+        RequireNotOwn(assignment, actor);
         if (assignment.GradedAt is null)
         {
             return;
+        }
+        // a deleted test has no pass mark to grade against; closing again would wipe the verdict
+        if (!await db.BewerbungTests.AnyAsync(t => t.Id == assignment.TestId, cancellationToken))
+        {
+            throw new InvalidOperationException("Der Test wurde gelöscht; seine Korrektur bleibt abgeschlossen.");
+        }
+        // a retake is under way: two open attempts of one test would split what "the result" is
+        if (await db.AgentTestAssignments.AnyAsync(a => a.Id != assignment.Id && a.AgentId == assignment.AgentId
+                && a.TestId == assignment.TestId && a.GradedAt == null, cancellationToken))
+        {
+            throw new InvalidOperationException(
+                "Für diesen Test läuft schon eine Wiederholung; die frühere Korrektur bleibt abgeschlossen.");
         }
         // the frozen figures go with it: leaving them would show a stale result next to live per-question points
         assignment.GradedAt = null;
@@ -305,9 +353,12 @@ public class AgentTestService(
 
         var assignment = await db.AgentTestAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
-        if (assignment.GradedAt is not null)
+        RequireNotOwn(assignment, actor);
+        // reopened for a regrade is still graded once: handing the questionnaire back after "korrigiert" is not
+        if (WasGraded(assignment))
         {
-            throw new InvalidOperationException("Die Korrektur ist abgeschlossen. Bitte sie zuerst wieder öffnen.");
+            throw new InvalidOperationException(
+                "Dieser Test wurde schon korrigiert. Für einen neuen Versuch weise ihn erneut zu.");
         }
         // an attempt handed in on time is finished; only the clock may reopen what the clock closed
         if (assignment is { CompletedAt: not null, TimedOut: false })
@@ -335,6 +386,8 @@ public class AgentTestService(
             assignment.DeadlineAt = (due > now ? due : now).AddMinutes(granted);
             assignment.CompletedAt = null;
             assignment.TimedOut = false;
+            // written even when unchanged against the snapshot: a close claimed in the meantime must be undone
+            ForceWrite(db, assignment, nameof(AgentTestAssignment.CompletedAt), nameof(AgentTestAssignment.TimedOut));
         }
         await db.SaveChangesAsync(cancellationToken);
 
@@ -348,6 +401,18 @@ public class AgentTestService(
             AuditAction.Modified, actor, ManualAudit.Change("Zusatzminuten", null, granted)));
         await db.SaveChangesAsync(cancellationToken);
         broadcaster.Report(assignment.Id, assignment.AgentId);
+
+        // the clock runs from now on; an agent who does not hear of it lets the extra minutes run out
+        try
+        {
+            await notifications.NotifyAsync(assignment.AgentId, NotificationType.TestAssigned,
+                $"Deine Bearbeitungszeit wurde um {granted} Minuten verlängert.", $"/tests/{assignment.Id}",
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Extension notice for {AssignmentId} failed.", assignment.Id);
+        }
     }
 
     public async Task ResetAsync(string assignmentId, string? reason, ClaimsPrincipal actor,
@@ -358,15 +423,19 @@ public class AgentTestService(
 
         var assignment = await db.AgentTestAssignments.FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
-        // a graded attempt is history with a personnel entry; a retake is a new assignment
-        if (assignment.GradedAt is not null)
+        RequireNotOwn(assignment, actor);
+        // a graded attempt is history with a personnel entry, also while reopened; a retake is a new assignment
+        if (WasGraded(assignment))
         {
             throw new InvalidOperationException(
                 "Ein korrigierter Test wird nicht neu freigegeben. Weise ihn für eine Wiederholung erneut zu.");
         }
-        if (!await db.BewerbungTests.AnyAsync(t => t.Id == assignment.TestId && t.IsActive, cancellationToken))
+        var usage = await db.BewerbungTests.AsNoTracking()
+            .Where(t => t.Id == assignment.TestId && t.IsActive).Select(t => (TestUsage?)t.Usage)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (usage is not { } u || !TestUsageDisplay.ForAgents(u))
         {
-            throw new InvalidOperationException("Der Test ist nicht mehr aktiv oder wurde gelöscht.");
+            throw new InvalidOperationException("Der Test ist nicht mehr aktiv, nicht mehr für Agenten freigegeben oder wurde gelöscht.");
         }
 
         // soft-deleted, not overwritten, so the previous attempt stays traceable
@@ -381,6 +450,10 @@ public class AgentTestService(
         assignment.TimedOut = false;
         assignment.CompletedAt = null;
         assignment.AttemptCount += 1;
+        // written even when unchanged against the snapshot: a close claimed in the meantime must be undone
+        ForceWrite(db, assignment, nameof(AgentTestAssignment.StartedAt), nameof(AgentTestAssignment.DeadlineAt),
+            nameof(AgentTestAssignment.TimeLimitMinutes), nameof(AgentTestAssignment.TimedOut),
+            nameof(AgentTestAssignment.CompletedAt));
         if (TestEngine.Trim(reason) is { } note)
         {
             db.AuditLogs.Add(ManualAudit.Row(nameof(AgentTestAssignment), assignment.Id,
@@ -410,7 +483,8 @@ public class AgentTestService(
         {
             return;
         }
-        if (assignment.GradedAt is not null)
+        RequireNotOwn(assignment, actor);
+        if (WasGraded(assignment))
         {
             throw new InvalidOperationException("Ein korrigierter Test bleibt in der Personalakte und wird nicht zurückgezogen.");
         }
@@ -547,6 +621,27 @@ public class AgentTestService(
         await UpsertAnswersAsync(db, assignment, answers, requireMandatory: false, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         // no broadcast: a draft is not news
+        return new TestDraftResult(TestDraftOutcome.Saved, assignment.DeadlineAt);
+    }
+
+    public async Task<TestDraftResult> CheckAsync(string assignmentId, int attemptNumber, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+    {
+        Permission.RequireTestTaker(actor);
+        var now = DateTime.UtcNow;
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
+        var assignment = await LoadOwnAsync(db, assignmentId, actor.GetAgentId(), cancellationToken);
+        if (assignment.CompletedAt is not null || assignment.AttemptCount != attemptNumber)
+        {
+            return new TestDraftResult(TestDraftOutcome.Closed, assignment.DeadlineAt);
+        }
+        if (TestDeadline.IsExpired(assignment.DeadlineAt, now))
+        {
+            // closed with what is stored: this page has nothing newer, and a second tab may have
+            await CloseExpiredAsync(db, assignment, now, cancellationToken);
+            return new TestDraftResult(TestDraftOutcome.Closed, assignment.DeadlineAt);
+        }
         return new TestDraftResult(TestDraftOutcome.Saved, assignment.DeadlineAt);
     }
 
@@ -695,20 +790,81 @@ public class AgentTestService(
     private async Task NotifySubmittedAsync(AppDbContext db, AgentTestAssignment assignment, string what,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrEmpty(assignment.AssignedById))
-        {
-            return;
-        }
         try
         {
             var codename = await db.Users.AsNoTracking()
                 .Where(u => u.Id == assignment.AgentId).Select(u => u.Codename).FirstOrDefaultAsync(cancellationToken);
-            await notifications.NotifyAsync(assignment.AssignedById, NotificationType.TestSubmitted,
-                $"{what}: {codename ?? "Agent"}", $"/tests/korrektur/{assignment.Id}", cancellationToken);
+            var graders = await GraderRecipientsAsync(db, assignment, cancellationToken);
+            await notifications.NotifyManyAsync(graders, NotificationType.TestSubmitted,
+                $"{what}: {codename ?? "Agent"}", $"/tests/korrektur/{assignment.Id}", null, cancellationToken);
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Submitted notice for {AssignmentId} failed.", assignment.Id);
+        }
+    }
+
+    /// <summary>Who hears that an attempt is ready to grade: the assigner while still an active grader, otherwise HRB.</summary>
+    /// <remarks>An assigner who lost HRB or left would get a link they cannot open, and nobody would know the
+    /// attempt waits.</remarks>
+    public static async Task<List<string>> GraderRecipientsAsync(AppDbContext db, AgentTestAssignment assignment,
+        CancellationToken cancellationToken)
+    {
+        var graders = db.Users.OnlySelectable()
+            .Where(u => u.IsHRB || u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+            .Where(u => u.Id != assignment.AgentId);
+        if (!string.IsNullOrEmpty(assignment.AssignedById)
+            && await graders.AnyAsync(u => u.Id == assignment.AssignedById, cancellationToken))
+        {
+            return [assignment.AssignedById];
+        }
+        return await graders.Where(u => u.IsHRB).Select(u => u.Id).ToListAsync(cancellationToken);
+    }
+
+    /// <summary>Takes back the tick a passed grading of this test set; a tick with any other note stays.</summary>
+    private async Task UntickModuleAsync(string agentId, string moduleId, string title, ClaimsPrincipal actor,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+            var note = TickNote(title);
+            var completion = await db.AgentModuleCompletions.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.AgentId == agentId && c.ModuleId == moduleId && c.Note == note, cancellationToken);
+            if (completion is not null)
+            {
+                await trainingModules.UnmarkCompletedAsync(completion.Id, actor, cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Training module untick for {AgentId}/{ModuleId} failed.", agentId, moduleId);
+        }
+    }
+
+    /// <summary>The note a test tick carries; the untick finds its own tick by it.</summary>
+    private static string TickNote(string title) => $"Test „{title}“ bestanden.";
+
+    /// <summary>Graded once, even if reopened for a regrade: it has a personnel entry and maybe a tick.</summary>
+    private static bool WasGraded(AgentTestAssignment assignment)
+        => assignment.GradedAt is not null || assignment.PersonnelNoteId is not null;
+
+    /// <summary>Nobody grades or steers their own attempt.</summary>
+    private static void RequireNotOwn(AgentTestAssignment assignment, ClaimsPrincipal actor)
+    {
+        if (assignment.AgentId == actor.GetAgentId())
+        {
+            throw new UnauthorizedAccessException("Deinen eigenen Test korrigierst und verwaltest du nicht selbst.");
+        }
+    }
+
+    /// <summary>Marks properties for writing although they match the snapshot read before.</summary>
+    private static void ForceWrite(AppDbContext db, AgentTestAssignment assignment, params string[] properties)
+    {
+        var entry = db.Entry(assignment);
+        foreach (var property in properties)
+        {
+            entry.Property(property).IsModified = true;
         }
     }
 
@@ -725,8 +881,7 @@ public class AgentTestService(
                 .AnyAsync(c => c.AgentId == agentId && c.ModuleId == moduleId, cancellationToken);
             if (active && !done)
             {
-                await trainingModules.MarkCompletedAsync(agentId, moduleId, $"Test „{title}“ bestanden.", actor,
-                    cancellationToken);
+                await trainingModules.MarkCompletedAsync(agentId, moduleId, TickNote(title), actor, cancellationToken);
             }
         }
         catch (Exception ex)

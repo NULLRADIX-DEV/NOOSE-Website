@@ -52,14 +52,12 @@ public class AgentTestExpiryService(
 
             try
             {
-                if (!string.IsNullOrEmpty(assignment.AssignedById))
-                {
-                    var codename = await db.Users.AsNoTracking().Where(u => u.Id == assignment.AgentId)
-                        .Select(u => u.Codename).FirstOrDefaultAsync(cancellationToken);
-                    await notifications.NotifyAsync(assignment.AssignedById, NotificationType.TestSubmitted,
-                        $"Testzeit abgelaufen: {codename ?? "Agent"}", $"/tests/korrektur/{assignment.Id}",
-                        cancellationToken);
-                }
+                var codename = await db.Users.AsNoTracking().Where(u => u.Id == assignment.AgentId)
+                    .Select(u => u.Codename).FirstOrDefaultAsync(cancellationToken);
+                var graders = await AgentTestService.GraderRecipientsAsync(db, assignment, cancellationToken);
+                await notifications.NotifyManyAsync(graders, NotificationType.TestSubmitted,
+                    $"Testzeit abgelaufen: {codename ?? "Agent"}", $"/tests/korrektur/{assignment.Id}", null,
+                    cancellationToken);
             }
             catch { /* best effort */ }
         }
