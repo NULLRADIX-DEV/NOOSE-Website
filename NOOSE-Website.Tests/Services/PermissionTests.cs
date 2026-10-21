@@ -544,11 +544,11 @@ public sealed class PermissionTests
     [Theory]
     [InlineData(Rank.JuniorAgent, false)]
     [InlineData(Rank.SpecialAgent, false)]
-    [InlineData(Rank.SeniorSpecialAgent, false)]
+    [InlineData(Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SupervisorySpecialAgent, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
-    public void RequireKassenBookingWrite_auszahlung_byRank_gatesAtSupervisory(Rank rank, bool allowed)
+    public void RequireKassenBookingWrite_auszahlung_byRank_gatesAtSeniorSpecialAgent(Rank rank, bool allowed)
     {
         ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(rank);
         if (allowed)
@@ -561,11 +561,43 @@ public sealed class PermissionTests
         }
     }
 
-    [Fact]
-    public void RequireKassenBookingWrite_korrektur_plainAgent_throws()
+    [Theory]
+    [InlineData(Rank.SeniorSpecialAgent, false)]
+    [InlineData(Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.Director, true)]
+    public void RequireKassenBookingWrite_korrektur_byRank_staysWithLeadership(Rank rank, bool allowed)
     {
+        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(rank);
+        if (allowed)
+        {
+            AssertAllowed(() => Permission.RequireKassenBookingWrite(actor, KassenBuchungArt.Korrektur));
+        }
+        else
+        {
+            AssertDenied(() => Permission.RequireKassenBookingWrite(actor, KassenBuchungArt.Korrektur));
+        }
+    }
+
+    [Fact]
+    public void RequireKassenBookingWrite_unknownKind_seniorSpecialAgent_throws()
+    {
+        // fail closed: a kind added later needs leadership until someone decides otherwise
         ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SeniorSpecialAgent);
-        AssertDenied(() => Permission.RequireKassenBookingWrite(actor, KassenBuchungArt.Korrektur));
+        AssertDenied(() => Permission.RequireKassenBookingWrite(actor, (KassenBuchungArt)99));
+    }
+
+    [Fact]
+    public void RequireKassenBookingWrite_auszahlung_adminWithoutRank_passes()
+    {
+        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().AsAdmin();
+        AssertAllowed(() => Permission.RequireKassenBookingWrite(actor, KassenBuchungArt.Auszahlung));
+    }
+
+    [Fact]
+    public void RequireKassenBookingWrite_auszahlung_demoVisitor_throws()
+    {
+        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsDemo();
+        AssertDenied(() => Permission.RequireKassenBookingWrite(actor, KassenBuchungArt.Auszahlung));
     }
 
     [Fact]

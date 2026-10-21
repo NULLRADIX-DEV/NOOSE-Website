@@ -666,6 +666,48 @@ public class AgentPrincipalExtensionsTests
         Assert.False(user.MayEvidenceWithdraw());
     }
 
+    // ---------- MayKassenWithdraw / MayKassenBook ----------
+
+    [Theory]
+    [InlineData(Rank.JuniorAgent, false)]
+    [InlineData(Rank.SpecialAgent, false)]
+    [InlineData(Rank.SeniorSpecialAgent, true)]
+    [InlineData(Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.Director, true)]
+    public void MayKassenWithdraw_byRank(Rank rank, bool expected)
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(rank).Build();
+        Assert.Equal(expected, user.MayKassenWithdraw());
+    }
+
+    [Fact]
+    public void MayKassenWithdraw_adminWithoutRank_returnsTrue()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsAdmin().Build();
+        Assert.True(user.MayKassenWithdraw());
+    }
+
+    [Theory]
+    [InlineData(Rank.JuniorAgent, true, false, false)]
+    [InlineData(Rank.SpecialAgent, true, false, false)]
+    [InlineData(Rank.SeniorSpecialAgent, true, true, false)]
+    [InlineData(Rank.SupervisorySpecialAgent, true, true, true)]
+    [InlineData(Rank.Director, true, true, true)]
+    public void MayKassenBook_byRankAndKind(Rank rank, bool deposit, bool withdraw, bool correct)
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(rank).Build();
+        Assert.Equal(deposit, user.MayKassenBook(KassenBuchungArt.Einzahlung));
+        Assert.Equal(withdraw, user.MayKassenBook(KassenBuchungArt.Auszahlung));
+        Assert.Equal(correct, user.MayKassenBook(KassenBuchungArt.Korrektur));
+    }
+
+    [Fact]
+    public void MayKassenBook_onlyReaderWithHighRank_mayBookNothing()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsTeamLead().Build();
+        Assert.All(KassenBuchungArtDisplay.All, kind => Assert.False(user.MayKassenBook(kind)));
+    }
+
     // ---------- MayMeetingRead (MayHighestClassification || onlyReader) ----------
 
     [Fact]

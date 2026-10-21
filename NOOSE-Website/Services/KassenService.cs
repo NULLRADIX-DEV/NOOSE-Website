@@ -117,7 +117,8 @@ public class KassenService(
             Kind = input.Kind,
             Amount = input.Amount,
             Reason = input.Reason.TrimToNull(),
-            BookedById = string.IsNullOrWhiteSpace(input.BookedById) ? actor.GetAgentId() : input.BookedById,
+            BookedById = string.IsNullOrWhiteSpace(input.BookedById) || !MayBookForOthers(actor, input.Kind)
+                ? actor.GetAgentId() : input.BookedById,
             Timestamp = input.Timestamp,
         };
         db.KassenBuchungen.Add(booking);
@@ -259,6 +260,10 @@ public class KassenService(
             throw new InvalidOperationException("Bitte einen Betrag größer 0 angeben.");
         }
     }
+
+    // a payout below leadership is always booked in the actor's own name
+    private static bool MayBookForOthers(ClaimsPrincipal actor, KassenBuchungArt kind)
+        => kind == KassenBuchungArt.Einzahlung || actor.IsLeadership();
 
     private static void RequireManage(ClaimsPrincipal actor)
     {
