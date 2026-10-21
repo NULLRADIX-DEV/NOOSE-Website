@@ -193,7 +193,7 @@ builder.Services.AddScoped<IPublicWantedPhotoStorageService, PublicWantedPhotoSt
 builder.Services.AddScoped<IPublicLeadershipPhotoStorageService, PublicLeadershipPhotoStorageService>();
 builder.Services.AddScoped<ITipAttachmentStorageService, TipAttachmentStorageService>();
 builder.Services.AddScoped<ITicketAttachmentStorageService, TicketAttachmentStorageService>();
-builder.Services.AddScoped<ITicketAssistService, TicketAssistService>();
+builder.Services.AddScoped<ICitizenAssistService, CitizenAssistService>();
 builder.Services.AddScoped<ITicketConversionService, TicketConversionService>();
 builder.Services.AddScoped<ITextImageStorageService, TextImageStorageService>();
 builder.Services.AddScoped<ICaseNumberService, CaseNumberService>();

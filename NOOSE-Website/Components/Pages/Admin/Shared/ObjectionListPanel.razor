@@ -3,6 +3,7 @@
 @using NOOSE_Website.Models.Public
 @using NOOSE_Website.Services.Public
 @inject IObjectionService Objections
+@inject ICitizenAssistService Assist
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
@@ -115,6 +116,37 @@
                                                   Variant="Variant.Outlined" Lines="4"
                                                   MaxLength="@ObjectionRules.MaxNoteLength"
                                                   HelperText="Der Bürger liest diesen Text." />
+                                    @* fills the field from the notes already in it; deciding stays with the buttons below *@
+                                    @if (Assist.IsAvailable)
+                                    {
+                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                            <MudMenu Label="NOOSEI-Entwurf" Variant="Variant.Outlined" Size="Size.Small"
+                                                     Color="Color.Secondary" Disabled="_busy"
+                                                     StartIcon="@Icons.Material.Filled.AutoAwesome"
+                                                     EndIcon="@Icons.Material.Filled.ArrowDropDown">
+                                                @foreach (var outcome in DraftTargets(_detail.Status))
+                                                {
+                                                    <MudMenuItem OnClick="@(() => DraftAsync(outcome))">
+                                                        @(outcome == ObjectionStatus.Angenommen ? "zum Stattgeben" : "zum Ablehnen")
+                                                    </MudMenuItem>
+                                                }
+                                            </MudMenu>
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                @if (_suggestCost is { } cost)
+                                                {
+                                                    <text>NOOSEI-Entwurf: @cost.ToString("N0") Token</text>
+                                                    @if (_suggestQuota is { } quota)
+                                                    {
+                                                        <text> · Restkontingent: @quota.Remaining.ToString("N0")</text>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <text>Schreib erst deine Stichpunkte ins Feld, NOOSEI formuliert sie aus.</text>
+                                                }
+                                            </MudText>
+                                        </MudStack>
+                                    }
                                 }
                                 <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
                                     @foreach (var target in ObjectionRules.AllowedTargets(_detail.Status))
@@ -162,6 +194,8 @@
     private ObjectionDetail? _detail;
     private readonly HashSet<string> _open = new(StringComparer.Ordinal);
     private string _note = string.Empty;
+    private long? _suggestCost;
+    private LlmQuotaStatus? _suggestQuota;
     private bool _onlyOpen = true;
     private bool _load = true;
     private bool _busy;
@@ -227,6 +261,8 @@
         }
         _open.Add(id);
         _note = string.Empty;
+        _suggestCost = null;
+        _suggestQuota = null;
         try { _detail = await Objections.GetAsync(id, _user); }
         catch { /* best effort */ _detail = null; }
     }
@@ -245,6 +281,34 @@
             var id = _detail.Id;
             await LoadAsync();
             await ToggleAsync(id, true);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>Rewrites the notes in the field into a reasoning for this outcome; the decision stays a separate click.</summary>
+    private async Task DraftAsync(ObjectionStatus outcome)
+    {
+        if (_detail is null)
+        {
+            return;
+        }
+        _busy = true;
+        // cleared first, so a refusal does not leave the previous run's quota standing as if current
+        _suggestCost = null;
+        _suggestQuota = null;
+        try
+        {
+            var suggestion = await Assist.SuggestObjectionNoteAsync(_detail.Id, outcome, _note, _user);
+            _note = suggestion.Text;
+            _suggestCost = suggestion.QuotaTokens;
+            _suggestQuota = suggestion.Quota;
         }
         catch (Exception ex)
         {
@@ -306,9 +370,12 @@
     }
 
     /// <summary>True when a decision is reachable from here; only then is the note field of any use.</summary>
-    private static bool Decidable(ObjectionStatus status)
+    private static bool Decidable(ObjectionStatus status) => DraftTargets(status).Any();
+
+    /// <summary>The decisions reachable from here; a draft for any other would be refused anyway.</summary>
+    private static IEnumerable<ObjectionStatus> DraftTargets(ObjectionStatus status)
         => ObjectionRules.AllowedTargets(status)
-            .Any(t => t is ObjectionStatus.Angenommen or ObjectionStatus.Abgelehnt);
+            .Where(t => t is ObjectionStatus.Angenommen or ObjectionStatus.Abgelehnt);
 
     private static Color StatusColour(ObjectionStatus status) => status switch
     {

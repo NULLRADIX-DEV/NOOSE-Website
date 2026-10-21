@@ -183,8 +183,9 @@ public class PublicWantedModelTests
             + "einen Stream und wird nie projiziert.",
         [typeof(TicketAttachmentAccess)] = "Dateiname und Typ einer Anhangskopie; der Endpunkt streamt daraus, "
             + "ausgeliefert wird der Inhalt, nie dieses Modell.",
-        [typeof(TicketDraftSuggestion)] = "Entwurf für das Kompositionsfeld des Desks, samt Kontingent-Kosten. "
-            + "Er wird nie gesendet - das tut der Agent über ReplyToCitizenAsync.",
+        [typeof(CitizenDraftSuggestion)] = "Entwurf für ein Textfeld im Ticket, im Hinweis-Chat oder beim "
+            + "Einspruchsbescheid, samt Kontingent-Kosten. Er wird nie gesendet - das tut der Agent über den "
+            + "Schreibpfad des Feldes.",
         [typeof(PublicKpiTicketCategory)] = "Eine Zeile der Kennzahl-Verteilung im Führungs-Panel; sie zählt "
             + "Anliegen und nennt niemanden.",
     };

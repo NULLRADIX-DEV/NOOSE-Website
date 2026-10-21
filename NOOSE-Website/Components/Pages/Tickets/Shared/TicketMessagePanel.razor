@@ -2,7 +2,7 @@
 @inject IPublicTemplateService Templates
 @inject IMentionService MentionService
 @inject ITicketAttachmentStorageService AttachmentStore
-@inject ITicketAssistService Assist
+@inject ICitizenAssistService Assist
 @inject TicketBroadcaster Broadcaster
 @inject ISnackbar Snackbar
 @implements IDisposable
@@ -289,7 +289,7 @@
         _suggestQuota = null;
         try
         {
-            var suggestion = await Assist.SuggestReplyAsync(TicketId, User);
+            var suggestion = await Assist.SuggestTicketReplyAsync(TicketId, User);
             _draft = suggestion.Text;
             _suggestCost = suggestion.QuotaTokens;
             _suggestQuota = suggestion.Quota;
