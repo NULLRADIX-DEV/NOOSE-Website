@@ -285,6 +285,9 @@ internal static class PersonnelChapter
                 <p>Es gibt drei Arten: <em>Einzahlung</em>, <em>Auszahlung</em> und <em>Korrektur</em>. Die
                 Korrektur setzt den Stand auf einen Wert - sie ist für die Fälle da, in denen die Buchhaltung
                 auseinandergelaufen ist, und gehört in die Hand der Führung.</p>
+                <p>Einzahlen darf jeder Agent. Auszahlen darfst du ab <strong>Senior Special Agent</strong>; die
+                Auszahlung steht dann immer auf deinem eigenen Namen. Nur die Führung bucht eine Auszahlung für
+                jemand anderen ein.</p>
                 <p>Der Kontostand ergibt sich aus den Buchungen. Du kannst ihn nicht direkt ändern, und das ist
                 der Punkt: jede Zahl lässt sich bis zu ihrer Buchung zurückverfolgen.</p>
                 """,

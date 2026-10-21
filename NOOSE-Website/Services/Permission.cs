@@ -257,7 +257,7 @@ public static class Permission
         }
     }
 
-    /// <summary>Require the right to file a treasury booking: paying in is open to every writing agent, paying out and setting the balance stay with leadership.</summary>
+    /// <summary>Require the right to file a treasury booking: paying in is open to every writing agent, paying out needs Senior Special Agent, setting the balance stays with leadership.</summary>
     public static void RequireKassenBookingWrite(ClaimsPrincipal actor, KassenBuchungArt kind)
     {
         if (!actor.MayWrite())
@@ -265,11 +265,11 @@ public static class Permission
             throw new UnauthorizedAccessException(
                 "Nur-Lese-Modus: Änderungen sind in dieser Rolle nicht möglich.");
         }
-        // fail closed: anything that is not a deposit needs leadership
-        if (kind != KassenBuchungArt.Einzahlung && !actor.IsLeadership())
+        if (!actor.MayKassenBook(kind))
         {
-            throw new UnauthorizedAccessException(
-                "Auszahlungen und Korrekturen bucht nur die Führung; einzahlen darf jeder Agent.");
+            throw new UnauthorizedAccessException(kind == KassenBuchungArt.Auszahlung
+                ? "Auszahlungen bucht erst ein Senior Special Agent; einzahlen darf jeder Agent."
+                : "Den Kontostand setzt nur die Führung; einzahlen darf jeder Agent.");
         }
     }
 

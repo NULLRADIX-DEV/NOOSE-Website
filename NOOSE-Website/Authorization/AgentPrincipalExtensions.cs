@@ -121,6 +121,20 @@ public static class AgentPrincipalExtensions
     public static bool MayEvidenceWithdraw(this ClaimsPrincipal user)
         => user.IsAdmin() || user.GetRank() is >= Rank.SeniorSpecialAgent;
 
+    /// <summary>May pay money out of a treasury account = rank ≥ Senior Special Agent or admin. Sole source of this rule.</summary>
+    public static bool MayKassenWithdraw(this ClaimsPrincipal user)
+        => user.IsAdmin() || user.GetRank() is >= Rank.SeniorSpecialAgent;
+
+    /// <summary>May file a treasury booking of this kind: deposit any writer, withdrawal Senior Special Agent, setting the balance leadership.</summary>
+    public static bool MayKassenBook(this ClaimsPrincipal user, KassenBuchungArt kind)
+        => user.MayWrite() && kind switch
+        {
+            KassenBuchungArt.Einzahlung => true,
+            KassenBuchungArt.Auszahlung => user.MayKassenWithdraw(),
+            // fail closed: correction and anything unknown
+            _ => user.IsLeadership(),
+        };
+
     /// <summary>May READ meeting agendas and minutes = highest-classification rank or read-only supervision. Sole source of this rule.</summary>
     public static bool MayMeetingRead(this ClaimsPrincipal user)
         => user.MayHighestClassification() || user.IsOnlyReader();

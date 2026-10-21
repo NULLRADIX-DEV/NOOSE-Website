@@ -25,11 +25,9 @@
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback OnBooked { get; set; }
 
-    /// <summary>Templates this agent may actually book: everyone deposits, only leadership pays out.</summary>
+    /// <summary>Templates this agent may actually book: everyone deposits, Senior Special Agent upward pays out.</summary>
     private IReadOnlyList<KassenBuchungVorlage> Visible
-        => !User.MayWrite() ? []
-            : User.IsLeadership() ? Templates
-            : Templates.Where(t => t.Kind == KassenBuchungArt.Einzahlung).ToList();
+        => Templates.Where(t => User.MayKassenBook(t.Kind)).ToList();
 
     private async Task BookAsync(KassenBuchungVorlage template)
     {

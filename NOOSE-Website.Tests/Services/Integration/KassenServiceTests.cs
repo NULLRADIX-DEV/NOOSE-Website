@@ -20,6 +20,9 @@ public sealed class KassenServiceTests
     private static ClaimsPrincipal Junior()
         => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
 
+    private static ClaimsPrincipal Senior()
+        => ClaimsPrincipalBuilder.Agent("senior").WithRank(Rank.SeniorSpecialAgent).Build();
+
     private static ClaimsPrincipal OnlyReader()
         => ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.SpecialAgent).AsTeamLead().Build();
 
@@ -203,6 +206,49 @@ public sealed class KassenServiceTests
             () => svc.BookAsync(Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Korrektur, 50, T0.AddMinutes(2)), Junior()));
 
         Assert.Equal(100m, await svc.GetBalanceAsync(KassenKonto.Schwarzgeld));
+    }
+
+    [Fact]
+    public async Task SeniorSpecialAgent_CanBook_Auszahlung_ButNotKorrektur()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+        await svc.BookAsync(Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Einzahlung, 100, T0), Leader());
+
+        await svc.BookAsync(Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Auszahlung, 30, T0.AddMinutes(1)), Senior());
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => svc.BookAsync(Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Korrektur, 500, T0.AddMinutes(2)), Senior()));
+
+        Assert.Equal(70m, await svc.GetBalanceAsync(KassenKonto.Schwarzgeld));
+    }
+
+    [Fact]
+    public async Task Auszahlung_BelowLeadership_IsBookedInTheActorsOwnName()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+        await svc.BookAsync(Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Einzahlung, 100, T0), Leader());
+
+        var input = Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Auszahlung, 30, T0.AddMinutes(1));
+        input.BookedById = "junior";
+        var booking = await svc.BookAsync(input, Senior());
+
+        Assert.Equal("senior", booking.BookedById);
+    }
+
+    [Fact]
+    public async Task BookedBy_OtherAgent_StaysForDepositsAndLeadershipPayouts()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+
+        var deposit = Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Einzahlung, 100, T0);
+        deposit.BookedById = "junior";
+        Assert.Equal("junior", (await svc.BookAsync(deposit, Senior())).BookedById);
+
+        var payout = Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Auszahlung, 30, T0.AddMinutes(1));
+        payout.BookedById = "junior";
+        Assert.Equal("junior", (await svc.BookAsync(payout, Leader())).BookedById);
     }
 
     [Fact]
