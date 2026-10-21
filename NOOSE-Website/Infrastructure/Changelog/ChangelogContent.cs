@@ -537,6 +537,9 @@ public static class ChangelogContent
             Neu("2.7.09-noosei-praesentationen", "NOOSEI öffnet jetzt auch Präsentationen und liest ihre Folien, "
                 + "soweit du sie selbst sehen darfst. Die Sprechernotizen bekommt nur, wer die Präsentation angelegt "
                 + "hat, und die Führung.", "NOOSEI"),
+            Neu("2.7.10-noosei-buergerantworten", "NOOSEI entwirft jetzt auch die Nachricht an einen Hinweisgeber "
+                + "und die Begründung, wenn über einen Einspruch entschieden wird. Beim Einspruch schreibst du erst "
+                + "deine Stichpunkte ins Feld. Der Entwurf landet im Textfeld, abschicken tust du selbst.", "NOOSEI"),
         ]),
     ];
 }

@@ -1,5 +1,4 @@
 ﻿using NOOSE_Website.Models.Enums;
-using NOOSE_Website.Models.Llm;
 
 namespace NOOSE_Website.Models.Public;
 
@@ -110,9 +109,6 @@ public sealed record TicketAttachmentUpload(Stream Content, string ContentType, 
 
 /// <summary>What the delivery endpoint needs; null from the service means "gone" and "not yours" alike.</summary>
 public sealed record TicketAttachmentAccess(string FileNameSaved, string? ContentType, string? OriginalName);
-
-/// <summary>A drafted answer plus what it cost; nothing is sent until the agent presses send.</summary>
-public sealed record TicketDraftSuggestion(string Text, long QuotaTokens, LlmQuotaStatus Quota);
 
 /// <summary>Form input when a citizen opens a ticket.</summary>
 public class TicketInput
