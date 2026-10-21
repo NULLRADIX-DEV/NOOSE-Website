@@ -26,6 +26,7 @@ public sealed class TextDraftScanTests
         ["Pages/Admin/Shared/ModuleDialog.razor#_description"] = "one-line description",
         ["Pages/Admin/Shared/ObjectionListPanel.razor#_note"] = "decision reason",
         ["Pages/Factions/Shared/BulkMemberDialog.razor#_pasteText"] = "pasted list, pasted again in a second",
+        ["Pages/Meetings/Shared/MeetingMeasureDialog.razor#_note"] = "short note on a measure, like a reminder note",
         ["Pages/Ki/Shared/NooseiChatPanel.razor#_input"] = "the answer is what counts, not the question",
         ["Pages/Personnel/Shared/TerminationDialog.razor#_reason"] = "decision reason",
         ["Pages/Recruiting/Shared/BewerbungMessagePanel.razor#_editText"] = "correction of a sent message that stays in the thread",

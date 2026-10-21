@@ -68,7 +68,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         return items;
     }
 
-    public async Task CreateAsync(string entityType, string entityId, FollowupInput input,
+    public async Task<string> CreateAsync(string entityType, string entityId, FollowupInput input,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -81,18 +81,20 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         var responsibleId = await DetermineResponsibleAsync(db, input.ResponsibleAgentId, current: null, actor, cancellationToken);
 
         var note = input.Note.TrimToNull();
-        db.Followups.Add(new Followup
+        var followup = new Followup
         {
             EntityType = entityType,
             EntityId = entityId,
             DueAt = input.DueAt.ToUniversalTime(),
             Note = note,
             ResponsibleAgentId = responsibleId,
-        });
+        };
+        db.Followups.Add(followup);
         await db.SaveChangesAsync(cancellationToken);
 
         await MentionNotify.DeltaAsync(notifications, null, note, Mentioned, entityType, entityId,
             actor, cancellationToken, childType: nameof(Followup));
+        return followup.Id;
     }
 
     public async Task RefreshAsync(string id, FollowupInput input, ClaimsPrincipal actor,

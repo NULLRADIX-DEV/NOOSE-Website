@@ -17,7 +17,7 @@ namespace NOOSE_Website.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.20")
+                .HasAnnotation("ProductVersion", "9.0.21")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -6290,6 +6290,50 @@ namespace NOOSE_Website.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("BesprechungAnwesenheiten");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Meetings.MeetingMeasure", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgendaItemId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("BesprechungPunktId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int")
+                        .HasColumnName("Art");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ZielId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgendaItemId");
+
+                    b.ToTable("BesprechungMassnahmen");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Meetings.MeetingSignOff", b =>

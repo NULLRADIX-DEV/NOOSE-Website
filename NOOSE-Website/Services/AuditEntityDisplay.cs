@@ -34,6 +34,7 @@ public static class AuditEntityDisplay
         "MeetingAgendaItem" => "Tagesordnungspunkt",
         "MeetingAttendance" => "Anwesenheit",
         "MeetingSignOff" => "Abmeldung (Besprechung)",
+        "MeetingMeasure" => "Maßnahme (Besprechung)",
         "Absence" => "Abmeldung",
         "Decoration" => "Ehrenzeichen",
         // no route: the row carries the award id, the personnel file needs the agent's

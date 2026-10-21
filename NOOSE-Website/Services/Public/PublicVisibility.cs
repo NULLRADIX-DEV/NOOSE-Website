@@ -213,6 +213,7 @@ public static class PublicVisibility
             ["AppointmentAssignment"] = Assignment,
             ["Meeting"] = "Besprechung im Haus; nach außen nie.",
             ["MeetingAgendaItem"] = "Tagesordnungspunkt; nach außen nie.",
+            ["MeetingMeasure"] = "Zeiger eines Tagesordnungspunkts auf Aufgabe oder Wiedervorlage; nach außen nie.",
             ["MeetingSignOff"] = Assignment,
             ["MeetingAttendance"] = Assignment,
             ["Announcement"] = "Mitteilung an die Belegschaft; nach außen geht stattdessen eine Pressemitteilung.",

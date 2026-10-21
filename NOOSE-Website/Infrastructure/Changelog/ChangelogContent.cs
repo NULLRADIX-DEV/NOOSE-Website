@@ -540,6 +540,9 @@ public static class ChangelogContent
             Neu("2.7.10-noosei-buergerantworten", "NOOSEI entwirft jetzt auch die Nachricht an einen Hinweisgeber "
                 + "und die Begründung, wenn über einen Einspruch entschieden wird. Beim Einspruch schreibst du erst "
                 + "deine Stichpunkte ins Feld. Der Entwurf landet im Textfeld, abschicken tust du selbst.", "NOOSEI"),
+            Neu("2.7.11-besprechung-massnahmen", "Aus einem Tagesordnungspunkt wird mit „Maßnahme“ eine Aufgabe oder "
+                + "Wiedervorlage mit Zuständigem und Frist. Der Punkt zeigt danach, ob sie offen, überfällig oder "
+                + "erledigt ist, auch in der nächsten Besprechung.", "Dienstbetrieb"),
         ]),
     ];
 }

@@ -1,0 +1,170 @@
+@inject IAgentManagementService AgentService
+@inject IAbsenceService AbsenceService
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="min-width:380px;">
+            <MudRadioGroup T="MeetingMeasureKind" @bind-Value="_kind">
+                @foreach (var kind in MeetingMeasureKindDisplay.All)
+                {
+                    <MudRadio T="MeetingMeasureKind" Value="kind" Color="Color.Primary">
+                        @MeetingMeasureKindDisplay.Name(kind)
+                    </MudRadio>
+                }
+            </MudRadioGroup>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                @(_kind == MeetingMeasureKind.Aufgabe
+                    ? "Eine Aufgabe mit Zuständigem, die im Aufgaben-Board landet."
+                    : "Eine Wiedervorlage an der Besprechung, die zum Termin erinnert.")
+            </MudText>
+
+            @if (_kind == MeetingMeasureKind.Aufgabe)
+            {
+                <MudTextField @bind-Value="_title" Label="Titel der Aufgabe" Variant="Variant.Outlined"
+                              MaxLength="@MeetingMeasureService.MaxTitleLength" Immediate="true" />
+            }
+
+            @* the sign-offs are read for the due date, so moving it has to move them too *@
+            <MudDatePicker @bind-Date="_due" @bind-Date:after="ReloadAbsencesAsync"
+                           Label="@(_kind == MeetingMeasureKind.Aufgabe ? "Fällig am (optional)" : "Fällig am")"
+                           Editable="true" Variant="Variant.Outlined" DateFormat="dd.MM.yyyy" Clearable="true"
+                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Event" />
+
+            <MudAutocomplete T="Agent" Label="Zuständig (optional)" @bind-Value="_agent"
+                             SearchFunc="@SearchAgents" ToStringFunc="@(a => a is null ? string.Empty : a.Codename)"
+                             Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
+                             ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
+                             Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.ManageAccounts"
+                             HelperText="Leer = du selbst.">
+                <ItemTemplate Context="a">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Primary" />
+                        <MudText Typo="Typo.body2">@a.Codename</MudText>
+                        @if (MayRealName && !string.IsNullOrWhiteSpace(a.RealName))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">(@a.RealName)</MudText>
+                        }
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@RankDisplay.Name(a.Rank)</MudText>
+                        @if (AbsenceHint.For(_absent, a.Id, _reference) is { Length: > 0 } hint)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">· @hint</MudText>
+                        }
+                    </MudStack>
+                </ItemTemplate>
+            </MudAutocomplete>
+            @* a hint you lose by picking the entry is a hint nobody acted on *@
+            @if (SelectedAbsenceNote() is { Length: > 0 } note)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Text" Dense="true">@note</MudAlert>
+            }
+
+            <MentionInput @bind-Text="_note" Label="Notiz (optional)" Lines="3"
+                          MaxLength="@MeetingMeasureService.MaxNoteLength"
+                          HelperText="@($"Was genau beschlossen wurde. {MentionInput.Hint}")" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(!CanSave)">Anlegen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    /// <summary>Title of the agenda item; the job title starts from it.</summary>
+    [Parameter] public string ItemTitle { get; set; } = string.Empty;
+
+    /// <summary>Whether the viewer may see real names.</summary>
+    [Parameter] public bool MayRealName { get; set; }
+
+    private MeetingMeasureKind _kind = MeetingMeasureKind.Aufgabe;
+    private string _title = string.Empty;
+    private DateTime? _due;
+    private string _note = string.Empty;
+    private Agent? _agent;
+    private List<Agent> _all = new();
+    private IReadOnlyDictionary<string, DateOnly> _absent = new Dictionary<string, DateOnly>();
+    private DateOnly _reference = DateOnly.FromDateTime(DateTime.Now);
+
+    // the same two rules the service enforces, so the button says it before the round trip
+    private bool CanSave => _kind == MeetingMeasureKind.Aufgabe
+        ? !string.IsNullOrWhiteSpace(_title)
+        : _due is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _title = ItemTitle.Length > MeetingMeasureService.MaxTitleLength
+            ? ItemTitle[..MeetingMeasureService.MaxTitleLength]
+            : ItemTitle;
+        await ReloadAbsencesAsync();
+        // TeamLeads and partners are never selectable
+        _all = await AgentService.GetSelectableAsync();
+    }
+
+    /// <summary>Reads the sign-offs for the due date, or for today while no date is set.</summary>
+    private async Task ReloadAbsencesAsync()
+    {
+        _reference = _due is { } due
+            ? DateOnly.FromDateTime(due)
+            : DateOnly.FromDateTime(DateTime.Now);
+        try
+        {
+            var user = (await AuthStateTask).User;
+            _absent = await AbsenceService.GetAbsentOnAsync(_reference, user);
+        }
+        catch (Exception)
+        {
+            // a hint is never worth the dialog; without it the picker simply says nothing
+            _absent = new Dictionary<string, DateOnly>();
+        }
+    }
+
+    private string SelectedAbsenceNote()
+        => _agent is null
+            ? string.Empty
+            : AbsenceHint.Selected(_absent, [(_agent.Id, _agent.Codename)], _reference);
+
+    private Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
+    {
+        var search = value.Trim();
+        IEnumerable<Agent> hit = string.IsNullOrWhiteSpace(value)
+            ? _all
+            : _all.Where(a => a.Codename.Contains(search, StringComparison.OrdinalIgnoreCase)
+                            || (MayRealName && (a.RealName ?? string.Empty).Contains(search, StringComparison.OrdinalIgnoreCase)));
+        return Task.FromResult(hit);
+    }
+
+    private void Save()
+    {
+        if (!CanSave)
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(new MeetingMeasureInput
+        {
+            Kind = _kind,
+            Title = _kind == MeetingMeasureKind.Aufgabe ? _title : string.Empty,
+            Note = _note,
+            ResponsibleAgentId = _agent?.Id,
+            DueAt = _due,
+        }));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Shows the dialog; returns the input or null on cancel.</summary>
+    public static async Task<MeetingMeasureInput?> ShowAsync(IDialogService dialog, string itemTitle, bool mayRealName)
+    {
+        var parameters = new DialogParameters<MeetingMeasureDialog>
+        {
+            { x => x.ItemTitle, itemTitle },
+            { x => x.MayRealName, mayRealName },
+        };
+        var reference = await dialog.ShowAsync<MeetingMeasureDialog>("Maßnahme festhalten", parameters);
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: MeetingMeasureInput input } ? input : null;
+    }
+}

@@ -249,11 +249,37 @@ public class MeetingService(
         await db.SaveChangesAsync(cancellationToken);
 
         await ItemLinksCopyAsync(db, idMap, cancellationToken);
+        await ItemMeasuresCopyAsync(db, idMap, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
         await AnnounceAsync(db, meeting, actor, cancellationToken);
         return meeting;
+    }
+
+    /// <summary>Carries the measures of copied items over, so the next meeting sees what came of a decision.</summary>
+    private static async Task ItemMeasuresCopyAsync(AppDbContext db, Dictionary<string, string> idMap,
+        CancellationToken cancellationToken)
+    {
+        if (idMap.Count == 0)
+        {
+            return;
+        }
+
+        var oldIds = idMap.Keys.ToList();
+        var measures = await db.MeetingMeasures.AsNoTracking()
+            .Where(m => oldIds.Contains(m.AgendaItemId))
+            .ToListAsync(cancellationToken);
+        foreach (var measure in measures)
+        {
+            // a second pointer at the same job or follow-up; the old item keeps its own
+            db.MeetingMeasures.Add(new MeetingMeasure
+            {
+                AgendaItemId = idMap[measure.AgendaItemId],
+                Kind = measure.Kind,
+                TargetId = measure.TargetId,
+            });
+        }
     }
 
     /// <summary>Carries the links of copied items over; a carried item without its record reference is worthless.</summary>

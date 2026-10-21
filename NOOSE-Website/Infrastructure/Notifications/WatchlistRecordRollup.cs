@@ -94,6 +94,7 @@ public static class WatchlistRecordRollup
             case MeetingAgendaItem:
             case MeetingAttendance:
             case MeetingSignOff:
+            case MeetingMeasure:
             case Absence:
             // funding is deliberately not watchable: followers of a personnel file must not be
             // pushed another agent's budget details

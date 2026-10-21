@@ -47,3 +47,31 @@ public record MeetingAttendanceRow(
     DateOnly? From,
     DateOnly? To,
     DateTime? MarkedAt);
+
+/// <summary>Form model of a measure taken under one agenda item.</summary>
+public class MeetingMeasureInput
+{
+    public MeetingMeasureKind Kind { get; set; } = MeetingMeasureKind.Aufgabe;
+
+    /// <summary>Title of the job; a follow-up has no title of its own and carries it in its note.</summary>
+    public string Title { get; set; } = string.Empty;
+
+    public string? Note { get; set; }
+
+    /// <summary>Empty means the person creating it, the same rule as a follow-up.</summary>
+    public string? ResponsibleAgentId { get; set; }
+
+    /// <summary>Local date; required for a follow-up, optional for a job.</summary>
+    public DateTime? DueAt { get; set; }
+}
+
+/// <summary>A measure as the agenda shows it, read live from its job or follow-up.</summary>
+public record MeetingMeasureRow(
+    string Id,
+    MeetingMeasureKind Kind,
+    string Title,
+    bool Done,
+    string Status,
+    DateTime? DueAt,
+    string? ResponsibleCodename,
+    string Href);

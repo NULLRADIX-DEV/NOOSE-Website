@@ -48,6 +48,10 @@ internal static class DutyChapter
                 <strong>Protokoll</strong>.</p>
                 <p>Vorher trägst du die Punkte ein, über die gesprochen werden soll - jeder Teilnehmer kann
                 sich darauf vorbereiten. Hinterher hältst du fest, was beschlossen wurde.</p>
+                <p>Wird zu einem Punkt etwas beschlossen, legt die Führung dort mit <em>Maßnahme</em> eine
+                <strong>Aufgabe</strong> oder eine <strong>Wiedervorlage</strong> an, mit Zuständigem und Frist.
+                Der Punkt zeigt danach dauerhaft ihren Stand: offen, überfällig oder erledigt. Lass den Punkt offen,
+                wenn er in der nächsten Besprechung wieder auf den Tisch soll; er wandert dann samt Maßnahmen mit.</p>
                 <p>Eine Besonderheit bei der Sichtbarkeit: Tagesordnung und Protokoll sind
                 <strong>zwei Stunden nach dem Ende für jeden internen Agenten lesbar</strong>, unabhängig vom
                 Dienstgrad. Vorher sehen sie nur die Eingeladenen. Partnerkonten sehen sie nie.</p>

@@ -1,5 +1,6 @@
 @inject IMeetingService MeetingService
 @inject ILinkService LinkService
+@inject IMeetingMeasureService Measures
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -65,6 +66,18 @@ else
                                     <MudChip T="string" Size="Size.Small" Variant="Variant.Text">+@extra</MudChip>
                                 }
 
+                                @* every measure, not a capped few: the point is seeing what came of each decision *@
+                                @foreach (var measure in MeasuresOf(item.Id))
+                                {
+                                    <MudTooltip Text="@MeasureTooltip(measure)">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                                 Color="@MeasureColour(measure)" Href="@measure.Href"
+                                                 Icon="@MeetingMeasureKindDisplay.Icon(measure.Kind)">
+                                            @MeasureLabel(measure)
+                                        </MudChip>
+                                    </MudTooltip>
+                                }
+
                                 @if (CanEdit)
                                 {
                                     <div @onclick:stopPropagation="true">
@@ -104,6 +117,18 @@ else
                                     <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Notiz erfasst.</MudText>
                                 }
 
+                                @if (CanNote)
+                                {
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+                                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                                   StartIcon="@Icons.Material.Filled.AddTask"
+                                                   OnClick="@(() => MeasureAsync(item))">Maßnahme</MudButton>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                            Aufgabe oder Wiedervorlage aus diesem Punkt; ihr Stand steht danach am Punkt.
+                                        </MudText>
+                                    </MudStack>
+                                }
+
                                 <MudDivider Class="my-3" />
                                 <RecordLinksPanel EntityType="@nameof(MeetingAgendaItem)" EntityId="@item.Id" User="User" />
                             }
@@ -129,6 +154,7 @@ else
 
     private List<MeetingAgendaItem> _items = new();
     private Dictionary<string, IReadOnlyList<LinkDisplay>> _links = new();
+    private Dictionary<string, IReadOnlyList<MeetingMeasureRow>> _measures = new();
     private RichTextEditor? _itemEditor;
     private string? _expandedId;
     private string _noteHtml = string.Empty;
@@ -149,11 +175,57 @@ else
         _items = await MeetingService.GetAgendaAsync(MeetingId, _scope);
         // one bulk query instead of a RecordLinksPanel per item
         _links = await MeetingService.GetAgendaLinksAsync(MeetingId, _scope);
+        try
+        {
+            _measures = await Measures.GetForMeetingAsync(MeetingId, User);
+        }
+        catch (Exception)
+        {
+            // the status chips are extra; the agenda itself must still load
+            _measures = new();
+        }
         _load = false;
     }
 
     private IEnumerable<LinkDisplay> Chips(string itemId)
         => _links.TryGetValue(itemId, out var list) ? list.Take(ChipLimit) : Enumerable.Empty<LinkDisplay>();
+
+    private IReadOnlyList<MeetingMeasureRow> MeasuresOf(string itemId)
+        => _measures.TryGetValue(itemId, out var list) ? list : [];
+
+    private static bool Overdue(MeetingMeasureRow measure)
+        => !measure.Done && measure.DueAt is { } due && due.Date < DateTime.Now.Date;
+
+    private static Color MeasureColour(MeetingMeasureRow measure)
+        => measure.Done ? Color.Success : Overdue(measure) ? Color.Error : Color.Default;
+
+    private static string MeasureLabel(MeetingMeasureRow measure)
+    {
+        var parts = new List<string> { measure.ResponsibleCodename ?? MeetingMeasureKindDisplay.Name(measure.Kind) };
+        if (!measure.Done && measure.DueAt is { } due)
+        {
+            parts.Add($"bis {due:dd.MM.}");
+        }
+        parts.Add(measure.Status);
+        return string.Join(" · ", parts);
+    }
+
+    private static string MeasureTooltip(MeetingMeasureRow measure)
+        => $"{MeetingMeasureKindDisplay.Name(measure.Kind)}: {measure.Title}";
+
+    private async Task MeasureAsync(MeetingAgendaItem item)
+    {
+        var input = await MeetingMeasureDialog.ShowAsync(DialogService, item.Title, User.MayRealNameSee());
+        if (input is null)
+        {
+            return;
+        }
+        await RunAsync(async () =>
+        {
+            await Measures.CreateAsync(item.Id, input, User);
+            Snackbar.Add($"{MeetingMeasureKindDisplay.Name(input.Kind)} angelegt.", Severity.Success);
+        });
+    }
 
     private int Extra(string itemId)
         => _links.TryGetValue(itemId, out var list) ? Math.Max(0, list.Count - ChipLimit) : 0;
