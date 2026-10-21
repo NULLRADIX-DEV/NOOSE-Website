@@ -320,6 +320,7 @@ builder.Services.AddScoped<IAbsenceService, AbsenceService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
+builder.Services.AddScoped<IMeetingMeasureService, MeetingMeasureService>();
 builder.Services.AddHostedService<MeetingReminderWorker>();
 builder.Services.AddScoped<IThreatScoreConfigService, ThreatScoreConfigService>();
 builder.Services.AddSingleton<ThreatScoreRecalculationGate>();

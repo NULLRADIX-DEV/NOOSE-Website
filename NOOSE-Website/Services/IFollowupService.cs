@@ -10,8 +10,8 @@ public interface IFollowupService
     Task<List<FollowupItem>> GetForRecordAsync(string entityType, string entityId, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Create a follow-up (record must be visible); default assignee is the creator.</summary>
-    Task CreateAsync(string entityType, string entityId, FollowupInput input, ClaimsPrincipal actor,
+    /// <summary>Create a follow-up (record must be visible) and return its id; default assignee is the creator.</summary>
+    Task<string> CreateAsync(string entityType, string entityId, FollowupInput input, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default);
 
     Task RefreshAsync(string id, FollowupInput input, ClaimsPrincipal actor,

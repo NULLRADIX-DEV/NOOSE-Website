@@ -450,6 +450,7 @@ public static class SearchCatalog
             ["AnnouncementAcknowledgment"] = "Quittierung ohne Text.",
             ["MeetingSignOff"] = "Kein Freitext; wäre ein Anwesenheits-Orakel über Agenten.",
             ["MeetingAttendance"] = "Kein Freitext; wäre ein Anwesenheits-Orakel über Agenten.",
+            ["MeetingMeasure"] = "Zeiger ohne Text; Aufgabe und Wiedervorlage dahinter sind selbst durchsuchbar.",
             ["AgentModuleCompletion"] = "Kein eigener Text; das Modul trägt ihn.",
             ["AgentBadge"] = "Auszeichnung ohne Freitext.",
             ["Decoration"] = "Katalog der Ehrenzeichen; Konfiguration, keine Akte.",

@@ -200,6 +200,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     // meetings, agenda, per-meeting sign-offs & the frozen attendance roster
     public DbSet<Meeting> Meetings => Set<Meeting>();
     public DbSet<MeetingAgendaItem> MeetingAgendaItems => Set<MeetingAgendaItem>();
+    public DbSet<MeetingMeasure> MeetingMeasures => Set<MeetingMeasure>();
     public DbSet<MeetingSignOff> MeetingSignOffs => Set<MeetingSignOff>();
     public DbSet<MeetingAttendance> MeetingAttendances => Set<MeetingAttendance>();
 
@@ -1436,6 +1437,14 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(p => p.CarriedFromItemId).HasMaxLength(64);
 
             b.HasIndex(p => new { p.MeetingId, p.Sorting });
+        });
+
+        modelBuilder.Entity<MeetingMeasure>(b =>
+        {
+            b.Property(m => m.AgendaItemId).HasMaxLength(64).IsRequired();
+            b.Property(m => m.TargetId).HasMaxLength(64).IsRequired();
+
+            b.HasIndex(m => m.AgendaItemId);
         });
 
         modelBuilder.Entity<MeetingSignOff>(b =>
