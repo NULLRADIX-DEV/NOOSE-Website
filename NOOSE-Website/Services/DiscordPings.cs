@@ -20,6 +20,7 @@ public static class DiscordPings
         NotificationType.Mention,
         NotificationType.JobAssigned,
         NotificationType.JobDueSoon,
+        NotificationType.AppointmentAssigned,
         NotificationType.Followup,
         NotificationType.AcknowledgmentReminder,
         NotificationType.SavedSearchHit,

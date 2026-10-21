@@ -234,15 +234,42 @@ public sealed class AppointmentServiceTests
         // a1, a2, creator-1 valid+active; a3 inactive and ghost unknown excluded.
         Assert.Equal(new HashSet<string> { "a1", "a2", "creator-1" }, assignedIds.ToHashSet());
 
-        await notifications.Received(1).NotifyAsync("a1", NotificationType.AppointmentAssigned,
+        // one event for all participants; the creator is the trigger, inactive/unknown never notified
+        await notifications.Received(1).NotifyManyAsync(
+            Arg.Is<IReadOnlyCollection<string>>(r =>
+                r.Contains("a1") && r.Contains("a2") && !r.Contains("a3") && !r.Contains("ghost")),
+            NotificationType.AppointmentAssigned,
+            Arg.Any<string>(), $"/kalender/{created.Id}", "creator-1", Arg.Any<CancellationToken>());
+        await notifications.DidNotReceive().NotifyAsync(Arg.Any<string?>(), NotificationType.AppointmentAssigned,
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await notifications.Received(1).NotifyAsync("a2", NotificationType.AppointmentAssigned,
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        // creator excluded from notifications, inactive/unknown never notified.
-        await notifications.DidNotReceive().NotifyAsync("creator-1", Arg.Any<NotificationType>(),
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
-        await notifications.DidNotReceive().NotifyAsync("a3", Arg.Any<NotificationType>(),
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CreateAsync_DiscordPingGoesToParticipantsOnly_NotToLeadership()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("boss", configure: a => a.Rank = Rank.Director));
+            db.Users.Add(Seed.Agent("guest", configure: a => a.Rank = Rank.JuniorAgent));
+            db.SaveChanges();
+        }
+        var (svc, notifications) = Build(ctx);
+
+        await svc.CreateAsync(Input(), new[] { "guest" }, Leader("boss"));
+
+        // the channel-posting path carries only the invited
+        await notifications.Received(1).NotifyManyAsync(
+            Arg.Is<IReadOnlyCollection<string>>(r => r.Count == 1 && r.Contains("guest")),
+            NotificationType.AppointmentAssigned,
+            Arg.Any<string>(), Arg.Any<string>(), "boss", Arg.Any<CancellationToken>());
+        await notifications.DidNotReceive().NotifyManyAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), NotificationType.AppointmentScheduled,
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        // leadership hears of it in the bell only
+        await notifications.Received(1).NotifyManyInAppAsync(
+            Arg.Any<IReadOnlyCollection<string>>(), NotificationType.AppointmentScheduled,
+            Arg.Any<string>(), Arg.Any<string>(), "boss", Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -271,7 +298,7 @@ public sealed class AppointmentServiceTests
         await svc.CreateAsync(Input(title: "Gerichtstermin"), Array.Empty<string>(), Leader("boss"));
 
         // leadership and admin only; team lead and partner are never selectable, the creator is the trigger
-        await notifications.Received(1).NotifyManyAsync(
+        await notifications.Received(1).NotifyManyInAppAsync(
             Arg.Is<IReadOnlyCollection<string>>(r =>
                 r.Contains("boss") && r.Contains("admin")
                 && !r.Contains("junior") && !r.Contains("tl") && !r.Contains("partner")),
@@ -294,7 +321,7 @@ public sealed class AppointmentServiceTests
             Input(title: "Razzia", start: new DateTime(2026, 8, 1, 14, 30, 0)),
             Array.Empty<string>(), NonLeader("creator-1"));
 
-        await notifications.Received(1).NotifyManyAsync(
+        await notifications.Received(1).NotifyManyInAppAsync(
             Arg.Any<IReadOnlyCollection<string>>(),
             NotificationType.AppointmentScheduled,
             Arg.Is<string>(t => t.Contains("Razzia") && t.Contains("01.08.2026 14:30") && t.Contains("Interner Termin")),
@@ -316,7 +343,7 @@ public sealed class AppointmentServiceTests
             Input(title: "Feiertag", start: new DateTime(2026, 8, 1, 14, 30, 0), allDay: true),
             Array.Empty<string>(), NonLeader("creator-1"));
 
-        await notifications.Received(1).NotifyManyAsync(
+        await notifications.Received(1).NotifyManyInAppAsync(
             Arg.Any<IReadOnlyCollection<string>>(),
             NotificationType.AppointmentScheduled,
             Arg.Is<string>(t => t.Contains("01.08.2026") && !t.Contains("Uhr")),
@@ -340,7 +367,7 @@ public sealed class AppointmentServiceTests
 
         await svc.CreateAsync(Input(visibility: visibility), Array.Empty<string>(), NonLeader("creator-1"));
 
-        await notifications.Received(1).NotifyManyAsync(
+        await notifications.Received(1).NotifyManyInAppAsync(
             Arg.Is<IReadOnlyCollection<string>>(r => r.Contains("boss")), NotificationType.AppointmentScheduled,
             Arg.Any<string>(), Arg.Any<string>(), "creator-1", Arg.Any<CancellationToken>());
     }
@@ -359,7 +386,7 @@ public sealed class AppointmentServiceTests
 
         await svc.RefreshAsync("a1", Input(title: "Verschoben"), Leader("boss"));
 
-        await notifications.DidNotReceive().NotifyManyAsync(
+        await notifications.DidNotReceive().NotifyManyInAppAsync(
             Arg.Any<IReadOnlyCollection<string>>(), NotificationType.AppointmentScheduled,
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
@@ -592,8 +619,11 @@ public sealed class AppointmentServiceTests
 
         using var check = ctx.NewContext();
         Assert.True(await check.AppointmentAssignments.AnyAsync(z => z.AppointmentId == "t1" && z.AgentId == "a1"));
-        await notifications.Received(1).NotifyAsync("a1", NotificationType.AppointmentAssigned,
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        // the channel-posting path, so the new participant alone is pinged
+        await notifications.Received(1).NotifyManyAsync(
+            Arg.Is<IReadOnlyCollection<string>>(r => r.Count == 1 && r.Contains("a1")),
+            NotificationType.AppointmentAssigned,
+            Arg.Any<string>(), "/kalender/t1", Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -612,6 +642,9 @@ public sealed class AppointmentServiceTests
 
         await notifications.DidNotReceive().NotifyAsync(Arg.Any<string>(), Arg.Any<NotificationType>(),
             Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await notifications.DidNotReceive().NotifyManyAsync(Arg.Any<IReadOnlyCollection<string>>(),
+            Arg.Any<NotificationType>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

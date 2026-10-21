@@ -90,13 +90,10 @@ public class AppointmentService(
 
         await tx.CommitAsync(cancellationToken);
 
-        // Notify after commit, creator excluded.
+        // Notify after commit, creator excluded; one Discord post pings only the invited.
         var creatorId = actor.GetAgentId();
-        foreach (var agentId in valid.Distinct().Where(x => x != creatorId))
-        {
-            await notifications.NotifyAsync(agentId, NotificationType.AppointmentAssigned,
-                $"Du bist als Teilnehmer eingetragen: „{appointment.Title}“.", $"/kalender/{appointment.Id}", cancellationToken);
-        }
+        await notifications.NotifyManyAsync(valid, NotificationType.AppointmentAssigned,
+            ParticipantTitle(appointment), $"/kalender/{appointment.Id}", creatorId, cancellationToken);
 
         await LeadershipNotifyAsync(db, appointment, creatorId, cancellationToken);
 
@@ -106,7 +103,7 @@ public class AppointmentService(
         return appointment;
     }
 
-    /// <summary>Best effort; announces a new appointment to leadership and their Discord channel.</summary>
+    /// <summary>Best effort; announces a new appointment in the leadership bell, never on Discord.</summary>
     /// <remarks>
     /// Every visibility level is announced: leadership already sees any appointment via
     /// <see cref="AppointmentVisibility"/>, so withholding the restricted ones would only hide them from the
@@ -125,12 +122,15 @@ public class AppointmentService(
             var title = $"Neuer Termin: „{appointment.Title}“ am {When(appointment)} "
                       + $"({AppointmentCategoryDisplay.Name(appointment.Category)}).";
 
-            await notifications.NotifyManyAsync(recipients, NotificationType.AppointmentScheduled,
+            await notifications.NotifyManyInAppAsync(recipients, NotificationType.AppointmentScheduled,
                 title.Length > 300 ? title[..297] + "…" : title,
                 $"/kalender/{appointment.Id}", creatorId, cancellationToken);
         }
         catch { /* best effort */ }
     }
+
+    private static string ParticipantTitle(Appointment appointment)
+        => $"Du bist als Teilnehmer eingetragen: „{appointment.Title}“.";
 
     // all-day appointments carry no meaningful clock time
     private static string When(Appointment appointment)
@@ -221,10 +221,12 @@ public class AppointmentService(
         db.AppointmentAssignments.Add(new AppointmentAssignment { AppointmentId = appointmentId, AgentId = agentId });
         await db.SaveChangesAsync(cancellationToken);
 
-        if (agentId != actor.GetAgentId())
+        var actorId = actor.GetAgentId();
+        if (agentId != actorId)
         {
-            await notifications.NotifyAsync(agentId, NotificationType.AppointmentAssigned,
-                $"Du bist als Teilnehmer eingetragen: „{appointment.Title}“.", $"/kalender/{appointment.Id}", cancellationToken);
+            // many-path pings on Discord
+            await notifications.NotifyManyAsync([agentId], NotificationType.AppointmentAssigned,
+                ParticipantTitle(appointment), $"/kalender/{appointment.Id}", actorId, cancellationToken);
         }
     }
 
