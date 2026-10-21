@@ -199,8 +199,9 @@ internal static class DutyChapter
                 an.</p>
                 <p>Ein Teil davon geht zusätzlich nach <strong>Discord</strong>. Was dort ankommt, ist bewusst
                 inhaltsarm - eine Zeile, die sagt, dass es etwas gibt, nicht was es ist.</p>
-                <p>Erwähnungen, Aufgaben, fällige Wiedervorlagen und überfällige Quittierungen pingen dich dort
-                persönlich. Wann, legst du im selben Abschnitt des Profils fest: <em>Sofort</em>, <em>Gesammelt</em>
+                <p>Erwähnungen, Aufgaben, Einladungen zu einem Termin, fällige Wiedervorlagen und überfällige
+                Quittierungen pingen dich dort persönlich - bei einem Termin also nur die Eingeladenen, nicht die
+                ganze Behörde. Wann, legst du im selben Abschnitt des Profils fest: <em>Sofort</em>, <em>Gesammelt</em>
                 oder <em>Nie</em>.
                 Gesammeltes kommt einmal am Tag um 18 Uhr als <em>Tagesüberblick</em> - eine Zeile mit deinem
                 Ping und der Zahl der Meldungen, die du bis dahin noch nicht gelesen hast. Was du vorher in der

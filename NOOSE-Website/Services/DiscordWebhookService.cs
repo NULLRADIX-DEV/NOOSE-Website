@@ -619,8 +619,7 @@ public class DiscordWebhookService(
     // categories whose role-ping post may carry the record header/title (opt-in, admin-toggleable)
     private static bool ShouldIncludeHeadline(NotificationType type, DiscordWebhookConfig config, string? headline)
         => config.IncludeHeadline && !string.IsNullOrWhiteSpace(headline)
-            && type is NotificationType.Announcement or NotificationType.Recruiting
-                or NotificationType.AppointmentScheduled;
+            && type is NotificationType.Announcement or NotificationType.Recruiting;
 
     // app-authored header + login-gated link; single-line, capped, mentions stay inert via allowed_mentions
     private static string ComposeHeadline(string headline, string baseUrl, string? href)
@@ -644,7 +643,7 @@ public class DiscordWebhookService(
         NotificationType.JobDueSoon => "/aufgaben",
         NotificationType.MeetingScheduled => "/besprechungen",
         NotificationType.MeetingReminder => "/besprechungen",
-        NotificationType.AppointmentScheduled => "/kalender",
+        NotificationType.AppointmentAssigned => "/kalender",
         NotificationType.PersonnelEntry => "/personal",
         NotificationType.AgentTerminated => "/personal",
         NotificationType.DecorationAwarded => "/personal",
@@ -677,7 +676,7 @@ public class DiscordWebhookService(
         NotificationType.JobDueSoon => "⏰ Eine Aufgabe wird bald fällig.",
         NotificationType.MeetingScheduled => "📅 Eine neue Besprechung wurde angesetzt.",
         NotificationType.MeetingReminder => "⏰ Eine Besprechung beginnt bald.",
-        NotificationType.AppointmentScheduled => "📅 Ein neuer Termin wurde angelegt.",
+        NotificationType.AppointmentAssigned => "📅 Du wurdest zu einem Termin eingeladen.",
         NotificationType.PersonnelEntry => "📝 Neuer Personalakten-Eintrag.",
         NotificationType.AgentTerminated => "⚠️ Eine Kündigung wurde ausgesprochen.",
         NotificationType.DecorationAwarded => "🎖️ Ein Ehrenzeichen wurde verliehen.",
@@ -718,6 +717,12 @@ public class DiscordWebhookService(
         foreach (var type in DiscordRouting.RoutableTypes)
         {
             map[type] = Trim(values.GetValueOrDefault(SystemSettingKeys.DiscordWebhookPrefix + type));
+        }
+        // the appointment channel used to hang on AppointmentScheduled; keep it until the settings are saved again
+        if (!values.ContainsKey(SystemSettingKeys.DiscordWebhookPrefix + NotificationType.AppointmentAssigned))
+        {
+            map[NotificationType.AppointmentAssigned] = Trim(values.GetValueOrDefault(
+                SystemSettingKeys.DiscordWebhookPrefix + nameof(NotificationType.AppointmentScheduled)));
         }
         var roles = new Dictionary<NotificationType, string?>();
         foreach (var type in DiscordRouting.RoleRoutableTypes)
