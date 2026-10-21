@@ -16,9 +16,9 @@ public static class DiscordRouting
         NotificationType.JobDueSoon,
         NotificationType.MeetingScheduled,
         NotificationType.MeetingReminder,
-        // the scheduling event, not AppointmentAssigned: that one is the personal "you are a participant"
-        // notice and would post one channel message per participant
-        NotificationType.AppointmentScheduled,
+        // the personal "you are invited" notice, not AppointmentScheduled: only the invited are pinged, never
+        // the whole house. AppointmentScheduled stays in the leadership bell
+        NotificationType.AppointmentAssigned,
         NotificationType.PersonnelEntry,
         // its own channel, separate from PersonnelEntry: a termination is announced to the whole agency, the
         // other personnel entries are house bookkeeping
@@ -76,6 +76,7 @@ public static class DiscordRouting
         // channel is the complement of the absence set and would leak who filed an absence
         => type is NotificationType.Mention or NotificationType.Followup
                 or NotificationType.JobAssigned or NotificationType.JobDueSoon
+                or NotificationType.AppointmentAssigned
                 or NotificationType.PersonnelEntry or NotificationType.PingDigest
                 or NotificationType.AcknowledgmentReminder or NotificationType.SavedSearchHit
                 or NotificationType.DecorationAwarded
@@ -138,7 +139,7 @@ public sealed class DiscordWebhookConfigInput
     /// <summary>Role id to ping per broadcast category; empty/null falls back to the default role.</summary>
     public Dictionary<NotificationType, string?> Roles { get; set; } = new();
 
-    /// <summary>Include the record header/title in role-ping posts (Announcement, Recruiting, AppointmentScheduled).</summary>
+    /// <summary>Include the record header/title in role-ping posts (Announcement, Recruiting).</summary>
     public bool IncludeHeadline { get; set; } = true;
 
     /// <summary>Score a faction must exceed to appear on the threat board.</summary>

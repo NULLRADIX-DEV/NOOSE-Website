@@ -543,7 +543,10 @@ public static class ChangelogContent
             Neu("2.7.11-besprechung-massnahmen", "Aus einem Tagesordnungspunkt wird mit „Maßnahme“ eine Aufgabe oder "
                 + "Wiedervorlage mit Zuständigem und Frist. Der Punkt zeigt danach, ob sie offen, überfällig oder "
                 + "erledigt ist, auch in der nächsten Besprechung.", "Dienstbetrieb"),
-            Besser("2.7.12-kasse-auszahlen", "Auszahlungen aus der Kasse bucht jetzt schon ein Senior Special Agent, "
+            Neu("2.7.12-termin-ping-eingeladene", "Ein neuer Termin pingt auf Discord nur noch die eingeladenen "
+                + "Teilnehmer, nicht mehr die ganze Behörde; wer später dazukommt, wird ebenfalls gepingt. Im Profil "
+                + "stellst du den Ping wie bei Aufgaben auf sofort, gesammelt oder nie.", "Discord"),
+            Besser("2.7.13-kasse-auszahlen", "Auszahlungen aus der Kasse bucht jetzt schon ein Senior Special Agent, "
                 + "immer auf den eigenen Namen. Einzahlen darf weiter jeder, den Stand setzt weiter die Führung.",
                 "Kasse"),
         ]),

@@ -20,7 +20,7 @@ public class DiscordWebhookModelsTests
         NotificationType.JobDueSoon,
         NotificationType.MeetingScheduled,
         NotificationType.MeetingReminder,
-        NotificationType.AppointmentScheduled,
+        NotificationType.AppointmentAssigned,
         NotificationType.PersonnelEntry,
         NotificationType.AgentTerminated,
         NotificationType.DecorationAwarded,
@@ -45,7 +45,8 @@ public class DiscordWebhookModelsTests
         NotificationType.RequestDecided,
         NotificationType.Account,
         NotificationType.RecordModified,
-        NotificationType.AppointmentAssigned,
+        // the leadership bell only; the channel pings the invited via AppointmentAssigned
+        NotificationType.AppointmentScheduled,
         NotificationType.AbsenceFiled,
         // the desk notice fires on a citizen reply too, so routing it would ping on every line of a running tip
         NotificationType.PublicTipReceived,
@@ -75,7 +76,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.JobDueSoon)]
     [InlineData(NotificationType.MeetingScheduled)]
     [InlineData(NotificationType.MeetingReminder)]
-    [InlineData(NotificationType.AppointmentScheduled)]
+    [InlineData(NotificationType.AppointmentAssigned)]
     [InlineData(NotificationType.PublicWantedPublished)]
     [InlineData(NotificationType.PublicWantedBountyRaised)]
     [InlineData(NotificationType.PublicTicketCreated)]
@@ -90,7 +91,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.RequestDecided)]
     [InlineData(NotificationType.Account)]
     [InlineData(NotificationType.RecordModified)]
-    [InlineData(NotificationType.AppointmentAssigned)]
+    [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.AbsenceFiled)]
     public void IsRoutable_forNonRoutableTypes_returnsFalse(NotificationType type)
     {
@@ -110,6 +111,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.Followup)]
     [InlineData(NotificationType.JobAssigned)]
     [InlineData(NotificationType.JobDueSoon)]
+    [InlineData(NotificationType.AppointmentAssigned)]
     [InlineData(NotificationType.PingDigest)]
     [InlineData(NotificationType.AcknowledgmentReminder)]
     [InlineData(NotificationType.SavedSearchHit)]
@@ -130,7 +132,6 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.Recruiting)]
     [InlineData(NotificationType.MeetingScheduled)]
     [InlineData(NotificationType.MeetingReminder)]
-    [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.PublicWantedPublished)]
     [InlineData(NotificationType.PublicTicketCreated)]
     public void PingsRecipients_forRoutableRoleCategories_returnsFalse(NotificationType type)
@@ -144,7 +145,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.RequestDecided)]
     [InlineData(NotificationType.Account)]
     [InlineData(NotificationType.RecordModified)]
-    [InlineData(NotificationType.AppointmentAssigned)]
+    [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.AbsenceFiled)]
     public void PingsRecipients_forNonRoutableTypes_returnsFalse(NotificationType type)
     {
@@ -165,7 +166,6 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.Recruiting)]
     [InlineData(NotificationType.MeetingScheduled)]
     [InlineData(NotificationType.MeetingReminder)]
-    [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.PublicWantedPublished)]
     [InlineData(NotificationType.PublicTicketCreated)]
     public void PingsRole_forRoutableRoleCategories_returnsTrue(NotificationType type)
@@ -191,7 +191,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.RequestDecided)]
     [InlineData(NotificationType.Account)]
     [InlineData(NotificationType.RecordModified)]
-    [InlineData(NotificationType.AppointmentAssigned)]
+    [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.AbsenceFiled)]
     public void PingsRole_forNonRoutableTypes_returnsFalse(NotificationType type)
     {
@@ -307,7 +307,6 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.Account)]
     [InlineData(NotificationType.RecordModified)]
     [InlineData(NotificationType.AppointmentAssigned)]
-    // the leadership role id is admin-configured; the default stays the generic fallback
     [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.PublicTicketCreated)]
     [InlineData(NotificationType.AbsenceFiled)]
@@ -348,7 +347,6 @@ public class DiscordWebhookModelsTests
             NotificationType.Recruiting,
             NotificationType.MeetingScheduled,
             NotificationType.MeetingReminder,
-            NotificationType.AppointmentScheduled,
             NotificationType.PublicWantedPublished,
             NotificationType.PublicWantedBountyRaised,
             NotificationType.PublicTicketCreated,
