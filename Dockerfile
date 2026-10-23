@@ -1,7 +1,7 @@
 # NOOSE-Website als Container-Image (gebaut von .github/workflows/image.yml, Betrieb: deploy/compose.yml).
 # Konfiguration kommt komplett aus der Env-Datei auf dem Server, App_Data wird als Volume eingehängt.
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:0d99ebf1ccad15037b5c98c9fe8979d6b8dbac23812feae2277a0b277b5c5ffa AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:747cbade5bfd918a175ac32f8f1d931edec2c7d0d5397a3de72eaef1ac1f66d2 AS build
 WORKDIR /src
 # Restore erst zusammen mit allen Quellen, NICHT vorab nur mit der .csproj: Das Web-SDK entscheidet
 # anhand der .razor-Dateien, ob die Blazor-Framework-Skripte (_framework/blazor.web.js) dazukommen.
@@ -23,7 +23,7 @@ RUN test -f /app/wwwroot/_framework/blazor.web.js || { echo "Publish-Output unvo
         test -f "/app/wwwroot/lib/quill/$f" || { echo "Publish-Output unvollstaendig: wwwroot/lib/quill/$f fehlt"; exit 1; }; \
     done
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:d5633778c754e89a386882eddf8dbee6942447a8a4b8267c19cf1e1158d0b0ac
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:8af87eba5e7cdafb1514d7388be287365da97c132509e84dfe252ffd552398ca
 WORKDIR /app
 COPY --from=build /app .
 # www-data (33), damit die bestehenden Dateirechte von App_Data weiter passen
