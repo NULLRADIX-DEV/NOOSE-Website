@@ -136,7 +136,7 @@ internal static class GettingStartedChapter
                 Protokoll, in Auswahllisten.</p>
                 <p>Dein <strong>Klarname</strong> ist etwas anderes. Ihn sieht nur die Führung. Das ist keine
                 Kleinigkeit, sondern der Grund, warum die ganze Seite mit Codenamen arbeitet.</p>
-                <p>Daneben steht deine <strong>Dienstnummer</strong> - eine römische Zahl von I bis XXV. Sie ist
+                <p>Daneben steht deine <strong>Dienstnummer</strong> - eine römische Zahl von I bis XL. Sie ist
                 die interne Kennung, vor allem im Funk, und jede ist nur einmal vergeben. Ändern lässt sie die
                 Führung; unterhalb davon stellst du einen Änderungswunsch.</p>
                 """,

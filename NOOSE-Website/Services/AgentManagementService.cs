@@ -1139,7 +1139,7 @@ public class AgentManagementService(
                 && string.Equals(BadgeNumbers.Normalize(agent.PendingBadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase));
         if (!BadgeNumbers.IsAllowed(badgeNumber) && !(allowLegacyValue && isLegacyValue))
         {
-            throw new InvalidOperationException("Die Dienstnummer muss eine römische Zahl zwischen I und XXV sein.");
+            throw new InvalidOperationException("Die Dienstnummer muss eine römische Zahl zwischen I und XL sein.");
         }
 
         // the agent's own value is no conflict with itself: without this, a legacy duplicate
