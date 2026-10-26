@@ -185,7 +185,7 @@ public class AgentManagementServiceTests
         Assert.DoesNotContain("iv", options);
         Assert.Contains("legacy", options);
         Assert.Contains("I", options);
-        Assert.Equal(23, options.Count(x => BadgeNumbers.All.Contains(x, StringComparer.OrdinalIgnoreCase)));
+        Assert.Equal(38, options.Count(x => BadgeNumbers.All.Contains(x, StringComparer.OrdinalIgnoreCase)));
     }
 
     // ---- release / reject ----

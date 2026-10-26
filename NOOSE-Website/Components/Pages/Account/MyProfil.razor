@@ -145,7 +145,7 @@
                             <MudSelect T="string" @bind-Value="_badgeNumber" Label="Dienstnummer" Variant="Variant.Outlined"
                                        ReadOnly="@(!_mayWrite)" Clearable="true"
                                        Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Numbers"
-                                       HelperText="Für alle Nutzer sichtbar (optional). Freie römische Nummern I–XXV.">
+                                       HelperText="Für alle Nutzer sichtbar (optional). Freie römische Nummern I–XL.">
                                 <MudSelectItem T="string" Value="@(null as string)">— keine —</MudSelectItem>
                                 @foreach (var badgeNumber in _badgeNumberOptions)
                                 {

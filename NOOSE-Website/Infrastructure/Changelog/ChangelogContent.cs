@@ -549,6 +549,8 @@ public static class ChangelogContent
             Besser("2.7.13-kasse-auszahlen", "Auszahlungen aus der Kasse bucht jetzt schon ein Senior Special Agent, "
                 + "immer auf den eigenen Namen. Einzahlen darf weiter jeder, den Stand setzt weiter die Führung.",
                 "Kasse"),
+            Besser("2.7.14-dienstnummern-40", "Für die Dienstnummer stehen jetzt 40 römische Nummern zur Wahl, von I "
+                + "bis XL.", "Personal"),
         ]),
     ];
 }

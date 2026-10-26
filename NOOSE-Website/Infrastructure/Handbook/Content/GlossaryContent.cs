@@ -522,7 +522,7 @@ internal static class GlossaryContent
             "Die Pflicht, im Dienst dauerhaft im eigenen Funkkanal erreichbar zu sein.",
             ArticleKey: "art-dvo-funk"),
         new("beg-dienstnummer", "Dienstnummer",
-            "Deine interne Kennung als römische Zahl von I bis XXV, vor allem für den Funk.",
+            "Deine interne Kennung als römische Zahl von I bis XL, vor allem für den Funk.",
             ArticleKey: "art-dvo-funk"),
         new("beg-jailbreak-handy", "Jailbreak-Handy",
             "Das einzige im Dienst zugelassene Kommunikationsgerät.",
