@@ -126,7 +126,11 @@ public class Agent : IdentityUser
     [Column("InaktivNachgefasstVonName")]
     public string? InactivityNudgedByName { get; set; }
 
-    /// <summary>The agent's own choice to stay off the public roster on /fuehrung; the page never says anyone is missing.</summary>
+    /// <summary>Off the public roster on /fuehrung until the agent opts in; the page never says anyone is missing.</summary>
+    /// <remarks>
+    /// Initialised in C#, not as a database default: EF would skip a false that equals the CLR default and let the
+    /// column default win, so nobody could ever be created visible.
+    /// </remarks>
     [Column("AufMitarbeiterlisteVerborgen")]
-    public bool HiddenFromPublicRoster { get; set; }
+    public bool HiddenFromPublicRoster { get; set; } = true;
 }
