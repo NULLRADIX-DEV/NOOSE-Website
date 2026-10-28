@@ -1,0 +1,63 @@
+@* The agent's own choice whether the public page "Mitarbeiter" names them. *@
+@inject IPublicLeadershipService Leadership
+@inject ISnackbar Snackbar
+@inject ILogger<PublicRosterVisibilityPanel> Log
+
+<MudText Typo="Typo.h6" Class="mb-1">Öffentliche Mitarbeiterliste</MudText>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+    Die öffentliche Seite <MudLink Href="/fuehrung" Typo="Typo.caption" Target="_blank">Mitarbeiter</MudLink> nennt
+    jeden aktiven Agenten mit seinem Klarnamen, die Führung zusätzlich mit Dienstgrad, Foto und Telefonnummer.
+    Schaltest du dich aus, fehlst du dort einfach: Die Seite verrät nicht, dass jemand fehlt.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudSwitch T="bool" Value="@(!_hidden)" ValueChanged="OnChangedAsync" Color="Color.Primary"
+               Disabled="@(!User.MayWrite() || _busy)" Label="Mich auf der öffentlichen Mitarbeiterliste zeigen" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _hidden;
+    private bool _load = true;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _hidden = await Leadership.IsOwnHiddenAsync(User);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Roster visibility failed to load");
+        }
+        _load = false;
+    }
+
+    private async Task OnChangedAsync(bool shown)
+    {
+        _busy = true;
+        try
+        {
+            await Leadership.SetOwnHiddenAsync(!shown, User);
+            _hidden = !shown;
+            Snackbar.Add(shown ? "Du stehst wieder auf der öffentlichen Mitarbeiterliste."
+                : "Du stehst nicht mehr auf der öffentlichen Mitarbeiterliste.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

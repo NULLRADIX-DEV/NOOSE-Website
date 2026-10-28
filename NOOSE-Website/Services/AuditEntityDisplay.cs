@@ -71,7 +71,7 @@ public static class AuditEntityDisplay
         "TicketNachricht" => "Ticket-Nachricht",
         "TicketParticipant" => "Ticket-Beteiligter",
         "OeffentlichesFuehrungsprofil" => "Öffentliches Führungsprofil",
-        "OeffentlicheTelefonnummer" => "Öffentliche Telefonnummer",
+        "OeffentlicheTelefonnummer" => "Öffentliche Führungskarte",
         "OeffentlicheVorlage" => "Öffentliche Vorlage",
         "OeffentlichesFraktionsprofil" => "Öffentliches Organisationsprofil",
         "FahndungEinspruch" => "Einspruch gegen eine Ausschreibung",

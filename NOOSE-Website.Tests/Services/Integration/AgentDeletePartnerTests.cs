@@ -75,7 +75,7 @@ public sealed class AgentDeletePartnerTests : IDisposable
         var avatars = new AgentAvatarStorageService(env, Options.Create(new FileUploadOptions()));
         return new AgentManagementService(BuildUserManager(db), db, new Factory(_options),
             Substitute.For<INotificationService>(), Substitute.For<IDiscordWebhookService>(),
-            new ConfigurationBuilder().Build(), avatars);
+            new ConfigurationBuilder().Build(), avatars, Substitute.For<IPublicLeadershipPhotoStorageService>());
     }
 
     private static ClaimsPrincipal Leader()
