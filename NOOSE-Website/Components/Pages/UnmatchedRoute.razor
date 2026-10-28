@@ -1,0 +1,16 @@
+@page "/{*path:nonfile}"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout BareLayout
+@inject NavigationManager Nav
+
+@* Catches every URL nothing else takes, so the router renders NotFound.razor in this request; a status-code
+   re-execute would write it before its layout loads (.NET 10, dotnet/aspnetcore#64034). BareLayout: MainLayout can
+   hold the page back (maintenance, partner gate) and NotFound() would never run. nonfile: dev static asset fallback. *@
+
+@code {
+    [Parameter]
+    public string? Path { get; set; }
+
+    protected override void OnInitialized() => Nav.NotFound();
+}
