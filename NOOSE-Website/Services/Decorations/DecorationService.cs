@@ -20,7 +20,6 @@ public class DecorationService(
     IAnnouncementService announcements,
     INotificationService notifications,
     IDiscordWebhookService discord,
-    IPublicLeadershipService leadership,
     ILogger<DecorationService> logger) : IDecorationService
 {
     private const int MaxNameLength = 80;
@@ -357,17 +356,6 @@ public class DecorationService(
                 logger.LogWarning(ex, "Refreshing the board entry of corrected award {AwardId} failed.", award.Id);
             }
         }
-        try
-        {
-            await leadership.SyncDecorationAsync(award.Id,
-                new PublicDecorationCopy(award.Id, decoration.Name, decoration.Symbol, decoration.Tier, day.Year),
-                CancellationToken.None);
-        }
-        catch (Exception ex)
-        {
-            /* best effort */
-            logger.LogWarning(ex, "Refreshing the public copy of corrected award {AwardId} failed.", award.Id);
-        }
     }
 
     public async Task RevokeAsync(string id, string reason, ClaimsPrincipal actor,
@@ -400,7 +388,7 @@ public class DecorationService(
         award.RevocationReason = why;
         await db.SaveChangesAsync(cancellationToken);
 
-        // the board must stop celebrating it, and the public chart must stop showing it
+        // the board must stop celebrating it
         if (award.AnnouncementId is { } announcementId)
         {
             try
@@ -412,16 +400,6 @@ public class DecorationService(
                 /* best effort */
                 logger.LogWarning(ex, "Trashing the board entry of revoked award {AwardId} failed.", award.Id);
             }
-        }
-        try
-        {
-            // the public read filters revoked awards anyway; this keeps the stored copy honest
-            await leadership.SyncDecorationAsync(award.Id, null, CancellationToken.None);
-        }
-        catch (Exception ex)
-        {
-            /* best effort */
-            logger.LogWarning(ex, "Dropping revoked award {AwardId} from the public chart failed.", award.Id);
         }
     }
 

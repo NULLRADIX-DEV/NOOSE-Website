@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Text;
-using System.Text.Json;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Models.Decorations;
@@ -110,40 +109,6 @@ public static class DecorationRules
 
     /// <summary>Bell title for the recipient.</summary>
     public static string BellTitle(string decorationName) => Clip($"Dir wurde das Ehrenzeichen „{decorationName}“ verliehen.", 300);
-
-    /// <summary>Copies on a public profile; an unreadable blob counts as none.</summary>
-    public static IReadOnlyList<PublicDecorationCopy> ParseCopies(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            return Array.Empty<PublicDecorationCopy>();
-        }
-        try
-        {
-            return JsonSerializer.Deserialize<List<PublicDecorationCopy>>(json) ?? new List<PublicDecorationCopy>();
-        }
-        catch (JsonException)
-        {
-            return Array.Empty<PublicDecorationCopy>();
-        }
-    }
-
-    /// <summary>Stored form of the copies; none is null.</summary>
-    public static string? CopiesJson(IReadOnlyCollection<PublicDecorationCopy> copies)
-        => copies.Count == 0 ? null : JsonSerializer.Serialize(copies);
-
-    /// <summary>The blob with one award replaced, or dropped when <paramref name="replacement"/> is null.</summary>
-    /// <param name="changed">Whether the blob held that award at all.</param>
-    public static string? ReplaceCopy(string? json, string awardId, PublicDecorationCopy? replacement, out bool changed)
-    {
-        var copies = ParseCopies(json);
-        changed = copies.Any(c => string.Equals(c.AwardId, awardId, StringComparison.Ordinal));
-        var result = copies
-            .Select(c => string.Equals(c.AwardId, awardId, StringComparison.Ordinal) ? replacement : c)
-            .OfType<PublicDecorationCopy>()
-            .ToList();
-        return CopiesJson(result);
-    }
 
     private static string Encode(string value) => WebUtility.HtmlEncode(value);
 

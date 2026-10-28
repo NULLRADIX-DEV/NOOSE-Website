@@ -5,17 +5,13 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Decorations;
 using NOOSE_Website.Data.Entities.Personnel;
-using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Infrastructure.Notifications;
-using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Announcements;
 using NOOSE_Website.Models.Decorations;
 using NOOSE_Website.Models.Enums;
-using NOOSE_Website.Models.Public;
 using NOOSE_Website.Services;
 using NOOSE_Website.Services.Decorations;
-using NOOSE_Website.Services.Public;
 using NOOSE_Website.Tests.Infrastructure;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -33,9 +29,7 @@ public sealed class DecorationServiceTests : IDisposable
     private readonly IAnnouncementService _announcements = Substitute.For<IAnnouncementService>();
     private readonly IDiscordWebhookService _discord = Substitute.For<IDiscordWebhookService>();
     private readonly IDiscordWebhookService _bellChannel = Substitute.For<IDiscordWebhookService>();
-    private readonly IPublicModuleService _modules = Substitute.For<IPublicModuleService>();
     private readonly NavPreferencesService _prefs;
-    private readonly PublicLeadershipService _leadership;
     private readonly DecorationService _service;
 
     public DecorationServiceTests()
@@ -44,11 +38,8 @@ public sealed class DecorationServiceTests : IDisposable
             .Returns(_ => new Announcement { Id = "ann-1" });
         var cache = new MemoryCache(new MemoryCacheOptions());
         _prefs = new NavPreferencesService(_ctx.Factory, cache);
-        _modules.GetAsync(Arg.Any<CancellationToken>()).Returns(_ => LeadershipModuleOn());
-        _leadership = new PublicLeadershipService(_ctx.Factory, _modules,
-            Substitute.For<IPublicLeadershipPhotoStorageService>(), cache);
         var notifications = new NotificationService(_ctx.Factory, new NotificationBroadcaster(), _bellChannel);
-        _service = new DecorationService(_ctx.Factory, _announcements, notifications, _discord, _leadership,
+        _service = new DecorationService(_ctx.Factory, _announcements, notifications, _discord,
             NullLogger<DecorationService>.Instance);
         SeedRoster();
     }
@@ -360,114 +351,6 @@ public sealed class DecorationServiceTests : IDisposable
         Assert.Null(Award(id).RevokedAt);
     }
 
-    // ---- public leadership profile ----
-
-    [Fact]
-    public async Task The_profile_copies_only_standing_awards_of_its_own_agent_and_a_revocation_drops_the_copy()
-    {
-        var own = await _service.AwardAsync(Input("lead2"), Leader());
-        var revoked = await _service.AwardAsync(Input("lead2"), Leader());
-        await _service.RevokeAsync(revoked, "Irrtum", Leader());
-        var foreign = await _service.AwardAsync(Input("junior"), Leader());
-
-        var profileId = await _leadership.SaveAsync(new PublicLeadershipInput
-        {
-            AgentId = "lead2",
-            DisplayName = "Mara Quinn",
-            Title = "Supervisory Special Agent",
-            DecorationAwardIds = [own, revoked, foreign],
-        }, Leader());
-
-        Assert.Equal([own], CopiesOf(profileId));
-
-        await _service.RevokeAsync(own, "Irrtum", Leader());
-        Assert.Empty(CopiesOf(profileId));
-    }
-
-    [Fact]
-    public async Task A_correction_rewrites_the_public_copy()
-    {
-        var id = await _service.AwardAsync(Input("lead2"), Leader());
-        var profileId = await _leadership.SaveAsync(new PublicLeadershipInput
-        {
-            AgentId = "lead2",
-            DisplayName = "Mara Quinn",
-            Title = "Supervisory Special Agent",
-            DecorationAwardIds = [id],
-        }, Leader());
-
-        await _service.UpdateAsync(id, Input("lead2", decorationId: Silver), Leader());
-
-        var copy = Assert.Single(Copies(profileId));
-        Assert.Equal("Tapferkeitsmedaille", copy.Name);
-        Assert.Equal(DecorationTier.Silver, copy.Tier);
-    }
-
-    [Fact]
-    public async Task The_public_card_shows_name_symbol_and_grade_and_never_a_revoked_award()
-    {
-        var kept = await _service.AwardAsync(Input("lead2"), Leader());
-        var gone = await _service.AwardAsync(Input("lead2", decorationId: Silver), Leader());
-        var profileId = await _leadership.SaveAsync(new PublicLeadershipInput
-        {
-            AgentId = "lead2",
-            DisplayName = "Mara Quinn",
-            Title = "Supervisory Special Agent",
-            DecorationAwardIds = [kept, gone],
-        }, Leader());
-        await _leadership.PublishAsync(profileId, Leader());
-
-        // a revocation that bypassed the cleanup must still never show outside
-        using (var db = _ctx.NewContext())
-        {
-            db.DecorationAwards.Single(a => a.Id == gone).RevokedAt = DateTime.UtcNow;
-            db.SaveChanges();
-        }
-
-        var card = Assert.Single(await _leadership.GetPublicAsync());
-        Assert.Equal([new PublicLeadershipDecoration("Verdienstmedaille", "medaille", DecorationTier.Gold)], card.Decorations);
-    }
-
-    [Fact]
-    public async Task Pointing_a_profile_at_another_agent_drops_the_previous_copies()
-    {
-        var own = await _service.AwardAsync(Input("lead2"), Leader());
-        var input = new PublicLeadershipInput
-        {
-            AgentId = "lead2",
-            DisplayName = "Mara Quinn",
-            Title = "Supervisory Special Agent",
-            DecorationAwardIds = [own],
-        };
-        input.Id = await _leadership.SaveAsync(input, Leader());
-
-        input.AgentId = "dd";
-        input.DecorationAwardIds = null;
-        await _leadership.SaveAsync(input, Leader());
-
-        Assert.Empty(CopiesOf(input.Id));
-    }
-
-    [Fact]
-    public async Task Saving_a_profile_without_a_choice_leaves_its_copies_alone()
-    {
-        var own = await _service.AwardAsync(Input("lead2"), Leader());
-        var input = new PublicLeadershipInput
-        {
-            AgentId = "lead2",
-            DisplayName = "Mara Quinn",
-            Title = "Supervisory Special Agent",
-            DecorationAwardIds = [own],
-        };
-        input.Id = await _leadership.SaveAsync(input, Leader());
-
-        input.DecorationAwardIds = null;
-        input.RoleText = "Leitung Einsatz";
-        await _leadership.SaveAsync(input, Leader());
-
-        Assert.Equal([own], CopiesOf(input.Id));
-    }
-
     // ---- reading ----
 
     [Fact]
@@ -671,17 +554,4 @@ public sealed class DecorationServiceTests : IDisposable
         using var db = _ctx.NewContext();
         return db.Notifications.AsNoTracking().ToList();
     }
-
-    private List<string> CopiesOf(string profileId) => Copies(profileId).Select(c => c.AwardId).ToList();
-
-    private IReadOnlyList<PublicDecorationCopy> Copies(string profileId)
-    {
-        using var db = _ctx.NewContext();
-        var json = db.OeffentlicheFuehrungsprofile.AsNoTracking().Single(p => p.Id == profileId).DecorationsJson;
-        return DecorationRules.ParseCopies(json);
-    }
-
-    private static PublicModuleSnapshot LeadershipModuleOn()
-        => new(false, [new PublicModuleState(PublicModules.Leadership, "Führung", "", "", "/fuehrung",
-            PublicModuleGroup.Behoerde, 0, IsEnabled: true, "", Available: true)]);
 }

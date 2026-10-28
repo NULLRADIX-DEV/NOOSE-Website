@@ -108,7 +108,3 @@ public record CertificateView(
     string? SignatoryName,
     Rank? SignatoryRank,
     string Place);
-
-/// <summary>One decoration as copied onto a public leadership profile.</summary>
-/// <remarks>Inward shape of the stored copy; the award id lets a revocation find and drop it.</remarks>
-public record PublicDecorationCopy(string AwardId, string Name, string Symbol, DecorationTier Tier, int Year);

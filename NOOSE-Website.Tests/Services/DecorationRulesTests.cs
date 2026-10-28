@@ -149,61 +149,6 @@ public sealed class DecorationRulesTests
         Assert.Equal(200, DecorationRules.AnnouncementTitle(new string('x', 80), new string('y', 180)).Length);
     }
 
-    // ---- public copies ----
-
-    [Fact]
-    public void Copies_round_trip_and_an_unreadable_blob_counts_as_none()
-    {
-        var copies = new List<PublicDecorationCopy>
-        {
-            new("a1", "Verdienstmedaille", "medaille", DecorationTier.Gold, 2026),
-            new("a2", "Ehrenkreuz", "orden", DecorationTier.Bronze, 2025),
-        };
-
-        Assert.Equal(copies, DecorationRules.ParseCopies(DecorationRules.CopiesJson(copies)));
-        Assert.Null(DecorationRules.CopiesJson([]));
-        Assert.Empty(DecorationRules.ParseCopies("{kaputt"));
-        Assert.Empty(DecorationRules.ParseCopies(null));
-    }
-
-    [Fact]
-    public void Dropping_a_copy_removes_only_that_award_and_says_whether_it_was_there()
-    {
-        var json = DecorationRules.CopiesJson(
-        [
-            new PublicDecorationCopy("a1", "Verdienstmedaille", "medaille", DecorationTier.Gold, 2026),
-            new PublicDecorationCopy("a2", "Ehrenkreuz", "orden", DecorationTier.Bronze, 2025),
-        ]);
-
-        var dropped = DecorationRules.ReplaceCopy(json, "a1", null, out var changed);
-        Assert.True(changed);
-        Assert.Equal(["a2"], DecorationRules.ParseCopies(dropped).Select(c => c.AwardId).ToList());
-
-        DecorationRules.ReplaceCopy(dropped, "a1", null, out var again);
-        Assert.False(again);
-        Assert.Null(DecorationRules.ReplaceCopy(dropped, "a2", null, out _));
-    }
-
-    [Fact]
-    public void A_corrected_copy_replaces_its_entry_in_place()
-    {
-        var json = DecorationRules.CopiesJson(
-        [
-            new PublicDecorationCopy("a1", "Verdienstmedaille", "medaille", DecorationTier.Gold, 2026),
-            new PublicDecorationCopy("a2", "Ehrenkreuz", "orden", DecorationTier.Bronze, 2025),
-        ]);
-
-        var fixedJson = DecorationRules.ReplaceCopy(json, "a1",
-            new PublicDecorationCopy("a1", "Tapferkeitsmedaille", "stern", DecorationTier.Silver, 2025), out var changed);
-
-        Assert.True(changed);
-        Assert.Equal(
-        [
-            new PublicDecorationCopy("a1", "Tapferkeitsmedaille", "stern", DecorationTier.Silver, 2025),
-            new PublicDecorationCopy("a2", "Ehrenkreuz", "orden", DecorationTier.Bronze, 2025),
-        ], DecorationRules.ParseCopies(fixedJson));
-    }
-
     [Fact]
     public void An_unknown_symbol_falls_back_to_the_medal()
     {

@@ -130,8 +130,9 @@ public static class WatchlistRecordRollup
             case Ticket:
             case TicketNachricht:
             case TicketParticipant:
-            // an editorial publication about the agency itself; no file has a follower who could care
+            // about the agency itself; no file has a follower who could care
             case OeffentlichesFuehrungsprofil:
+            case OeffentlicheTelefonnummer:
             // a template is configuration; what a follower could care about is the message it produced
             case OeffentlicheVorlage:
             // statutes are reference text, not casework, and nobody follows a law book

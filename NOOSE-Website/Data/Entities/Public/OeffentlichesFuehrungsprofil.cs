@@ -3,16 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NOOSE_Website.Data.Entities.Public;
 
-/// <summary>One released entry of the public leadership chart: a snapshot, never the agent record itself.</summary>
+/// <summary>Retired editorial entry of the old public leadership chart; nothing reads it anymore.</summary>
 /// <remarks>
-/// This is the one place where the house shows a real name outwards, and it does so only for the leadership band and
-/// only for entries someone actively released. <c>Agent</c> stays in <c>PublicVisibility.NeverPublic</c>: nothing here
-/// is projected from it at read time. The name, the rank wording, the role and the photo are all editorial copies,
-/// so a promotion, a rename or a new picture changes the chart only when the editor says so.
-/// <para>
-/// The photo is a COPY under the public upload path, exactly like a wanted notice's. The internal avatar endpoint
-/// stays behind <c>Policies.ActiveAgent</c> and is never the file this serves.
-/// </para>
+/// The roster page projects names straight from the agents now. The table stays so a rollback finds its data and
+/// so deleting an agent can still clear the restricted foreign key; drop it in a later release.
 /// </remarks>
 [Table("OeffentlicheFuehrungsprofile")]
 public class OeffentlichesFuehrungsprofil : IAuditable

@@ -167,8 +167,8 @@
     {
         var reason = await ReasonDialog.ShowAsync(DialogService, "Ehrung aberkennen",
             $"„{award.DecorationName}“ vom {award.AwardedOn:dd.MM.yyyy} wird aberkannt. Sie bleibt mit deinem Grund "
-            + "durchgestrichen in der Personalakte stehen und verschwindet aus Profil, Organigramm, Bestenliste, "
-            + "Lagezentrum und vom öffentlichen Führungsprofil; der Eintrag am Schwarzen Brett wandert in den Papierkorb.",
+            + "durchgestrichen in der Personalakte stehen und verschwindet aus Profil, Organigramm, Bestenliste "
+            + "und Lagezentrum; der Eintrag am Schwarzen Brett wandert in den Papierkorb.",
             confirmText: "Aberkennen", label: "Grund", mandatoryReason: true, colour: Color.Error,
             maxLength: DecorationRules.MaxReasonLength);
         if (reason is null)

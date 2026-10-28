@@ -69,7 +69,7 @@ public partial class DemoDataService(
         added += await SeedWarningsAsync(db, stamps, cancellationToken);
         added += await SeedPublicReportsAsync(db, cancellationToken);
         added += await SeedFactionProfilesAsync(db, factions, cancellationToken);
-        added += await SeedLeadershipProfilesAsync(db, cancellationToken);
+        added += await SeedPublicRosterAsync(db, cancellationToken);
         added += await SeedLawsAsync(db, cancellationToken);
         added += await SeedPublicTemplatesAsync(db, cancellationToken);
 

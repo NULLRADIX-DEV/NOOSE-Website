@@ -278,6 +278,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<TicketNachricht> TicketNachrichten => Set<TicketNachricht>();
     public DbSet<TicketParticipant> TicketBeteiligte => Set<TicketParticipant>();
     public DbSet<OeffentlichesFuehrungsprofil> OeffentlicheFuehrungsprofile => Set<OeffentlichesFuehrungsprofil>();
+    public DbSet<OeffentlicheTelefonnummer> OeffentlicheTelefonnummern => Set<OeffentlicheTelefonnummer>();
     public DbSet<OeffentlicheVorlage> OeffentlicheVorlagen => Set<OeffentlicheVorlage>();
     public DbSet<OeffentlichesFraktionsprofil> OeffentlicheFraktionsprofile => Set<OeffentlichesFraktionsprofil>();
     public DbSet<FahndungEinspruch> FahndungEinsprueche => Set<FahndungEinspruch>();
@@ -2316,6 +2317,16 @@ public class AppDbContext : IdentityDbContext<Agent>
                 .HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Restrict);
             b.HasIndex(p => p.PublicKey).IsUnique();
             b.HasIndex(p => new { p.PublishedAt, p.SortOrder });
+        });
+
+        modelBuilder.Entity<OeffentlicheTelefonnummer>(b =>
+        {
+            b.Property(p => p.AgentId).HasMaxLength(64).IsRequired();
+            b.Property(p => p.PhoneNumber).HasMaxLength(32).IsRequired();
+            // never cascade off the identity table; deleting an agent clears the row itself
+            b.HasOne(p => p.Agent).WithMany()
+                .HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(p => p.AgentId).IsUnique();
         });
 
         modelBuilder.Entity<TicketParticipant>(b =>

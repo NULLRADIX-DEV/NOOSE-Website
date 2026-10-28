@@ -1,31 +1,27 @@
-﻿@* Editorial control of the public leadership chart. Nothing goes live without a release per entry. *@
-@using System.Security.Claims
+﻿@* Phone numbers of the public roster's leadership band; who appears is decided by rank, not here. *@
 @using NOOSE_Website.Models.Public
 @inject IPublicLeadershipService Leadership
-@inject IPublicLeadershipPhotoStorageService PhotoStorage
-@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject ILogger<PublicLeadershipPanel> Log
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-    Dies ist die einzige Stelle, an der die Behörde nach außen Namen nennt. Jeder Eintrag wird einzeln
-    freigegeben; das Einschalten des Moduls allein veröffentlicht nichts. Das Foto wird als Kopie unter dem
-    öffentlichen Pfad abgelegt — das Profilbild des Agenten selbst verlässt das Haus nie.
+    Unter /fuehrung stehen automatisch alle aktiven Agenten mit Klarnamen: die Führung ab Supervisory Special Agent
+    mit Dienstgrad und Telefonnummer, alle anderen nur mit Namen. Teamleitungen und Partnerbehörden erscheinen nie.
+    Hier trägst du nur die Telefonnummern der Führung ein; ohne Nummer bleibt die Zeile „Tel.:“ leer.
 </MudText>
 
-<MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3">
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd"
-               OnClick="@(() => EditAsync(null))" Disabled="@(!_mayEdit)">Eintrag anlegen</MudButton>
-</MudStack>
-
-@if (_load)
+@if (!_mayView)
+{
+    <MudAlert Severity="Severity.Info" Dense="true">Die Telefonnummern verwaltet die Führung.</MudAlert>
+}
+else if (_load)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 else if (_rows.Count == 0)
 {
-    <EmptyState Icon="@Icons.Material.Filled.AccountTree" Title="Keine Einträge"
-                Text="Lege einen Eintrag für jede Führungskraft an, die öffentlich genannt werden soll." />
+    <EmptyState Icon="@Icons.Material.Filled.AccountTree" Title="Keine Führung"
+                Text="Derzeit gibt es keine aktiven Agenten ab Supervisory Special Agent mit Klarnamen." />
 }
 else
 {
@@ -34,72 +30,24 @@ else
         {
             <MudPaper Outlined="true" Class="pa-3">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
-                    @if (row.HasPhoto)
-                    {
-                        <MudImage Src="@($"/fuehrung/{row.Key}/foto")" Alt="@row.DisplayName" Width="48" Height="48"
-                                  ObjectFit="ObjectFit.Cover" Class="rounded-circle" />
-                    }
-                    else
-                    {
-                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large" Color="Color.Default" />
-                    }
-                    <MudStack Spacing="0" Style="flex:1 1 260px;">
-                        <MudText Typo="Typo.body1"><b>@row.DisplayName</b></MudText>
+                    <MudStack Spacing="0" Style="flex:1 1 240px;">
+                        <MudText Typo="Typo.body1"><b>@row.Name</b></MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                            @row.Title@(string.IsNullOrWhiteSpace(row.RoleText) ? "" : " · " + row.RoleText)
-                            @(string.IsNullOrWhiteSpace(row.AgentCodename) ? "" : $" · aus {row.AgentCodename}")
+                            @RankDisplay.Name(row.Rank) · @row.Codename
                         </MudText>
                     </MudStack>
-                    @if (row.PublishedAt is { } at)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled"
-                                 Icon="@Icons.Material.Filled.CloudDone">
-                            seit @at.ToLocalTime().ToString("dd.MM.yyyy")
-                        </MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
-                            Entwurf
-                        </MudChip>
-                    }
+                    <MudTextField T="string" Value="@_drafts.GetValueOrDefault(row.AgentId)"
+                                  ValueChanged="@(v => _drafts[row.AgentId] = v)" Immediate="true"
+                                  Label="Telefonnummer" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  MaxLength="@PublicLeadershipService.MaxPhoneLength" ReadOnly="@(!_mayEdit)"
+                                  Style="max-width:240px;" />
                     @if (_mayEdit)
                     {
-                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                           OnClick="@(() => EditAsync(row))" aria-label="Bearbeiten" />
-                            @if (row.PublishedAt is null)
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.CloudUpload" Color="Color.Success"
-                                               Size="Size.Small" OnClick="@(() => PublishAsync(row))"
-                                               aria-label="Veröffentlichen" />
-                            }
-                            else
-                            {
-                                <MudIconButton Icon="@Icons.Material.Filled.CloudOff" Color="Color.Warning"
-                                               Size="Size.Small" OnClick="@(() => RetractAsync(row))"
-                                               aria-label="Zurückziehen" />
-                            }
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                           OnClick="@(() => DeleteAsync(row))" aria-label="Löschen" />
-                        </MudStack>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Save" Disabled="@(_busy || !Changed(row))"
+                                   OnClick="@(() => SaveAsync(row))">Speichern</MudButton>
                     }
                 </MudStack>
-
-                @if (_mayEdit)
-                {
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-2">
-                        <MudFileUpload T="IBrowserFile" FilesChanged="@(f => UploadAsync(row, f))" Accept="image/*">
-                            <CustomContent>
-                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
-                                           StartIcon="@Icons.Material.Filled.Image"
-                                           OnClick="@context.OpenFilePickerAsync">
-                                    @(row.HasPhoto ? "Foto ersetzen" : "Foto hochladen")
-                                </MudButton>
-                            </CustomContent>
-                        </MudFileUpload>
-                    </MudStack>
-                }
             </MudPaper>
         }
     </MudStack>
@@ -111,104 +59,68 @@ else
 
     private ClaimsPrincipal _user = default!;
     private IReadOnlyList<PublicLeadershipEdit> _rows = [];
+    private readonly Dictionary<string, string?> _drafts = new(StringComparer.Ordinal);
     private bool _load = true;
+    private bool _busy;
+    private bool _mayView;
     private bool _mayEdit;
 
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
-        _mayEdit = _user.MayWrite() && _user.IsLeadership();
-        await LoadAsync();
+        // mirrors RequireLeadershipNoReader: the supervision may not pair codenames with public cards
+        _mayView = _user.MayRealNameSee();
+        _mayEdit = _mayView && _user.MayWrite();
+        if (_mayView)
+        {
+            await LoadAsync();
+        }
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(string? savedAgentId = null)
     {
         try
         {
-            _rows = await Leadership.GetAllAsync(_user);
+            var before = _rows.ToDictionary(r => r.AgentId, StringComparer.Ordinal);
+            _rows = await Leadership.GetLeadershipAsync(_user);
+            foreach (var row in _rows)
+            {
+                // keep what is still being typed on another card
+                var typing = row.AgentId != savedAgentId
+                    && before.TryGetValue(row.AgentId, out var old) && Changed(old);
+                if (!typing)
+                {
+                    _drafts[row.AgentId] = row.Phone;
+                }
+            }
         }
         catch (Exception ex)
         {
-            Log.LogError(ex, "Leadership panel failed to load");
+            Log.LogError(ex, "Roster phone panel failed to load");
             Snackbar.Add(ex.Message, Severity.Error);
         }
         _load = false;
     }
 
-    private async Task EditAsync(PublicLeadershipEdit? row)
-    {
-        var saved = await PublicLeadershipDialog.ShowAsync(DialogService, _user, row);
-        if (saved)
-        {
-            await LoadAsync();
-        }
-    }
+    private bool Changed(PublicLeadershipEdit row)
+        => !string.Equals((_drafts.GetValueOrDefault(row.AgentId) ?? "").Trim(), row.Phone ?? "", StringComparison.Ordinal);
 
-    private async Task UploadAsync(PublicLeadershipEdit row, IBrowserFile? file)
+    private async Task SaveAsync(PublicLeadershipEdit row)
     {
-        if (file is null)
-        {
-            return;
-        }
+        _busy = true;
         try
         {
-            await using var stream = file.OpenReadStream(PhotoStorage.MaxBytes);
-            await Leadership.SetPhotoAsync(row.Id, stream, file.ContentType, _user);
-            Snackbar.Add("Foto gespeichert.", Severity.Success);
-            await LoadAsync();
+            await Leadership.SetPhoneAsync(row.AgentId, _drafts.GetValueOrDefault(row.AgentId), _user);
+            Snackbar.Add("Telefonnummer gespeichert.", Severity.Success);
+            await LoadAsync(row.AgentId);
         }
         catch (Exception ex)
         {
             Snackbar.Add(ex.Message, Severity.Error);
         }
-    }
-
-    private async Task PublishAsync(PublicLeadershipEdit row)
-    {
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Eintrag veröffentlichen?",
-            $"„{row.DisplayName}“ wird mit Name, Dienstgrad und Foto unter /fuehrung öffentlich sichtbar.",
-            "Veröffentlichen", Color.Success);
-        if (!ok)
+        finally
         {
-            return;
-        }
-        await RunAsync(() => Leadership.PublishAsync(row.Id, _user), "Eintrag veröffentlicht.");
-    }
-
-    private async Task RetractAsync(PublicLeadershipEdit row)
-    {
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Eintrag zurückziehen?",
-            $"„{row.DisplayName}“ ist danach öffentlich nicht mehr sichtbar. Der Eintrag bleibt erhalten.",
-            "Zurückziehen", Color.Warning);
-        if (!ok)
-        {
-            return;
-        }
-        await RunAsync(() => Leadership.RetractAsync(row.Id, _user), "Eintrag zurückgezogen.");
-    }
-
-    private async Task DeleteAsync(PublicLeadershipEdit row)
-    {
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Eintrag löschen?",
-            $"„{row.DisplayName}“ wird samt Foto entfernt. Das lässt sich nicht rückgängig machen.");
-        if (!ok)
-        {
-            return;
-        }
-        await RunAsync(() => Leadership.DeleteAsync(row.Id, _user), "Eintrag gelöscht.");
-    }
-
-    private async Task RunAsync(Func<Task> action, string done)
-    {
-        try
-        {
-            await action();
-            Snackbar.Add(done, Severity.Success);
-            await LoadAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
+            _busy = false;
         }
     }
 }

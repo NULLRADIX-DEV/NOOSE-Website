@@ -551,6 +551,10 @@ public static class ChangelogContent
                 "Kasse"),
             Besser("2.7.14-dienstnummern-40", "Für die Dienstnummer stehen jetzt 40 römische Nummern zur Wahl, von I "
                 + "bis XL.", "Personal"),
+            Neu("2.7.15-oeffentliche-mitarbeiterliste", "Die öffentliche Seite „Mitarbeiter“ zeigt jetzt von selbst "
+                + "alle aktiven Agenten mit Klarnamen: oben die Führung mit Dienstgrad und Telefonnummer, darunter "
+                + "alle anderen nur mit Namen, ohne Fotos. Die Telefonnummern trägt die Führung in den Einstellungen "
+                + "ein.", "Öffentlich"),
         ]),
     ];
 }

@@ -2144,19 +2144,18 @@ div.vis-tooltip {
     gap: 4px;
 }
 
-.ehrenzeichen-oeffentlich {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    margin-top: 4px;
+/* public roster: names flow into as many columns as fit */
+.mitarbeiterliste {
+    columns: 14rem;
+    column-gap: 2rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 }
 
-.ehrenzeichen-oeffentlich-eintrag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
+.mitarbeiterliste li {
+    break-inside: avoid;
+    padding: 3px 0;
 }
 
 .ehrung-aberkannt .ehrenzeichen-plakette {

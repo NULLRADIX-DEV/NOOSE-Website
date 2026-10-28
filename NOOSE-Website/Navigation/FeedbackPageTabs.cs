@@ -42,7 +42,7 @@ public static class FeedbackPageTabs
         new("berichte", "Öffentliche Lageberichte"),
         new("recht", "Gesetzesauszüge"),
         new("oeffentliche-kennzahlen", "Kennzahlen des öffentlichen Bereichs"),
-        new("oeffentliche-fuehrung", "Öffentliches Organigramm der Führung"),
+        new("oeffentliche-fuehrung", "Öffentliche Mitarbeiterliste"),
         new("warnhinweise", "Warnhinweise"),
         new("oeffentliche-vorlagen", "Öffentliche Vorlagen"),
         new("buerger", "Bürgerkonten"),
