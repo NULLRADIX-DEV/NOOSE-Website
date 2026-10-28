@@ -1,0 +1,15 @@
+@page "/{*path}"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout StatusPageLayout
+@inject NavigationManager Nav
+
+@* Every URL nothing else takes ends here, so the router renders NotFound.razor within this request. Left to the
+   status-code re-execute, .NET 10 writes the page before its layout has loaded (dotnet/aspnetcore#64034). *@
+
+@code {
+    [Parameter]
+    public string? Path { get; set; }
+
+    protected override void OnInitialized() => Nav.NotFound();
+}

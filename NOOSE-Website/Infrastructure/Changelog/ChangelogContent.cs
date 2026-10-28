@@ -563,6 +563,8 @@ public static class ChangelogContent
             Fix("2.7.18-nicht-gefunden-navigation", "Wer als Bürger oder Besucher auf einer Seite landet, die es nicht "
                 + "gibt, oder auf der Fehlerseite, sieht dort jetzt nur noch die öffentliche Navigation und nicht mehr "
                 + "das interne Menü.", "Öffentlich"),
+            Fix("2.7.19-nicht-gefunden-reiter", "Auf der Seite für Adressen, die es nicht gibt, fehlten manchmal alle "
+                + "Reiter außer „Start“. Jetzt steht dort dieselbe Leiste wie auf der Startseite.", "Öffentlich"),
         ]),
     ];
 }
