@@ -1,7 +1,7 @@
 @page "/not-found"
 @attribute [AllowAnonymous]
 @attribute [ExcludeFromInteractiveRouting]
-@layout MainLayout
+@layout StatusPageLayout
 
 <PageTitle>Nicht gefunden · NOOSE</PageTitle>
 
@@ -14,8 +14,8 @@
                 Der gesuchte Inhalt existiert nicht oder wurde verschoben.
             </MudText>
             @* this page answers EVERY 404, including a mistyped public URL, so the destination follows the
-               visitor: an anonymous one has no business being sent into the internal area *@
-            <AuthorizeView>
+               visitor: an anonymous one or a citizen has no business being sent into the internal area *@
+            <AuthorizeView Policy="@Policies.ActiveAgent">
                 <Authorized>
                     <MudButton Href="/dashboard" Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.Home">Zum Dashboard</MudButton>

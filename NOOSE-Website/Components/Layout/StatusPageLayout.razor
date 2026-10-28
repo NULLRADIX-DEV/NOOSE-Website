@@ -1,0 +1,11 @@
+@inherits LayoutComponentBase
+
+@* 404 and error page answer every visitor; the internal shell only for whoever may open internal pages *@
+<AuthorizeView Policy="@Policies.ActiveAgent">
+    <Authorized>
+        <LayoutView Layout="typeof(MainLayout)">@Body</LayoutView>
+    </Authorized>
+    <NotAuthorized>
+        <LayoutView Layout="typeof(PublicSiteLayout)">@Body</LayoutView>
+    </NotAuthorized>
+</AuthorizeView>

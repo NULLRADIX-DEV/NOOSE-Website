@@ -555,6 +555,9 @@ public static class ChangelogContent
                 + "alle aktiven Agenten mit Klarnamen: oben die Führung mit Dienstgrad und Telefonnummer, darunter "
                 + "alle anderen nur mit Namen, ohne Fotos. Die Telefonnummern trägt die Führung in den Einstellungen "
                 + "ein.", "Öffentlich"),
+            Fix("2.7.16-nicht-gefunden-navigation", "Wer als Bürger oder Besucher auf einer Seite landet, die es nicht "
+                + "gibt, oder auf der Fehlerseite, sieht dort jetzt nur noch die öffentliche Navigation und nicht mehr "
+                + "das interne Menü.", "Öffentlich"),
         ]),
     ];
 }
