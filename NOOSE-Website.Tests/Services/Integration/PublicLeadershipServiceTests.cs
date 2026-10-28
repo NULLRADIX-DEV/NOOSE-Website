@@ -45,6 +45,8 @@ public sealed class PublicLeadershipServiceTests
         {
             a.Rank = rank;
             a.RealName = realName;
+            // opted in, so the roster rules below are what decides
+            a.HiddenFromPublicRoster = false;
             configure?.Invoke(a);
         });
 
@@ -404,6 +406,23 @@ public sealed class PublicLeadershipServiceTests
     // ---- staying off the list ----
 
     private static ClaimsPrincipal Self(string agentId, Rank rank) => ClaimsPrincipalBuilder.Agent(agentId).WithRank(rank).Build();
+
+    [Fact]
+    public async Task A_new_account_stays_off_the_list_until_it_opts_in()
+    {
+        using var ctx = await SeededAsync(true,
+            Seed.Agent("neu", Rank.Director, configure: a => a.RealName = "Nora Neu"),
+            Seed.Agent("frisch", Rank.JuniorAgent, configure: a => a.RealName = "Fritz Frisch"));
+        var service = NewService(ctx);
+        Assert.True(await service.IsOwnHiddenAsync(Self("neu", Rank.Director)));
+        Assert.Empty((await service.GetPublicAsync()).Leadership);
+
+        await service.SetOwnHiddenAsync(false, Self("neu", Rank.Director));
+
+        var roster = await service.GetPublicAsync();
+        Assert.Equal("Nora Neu", Assert.Single(Assert.Single(roster.Leadership).Cards).Name);
+        Assert.Empty(roster.Members);
+    }
 
     [Fact]
     public async Task Whoever_opts_out_is_simply_absent_at_once()

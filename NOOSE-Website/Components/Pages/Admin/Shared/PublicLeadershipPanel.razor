@@ -6,10 +6,10 @@
 @inject ILogger<PublicLeadershipPanel> Log
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-    Unter /fuehrung stehen automatisch alle aktiven Agenten mit Klarnamen: die Führung ab Supervisory Special Agent
-    als Organigramm mit Foto, Dienstgrad und Telefonnummer, alle anderen nur mit Namen. Teamleitungen und
-    Partnerbehörden erscheinen nie, ebenso wer sich im eigenen Profil ausgeblendet hat; die Seite verrät nicht, dass
-    jemand fehlt. Hier trägst du nur Telefonnummer und Foto der Führung ein; ohne Nummer bleibt die
+    Unter /fuehrung stehen alle aktiven Agenten mit Klarnamen, die sich im eigenen Profil eingeschaltet haben: die
+    Führung ab Supervisory Special Agent als Organigramm mit Foto, Dienstgrad und Telefonnummer, alle anderen nur mit
+    Namen. Standardmäßig ist niemand eingeschaltet. Teamleitungen und Partnerbehörden erscheinen nie; die Seite
+    verrät nicht, dass jemand fehlt. Hier trägst du nur Telefonnummer und Foto der Führung ein; ohne Nummer bleibt die
     Zeile „Tel.:“ leer, ohne Foto zeigt die Karte die Initialen. Das Foto wird als Kopie abgelegt, das Profilbild des
     Agenten selbst verlässt das Haus nie.
 </MudText>
@@ -50,7 +50,7 @@ else
                             @if (row.Hidden)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
-                                         Icon="@Icons.Material.Filled.VisibilityOff">selbst ausgeblendet</MudChip>
+                                         Icon="@Icons.Material.Filled.VisibilityOff">nicht eingeschaltet</MudChip>
                             }
                         </MudStack>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">

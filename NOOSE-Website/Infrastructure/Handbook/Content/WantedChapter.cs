@@ -23,8 +23,9 @@ internal static class WantedChapter
                 <p>Deshalb musst du beim Veröffentlichen zweimal denken, aber danach nie mehr Angst haben:
                 Änderst du später die Akte, ändert sich die Ausschreibung nicht von selbst.</p>
                 <p>Eine bewusste Ausnahme gibt es: die Seite <strong>Mitarbeiter</strong>. Solange ihr Modul
-                eingeschaltet ist, nennt sie jeden aktiven Agenten mit Klarnamen, ohne dass jemand einzeln
-                freigibt. Codename, Einheit und Dienstnummer gehen dabei nie mit.</p>
+                eingeschaltet ist, nennt sie jeden aktiven Agenten mit Klarnamen, der sich in seinem Profil dafür
+                eingeschaltet hat; diese Freigabe gibt jeder nur für sich selbst. Codename, Einheit und Dienstnummer
+                gehen dabei nie mit.</p>
                 """),
 
             new Article("art-fahndung-anlegen", "fahndung-ausschreiben", "Eine Fahndung ausschreiben",

@@ -441,6 +441,9 @@ public partial class DemoDataService
     /// <summary>Puts the demo agent on the public roster: a real name and a phone for the leadership card.</summary>
     private static async Task<int> SeedPublicRosterAsync(AppDbContext db, CancellationToken ct)
     {
+        // the roster is opt-in and the shared demo account cannot switch itself; ExecuteUpdate, the flag skips tracked saves
+        await db.Users.Where(u => u.Id == DemoIdentity.AgentId && u.HiddenFromPublicRoster)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.HiddenFromPublicRoster, false), ct);
         if (await db.OeffentlicheTelefonnummern.AnyAsync(p => p.AgentId == DemoIdentity.AgentId, ct))
         {
             return 0;
