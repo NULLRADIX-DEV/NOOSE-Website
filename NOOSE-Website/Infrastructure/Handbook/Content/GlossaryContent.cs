@@ -396,7 +396,7 @@ internal static class GlossaryContent
             "Der Betrag, den ein Agent pro Monat über Finanzierungen abrufen kann.",
             ArticleKey: "art-finanzierungen"),
         new("beg-organigramm", "Organigramm",
-            "Der Aufbau der Behörde nach Dienstgrad und Einheit. Nach außen nur einzeln freigegeben.",
+            "Der Aufbau der Behörde nach Dienstgrad und Einheit. Nach außen geht nur die Mitarbeiterliste mit Klarnamen.",
             ArticleKey: "art-organigramm"),
         new("beg-kuendigung", "Ausscheiden",
             "Das Beenden eines Kontos. Es verliert jeden Zugriff, bleibt aber in den Protokollen sichtbar.",

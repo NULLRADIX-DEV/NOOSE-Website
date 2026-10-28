@@ -98,13 +98,13 @@ internal static class PersonnelChapter
                 Genannt wird immer nur der Codename. Dasselbe Ehrenzeichen kann ein Agent mehrfach bekommen; sich
                 selbst kann niemand etwas verleihen.</p>
                 <p>Verliehene Ehrenzeichen erscheinen als kleine <strong>Plaketten</strong> in der Personalakte, im
-                eigenen Profil, im Organigramm, in der Bestenliste und einige Wochen lang im Lagezentrum. Auf dem
-                öffentlichen Führungsprofil stehen nur die, die die Führung dort ausdrücklich angehakt hat.</p>
-                <p>Eine Ehrung lässt sich korrigieren - dann ändern sich auch der Eintrag am Schwarzen Brett und das
-                Führungsprofil - oder <strong>aberkennen</strong>. Eine aberkannte Ehrung bleibt mit dem Grund
-                durchgestrichen und ausgegraut in der Personalakte stehen, verschwindet aber aus Profil, Organigramm,
-                Bestenliste, Lagezentrum und vom Führungsprofil, und ihr Eintrag am Schwarzen Brett wandert in den
-                Papierkorb. Über die eigenen Ehrungen entscheidet immer jemand anderes.</p>
+                eigenen Profil, im Organigramm, in der Bestenliste und einige Wochen lang im Lagezentrum. Nach außen
+                gehen sie nicht.</p>
+                <p>Eine Ehrung lässt sich korrigieren - dann ändert sich auch der Eintrag am Schwarzen Brett - oder
+                <strong>aberkennen</strong>. Eine aberkannte Ehrung bleibt mit dem Grund durchgestrichen und
+                ausgegraut in der Personalakte stehen, verschwindet aber aus Profil, Organigramm, Bestenliste und
+                Lagezentrum, und ihr Eintrag am Schwarzen Brett wandert in den Papierkorb. Über die eigenen Ehrungen
+                entscheidet immer jemand anderes.</p>
                 <p>Zu jeder Ehrung gibt es eine <strong>Urkunde</strong> im Querformat, ebenso zu jeder Ernennung
                 und Beförderung im Dienstgrad-Verlauf. Drucken dürfen die Führung und der Geehrte selbst. Vor dem
                 Druck wählst du, ob der Codename oder der Klarname darauf steht. Unterschrieben ist sie von der
@@ -271,9 +271,14 @@ internal static class PersonnelChapter
                 """
                 <p>Das <strong>Organigramm</strong> zeigt den Aufbau der Behörde nach Dienstgrad und Einheit.
                 Intern zeigt es alle aktiven Agenten mit ihrem Codenamen.</p>
-                <p>Es gibt zusätzlich ein <strong>öffentliches</strong> Organigramm. Darin erscheint nur, wer
-                dafür einzeln freigegeben wurde - in aller Regel ausschließlich die Führung. Ein Agent kommt
-                nie automatisch hinein.</p>
+                <p>Nach außen gibt es stattdessen die öffentliche Seite <strong>Mitarbeiter</strong>. Sie füllt
+                sich von selbst: Jeder aktive Agent mit hinterlegtem Klarnamen steht dort mit seinem Klarnamen,
+                ohne Codename, Dienstgrad, Einheit, Dienstnummer und Foto. Die Führung ab Supervisory Special Agent
+                steht obenan, mit Dienstgrad und Telefonnummer. Teamleitungen und Partnerbehörden erscheinen nie.</p>
+                <p>Die Telefonnummern trägt die Führung in den <em>Einstellungen</em> unter
+                <em>Mitarbeiterliste</em> ein; ohne Nummer bleibt die Zeile „Tel.:“ leer. Wer befördert, degradiert
+                oder entlassen wird, wandert nach spätestens einer halben Minute an die richtige Stelle oder
+                verschwindet.</p>
                 """,
                 NavKey: "organigramm"),
 

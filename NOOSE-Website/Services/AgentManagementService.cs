@@ -1028,8 +1028,10 @@ public class AgentManagementService(
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.OpenedByAgentId, (string?)null), cancellationToken);
         // deleted, not nulled: the row IS the permission to read that ticket, and a nameless one would grant nothing
         await db.TicketBeteiligte.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
-        // the released chart entry keeps its own copy of every value, so removing the pointer costs nothing
+        // retired chart rows only hold the restricted FK now
         await db.OeffentlicheFuehrungsprofile.Where(x => x.AgentId == agentId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await db.OeffentlicheTelefonnummern.Where(x => x.AgentId == agentId)
             .ExecuteDeleteAsync(cancellationToken);
         await db.OeffentlicheFuehrungsprofile.IgnoreQueryFilters().Where(x => x.PublishedById == agentId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.PublishedById, (string?)null), cancellationToken);

@@ -1,16 +1,16 @@
 ﻿using System.Security.Claims;
 using Microsoft.Extensions.Caching.Memory;
-using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Infrastructure;
-using NOOSE_Website.Infrastructure.Storage;
+using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Public;
 using NOOSE_Website.Services.Public;
-using NSubstitute;
 
 namespace NOOSE_Website.Tests.Services.Integration;
 
-/// <summary>The one outward surface that names agents: nothing goes live without a release per entry.</summary>
+/// <summary>The public roster: every selectable agent by name, the leadership band with rank and phone.</summary>
 public sealed class PublicLeadershipServiceTests
 {
     private static ClaimsPrincipal Leader()
@@ -19,275 +19,263 @@ public sealed class PublicLeadershipServiceTests
     private static ClaimsPrincipal Supervision()
         => ClaimsPrincipalBuilder.Agent("aufsicht").WithRank(Rank.Director).AsTeamLead().Build();
 
-    private static ClaimsPrincipal Agent()
+    private static ClaimsPrincipal PlainAgent()
         => ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.SpecialAgent).Build();
 
-    private sealed record Host(
-        PublicLeadershipService Service,
-        PublicModuleService Modules,
-        IPublicLeadershipPhotoStorageService Storage,
-        TestDbContextFactory Factory);
-
-    private static Host NewHost(SqliteTestContext ctx)
+    private static PublicLeadershipService NewService(SqliteTestContext ctx)
     {
-        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(ctx.Connection).Options;
-        var factory = new TestDbContextFactory(options);
         var cache = new MemoryCache(new MemoryCacheOptions());
-        var modules = new PublicModuleService(factory, cache);
-        var storage = Substitute.For<IPublicLeadershipPhotoStorageService>();
-        storage.IsAllowedType(Arg.Any<string>()).Returns(ci => ci.ArgAt<string>(0).StartsWith("image/"));
-        storage.SaveAsync(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("kopie.jpg");
-        return new Host(new PublicLeadershipService(factory, modules, storage, cache), modules, storage, factory);
+        return new PublicLeadershipService(ctx.Factory, new PublicModuleService(ctx.Factory, cache), cache);
     }
 
-    private static async Task<SqliteTestContext> SeededAsync(bool moduleOn = true)
+    private static Agent Named(string id, Rank? rank, string? realName, Action<Agent>? configure = null)
+        => Seed.Agent(id, rank ?? Rank.JuniorAgent, configure: a =>
+        {
+            a.Rank = rank;
+            a.RealName = realName;
+            configure?.Invoke(a);
+        });
+
+    private static async Task<SqliteTestContext> SeededAsync(bool moduleOn = true, params Agent[] agents)
     {
         var ctx = new SqliteTestContext();
         await using var db = ctx.NewContext();
         await PublicModuleSeeder.SeedAsync(db);
         (await db.OeffentlicheModule.SingleAsync(m => m.Key == PublicModules.Leadership)).IsEnabled = moduleOn;
-
-        db.Users.Add(Seed.Agent("chef", Rank.Director, configure: a => a.Codename = "Falcon"));
-        db.Users.Add(Seed.Agent("aufsicht2", Rank.SupervisorySpecialAgent, configure: a => a.Codename = "Owl"));
-        db.Users.Add(Seed.Agent("klein", Rank.JuniorAgent, configure: a => a.Codename = "Wren"));
+        db.Users.AddRange(agents.Length > 0
+            ? agents
+            :
+            [
+                Named("chef", Rank.Director, "Zora Zett"),
+                Named("vize", Rank.DeputyDirector, "Bert Berg"),
+                Named("ssa", Rank.SupervisorySpecialAgent, "Anna Alt"),
+                Named("junior", Rank.JuniorAgent, "Clara Cello"),
+                Named("special", Rank.SpecialAgent, "Ärne Ahorn"),
+            ]);
         await db.SaveChangesAsync();
         return ctx;
     }
 
-    private static PublicLeadershipInput Input(string agentId = "chef", string? id = null) => new()
-    {
-        Id = id,
-        AgentId = agentId,
-        DisplayName = "Marcus Hale",
-        Title = "Director",
-        RoleText = "Leitung der Behörde",
-        SortOrder = 10,
-    };
-
-    // ---- who may edit ----
+    // ---- who appears, and how ----
 
     [Fact]
-    public async Task APlainAgentMayNotEdit()
+    public async Task Leadership_goes_by_rank_and_everyone_else_by_name()
     {
         using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
+        var service = NewService(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => host.Service.SaveAsync(Input(), Agent()));
+        var roster = await service.GetPublicAsync();
+
+        Assert.Equal(
+        [
+            new PublicLeadershipCard("Zora Zett", "Director", null),
+            new PublicLeadershipCard("Bert Berg", "Deputy Director", null),
+            new PublicLeadershipCard("Anna Alt", "Supervisory Special Agent", null),
+        ], roster.Leadership);
+        // German collation: Ä sorts with A, not after Z
+        Assert.Equal(["Ärne Ahorn", "Clara Cello"], roster.Members.Select(m => m.Name).ToList());
     }
 
     [Fact]
-    public async Task TheReadOnlySupervisionMayNotEdit()
+    public async Task Team_leads_partners_inactive_and_nameless_accounts_never_appear()
     {
-        // the write guard runs before the rank guard, or the supervision gets as far as the roster check
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
+        using var ctx = await SeededAsync(true,
+            Named("ok", Rank.SpecialAgent, "Erika Echt"),
+            Named("tl", Rank.Director, "Theo Teamleitung", a => a.IsTeamLead = true),
+            Named("tladmin", Rank.Director, "Tina Admin", a => { a.IsTeamLead = true; a.IsAdmin = true; }),
+            Named("partner", Rank.Director, "Paul Partner", a => a.PartnerAgency = PartnerAgency.LSPD),
+            Named("weg", Rank.Director, "Gert Gekuendigt", a => a.Status = AgentStatus.Terminated),
+            Named("gesperrt", Rank.SpecialAgent, "Gabi Gesperrt", a => a.Status = AgentStatus.Blocked),
+            Named("bewerber", null, "Bea Bewerber", a => a.Status = AgentStatus.Applicant),
+            Named("buerger", null, "Bodo Buerger", a => a.Status = AgentStatus.Civilian),
+            Named("ohne", Rank.DeputyDirector, null),
+            Named("leer", Rank.SpecialAgent, "   "),
+            Named("ausstehend", Rank.SpecialAgent, null, a => a.PendingRealName = "Noch Nicht"));
+        var service = NewService(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => host.Service.SaveAsync(Input(), Supervision()));
-    }
+        var roster = await service.GetPublicAsync();
 
-    // ---- who may appear ----
-
-    [Fact]
-    public async Task OnlyTheLeadershipBandMayAppear()
-    {
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => host.Service.SaveAsync(Input("klein"), Leader()));
-    }
-
-    [Fact]
-    public async Task ASupervisorySpecialAgentIsTheFloor()
-    {
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-
-        var id = await host.Service.SaveAsync(Input("aufsicht2"), Leader());
-
-        Assert.False(string.IsNullOrWhiteSpace(id));
+        Assert.Empty(roster.Leadership);
+        Assert.Equal(["Erika Echt"], roster.Members.Select(m => m.Name).ToList());
     }
 
     [Fact]
-    public async Task AnUnknownAgentIsRefused()
+    public void The_outward_shapes_carry_nothing_but_name_rank_and_phone()
     {
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => host.Service.SaveAsync(Input("erfunden"), Leader()));
+        // whatever else the account holds — codename, badge number, unit, id — has no field to travel in
+        Assert.Equal(["Name", "Title", "Phone"],
+            typeof(PublicLeadershipCard).GetProperties().Select(p => p.Name).ToArray());
+        Assert.Equal(["Name"], typeof(PublicRosterMember).GetProperties().Select(p => p.Name).ToArray());
     }
 
     [Fact]
-    public async Task AnEntryStaysEditableAfterItsAgentLeavesTheRoster()
-    {
-        // the entry is a snapshot that outlives the account; re-validating an unchanged pointer would lock the
-        // editor out of a published card the moment the agent is terminated — including out of fixing a typo
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
-
-        await using (var db = ctx.NewContext())
-        {
-            (await db.Users.SingleAsync(u => u.Id == "chef")).Status = AgentStatus.Terminated;
-            await db.SaveChangesAsync();
-        }
-
-        var fixedUp = Input(id: id);
-        fixedUp.DisplayName = "Marcus Hale-Vance";
-        await host.Service.SaveAsync(fixedUp, Leader());
-
-        await using var check = ctx.NewContext();
-        Assert.Equal("Marcus Hale-Vance",
-            (await check.OeffentlicheFuehrungsprofile.SingleAsync(p => p.Id == id)).DisplayName);
-    }
-
-    [Fact]
-    public async Task PointingAnEntryAtAnIneligibleAgentIsStillRefused()
-    {
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
-
-        var moved = Input("klein", id);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() => host.Service.SaveAsync(moved, Leader()));
-    }
-
-    // ---- nothing goes live by itself ----
-
-    [Fact]
-    public async Task ASavedEntryIsNotPublicYet()
-    {
-        // switching the module on must publish nothing; every entry is released by hand
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        await host.Service.SaveAsync(Input(), Leader());
-
-        Assert.Empty(await host.Service.GetPublicAsync());
-    }
-
-    [Fact]
-    public async Task AReleasedEntryIsPublicAndCarriesNoInternalHandle()
-    {
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
-
-        await host.Service.PublishAsync(id, Leader());
-
-        var card = Assert.Single(await host.Service.GetPublicAsync());
-        Assert.Equal("Marcus Hale", card.DisplayName);
-        Assert.Equal("Director", card.Title);
-        // the outward handle is the public key, never the row id
-        Assert.NotEqual(id, card.Key);
-    }
-
-    [Fact]
-    public async Task WithTheModuleOffNothingIsPublicAndReleasingIsRefused()
+    public async Task Nothing_goes_out_while_the_module_is_off()
     {
         using var ctx = await SeededAsync(moduleOn: false);
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
+        var service = NewService(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => host.Service.PublishAsync(id, Leader()));
-        Assert.Empty(await host.Service.GetPublicAsync());
+        var roster = await service.GetPublicAsync();
+
+        Assert.Empty(roster.Leadership);
+        Assert.Empty(roster.Members);
     }
 
     [Fact]
-    public async Task WithdrawingWorksEvenAfterTheModuleWasSwitchedOff()
+    public async Task Nothing_goes_out_while_the_kill_switch_is_on()
     {
-        // depublishing must never need a living module, or a mistake could not be taken back
         using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
-        await host.Service.PublishAsync(id, Leader());
-
         await using (var db = ctx.NewContext())
         {
-            (await db.OeffentlicheModule.SingleAsync(m => m.Key == PublicModules.Leadership)).IsEnabled = false;
+            db.SystemSettings.Add(new SystemSetting { Key = SystemSettingKeys.PublicAreaKillSwitch, Value = "true" });
+            await db.SaveChangesAsync();
+        }
+        var service = NewService(ctx);
+
+        var roster = await service.GetPublicAsync();
+
+        Assert.Empty(roster.Leadership);
+        Assert.Empty(roster.Members);
+    }
+
+    // ---- phone numbers ----
+
+    [Fact]
+    public async Task A_saved_phone_shows_on_the_card_at_once()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        Assert.Null((await service.GetPublicAsync()).Leadership[0].Phone);
+
+        await service.SetPhoneAsync("chef", "  555-0100 ", Leader());
+
+        Assert.Equal("555-0100", (await service.GetPublicAsync()).Leadership[0].Phone);
+        Assert.Equal("555-0100", (await service.GetLeadershipAsync(Leader()))[0].Phone);
+    }
+
+    [Fact]
+    public async Task A_blank_phone_removes_it()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        await service.SetPhoneAsync("chef", "555-0100", Leader());
+
+        await service.SetPhoneAsync("chef", "  ", Leader());
+
+        Assert.Null((await service.GetPublicAsync()).Leadership[0].Phone);
+        await using var db = ctx.NewContext();
+        Assert.False(await db.OeffentlicheTelefonnummern.AnyAsync());
+    }
+
+    [Fact]
+    public async Task A_plain_agent_may_not_set_a_phone()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => service.SetPhoneAsync("chef", "555-0100", PlainAgent()));
+    }
+
+    [Fact]
+    public async Task The_read_only_supervision_may_not_set_a_phone()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => service.SetPhoneAsync("chef", "555-0100", Supervision()));
+    }
+
+    [Fact]
+    public async Task The_demo_visitor_may_not_set_a_phone()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        var demo = ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsHrb().AsDemo().Build();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SetPhoneAsync("chef", "555-0100", demo));
+    }
+
+    [Fact]
+    public async Task A_number_left_behind_by_a_demotion_can_still_be_removed()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        await service.SetPhoneAsync("ssa", "555-0100", Leader());
+        await using (var db = ctx.NewContext())
+        {
+            (await db.Users.SingleAsync(u => u.Id == "ssa")).Rank = Rank.SeniorSpecialAgent;
             await db.SaveChangesAsync();
         }
 
-        await host.Service.RetractAsync(id, Leader());
+        await service.SetPhoneAsync("ssa", null, Leader());
 
         await using var check = ctx.NewContext();
-        Assert.Null((await check.OeffentlicheFuehrungsprofile.SingleAsync(p => p.Id == id)).PublishedAt);
+        Assert.False(await check.OeffentlicheTelefonnummern.AnyAsync());
     }
 
-    // ---- the photo ----
-
-    [Fact]
-    public async Task ThePhotoIsOnlyServedForAReleasedEntry()
+    [Theory]
+    [InlineData("junior")]
+    [InlineData("erfunden")]
+    public async Task Only_the_leadership_band_gets_a_phone(string agentId)
     {
         using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
-        await host.Service.SetPhotoAsync(id, new MemoryStream([1, 2, 3]), "image/jpeg", Leader());
-
-        var key = (await host.Service.GetAllAsync(Leader())).Single().Key;
-        Assert.Null(await host.Service.GetPublishedPhotoAsync(key));
-
-        await host.Service.PublishAsync(id, Leader());
-
-        Assert.NotNull(await host.Service.GetPublishedPhotoAsync(key));
-    }
-
-    [Fact]
-    public async Task AnUnknownKeyIsIndistinguishableFromAnUnreleasedOne()
-    {
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("gibtesnicht"));
-    }
-
-    [Fact]
-    public async Task AForeignFileTypeIsRefused()
-    {
-        using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
+        var service = NewService(ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => host.Service.SetPhotoAsync(id, new MemoryStream([1]), "application/pdf", Leader()));
+            () => service.SetPhoneAsync(agentId, "555-0100", Leader()));
     }
 
-    // ---- the copy is editorial ----
+    [Theory]
+    [InlineData("555-0100", "555-0100")]
+    [InlineData("+49 (0)30 / 123.45", "+49 (0)30 / 123.45")]
+    [InlineData("  ", null)]
+    [InlineData(null, null)]
+    public void A_phone_is_trimmed_and_blank_is_none(string? input, string? expected)
+    {
+        Assert.Equal(expected, PublicLeadershipService.CleanPhone(input));
+    }
+
+    [Theory]
+    [InlineData("ruf mich an")]
+    [InlineData("555-0100 <b>")]
+    [InlineData("---")]
+    [InlineData("123456789012345678901234567890123")]
+    public void A_phone_that_is_no_number_is_refused(string input)
+    {
+        Assert.Throws<InvalidOperationException>(() => PublicLeadershipService.CleanPhone(input));
+    }
+
+    // ---- the settings panel ----
 
     [Fact]
-    public async Task ThePublishedValuesDoNotFollowTheRoster()
+    public async Task The_panel_lists_the_leadership_band_only()
     {
-        // the whole point of a snapshot: a rename or a promotion must not rewrite a released chart
         using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
-        await host.Service.PublishAsync(id, Leader());
+        var service = NewService(ctx);
 
-        await using (var db = ctx.NewContext())
-        {
-            var agent = await db.Users.SingleAsync(u => u.Id == "chef");
-            agent.Codename = "Phoenix";
-            agent.RealName = "Ein ganz anderer Name";
-            await db.SaveChangesAsync();
-        }
+        var rows = await service.GetLeadershipAsync(Leader());
 
-        var card = Assert.Single(await host.Service.GetPublicAsync());
-        Assert.Equal("Marcus Hale", card.DisplayName);
+        Assert.Equal(["chef", "vize", "ssa"], rows.Select(r => r.AgentId).ToList());
+        Assert.Equal("Zora Zett", rows[0].Name);
     }
 
     [Fact]
-    public async Task DeletingRemovesTheEntryAndItsPhotoCopy()
+    public async Task The_supervision_may_not_open_the_panel()
+    {
+        // row order and phone would pair every codename with its public card
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetLeadershipAsync(Supervision()));
+    }
+
+    [Fact]
+    public async Task A_plain_agent_may_not_open_the_panel()
     {
         using var ctx = await SeededAsync();
-        var host = NewHost(ctx);
-        var id = await host.Service.SaveAsync(Input(), Leader());
-        await host.Service.SetPhotoAsync(id, new MemoryStream([1, 2, 3]), "image/jpeg", Leader());
+        var service = NewService(ctx);
 
-        await host.Service.DeleteAsync(id, Leader());
-
-        await using var db = ctx.NewContext();
-        Assert.Empty(await db.OeffentlicheFuehrungsprofile.ToListAsync());
-        host.Storage.Received(1).Delete("kopie.jpg");
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetLeadershipAsync(PlainAgent()));
     }
 }

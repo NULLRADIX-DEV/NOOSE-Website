@@ -71,11 +71,12 @@ public class PublicVisibilityCoverageTests
     }
 
     [Fact]
-    public void The_agent_account_itself_is_never_public()
+    public void The_agent_account_goes_out_only_as_the_roster()
     {
-        // the anonymity promise in one assertion: whatever else changes, an agent row never leaves the house
-        Assert.True(PublicVisibility.NeverPublic.ContainsKey("Agent"));
-        Assert.False(PublicVisibility.MayBePublished("Agent"));
+        // names leave through /fuehrung alone; the record shapes are pinned in PublicLeadershipServiceTests
+        Assert.True(PublicVisibility.MayBePublished("Agent"));
+        Assert.Contains("/fuehrung", PublicVisibility.Publishable["Agent"]);
+        Assert.False(PublicVisibility.MayBePublished("OeffentlichesFuehrungsprofil"));
     }
 
     [Fact]

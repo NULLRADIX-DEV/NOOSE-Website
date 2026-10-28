@@ -532,8 +532,10 @@ public static class SearchCatalog
                 + "Führungs-Gate vorbei lesbar.",
             ["TicketParticipant"] = "Zuordnung eines Agenten zu einem Ticket, ohne eigenen Text. Gesucht wird "
                 + "das Ticket; eine durchsuchbare Beteiligtenliste wäre eine Karte, wer woran sitzt.",
-            ["OeffentlichesFuehrungsprofil"] = "Redaktioneller Eintrag des öffentlichen Organigramms, gepflegt "
-                + "in /einstellungen. Eine interne Suche nach Führungskräften ist das Organigramm selbst.",
+            ["OeffentlichesFuehrungsprofil"] = "Ausgedienter Eintrag des früheren öffentlichen Organigramms; "
+                + "nichts liest ihn mehr. Eine interne Suche nach Führungskräften ist das Organigramm selbst.",
+            ["OeffentlicheTelefonnummer"] = "Telefonnummer auf einer Führungskarte der öffentlichen "
+                + "Mitarbeiterliste, ohne eigenen Text; gepflegt in /einstellungen.",
             ["OeffentlicheFaqRubrik"] = "Überschrift eines FAQ-Abschnitts ohne eigenen Text; die Fragen tragen ihn.",
             ["OeffentlicheFaqEintrag"] = "Redaktionelle Antwort für draußen; sie steht auf /faq und wird "
                 + "über die öffentliche Suche gefunden, nicht über den Aktenbestand.",

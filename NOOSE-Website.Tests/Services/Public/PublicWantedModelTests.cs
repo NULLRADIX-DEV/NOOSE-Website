@@ -50,9 +50,10 @@ public class PublicWantedModelTests
         // the organisation hub and both hazard rankings render these
         typeof(PublicFactionCard),
         typeof(PublicFactionBoard),
-        // the leadership chart: the one outward surface that names agents, and only released entries
+        // the roster on /fuehrung: the one outward surface that names agents — names, and rank and phone for leadership
+        typeof(PublicRoster),
         typeof(PublicLeadershipCard),
-        typeof(PublicLeadershipDecoration),
+        typeof(PublicRosterMember),
         // the press hub and one release
         typeof(PublicPressCard),
         typeof(PublicPressView),
@@ -153,11 +154,8 @@ public class PublicWantedModelTests
         [typeof(TicketRow)] = "Zeile des Führungs-Schalters; nennt Bürger und Bearbeiter.",
         [typeof(TicketDetail)] = "Ein Ticket in der Bearbeitung, inklusive Sperrstatus des Bürgerkontos.",
         [typeof(TicketMessageRow)] = "Nachricht mit Autor; die interne Zielgruppe verlässt das Haus nie.",
-        [typeof(PublicLeadershipEdit)] = "Der Redaktionsstand eines Führungseintrags; er nennt den Agenten "
-            + "dahinter, was die veröffentlichte Karte bewusst nicht tut.",
-        [typeof(PublicLeadershipInput)] = "Eingabe der Redaktion, nie eine Antwort nach außen.",
-        [typeof(PublicLeadershipPhoto)] = "Dateiname und Typ der Fotokopie; der Endpunkt streamt daraus, "
-            + "ausgeliefert wird der Inhalt, nie dieses Modell.",
+        [typeof(PublicLeadershipEdit)] = "Zeile der Telefonnummern-Verwaltung; sie nennt Konto und Codename "
+            + "hinter der Karte, was die veröffentlichte Karte bewusst nicht tut.",
         [typeof(TicketParticipantRow)] = "Wer an einem Ticket sitzt, samt Klarname hinter dem Führungs-Gate. "
             + "Nach außen ist der Absender eine Konstante; diese Liste sieht der Bürger nie.",
         [typeof(TicketParticipationRow)] = "Die eigenen Beteiligungen eines Agenten mit ungelesenen internen "

@@ -69,7 +69,7 @@ Aktenzeichen sind für Menschen lesbar, etwa `NOOSE-P-2026-0001`, und entstehen 
 
 Quellen, Kommentare, Tags, Verknüpfungen und Wiedervorlagen hängen polymorph an jeder Akte, über das Paar `(EntityType, EntityId)` und ohne echten Fremdschlüssel.
 
-Der öffentliche Bereich hat eine eigene Domäne in `Data/Entities/Public/`, darunter Ausschreibung mit Warnhinweisen, Kopfgeld-Anteil, Einspruch, Hinweis mit Nachricht und Belohnung, Ticket mit Beteiligten und Nachrichten, Pressemitteilung, Warnung, Lagebericht, Fraktions- und Führungsprofil, Seite, FAQ, Modul, Vorlage und Bürgerprofil. Was von welcher Tabelle nach außen gehen darf, und warum der Rest nie hinausgeht, steht ausnahmslos in `Services/Public/PublicVisibility.cs`. Ein Test prüft über alle DbSets, dass keine Tabelle fehlt.
+Der öffentliche Bereich hat eine eigene Domäne in `Data/Entities/Public/`, darunter Ausschreibung mit Warnhinweisen, Kopfgeld-Anteil, Einspruch, Hinweis mit Nachricht und Belohnung, Ticket mit Beteiligten und Nachrichten, Pressemitteilung, Warnung, Lagebericht, Fraktionsprofil, Telefonnummer der Führung für die Mitarbeiterliste, Seite, FAQ, Modul, Vorlage und Bürgerprofil. Was von welcher Tabelle nach außen gehen darf, und warum der Rest nie hinausgeht, steht ausnahmslos in `Services/Public/PublicVisibility.cs`. Ein Test prüft über alle DbSets, dass keine Tabelle fehlt.
 
 | Aktentyp | Tabelle | Einstufung | Bedrohungs-Score |
 |----------|---------|------------|------------------|

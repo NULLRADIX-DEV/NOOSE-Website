@@ -29,11 +29,14 @@ public static class PublicVisibility
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["OeffentlichesModul"] = "Nur Beschriftung, Icon und Reihenfolge eines Nav-Eintrags; kein Aktenbezug.",
-            ["OeffentlichesFuehrungsprofil"] = "Die eine Ausnahme von der Anonymität nach außen, und zwar eine "
-                + "redaktionelle: freigegebener Klarname, Dienstgradbezeichnung, Funktion und ein KOPIERTES Foto "
-                + "einer Führungskraft ab Supervisory Special Agent. Jeder Eintrag wird einzeln von Hand "
-                + "freigegeben; nichts davon wird zur Lesezeit aus `Agent` projiziert, und `Agent` selbst bleibt "
-                + "in NeverPublic. Weder Codename noch Dienstgrad-Wert, Kennungen oder Flags gehen mit.",
+            ["Agent"] = "Die Mitarbeiterliste auf /fuehrung, solange das Modul läuft: der Klarname jedes "
+                + "auswählbaren Agenten (aktiv, keine Teamleitung, kein Partner) mit hinterlegtem Klarnamen, "
+                + "und nur für die Führung ab Supervisory Special Agent zusätzlich die Dienstgradbezeichnung. "
+                + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Einheit (TRU/HRB), "
+                + "Profilbild, Discord-Daten, Kennungen und Flags verlassen das Haus nie, und ohne laufendes "
+                + "Modul bleibt jeder Agent anonym.",
+            ["OeffentlicheTelefonnummer"] = "Die Telefonnummer einer Führungskraft auf ihrer Karte der "
+                + "Mitarbeiterliste, nur solange der Agent zur Führung zählt. Wer sie eingetragen hat, bleibt drinnen.",
             ["SystemSetting"] = "Sechs Zeilen, nicht mehr: die vier der Gefahrenlage (Stufe, Einschätzung, "
                 + "Seit-Datum, zuvor gesetzte Stufe), die Anforderungsliste der Karriereseite "
                 + "(KarriereAnforderungen) und die Logo-Metadaten (LogoFileName, LogoContentType), die der "
@@ -105,7 +108,9 @@ public static class PublicVisibility
                 + "Einspruch samt Entscheidung, im Bürgerbereich.",
 
             // --- the agency itself ---
-            ["Agent"] = "Agenten bleiben nach außen anonym; weder Codename noch Klarname noch Dienstgrad verlassen das Haus.",
+            ["OeffentlichesFuehrungsprofil"] = "Ausgedient: die frühere redaktionelle Führungsseite. Die Zeilen "
+                + "bleiben nur für einen Rollback stehen; nichts liest sie mehr, und ihre Fotos werden nicht mehr "
+                + "ausgeliefert.",
 
             // --- person files ---
             ["Person"] = "Die Akte bleibt drinnen; nach außen geht ausschließlich der Publikations-Snapshot einer Ausschreibung.",
@@ -194,7 +199,6 @@ public static class PublicVisibility
             ["PresentationInvite"] = "Einladung zu einer internen Präsentation; nach außen nie.",
             ["PresentationFile"] = "Importierte Folien einer internen Präsentation; nach außen nie.",
             ["AgentBadge"] = Personnel,
-            // released only as an editorial copy on the leadership profile, never projected from here
             ["Decoration"] = Personnel,
             ["DecorationAward"] = Personnel,
             ["Absence"] = Personnel,

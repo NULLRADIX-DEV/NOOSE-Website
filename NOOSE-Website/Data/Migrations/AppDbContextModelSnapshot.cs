@@ -9383,6 +9383,47 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("OeffentlicheSeiten");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.OeffentlicheTelefonnummer", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("AgentId");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("Telefonnummer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId")
+                        .IsUnique();
+
+                    b.ToTable("OeffentlicheTelefonnummern");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.OeffentlicheVorlage", b =>
                 {
                     b.Property<string>("Id")
@@ -12834,6 +12875,17 @@ namespace NOOSE_Website.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("PublishedBy");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.OeffentlicheTelefonnummer", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.OeffentlicheWarnung", b =>

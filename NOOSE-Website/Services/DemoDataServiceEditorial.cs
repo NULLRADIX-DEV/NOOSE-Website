@@ -438,40 +438,28 @@ public partial class DemoDataService
         return added;
     }
 
-    private sealed record LeadershipSpec(string Name, string Title, string Role, int Sort);
-
-    private static readonly LeadershipSpec[] LeadershipSpecs =
-    [
-        new("Marcus Hale", "Director", "Leitung der Behörde", 10),
-    ];
-
-    /// <summary>The one outward surface that names people. Only the demo agent is released here.</summary>
-    private static async Task<int> SeedLeadershipProfilesAsync(AppDbContext db, CancellationToken ct)
+    /// <summary>Puts the demo agent on the public roster: a real name and a phone for the leadership card.</summary>
+    private static async Task<int> SeedPublicRosterAsync(AppDbContext db, CancellationToken ct)
     {
-        var existing = (await db.OeffentlicheFuehrungsprofile.Select(p => p.AgentId).ToListAsync(ct))
-            .ToHashSet(StringComparer.Ordinal);
-        if (existing.Contains(DemoIdentity.AgentId))
+        if (await db.OeffentlicheTelefonnummern.AnyAsync(p => p.AgentId == DemoIdentity.AgentId, ct))
         {
             return 0;
         }
-
-        var added = 0;
-        foreach (var spec in LeadershipSpecs)
+        var agent = await db.Users.FirstOrDefaultAsync(u => u.Id == DemoIdentity.AgentId, ct);
+        if (agent is null)
         {
-            db.OeffentlicheFuehrungsprofile.Add(new OeffentlichesFuehrungsprofil
-            {
-                PublicKey = Guid.NewGuid().ToString("N"),
-                AgentId = DemoIdentity.AgentId,
-                DisplayName = spec.Name,
-                Title = spec.Title,
-                RoleText = spec.Role,
-                SortOrder = spec.Sort,
-                PublishedAt = DateTime.UtcNow.AddDays(-45),
-                PublishedById = DemoIdentity.AgentId,
-            });
-            added++;
+            return 0;
         }
-        return added;
+        if (string.IsNullOrWhiteSpace(agent.RealName))
+        {
+            agent.RealName = "Marcus Hale";
+        }
+        db.OeffentlicheTelefonnummern.Add(new OeffentlicheTelefonnummer
+        {
+            AgentId = DemoIdentity.AgentId,
+            PhoneNumber = "555-0100",
+        });
+        return 1;
     }
 
     private sealed record LawSpec(string Book, string Paragraph, string Title, string Text, string Sentence);
