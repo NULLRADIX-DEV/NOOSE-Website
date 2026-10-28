@@ -190,6 +190,7 @@ builder.Services.AddScoped<IPartyPhotoStorageService, PartyPhotoStorageService>(
 builder.Services.AddScoped<IEvidenceImageStorageService, EvidenceImageStorageService>();
 builder.Services.AddScoped<IAgentAvatarStorageService, AgentAvatarStorageService>();
 builder.Services.AddScoped<IPublicWantedPhotoStorageService, PublicWantedPhotoStorageService>();
+builder.Services.AddScoped<IPublicLeadershipPhotoStorageService, PublicLeadershipPhotoStorageService>();
 builder.Services.AddScoped<ITipAttachmentStorageService, TipAttachmentStorageService>();
 builder.Services.AddScoped<ITicketAttachmentStorageService, TicketAttachmentStorageService>();
 builder.Services.AddScoped<ICitizenAssistService, CitizenAssistService>();
@@ -580,6 +581,7 @@ app.MapNooseSystemEndpoints();
 app.MapNooseStatisticsExportEndpoints();
 app.MapNooseRecruitingFileEndpoints();
 app.MapNoosePublicWantedFileEndpoints();
+app.MapNoosePublicLeadershipFileEndpoints();
 app.MapNooseTipFileEndpoints();
 app.MapNooseTicketFileEndpoints();
 app.MapNooseTextImageFileEndpoints();

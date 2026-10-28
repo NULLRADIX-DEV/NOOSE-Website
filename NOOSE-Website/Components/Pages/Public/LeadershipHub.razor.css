@@ -1,0 +1,231 @@
+/* same chart as the internal /organigramm: root on top, one rank level per tier, bus and stub lines */
+
+.org-scroll {
+    overflow-x: auto;
+    padding: 0.5rem 0 1rem;
+}
+
+.org {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    min-width: 100%;
+    margin: 0 auto;
+    --org-line: var(--mud-palette-lines-default);
+}
+
+.org-node {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    background: var(--mud-palette-surface);
+    padding: 0.4rem 1rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.org-root {
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border-color: var(--mud-palette-primary);
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+}
+
+.org-rank {
+    font-weight: 600;
+    color: var(--mud-palette-text-primary);
+}
+
+.org-link {
+    width: 0;
+    height: 22px;
+    border-left: 2px solid var(--org-line);
+}
+
+.org-tier {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.org-leaves {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    list-style: none;
+    margin: 0;
+    padding: 22px 0 0;
+    position: relative;
+}
+
+.org-leaves::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 0;
+    height: 22px;
+    border-left: 2px solid var(--org-line);
+}
+
+.org-leaves > li {
+    position: relative;
+    padding: 22px 10px 0;
+}
+
+.org-leaves > li::before,
+.org-leaves > li::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 50%;
+    height: 22px;
+    border-top: 2px solid var(--org-line);
+}
+
+.org-leaves > li::before {
+    right: 50%;
+}
+
+.org-leaves > li::after {
+    left: 50%;
+    border-left: 2px solid var(--org-line);
+}
+
+.org-leaves > li:first-child::before {
+    border: 0;
+}
+
+.org-leaves > li:last-child::after {
+    border: 0;
+}
+
+.org-leaves > li:last-child::before {
+    border-right: 2px solid var(--org-line);
+}
+
+/* a single card: no bus, one straight stub */
+.org-leaves > li:only-child::before {
+    left: 50%;
+    right: auto;
+    width: 0;
+    border-top: 0;
+    border-left: 2px solid var(--org-line);
+}
+
+.org-leaves > li:only-child::after {
+    display: none;
+}
+
+.org-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    width: 170px;
+    padding: 0.8rem 0.6rem;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 10px;
+    background: var(--mud-palette-surface);
+}
+
+.org-card-foto,
+.org-card-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+}
+
+.org-card-foto {
+    object-fit: cover;
+}
+
+.org-card-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-text);
+    font-weight: 700;
+    font-size: 1.4rem;
+}
+
+.org-card-name {
+    font-weight: 600;
+    color: var(--mud-palette-text-primary);
+    text-align: center;
+    line-height: 1.25;
+}
+
+.org-card-tel {
+    font-size: 0.85rem;
+    color: var(--mud-palette-text-secondary);
+    text-align: center;
+}
+
+/* the public page is capped at 960px: a tier of five or more wraps instead of scrolling, without the bus */
+.org:has(.org-leaves > li:nth-child(5)) {
+    width: auto;
+}
+
+.org-tier:has(> .org-leaves > li:nth-child(5)) {
+    max-width: 100%;
+}
+
+.org-leaves:has(> li:nth-child(5)) {
+    flex-wrap: wrap;
+    gap: 12px;
+    max-width: 100%;
+}
+
+.org-leaves:has(> li:nth-child(5)) > li {
+    padding: 0;
+}
+
+.org-leaves:has(> li:nth-child(5)) > li::before,
+.org-leaves:has(> li:nth-child(5)) > li::after {
+    display: none;
+}
+
+/* tablets and phones: every tier wraps, cards get smaller */
+@media (max-width: 899.98px) {
+    .org {
+        width: auto;
+    }
+
+    .org-tier,
+    .org-leaves {
+        max-width: 100%;
+    }
+
+    .org-leaves {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .org-leaves > li {
+        padding: 0;
+    }
+
+    .org-leaves > li::before,
+    .org-leaves > li::after {
+        display: none;
+    }
+
+    .org-card {
+        width: 140px;
+    }
+
+    .org-card-foto,
+    .org-card-avatar {
+        width: 64px;
+        height: 64px;
+    }
+}
+
+@media print {
+    .org-scroll {
+        overflow: visible;
+    }
+}

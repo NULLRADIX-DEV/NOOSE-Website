@@ -83,7 +83,7 @@ public static class PublicModules
             Icons.Material.Filled.Feed, "/presse", PublicModuleGroup.Behoerde, 120, false, true, OffGeneric),
         // the ONE outward surface that names agents, and it does so automatically: switching it on publishes the
         // real name of every selectable agent at once. Off by default like everything else.
-        new(Leadership, "Mitarbeiter", "Behördenleitung mit Dienstgrad und Telefon, dazu alle Agenten mit Namen.",
+        new(Leadership, "Mitarbeiter", "Organigramm der Behördenleitung mit Foto und Telefon, dazu alle Agenten mit Namen.",
             Icons.Material.Filled.Groups, "/fuehrung", PublicModuleGroup.Behoerde, 125, false, true,
             OffGeneric),
         // /berichte, not /lageberichte: that route is internal (the legacy redirect and the leadership-only print page

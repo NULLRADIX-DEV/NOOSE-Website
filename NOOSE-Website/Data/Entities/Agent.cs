@@ -125,4 +125,8 @@ public class Agent : IdentityUser
 
     [Column("InaktivNachgefasstVonName")]
     public string? InactivityNudgedByName { get; set; }
+
+    /// <summary>The agent's own choice to stay off the public roster on /fuehrung; the page never says anyone is missing.</summary>
+    [Column("AufMitarbeiterlisteVerborgen")]
+    public bool HiddenFromPublicRoster { get; set; }
 }

@@ -534,7 +534,7 @@ public static class SearchCatalog
                 + "das Ticket; eine durchsuchbare Beteiligtenliste wäre eine Karte, wer woran sitzt.",
             ["OeffentlichesFuehrungsprofil"] = "Ausgedienter Eintrag des früheren öffentlichen Organigramms; "
                 + "nichts liest ihn mehr. Eine interne Suche nach Führungskräften ist das Organigramm selbst.",
-            ["OeffentlicheTelefonnummer"] = "Telefonnummer auf einer Führungskarte der öffentlichen "
+            ["OeffentlicheTelefonnummer"] = "Telefonnummer und Foto auf einer Führungskarte der öffentlichen "
                 + "Mitarbeiterliste, ohne eigenen Text; gepflegt in /einstellungen.",
             ["OeffentlicheFaqRubrik"] = "Überschrift eines FAQ-Abschnitts ohne eigenen Text; die Fragen tragen ihn.",
             ["OeffentlicheFaqEintrag"] = "Redaktionelle Antwort für draußen; sie steht auf /faq und wird "

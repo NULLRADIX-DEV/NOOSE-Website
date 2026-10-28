@@ -30,6 +30,9 @@ public class FileUploadOptions
     /// <summary>Citizen tip attachment path; its own base path, so no authorized reader can wander into a file photo.</summary>
     public string TipsPath { get; set; } = "App_Data/uploads/hinweise";
 
+    /// <summary>Leadership card photos; copies, so the anonymous endpoint never reaches an agent's own avatar.</summary>
+    public string LeadershipPath { get; set; } = "App_Data/uploads/fuehrung";
+
     /// <summary>Max file size.</summary>
     public long MaxBytes { get; set; } = 10 * 1024 * 1024;
 

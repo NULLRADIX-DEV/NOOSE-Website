@@ -199,6 +199,16 @@
                 </MudPaper>
             </MudItem>
 
+            @* only accounts the roster can name at all: no partner, no supervision *@
+            @if (!_isPartner && !_user.IsTeamLead())
+            {
+                <MudItem xs="12">
+                    <MudPaper Class="pa-6" Elevation="2">
+                        <PublicRosterVisibilityPanel User="_user" />
+                    </MudPaper>
+                </MudItem>
+            }
+
             @if (_myRequests.Count > 0)
             {
                 <MudItem xs="12">

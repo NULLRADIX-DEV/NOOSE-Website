@@ -22,7 +22,8 @@ public class AgentManagementService(
     INotificationService notifications,
     IDiscordWebhookService discord,
     IConfiguration configuration,
-    IAgentAvatarStorageService avatars) : IAgentManagementService
+    IAgentAvatarStorageService avatars,
+    IPublicLeadershipPhotoStorageService leadershipPhotos) : IAgentManagementService
 {
     private static readonly SemaphoreSlim BadgeNumberGate = new(1, 1);
 
@@ -1031,6 +1032,8 @@ public class AgentManagementService(
         // retired chart rows only hold the restricted FK now
         await db.OeffentlicheFuehrungsprofile.Where(x => x.AgentId == agentId)
             .ExecuteDeleteAsync(cancellationToken);
+        var cardPhoto = await db.OeffentlicheTelefonnummern.Where(x => x.AgentId == agentId)
+            .Select(x => x.PhotoFileName).FirstOrDefaultAsync(cancellationToken);
         await db.OeffentlicheTelefonnummern.Where(x => x.AgentId == agentId)
             .ExecuteDeleteAsync(cancellationToken);
         await db.OeffentlicheFuehrungsprofile.IgnoreQueryFilters().Where(x => x.PublishedById == agentId)
@@ -1080,6 +1083,13 @@ public class AgentManagementService(
         await db.SaveChangesAsync(cancellationToken);
 
         await tx.CommitAsync(cancellationToken);
+
+        // the public card photo is a copy nobody could find again once its row is gone
+        if (cardPhoto is not null)
+        {
+            try { leadershipPhotos.Delete(cardPhoto); }
+            catch { /* best effort */ }
+        }
     }
 
     /// <summary>True if the Discord ID is a configured bootstrap admin (single or list key).</summary>

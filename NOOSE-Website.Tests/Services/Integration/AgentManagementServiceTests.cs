@@ -64,7 +64,7 @@ public class AgentManagementServiceTests
         var avatars = new AgentAvatarStorageService(env, Options.Create(uploadOptions));
 
         var svc = new AgentManagementService(BuildUserManager(db), db, ctx.Factory, notifications,
-            discord, builder.Build(), avatars);
+            discord, builder.Build(), avatars, Substitute.For<IPublicLeadershipPhotoStorageService>());
         return new Fixture
         {
             Ctx = ctx, Db = db, Svc = svc, Notifications = notifications, Discord = discord,
