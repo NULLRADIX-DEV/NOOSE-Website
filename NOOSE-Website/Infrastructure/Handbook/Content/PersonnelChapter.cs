@@ -281,6 +281,10 @@ internal static class PersonnelChapter
                 die Initialen. Das Foto ist eine eigene Kopie, dein Profilbild geht nie nach außen. Wer befördert,
                 degradiert oder entlassen wird, wandert nach spätestens einer halben Minute an die richtige Stelle
                 oder verschwindet, samt Foto.</p>
+                <p>Ob du selbst dort stehst, entscheidest du in deinem <em>Profil</em> unter <em>Öffentliche
+                Mitarbeiterliste</em>. Schaltest du dich aus, fehlst du sofort, mit Karte und Foto; die Seite verrät
+                nicht, dass jemand fehlt. So wirkt die Liste vollständig, und ein Name, der draußen die Runde macht,
+                aber dort nicht steht, gilt schnell als erfunden.</p>
                 """,
                 NavKey: "organigramm"),
 

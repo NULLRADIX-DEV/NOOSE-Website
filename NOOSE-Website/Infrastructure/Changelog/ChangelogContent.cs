@@ -558,6 +558,9 @@ public static class ChangelogContent
             Besser("2.7.16-mitarbeiter-organigramm", "Auf der Seite „Mitarbeiter“ steht die Führung jetzt als "
                 + "Organigramm nach Dienstgrad, auf Wunsch mit Foto. Das Foto lädt die Führung in den Einstellungen "
                 + "unter Mitarbeiterliste hoch.", "Öffentlich"),
+            Neu("2.7.17-mitarbeiterliste-ausblenden", "Im eigenen Profil entscheidest du jetzt, ob du auf der "
+                + "öffentlichen Seite „Mitarbeiter“ stehst. Wer sich ausblendet, fehlt dort einfach, die Seite "
+                + "verrät nicht, dass jemand fehlt.", "Öffentlich"),
         ]),
     ];
 }

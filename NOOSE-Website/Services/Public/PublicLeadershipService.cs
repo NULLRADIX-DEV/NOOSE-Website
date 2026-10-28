@@ -26,7 +26,7 @@ public partial class PublicLeadershipService(
 
     private static readonly StringComparer ByName = StringComparer.Create(CultureInfo.GetCultureInfo("de-DE"), true);
 
-    private sealed record RosterRow(string Id, string Codename, string Name, Rank? Rank)
+    private sealed record RosterRow(string Id, string Codename, string Name, Rank? Rank, bool Hidden)
     {
         public bool IsLeadership => Rank is { } r && r >= LeadershipChart.RankFloor;
     }
@@ -54,7 +54,8 @@ public partial class PublicLeadershipService(
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var rows = await RosterAsync(db, cancellationToken);
+        // whoever opted out is simply absent; nothing on the page counts or hints at them
+        var rows = (await RosterAsync(db, cancellationToken)).Where(r => !r.Hidden).ToList();
         var leaders = rows.Where(r => r.IsLeadership).ToList();
         var cards = await CardsAsync(db, leaders.Select(r => r.Id).ToList(), cancellationToken);
 
@@ -114,7 +115,8 @@ public partial class PublicLeadershipService(
             .Select(r =>
             {
                 var card = Card(r, cards.GetValueOrDefault(r.Id));
-                return new PublicLeadershipEdit(r.Id, r.Codename, r.Name, r.Rank!.Value, card.Phone, card.PhotoUrl);
+                return new PublicLeadershipEdit(r.Id, r.Codename, r.Name, r.Rank!.Value, card.Phone, card.PhotoUrl,
+                    r.Hidden);
             })
             .ToList();
     }
@@ -228,6 +230,31 @@ public partial class PublicLeadershipService(
         DeleteFile(previous);
     }
 
+    public async Task<bool> IsOwnHiddenAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        var agentId = actor.GetAgentId();
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Users.AsNoTracking()
+            .Where(u => u.Id == agentId)
+            .Select(u => u.HiddenFromPublicRoster)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Only ever the actor's own row, by ExecuteUpdate: <c>UserManager.UpdateAsync</c> would write it back from a
+    /// stale copy. A personal preference like the nav blob, so no audit row.
+    /// </remarks>
+    public async Task SetOwnHiddenAsync(bool hidden, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireWriteAccess(actor);
+        var agentId = actor.GetAgentId();
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        await db.Users.Where(u => u.Id == agentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.HiddenFromPublicRoster, hidden), cancellationToken);
+        cache.Remove(CacheKey);
+    }
+
     /// <summary>Trimmed number, null for blank; throws on anything a phone number does not contain.</summary>
     public static string? CleanPhone(string? phone)
     {
@@ -279,10 +306,10 @@ public partial class PublicLeadershipService(
         var rows = await db.Users.AsNoTracking()
             .OnlySelectable()
             .Where(u => u.RealName != null && u.RealName != "")
-            .Select(u => new { u.Id, u.Codename, u.RealName, u.Rank })
+            .Select(u => new { u.Id, u.Codename, u.RealName, u.Rank, u.HiddenFromPublicRoster })
             .ToListAsync(cancellationToken);
         return rows
-            .Select(u => new RosterRow(u.Id, u.Codename, u.RealName!.Trim(), u.Rank))
+            .Select(u => new RosterRow(u.Id, u.Codename, u.RealName!.Trim(), u.Rank, u.HiddenFromPublicRoster))
             .Where(r => r.Name.Length > 0)
             .ToList();
     }

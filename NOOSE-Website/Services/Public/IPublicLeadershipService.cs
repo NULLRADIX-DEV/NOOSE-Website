@@ -29,4 +29,10 @@ public interface IPublicLeadershipService
         CancellationToken cancellationToken = default);
 
     Task RemovePhotoAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Whether the actor chose to stay off the public roster.</summary>
+    Task<bool> IsOwnHiddenAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>The actor's own choice to stay off the public roster; nobody decides it for someone else.</summary>
+    Task SetOwnHiddenAsync(bool hidden, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 }

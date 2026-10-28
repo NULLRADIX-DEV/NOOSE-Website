@@ -401,6 +401,69 @@ public sealed class PublicLeadershipServiceTests
         await host.Storage.DidNotReceiveWithAnyArgs().SaveAsync(default!, default!, default);
     }
 
+    // ---- staying off the list ----
+
+    private static ClaimsPrincipal Self(string agentId, Rank rank) => ClaimsPrincipalBuilder.Agent(agentId).WithRank(rank).Build();
+
+    [Fact]
+    public async Task Whoever_opts_out_is_simply_absent_at_once()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        await service.GetPublicAsync();
+
+        await service.SetOwnHiddenAsync(true, Self("junior", Rank.JuniorAgent));
+        await service.SetOwnHiddenAsync(true, Self("vize", Rank.DeputyDirector));
+
+        var roster = await service.GetPublicAsync();
+        Assert.Equal(["Director", "Supervisory Special Agent"], roster.Leadership.Select(t => t.Title).ToList());
+        Assert.Equal(["Ärne Ahorn"], roster.Members.Select(m => m.Name).ToList());
+        Assert.True(await service.IsOwnHiddenAsync(Self("junior", Rank.JuniorAgent)));
+        Assert.False(await service.IsOwnHiddenAsync(Self("special", Rank.SpecialAgent)));
+    }
+
+    [Fact]
+    public async Task Opting_back_in_brings_the_card_back()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        await service.SetOwnHiddenAsync(true, Self("chef", Rank.Director));
+
+        await service.SetOwnHiddenAsync(false, Self("chef", Rank.Director));
+
+        Assert.Equal("Zora Zett", (await service.GetPublicAsync()).Leadership[0].Cards[0].Name);
+    }
+
+    [Fact]
+    public async Task A_hidden_leaders_photo_is_not_served_but_the_panel_still_keeps_the_card()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        await service.SetPhotoAsync("chef", Picture(), "image/png", Leader());
+
+        await service.SetOwnHiddenAsync(true, Self("chef", Rank.Director));
+
+        Assert.Null(await service.GetPublishedPhotoAsync(1.ToString("x32") + ".jpg"));
+        var row = Assert.Single(await service.GetLeadershipAsync(Leader()), r => r.AgentId == "chef");
+        Assert.True(row.Hidden);
+        Assert.NotNull(row.PhotoUrl);
+        await service.SetPhoneAsync("chef", "555-0100", Leader());
+    }
+
+    [Fact]
+    public async Task The_choice_is_only_ever_ones_own_and_needs_write_access()
+    {
+        using var ctx = await SeededAsync();
+        var service = NewService(ctx);
+        var demo = ClaimsPrincipalBuilder.Agent("chef").WithRank(Rank.Director).AsDemo().Build();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SetOwnHiddenAsync(true, demo));
+        await service.SetOwnHiddenAsync(true, Self("junior", Rank.JuniorAgent));
+
+        await using var db = ctx.NewContext();
+        Assert.Equal(["junior"], await db.Users.Where(u => u.HiddenFromPublicRoster).Select(u => u.Id).ToListAsync());
+    }
+
     // ---- the settings panel ----
 
     [Fact]

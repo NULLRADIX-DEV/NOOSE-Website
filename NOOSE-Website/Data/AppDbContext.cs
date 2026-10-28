@@ -318,7 +318,8 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(a => a.FinancingBudgetOverride).HasPrecision(18, 2);
             b.Property(a => a.InactivityNudgedByName).HasMaxLength(128);
             // written by ExecuteUpdate only: UserManager.UpdateAsync rewrites the whole row from a possibly stale copy
-            foreach (var stamp in new[] { nameof(Agent.LastSeenAt), nameof(Agent.InactivityNudgedAt), nameof(Agent.InactivityNudgedByName) })
+            foreach (var stamp in new[] { nameof(Agent.LastSeenAt), nameof(Agent.InactivityNudgedAt), nameof(Agent.InactivityNudgedByName),
+                         nameof(Agent.HiddenFromPublicRoster) })
             {
                 b.Property(stamp).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
             }

@@ -20,7 +20,8 @@ public record PublicRosterMember(string Name);
 
 /// <summary>One leadership row as the settings panel works on it.</summary>
 /// <remarks>Inward: it names the account behind the card, which the outward card deliberately does not.</remarks>
-public record PublicLeadershipEdit(string AgentId, string Codename, string Name, Rank Rank, string? Phone, string? PhotoUrl);
+public record PublicLeadershipEdit(string AgentId, string Codename, string Name, Rank Rank, string? Phone, string? PhotoUrl,
+    bool Hidden);
 
 /// <summary>A card photo, as the anonymous endpoint streams it.</summary>
 public record PublicLeadershipPhoto(string FileNameSaved, string ContentType);

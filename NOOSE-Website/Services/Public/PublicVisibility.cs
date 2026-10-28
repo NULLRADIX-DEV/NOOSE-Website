@@ -30,8 +30,10 @@ public static class PublicVisibility
         {
             ["OeffentlichesModul"] = "Nur Beschriftung, Icon und Reihenfolge eines Nav-Eintrags; kein Aktenbezug.",
             ["Agent"] = "Die Mitarbeiterliste auf /fuehrung, solange das Modul läuft: der Klarname jedes "
-                + "auswählbaren Agenten (aktiv, keine Teamleitung, kein Partner) mit hinterlegtem Klarnamen, "
-                + "und nur für die Führung ab Supervisory Special Agent zusätzlich die Dienstgradbezeichnung. "
+                + "auswählbaren Agenten (aktiv, keine Teamleitung, kein Partner) mit hinterlegtem Klarnamen, der "
+                + "sich nicht selbst ausgeblendet hat (`HiddenFromPublicRoster`; die Seite verrät nicht, dass "
+                + "jemand fehlt), und nur für die Führung ab Supervisory Special Agent zusätzlich die "
+                + "Dienstgradbezeichnung. "
                 + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Einheit (TRU/HRB), "
                 + "Profilbild, Discord-Daten, Kennungen und Flags verlassen das Haus nie, und ohne laufendes "
                 + "Modul bleibt jeder Agent anonym.",

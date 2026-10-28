@@ -582,6 +582,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("Finanzierungsbudget");
 
+                    b.Property<bool>("HiddenFromPublicRoster")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("AufMitarbeiterlisteVerborgen");
+
                     b.Property<DateTime?>("InactivityNudgedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("InaktivNachgefasstAm");
