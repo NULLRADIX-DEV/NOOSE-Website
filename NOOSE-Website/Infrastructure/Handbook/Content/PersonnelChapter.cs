@@ -271,8 +271,8 @@ internal static class PersonnelChapter
                 """
                 <p>Das <strong>Organigramm</strong> zeigt den Aufbau der Behörde nach Dienstgrad und Einheit.
                 Intern zeigt es alle aktiven Agenten mit ihrem Codenamen.</p>
-                <p>Nach außen gibt es stattdessen die öffentliche Seite <strong>Mitarbeiter</strong>. Sie füllt
-                sich von selbst mit jedem aktiven Agenten, der einen Klarnamen hinterlegt hat. Die Führung ab
+                <p>Nach außen gibt es stattdessen die öffentliche Seite <strong>Mitarbeiter</strong>. Dort steht
+                jeder aktive Agent mit hinterlegtem Klarnamen, der sich dafür eingeschaltet hat. Die Führung ab
                 Supervisory Special Agent steht obenan als Organigramm, eine Ebene je Dienstgrad, jede Karte mit
                 Foto und Telefonnummer. Alle anderen stehen darunter nur mit Klarnamen, ohne Codename, Dienstgrad,
                 Einheit, Dienstnummer und Foto. Teamleitungen und Partnerbehörden erscheinen nie.</p>
@@ -282,7 +282,8 @@ internal static class PersonnelChapter
                 degradiert oder entlassen wird, wandert nach spätestens einer halben Minute an die richtige Stelle
                 oder verschwindet, samt Foto.</p>
                 <p>Ob du selbst dort stehst, entscheidest du in deinem <em>Profil</em> unter <em>Öffentliche
-                Mitarbeiterliste</em>. Schaltest du dich aus, fehlst du sofort, mit Karte und Foto; die Seite verrät
+                Mitarbeiterliste</em>. Anfangs ist der Schalter aus, du stehst also nicht dort, bis du ihn
+                einschaltest; schaltest du ihn wieder aus, fehlst du sofort, mit Karte und Foto. Die Seite verrät
                 nicht, dass jemand fehlt. So wirkt die Liste vollständig, und ein Name, der draußen die Runde macht,
                 aber dort nicht steht, gilt schnell als erfunden.</p>
                 """,
