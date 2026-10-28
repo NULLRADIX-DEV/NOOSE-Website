@@ -1,7 +1,7 @@
 ﻿@page "/Error"
 @attribute [AllowAnonymous]
 @attribute [ExcludeFromInteractiveRouting]
-@layout MainLayout
+@layout StatusPageLayout
 @using System.Diagnostics
 
 <PageTitle>Fehler · NOOSE</PageTitle>
@@ -21,8 +21,16 @@
                     Anfrage-ID: <code>@RequestId</code>
                 </MudText>
             }
-            <MudButton Href="/dashboard" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Home">Zum Dashboard</MudButton>
+            <AuthorizeView Policy="@Policies.ActiveAgent">
+                <Authorized>
+                    <MudButton Href="/dashboard" Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Home">Zum Dashboard</MudButton>
+                </Authorized>
+                <NotAuthorized>
+                    <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Home">Zur Startseite</MudButton>
+                </NotAuthorized>
+            </AuthorizeView>
         </MudStack>
     </MudPaper>
 </MudContainer>

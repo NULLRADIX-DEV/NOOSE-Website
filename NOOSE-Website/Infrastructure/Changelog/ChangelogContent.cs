@@ -560,6 +560,9 @@ public static class ChangelogContent
             Neu("2.7.17-mitarbeiterliste-ausblenden", "Auf der öffentlichen Seite „Mitarbeiter“ stehst du nur, wenn du "
                 + "dich im eigenen Profil einschaltest; anfangs ist niemand dort. Wer ausgeschaltet bleibt, fehlt "
                 + "einfach, die Seite verrät nicht, dass jemand fehlt.", "Öffentlich"),
+            Fix("2.7.18-nicht-gefunden-navigation", "Wer als Bürger oder Besucher auf einer Seite landet, die es nicht "
+                + "gibt, oder auf der Fehlerseite, sieht dort jetzt nur noch die öffentliche Navigation und nicht mehr "
+                + "das interne Menü.", "Öffentlich"),
         ]),
     ];
 }

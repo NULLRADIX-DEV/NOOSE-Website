@@ -76,9 +76,8 @@
     <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always"
                Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
                Width="300px" Class="noose-drawer" Style="max-width:88vw;">
-        @* /not-found and /Error render this shell for anonymous visitors too, and the internal rail has nothing
-           to offer them *@
-        <AuthorizeView>
+        @* signed in is not enough: a citizen on an internal URL lands here, and most sections only shut out partners *@
+        <AuthorizeView Policy="@Policies.ActiveAgent">
             <Authorized>
                 <NavMenu />
             </Authorized>
@@ -174,8 +173,8 @@
         </MudContainer>
     </MudMainContent>
 
-    @* Command palette (Ctrl+K) and the keyboard shortcuts, only for signed-in agents. *@
-    <AuthorizeView>
+    @* Command palette (Ctrl+K) and the keyboard shortcuts, only for active agents. *@
+    <AuthorizeView Policy="@Policies.ActiveAgent">
         <Authorized Context="cp">
             <CommandPalette @ref="_palette" />
             <KeyboardShortcuts />
