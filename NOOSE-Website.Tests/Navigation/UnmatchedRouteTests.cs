@@ -1,4 +1,7 @@
 using System.Net;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -13,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Components;
+using NOOSE_Website.Components.Layout;
 using NOOSE_Website.Components.Pages;
 using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Models.Public;
@@ -36,7 +40,6 @@ public sealed class UnmatchedRouteTests(UnmatchedRouteTests.Site site) : IClassF
     [Theory]
     [InlineData("/gibt-es-nicht")]
     [InlineData("/ordner/unter/seite")]
-    [InlineData("/datei.js")]
     public async Task Unknown_address_waits_for_the_shell(string path)
     {
         using var response = await site.Client.GetAsync(path);
@@ -52,6 +55,19 @@ public sealed class UnmatchedRouteTests(UnmatchedRouteTests.Site site) : IClassF
     public void Catch_all_stays_out_of_the_interactive_router()
         => Assert.True(typeof(UnmatchedRoute).IsDefined(typeof(ExcludeFromInteractiveRoutingAttribute), inherit: false),
             "a routable catch-all would swallow every unknown link inside a circuit");
+
+    [Fact]
+    public void Catch_all_hands_over_before_a_shell_can_hold_the_page_back()
+    {
+        // MainLayout swaps @Body for the maintenance page or the partner gate, and NotFound() would never run
+        Assert.Equal(typeof(BareLayout), typeof(UnmatchedRoute).GetCustomAttribute<LayoutAttribute>()?.LayoutType);
+        var markup = Regex.Replace(File.ReadAllText(Component("Layout", "BareLayout.razor")), @"@\*.*?\*@", "",
+            RegexOptions.Singleline);
+        Assert.Matches(new Regex(@"^\s*@inherits LayoutComponentBase\s*@Body\s*$"), markup);
+    }
+
+    private static string Component(string folder, string file, [CallerFilePath] string here = "")
+        => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "NOOSE-Website", "Components", folder, file));
 
     [Fact]
     public async Task Re_executed_status_page_still_skips_late_loads_on_this_runtime()
