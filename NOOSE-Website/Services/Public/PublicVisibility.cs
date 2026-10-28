@@ -35,8 +35,10 @@ public static class PublicVisibility
                 + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Einheit (TRU/HRB), "
                 + "Profilbild, Discord-Daten, Kennungen und Flags verlassen das Haus nie, und ohne laufendes "
                 + "Modul bleibt jeder Agent anonym.",
-            ["OeffentlicheTelefonnummer"] = "Die Telefonnummer einer Führungskraft auf ihrer Karte der "
-                + "Mitarbeiterliste, nur solange der Agent zur Führung zählt. Wer sie eingetragen hat, bleibt drinnen.",
+            ["OeffentlicheTelefonnummer"] = "Telefonnummer und eine KOPIERTE Fotodatei einer Führungskraft auf "
+                + "ihrer Karte im Organigramm der Mitarbeiterliste, nur solange der Agent zur Führung zählt; das "
+                + "Foto wird nur dann über /fuehrung/foto ausgeliefert. Das eigene Profilbild des Agenten und wer "
+                + "die Karte gepflegt hat, bleiben drinnen.",
             ["SystemSetting"] = "Sechs Zeilen, nicht mehr: die vier der Gefahrenlage (Stufe, Einschätzung, "
                 + "Seit-Datum, zuvor gesetzte Stufe), die Anforderungsliste der Karriereseite "
                 + "(KarriereAnforderungen) und die Logo-Metadaten (LogoFileName, LogoContentType), die der "

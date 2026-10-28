@@ -9416,10 +9416,22 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(32)")
                         .HasColumnName("Telefonnummer");
 
+                    b.Property<string>("PhotoContentType")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("FotoTyp");
+
+                    b.Property<string>("PhotoFileName")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("FotoDateiname");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AgentId")
                         .IsUnique();
+
+                    b.HasIndex("PhotoFileName");
 
                     b.ToTable("OeffentlicheTelefonnummern");
                 });

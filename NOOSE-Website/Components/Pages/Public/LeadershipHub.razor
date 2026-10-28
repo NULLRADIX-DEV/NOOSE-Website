@@ -7,44 +7,61 @@
 
 <PageTitle>Mitarbeiter · NOOSE</PageTitle>
 
-<LinkPreview Title="Leitung und Mitarbeiter"
-             Description="Die Behördenleitung mit Rang und Telefonnummer und alle Mitarbeiterinnen und Mitarbeiter des NOOSE mit Namen." />
+<LinkPreview Title="Mitarbeiter"
+             Description="Das Organigramm der Führung mit Rang und Telefonnummer und alle Mitarbeiterinnen und Mitarbeiter des NOOSE mit Namen." />
 
 <PublicModuleGate Module="@PublicModules.Leadership" Title="Mitarbeiter">
     <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
         <MudStack Spacing="5">
             <MudStack Spacing="1">
                 <MudText Typo="Typo.overline" Color="Color.Primary">National Office of Security Enforcement</MudText>
-                <MudText Typo="Typo.h4">Leitung und Mitarbeiter</MudText>
+                <MudText Typo="Typo.h4">Mitarbeiter</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="max-width:680px;">
-                    Wer beim NOOSE Dienst tut, steht hier mit Namen. Die Behördenleitung erreichen Sie direkt
-                    unter der angegebenen Telefonnummer.
+                    Wer beim NOOSE Dienst tut, steht hier mit Namen. Die Führung erreichen Sie direkt unter der
+                    angegebenen Telefonnummer.
                 </MudText>
             </MudStack>
 
             <MudStack Spacing="2">
-                <MudText Typo="Typo.h6">Behördenleitung</MudText>
+                <MudText Typo="Typo.h6">Führung</MudText>
                 @if (_roster.Leadership.Count == 0)
                 {
                     <EmptyState Icon="@Icons.Material.Filled.AccountTree" Title="Keine Angaben"
-                                Text="Zur Behördenleitung liegen derzeit keine Angaben vor." />
+                                Text="Zur Führung liegen derzeit keine Angaben vor." />
                 }
                 else
                 {
-                    <MudStack Row="true" Spacing="4" Wrap="Wrap.Wrap" AlignItems="AlignItems.Stretch">
-                        @foreach (var card in _roster.Leadership)
-                        {
-                            <MudPaper Outlined="true" Class="pa-5" Style="flex:1 1 240px;max-width:320px;">
-                                <MudStack Spacing="2" AlignItems="AlignItems.Center">
-                                    <MudText Typo="Typo.h6" Align="Align.Center">@card.Name</MudText>
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
-                                        @card.Title
-                                    </MudChip>
-                                    <MudText Typo="Typo.body2" Align="Align.Center">Tel.: @card.Phone</MudText>
-                                </MudStack>
-                            </MudPaper>
-                        }
-                    </MudStack>
+                    <div class="org-scroll">
+                        <div class="org">
+                            <div class="org-node org-root">N.O.O.S.E.</div>
+                            @foreach (var tier in _roster.Leadership)
+                            {
+                                <div class="org-link"></div>
+                                <div class="org-tier">
+                                    <div class="org-node org-rank">@tier.Title</div>
+                                    <ul class="org-leaves">
+                                        @foreach (var card in tier.Cards)
+                                        {
+                                            <li>
+                                                <div class="org-card">
+                                                    @if (card.PhotoUrl is { } photo)
+                                                    {
+                                                        <img class="org-card-foto" src="@photo" alt="@card.Name" loading="lazy" />
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="org-card-avatar">@Initials(card.Name)</span>
+                                                    }
+                                                    <span class="org-card-name">@card.Name</span>
+                                                    <span class="org-card-tel">Tel.: @card.Phone</span>
+                                                </div>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+                    </div>
                 }
             </MudStack>
 
@@ -82,5 +99,16 @@
         {
             /* best effort */
         }
+    }
+
+    /// <summary>Up to two letters of the name, shown when a card has no photo.</summary>
+    private static string Initials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length >= 2)
+        {
+            return string.Concat(char.ToUpperInvariant(parts[0][0]), char.ToUpperInvariant(parts[^1][0]));
+        }
+        return parts.Length == 1 ? parts[0][..1].ToUpperInvariant() : "?";
     }
 }

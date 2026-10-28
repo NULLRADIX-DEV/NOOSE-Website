@@ -181,10 +181,13 @@
         <PublicKpiPanel />
     </RecordSection>
 
-    <RecordSection Group="Öffentlicher Bereich" Slug="oeffentliche-fuehrung" Label="Mitarbeiterliste"
-                   Icon="@Icons.Material.Filled.Groups">
-        <PublicLeadershipPanel />
-    </RecordSection>
+    @* Row order, phone and photo would pair every codename with its public card; supervision stays out. *@
+    <AuthorizeView Policy="@Policies.CounterIntel" Context="rosterSection">
+        <RecordSection Group="Öffentlicher Bereich" Slug="oeffentliche-fuehrung" Label="Mitarbeiterliste"
+                       Icon="@Icons.Material.Filled.Groups">
+            <PublicLeadershipPanel />
+        </RecordSection>
+    </AuthorizeView>
 
     <RecordSection Group="Öffentlicher Bereich" Slug="warnhinweise" Label="Warnhinweise"
                    Icon="@Icons.Material.Filled.Warning">

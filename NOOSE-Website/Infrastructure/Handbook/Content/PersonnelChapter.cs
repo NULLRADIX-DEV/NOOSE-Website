@@ -272,13 +272,15 @@ internal static class PersonnelChapter
                 <p>Das <strong>Organigramm</strong> zeigt den Aufbau der Behörde nach Dienstgrad und Einheit.
                 Intern zeigt es alle aktiven Agenten mit ihrem Codenamen.</p>
                 <p>Nach außen gibt es stattdessen die öffentliche Seite <strong>Mitarbeiter</strong>. Sie füllt
-                sich von selbst: Jeder aktive Agent mit hinterlegtem Klarnamen steht dort mit seinem Klarnamen,
-                ohne Codename, Dienstgrad, Einheit, Dienstnummer und Foto. Die Führung ab Supervisory Special Agent
-                steht obenan, mit Dienstgrad und Telefonnummer. Teamleitungen und Partnerbehörden erscheinen nie.</p>
-                <p>Die Telefonnummern trägt die Führung in den <em>Einstellungen</em> unter
-                <em>Mitarbeiterliste</em> ein; ohne Nummer bleibt die Zeile „Tel.:“ leer. Wer befördert, degradiert
-                oder entlassen wird, wandert nach spätestens einer halben Minute an die richtige Stelle oder
-                verschwindet.</p>
+                sich von selbst mit jedem aktiven Agenten, der einen Klarnamen hinterlegt hat. Die Führung ab
+                Supervisory Special Agent steht obenan als Organigramm, eine Ebene je Dienstgrad, jede Karte mit
+                Foto und Telefonnummer. Alle anderen stehen darunter nur mit Klarnamen, ohne Codename, Dienstgrad,
+                Einheit, Dienstnummer und Foto. Teamleitungen und Partnerbehörden erscheinen nie.</p>
+                <p>Telefonnummer und Foto trägt die Führung in den <em>Einstellungen</em> unter
+                <em>Mitarbeiterliste</em> ein; ohne Nummer bleibt die Zeile „Tel.:“ leer, ohne Foto zeigt die Karte
+                die Initialen. Das Foto ist eine eigene Kopie, dein Profilbild geht nie nach außen. Wer befördert,
+                degradiert oder entlassen wird, wandert nach spätestens einer halben Minute an die richtige Stelle
+                oder verschwindet, samt Foto.</p>
                 """,
                 NavKey: "organigramm"),
 

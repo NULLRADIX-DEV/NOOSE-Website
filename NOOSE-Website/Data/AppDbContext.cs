@@ -2323,10 +2323,14 @@ public class AppDbContext : IdentityDbContext<Agent>
         {
             b.Property(p => p.AgentId).HasMaxLength(64).IsRequired();
             b.Property(p => p.PhoneNumber).HasMaxLength(32).IsRequired();
+            b.Property(p => p.PhotoFileName).HasMaxLength(64);
+            b.Property(p => p.PhotoContentType).HasMaxLength(128);
             // never cascade off the identity table; deleting an agent clears the row itself
             b.HasOne(p => p.Agent).WithMany()
                 .HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Restrict);
             b.HasIndex(p => p.AgentId).IsUnique();
+            // the anonymous photo endpoint looks the card up by its file name
+            b.HasIndex(p => p.PhotoFileName);
         });
 
         modelBuilder.Entity<TicketParticipant>(b =>

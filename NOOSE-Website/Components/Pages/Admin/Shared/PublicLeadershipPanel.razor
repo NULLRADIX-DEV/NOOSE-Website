@@ -1,18 +1,21 @@
-﻿@* Phone numbers of the public roster's leadership band; who appears is decided by rank, not here. *@
+﻿@* Phone numbers and photos of the public roster's leadership cards; who appears is decided by rank, not here. *@
 @using NOOSE_Website.Models.Public
 @inject IPublicLeadershipService Leadership
+@inject IPublicLeadershipPhotoStorageService PhotoStorage
 @inject ISnackbar Snackbar
 @inject ILogger<PublicLeadershipPanel> Log
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
     Unter /fuehrung stehen automatisch alle aktiven Agenten mit Klarnamen: die Führung ab Supervisory Special Agent
-    mit Dienstgrad und Telefonnummer, alle anderen nur mit Namen. Teamleitungen und Partnerbehörden erscheinen nie.
-    Hier trägst du nur die Telefonnummern der Führung ein; ohne Nummer bleibt die Zeile „Tel.:“ leer.
+    als Organigramm mit Foto, Dienstgrad und Telefonnummer, alle anderen nur mit Namen. Teamleitungen und
+    Partnerbehörden erscheinen nie. Hier trägst du nur Telefonnummer und Foto der Führung ein; ohne Nummer bleibt die
+    Zeile „Tel.:“ leer, ohne Foto zeigt die Karte die Initialen. Das Foto wird als Kopie abgelegt, das Profilbild des
+    Agenten selbst verlässt das Haus nie.
 </MudText>
 
 @if (!_mayView)
 {
-    <MudAlert Severity="Severity.Info" Dense="true">Die Telefonnummern verwaltet die Führung.</MudAlert>
+    <MudAlert Severity="Severity.Info" Dense="true">Telefonnummern und Fotos verwaltet die Führung.</MudAlert>
 }
 else if (_load)
 {
@@ -30,7 +33,17 @@ else
         {
             <MudPaper Outlined="true" Class="pa-3">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
-                    <MudStack Spacing="0" Style="flex:1 1 240px;">
+                    @if (row.PhotoUrl is { } photo)
+                    {
+                        @* served by the public endpoint, so it only shows while the module is on *@
+                        <MudImage Src="@photo" Alt="@row.Name" Width="48" Height="48"
+                                  ObjectFit="ObjectFit.Cover" Class="rounded-circle" />
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large" Color="Color.Default" />
+                    }
+                    <MudStack Spacing="0" Style="flex:1 1 220px;">
                         <MudText Typo="Typo.body1"><b>@row.Name</b></MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                             @RankDisplay.Name(row.Rank) · @row.Codename
@@ -48,6 +61,28 @@ else
                                    OnClick="@(() => SaveAsync(row))">Speichern</MudButton>
                     }
                 </MudStack>
+
+                @if (_mayEdit)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-2">
+                        <MudFileUpload T="IBrowserFile" FilesChanged="@(f => UploadAsync(row, f))" Accept="image/*"
+                                       Disabled="@_busy">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Default"
+                                           StartIcon="@Icons.Material.Filled.Image" Disabled="@_busy"
+                                           OnClick="@context.OpenFilePickerAsync">
+                                    @(row.PhotoUrl is null ? "Foto hochladen" : "Foto ersetzen")
+                                </MudButton>
+                            </CustomContent>
+                        </MudFileUpload>
+                        @if (row.PhotoUrl is not null)
+                        {
+                            <MudButton Variant="Variant.Text" Size="Size.Small" Color="Color.Error"
+                                       StartIcon="@Icons.Material.Filled.HideImage" Disabled="@_busy"
+                                       OnClick="@(() => RemovePhotoAsync(row))">Foto entfernen</MudButton>
+                        }
+                    </MudStack>
+                }
             </MudPaper>
         }
     </MudStack>
@@ -69,7 +104,7 @@ else
     {
         _user = (await AuthStateTask).User;
         // mirrors RequireLeadershipNoReader: the supervision may not pair codenames with public cards
-        _mayView = _user.MayRealNameSee();
+        _mayView = _user.MayCounterIntel();
         _mayEdit = _mayView && _user.MayWrite();
         if (_mayView)
         {
@@ -96,7 +131,7 @@ else
         }
         catch (Exception ex)
         {
-            Log.LogError(ex, "Roster phone panel failed to load");
+            Log.LogError(ex, "Roster card panel failed to load");
             Snackbar.Add(ex.Message, Severity.Error);
         }
         _load = false;
@@ -105,14 +140,39 @@ else
     private bool Changed(PublicLeadershipEdit row)
         => !string.Equals((_drafts.GetValueOrDefault(row.AgentId) ?? "").Trim(), row.Phone ?? "", StringComparison.Ordinal);
 
-    private async Task SaveAsync(PublicLeadershipEdit row)
+    private Task SaveAsync(PublicLeadershipEdit row)
+        => RunAsync(row.AgentId, () => Leadership.SetPhoneAsync(row.AgentId, _drafts.GetValueOrDefault(row.AgentId), _user),
+            "Telefonnummer gespeichert.");
+
+    private Task RemovePhotoAsync(PublicLeadershipEdit row)
+        => RunAsync(null, () => Leadership.RemovePhotoAsync(row.AgentId, _user), "Foto entfernt.");
+
+    private async Task UploadAsync(PublicLeadershipEdit row, IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+        if (file.Size > PhotoStorage.MaxBytes)
+        {
+            Snackbar.Add($"Das Foto ist zu groß (höchstens {PhotoStorage.MaxBytes / 1024 / 1024} MB).", Severity.Error);
+            return;
+        }
+        await RunAsync(null, async () =>
+        {
+            await using var stream = file.OpenReadStream(PhotoStorage.MaxBytes);
+            await Leadership.SetPhotoAsync(row.AgentId, stream, file.ContentType, _user);
+        }, "Foto gespeichert.");
+    }
+
+    private async Task RunAsync(string? savedAgentId, Func<Task> action, string done)
     {
         _busy = true;
         try
         {
-            await Leadership.SetPhoneAsync(row.AgentId, _drafts.GetValueOrDefault(row.AgentId), _user);
-            Snackbar.Add("Telefonnummer gespeichert.", Severity.Success);
-            await LoadAsync(row.AgentId);
+            await action();
+            Snackbar.Add(done, Severity.Success);
+            await LoadAsync(savedAgentId);
         }
         catch (Exception ex)
         {

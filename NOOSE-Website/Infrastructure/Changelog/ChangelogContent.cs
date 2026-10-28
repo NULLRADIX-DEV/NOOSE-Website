@@ -31,7 +31,7 @@ public static class ChangelogContent
     /// Raised to 5 when 2.2.00 was cut into 2.2.00 to 2.6.00: thirty-seven lines moved into the new releases, each
     /// carrying the key it had under 2.2.00 as <c>LegacyKey</c>, and again only the revision writes their order.
     /// </remarks>
-    public const int Revision = 5;
+    public const int Revision = 6;
 
     /// <param name="Key">Stable handle; renaming one orphans the old row and creates a second.</param>
     /// <param name="LegacyKey">The key this line shipped under before it moved into another release.</param>
@@ -553,8 +553,11 @@ public static class ChangelogContent
                 + "bis XL.", "Personal"),
             Neu("2.7.15-oeffentliche-mitarbeiterliste", "Die öffentliche Seite „Mitarbeiter“ zeigt jetzt von selbst "
                 + "alle aktiven Agenten mit Klarnamen: oben die Führung mit Dienstgrad und Telefonnummer, darunter "
-                + "alle anderen nur mit Namen, ohne Fotos. Die Telefonnummern trägt die Führung in den Einstellungen "
+                + "alle anderen nur mit Namen. Die Telefonnummern trägt die Führung in den Einstellungen "
                 + "ein.", "Öffentlich"),
+            Besser("2.7.16-mitarbeiter-organigramm", "Auf der Seite „Mitarbeiter“ steht die Führung jetzt als "
+                + "Organigramm nach Dienstgrad, auf Wunsch mit Foto. Das Foto lädt die Führung in den Einstellungen "
+                + "unter Mitarbeiterliste hoch.", "Öffentlich"),
         ]),
     ];
 }
