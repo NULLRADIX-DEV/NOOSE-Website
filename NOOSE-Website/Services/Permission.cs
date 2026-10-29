@@ -216,6 +216,28 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to export a record list.</summary>
+    /// <remarks>Every internal agent: the file holds the rows the list already shows them. A partner, a citizen and
+    /// an applicant stay outside.</remarks>
+    public static void RequireListExport(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent())
+        {
+            throw new UnauthorizedAccessException("Listen exportiert nur ein interner Agent.");
+        }
+    }
+
+    /// <summary>Require the right to export a record's complete dossier.</summary>
+    /// <remarks>Leadership and the read-only supervision. A whole record as a file is the easiest way to carry data
+    /// out of the rights system, so it goes no wider than the classified read.</remarks>
+    public static void RequireDossierExport(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayClassifiedRead())
+        {
+            throw new UnauthorizedAccessException("Dossiers exportiert nur die Führung.");
+        }
+    }
+
     /// <summary>Require the right to author meetings and agenda items.</summary>
     public static void RequireMeetingWrite(ClaimsPrincipal actor)
     {

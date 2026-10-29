@@ -53,6 +53,7 @@ else
                            Href="@($"/operationen/{Id}/druck")" Target="_blank"
                            aria-label="Druckansicht öffnen" />
         </MudTooltip>
+        <DossierExportButton EntityType="@nameof(Operation)" EntityId="@Id" />
         @if (!_isPartner)
         {
             <FollowButton EntityType="@nameof(Operation)" EntityId="@_operation.Id" User="_user" />
