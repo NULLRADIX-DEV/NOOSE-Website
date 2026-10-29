@@ -1,0 +1,200 @@
+@* One sheet of everything the leadership weighs about an agent, each figure beside the team median. *@
+@using NOOSE_Website.Models.Personnel
+@inject ISupervisionSheetService SheetService
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="3" Class="mb-4">
+    <MudToggleGroup T="int" Value="Days" ValueChanged="OnDaysChangedAsync" Size="Size.Small" Color="Color.Primary"
+                    Outlined="true">
+        @foreach (var days in SupervisionWindow.Choices)
+        {
+            <MudToggleItem Value="days" Text="@SupervisionDisplay.Window(days)" />
+        }
+    </MudToggleGroup>
+    @if (_sheet is not null)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            seit @MeetingTime.Day(_sheet.SinceUtc).ToString("dd.MM.yyyy") · „Team“ ist der Median aller aktiven Agenten
+        </MudText>
+    }
+</MudStack>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+}
+else if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_sheet is not { } s)
+{
+    <EmptyState Icon="@Icons.Material.Filled.PersonOff" Title="Kein Dienstaufsichts-Blatt"
+                Text="Bewerber führen noch keinen Dienst, über den die Führung wachen könnte." />
+}
+else
+{
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="6">
+            @Section("Aktivität", Icons.Material.Filled.Bolt,
+                @<text>
+                    @Row("Letztes Lebenszeichen",
+                        $"{MeetingTime.Day(s.Activity.LastTraceAt):dd.MM.yyyy} · {InactivityDisplay.Trace(s.Activity.Kind)}")
+                    @Row("Tage ohne Lebenszeichen", s.Activity.SilentDays.ToString("N0"),
+                        hint: s.Activity.AbsentDays > 0 ? $"davon {s.Activity.AbsentDays} abgemeldet" : null)
+                    @Row("Schreibleistung", $"{SupervisionDisplay.PerWeek(s.Writes.Value, s.Days)} / Woche",
+                        SupervisionDisplay.TeamPerWeek(s.Writes.Team, s.Days),
+                        $"{s.Writes.Value:N0} Einträge im Änderungsprotokoll")
+                </text>)
+        </MudItem>
+        <MudItem xs="12" md="6">
+            @Section("Wiedervorlagen", Icons.Material.Filled.EventRepeat,
+                @<text>
+                    @Figure("Pünktlich erledigt", s.FollowupsOnTime)
+                    @Figure("Verspätet erledigt", s.FollowupsLate)
+                    @Figure("Offen überfällig", s.FollowupsOverdue,
+                        s.FollowupsOverdue.Value > 0 ? Color.Error : Color.Inherit)
+                </text>,
+                "verantwortlich, im Zeitraum fällig")
+        </MudItem>
+        <MudItem xs="12" md="6">
+            @Section("Besprechungen", Icons.Material.Filled.Groups,
+                @<text>
+                    @Figure("Anwesend", s.MeetingsPresent)
+                    @Figure("Abgemeldet", s.MeetingsSignedOff)
+                    @Figure("Gefehlt", s.MeetingsMissing)
+                </text>,
+                "nur mit abgeschlossener Anwesenheit")
+        </MudItem>
+        <MudItem xs="12" md="6">
+            @Section("Abmeldungen, Punkte, Vermerke", Icons.Material.Filled.EmojiEvents,
+                @<text>
+                    @Figure("Abmeldetage", s.AbsenceDays)
+                    @Figure("Punkte", s.Points, hint: "gewertet wie die Bestenliste")
+                    @Figure("Abzeichen", s.Badges, hint: "insgesamt, nicht nur im Zeitraum")
+                    @Figure("Belobigungen", s.Commendations)
+                    @Figure("Disziplinarvermerke", s.Disciplinary)
+                </text>)
+        </MudItem>
+        @if (s.CounterIntel is { } ci)
+        {
+            <MudItem xs="12">
+                @Section("Gegenaufklärung", Icons.Material.Filled.Shield,
+                    @<text>
+                        @Figure("Zugriffe", ci.Accesses)
+                        @Row("Verschiedene Akten", ci.DistinctRecords.ToString("N0"))
+                        @Row("Zugriffe 22–6 Uhr", ci.OffHours.ToString("N0"))
+                    </text>,
+                    "nur für die Führung, nicht für die Aufsicht")
+                @if (ci.ByType.Count > 0)
+                {
+                    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-2">
+                        @foreach (var t in ci.ByType.Take(6))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                @AuditEntityDisplay.Label(t.EntityType) · @t.Count
+                            </MudChip>
+                        }
+                    </MudStack>
+                }
+                <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Regel-Treffer</MudText>
+                @if (ci.Flags.Count == 0)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine aktive Regel schlägt bei diesem Agenten an.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Dense="true" Elevation="0">
+                        <tbody>
+                            @foreach (var f in ci.Flags)
+                            {
+                                <tr>
+                                    <td style="width:40%;"><b>@f.Rule</b></td>
+                                    <td>@f.Detail</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+                <MudLink Href="/nachweis?tab=auffaelligkeiten" Typo="Typo.body2" Class="mt-2 d-inline-block">
+                    Im Gegenaufklärungs-Cockpit ansehen
+                </MudLink>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Parameter, EditorRequired] public string AgentId { get; set; } = default!;
+    [Parameter] public int Days { get; set; } = SupervisionWindow.Default;
+    [Parameter] public EventCallback<int> DaysChanged { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private SupervisionSheet? _sheet;
+    private bool _load = true;
+    private string? _error;
+    private (string AgentId, int Days)? _loaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loaded == (AgentId, Days))
+        {
+            return;
+        }
+        _loaded = (AgentId, Days);
+        await LoadAsync();
+    }
+
+    private async Task OnDaysChangedAsync(int days)
+    {
+        Days = days;
+        await DaysChanged.InvokeAsync(days);
+        if (_loaded != (AgentId, Days))
+        {
+            _loaded = (AgentId, Days);
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _error = null;
+        try
+        {
+            var user = (await AuthStateTask).User;
+            _sheet = await SheetService.GetAsync(AgentId, Days, user);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _error = ex.Message;
+        }
+        _load = false;
+    }
+
+    private static RenderFragment Section(string title, string icon, RenderFragment rows, string? note = null) =>
+        @<MudPaper Outlined="true" Class="pa-3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
+                <MudIcon Icon="@icon" Size="Size.Small" Color="Color.Primary" />
+                <MudText Typo="Typo.subtitle1">@title</MudText>
+                @if (note is not null)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@note</MudText>
+                }
+            </MudStack>
+            <MudSimpleTable Dense="true" Elevation="0">
+                <tbody>@rows</tbody>
+            </MudSimpleTable>
+        </MudPaper>;
+
+    private static RenderFragment Figure(string label, SupervisionFigure figure, Color colour = Color.Inherit,
+        string? hint = null)
+        => Row(label, figure.Value.ToString("N0"), SupervisionDisplay.Team(figure.Team), hint, colour);
+
+    private static RenderFragment Row(string label, string value, string? team = null, string? hint = null,
+        Color colour = Color.Inherit) =>
+        @<tr title="@hint">
+            <td>@label</td>
+            <td style="text-align:right;"><MudText Typo="Typo.body2" Color="@colour"><b>@value</b></MudText></td>
+            <td class="mud-text-secondary" style="text-align:right; width:6.5rem;">@team</td>
+        </tr>;
+}

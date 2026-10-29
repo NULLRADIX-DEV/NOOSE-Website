@@ -73,7 +73,7 @@ public class CounterIntelService(IDbContextFactory<AppDbContext> dbFactory, ICou
             return null;
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var rows = (await LoadAsync(db, days, cancellationToken)).Where(r => r.AgentId == agentId).ToList();
+        var rows = await LoadAsync(db, days, cancellationToken, agentId);
         if (rows.Count == 0)
         {
             return null;
@@ -132,13 +132,19 @@ public class CounterIntelService(IDbContextFactory<AppDbContext> dbFactory, ICou
             .ToList();
     }
 
-    // recent access rows, system rows + read-only supervisors removed, timestamps localized
-    private static async Task<List<AccessRow>> LoadAsync(AppDbContext db, int days, CancellationToken ct)
+    // recent access rows, system rows + read-only supervisors removed, timestamps localized; one agent's rows are
+    // filtered before the cap, so a busy office never crowds a single profile out of it
+    private static async Task<List<AccessRow>> LoadAsync(AppDbContext db, int days, CancellationToken ct,
+        string? agentId = null)
     {
         var since = DateTime.UtcNow.AddDays(-days);
         var excluded = await OnlyReaderIdsAsync(db, ct);
-        var rows = await db.AccessLogs.AsNoTracking()
-            .Where(a => a.AgentId != null && a.Timestamp >= since)
+        var query = db.AccessLogs.AsNoTracking().Where(a => a.AgentId != null && a.Timestamp >= since);
+        if (agentId is not null)
+        {
+            query = query.Where(a => a.AgentId == agentId);
+        }
+        var rows = await query
             .OrderByDescending(a => a.Timestamp)
             .Take(MaxRows)
             .Select(a => new { a.AgentId, a.AgentName, a.Timestamp, a.EntityType, a.EntityId })

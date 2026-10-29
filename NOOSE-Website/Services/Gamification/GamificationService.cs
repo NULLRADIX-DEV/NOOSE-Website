@@ -20,6 +20,9 @@ public interface IGamificationService
     /// <summary>Leaderboard over the last <paramref name="windowDays"/> days (0 or less = all time); topN caps each slice on its own.</summary>
     Task<LeaderboardView> GetLeaderboardAsync(int windowDays, int topN = 25, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<BadgeView>> GetBadgesAsync(string agentId, CancellationToken cancellationToken = default);
+    /// <summary>Points per agent over the last <paramref name="windowDays"/> days, scored as the leaderboard scores
+    /// them; every account that earned any, departed ones included.</summary>
+    Task<IReadOnlyDictionary<string, int>> GetPointsAsync(int windowDays, CancellationToken cancellationToken = default);
     /// <summary>Award any newly-earned badges across all agents; returns how many were granted. Idempotent.</summary>
     Task<int> SweepAsync(CancellationToken cancellationToken = default);
 }
@@ -53,6 +56,14 @@ public sealed class GamificationService(IDbContextFactory<AppDbContext> dbFactor
     public Task<LeaderboardView> GetLeaderboardAsync(
         int windowDays, int topN = 25, CancellationToken cancellationToken = default)
         => BuildLeaderboardAsync(windowDays > 0 ? DateTime.UtcNow.AddDays(-windowDays) : null, topN, cancellationToken);
+
+    public async Task<IReadOnlyDictionary<string, int>> GetPointsAsync(
+        int windowDays, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var all = await ComputeAllAsync(db, DateTime.UtcNow.AddDays(-windowDays), cancellationToken);
+        return all.ToDictionary(e => e.Key, e => e.Value.ToStats(0).Points, StringComparer.Ordinal);
+    }
 
     private async Task<LeaderboardView> BuildLeaderboardAsync(
         DateTime? since, int topN, CancellationToken cancellationToken)
