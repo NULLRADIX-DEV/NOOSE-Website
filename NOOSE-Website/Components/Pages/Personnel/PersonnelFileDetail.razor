@@ -28,7 +28,7 @@ else
             <MudSpacer />
             <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
             <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
-                           Href="@($"/personal/{AgentId}/druck")" Target="_blank"
+                           Href="@($"/personal/{AgentId}/druck?tage={_supervisionDays}")" Target="_blank"
                            aria-label="Druckansicht öffnen" />
         </MudTooltip>
             <FollowButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" User="_user" />
@@ -103,6 +103,12 @@ else
             <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4"
                      @bind-ActivePanelIndex="_activeTab"
                      @bind-ActivePanelIndex:after="@(() => TabUrlState.WriteAsync(JS, Nav, _tabs, _activeTab))">
+                @if (_maySupervise)
+                {
+                    <MudTabPanel Text="Dienstaufsicht" Icon="@Icons.Material.Filled.FactCheck">
+                        <SupervisionSheetPanel AgentId="@_agent.Id" @bind-Days="_supervisionDays" />
+                    </MudTabPanel>
+                }
                 <MudTabPanel Text="Dienstgrad-Verlauf" Icon="@Icons.Material.Filled.TrendingUp">
                     <RankHistoryPanel AgentId="@_agent.Id" @key="_reloadKey" />
                 </MudTabPanel>
@@ -167,8 +173,12 @@ else
     private Guid _reloadKey = Guid.NewGuid();
     private string? _loadedId;
 
+    // leadership and the read-only supervision; the sheet hides its counter-intelligence part from the latter
+    private bool _maySupervise;
+    private int _supervisionDays = SupervisionWindow.Default;
+
     private int _activeTab;
-    // Order must match the MudTabPanels; comments tab is leadership-only
+    // Order must match the MudTabPanels; the supervision sheet leads for leadership, comments are leadership-only
     private string[] _tabs = Array.Empty<string>();
 
     protected override async Task OnInitializedAsync()
@@ -178,9 +188,14 @@ else
         _isHrbOrLeadership = _user.IsHrbOrLeadership();
         _mayRealName = _user.MayRealNameSee();
         _mayWrite = _user.MayWrite();
-        _tabs = _isLeadership
-            ? new[] { "verlauf", "vermerke", "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen", "entfuehrungen", "kommentare" }
-            : new[] { "verlauf", "vermerke", "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen", "entfuehrungen" };
+        _maySupervise = _user.MayClassifiedRead() && !_user.IsPartner();
+        _tabs =
+        [
+            .. _maySupervise ? new[] { "dienstaufsicht" } : [],
+            "verlauf", "vermerke", "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen",
+            "entfuehrungen",
+            .. _isLeadership ? new[] { "kommentare" } : [],
+        ];
     }
 
     // Component is reused across /personal/{A}→{B}; react to AgentId change since OnInitialized won't rerun
