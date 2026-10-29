@@ -515,7 +515,7 @@ public class FinancingService(
     }
 
     /// <summary>Releases the reserved budget; struck lines keep a zero so a rejection stays readable.</summary>
-    private static void ClearApproval(FinancingRequest request, bool struckLines)
+    internal static void ClearApproval(FinancingRequest request, bool struckLines)
     {
         foreach (var line in request.Lines)
         {

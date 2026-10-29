@@ -1,5 +1,6 @@
 @page "/personal/{AgentId}"
 @inject IAgentManagementService AgentService
+@inject IAgentHandoverService HandoverService
 @inject NavigationManager Nav
 @inject INavPreferencesService NavPrefs
 @inject IJSRuntime JS
@@ -32,6 +33,13 @@ else
         </MudTooltip>
             <FollowButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" User="_user" />
             <JobCreateButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" />
+            @if (_mayHandOver)
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.MoveDown" Color="Color.Primary"
+                           Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => HandOverAsync(quietWhenEmpty: false))">
+                    Arbeit übergeben
+                </MudButton>
+            }
             @if (_agent.Status == AgentStatus.Terminated && _mayWrite)
             {
                 <MudButton StartIcon="@Icons.Material.Filled.RestoreFromTrash" Color="Color.Success"
@@ -231,15 +239,32 @@ else
                                   && _agent is { Status: not (AgentStatus.Applicant or AgentStatus.Terminated) }
                                   && _agent.Id != _user.GetAgentId();
 
+    // also after the termination and during an absence; applicants have nothing to hand over
+    private bool _mayHandOver => _mayWrite
+                                 && _agent is { Status: not AgentStatus.Applicant }
+                                 && _agent.Id != _user.GetAgentId();
+
+    private string Display(Agent agent) => _mayRealName && !string.IsNullOrWhiteSpace(agent.RealName)
+        ? $"{agent.RealName} ({agent.Codename})"
+        : agent.Codename;
+
+    private async Task HandOverAsync(bool quietWhenEmpty)
+    {
+        if (_agent is null)
+        {
+            return;
+        }
+        await HandoverDialog.OfferAsync(DialogService, HandoverService, Snackbar, _agent.Id, Display(_agent),
+            _mayRealName, _user, quietWhenEmpty);
+    }
+
     private async Task Terminate()
     {
         if (_agent is null)
         {
             return;
         }
-        var display = _mayRealName && !string.IsNullOrWhiteSpace(_agent.RealName)
-            ? $"{_agent.RealName} ({_agent.Codename})"
-            : _agent.Codename;
+        var display = Display(_agent);
         var choice = await TerminationDialog.ShowAsync(DialogService, display);
         if (choice is null)
         {
@@ -250,6 +275,8 @@ else
             await AgentService.TerminateAsync(_agent.Id, choice.Reason, choice.CreateNote, choice.PostDiscord, _user);
             Snackbar.Add($"{display} wurde gekündigt.", Severity.Warning);
             await ReloadAsync();
+            // saved first, so breaking the handover off never takes the termination with it
+            await HandOverAsync(quietWhenEmpty: true);
         }
         catch (Exception ex)
         {

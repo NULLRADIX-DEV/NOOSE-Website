@@ -1299,6 +1299,22 @@ public sealed class MySqlTranslationTests : IDisposable
         Assert.Contains("GROUP BY", reads, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheHandoversInformantName_TranslatesItsFallbackSubquery()
+    {
+        // the handover names an informant by the free text or, failing that, by the linked person record
+        var sql = _db.Informants.AsNoTracking()
+            .Where(i => i.HandlerId == "a1" && i.Status != InformantStatus.Burned)
+            .Select(i => new
+            {
+                i.Id, i.CaseNumber,
+                Name = i.RealName ?? _db.People.Where(p => p.Id == i.PersonId).Select(p => p.Name).FirstOrDefault(),
+            })
+            .ToQueryString();
+
+        Assert.Contains("COALESCE", sql, StringComparison.Ordinal);
+    }
+
     private static int Occurrences(string text, string needle)
     {
         var count = 0;

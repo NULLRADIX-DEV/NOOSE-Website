@@ -169,6 +169,10 @@ public enum NotificationType
     /// <summary>Someone started presenting a presentation the recipient may see. Bell only: who is in a closed group
     /// or on an invite list is not for a shared channel.</summary>
     PresentationLive = 49,
+
+    /// <summary>The recipient took over work of a leaving agent. Bell only: one summary per successor, and who
+    /// leaves with what is personnel business, not a channel's.</summary>
+    HandoverReceived = 50,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -226,6 +230,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestGraded => "Test korrigiert",
         NotificationType.TestDueReminder => "Test fällig",
         NotificationType.PresentationLive => "Präsentation live",
+        NotificationType.HandoverReceived => "Übernahme",
         _ => "Benachrichtigung",
     };
 
@@ -282,6 +287,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestGraded => Icons.Material.Filled.FactCheck,
         NotificationType.TestDueReminder => Icons.Material.Filled.AlarmOn,
         NotificationType.PresentationLive => Icons.Material.Filled.CoPresent,
+        NotificationType.HandoverReceived => Icons.Material.Filled.MoveDown,
         _ => Icons.Material.Filled.Notifications,
     };
 }
