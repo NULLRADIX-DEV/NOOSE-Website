@@ -62,6 +62,8 @@ public class DiscordWebhookModelsTests
         NotificationType.TestGraded,
         // a closed group or an invite list must not show in a shared channel
         NotificationType.PresentationLive,
+        // who leaves with what is personnel business
+        NotificationType.HandoverReceived,
     };
 
     // ----- IsRoutable: true branch -----

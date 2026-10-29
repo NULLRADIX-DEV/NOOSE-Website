@@ -1,0 +1,219 @@
+@* Hands a leaving agent's open work to successors: one successor for all rows, each row changeable or left out. *@
+@using NOOSE_Website.Models.Personnel
+@inject IAgentManagementService AgentService
+@inject IAgentHandoverService HandoverService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="min-width:min(640px, 90vw);">
+            <MudText Typo="Typo.body2">
+                Der Nachfolger oben gilt für alle Zeilen. Einzelne Zeilen kannst du auf jemand anderen umstellen oder
+                abwählen; abgewählte Zeilen bleiben, wie sie sind, und erscheinen beim nächsten Öffnen wieder.
+            </MudText>
+
+            <MudAutocomplete T="Agent" Label="Nachfolger" @bind-Value="_successor"
+                             SearchFunc="@SearchAgents" ToStringFunc="@Name"
+                             Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
+                             ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
+                             Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.ManageAccounts">
+                <ItemTemplate Context="a">
+                    @AgentItem(a)
+                </ItemTemplate>
+            </MudAutocomplete>
+
+            @if (Plan.Hidden > 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true">
+                    @(Plan.Hidden == 1 ? "Ein Eintrag liegt" : $"{Plan.Hidden} Einträge liegen") in Akten, die du nicht
+                    öffnen kannst. Sie bleiben, wie sie sind.
+                </MudAlert>
+            }
+
+            @foreach (var section in _lines.GroupBy(l => l.Row.Kind))
+            {
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="mb-1">
+                        @HandoverDisplay.Section(section.Key) (@section.Count())
+                    </MudText>
+                    @if (HandoverDisplay.Closes(section.Key))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@HandoverDisplay.Closing(section.Key)</MudText>
+                    }
+                    @foreach (var line in section)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="py-1">
+                            <MudCheckBox @bind-Value="line.Selected" Color="Color.Primary" Dense="true"
+                                         aria-label="@($"{line.Row.Title} übergeben")" />
+                            <MudStack Spacing="0" Style="flex:1 1 220px; min-width:0;">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    @if (line.Row.Href is { } href)
+                                    {
+                                        <MudLink Href="@href" Target="_blank" Typo="Typo.body2">@line.Row.Title</MudLink>
+                                    }
+                                    else
+                                    {
+                                        <MudText Typo="Typo.body2">@line.Row.Title</MudText>
+                                    }
+                                    @if (line.Row.Role is { } role)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">@role</MudChip>
+                                    }
+                                </MudStack>
+                                @if (line.Row.Detail is { } detail)
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@detail</MudText>
+                                }
+                            </MudStack>
+                            @if (!HandoverDisplay.Closes(line.Row.Kind))
+                            {
+                                <MudAutocomplete T="Agent" @bind-Value="line.Successor" Disabled="@(!line.Selected)"
+                                                 Placeholder="@(_successor is null ? "Nachfolger wählen" : $"wie oben: {_successor.Codename}")"
+                                                 SearchFunc="@SearchAgents" ToStringFunc="@Name" Dense="true"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
+                                                 CoerceText="false" CoerceValue="false" ResetValueOnEmptyText="true"
+                                                 MinCharacters="0" Immediate="true" Style="max-width:220px;"
+                                                 aria-label="@($"Nachfolger für {line.Row.Title}")">
+                                    <ItemTemplate Context="a">
+                                        @AgentItem(a)
+                                    </ItemTemplate>
+                                </MudAutocomplete>
+                            }
+                        </MudStack>
+                    }
+                </div>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_saving">Später</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="@(!CanSave)">
+            Übergeben
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    [Parameter] public HandoverPlan Plan { get; set; } = default!;
+
+    /// <summary>Whether the viewer may see real names.</summary>
+    [Parameter] public bool MayRealName { get; set; }
+
+    private sealed class Line(HandoverRow row)
+    {
+        public HandoverRow Row { get; } = row;
+        public bool Selected { get; set; } = true;
+
+        /// <summary>This row's own successor; null follows the one at the top.</summary>
+        public Agent? Successor { get; set; }
+    }
+
+    private List<Line> _lines = [];
+    private List<Agent> _all = [];
+    private Agent? _successor;
+    private bool _saving;
+
+    // a ticked row that passes on needs someone to pass it to; the service says the same
+    private bool CanSave => !_saving
+        && _lines.Any(l => l.Selected)
+        && _lines.Where(l => l.Selected && !HandoverDisplay.Closes(l.Row.Kind)).All(l => (l.Successor ?? _successor) is not null);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _lines = Plan.Rows.Select(r => new Line(r)).ToList();
+        // TeamLeads and partners are never selectable, and neither is the agent who leaves
+        _all = (await AgentService.GetSelectableAsync()).Where(a => a.Id != Plan.AgentId).ToList();
+    }
+
+    private string Name(Agent? agent) => agent is null ? string.Empty : agent.Codename;
+
+    private RenderFragment AgentItem(Agent a) => @<MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+        <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Primary" />
+        <MudText Typo="Typo.body2">@a.Codename</MudText>
+        @if (MayRealName && !string.IsNullOrWhiteSpace(a.RealName))
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">(@a.RealName)</MudText>
+        }
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@RankDisplay.Name(a.Rank)</MudText>
+    </MudStack>;
+
+    private Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
+    {
+        var search = value?.Trim() ?? string.Empty;
+        IEnumerable<Agent> hit = search.Length == 0
+            ? _all
+            : _all.Where(a => a.Codename.Contains(search, StringComparison.OrdinalIgnoreCase)
+                            || (MayRealName && (a.RealName ?? string.Empty).Contains(search, StringComparison.OrdinalIgnoreCase)));
+        return Task.FromResult(hit);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!CanSave)
+        {
+            return;
+        }
+        _saving = true;
+        try
+        {
+            var choices = _lines.Where(l => l.Selected)
+                .Select(l => new HandoverChoice(l.Row.Kind, l.Row.Id,
+                    HandoverDisplay.Closes(l.Row.Kind) ? null : (l.Successor ?? _successor)!.Id))
+                .ToList();
+            var user = (await AuthStateTask).User;
+            var result = await HandoverService.ApplyAsync(Plan.AgentId, choices, user);
+            MudDialog.Close(DialogResult.Ok(result));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Loads what still hangs on the agent and opens the dialog if there is any; reports the outcome.</summary>
+    /// <param name="quietWhenEmpty">Right after a termination nothing to hand over needs no message.</param>
+    public static async Task OfferAsync(IDialogService dialog, IAgentHandoverService service, ISnackbar snackbar,
+        string agentId, string display, bool mayRealName, ClaimsPrincipal user, bool quietWhenEmpty = false)
+    {
+        HandoverPlan plan;
+        try
+        {
+            plan = await service.GetAsync(agentId, user);
+        }
+        catch (Exception ex)
+        {
+            snackbar.Add(ex.Message, Severity.Error);
+            return;
+        }
+        if (plan.Rows.Count == 0)
+        {
+            if (!quietWhenEmpty)
+            {
+                snackbar.Add($"An {display} hängt nichts, was du übergeben kannst.", Severity.Info);
+            }
+            return;
+        }
+
+        var parameters = new DialogParameters<HandoverDialog>
+        {
+            { x => x.Plan, plan },
+            { x => x.MayRealName, mayRealName },
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, BackdropClick = false };
+        var reference = await dialog.ShowAsync<HandoverDialog>($"Arbeit von {display} übergeben", parameters, options);
+        if (await reference.Result is { Canceled: false, Data: HandoverResult result })
+        {
+            snackbar.Add(HandoverDisplay.Done(result), Severity.Success);
+        }
+    }
+}

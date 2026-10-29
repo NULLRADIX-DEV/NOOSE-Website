@@ -3,6 +3,7 @@
 @inject IInactivityRadarService RadarService
 @inject IPersonnelFileService PersonnelFileService
 @inject IAgentManagementService AgentService
+@inject IAgentHandoverService HandoverService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
@@ -211,6 +212,8 @@ else
         {
             await AgentService.TerminateAsync(fresh.AgentId, choice.Reason, choice.CreateNote, choice.PostDiscord, _user);
             Snackbar.Add($"{display} wurde gekündigt.", Severity.Warning);
+            await HandoverDialog.OfferAsync(DialogService, HandoverService, Snackbar, fresh.AgentId, display,
+                _mayRealName, _user, quietWhenEmpty: true);
         });
     });
 
