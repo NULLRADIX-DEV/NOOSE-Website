@@ -5,6 +5,8 @@
 @inject IPersonnelFileService PersonnelFileService
 @inject ITrainingModuleService ModuleService
 @inject IAccessLogService AccessLog
+@inject ISupervisionSheetService SheetService
+@using NOOSE_Website.Models.Personnel
 
 <PageTitle>@(_agent is null ? "Druckansicht" : $"Personalakte {_agent.Codename}") · NOOSE</PageTitle>
 
@@ -129,12 +131,87 @@ else
                 </table>
             </section>
         }
+
+        @if (_sheet is { } s)
+        {
+            <section>
+                <h2>Dienstaufsicht – @SupervisionDisplay.Window(s.Days) seit @MeetingTime.Day(s.SinceUtc).ToString("dd.MM.yyyy")</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Kennzahl</th><th>Wert</th><th>Team (Median)</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td>Letztes Lebenszeichen</td>
+                            <td>@MeetingTime.Day(s.Activity.LastTraceAt).ToString("dd.MM.yyyy") · @InactivityDisplay.Trace(s.Activity.Kind)</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>Tage ohne Lebenszeichen</td>
+                            <td>@s.Activity.SilentDays@(s.Activity.AbsentDays > 0 ? $" (davon {s.Activity.AbsentDays} abgemeldet)" : "")</td>
+                            <td>—</td>
+                        </tr>
+                        <tr>
+                            <td>Schreibleistung pro Woche</td>
+                            <td>@SupervisionDisplay.PerWeek(s.Writes.Value, s.Days) (@s.Writes.Value.ToString("N0") Einträge)</td>
+                            <td>@TeamCell(s.Writes.Team is { } w ? SupervisionDisplay.PerWeek(w, s.Days) : null)</td>
+                        </tr>
+                        @foreach (var (label, figure) in PrintedFigures(s))
+                        {
+                            <tr>
+                                <td>@label</td>
+                                <td>@figure.Value.ToString("N0")</td>
+                                <td>@TeamCell(figure.Team is { } t ? SupervisionDisplay.Number(t) : null)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (s.CounterIntel is { } ci && ci.Flags.Count > 0)
+                {
+                    <h3>Regel-Treffer der Gegenaufklärung</h3>
+                    <table class="druck-tabelle">
+                        <thead><tr><th>Regel</th><th>Befund</th></tr></thead>
+                        <tbody>
+                            @foreach (var f in ci.Flags)
+                            {
+                                <tr><td>@f.Rule</td><td>@f.Detail</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+            </section>
+        }
     </PrintFrame>
 }
 
 @code {
     [Parameter] public string Id { get; set; } = string.Empty;
+    [SupplyParameterFromQuery(Name = "tage")] public int? Days { get; set; }
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private SupervisionSheet? _sheet;
+
+    private static string TeamCell(string? team) => team ?? "—";
+
+    /// <summary>The sheet's plain counts in the order the tab shows them; the access figures only when present.</summary>
+    private static IEnumerable<(string Label, SupervisionFigure Figure)> PrintedFigures(SupervisionSheet s)
+    {
+        yield return ("Wiedervorlagen pünktlich erledigt", s.FollowupsOnTime);
+        yield return ("Wiedervorlagen verspätet erledigt", s.FollowupsLate);
+        yield return ("Wiedervorlagen offen überfällig", s.FollowupsOverdue);
+        yield return ("Besprechungen anwesend", s.MeetingsPresent);
+        yield return ("Besprechungen abgemeldet", s.MeetingsSignedOff);
+        yield return ("Besprechungen gefehlt", s.MeetingsMissing);
+        yield return ("Abmeldetage", s.AbsenceDays);
+        yield return ("Punkte", s.Points);
+        yield return ("Abzeichen (insgesamt)", s.Badges);
+        yield return ("Belobigungen", s.Commendations);
+        yield return ("Disziplinarvermerke", s.Disciplinary);
+        if (s.CounterIntel is { } ci)
+        {
+            yield return ("Zugriffe", ci.Accesses);
+            yield return ("Verschiedene Akten", new SupervisionFigure(ci.DistinctRecords, null));
+            yield return ("Zugriffe 22–6 Uhr", new SupervisionFigure(ci.OffHours, null));
+        }
+    }
 
     private bool _load = true;
     private bool _mayRealName;
@@ -167,6 +244,11 @@ else
             _rankHistory = await PersonnelFileService.GetRankHistoryAsync(Id);
             _notes = await PersonnelFileService.GetNotesAsync(Id);
             _completedModules = (await ModuleService.GetStatusForAgentAsync(Id)).Where(m => m.IsCompleted).ToList();
+            // the same gate as the tab; the service decides about the counter-intelligence part on its own
+            if (user.MayClassifiedRead() && !user.IsPartner())
+            {
+                _sheet = await SheetService.GetAsync(Id, SupervisionWindow.Normalize(Days), user);
+            }
             await AccessLog.LogViewAsync(nameof(Agent), Id);
         }
         _load = false;

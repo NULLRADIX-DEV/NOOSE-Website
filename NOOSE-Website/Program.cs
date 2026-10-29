@@ -363,6 +363,7 @@ builder.Services.AddScoped<ITrashService, TrashService>();
 builder.Services.AddScoped<IPersonnelFileService, PersonnelFileService>();
 builder.Services.AddScoped<IInactivityRadarService, InactivityRadarService>();
 builder.Services.AddScoped<IAgentHandoverService, AgentHandoverService>();
+builder.Services.AddScoped<ISupervisionSheetService, SupervisionSheetService>();
 builder.Services.AddScoped<IRecordExportService, RecordExportService>();
 builder.Services.AddScoped<ITrainingModuleService, TrainingModuleService>();
 builder.Services.AddScoped<IRequestService, RequestService>();
