@@ -164,6 +164,129 @@ public sealed class LeadServiceTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.IgnoreAsync("ST|Person|x", LeadKind.StaleHighClassification, onlyReader));
     }
 
+    // ---------- possible duplicates ----------
+
+    private static List<Lead> Duplicates(IEnumerable<Lead> leads) => leads.Where(l => l.Kind == LeadKind.Duplicate).ToList();
+
+    private static void SeedPeople(SqliteTestContext ctx, params Person[] people)
+    {
+        using var db = ctx.NewContext();
+        db.People.AddRange(people);
+        db.SaveChanges();
+    }
+
+    private static DateTime Day(int day) => new(2026, 1, day, 0, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task GetFeed_FlagsDuplicate_OlderRecordFirst()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx,
+            Seed.Person("new", "Karlos Mendes", p => p.CreatedAt = Day(5)),
+            Seed.Person("old", "Carlos Mendez", p => p.CreatedAt = Day(1)),
+            Seed.Person("x", "Pablo Escobar"));
+
+        var lead = Assert.Single(Duplicates(await FlatAsync(Svc(ctx), Agent())));
+
+        Assert.Equal("old", lead.PrimaryId);
+        Assert.Equal("new", lead.SecondaryId);
+        Assert.Equal("DU|new|old", lead.Key);
+        Assert.Contains("klingt gleich", lead.Detail);
+        Assert.Contains(lead.PrimaryName, lead.Detail);
+        Assert.Contains(lead.SecondaryName!, lead.Detail);
+    }
+
+    [Fact]
+    public async Task GetFeed_FlagsDuplicate_NameAgainstAlias()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx,
+            Seed.Person("a", "Carlos Mendez"),
+            Seed.Person("b", "Wer Anders", p => p.Aliases.Add(new PersonAlias { AliasName = "Dr. Carlos Mendez" })));
+
+        var lead = Assert.Single(Duplicates(await FlatAsync(Svc(ctx), Agent())));
+
+        Assert.Contains("gleicher Name", lead.Detail);
+        Assert.Contains("Alias „Dr. Carlos Mendez“", lead.Detail);
+    }
+
+    [Fact]
+    public async Task GetFeed_SkipsAliasAgainstAlias()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx,
+            Seed.Person("a", "Carlos Mendez", p => p.Aliases.Add(new PersonAlias { AliasName = "Shorty" })),
+            Seed.Person("b", "Pablo Escobar", p => p.Aliases.Add(new PersonAlias { AliasName = "Shorty" })));
+
+        Assert.Empty(Duplicates(await FlatAsync(Svc(ctx), Agent())));
+    }
+
+    [Fact]
+    public async Task GetFeed_FlagsDuplicate_SharedPhone()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx,
+            Seed.Person("a", "Carlos Mendez", p => p.PhoneNumbers.Add(new PersonPhone { Number = "555-1" })),
+            Seed.Person("b", "Pablo Escobar", p => p.PhoneNumbers.Add(new PersonPhone { Number = "555-1" })));
+
+        var lead = Assert.Single(Duplicates(await FlatAsync(Svc(ctx), Agent())));
+
+        Assert.Contains("gleiche Telefonnummer", lead.Detail);
+    }
+
+    [Fact]
+    public async Task GetFeed_RanksSameNameAboveSoundAlikeAboveTypo()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx,
+            Seed.Person("t1", "Pablo Escobar"), Seed.Person("t2", "Pablo Escobat"),
+            Seed.Person("s1", "Hans Maier"), Seed.Person("s2", "Hans Meyer"),
+            Seed.Person("e1", "Anton Klein"), Seed.Person("e2", "Dr. Anton Klein"));
+
+        var leads = Duplicates(await FlatAsync(Svc(ctx), Agent()));
+
+        Assert.Equal(new[] { "DU|e1|e2", "DU|s1|s2", "DU|t1|t2" }, leads.Select(l => l.Key));
+    }
+
+    [Fact]
+    public async Task GetFeed_MarksArchivedDuplicate()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx,
+            Seed.Person("a", "Carlos Mendez"),
+            Seed.Person("b", "Carlos Mendez", p => p.IsArchived = true));
+
+        var lead = Assert.Single(Duplicates(await FlatAsync(Svc(ctx), Agent())));
+
+        Assert.Contains("Carlos Mendez ist archiviert", lead.Detail);
+    }
+
+    [Fact]
+    public async Task GetFeed_IgnoredDuplicate_StaysAway()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx, Seed.Person("a", "Carlos Mendez"), Seed.Person("b", "Karlos Mendes"));
+        var lead = Assert.Single(Duplicates(await FlatAsync(Svc(ctx), Agent())));
+
+        // any writer may dismiss; a fresh service (new cache) must still keep it out
+        await Svc(ctx).IgnoreAsync(lead.Key, lead.Kind, Agent());
+
+        Assert.Empty(Duplicates(await FlatAsync(Svc(ctx), Agent())));
+    }
+
+    [Fact]
+    public async Task GetFeed_HidesClassifiedDuplicate_FromNonLeadership()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPeople(ctx,
+            Seed.Person("a", "Carlos Mendez"),
+            Seed.Person("b", "Carlos Mendez", p => p.IsClassified = true));
+        var svc = Svc(ctx);
+
+        Assert.Single(Duplicates(await FlatAsync(svc, Leader())));
+        Assert.Empty(Duplicates(await FlatAsync(svc, Agent())));
+    }
+
     [Fact]
     public async Task GetFeed_HidesClassifiedLead_FromNonLeadership()
     {

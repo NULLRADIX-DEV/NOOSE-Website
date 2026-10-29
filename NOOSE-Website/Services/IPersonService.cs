@@ -17,8 +17,8 @@ public interface IPersonService
     /// <summary>Search people by name or case number for internal pickers (write path); classified-filtered.</summary>
     Task<List<Person>> SearchAsync(string? searchText, bool isLeadership, int max = 20, CancellationToken cancellationToken = default);
 
-    /// <summary>Possible duplicates by identical name or shared phone number (classified-filtered).</summary>
-    Task<List<Person>> FindDuplicatesAsync(string name, IEnumerable<string> phoneNumbers, bool isLeadership, CancellationToken cancellationToken = default);
+    /// <summary>Possible duplicates by alike name or alias (<see cref="PersonNameMatch"/>) or shared phone number, strongest first (classified-filtered).</summary>
+    Task<List<DuplicateHit>> FindDuplicatesAsync(string name, IEnumerable<string> phoneNumbers, bool isLeadership, CancellationToken cancellationToken = default);
 
     /// <summary>People whose name exactly matches (case-insensitive, trimmed) any of the given names, for bulk reconciliation; classified-filtered.</summary>
     Task<List<Person>> FindByNamesAsync(IEnumerable<string> names, bool isLeadership, CancellationToken cancellationToken = default);

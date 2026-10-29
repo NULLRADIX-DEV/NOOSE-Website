@@ -15,7 +15,13 @@
 
             <MudAutocomplete T="Person" Label="Quell-Akte (Duplikat, wird aufgelöst)" @bind-Value="_source"
                              SearchFunc="Search" ToStringFunc="@(p => Display(p))" Variant="Variant.Outlined"
-                             Clearable="true" MinCharacters="1" AutoFocus="true" />
+                             Clearable="true" MinCharacters="1" AutoFocus="@(SourceId is null)" />
+            <MudStack Row="true" Justify="Justify.Center">
+                <MudTooltip Text="Quelle und Ziel tauschen">
+                    <MudIconButton Icon="@Icons.Material.Filled.SwapVert" Size="Size.Small" OnClick="Swap"
+                                   Disabled="@(_busy || (_source is null && _target is null))" />
+                </MudTooltip>
+            </MudStack>
             <MudAutocomplete T="Person" Label="Ziel-Akte (bleibt bestehen)" @bind-Value="_target"
                              SearchFunc="Search" ToStringFunc="@(p => Display(p))" Variant="Variant.Outlined"
                              Clearable="true" MinCharacters="1" />
@@ -39,6 +45,11 @@
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
+    /// <summary>Preselected duplicate, e.g. from the lead feed.</summary>
+    [Parameter] public string? SourceId { get; set; }
+    /// <summary>Preselected record that stays.</summary>
+    [Parameter] public string? TargetId { get; set; }
+
     private Person? _source;
     private Person? _target;
     private bool _busy;
@@ -47,6 +58,19 @@
         => !_busy && _source is not null && _target is not null && _source.Id != _target.Id;
 
     private static string Display(Person? p) => p is null ? string.Empty : $"{p.Name} ({p.CaseNumber})";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (SourceId is null && TargetId is null)
+        {
+            return;
+        }
+        var scope = ViewerScope.From((await AuthStateTask).User);
+        _source = SourceId is null ? null : await PersonService.GetDetailAsync(SourceId, scope);
+        _target = TargetId is null ? null : await PersonService.GetDetailAsync(TargetId, scope);
+    }
+
+    private void Swap() => (_source, _target) = (_target, _source);
 
     private async Task<IEnumerable<Person>> Search(string value, CancellationToken token)
     {
@@ -80,12 +104,13 @@
         }
     }
 
-    /// <summary>Opens the merge dialog; returns the target record id or <c>null</c>.</summary>
-    public static async Task<string?> ShowAsync(IDialogService dialog)
+    /// <summary>Opens the merge dialog, optionally prefilled; returns the target record id or <c>null</c>.</summary>
+    public static async Task<string?> ShowAsync(IDialogService dialog, string? sourceId = null, string? targetId = null)
     {
-        var reference = await dialog.ShowAsync<PersonMergeDialog>("Akten zusammenführen",
+        var parameters = new DialogParameters<PersonMergeDialog> { { x => x.SourceId, sourceId }, { x => x.TargetId, targetId } };
+        var reference = await dialog.ShowAsync<PersonMergeDialog>("Akten zusammenführen", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
         var result = await reference.Result;
-        return result is { Canceled: false, Data: string targetId } ? targetId : null;
+        return result is { Canceled: false, Data: string mergedInto } ? mergedInto : null;
     }
 }

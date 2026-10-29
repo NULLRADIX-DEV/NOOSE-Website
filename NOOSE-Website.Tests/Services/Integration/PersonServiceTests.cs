@@ -219,7 +219,83 @@ public sealed class PersonServiceTests
 
         var dups = await svc.FindDuplicatesAsync("Max Mustermann", new[] { "555-123" }, isLeadership: false);
 
-        Assert.Equal(new HashSet<string> { "byname", "byphone" }, dups.Select(p => p.Id).ToHashSet());
+        Assert.Equal(new HashSet<string> { "byname", "byphone" }, dups.Select(h => h.Person.Id).ToHashSet());
+        Assert.Equal(DuplicateReason.SameName, dups.Single(h => h.Person.Id == "byname").Reason);
+        Assert.Equal(DuplicateReason.SamePhone, dups.Single(h => h.Person.Id == "byphone").Reason);
+    }
+
+    [Fact]
+    public async Task FindDuplicatesAsync_MatchesSoundAlikeAndTypos_IgnoringTitles()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("sound", "Carlos Mendez"));
+            db.People.Add(Seed.Person("typo", "Pablo Escobat"));
+            db.People.Add(Seed.Person("other", "Carlos Escobar Garcia"));
+            db.SaveChanges();
+        }
+        var (svc, _, _, _, _) = Build(ctx);
+
+        var sound = await svc.FindDuplicatesAsync("Dr. Karlos Mendes", Array.Empty<string>(), isLeadership: false);
+        var typo = await svc.FindDuplicatesAsync("Pablo Escobar", Array.Empty<string>(), isLeadership: false);
+
+        Assert.Equal(DuplicateReason.SoundsAlike, Assert.Single(sound).Reason);
+        Assert.Equal("typo", Assert.Single(typo).Person.Id);
+        Assert.Equal(DuplicateReason.SpelledAlike, typo[0].Reason);
+    }
+
+    [Fact]
+    public async Task FindDuplicatesAsync_MatchesAlias_AndNamesIt()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("p1", "Wer Anders", p => p.Aliases.Add(new PersonAlias { AliasName = "Carlos Mendez" })));
+            db.SaveChanges();
+        }
+        var (svc, _, _, _, _) = Build(ctx);
+
+        var hit = Assert.Single(await svc.FindDuplicatesAsync("Carlos Mendez", Array.Empty<string>(), isLeadership: false));
+
+        Assert.Equal("p1", hit.Person.Id);
+        Assert.Equal(DuplicateReason.SameName, hit.Reason);
+        Assert.Equal("Carlos Mendez", hit.Alias);
+    }
+
+    [Fact]
+    public async Task FindDuplicatesAsync_OneHitPerPerson_StrongestReasonFirst()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            // sounds alike by name and shares the phone: the phone is the stronger signal
+            db.People.Add(Seed.Person("both", "Karlos Mendes", p => p.PhoneNumbers.Add(new PersonPhone { Number = "555-1" })));
+            db.People.Add(Seed.Person("exact", "Carlos Mendez"));
+            db.SaveChanges();
+        }
+        var (svc, _, _, _, _) = Build(ctx);
+
+        var dups = await svc.FindDuplicatesAsync("Carlos Mendez", new[] { "555-1" }, isLeadership: false);
+
+        Assert.Equal(new[] { "exact", "both" }, dups.Select(h => h.Person.Id));
+        Assert.Equal(DuplicateReason.SamePhone, dups[1].Reason);
+    }
+
+    [Fact]
+    public async Task FindDuplicatesAsync_FindsArchivedRecords()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("old", "Carlos Mendez", p => p.IsArchived = true));
+            db.SaveChanges();
+        }
+        var (svc, _, _, _, _) = Build(ctx);
+
+        var hit = Assert.Single(await svc.FindDuplicatesAsync("Carlos Mendez", Array.Empty<string>(), isLeadership: false));
+
+        Assert.True(hit.Person.IsArchived);
     }
 
     [Fact]
