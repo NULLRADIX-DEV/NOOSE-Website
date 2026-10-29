@@ -15,7 +15,7 @@ using NOOSE_Website.Models.Leads;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Proactive, algorithmic investigation leads (link-prediction, new conflicts, stale high-classification). Read-mostly.</summary>
+/// <summary>Proactive, algorithmic investigation leads (link-prediction, new conflicts, stale high-classification, possible duplicates). Read-mostly.</summary>
 public interface ILeadService
 {
     Task<IReadOnlyList<LeadGroup>> GetFeedAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
@@ -106,7 +106,137 @@ public class LeadService(IDbContextFactory<AppDbContext> dbFactory, IMemoryCache
         await AddLinkPredictionAsync(db, leads, cancellationToken);
         await AddNewConflictAsync(db, leads, cancellationToken);
         await AddStaleHighClassificationAsync(db, leads, cancellationToken);
+        await AddDuplicatesAsync(db, leads, cancellationToken);
         return leads;
+    }
+
+    private sealed record DuplicateCandidate(int Person, PreparedName Name, string? Alias);
+
+    // name against name or alias, never alias against alias (shared nicknames are noise); plus shared phone numbers
+    private static async Task AddDuplicatesAsync(AppDbContext db, List<Lead> leads, CancellationToken ct)
+    {
+        var people = await db.People
+            .Select(p => new { p.Id, p.Name, p.CaseNumber, p.IsClassified, p.IsArchived, p.CreatedAt })
+            .ToListAsync(ct);
+        if (people.Count < 2)
+        {
+            return;
+        }
+        var index = people.Select((p, i) => (p.Id, i)).ToDictionary(x => x.Id, x => x.i);
+
+        var candidates = people.Select((p, i) => new DuplicateCandidate(i, PersonNameMatch.Prepare(p.Name), null)).ToList();
+        foreach (var a in await db.PersonAliases.Select(a => new { a.PersonId, a.AliasName }).ToListAsync(ct))
+        {
+            if (index.TryGetValue(a.PersonId, out var i))
+            {
+                candidates.Add(new DuplicateCandidate(i, PersonNameMatch.Prepare(a.AliasName), a.AliasName));
+            }
+        }
+
+        var pairs = new Dictionary<(int A, int B), (DuplicateReason? Name, string? Alias, bool Phone)>();
+        (int, int) Pair(int x, int y) => x < y ? (x, y) : (y, x);
+
+        // equal word counts only; blocking keys spare the all-vs-all compare
+        foreach (var bucket in candidates.GroupBy(c => c.Name.WordCount).Where(g => g.Key > 0))
+        {
+            var list = bucket.ToList();
+            var byKey = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+            for (var i = 0; i < list.Count; i++)
+            {
+                foreach (var k in PersonNameMatch.BlockingKeys(list[i].Name))
+                {
+                    if (!byKey.TryGetValue(k, out var holders))
+                    {
+                        byKey[k] = holders = new List<int>();
+                    }
+                    holders.Add(i);
+                }
+            }
+
+            for (var i = 0; i < list.Count; i++)
+            {
+                var partners = PersonNameMatch.BlockingKeys(list[i].Name, firstWordOnly: true)
+                    .SelectMany(k => byKey[k])
+                    .Where(j => j > i)
+                    .Distinct();
+                foreach (var j in partners)
+                {
+                    var (x, y) = (list[i], list[j]);
+                    if (x.Person == y.Person || (x.Alias is not null && y.Alias is not null)
+                        || PersonNameMatch.Compare(x.Name, y.Name) is not { } reason)
+                    {
+                        continue;
+                    }
+                    var key = Pair(x.Person, y.Person);
+                    var current = pairs.GetValueOrDefault(key);
+                    if (current.Name is null || reason < current.Name)
+                    {
+                        pairs[key] = (reason, x.Alias ?? y.Alias, current.Phone);
+                    }
+                }
+            }
+        }
+
+        var phones = await db.PersonPhones.Select(t => new { t.PersonId, t.Number }).ToListAsync(ct);
+        foreach (var shared in phones
+                     .Where(t => index.ContainsKey(t.PersonId) && !string.IsNullOrWhiteSpace(t.Number))
+                     .GroupBy(t => t.Number.Trim())
+                     .Select(g => g.Select(t => index[t.PersonId]).Distinct().ToList())
+                     .Where(ids => ids.Count > 1))
+        {
+            for (var i = 0; i < shared.Count; i++)
+            {
+                for (var j = i + 1; j < shared.Count; j++)
+                {
+                    var key = Pair(shared[i], shared[j]);
+                    pairs[key] = pairs.GetValueOrDefault(key) with { Phone = true };
+                }
+            }
+        }
+
+        foreach (var ((ai, bi), match) in pairs)
+        {
+            // the older record is the natural merge target, so it goes first
+            var (older, newer) = (people[ai], people[bi]);
+            if (newer.CreatedAt < older.CreatedAt
+                || (newer.CreatedAt == older.CreatedAt && string.CompareOrdinal(newer.CaseNumber, older.CaseNumber) < 0))
+            {
+                (older, newer) = (newer, older);
+            }
+
+            var reasons = new List<string>();
+            if (match.Name is { } name)
+            {
+                reasons.Add(DuplicateReasonDisplay.Name(name) + (match.Alias is null ? string.Empty : $" (Alias „{match.Alias}“)"));
+            }
+            if (match.Phone)
+            {
+                reasons.Add(DuplicateReasonDisplay.Name(DuplicateReason.SamePhone));
+            }
+            var on = Display(older.Name, older.CaseNumber);
+            var nn = Display(newer.Name, newer.CaseNumber);
+            var detail = $"{on} und {nn}: {string.Join(", ", reasons)}.";
+            foreach (var archived in new[] { older, newer }.Where(p => p.IsArchived))
+            {
+                detail += $" {archived.Name} ist archiviert.";
+            }
+
+            leads.Add(new Lead(
+                LeadKind.Duplicate,
+                string.CompareOrdinal(older.Id, newer.Id) < 0 ? $"DU|{older.Id}|{newer.Id}" : $"DU|{newer.Id}|{older.Id}",
+                "Mögliche Dublette",
+                detail,
+                (match.Phone ? 3 : 0) + match.Name switch
+                {
+                    DuplicateReason.SameName => 3,
+                    DuplicateReason.SoundsAlike => 2,
+                    DuplicateReason.SpelledAlike => 1,
+                    _ => 0,
+                },
+                older.IsClassified || newer.IsClassified,
+                nameof(Person), older.Id, on, $"/personen/{older.Id}",
+                nameof(Person), newer.Id, nn, $"/personen/{newer.Id}"));
+        }
     }
 
     private static async Task AddLinkPredictionAsync(AppDbContext db, List<Lead> leads, CancellationToken ct)

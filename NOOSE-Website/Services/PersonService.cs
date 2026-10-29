@@ -84,9 +84,9 @@ public class PersonService(
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<List<Person>> FindDuplicatesAsync(string name, IEnumerable<string> phoneNumbers, bool isLeadership, CancellationToken cancellationToken = default)
+    public async Task<List<DuplicateHit>> FindDuplicatesAsync(string name, IEnumerable<string> phoneNumbers, bool isLeadership, CancellationToken cancellationToken = default)
     {
-        var nameLower = (name ?? string.Empty).Trim().ToLower();
+        var wanted = PersonNameMatch.Prepare(name);
         var numbers = phoneNumbers
             .Select(n => (n ?? string.Empty).Trim())
             .Where(n => n.Length > 0)
@@ -94,12 +94,52 @@ public class PersonService(
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // restricted records only as duplicates for leadership (else the warning dialog leaks name + case number)
-        return await db.People
-            .Where(p => isLeadership || !p.IsClassified)
-            .Include(p => p.PhoneNumbers)
-            .Where(p => p.Name.ToLower() == nameLower
-                     || p.PhoneNumbers.Any(t => numbers.Contains(t.Number)))
-            .ToListAsync(cancellationToken);
+        var visible = db.People.Where(p => isLeadership || !p.IsClassified);
+
+        var best = new Dictionary<string, (DuplicateReason Reason, string? Alias)>();
+        void Offer(string id, DuplicateReason reason, string? alias)
+        {
+            if (!best.TryGetValue(id, out var current) || reason < current.Reason)
+            {
+                best[id] = (reason, alias);
+            }
+        }
+
+        // names are compared in memory: the rule needs phonetics and edit distance
+        foreach (var p in await visible.Select(p => new { p.Id, p.Name }).ToListAsync(cancellationToken))
+        {
+            if (PersonNameMatch.Compare(wanted, PersonNameMatch.Prepare(p.Name)) is { } reason)
+            {
+                Offer(p.Id, reason, null);
+            }
+        }
+        foreach (var a in await visible.SelectMany(p => p.Aliases)
+                     .Select(a => new { a.PersonId, a.AliasName }).ToListAsync(cancellationToken))
+        {
+            if (PersonNameMatch.Compare(wanted, PersonNameMatch.Prepare(a.AliasName)) is { } reason)
+            {
+                Offer(a.PersonId, reason, a.AliasName);
+            }
+        }
+        if (numbers.Count > 0)
+        {
+            foreach (var id in await visible.Where(p => p.PhoneNumbers.Any(t => numbers.Contains(t.Number)))
+                         .Select(p => p.Id).ToListAsync(cancellationToken))
+            {
+                Offer(id, DuplicateReason.SamePhone, null);
+            }
+        }
+        if (best.Count == 0)
+        {
+            return new List<DuplicateHit>();
+        }
+
+        var ids = best.Keys.ToList();
+        return (await db.People.Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken))
+            .Select(p => new DuplicateHit(p, best[p.Id].Reason, best[p.Id].Alias))
+            .OrderBy(h => h.Reason)
+            .ThenBy(h => h.Person.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
     }
 
     public async Task<List<Person>> FindByNamesAsync(IEnumerable<string> names, bool isLeadership, CancellationToken cancellationToken = default)

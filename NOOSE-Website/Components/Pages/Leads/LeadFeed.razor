@@ -4,12 +4,13 @@
 @inject ILeadService LeadService
 @inject ILinkService LinkService
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
 <PageTitle>Ermittlungshinweise · NOOSE</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.Lightbulb"
             Title="Ermittlungshinweise"
-            Subtitle="Algorithmisch erzeugte Hinweise – mögliche Verbindungen, neue Konflikte, veraltete Einstufungen." />
+            Subtitle="Algorithmisch erzeugte Hinweise – mögliche Verbindungen, neue Konflikte, veraltete Einstufungen, mögliche Dubletten." />
 
 @if (_load)
 {
@@ -70,9 +71,15 @@ else
                                                        StartIcon="@Icons.Material.Filled.AddLink"
                                                        OnClick="@(() => LinkAsync(lead))">Verknüpfen</MudButton>
                                         }
+                                        @if (lead.Kind == LeadKind.Duplicate && _mayMerge && lead.SecondaryId is not null)
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                                       StartIcon="@Icons.Material.Filled.CallMerge"
+                                                       OnClick="@(() => MergeAsync(lead))">Zusammenführen</MudButton>
+                                        }
                                         @if (_mayWrite)
                                         {
-                                            <MudTooltip Text="Hinweis ignorieren">
+                                            <MudTooltip Text="@(lead.Kind == LeadKind.Duplicate ? "Nicht dieselbe Person – ignorieren" : "Hinweis ignorieren")">
                                                 <MudIconButton Icon="@Icons.Material.Filled.NotInterested" Size="Size.Small"
                                                                OnClick="@(() => IgnoreAsync(lead))" />
                                             </MudTooltip>
@@ -93,6 +100,7 @@ else
 
     private ClaimsPrincipal _user = default!;
     private bool _mayWrite;
+    private bool _mayMerge;
     private bool _load = true;
     private IReadOnlyList<LeadGroup> _groups = Array.Empty<LeadGroup>();
 
@@ -100,6 +108,8 @@ else
     {
         _user = (await AuthStateTask).User;
         _mayWrite = _user.MayWrite();
+        // mirrors PersonMergeService: leadership + write access
+        _mayMerge = _mayWrite && _user.IsLeadership();
         await ReloadAsync();
     }
 
@@ -145,6 +155,23 @@ else
         }
         catch { /* best effort */ }
         Snackbar.Add("Verknüpfung angelegt.", Severity.Success);
+        await ReloadAsync();
+    }
+
+    private async Task MergeAsync(Lead lead)
+    {
+        // primary is the older record, the natural target
+        var targetId = await PersonMergeDialog.ShowAsync(DialogService, lead.SecondaryId, lead.PrimaryId);
+        if (targetId is null)
+        {
+            return;
+        }
+        try
+        {
+            // the raw candidates are cached ~5 min; without this the merged pair would linger
+            await LeadService.IgnoreAsync(lead.Key, lead.Kind, _user);
+        }
+        catch { /* best effort */ }
         await ReloadAsync();
     }
 

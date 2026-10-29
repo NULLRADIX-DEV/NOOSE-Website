@@ -1,16 +1,17 @@
-@* Warns about possible duplicates on create (same name / phone number). *@
+@* Warns about possible duplicates on create (alike name or alias / phone number). *@
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Class="mb-3">
-            Es gibt bereits Akten mit gleichem Namen oder gleicher Telefonnummer. Bitte prüfe, ob es
+            Es gibt bereits Akten mit ähnlichem Namen oder gleicher Telefonnummer. Bitte prüfe, ob es
             sich um dieselbe Person handelt:
         </MudText>
         @* Open in a new tab so the half-filled create form isn't lost. *@
         <MudList T="string" Dense="true">
-            @foreach (var p in Hit)
+            @foreach (var hit in Hit)
             {
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Badge" Href="@($"/personen/{p.Id}")" Target="_blank">
-                    @p.Name — @p.CaseNumber
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Badge" Href="@($"/personen/{hit.Person.Id}")" Target="_blank">
+                    <MudText Typo="Typo.body2">@hit.Person.Name — @hit.Person.CaseNumber</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Reason(hit)</MudText>
                 </MudListItem>
             }
         </MudList>
@@ -24,13 +25,27 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter] public List<Person> Hit { get; set; } = new();
+    [Parameter] public List<DuplicateHit> Hit { get; set; } = new();
 
     private void Anyway() => MudDialog.Close(DialogResult.Ok(true));
     private void Cancel() => MudDialog.Cancel();
 
+    private static string Reason(DuplicateHit hit)
+    {
+        var parts = new List<string> { DuplicateReasonDisplay.Name(hit.Reason) };
+        if (hit.Alias is not null)
+        {
+            parts[0] += $" (Alias „{hit.Alias}“)";
+        }
+        if (hit.Person.IsArchived)
+        {
+            parts.Add("archiviert");
+        }
+        return string.Join(" · ", parts);
+    }
+
     /// <summary>Shows the dialog; returns true when "create anyway" was chosen.</summary>
-    public static async Task<bool> ShowAsync(IDialogService dialog, List<Person> hit)
+    public static async Task<bool> ShowAsync(IDialogService dialog, List<DuplicateHit> hit)
     {
         var parameters = new DialogParameters<DuplicateDialog> { { x => x.Hit, hit } };
         var reference = await dialog.ShowAsync<DuplicateDialog>("Mögliche Dublette", parameters);
