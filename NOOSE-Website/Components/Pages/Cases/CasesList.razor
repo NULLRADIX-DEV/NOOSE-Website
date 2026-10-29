@@ -10,6 +10,7 @@
             Subtitle="Übergeordnete Ermittlungsakte: bündelt Personen, Operationen, Observationen und Doks zu einem Vorgang mit eigenem Status.">
     <Actions>
         <SavedViewButton BaseRoute="/vorgaenge" Filters="FilterState" OnApply="ApplyViewAsync" />
+        <ListExportButton T="CaseRow" RecordType="@nameof(Case)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
         <AuthorizeView Policy="@Policies.Leadership">
             <MudButton Href="/papierkorb?tab=vorgaenge" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
         </AuthorizeView>
@@ -25,7 +26,7 @@
 }
 else
 {
-    <MudDataGrid T="CaseRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
+    <MudDataGrid @ref="_grid" T="CaseRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
                  QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
         <ToolBarContent>
             <MudTextField Value="_search" ValueChanged="@((string v) => SearchChangedAsync(v))" Placeholder="Suchen (Titel, Aktenzeichen, Typ)…" Immediate="true"
@@ -138,6 +139,22 @@ else
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private MudDataGrid<CaseRow>? _grid;
+
+    /// <summary>The CSV export's columns: the grid's own.</summary>
+    private static readonly IReadOnlyList<ExportColumn<CaseRow>> ExportColumns =
+    [
+        new("Aktenzeichen", r => r.CaseNumber),
+        new("Titel", r => r.Title),
+        new("Archiviert", r => ExportText.Flag(r.IsArchived)),
+        new("Typ", r => r.Type),
+        new("Status", r => CaseStatusDisplay.Name(r.Status)),
+        new("Einstufung", r => ClassificationDisplay.Name(r.Classification)),
+        new("Verschluss", r => ExportText.Secrecy(r.IsClassified, r.SecrecyLevel)),
+        new("Aktualität", r => RecencyLevelDisplay.Name(r.Level)),
+        new("Zuletzt", r => ExportText.Stamp(r.Refreshed)),
+    ];
 
     private bool _load = true;
     private int _loadGeneration;

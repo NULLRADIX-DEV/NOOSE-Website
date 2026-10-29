@@ -1,0 +1,54 @@
+@inject IRecordExportService ExportService
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+@* leadership and the read-only supervision: a whole record as a file goes no wider than the classified read *@
+@if (_mayExport)
+{
+    <MudTooltip Text="Dossier (.md) – die ganze Akte als Datei herunterladen">
+        <MudIconButton Icon="@Icons.Material.Filled.FileDownload" Color="Color.Default"
+                       OnClick="ExportAsync" Disabled="_busy" aria-label="Dossier herunterladen" />
+    </MudTooltip>
+}
+
+@code {
+    [Parameter, EditorRequired] public string EntityType { get; set; } = default!;
+    [Parameter, EditorRequired] public string EntityId { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _mayExport;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _mayExport = user.IsInternalAgent() && user.MayClassifiedRead();
+    }
+
+    private async Task ExportAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var file = await ExportService.DossierAsync(EntityType, EntityId, (await AuthStateTask).User);
+            if (file is null)
+            {
+                Snackbar.Add("Diese Akte gibt es nicht (mehr).", Severity.Warning);
+                return;
+            }
+            await FileDownload.SaveAsync(JS, file);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
