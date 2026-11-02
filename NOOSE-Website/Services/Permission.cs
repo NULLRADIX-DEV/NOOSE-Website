@@ -180,6 +180,17 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to move agents between divisions: write access first, then Board or admin.</summary>
+    public static void RequireDivisionSet(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayDivisionSet())
+        {
+            throw new UnauthorizedAccessException(
+                "Die Abteilung vergeben nur das Board oder ein Admin.");
+        }
+    }
+
     /// <summary>Require highest classification right.</summary>
     public static void RequireHighestClassification(ClaimsPrincipal actor)
     {

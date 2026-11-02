@@ -6,6 +6,7 @@ public static class AgentClaimTypes
     public const string Rank = "noose:dienstgrad";
     public const string Status = "noose:status";
     public const string IsTRU = "noose:tru";
+    public const string Division = "noose:abteilung";
     public const string IsHRB = "noose:hrb";
     public const string IsAdmin = "noose:admin";
     public const string IsBootstrap = "noose:bootstrap";

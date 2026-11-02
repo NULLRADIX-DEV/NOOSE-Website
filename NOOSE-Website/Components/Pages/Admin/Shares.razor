@@ -189,7 +189,7 @@ else
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.DiscordUsername ?? x.DiscordId)">Discord</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.RegisteredAt)">Registriert</MudTableSortLabel></MudTh>
                 <MudTh Style="min-width:220px;"><MudTableSortLabel T="Agent" SortBy="@(x => (int)Selection(x.Id).Degree)">Dienstgrad</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Tru)">TRU</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => (int)Selection(x.Id).Home)">Abteilung</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Hrb)">HRB</MudTableSortLabel></MudTh>
                 <MudTh Style="min-width:170px;">Partner</MudTh>
                 <MudTh Style="text-align:right;">Aktion</MudTh>
@@ -213,11 +213,21 @@ else
                         }
                     </MudSelect>
                 </MudTd>
-                <MudTd DataLabel="TRU">
-                    <MudTooltip Text="@DepartmentHint" Disabled="Selection(context.Id).DepartmentsOpen">
-                        <MudCheckBox T="bool" @bind-Value="Selection(context.Id).Tru" Color="Color.Primary"
-                                     Disabled="@(!Selection(context.Id).DepartmentsOpen)" />
-                    </MudTooltip>
+                <MudTd DataLabel="Abteilung">
+                    <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
+                        <Authorized>
+                            <MudSelect T="Division" @bind-Value="Selection(context.Id).Home" Dense="true" Margin="Margin.Dense"
+                                       Variant="Variant.Outlined" Style="min-width:110px;">
+                                @foreach (var d in DivisionDisplay.All)
+                                {
+                                    <MudSelectItem Value="d" Disabled="@(!DivisionRules.MayHold(d, Selection(context.Id).Degree))">@DivisionDisplay.Short(d)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </Authorized>
+                        <NotAuthorized>
+                            <MudText Typo="Typo.body2">@DivisionDisplay.Short(Division.Cid)</MudText>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </MudTd>
                 <MudTd DataLabel="HRB">
                     <MudTooltip Text="@DepartmentHint" Disabled="Selection(context.Id).DepartmentsOpen">
@@ -568,13 +578,13 @@ else
     private readonly Dictionary<string, SelectionState> _selection = new();
 
     private const string DepartmentHint =
-        "TRU und HRB sind laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
+        "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
 
     private sealed class SelectionState
     {
         private Rank _degree = Rank.Trainee;
 
-        /// <summary>Picking a rank below the threshold drops the departments with it, so the release cannot fail on save.</summary>
+        /// <summary>Picking a rank below the threshold drops the HRT and the flag with it, so the release cannot fail on save.</summary>
         public Rank Degree
         {
             get => _degree;
@@ -583,16 +593,19 @@ else
                 _degree = value;
                 if (!DepartmentRules.MayHold(_degree))
                 {
-                    Tru = false;
                     Hrb = false;
+                }
+                if (!DivisionRules.MayHold(Home, _degree))
+                {
+                    Home = Division.Cid;
                 }
             }
         }
 
-        /// <summary>Mirrors DepartmentRules.MayHold for the two checkboxes.</summary>
+        /// <summary>Mirrors DepartmentRules.MayHold for the flag checkbox.</summary>
         public bool DepartmentsOpen => DepartmentRules.MayHold(_degree);
 
-        public bool Tru { get; set; }
+        public Division Home { get; set; } = Division.Cid;
         public bool Hrb { get; set; }
         // non-null = release as partner
         public PartnerAgency? Partner { get; set; }
@@ -757,7 +770,11 @@ else
             }
             else
             {
-                await AgentService.ReleaseAsync(agent.Id, selection.Degree, selection.Tru, selection.Hrb, _user);
+                if (!await DivisionLimitConfirm.RunAsync(DialogService, confirm =>
+                        AgentService.ReleaseAsync(agent.Id, selection.Degree, selection.Home, selection.Hrb, confirm, _user)))
+                {
+                    return;
+                }
                 Snackbar.Add($"{DisplayName(agent)} als {RankDisplay.Name(selection.Degree)} freigegeben.", Severity.Success);
             }
         }

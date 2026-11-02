@@ -18,9 +18,15 @@
                     <MudSelectItem T="Rank" Value="@r">@RankDisplay.Name(r)</MudSelectItem>
                 }
             </MudSelect>
-            <MudTooltip Text="@DepartmentHint" Disabled="DepartmentsOpen">
-                <MudCheckBox T="bool" @bind-Value="_tru" Label="TRU" Disabled="@(!DepartmentsOpen)" />
-            </MudTooltip>
+            <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
+                <MudSelect T="Division" @bind-Value="_division" Label="Abteilung" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Style="min-width:120px;">
+                    @foreach (var d in DivisionDisplay.All)
+                    {
+                        <MudSelectItem T="Division" Value="@d" Disabled="@(!DivisionRules.MayHold(d, _rank))">@DivisionDisplay.Short(d)</MudSelectItem>
+                    }
+                </MudSelect>
+            </AuthorizeView>
             <MudTooltip Text="@DepartmentHint" Disabled="DepartmentsOpen">
                 <MudCheckBox T="bool" @bind-Value="_hrb" Label="HRB" Disabled="@(!DepartmentsOpen)" />
             </MudTooltip>
@@ -38,7 +44,7 @@
 
     private static readonly Rank[] Ranks = Enum.GetValues<Rank>();
     private Rank _rank = Rank.Trainee;
-    private bool _tru;
+    private Division _division = Division.Cid;
     private bool _hrb;
     private bool _busy;
 
@@ -46,15 +52,18 @@
     private bool DepartmentsOpen => DepartmentRules.MayHold(_rank);
 
     private const string DepartmentHint =
-        "TRU und HRB sind laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
+        "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
 
     private void RankChanged(Rank rank)
     {
         _rank = rank;
         if (!DepartmentsOpen)
         {
-            _tru = false;
             _hrb = false;
+        }
+        if (!DivisionRules.MayHold(_division, _rank))
+        {
+            _division = Division.Cid;
         }
     }
 
@@ -70,9 +79,12 @@
         _busy = true;
         try
         {
-            await AgentService.PromoteApplicantToAgentAsync(ApplicantUserId, _rank, _tru, _hrb, User);
-            Snackbar.Add("Bewerber wurde zum Agent hochgestuft.", Severity.Success);
-            await OnPromoted.InvokeAsync();
+            if (await DivisionLimitConfirm.RunAsync(DialogService, confirm =>
+                    AgentService.PromoteApplicantToAgentAsync(ApplicantUserId, _rank, _division, _hrb, confirm, User)))
+            {
+                Snackbar.Add("Bewerber wurde zum Agent hochgestuft.", Severity.Success);
+                await OnPromoted.InvokeAsync();
+            }
         }
         catch (Exception ex)
         {

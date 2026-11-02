@@ -30,15 +30,15 @@ public class DepartmentRulesTests
 
     [Fact]
     public void RequireMayHold_PassesAtTheThreshold()
-        => DepartmentRules.RequireMayHold(Rank.SpecialAgent, "Die Human Resource Branch");
+        => DepartmentRules.RequireMayHold(Rank.SpecialAgent, "Die Administration Division");
 
     [Fact]
     public void RequireMayHold_NamesTheDepartmentAndTheRank()
     {
         var ex = Assert.Throws<InvalidOperationException>(
-            () => DepartmentRules.RequireMayHold(Rank.Trainee, "Die Human Resource Branch"));
+            () => DepartmentRules.RequireMayHold(Rank.Trainee, "Die Administration Division"));
 
-        Assert.Contains("Human Resource Branch", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Administration Division", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Special Agent", ex.Message, StringComparison.Ordinal);
     }
 }

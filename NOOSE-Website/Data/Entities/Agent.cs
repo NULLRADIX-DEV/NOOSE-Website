@@ -41,6 +41,11 @@ public class Agent : IdentityUser
     [Column("Dienstgrad")]
     public Rank? Rank { get; set; }
 
+    /// <summary>Home division; null outside the divisions. The Board follows the rank, see <c>DivisionRules.Of</c>.</summary>
+    [Column("Abteilung")]
+    public Division? Division { get; set; }
+
+    /// <summary>Written from the division (HRT below the Board) so the flag and its claim stay readable.</summary>
     [Column("IstTRU")]
     public bool IsTRU { get; set; }
 

@@ -67,6 +67,9 @@ public static class AuthorizationRegistration
             .AddPolicy(Policies.PromotionDecideWrite, p => p
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => ctx.User.MayWrite() && ctx.User.MayPromotionDecide()))
+            .AddPolicy(Policies.DivisionSetWrite, p => p
+                .RequireAuthenticatedUser()
+                .RequireAssertion(ctx => ctx.User.MayWrite() && ctx.User.MayDivisionSet()))
             // recruiting
             // MayApply, not the raw status: a partner applies while staying Active, so the status alone would
             // lock the very accounts this portal has to serve

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Authorization;
 
@@ -51,6 +52,18 @@ public static class AgentPrincipalExtensions
 
     public static bool IsHRB(this ClaimsPrincipal user)
         => string.Equals(user.FindFirstValue(AgentClaimTypes.IsHRB), "true", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Home division from claim, or null outside the divisions. The Board is no value here, see <see cref="IsBoard"/>.</summary>
+    public static Division? GetDivision(this ClaimsPrincipal user)
+    {
+        var raw = user.FindFirstValue(AgentClaimTypes.Division);
+        return int.TryParse(raw, out var value) && Enum.IsDefined(typeof(Division), value)
+            ? (Division)value
+            : null;
+    }
+
+    /// <summary>Board of Directors = by rank alone; the admin flag does not make a Board member.</summary>
+    public static bool IsBoard(this ClaimsPrincipal user) => DivisionRules.IsBoard(user.GetRank());
 
     /// <summary>TeamLead marker (FiveM supervision); on its own grants nothing, only forms read-only supervision when combined with no admin flag.</summary>
     public static bool IsTeamLead(this ClaimsPrincipal user)
@@ -142,6 +155,9 @@ public static class AgentPrincipalExtensions
     /// <summary>May decide promotions = rank ≥ Deputy Director or admin.</summary>
     public static bool MayPromotionDecide(this ClaimsPrincipal user)
         => user.IsAdmin() || user.GetRank() is >= Rank.DeputyDirector;
+
+    /// <summary>May move an agent between divisions = Board or admin. Sole source of this rule.</summary>
+    public static bool MayDivisionSet(this ClaimsPrincipal user) => user.IsAdmin() || user.IsBoard();
 
     /// <summary>Public applicant (status Applicant): portal-only access, never an internal agent.</summary>
     public static bool IsApplicant(this ClaimsPrincipal user) => user.GetStatus() == AgentStatus.Applicant;

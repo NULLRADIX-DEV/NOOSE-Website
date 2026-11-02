@@ -66,6 +66,13 @@ public static class Policies
     /// </remarks>
     public const string PromotionDecideWrite = "BefoerderungEntscheidenSchreiben";
 
+    /// <summary>Move agents between divisions AND be allowed to write: Board or admin.</summary>
+    /// <remarks>
+    /// Mirrors <c>Permission.RequireDivisionSet</c>. A rank-only check would show the division picker to the
+    /// read-only supervision and to the demo visitor, who carries Director, and refuse after the dialog.
+    /// </remarks>
+    public const string DivisionSetWrite = "AbteilungSetzenSchreiben";
+
     /// <summary>Applicant portal access: signed in with status Applicant.</summary>
     public const string ApplicantPortal = "BewerberPortal";
 

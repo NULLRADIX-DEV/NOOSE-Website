@@ -196,11 +196,12 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
-        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, isTRU: true, isHRB: false, Admin());
+        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Hrt, isHRB: false, confirmOverLimit: false, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(AgentStatus.Active, a.Status);
         Assert.Equal(Rank.SpecialAgent, a.Rank);
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         using var db = f.Ctx.NewContext();
         Assert.True(db.AgentRankHistories.Any(h => h.AgentId == "t"));
@@ -252,7 +253,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, false, Admin()));
+            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, false, false, Admin()));
     }
 
     [Fact]
@@ -261,7 +262,7 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
 
-        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, true, Admin());
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, true, false, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(AgentStatus.Active, a.Status);
@@ -293,7 +294,7 @@ public class AgentManagementServiceTests
         PersistPartner(f.Ctx);
         PersistApplication(f.Ctx, "t");
 
-        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, false, Admin());
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, false, false, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(AgentStatus.Active, a.Status);
@@ -310,7 +311,7 @@ public class AgentManagementServiceTests
         PersistPartner(f.Ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, false, Admin()));
+            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, false, false, Admin()));
 
         var a = Reload(f, "t");
         Assert.Equal(PartnerAgency.DoJ, a.PartnerAgency);
@@ -652,15 +653,16 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task TruSet_HrbSet_ToggleFlags()
+    public async Task DivisionSet_HrbSet_WriteDivisionAndFlag()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
 
-        await f.Svc.TruSetAsync("t", true, Admin());
+        await f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Admin());
         await f.Svc.HrbSetAsync("t", true, Admin());
 
         var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         Assert.True(a.IsHRB);
     }
@@ -670,14 +672,16 @@ public class AgentManagementServiceTests
     [Theory]
     [InlineData(null)]
     [InlineData(Rank.Trainee)]
-    public async Task TruSetAsync_BelowSpecialAgent_Throws(Rank? rank)
+    public async Task DivisionSetAsync_HrtBelowSpecialAgent_Throws(Rank? rank)
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: rank));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.TruSetAsync("t", true, Admin()));
-        Assert.False(Reload(f, "t").IsTRU);
+            () => f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Admin()));
+        var a = Reload(f, "t");
+        Assert.Null(a.Division);
+        Assert.False(a.IsTRU);
     }
 
     [Theory]
@@ -706,16 +710,6 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task TruSetAsync_OnlyReaderDenied()
-    {
-        using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
-
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => f.Svc.TruSetAsync("t", true, OnlyReader()));
-    }
-
-    [Fact]
     public async Task HrbSetAsync_OnlyReaderDenied()
     {
         using var f = Make();
@@ -732,8 +726,21 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.ReleaseAsync("t", Rank.Trainee, isTRU: false, isHRB: true, Admin()));
+            () => f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, isHRB: true, confirmOverLimit: false, Admin()));
         Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_TraineeIntoTheHrt_Throws()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Hrt, isHRB: false, confirmOverLimit: false, Admin()));
+        var a = Reload(f, "t");
+        Assert.Equal(AgentStatus.Pending, a.Status);
+        Assert.Null(a.Division);
     }
 
     [Fact]
@@ -742,25 +749,27 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
-        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, isTRU: true, isHRB: true, Admin());
+        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Hrt, isHRB: true, confirmOverLimit: false, Admin());
 
         var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         Assert.True(a.IsHRB);
     }
 
-    /// <summary>A demotion has to take the departments with it; otherwise the flag keeps opening every HRB gate.</summary>
+    /// <summary>A demotion has to take the departments with it; otherwise the flag keeps opening every gate of the Administration Division.</summary>
     [Fact]
     public async Task RankChangeAsync_DemotionBelowThreshold_DropsDepartments()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
-            cfg: a => { a.IsTRU = true; a.IsHRB = true; }));
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; a.IsHRB = true; }));
 
         await f.Svc.RankChangeAsync("t", Rank.Trainee, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(Rank.Trainee, a.Rank);
+        Assert.Equal(Division.Cid, a.Division);
         Assert.False(a.IsTRU);
         Assert.False(a.IsHRB);
     }
@@ -770,13 +779,411 @@ public class AgentManagementServiceTests
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
-            cfg: a => { a.IsTRU = true; a.IsHRB = true; }));
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; a.IsHRB = true; }));
 
         await f.Svc.RankChangeAsync("t", Rank.SpecialAgent, Admin());
 
         var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         Assert.True(a.IsHRB);
+    }
+
+    /// <summary>A row written before the division column has no division; the TRU flag still says where the agent belongs.</summary>
+    [Fact]
+    public async Task RankChangeAsync_LegacyTruFlagWithoutDivision_BecomesTheHrt()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent, cfg: a => a.IsTRU = true));
+
+        await f.Svc.RankChangeAsync("t", Rank.SpecialAgent, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.True(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task RankChangeAsync_DemotionBelowThreshold_KeepsTheCtd()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent, cfg: a => a.Division = Division.Ctd));
+
+        await f.Svc.RankChangeAsync("t", Rank.Trainee, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    /// <summary>The Board keeps the home division but never counts as TRU; the way back restores the flag.</summary>
+    [Fact]
+    public async Task RankChangeAsync_IntoAndOutOfTheBoard_KeepsTheHomeAndSwitchesTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.RankChangeAsync("t", Rank.Director, Admin());
+        var inBoard = Reload(f, "t");
+        Assert.Equal(Division.Hrt, inBoard.Division);
+        Assert.False(inBoard.IsTRU);
+
+        await f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, Admin());
+        var back = Reload(f, "t");
+        Assert.Equal(Division.Hrt, back.Division);
+        Assert.True(back.IsTRU);
+    }
+
+    // ---- division set ----
+
+    private static ClaimsPrincipal Board(string id = "board")
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.DeputyDirector).WithCodename("Board").Build();
+
+    private static ClaimsPrincipal AdminWithoutBoardRank(string id = "adm")
+        => ClaimsPrincipalBuilder.Agent(id).AsAdmin().WithRank(Rank.SpecialAgent).WithCodename("Adm").Build();
+
+    [Fact]
+    public async Task DivisionSetAsync_BoardMemberMovesAnAgent_WritesTruAndRotatesTheStamp()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+        var before = Reload(f, "t").SecurityStamp;
+
+        await f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Board());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.True(a.IsTRU);
+        Assert.NotEqual(before, a.SecurityStamp);
+        using var db = f.Ctx.NewContext();
+        Assert.Contains(db.AuditLogs.Where(l => l.EntityId == "t").AsEnumerable(), l => l.ChangesJson!.Contains("Abteilung"));
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_AdminWithoutABoardRankMayMove()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, AdminWithoutBoardRank());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_LeavingTheHrtClearsTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.DivisionSetAsync("t", Division.Cid, confirmOverLimit: false, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Cid, a.Division);
+        Assert.False(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_BoardMemberIntoTheHrt_KeepsTheTruFlagOff()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Director));
+
+        await f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.False(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_SpecialAgentInChargeIsRefused()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Leader()));
+        Assert.Null(Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_OnlyReaderDenied()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, OnlyReader()));
+        Assert.Null(Reload(f, "t").Division);
+    }
+
+    /// <summary>The write guard comes first: a demo visitor carries Director and would otherwise pass the Board check.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_DemoVisitorDenied()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+        var demo = ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsDemo().Build();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, demo));
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_PartnerAccountThrows()
+    {
+        using var f = Make();
+        PersistPartner(f.Ctx);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Cid, confirmOverLimit: false, Admin()));
+    }
+
+    private static Agent[] Seats(Division division, int count, string prefix, Action<Agent>? cfg = null)
+        => Enumerable.Range(0, count)
+            .Select(i => NewAgent($"{prefix}{i}", AgentStatus.Active, Rank.SpecialAgent, a =>
+            {
+                a.Division = division;
+                a.IsTRU = division == Division.Hrt;
+                cfg?.Invoke(a);
+            }))
+            .ToArray();
+
+    [Fact]
+    public async Task DivisionSetAsync_FullDivisionWithoutConfirmation_IsRefused()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd), "ctd"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        var ex = await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Admin()));
+
+        Assert.Contains("6 von 6", ex.Message, StringComparison.Ordinal);
+        Assert.Null(Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_FullDivisionWithConfirmation_Succeeds()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd), "ctd"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: true, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    /// <summary>Counted over the selectable roster: a blocked account, a team lead and a partner hold no seat.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_LimitCountsOnlySelectableAgents()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd) - 1, "ctd"));
+        Persist(f.Ctx,
+            NewAgent("blocked", AgentStatus.Blocked, Rank.SpecialAgent, a => a.Division = Division.Ctd),
+            NewAgent("tl", AgentStatus.Active, Rank.SpecialAgent, a => { a.Division = Division.Ctd; a.IsTeamLead = true; }),
+            NewAgent("ex", AgentStatus.Terminated, Rank.SpecialAgent, a => a.Division = Division.Ctd),
+            NewAgent("t", AgentStatus.Active, Rank.SpecialAgent));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    /// <summary>An agent already seated in a full division takes no new seat by being set to it again.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_SameDivisionNeedsNoSeat()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd) + 1, "ctd"));
+
+        await f.Svc.DivisionSetAsync("ctd0", Division.Ctd, confirmOverLimit: false, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "ctd0").Division);
+    }
+
+    /// <summary>The Board is no division seat: a Board member counts against the Board, not against the home division.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_BoardMemberDoesNotCountAgainstTheDivision()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd) - 1, "ctd"));
+        Persist(f.Ctx,
+            NewAgent("director", AgentStatus.Active, Rank.Director, a => a.Division = Division.Ctd),
+            NewAgent("t", AgentStatus.Active, Rank.SpecialAgent));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_FullDivisionNeedsConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd), "ctd"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Ctd, isHRB: false, confirmOverLimit: false, Admin()));
+        Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+
+        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Ctd, isHRB: false, confirmOverLimit: true, Admin());
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task PromoteApplicantToAgentAsync_FullDivisionNeedsConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Hrt, DivisionDisplay.Limit(Division.Hrt), "hrt"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Hrt, false, confirmOverLimit: false, Admin()));
+        Assert.Equal(AgentStatus.Applicant, Reload(f, "t").Status);
+
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Hrt, false, confirmOverLimit: true, Admin());
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.True(a.IsTRU);
+    }
+
+    // ---- every path that writes a rank leaves division and TRU flag consistent ----
+
+    private static void AssertConsistent(Agent a)
+    {
+        Assert.NotNull(a.Rank);
+        Assert.NotNull(a.Division);
+        var division = a.Division.GetValueOrDefault();
+        Assert.True(DivisionRules.MayHold(division, a.Rank));
+        Assert.Equal(division == Division.Hrt && !DivisionRules.IsBoard(a.Rank), a.IsTRU);
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee, Division.Cid)]
+    [InlineData(Rank.SpecialAgent, Division.Hrt)]
+    [InlineData(Rank.SpecialAgent, Division.Ctd)]
+    [InlineData(Rank.Director, Division.Hrt)]
+    public async Task ReleaseAsync_LeavesDivisionAndTruConsistent(Rank rank, Division division)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await f.Svc.ReleaseAsync("t", rank, division, isHRB: false, confirmOverLimit: false, Admin());
+
+        var a = Reload(f, "t");
+        AssertConsistent(a);
+        Assert.Equal(division, a.Division);
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee, Division.Cid)]
+    [InlineData(Rank.SpecialAgent, Division.Hrt)]
+    [InlineData(Rank.Director, Division.Hrt)]
+    public async Task PromoteApplicantToAgentAsync_LeavesDivisionAndTruConsistent(Rank rank, Division division)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        await f.Svc.PromoteApplicantToAgentAsync("t", rank, division, false, confirmOverLimit: false, Admin());
+
+        AssertConsistent(Reload(f, "t"));
+    }
+
+    [Fact]
+    public async Task ConvertToInternalAsync_StartsInTheCid()
+    {
+        using var f = Make();
+        PersistPartner(f.Ctx);
+
+        await f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, Admin());
+
+        var a = Reload(f, "t");
+        AssertConsistent(a);
+        Assert.Equal(Division.Cid, a.Division);
+    }
+
+    [Fact]
+    public async Task ConvertToInternalAsync_OnlyReaderDenied()
+    {
+        using var f = Make();
+        PersistPartner(f.Ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, OnlyReader()));
+        Assert.NotNull(Reload(f, "t").PartnerAgency);
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee)]
+    [InlineData(Rank.SpecialAgent)]
+    [InlineData(Rank.Director)]
+    public async Task RankChangeAsync_LeavesDivisionAndTruConsistent(Rank target)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.RankChangeAsync("t", target, Admin());
+
+        AssertConsistent(Reload(f, "t"));
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee)]
+    [InlineData(Rank.Director)]
+    public async Task PromotionDecideAsync_LeavesDivisionAndTruConsistent(Rank target)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+        using (var db = f.Ctx.NewContext())
+        {
+            db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
+            {
+                Id = "req-c", AgentId = "t", TargetRank = target, Status = PromotionStatus.Requested,
+            });
+            db.SaveChanges();
+        }
+
+        await f.Svc.PromotionDecideAsync("req-c", approved: true, note: null, Admin());
+
+        var a = Reload(f, "t");
+        AssertConsistent(a);
+        Assert.Equal(target == Rank.Trainee ? Division.Cid : Division.Hrt, a.Division);
+    }
+
+    [Fact]
+    public async Task ReleaseAsPartnerAsync_ClearsDivisionAndTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending, rank: Rank.SpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.ReleaseAsPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Null(a.Division);
+        Assert.False(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task ConvertToPartnerAsync_ClearsDivisionAndTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent, cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+
+        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSMD, PartnerRank.Member, Admin("keepadmin"));
+
+        var a = Reload(f, "t");
+        Assert.Null(a.Division);
+        Assert.False(a.IsTRU);
     }
 
     [Fact]

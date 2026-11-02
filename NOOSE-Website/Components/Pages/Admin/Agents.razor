@@ -11,7 +11,7 @@
     <MudText Typo="Typo.h4">Agenten-Verwaltung</MudText>
 </MudStack>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Dienstgrade vergeben, TRU-, HRB- und Teamleitung-Rechte verwalten sowie Accounts sperren. Eine Sperre beendet
+    Dienstgrade und Abteilungen vergeben, HRB- und Teamleitung-Rechte verwalten sowie Accounts sperren. Eine Sperre beendet
     alle laufenden Sitzungen des Agents sofort (Kill-Switch). Teamleitungen (FiveM-Aufsicht) sind im RP-Betrieb
     überall ausgeblendet und nur hier sichtbar – Vollzugriff erst durch den Admin-Haken. Das Setzen des
     Admin-Hakens selbst ist ausschließlich Admins vorbehalten; die Führung kann ihn nur einsehen.
@@ -69,7 +69,7 @@ else
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DisplayName(x))">Agent</MudTableSortLabel></MudTh>
             <MudTh Style="min-width:220px;"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTRU)">TRU</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DivisionRules.Of(x).Home)">Abteilung</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">HRB</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTeamLead)">Teamleitung</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsAdmin)">Admin</MudTableSortLabel></MudTh>
@@ -134,11 +134,26 @@ else
                     <MudText Typo="Typo.body2" Color="@AgentStatusDisplay.Colour(context.Status)">@AgentStatusDisplay.Name(context.Status)</MudText>
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="TRU">
-                <MudTooltip Text="@DepartmentHint" Disabled="@(context.PartnerAgency != null || DepartmentOpen(context))">
-                    <MudSwitch T="bool" Value="context.IsTRU" ValueChanged="@(v => TruSet(context, v))" Color="Color.Primary"
-                               Disabled="@(context.PartnerAgency != null || (!DepartmentOpen(context) && !context.IsTRU))" />
-                </MudTooltip>
+            <MudTd DataLabel="Abteilung">
+                <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
+                    <Authorized>
+                        <MudSelect T="Division" Value="HomeOf(context)" ValueChanged="@(d => DivisionSet(context, d))"
+                                   Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:110px;"
+                                   Disabled="@(!HasDivision(context))">
+                            @foreach (var d in DivisionDisplay.All)
+                            {
+                                <MudSelectItem Value="d" Disabled="@(!DivisionRules.MayHold(d, context.Rank))">@DivisionDisplay.Short(d)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </Authorized>
+                    <NotAuthorized>
+                        <MudText Typo="Typo.body2">@(HasDivision(context) ? DivisionDisplay.Short(HomeOf(context)) : "—")</MudText>
+                    </NotAuthorized>
+                </AuthorizeView>
+                @if (DivisionRules.Of(context).IsBoard)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">Board</MudText>
+                }
             </MudTd>
             <MudTd DataLabel="HRB">
                 <MudTooltip Text="@DepartmentHint" Disabled="@(context.PartnerAgency != null || DepartmentOpen(context))">
@@ -385,15 +400,27 @@ else
     private static bool DepartmentOpen(Agent agent) => DepartmentRules.MayHold(agent.Rank);
 
     private const string DepartmentHint =
-        "TRU und HRB sind laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
+        "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
 
-    private async Task TruSet(Agent agent, bool value)
+    /// <summary>Only an active internal agent with a rank has a division to pick.</summary>
+    private static bool HasDivision(Agent agent) => agent.Status == AgentStatus.Active && !DivisionRules.Of(agent).IsNone;
+
+    private static Division HomeOf(Agent agent) => DivisionRules.Of(agent).Home ?? Division.Cid;
+
+    private async Task DivisionSet(Agent agent, Division division)
     {
+        if (HomeOf(agent) == division)
+        {
+            return;
+        }
         var user = (await AuthStateTask).User;
         try
         {
-            await AgentService.TruSetAsync(agent.Id, value, user);
-            Snackbar.Add($"{DisplayName(agent)}: TRU {(value ? "gesetzt" : "entfernt")}.", Severity.Success);
+            if (await DivisionLimitConfirm.RunAsync(DialogService,
+                    confirm => AgentService.DivisionSetAsync(agent.Id, division, confirm, user)))
+            {
+                Snackbar.Add($"{DisplayName(agent)}: Abteilung {DivisionDisplay.Short(division)} gesetzt.", Severity.Success);
+            }
         }
         catch (Exception ex)
         {
