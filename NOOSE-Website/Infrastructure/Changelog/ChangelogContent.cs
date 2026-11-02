@@ -571,6 +571,18 @@ public static class ChangelogContent
             Neu("2.7.21-noosei-vorschlaege", "Bittest du NOOSEI um eine Wiedervorlage, ein Stichwort, eine Aufgabe, "
                 + "eine Verknüpfung oder das Beobachten einer Akte, erscheint unter der Antwort eine Karte. Erst dein "
                 + "Klick auf „Ausführen“ schreibt, mit deinen Rechten; „Verwerfen“ schließt sie.", "NOOSEI"),
+            Neu("2.7.22-dubletten-radar", "Beim Anlegen einer Person warnt die Seite jetzt auch, wenn es einen ähnlich "
+                + "klingenden oder vertippten Namen schon gibt, und die Ermittlungshinweise zeigen mögliche doppelte "
+                + "Personenakten, die die Führung direkt zusammenführt.", "Personen"),
+            Neu("2.7.23-dienstuebergabe", "Scheidet ein Agent aus, übergibt die Führung mit „Arbeit übergeben“ in "
+                + "seiner Personalakte alles, was noch offen an ihm hängt, in einem Schritt an Nachfolger; nach einer "
+                + "Kündigung öffnet sich das von selbst.", "Personal"),
+            Neu("2.7.24-dienstaufsicht", "Der neue Reiter „Dienstaufsicht“ in der Personalakte zeigt der Führung auf "
+                + "einem Blatt, was vor einem Beförderungs-, Ermahnungs- oder Kündigungsgespräch zählt, über 30, 90 "
+                + "oder 365 Tage und im Vergleich zu den übrigen Agenten.", "Personal"),
+            Neu("2.7.25-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
+                + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
+                + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten"),
         ]),
     ];
 }
