@@ -228,9 +228,20 @@ internal static class RecordsChapter
                 zuständig ist.</p>
                 <p>Wird sie fällig, bekommt der Zuständige eine Benachrichtigung - und die Wiedervorlage steht
                 auf seinem Lagezentrum, bis sie erledigt ist. Sie verschwindet nicht von selbst.</p>
+                <p>Alle Wiedervorlagen, für die du zuständig bist, stehen unter <em>Meine Wiedervorlagen</em> im
+                Bereich <em>Mein Dienst</em>, sortiert nach <strong>überfällig</strong>, <strong>heute</strong>,
+                <strong>diese Woche</strong> (bis Sonntag) und <strong>später</strong>. Dort verschiebst du eine mit
+                einem Klick um <em>+1 Tag</em> oder <em>+1 Woche</em> oder hakst sie mit <em>Erledigt</em> ab, ohne
+                die Akte zu öffnen. Ist sie schon überfällig, zählt das Verschieben ab heute: <em>+1 Tag</em> heißt
+                dann morgen.</p>
+                <p>Hängt eine deiner Wiedervorlagen an einer Akte, die du nicht sehen darfst, zählt die Seite sie
+                nur mit, ohne Akte und ohne Notiz. Die Führung kann sie auf jemand anderen umhängen.</p>
+                <p>Bleibt eine Wiedervorlage sieben Tage überfällig, erfährt die Führung davon, einmal je
+                Fälligkeitsdatum. Verschiebst du sie, beginnt die Frist neu.</p>
                 <p>Nutze sie großzügig. Eine Akte, die auf etwas wartet, ohne dass jemand daran erinnert wird,
                 wartet für immer.</p>
-                """),
+                """,
+                NavKey: "wiedervorlagen"),
 
             new Article("art-watchlist", "beobachtete-akten", "Beobachtete Akten",
                 "Einer Akte folgen und gesagt bekommen, wenn sich etwas ändert.",

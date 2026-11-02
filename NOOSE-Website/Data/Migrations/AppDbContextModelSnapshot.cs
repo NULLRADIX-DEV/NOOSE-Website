@@ -1959,6 +1959,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(128)")
                         .HasColumnName("EntitaetTyp");
 
+                    b.Property<DateTime?>("EscalatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("EskaliertAm");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IstGeloescht");

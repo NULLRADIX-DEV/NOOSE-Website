@@ -64,6 +64,8 @@ public class DiscordWebhookModelsTests
         NotificationType.PresentationLive,
         // who leaves with what is personnel business
         NotificationType.HandoverReceived,
+        // who lets work rot is for the leadership bell alone
+        NotificationType.FollowupEscalated,
     };
 
     // ----- IsRoutable: true branch -----

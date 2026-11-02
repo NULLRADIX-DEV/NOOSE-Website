@@ -173,6 +173,10 @@ public enum NotificationType
     /// <summary>The recipient took over work of a leaving agent. Bell only: one summary per successor, and who
     /// leaves with what is personnel business, not a channel's.</summary>
     HandoverReceived = 50,
+
+    /// <summary>Follow-ups went long overdue. Bell for leadership only: who lets work rot is personnel business, and
+    /// the notice names neither record nor agent.</summary>
+    FollowupEscalated = 51,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -231,6 +235,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestDueReminder => "Test fällig",
         NotificationType.PresentationLive => "Präsentation live",
         NotificationType.HandoverReceived => "Übernahme",
+        NotificationType.FollowupEscalated => "Wiedervorlagen-Rückstand",
         _ => "Benachrichtigung",
     };
 
@@ -288,6 +293,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestDueReminder => Icons.Material.Filled.AlarmOn,
         NotificationType.PresentationLive => Icons.Material.Filled.CoPresent,
         NotificationType.HandoverReceived => Icons.Material.Filled.MoveDown,
+        NotificationType.FollowupEscalated => Icons.Material.Filled.PendingActions,
         _ => Icons.Material.Filled.Notifications,
     };
 }

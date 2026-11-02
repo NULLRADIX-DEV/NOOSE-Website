@@ -1,0 +1,250 @@
+@page "/wiedervorlagen"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@inject IFollowupService Followups
+@inject IMentionService MentionService
+@inject ISnackbar Snackbar
+
+<PageTitle>Meine Wiedervorlagen · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.EventRepeat" Title="Meine Wiedervorlagen"
+            Subtitle="Alles, wofür du zuständig bist, nach Fälligkeit – verschieben und erledigen direkt aus der Liste.">
+    <Actions>
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="lead">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PendingActions"
+                       Href="@FollowupPlanRules.BacklogRoute">Rückstand der Behörde</MudButton>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Class="mb-2">
+        @foreach (var bucket in Buckets)
+        {
+            <MudItem xs="6" md="3">
+                <StatTile Icon="@BucketIcon(bucket)" Colour="@BucketColour(bucket)" Label="@BucketName(bucket)"
+                          Value="@Count(bucket).ToString()" Hint="@BucketHint(bucket)" />
+            </MudItem>
+        }
+    </MudGrid>
+
+    @if (_plan.Hidden > 0)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-3">
+            Dazu @(_plan.Hidden == 1 ? "kommt 1 Wiedervorlage" : $"kommen {_plan.Hidden} Wiedervorlagen") an Akten, die du
+            nicht sehen darfst. Die Führung kann sie auf jemand anderen umhängen.
+        </MudAlert>
+    }
+
+    @if (_plan.Items.Count == 0)
+    {
+        <MudPaper Elevation="2">
+            <EmptyState Icon="@Icons.Material.Filled.TaskAlt" Title="Keine offene Wiedervorlage"
+                        Text="Für keine Akte, die du sehen darfst, ist gerade eine Wiedervorlage auf dich gestellt." />
+        </MudPaper>
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            @foreach (var bucket in Buckets)
+            {
+                var rows = _plan.Items.Where(i => i.Bucket == bucket).ToList();
+                <MudPaper Class="pa-4" Elevation="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                        <MudIcon Icon="@BucketIcon(bucket)" Color="@BucketColour(bucket)" />
+                        <MudText Typo="Typo.h6">@BucketName(bucket)</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@rows.Count</MudChip>
+                    </MudStack>
+                    @if (rows.Count == 0)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@BucketEmpty(bucket)</MudText>
+                    }
+                    else
+                    {
+                        <MudStack Spacing="2">
+                            @foreach (var w in rows)
+                            {
+                                <MudPaper Class="pa-3" Elevation="1">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.body2">
+                                                <b>@MeetingTime.Local(w.DueAt).ToString("dddd, dd.MM.yyyy")</b>
+                                                @if (w.Bucket == FollowupBucket.Overdue)
+                                                {
+                                                    <span class="mud-error-text"> · @OverdueText(w.DueAt)</span>
+                                                }
+                                            </MudText>
+                                            <MudText Typo="Typo.body2">
+                                                @if (w.Href is not null)
+                                                {
+                                                    <MudLink Href="@w.Href" Typo="Typo.body2">@w.Display</MudLink>
+                                                }
+                                                else
+                                                {
+                                                    @w.Display
+                                                }
+                                                <span class="mud-text-secondary"> · @w.RecordLabel</span>
+                                            </MudText>
+                                        </MudStack>
+                                        @if (_mayWrite)
+                                        {
+                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                @foreach (var days in FollowupPlanRules.PostponeDays)
+                                                {
+                                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Disabled="_busy"
+                                                               OnClick="@(() => PostponeAsync(w, days))">@PostponeLabel(days)</MudButton>
+                                                }
+                                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" Disabled="_busy"
+                                                           StartIcon="@Icons.Material.Filled.Check" OnClick="@(() => CompleteAsync(w))">Erledigt</MudButton>
+                                            </MudStack>
+                                        }
+                                    </MudStack>
+                                    @if (!string.IsNullOrWhiteSpace(w.Note))
+                                    {
+                                        <MudText Typo="Typo.body2" Class="mt-1 mud-text-secondary"><MentionText Segments="Segments(w)" /></MudText>
+                                    }
+                                </MudPaper>
+                            }
+                        </MudStack>
+                    }
+                </MudPaper>
+            }
+        </MudStack>
+    }
+
+    @if (_plan.Capped)
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+            Die Liste zeigt die @FollowupPlanRules.MaxRows Wiedervorlagen, die am frühesten fällig sind.
+        </MudText>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private static readonly FollowupBucket[] Buckets =
+        [FollowupBucket.Overdue, FollowupBucket.Today, FollowupBucket.ThisWeek, FollowupBucket.Later];
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _busy;
+    private bool _mayWrite;
+    private string? _error;
+    private FollowupPlan _plan = new([], 0, false);
+    private Dictionary<string, IReadOnlyList<MentionSegment>> _segments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayWrite = _user.MayWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _plan = await Followups.GetMyPlanAsync(_user);
+            var resolved = await MentionService.ResolveManyAsync(_plan.Items.Select(w => w.Note).ToList(),
+                _user.MayClassifiedRead(), _user.GetAgentId(), partnerAgency: _user.GetPartnerAgency());
+            _segments = _plan.Items.Select((w, i) => (w.Id, resolved[i])).ToDictionary(x => x.Id, x => x.Item2);
+            _error = null;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _error = ex.Message;
+        }
+        _load = false;
+    }
+
+    private int Count(FollowupBucket bucket) => _plan.Items.Count(i => i.Bucket == bucket);
+
+    private IReadOnlyList<MentionSegment> Segments(FollowupPlanItem w)
+        => _segments.TryGetValue(w.Id, out var s) ? s : [new MentionSegment(false, w.Note ?? string.Empty)];
+
+    private Task PostponeAsync(FollowupPlanItem w, int days)
+        => RunAsync(() => Followups.PostponeAsync(w.Id, days, _user), $"Verschoben: {PostponeLabel(days)}.");
+
+    private Task CompleteAsync(FollowupPlanItem w)
+        => RunAsync(() => Followups.CompleteAsync(w.Id, _user), "Als erledigt markiert.");
+
+    private async Task RunAsync(Func<Task> action, string success)
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await action();
+            Snackbar.Add(success, Severity.Success);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or InvalidOperationException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            await LoadAsync();
+            _busy = false;
+        }
+    }
+
+    private static string PostponeLabel(int days) => days == 7 ? "+1 Woche" : days == 1 ? "+1 Tag" : $"+{days} Tage";
+
+    private static string OverdueText(DateTime dueUtc)
+    {
+        var days = FollowupPlanRules.DaysOverdue(dueUtc, DateTime.UtcNow);
+        return days == 1 ? "seit gestern überfällig" : $"seit {days} Tagen überfällig";
+    }
+
+    private static string BucketName(FollowupBucket bucket) => bucket switch
+    {
+        FollowupBucket.Overdue => "Überfällig",
+        FollowupBucket.Today => "Heute",
+        FollowupBucket.ThisWeek => "Diese Woche",
+        _ => "Später",
+    };
+
+    private static string BucketHint(FollowupBucket bucket) => bucket switch
+    {
+        FollowupBucket.Overdue => "Fällig vor heute und noch offen",
+        FollowupBucket.Today => "Heute fällig",
+        FollowupBucket.ThisWeek => "Fällig bis einschließlich Sonntag",
+        _ => "Fällig nach dieser Woche",
+    };
+
+    private static string BucketEmpty(FollowupBucket bucket) => bucket switch
+    {
+        FollowupBucket.Overdue => "Nichts überfällig.",
+        FollowupBucket.Today => "Heute ist nichts fällig.",
+        FollowupBucket.ThisWeek => "Für den Rest der Woche steht nichts an.",
+        _ => "Danach ist nichts geplant.",
+    };
+
+    private static string BucketIcon(FollowupBucket bucket) => bucket switch
+    {
+        FollowupBucket.Overdue => Icons.Material.Filled.EventBusy,
+        FollowupBucket.Today => Icons.Material.Filled.Today,
+        FollowupBucket.ThisWeek => Icons.Material.Filled.DateRange,
+        _ => Icons.Material.Filled.Event,
+    };
+
+    private static Color BucketColour(FollowupBucket bucket) => bucket switch
+    {
+        FollowupBucket.Overdue => Color.Error,
+        FollowupBucket.Today => Color.Warning,
+        FollowupBucket.ThisWeek => Color.Info,
+        _ => Color.Default,
+    };
+}

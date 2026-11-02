@@ -64,6 +64,30 @@ internal static class PersonnelChapter
                 Schwelle, bietet das Radar dort nur <em>Nachfassen</em> an.</p>
                 """),
 
+            new Article("art-wiedervorlagen-rueckstand", "wiedervorlagen-rueckstand", "Der Wiedervorlagen-Rückstand",
+                "Welche Wiedervorlagen in der Behörde liegen bleiben - und wie die Führung sie umhängt.",
+                """
+                <p>Unter <em>Wiedervorlagen-Rückstand</em> im Bereich <em>Verwaltung</em> sieht die Führung alle
+                offenen <strong>Wiedervorlagen</strong> der Behörde, nicht nur die eigenen. Zuerst stehen nur die
+                <strong>überfälligen</strong> da; schaltest du <em>Nur überfällige</em> aus, kommen die noch
+                anstehenden dazu. Sortieren lässt sich nach <em>Zuständig</em>, nach <em>Alter</em> - wie lange sie
+                schon überfällig ist - und nach <em>Akte</em>.</p>
+                <p>Mit <em>Umhängen</em> gibst du eine Wiedervorlage einem anderen Agenten. Angeboten wird nur, wer
+                gerade zugeteilt werden kann, und wer die Akte nicht sehen darf, wird abgelehnt. Der neue Zuständige
+                bekommt eine Benachrichtigung. Steht in der Zeile <em>nicht zuteilbar</em>, ist der bisherige
+                Zuständige gekündigt, gesperrt oder gar nicht mehr da - dann wartet die Wiedervorlage auf
+                niemanden.</p>
+                <p>Ist eine Wiedervorlage <strong>sieben Tage</strong> überfällig, bekommt die Führung eine
+                Benachrichtigung. Es ist immer dieselbe Meldung, bis du sie gelesen hast, und sie nennt weder Akte
+                noch Agent - das steht hier in der Liste, als <em>gemeldet am …</em>. Jede Wiedervorlage meldet sich
+                nur einmal; erst ein neues Fälligkeitsdatum setzt das zurück. Im Profil lässt sich die Meldung
+                stummschalten.</p>
+                <p>Eine Akte, die du selbst nicht sehen darfst, bleibt auch hier unbenannt: Die Zeile zeigt nur
+                Zuständigen und Datum, ohne Akte und Notiz, und lässt sich nicht umhängen. Die
+                <strong>Nur-Lese-Aufsicht</strong> sieht die Liste, hängt aber nichts um.</p>
+                """,
+                NavKey: "wiedervorlagen.rueckstand"),
+
             new Article("art-befoerderung", "befoerderung", "Beförderung",
                 "Vom Antrag bis zum neuen Dienstgrad.",
                 """

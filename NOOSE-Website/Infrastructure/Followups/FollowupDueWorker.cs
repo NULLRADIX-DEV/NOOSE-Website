@@ -5,7 +5,7 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Infrastructure.Followups;
 
-/// <summary>Background worker that detects due follow-ups and notifies assignees and followers with visibility checks.</summary>
+/// <summary>Notifies assignees and followers of due follow-ups and escalates long-overdue ones to leadership.</summary>
 public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger<FollowupDueWorker> logger)
     : BackgroundService
 {
@@ -36,6 +36,26 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
             catch (Exception ex)
             {
                 logger.LogError(ex, "Wiedervorlage-Fälligkeitsprüfung fehlgeschlagen.");
+            }
+
+            // own try: a failed due run must not hold back the escalation, nor the other way round
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var followups = scope.ServiceProvider.GetRequiredService<IFollowupService>();
+                var escalated = await followups.EscalateOverdueAsync(DateTime.UtcNow, stoppingToken);
+                if (escalated > 0)
+                {
+                    logger.LogInformation("Wiedervorlagen eskaliert: {Count}.", escalated);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Wiedervorlage-Eskalation fehlgeschlagen.");
             }
         }
         while (await SafeWaitAsync(timer, stoppingToken));
@@ -102,12 +122,7 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
                 var allowed = new List<string>();
                 foreach (var u in active)
                 {
-                    var uLeadership = u.IsAdmin || u.Rank is >= Rank.SupervisorySpecialAgent;
-                    // the bool shim cannot carry IsInternalAgent, and the types gated on it — a citizen ticket, a
-                    // citizen tip — read it as "not an in-house account" and hide the record from everyone. Same
-                    // flags as the shim otherwise, so no other type changes answer
-                    var viewer = new ViewerScope(uLeadership, uLeadership, u.Id, null, MayAgenda: uLeadership,
-                        IsInternalAgent: u.PartnerAgency is null);
+                    var viewer = FollowupService.ReminderScope(u.Id, u.IsAdmin, u.Rank, u.PartnerAgency);
                     if (await Visibility.IsRecordVisibleAsync(db, w.EntityType, w.EntityId, viewer, cancellationToken))
                     {
                         allowed.Add(u.Id);

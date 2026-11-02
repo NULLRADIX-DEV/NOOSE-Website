@@ -1,0 +1,221 @@
+@page "/wiedervorlagen/rueckstand"
+@attribute [Authorize(Policy = Policies.LeadershipPage)]
+@inject IFollowupService Followups
+@inject IMentionService MentionService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Wiedervorlagen-Rückstand · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.PendingActions" Title="Wiedervorlagen-Rückstand"
+            Subtitle="@($"Alle offenen Wiedervorlagen der Behörde. Ab {FollowupPlanRules.EscalateAfterDays} Tagen Überfälligkeit meldet sich die Seite einmal bei der Führung.")" />
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+}
+else
+{
+    <MudGrid Class="mb-2">
+        <MudItem xs="6" md="3">
+            <StatTile Icon="@Icons.Material.Filled.EventRepeat" Label="Offen" Value="@_all.Count.ToString()"
+                      Hint="Alle offenen Wiedervorlagen" />
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <StatTile Icon="@Icons.Material.Filled.EventBusy" Colour="Color.Error" Label="Überfällig"
+                      Value="@_all.Count(i => i.DaysOverdue > 0).ToString()" Hint="Fällig vor heute und noch offen" />
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <StatTile Icon="@Icons.Material.Filled.PendingActions" Colour="Color.Warning" Label="An die Führung gemeldet"
+                      Value="@_all.Count(i => i.EscalatedAt is not null).ToString()"
+                      Hint="@($"Seit mindestens {FollowupPlanRules.EscalateAfterDays} Tagen überfällig")" />
+        </MudItem>
+        <MudItem xs="6" md="3">
+            <StatTile Icon="@Icons.Material.Filled.PersonOff" Colour="Color.Info" Label="Ohne Zuständigen"
+                      Value="@_all.Count(i => !i.ResponsibleSelectable).ToString()"
+                      Hint="Niemand zuständig, oder der Zuständige ist nicht mehr zuteilbar" />
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudSwitch T="bool" @bind-Value="_onlyOverdue" @bind-Value:after="ApplyFilter" Color="Color.Primary" Label="Nur überfällige" />
+    </MudStack>
+
+    @if (_rows.Count == 0)
+    {
+        <MudPaper Elevation="2">
+            <EmptyState Icon="@Icons.Material.Filled.TaskAlt" Title="Kein Rückstand"
+                        Text="@(_onlyOverdue ? "Keine Wiedervorlage ist überfällig." : "Es gibt keine offene Wiedervorlage.")" />
+        </MudPaper>
+    }
+    else
+    {
+        <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true" T="FollowupBacklogItem"
+                  RowsPerPage="50">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.ResponsibleCodename ?? string.Empty)">Zuständig</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.DaysOverdue)" InitialDirection="SortDirection.Descending">Alter</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.Display ?? "￿")">Akte</MudTableSortLabel></MudTh>
+                <MudTh>Notiz</MudTh>
+                <MudTh>Stand</MudTh>
+                @if (_mayWrite)
+                {
+                    <MudTh Style="text-align:right;">Aktion</MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Zuständig">
+                    @(context.ResponsibleCodename ?? "—")
+                    @if (!context.ResponsibleSelectable)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">nicht zuteilbar</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Alter">
+                    <b>@MeetingTime.Local(context.DueAt).ToString("dd.MM.yyyy")</b>
+                    <MudText Typo="Typo.caption" Class="@(context.DaysOverdue > 0 ? "mud-error-text d-block" : "mud-text-secondary d-block")">
+                        @AgeText(context.DaysOverdue)
+                    </MudText>
+                </MudTd>
+                <MudTd DataLabel="Akte">
+                    @if (!context.RecordVisible)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary"><i>Akte nicht einsehbar</i></MudText>
+                    }
+                    else
+                    {
+                        @if (context.Href is not null)
+                        {
+                            <MudLink Href="@context.Href" Typo="Typo.body2">@context.Display</MudLink>
+                        }
+                        else
+                        {
+                            @context.Display
+                        }
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.RecordLabel</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Notiz">
+                    @if (!string.IsNullOrWhiteSpace(context.Note))
+                    {
+                        <MudText Typo="Typo.body2"><MentionText Segments="Segments(context)" /></MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Stand">
+                    @if (context.EscalatedAt is { } escalated)
+                    {
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
+                            gemeldet am @MeetingTime.Local(escalated).ToString("dd.MM.yyyy")
+                        </MudChip>
+                    }
+                </MudTd>
+                @if (_mayWrite)
+                {
+                    <MudTd DataLabel="Aktion" Style="text-align:right;">
+                        @if (context.RecordVisible)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Disabled="_busy"
+                                       StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="@(() => ReassignAsync(context))">Umhängen</MudButton>
+                        }
+                    </MudTd>
+                }
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+
+    @if (_backlog.Capped)
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+            Die Liste zeigt die @FollowupPlanRules.MaxRows Wiedervorlagen, die am längsten fällig sind.
+        </MudText>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _busy;
+    private bool _mayWrite;
+    private bool _onlyOverdue = true;
+    private string? _error;
+    private FollowupBacklog _backlog = new([], false);
+    private IReadOnlyList<FollowupBacklogItem> _all = [];
+    private Dictionary<string, IReadOnlyList<MentionSegment>> _segments = new();
+
+    private List<FollowupBacklogItem> _rows = [];
+
+    private void ApplyFilter()
+        => _rows = _onlyOverdue ? _all.Where(i => i.DaysOverdue > 0).ToList() : _all.ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        // the read-only supervision reads the backlog but never hands anything on
+        _mayWrite = _user.MayWrite() && _user.IsLeadership();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _backlog = await Followups.GetBacklogAsync(_user);
+            _all = _backlog.Items;
+            ApplyFilter();
+            var resolved = await MentionService.ResolveManyAsync(_all.Select(w => w.Note).ToList(),
+                _user.MayClassifiedRead(), _user.GetAgentId(), partnerAgency: _user.GetPartnerAgency());
+            _segments = _all.Select((w, i) => (w.Id, resolved[i])).ToDictionary(x => x.Id, x => x.Item2);
+            _error = null;
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _error = ex.Message;
+        }
+        _load = false;
+    }
+
+    private IReadOnlyList<MentionSegment> Segments(FollowupBacklogItem w)
+        => _segments.TryGetValue(w.Id, out var s) ? s : [new MentionSegment(false, w.Note ?? string.Empty)];
+
+    private async Task ReassignAsync(FollowupBacklogItem w)
+    {
+        var agentId = await FollowupReassignDialog.ShowAsync(DialogService, w.ResponsibleAgentId, _user.MayRealNameSee());
+        if (agentId is null || _busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Followups.ReassignAsync(w.Id, agentId, _user);
+            Snackbar.Add("Wiedervorlage umgehängt.", Severity.Success);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or InvalidOperationException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            await LoadAsync();
+            _busy = false;
+        }
+    }
+
+    private static string AgeText(int daysOverdue) => daysOverdue switch
+    {
+        > 1 => $"seit {daysOverdue} Tagen überfällig",
+        1 => "seit gestern überfällig",
+        0 => "heute fällig",
+        -1 => "morgen fällig",
+        _ => $"in {-daysOverdue} Tagen fällig",
+    };
+}

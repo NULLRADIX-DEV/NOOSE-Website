@@ -590,6 +590,10 @@ public static class ChangelogContent
             Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
                 + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),
+            Neu("2.8.03-wiedervorlagen-planung", "Neu unter Mein Dienst: Meine Wiedervorlagen ordnet deine "
+                + "Wiedervorlagen nach überfällig, heute, diese Woche und später; verschieben und erledigen geht per "
+                + "Klick. Die Führung sieht im Wiedervorlagen-Rückstand, was liegen bleibt, hängt es um und erfährt, was "
+                + "sieben Tage überfällig ist.", "Bedienung"),
         ]),
     ];
 }
