@@ -326,6 +326,7 @@ builder.Services.AddScoped<IOrgChartService, OrgChartService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IAbsenceService, AbsenceService>();
+builder.Services.AddScoped<IFirearmUseService, FirearmUseService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();

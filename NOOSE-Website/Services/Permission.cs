@@ -569,6 +569,38 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to report a firearm use: an in-house account that may write.</summary>
+    /// <remarks>Internal first, as in <see cref="RequirePressWrite"/>: a signed-in citizen carries no rank claim at all.</remarks>
+    public static void RequireFirearmUseReport(ClaimsPrincipal actor)
+    {
+        if (!actor.MayReportFirearmUse())
+        {
+            throw new UnauthorizedAccessException(
+                "Einen Schusswaffengebrauch melden nur aktive interne Agenten mit Schreibrecht.");
+        }
+    }
+
+    /// <summary>Require the right to read every firearm-use report: the leadership and the read-only supervision.</summary>
+    public static void RequireFirearmUseOverview(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayClassifiedRead())
+        {
+            throw new UnauthorizedAccessException(
+                "Den Schusswaffengebrauch aller Agenten sehen nur die Führung und die Aufsicht.");
+        }
+    }
+
+    /// <summary>Require the right to delete or restore a firearm-use report: write access first, then leadership.</summary>
+    /// <remarks>Whose report it is, is the service's check - nobody deletes their own.</remarks>
+    public static void RequireFirearmUseDelete(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayWrite() || !actor.IsLeadership())
+        {
+            throw new UnauthorizedAccessException(
+                "Einträge zum Schusswaffengebrauch löscht und stellt nur die Führung wieder her.");
+        }
+    }
+
     /// <summary>Require the right to pay a reward out to a tipster.</summary>
     /// <remarks>
     /// Its own axis, and not RequireKassenBookingWrite: that one only fires on the booking branch, so a reward paid

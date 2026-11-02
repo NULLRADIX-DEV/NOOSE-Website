@@ -173,6 +173,10 @@ public enum NotificationType
     /// <summary>The recipient took over work of a leaving agent. Bell only: one summary per successor, and who
     /// leaves with what is personnel business, not a channel's.</summary>
     HandoverReceived = 50,
+
+    /// <summary>An agent reported a firearm use. Bell only, for the leadership of the agent's division and the Board;
+    /// the title names agent and time, never the reason.</summary>
+    FirearmUseReported = 51,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -231,6 +235,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestDueReminder => "Test fällig",
         NotificationType.PresentationLive => "Präsentation live",
         NotificationType.HandoverReceived => "Übernahme",
+        NotificationType.FirearmUseReported => "Schusswaffengebrauch",
         _ => "Benachrichtigung",
     };
 
@@ -288,6 +293,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestDueReminder => Icons.Material.Filled.AlarmOn,
         NotificationType.PresentationLive => Icons.Material.Filled.CoPresent,
         NotificationType.HandoverReceived => Icons.Material.Filled.MoveDown,
+        NotificationType.FirearmUseReported => Icons.Material.Filled.GpsFixed,
         _ => Icons.Material.Filled.Notifications,
     };
 }

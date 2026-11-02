@@ -36,6 +36,7 @@ public static class AuditEntityDisplay
         "MeetingSignOff" => "Abmeldung (Besprechung)",
         "MeetingMeasure" => "Maßnahme (Besprechung)",
         "Absence" => "Abmeldung",
+        "FirearmUse" => "Schusswaffengebrauch",
         "Decoration" => "Ehrenzeichen",
         // no route: the row carries the award id, the personnel file needs the agent's
         "DecorationAward" => "Ehrung",
@@ -108,6 +109,8 @@ public static class AuditEntityDisplay
         "Presentation" => $"/praesentationen/{id}",
         // absences have no detail page; the audit viewer is admin-only, so point at the overview
         "Absence" => "/abmeldungen/uebersicht",
+        // a report has no detail page; the overview lists it
+        "FirearmUse" => "/schusswaffengebrauch",
         // feedback entries have no detail page either; point at the feedback hub
         "Feedback" => "/feedback",
         // a snippet has no page of its own; it lives in a section of the owner's profile

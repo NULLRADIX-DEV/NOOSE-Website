@@ -206,6 +206,8 @@ public static class PublicVisibility
             ["Decoration"] = Personnel,
             ["DecorationAward"] = Personnel,
             ["Absence"] = Personnel,
+            ["FirearmUse"] = "Meldung eines Schusswaffengebrauchs mit Agent, Zeitpunkt und Begründung; Dienstinterna, "
+                + "die einen Agenten enttarnen und nach außen nie gehen.",
             ["AgentActivity"] = Personnel,
             ["AgentActivityLink"] = Assignment,
             ["ActivityTemplate"] = Configuration,

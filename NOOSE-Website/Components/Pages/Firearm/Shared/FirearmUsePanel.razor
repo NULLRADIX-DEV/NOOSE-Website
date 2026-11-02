@@ -1,0 +1,101 @@
+@* Firearm-use reports of one agent, for the personnel file: their own file, or the leadership read. *@
+@inject IFirearmUseService FirearmUses
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+}
+else if (_rows.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Kein Schusswaffengebrauch gemeldet.</MudAlert>
+}
+else
+{
+    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Dense="true">
+        <HeaderContent>
+            <MudTh>Zeitpunkt</MudTh>
+            <MudTh>Begründung</MudTh>
+            <MudTh Style="text-align:right;">Aktion</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Zeitpunkt">@context.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Begründung">
+                <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@context.Reason</MudText>
+            </MudTd>
+            <MudTd DataLabel="Aktion" Style="text-align:right;">
+                @if (context.MayDelete)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => DeleteAsync(context))" aria-label="Meldung löschen" />
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string AgentId { get; set; } = string.Empty;
+
+    private ClaimsPrincipal _user = new();
+    private List<FirearmUseRow> _rows = new();
+    private bool _load = true;
+    private string? _error;
+    private string? _loadedId;
+
+    // the personnel file is reused across agents, so the id is watched instead of the first render
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == AgentId)
+        {
+            return;
+        }
+        _loadedId = AgentId;
+        _user = (await AuthStateTask).User;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        try
+        {
+            _rows = await FirearmUses.GetForAgentAsync(AgentId, _user);
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _rows = new();
+            _error = ex.Message;
+        }
+        _load = false;
+    }
+
+    private async Task DeleteAsync(FirearmUseRow row)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Meldung löschen?",
+            $"Die Meldung vom {row.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm} kommt in den Papierkorb "
+            + "und lässt sich dort von der Führung wiederherstellen.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await FirearmUses.DeleteAsync(row.Id, _user);
+            Snackbar.Add("Meldung gelöscht.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

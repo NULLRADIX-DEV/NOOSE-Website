@@ -1,0 +1,238 @@
+@page "/schusswaffengebrauch"
+@attribute [Authorize(Policy = Policies.LeadershipPage)]
+@inject IFirearmUseService FirearmUses
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<PageTitle>Schusswaffengebrauch · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.GpsFixed"
+            Title="Schusswaffengebrauch"
+            Subtitle="Von den Agenten gemeldeter Schusswaffengebrauch mit Begründung. Die Meldung legt jeder Agent selbst über die Kopfzeile an." />
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4">@_error</MudAlert>
+}
+
+<MudPaper Class="pa-4 mb-4" Elevation="2">
+    <MudGrid Spacing="2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" @bind-Value="_agentId" @bind-Value:after="ApplyAsync" Label="Agent" Clearable="true"
+                       Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var a in _agents)
+                {
+                    <MudSelectItem T="string" Value="@a.Id">@(string.IsNullOrWhiteSpace(a.Codename) ? "(unbenannt)" : a.Codename)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="Division?" @bind-Value="_division" @bind-Value:after="ApplyAsync" Label="Abteilung"
+                       Clearable="true" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                @foreach (var d in DivisionDisplay.All)
+                {
+                    <MudSelectItem T="Division?" Value="@((Division?)d)">@DivisionDisplay.Name(d)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker @bind-Date="_from" @bind-Date:after="ApplyAsync" Label="Von" Editable="true"
+                           DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudDatePicker @bind-Date="_to" @bind-Date:after="ApplyAsync" Label="Bis" Editable="true"
+                           DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Clear"
+                       OnClick="ResetAsync" Disabled="@(_busy || !Filtered)">Zurücksetzen</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_rows.Count >= FirearmUseService.MaxRows)
+{
+    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+        Es werden die neuesten @FirearmUseService.MaxRows Meldungen angezeigt. Filter verfeinern für ältere Einträge.
+    </MudAlert>
+}
+
+<MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
+          Loading="_busy" LoadingProgressColor="Color.Primary">
+    <HeaderContent>
+        <MudTh>Zeitpunkt</MudTh>
+        <MudTh>Agent</MudTh>
+        <MudTh>Abteilung</MudTh>
+        <MudTh>Begründung</MudTh>
+        <MudTh Style="text-align:right;">Aktion</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Zeitpunkt">@context.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+        <MudTd DataLabel="Agent">
+            <MudLink Href="@($"/personal/{context.AgentId}")">@context.Codename</MudLink>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">@RankDisplay.Name(context.Rank, context.Home)</MudText>
+        </MudTd>
+        <MudTd DataLabel="Abteilung">
+            @if (context.Home is { } home)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@DivisionDisplay.Colour(home)"
+                         Icon="@DivisionDisplay.Icon(home)">
+                    @DivisionRules.Label(new OrgUnit(context.Home, context.IsBoard))
+                </MudChip>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
+            }
+        </MudTd>
+        <MudTd DataLabel="Begründung">
+            <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@context.Reason</MudText>
+        </MudTd>
+        <MudTd DataLabel="Aktion" Style="text-align:right;">
+            @* the row says whether the viewer may delete it: write access, leadership, and never their own report *@
+            @if (context.MayDelete)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                               OnClick="@(() => DeleteAsync(context))" aria-label="Meldung löschen" />
+            }
+        </MudTd>
+    </RowTemplate>
+    <NoRecordsContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">
+            @(Filtered ? "Keine Meldungen für diesen Filter." : "Noch kein Schusswaffengebrauch gemeldet.")
+        </MudText>
+    </NoRecordsContent>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+    </PagerContent>
+</MudTable>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    private List<FirearmUseRow> _rows = new();
+    private List<(string Id, string Codename)> _agents = new();
+    private string? _agentId;
+    private Division? _division;
+    private DateTime? _from;
+    private DateTime? _to;
+    private bool _busy = true;
+    private string? _error;
+    private int _loadGeneration;
+
+    private bool Filtered => _agentId is not null || _division is not null || _from is not null || _to is not null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        ReadUrlState();
+        await LoadAgentsAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAgentsAsync()
+    {
+        try
+        {
+            _agents = await FirearmUses.GetAgentOptionsAsync(_user);
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+    }
+
+    // a stale load must not overwrite a newer one: filters change faster than the query answers
+    private async Task LoadAsync()
+    {
+        var generation = ++_loadGeneration;
+        _busy = true;
+        try
+        {
+            // pickers are local dates; "Bis" is an inclusive whole day
+            var filter = new FirearmUseFilter(_agentId, _division,
+                _from?.Date.ToUniversalTime(), _to?.Date.AddDays(1).ToUniversalTime());
+            var rows = await FirearmUses.GetListAsync(filter, _user);
+            if (generation != _loadGeneration)
+            {
+                return;
+            }
+            _rows = rows;
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            if (generation == _loadGeneration)
+            {
+                _error = ex.Message;
+            }
+        }
+        finally
+        {
+            if (generation == _loadGeneration)
+            {
+                _busy = false;
+            }
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        await WriteUrlStateAsync();
+        await LoadAsync();
+    }
+
+    private async Task ResetAsync()
+    {
+        _agentId = null;
+        _division = null;
+        _from = null;
+        _to = null;
+        await ApplyAsync();
+    }
+
+    private async Task DeleteAsync(FirearmUseRow row)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Meldung löschen?",
+            $"Die Meldung von {row.Codename} vom {row.Timestamp.ToLocalTime():dd.MM.yyyy HH:mm} kommt in den Papierkorb "
+            + "und lässt sich dort von der Führung wiederherstellen.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await FirearmUses.DeleteAsync(row.Id, _user);
+            Snackbar.Add("Meldung gelöscht.", Severity.Success);
+            await LoadAgentsAsync();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void ReadUrlState()
+    {
+        _agentId = QueryState.Read(Nav, "ag");
+        _division = QueryState.ReadEnum<Division>(Nav, "abt");
+        if (DateTime.TryParse(QueryState.Read(Nav, "von"), out var from))
+        {
+            _from = from.Date;
+        }
+        if (DateTime.TryParse(QueryState.Read(Nav, "bis"), out var to))
+        {
+            _to = to.Date;
+        }
+    }
+
+    private Task WriteUrlStateAsync() => QueryState.WriteAsync(JS, Nav,
+        ("ag", _agentId),
+        ("abt", _division?.ToString()),
+        ("von", _from?.ToString("yyyy-MM-dd")),
+        ("bis", _to?.ToString("yyyy-MM-dd")));
+}

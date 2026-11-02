@@ -133,6 +133,9 @@ public static class NavCatalog
         new NavEntry("tickets.beteiligt", "/tickets?tab=beteiligt", Icons.Material.Filled.Group, "Meine Tickets",
             NavSection.MeinDienst, NavArea.MeinDienst, NavLinkMatch.All,
             Description: "Tickets, an denen du beteiligt bist, und eigene Anliegen an die Führung"),
+        new NavEntry("schusswaffengebrauch", "/schusswaffengebrauch", Icons.Material.Filled.GpsFixed, "Schusswaffengebrauch",
+            NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
+            Description: "Gemeldeter Schusswaffengebrauch aller Agenten, filterbar nach Agent, Abteilung und Zeitraum"),
         new NavEntry("papierkorb", "/papierkorb", Icons.Material.Filled.Delete, "Papierkorb", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Gelöschte Akten aller Typen wiederherstellen"),
     };

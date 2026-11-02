@@ -127,6 +127,26 @@ public class TrashProjectionTests
     }
 
     [Fact]
+    public void Firearm_uses_show_who_and_when_but_never_the_reason()
+    {
+        var row = TrashProjection.FirearmUse(new NOOSE_Website.Data.Entities.Personnel.FirearmUse
+        {
+            Id = "w1",
+            AgentId = "agent-7",
+            Agent = new Agent { Codename = "Falke" },
+            Timestamp = new DateTime(2026, 3, 12, 14, 0, 0, DateTimeKind.Local),
+            Reason = "Warnschuss auf dem Parkdeck",
+            DeletedAt = Deleted,
+        });
+
+        Assert.Equal("schusswaffengebrauch", row.Kind);
+        Assert.Null(row.Reference);
+        Assert.Equal("Falke", row.Title);
+        Assert.Equal("12.03.2026 14:00", row.Detail);
+        Assert.DoesNotContain("Warnschuss", row.Title + row.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Tips_show_neither_the_citizen_nor_the_text()
     {
         // the trash list is read by every handler, and the anonymity promise does not pause on deletion
