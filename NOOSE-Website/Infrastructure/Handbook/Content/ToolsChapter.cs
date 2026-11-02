@@ -196,9 +196,10 @@ internal static class ToolsChapter
                 NavKey: "neuerungen"),
 
             new Article("art-handbuch-pflegen", "handbuch-pflegen", "Handbuch und Glossar pflegen",
-                "Für Führung und HRB: wie du hier etwas änderst.",
+                "Für Führung und Administration Division: wie du hier etwas änderst.",
                 """
-                <p>Dieses Handbuch ist nicht in Stein gemeißelt. <strong>Führung und HRB</strong> können
+                <p>Dieses Handbuch ist nicht in Stein gemeißelt. <strong>Führung und Administration
+                Division</strong> können
                 Kapitel, Artikel und Glossarbegriffe anlegen und bearbeiten - direkt auf dieser Seite.</p>
                 <p>Ein Artikel hat zwei getrennte Textfelder: die <strong>Anleitung</strong> und den Kasten
                 <strong>„Im Rollenspiel bedeutet das …“</strong>. Halte sie auseinander. So lassen sich eure

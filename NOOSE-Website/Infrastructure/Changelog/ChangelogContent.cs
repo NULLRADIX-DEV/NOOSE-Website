@@ -32,8 +32,9 @@ public static class ChangelogContent
     /// carrying the key it had under 2.2.00 as <c>LegacyKey</c>, and again only the revision writes their order.
     /// Raised to 8 when the lines of 2 November moved from 2.7.00 into 2.8.00 and three older ones closed the gap;
     /// each carries its former key as <c>LegacyKey</c>.
+    /// Raised to 9 when the lines of the older releases were reworded from NOOSE to FIB and release 3.0.00 came.
     /// </remarks>
-    public const int Revision = 8;
+    public const int Revision = 9;
 
     /// <param name="Key">Stable handle; renaming one orphans the old row and creates a second.</param>
     /// <param name="LegacyKey">The key this line shipped under before it moved into another release.</param>
@@ -590,6 +591,40 @@ public static class ChangelogContent
             Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
                 + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),
+        ]),
+
+        new("3.0.00", new DateTime(2026, 11, 3), "Aus NOOSE wird das FIB",
+        [
+            Neu("3.0.00-fib-umbenennung", "Aus der NOOSE wird das FIB: neuer Name, neues Wappen und die neue Adresse "
+                + "fibhq.com. Aktenzeichen beginnen jetzt mit FIB; ein altes Aktenzeichen mit NOOSE- führt auf den "
+                + "öffentlichen Seiten weiter zur richtigen Akte.", "Behörde"),
+            Neu("3.0.01-dienstgrade", "Acht Dienstgrade statt sechs: Trainee, Special Agent, Senior Special Agent, "
+                + "Special Agent in Charge, Section Chief, Assistant Director, Deputy Director und Director. Aus Junior "
+                + "Agent wurde der Trainee, aus Supervisory Special Agent der Special Agent in Charge.", "Personal"),
+            Neu("3.0.02-abteilungen", "Jeder Agent gehört jetzt genau einer Abteilung an: CID, CTD oder HRT. Das Board "
+                + "of Directors ergibt sich aus dem Dienstgrad, die Administration Division löst das HRB ab. Ist eine "
+                + "Abteilung voll, fragt die Seite vor jeder weiteren Einteilung nach.", "Personal"),
+            Neu("3.0.03-organigramm", "Das Organigramm zeigt das Board mit seinen Plätzen und darunter CID, CTD und "
+                + "HRT mit „besetzt / Limit“. Im HRT stehen die Titel Operator, Senior Operator, Leading Operator und "
+                + "Commanding Operator – nur intern, nach außen gilt der normale Dienstgrad.", "Organigramm"),
+            Neu("3.0.04-section-chief", "Ein Section Chief entscheidet in seiner eigenen Abteilung über Beförderungen "
+                + "und vergibt dort Dienstgrade bis zum Special Agent in Charge. Darüber entscheidet das Board. Die "
+                + "Liste der Anträge zeigt jedem nur, was er entscheiden darf.", "Personal"),
+            Neu("3.0.05-urkunden-abteilung", "Urkunden tragen die Unterschrift der Abteilung des Agenten. Unter "
+                + "Einstellungen lässt sich je Abteilung ein eigener Unterzeichner eintragen, sonst unterschreibt wie "
+                + "bisher der der Behörde.", "Personal"),
+            Neu("3.0.06-schusswaffengebrauch", "Neuer Knopf in der Kopfzeile neben der Schnellerfassung: "
+                + "Schusswaffengebrauch melden. Wer in der CID oder CTD unterhalb des Special Agent in Charge dient, "
+                + "trägt ihn mit einer kurzen Begründung ein; die Führung sieht alle Meldungen in der neuen Übersicht "
+                + "Schusswaffengebrauch.", "Schusswaffengebrauch"),
+            Neu("3.0.07-defcon", "Die Gefahrenlage heißt jetzt DEFCON und hat fünf statt vier Stufen: von DEFCON 5 "
+                + "(Niedrig) bis DEFCON 1 (Kritisch).", "Öffentlich"),
+            Besser("3.0.08-farben-logo", "Neue Farben und neues Logo: Anthrazit und Bronze statt Blau und Cyan, dazu "
+                + "das Wappen des FIB.", "Bedienung"),
+            Besser("3.0.09-fibi", "Die KI der Behörde heißt jetzt FIBI statt NOOSEI.", "FIBI"),
+            Besser("3.0.10-handbuch", "Das Handbuch folgt dem neuen Konzept: Dienstgrade, Abteilungen, Dienstregeln, "
+                + "Bewaffnung, Gehalt, Kleidung, Fahrzeuge je Dienstgrad und DEFCON sowie die Sicherheitsfreigaben "
+                + "sind neu geschrieben.", "Handbuch"),
         ]),
     ];
 }

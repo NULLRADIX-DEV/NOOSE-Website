@@ -78,7 +78,7 @@ internal static class DutyChapter
                 Platz und Notizen ihrer Seitennummer, neue Seiten kommen dahinter. Den Inhalt einer Google-Folie
                 änderst du in Google, hier pflegst du nur ihre Notizen.</p>
                 <p>Wer eine Präsentation sieht, legst du beim Anlegen fest: <strong>öffentlich</strong> für alle
-                internen Agenten, <strong>geschlossen</strong> für eine Gruppe (TRU, HRB, eine Taskforce oder ab einem
+                internen Agenten, <strong>geschlossen</strong> für eine Gruppe (HRT, Administration Division, eine Taskforce oder ab einem
                 Dienstgrad) oder <strong>privat</strong> nur für die Eingeladenen. Schließen kannst du sie nur für eine
                 Gruppe, zu der du selbst gehörst. Du und die Führung sehen deine Präsentationen immer.</p>
                 <p>Mit <em>Vorführen</em> startest du den Vortrag. Wer die Präsentation sehen darf und gerade online
