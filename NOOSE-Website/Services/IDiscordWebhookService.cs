@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Services;
 
@@ -39,6 +40,9 @@ public interface IDiscordWebhookService
 
     /// <summary>Post an app-authored message to a category's channel with that category's ping (role or none) and an optional login-gated link. Best-effort; returns true on 2xx.</summary>
     Task<bool> PushCustomAsync(NotificationType type, string content, string? href = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Post a wanted-notice card as an embed with the category's ping; the link sits on the embed, not in the content. Best-effort; returns true on 2xx.</summary>
+    Task<bool> PushWantedCardAsync(NotificationType type, WantedDiscordEmbed card, CancellationToken cancellationToken = default);
 
     /// <summary>Post the threat board as a new message and return its Discord id; null when Discord refused. Pings nobody.</summary>
     Task<string?> PostThreatBoardAsync(string webhookUrl, ThreatBoardEmbed embed, CancellationToken cancellationToken = default);

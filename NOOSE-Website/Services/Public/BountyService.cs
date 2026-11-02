@@ -566,13 +566,18 @@ public class BountyService(
             return;
         }
 
-        await discord.PushCustomAsync(NotificationType.PublicWantedBountyRaised,
-            Compose(new PublicBountyAnnouncement(row.CaseNumber, row.DisplayName, after, row.BountyIsCap)),
-            $"/gesucht/{row.CaseNumber}", cancellationToken);
+        // unlisted: nothing to link
+        var board = await wanted.GetBoardAsync(cancellationToken);
+        if (board.CardFor(row.CaseNumber) is not { } card)
+        {
+            return;
+        }
+
+        await discord.PushWantedCardAsync(NotificationType.PublicWantedBountyRaised,
+            Compose(card, new PublicBounty(after, row.BountyIsCap), DateTime.UtcNow), cancellationToken);
     }
 
-    /// <summary>The message text. Takes only the outward record, which structurally cannot carry a PersonId, the internal case number, a codename or a breakdown.</summary>
-    private static string Compose(PublicBountyAnnouncement announcement)
-        => $"💰 **Kopfgeld erhöht** — {announcement.DisplayName} ({announcement.CaseNumber}): "
-            + $"{(announcement.IsCap ? "bis " : string.Empty)}{announcement.Total:N0} $";
+    /// <summary>The card. Takes only outward records, which structurally cannot carry a PersonId, the internal case number, a codename, a breakdown or the charge.</summary>
+    private static WantedDiscordEmbed Compose(PublicWantedCard card, PublicBounty total, DateTime raisedAt)
+        => WantedDiscordCard.BountyRaised(card, total, raisedAt);
 }

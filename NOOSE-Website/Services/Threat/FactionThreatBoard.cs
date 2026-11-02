@@ -66,7 +66,7 @@ public static partial class FactionThreatBoard
         var shown = 0;
         foreach (var entry in ordered)
         {
-            var line = $"\n🔴 `{entry.Score}` **[{Escape(Shorten(entry.Name))}]({FileLink(baseUrl, entry.Id)})**";
+            var line = $"\n🔴 `{entry.Score}` **[{DiscordMarkdown.Escape(Shorten(entry.Name))}]({FileLink(baseUrl, entry.Id)})**";
             if (shown >= MaxLines || description.Length + line.Length > MaxDescriptionChars)
             {
                 break;
@@ -185,27 +185,6 @@ public static partial class FactionThreatBoard
             cut--;
         }
         return flat[..cut] + "…";
-    }
-
-    // a name must not break out of the link text or switch on formatting
-    private static string Escape(string text)
-    {
-        var sb = new StringBuilder(text.Length);
-        foreach (var c in text)
-        {
-            // Discord pairs link brackets before it reads escapes, so a lone bracket would still break the link
-            if (c is '[' or ']')
-            {
-                sb.Append(c == '[' ? '［' : '］');
-                continue;
-            }
-            if (c is '\\' or '*' or '_' or '~' or '`' or '|' or '>' or '(' or ')' or '<' or '#')
-            {
-                sb.Append('\\');
-            }
-            sb.Append(c);
-        }
-        return sb.ToString();
     }
 
     [GeneratedRegex(@"/webhooks/(\d+)/", RegexOptions.CultureInvariant)]

@@ -2,8 +2,8 @@ using MudBlazor;
 
 namespace NOOSE_Website.Services.Public;
 
-/// <summary>One selectable chip colour: the stored name, its German label and the MudBlazor value.</summary>
-public sealed record WarnhinweisColourChoice(string Name, string Label, Color Colour);
+/// <summary>One selectable chip colour: the stored name, its German label, the MudBlazor value and the dot Discord shows.</summary>
+public sealed record WarnhinweisColourChoice(string Name, string Label, Color Colour, string Dot);
 
 /// <summary>The colours a warning chip may use, as an allowlist.</summary>
 /// <remarks>
@@ -16,17 +16,21 @@ public static class WarnhinweisColours
 {
     public static readonly IReadOnlyList<WarnhinweisColourChoice> All =
     [
-        new("Error", "Rot", Color.Error),
-        new("Warning", "Orange", Color.Warning),
-        new("Info", "Blau", Color.Info),
-        new("Success", "Grün", Color.Success),
-        new("Secondary", "Violett", Color.Secondary),
-        new("Default", "Grau", Color.Default),
+        new("Error", "Rot", Color.Error, "🔴"),
+        new("Warning", "Orange", Color.Warning, "🟠"),
+        new("Info", "Blau", Color.Info, "🔵"),
+        new("Success", "Grün", Color.Success, "🟢"),
+        new("Secondary", "Violett", Color.Secondary, "🟣"),
+        new("Default", "Grau", Color.Default, "⚪"),
     ];
 
     /// <summary>The MudBlazor colour for a stored name; anything unknown or empty falls back to grey.</summary>
     public static Color Resolve(string? name)
         => All.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.Ordinal))?.Colour ?? Color.Default;
+
+    /// <summary>The coloured dot for a stored name in a Discord line; anything unknown or empty gets the white one.</summary>
+    public static string Dot(string? name)
+        => All.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.Ordinal))?.Dot ?? "⚪";
 
     public static bool IsKnown(string? name)
         => All.Any(c => string.Equals(c.Name, name, StringComparison.Ordinal));

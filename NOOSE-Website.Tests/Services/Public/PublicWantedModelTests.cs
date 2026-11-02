@@ -24,7 +24,6 @@ public class PublicWantedModelTests
         typeof(PublicWantedBoard),
         typeof(PublicWantedPhoto),
         typeof(PublicBounty),
-        typeof(PublicBountyAnnouncement),
         typeof(PublicPageLink),
         typeof(PublicPageView),
         typeof(PublicPageSnapshot),

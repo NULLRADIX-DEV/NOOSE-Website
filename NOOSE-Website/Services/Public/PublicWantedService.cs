@@ -1266,17 +1266,25 @@ public class PublicWantedService(
             row.PhotoFileName != null, row.PublicHazardLevel, row.PublishedAt, NoHints), cancellationToken);
     }
 
-    /// <summary>Announces a fresh notice in the public channel.</summary>
+    /// <summary>Announces a fresh notice in the public channel as a card.</summary>
     /// <remarks>
     /// Takes a <see cref="PublicWantedCard"/> and nothing else on purpose — that record structurally cannot carry a
     /// PersonId, the internal NOOSE-P case number, a codename or a score, so the message cannot either. No accusation
-    /// text: after a retraction the post is then a dead link rather than a standing allegation. Fire and forget —
-    /// PushCustomAsync swallows its own failures, and a dead webhook must never fail a publication.
+    /// text: after a retraction the post is then a dead link rather than a standing allegation. Chips and money come
+    /// from the outward board, and a notice the board does not list is not posted: the link would answer "not found"
+    /// and a post cannot be recalled. PushWantedCardAsync swallows its own failures.
     /// </remarks>
-    private Task PushPublishedAsync(PublicWantedCard card, CancellationToken cancellationToken)
-        => discord.PushCustomAsync(NotificationType.PublicWantedPublished,
-            $"🔎 **Neue öffentliche Fahndung** — {card.DisplayName} ({card.CaseNumber})",
-            $"/gesucht/{card.CaseNumber}", cancellationToken);
+    private async Task PushPublishedAsync(PublicWantedCard card, CancellationToken cancellationToken)
+    {
+        // fresh after commit
+        var board = await GetBoardAsync(cancellationToken);
+        if (board.CardFor(card.CaseNumber) is not { } listed)
+        {
+            return;
+        }
+        await discord.PushWantedCardAsync(NotificationType.PublicWantedPublished,
+            WantedDiscordCard.Published(listed, board.BountyFor(card.CaseNumber)), cancellationToken);
+    }
 
     /// <summary>The one save path of this table: nothing writes it without dropping the snapshot.</summary>
     /// <remarks>

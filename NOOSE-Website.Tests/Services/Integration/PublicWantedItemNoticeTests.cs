@@ -35,7 +35,7 @@ public sealed class PublicWantedItemNoticeTests
         public CurrentUserInfo Get() => new("lead", "Falcon", true, false, false);
     }
 
-    private sealed record Host(PublicWantedService Service, IMemoryCache Cache);
+    private sealed record Host(PublicWantedService Service, IMemoryCache Cache, IDiscordWebhookService Discord);
 
     private static Host NewHost(SqliteTestContext ctx)
     {
@@ -51,11 +51,12 @@ public sealed class PublicWantedItemNoticeTests
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{Guid.NewGuid().ToString()[..4]}");
 
+        var discord = Substitute.For<IDiscordWebhookService>();
         var service = new PublicWantedService(factory, modules, caseNumbers,
             Substitute.For<IFileStorageService>(), Substitute.For<IPublicWantedPhotoStorageService>(),
             Substitute.For<INotificationService>(), new TipPriorityService(factory),
-            Substitute.For<IDiscordWebhookService>(), Substitute.For<IPressReleaseService>(), cache);
-        return new Host(service, cache);
+            discord, Substitute.For<IPressReleaseService>(), cache);
+        return new Host(service, cache, discord);
     }
 
     /// <summary>Modules on, one clean file with a plated vehicle, an unplated one, a weapon and a known area.</summary>
@@ -458,6 +459,24 @@ public sealed class PublicWantedItemNoticeTests
 
         await using var db = ctx.NewContext();
         Assert.Equal(PublicWantedStatus.Entwurf, (await db.OeffentlicheFahndungen.SingleAsync(f => f.Id == id)).Status);
+    }
+
+    [Fact]
+    public async Task APublishedVehicle_IsAnnouncedAsASachfahndungCardWithoutAnImage()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+
+        await PublishedVehicleAsync(ctx, host);
+
+        var card = (WantedDiscordEmbed)host.Discord.ReceivedCalls()
+            .Single(c => c.GetMethodInfo().Name == nameof(IDiscordWebhookService.PushWantedCardAsync))
+            .GetArguments()[1]!;
+        Assert.Equal("🚗 Sachfahndung Fahrzeug: 4XYZ123", card.Title);
+        Assert.Null(card.ImagePath);
+        Assert.Null(card.ThumbnailPath);
+        // the accusation of the notice stays on the page
+        Assert.DoesNotContain("Tatfahrzeug", WantedCardText.Of(card), StringComparison.Ordinal);
     }
 
     [Fact]
