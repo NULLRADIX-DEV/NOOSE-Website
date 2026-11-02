@@ -628,6 +628,44 @@ public sealed class ChangelogTests
     }
 
     [Fact]
+    public async Task Every_shipped_legacy_key_moves_its_row_without_a_second_one()
+    {
+        using var ctx = new SqliteTestContext();
+        // the layout before the moves: each moved line back under its old key and release
+        var shipped = ChangelogContent.Releases;
+        var before = shipped
+            .Select(r => r with
+            {
+                LegacyVersion = null,
+                Entries = r.Entries.Where(e => e.LegacyKey is null)
+                    .Concat(shipped.SelectMany(x => x.Entries)
+                        .Where(e => e.LegacyKey is { } old && ReleaseOf(old) == r.Version)
+                        .Select(e => e with { Key = e.LegacyKey!, LegacyKey = null }))
+                    .ToArray(),
+            })
+            .Where(r => r.Entries.Length > 0)
+            .ToList();
+        await SeedAsync(ctx, before, ChangelogContent.Revision - 1, "1.0.1");
+        Dictionary<string, string> oldIds;
+        await using (var db = ctx.NewContext())
+        {
+            oldIds = await db.Aenderungseintraege.Where(e => e.SeedKey != null).ToDictionaryAsync(e => e.SeedKey!, e => e.Id);
+        }
+
+        await SeedAsync(ctx, shipped, ChangelogContent.Revision, "1.0.2");
+
+        await using var after = ctx.NewContext();
+        var rows = await after.Aenderungseintraege.Where(e => e.SeedKey != null).ToListAsync();
+        Assert.Equal(oldIds.Count, rows.Count);
+        foreach (var moved in shipped.SelectMany(r => r.Entries).Where(e => e.LegacyKey is not null))
+        {
+            Assert.Equal(oldIds[moved.LegacyKey!], rows.Single(e => e.SeedKey == moved.Key).Id);
+        }
+
+        static string ReleaseOf(string key) => key[..key.LastIndexOf('.')] + ".00";
+    }
+
+    [Fact]
     public void Every_shipped_release_has_a_unique_version_and_at_least_one_line()
     {
         var versions = ChangelogContent.Releases.Select(r => r.Version).ToList();
