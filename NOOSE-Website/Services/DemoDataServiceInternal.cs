@@ -515,7 +515,7 @@ public partial class DemoDataService
             ("Wochenbesprechung Lagebild (KW 34)", -14, MeetingStatus.Held,
                 ["Lagebild Süden der Stadt", "Stand Hafenobservation", "Personalien und Abmeldungen", "Verschiedenes"],
                 "Lagebild besprochen. Die Observation im Hafen wird um zwei Wochen verlängert; Zuständigkeit bleibt "
-                + "bei der Ermittlungsführung. Für die Gefahrenlage wurde eine Anhebung auf „Erhöht\" beschlossen."),
+                + "bei der Ermittlungsführung. Für die Gefahrenlage wurde eine Anhebung auf „DEFCON 4\" beschlossen."),
             ("Wochenbesprechung Lagebild (KW 35)", -7, MeetingStatus.Held,
                 ["Rückblick Zugriff Hafenviertel", "Auswertung Bürgerhinweise", "Kopfgeld-Budget", "Verschiedenes"],
                 "Der Zugriff im Hafenviertel verlief ohne Zwischenfälle. Die Auswertung der Bürgerhinweise ergab eine "

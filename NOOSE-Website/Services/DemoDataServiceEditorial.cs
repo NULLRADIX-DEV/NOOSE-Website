@@ -227,7 +227,7 @@ public partial class DemoDataService
             "Nach mehreren Auseinandersetzungen gilt für Davis und Rancho bis auf Weiteres eine erhöhte Gefahrenlage.", 11,
         [
             "Nach wiederholten Auseinandersetzungen zwischen rivalisierenden Gruppierungen hat die Behörde die "
-            + "Gefahrenlage für den Süden der Stadt auf „Erhöht\" gesetzt.",
+            + "Gefahrenlage für den Süden der Stadt auf „DEFCON 4\" gesetzt.",
             "Die Einstufung wird laufend überprüft. Über Änderungen informieren wir auf dieser Seite.",
         ]),
     ];

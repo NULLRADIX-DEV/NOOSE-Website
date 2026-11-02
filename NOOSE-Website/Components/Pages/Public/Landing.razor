@@ -35,8 +35,8 @@
                         <MudStack Spacing="2">
                             <MudText Typo="Typo.overline" Class="mud-text-secondary">Gefahrenlage</MudText>
                             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                <MudIcon Icon="@Icons.Material.Filled.Speed" Color="@_situationColour" Size="Size.Large" />
-                                <MudText Typo="Typo.h5" Color="@_situationColour" Style="font-weight:700;">
+                                <MudIcon Icon="@Icons.Material.Filled.Speed" Style="@PublicSituationLevelDisplay.TextStyle(_situation.Level)" Size="Size.Large" />
+                                <MudText Typo="Typo.h5" Style="@(PublicSituationLevelDisplay.TextStyle(_situation.Level) + "font-weight:700;")">
                                     @PublicSituationLevelDisplay.Name(_situation.Level)
                                 </MudText>
                             </MudStack>
@@ -297,7 +297,6 @@
     private string _registrationOfflineText = "Neue Bürgerkonten können derzeit nicht angelegt werden.";
 
     private PublicSituationState? _situation;
-    private Color _situationColour = Color.Default;
     private PublicStatistics _numbers = PublicStatistics.Empty;
     private IReadOnlyList<PublicWantedCard> _wanted = [];
     private IReadOnlyDictionary<string, PublicBounty> _bounties = PublicWantedBoard.NoBounties;
@@ -321,10 +320,6 @@
         }
 
         _situation = await SafeAsync<PublicSituationState?>(() => Situation.GetPublishedAsync(), null);
-        if (_situation is not null)
-        {
-            _situationColour = PublicSituationLevelDisplay.Colour(_situation.Level);
-        }
 
         _numbers = await SafeAsync(() => Statistics.GetPublishedAsync(), PublicStatistics.Empty);
 

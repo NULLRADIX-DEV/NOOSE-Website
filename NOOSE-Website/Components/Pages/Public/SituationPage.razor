@@ -32,8 +32,8 @@
             <MudPaper Outlined="true" Class="pa-6">
                 <MudStack Spacing="3">
                     <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
-                        <MudIcon Icon="@Icons.Material.Filled.Speed" Color="@_colour" Size="Size.Large" />
-                        <MudText Typo="Typo.h3" Color="@_colour" Style="font-weight:700;">
+                        <MudIcon Icon="@Icons.Material.Filled.Speed" Style="@PublicSituationLevelDisplay.TextStyle(_state.Level)" Size="Size.Large" />
+                        <MudText Typo="Typo.h3" Style="@(PublicSituationLevelDisplay.TextStyle(_state.Level) + "font-weight:700;")">
                             @PublicSituationLevelDisplay.Name(_state.Level)
                         </MudText>
                     </MudStack>
@@ -51,7 +51,7 @@
                         {
                             @* the trend a traffic light can honestly carry: what stood before this *@
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                     Color="@PublicSituationLevelDisplay.Colour(previous)">
+                                     Style="@PublicSituationLevelDisplay.OutlineStyle(previous)">
                                 zuvor: @PublicSituationLevelDisplay.Name(previous)
                             </MudChip>
                         }
@@ -73,7 +73,6 @@
 
 @code {
     private PublicSituationState? _state;
-    private Color _colour = Color.Default;
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,10 +83,6 @@
         catch
         {
             /* best effort */
-        }
-        if (_state is not null)
-        {
-            _colour = PublicSituationLevelDisplay.Colour(_state.Level);
         }
     }
 }
