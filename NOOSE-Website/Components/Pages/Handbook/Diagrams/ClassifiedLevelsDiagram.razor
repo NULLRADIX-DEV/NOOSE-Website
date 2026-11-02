@@ -4,17 +4,17 @@
      style="width:100%;height:auto;max-width:640px;">
     <title id="vsLevelsTitle">Die vier Stufen einer Verschlusssache</title>
     <desc id="vsLevelsDesc">
-        Offen für alle internen Agenten, Führung ab Supervisory Special Agent, TRU nur mit dem Kennzeichen TRU,
-        HRB nur mit dem Kennzeichen HRB. Partnerkonten sehen keine Stufe.
+        Offen für alle internen Agenten, Führung ab Special Agent in Charge, HRT nur für die Abteilung HRT,
+        Administration nur mit dem Kennzeichen Administration Division. Partnerkonten sehen keine Stufe.
     </desc>
 
     @{
         var levels = new[]
         {
             ("Offen", "Jeder interne Agent", "100 %"),
-            ("Führung", "Ab Supervisory Special Agent, dazu Admins", "ab Rang 4"),
-            ("TRU", "Nur Konten mit dem Kennzeichen TRU", "Kennzeichen"),
-            ("HRB", "Nur Konten mit dem Kennzeichen HRB", "Kennzeichen"),
+            ("Führung", "Ab Special Agent in Charge, dazu Admins", "ab Rang 4"),
+            ("HRT", "Nur Konten der Abteilung HRT", "Abteilung"),
+            ("Administration", "Nur Konten der Administration Division", "Kennzeichen"),
         };
     }
 

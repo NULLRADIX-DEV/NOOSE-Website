@@ -188,6 +188,10 @@ internal static class WantedChapter
                 <p>Die öffentliche Startseite trägt eine <strong>Gefahrenlage-Ampel</strong>: eine Stufe, die
                 die Führung von Hand setzt und begründet. Sie ist eine Aussage der Behörde, keine berechnete
                 Zahl.</p>
+                <p>Angezeigt wird sie als <strong>DEFCON</strong> in fünf Stufen: DEFCON 5 (Niedrig), DEFCON 4
+                (Erhöht), DEFCON 3 (Hoch), DEFCON 2 (Schwer) und DEFCON 1 (Kritisch). Je niedriger die Zahl,
+                desto ernster die Lage. Welche Fahrzeuge das Konzept für welche Stufe nennt, steht unter
+                <em>Ausrüstung &amp; Einrichtungen → Dienstfahrzeuge</em>.</p>
                 <p>Daneben stehen <strong>öffentliche Zahlen</strong> - wie viele Fahndungen laufen, wie viele
                 Hinweise eingegangen sind. Sie sind bewusst grob: aus ihnen darf sich nichts über einzelne
                 Akten ableiten lassen.</p>

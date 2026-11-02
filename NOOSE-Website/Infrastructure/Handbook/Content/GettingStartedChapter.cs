@@ -143,16 +143,17 @@ internal static class GettingStartedChapter
                 NavKey: "profil"),
 
             new Article("art-rechte", "wer-darf-was", "Wer darf was",
-                "Dienstgrad, Kennzeichen und warum beides zusammen zählt.",
+                "Dienstgrad, Abteilung, Kennzeichen und warum alles zusammen zählt.",
                 """
-                <p>Deine Rechte ergeben sich aus <strong>zwei Dingen</strong>. Erstens dein
-                <strong>Dienstgrad</strong> - von Junior Agent bis Director. Zweitens deine
-                <strong>Kennzeichen</strong>: Admin, TRU, HRB.</p>
+                <p>Deine Rechte ergeben sich aus <strong>drei Dingen</strong>. Erstens dein
+                <strong>Dienstgrad</strong> - von Trainee bis Director. Zweitens deine
+                <strong>Abteilung</strong>: CID, CTD oder HRT, und ab Assistant Director das Board of Directors.
+                Drittens deine <strong>Kennzeichen</strong>: Admin und Administration Division.</p>
                 <p>Ein Kennzeichen ist <strong>technisch</strong> nichts anderes als ein eigenes Feld am Konto;
                 es entsteht nicht aus deinem Dienstgrad. Die Dienstverordnung zieht trotzdem eine Schwelle:
-                <strong>TRU und HRB gibt es erst ab Special Agent</strong> (§2.4.1). Die Seite hält sich daran -
-                darunter lässt sich das Kennzeichen gar nicht erst setzen.</p>
-                <p>Ab <strong>Supervisory Special Agent</strong> zählst du zur <strong>Führung</strong>. Das
+                <strong>HRT und Administration Division gibt es erst ab Special Agent</strong> (§2.4.1). Die
+                Seite hält sich daran - darunter lässt sich beides gar nicht erst setzen.</p>
+                <p>Ab <strong>Special Agent in Charge</strong> zählst du zur <strong>Führung</strong>. Das
                 ist die Schwelle, ab der Verschlusssachen, Klarnamen und die meisten Entscheidungen sichtbar
                 werden. Das Kennzeichen <strong>Admin</strong> überspringt jede Rangprüfung - ein Admin gilt
                 überall als Führung, unabhängig von seinem Dienstgrad.</p>
