@@ -87,7 +87,7 @@ public class DiscordWebhookService(
             {
                 title = "📝 EINTRAG",
                 description = link,
-                color = 0x00B8D4, // NOOSE cyan
+                color = 0x71614A, // FIB bronze
                 footer = new { text = "Federal Investigation Bureau" },
                 fields = new object[]
                 {

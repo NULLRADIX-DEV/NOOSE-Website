@@ -37,7 +37,7 @@ public static class WantedDiscordCard
     /// <summary>Room for one hint name; the editor caps them far below.</summary>
     private const int MaxHintChars = 200;
 
-    private const int Cyan = 0x00B8D4;
+    private const int Bronze = 0x71614A;
     private const int Gold = 0xC9A227;
     private const string Office = "Federal Investigation Bureau";
 
@@ -135,8 +135,8 @@ public static class WantedDiscordCard
     {
         HazardLevel.Critical => 0xE53935,
         HazardLevel.High => 0xFB8C00,
-        HazardLevel.Medium => 0x1E88E5,
-        _ => Cyan,
+        HazardLevel.Medium => 0xE0C341,
+        _ => Bronze,
     };
 
     private static string Amount(PublicBounty bounty) => (bounty.IsCap ? "bis " : string.Empty) + Money.Format(bounty.Total);

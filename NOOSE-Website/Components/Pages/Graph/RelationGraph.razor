@@ -258,7 +258,7 @@
             }
             else if (_path is not null && _path.Found)
             {
-                <MudPaper Class="pa-3" Elevation="0" Style="background:var(--mud-palette-background-grey);">
+                <MudPaper Class="pa-3" Elevation="0" Style="background:var(--mud-palette-background-gray);">
                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="flex-wrap">
                         @for (var i = 0; i < _path.Node.Count; i++)
                         {
@@ -350,18 +350,18 @@
     private record TypeOption(string Value, string Display, string Colour);
     private static readonly TypeOption[] _allTypes =
     {
-        new(nameof(Person), "Personen", "#22D3EE"),
-        new(nameof(Faction), "Fraktionen", "#7C8CF8"),
+        new(nameof(Person), "Personen", "#9A8560"),
+        new(nameof(Faction), "Fraktionen", "#A3C23B"),
         new(nameof(PersonGroup), "Personengruppen", "#D29922"),
         new(nameof(Party), "Parteien", "#3FB950"),
         new(nameof(Operation), "Operationen", "#F0883E"),
         new(nameof(Case), "Vorgänge", "#A371F7"),
-        new(nameof(Taskforce), "Taskforces", "#2DD4BF"),
-        new(nameof(Job), "Aufgaben", "#8B98A8"),
-        new(nameof(Agent), "Agenten", "#E6EDF3"),
+        new(nameof(Taskforce), "Taskforces", "#A8552F"),
+        new(nameof(Job), "Aufgaben", "#9A9488"),
+        new(nameof(Agent), "Agenten", "#ECE8E1"),
         new(nameof(Law), "Gesetze", "#C9A227"),
-        new(nameof(PersonDoc), "Doks", "#6E7681"),
-        new(nameof(Observation), "Observationen", "#58A6FF"),
+        new(nameof(PersonDoc), "Doks", "#7A756C"),
+        new(nameof(Observation), "Observationen", "#D0B8EE"),
     };
     private static readonly TypeOption[] _legendTypes = _allTypes.Take(7).ToArray();
 
@@ -396,7 +396,7 @@
         try
         {
             // Bump ?v= when graph.js changes
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/graph.js?v=15");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/graph.js?v=16");
             _ref = DotNetObjectReference.Create(this);
             _ready = true;
             await LoadAndDrawAsync();
