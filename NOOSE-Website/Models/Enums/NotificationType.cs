@@ -174,8 +174,7 @@ public enum NotificationType
     /// leaves with what is personnel business, not a channel's.</summary>
     HandoverReceived = 50,
 
-    /// <summary>Follow-ups went long overdue. Bell for leadership only: who lets work rot is personnel business, and
-    /// the notice names neither record nor agent.</summary>
+    /// <summary>Follow-ups went long overdue; leadership bell only, naming neither record nor agent.</summary>
     FollowupEscalated = 51,
 }
 

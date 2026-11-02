@@ -2,8 +2,7 @@ using NOOSE_Website.Models.Common;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Rules of the follow-up plan and the leadership backlog: buckets, postponing and escalation.</summary>
-/// <remarks>Days are Berlin calendar days (<see cref="MeetingTime"/>), so a reload at midnight never shifts a row.</remarks>
+/// <summary>Buckets, postponing and escalation of follow-ups, counted in Berlin calendar days.</summary>
 public static class FollowupPlanRules
 {
     public const string Route = "/wiedervorlagen";
@@ -47,7 +46,7 @@ public static class FollowupPlanRules
         var local = MeetingTime.Local(dueUtc);
         var today = MeetingTime.Day(nowUtc);
         var from = DateOnly.FromDateTime(local) < today ? today : DateOnly.FromDateTime(local);
-        // keep the time of day the follow-up was set for
+        // keep time of day
         return MeetingTime.ToUtc(from.AddDays(days).ToDateTime(TimeOnly.FromTimeSpan(local.TimeOfDay)));
     }
 

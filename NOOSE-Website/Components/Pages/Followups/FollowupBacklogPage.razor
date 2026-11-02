@@ -159,7 +159,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
-        // the read-only supervision reads the backlog but never hands anything on
+        // supervision only reads
         _mayWrite = _user.MayWrite() && _user.IsLeadership();
         await LoadAsync();
     }

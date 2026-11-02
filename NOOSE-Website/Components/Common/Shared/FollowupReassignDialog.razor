@@ -58,7 +58,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // TeamLeads and partners are never selectable
         _all = (await AgentService.GetSelectableAsync()).Where(a => a.Id != CurrentAgentId).ToList();
         try
         {
@@ -66,7 +65,7 @@
         }
         catch (Exception)
         {
-            // a hint is never worth the dialog
+            // hint only
             _absent = new Dictionary<string, DateOnly>();
         }
     }

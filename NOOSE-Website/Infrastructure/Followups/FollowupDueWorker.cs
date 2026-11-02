@@ -38,7 +38,7 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
                 logger.LogError(ex, "Wiedervorlage-Fälligkeitsprüfung fehlgeschlagen.");
             }
 
-            // own try: a failed due run must not hold back the escalation, nor the other way round
+            // independent of the due run
             try
             {
                 using var scope = scopeFactory.CreateScope();

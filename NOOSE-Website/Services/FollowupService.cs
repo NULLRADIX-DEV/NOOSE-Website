@@ -253,7 +253,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
             }
             if (parent.State == ParentState.Hidden)
             {
-                // counted only: no title, link or note of a record the caller may not see
+                // count, never name
                 hidden++;
                 continue;
             }
@@ -283,7 +283,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         await RequireVisibleParentAsync(db, w, actor, cancellationToken);
 
         w.DueAt = FollowupPlanRules.Postponed(w.DueAt, days, DateTime.UtcNow);
-        // a new due date reminds and escalates afresh
+        // rearm both stamps
         w.NotifiedAt = null;
         w.EscalatedAt = null;
         await db.SaveChangesAsync(cancellationToken);
@@ -368,12 +368,12 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
             .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency })
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("Der gewählte Agent wurde nicht gefunden oder ist nicht zuteilbar.");
-        // the resolved row, since MariaDB compares ids case-insensitively
+        // MariaDB ids ignore case
         if (target.Id == w.ResponsibleAgentId)
         {
             return;
         }
-        // nobody gets a reminder they could not open; the due worker asks the same question
+        // same rule as reminders
         if (!await Visibility.IsRecordVisibleAsync(db, w.EntityType, w.EntityId,
                 ReminderScope(target.Id, target.IsAdmin, target.Rank, target.PartnerAgency), cancellationToken))
         {
@@ -420,16 +420,16 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         var escalated = 0;
         foreach (var w in due)
         {
-            // a stopping host leaves the rest unclaimed for the next run
+            // rest waits for next run
             if (cancellationToken.IsCancellationRequested)
             {
                 break;
             }
-            // claim first, so a second instance or a retry never escalates twice
+            // claim before notifying
             var claimed = await db.Followups
                 .Where(x => x.Id == w.Id && !x.Done && x.EscalatedAt == null)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.EscalatedAt, nowUtc), CancellationToken.None);
-            // a trashed record is stamped silently, like the due worker does
+            // trashed parent: stamp silently
             if (claimed == 1 && resolved.ContainsKey((w.EntityType, w.EntityId)))
             {
                 escalated++;
@@ -440,14 +440,14 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
             return 0;
         }
 
-        // leadership as every leadership fan-out reads it: never team leads, partners or the demo visitor
+        // no team leads, partners, demo
         var leadership = await db.Users.AsNoTracking()
             .OnlySelectable()
             .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
             .Where(u => u.Id != DemoIdentity.AgentId)
             .Select(u => u.Id)
             .ToListAsync(CancellationToken.None);
-        // one folding notice, naming neither record nor agent; the backlog page filters per viewer
+        // one folding notice, unnamed
         await notifications.NotifyManyOnceAsync(leadership, NotificationType.FollowupEscalated,
             FollowupPlanRules.EscalationTitle, FollowupPlanRules.BacklogRoute, triggerId: null, CancellationToken.None);
         return escalated;
@@ -457,7 +457,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
     public static ViewerScope ReminderScope(string agentId, bool isAdmin, Rank? rank, PartnerAgency? partnerAgency)
     {
         var leadership = isAdmin || rank is >= Rank.SupervisorySpecialAgent;
-        // without IsInternalAgent citizen tickets and tips would hide from everyone
+        // else citizen tickets hide
         return new ViewerScope(leadership, leadership, agentId, null, MayAgenda: leadership,
             IsInternalAgent: partnerAgency is null);
     }

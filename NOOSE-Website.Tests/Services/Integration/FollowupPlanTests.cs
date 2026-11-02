@@ -154,6 +154,28 @@ public sealed class FollowupPlanTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).GetMyPlanAsync(Partner()));
     }
 
+    [Fact]
+    public async Task A_long_plan_keeps_the_earliest_and_says_it_is_capped()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("p1"));
+            for (var i = 0; i <= FollowupPlanRules.MaxRows; i++)
+            {
+                db.Followups.Add(Due($"f{i:D4}", "p1", "me", Now.AddHours(i)));
+            }
+            db.SaveChanges();
+        }
+
+        var plan = await Build(ctx).GetMyPlanAsync(Junior());
+
+        Assert.True(plan.Capped);
+        Assert.Equal(FollowupPlanRules.MaxRows, plan.Items.Count);
+        Assert.Equal("f0000", plan.Items[0].Id);
+        Assert.DoesNotContain(plan.Items, i => i.Id == $"f{FollowupPlanRules.MaxRows:D4}");
+    }
+
     // ---------- postpone ----------
 
     [Fact]
