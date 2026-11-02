@@ -30,8 +30,10 @@ public static class ChangelogContent
     /// the whole seeding batch on MySQL.
     /// Raised to 5 when 2.2.00 was cut into 2.2.00 to 2.6.00: thirty-seven lines moved into the new releases, each
     /// carrying the key it had under 2.2.00 as <c>LegacyKey</c>, and again only the revision writes their order.
+    /// Raised to 8 when the lines of 2 November moved from 2.7.00 into 2.8.00 and three older ones closed the gap;
+    /// each carries its former key as <c>LegacyKey</c>.
     /// </remarks>
-    public const int Revision = 7;
+    public const int Revision = 8;
 
     /// <param name="Key">Stable handle; renaming one orphans the old row and creates a second.</param>
     /// <param name="LegacyKey">The key this line shipped under before it moved into another release.</param>
@@ -565,24 +567,29 @@ public static class ChangelogContent
                 + "das interne Menü.", "Öffentlich"),
             Fix("2.7.19-nicht-gefunden-reiter", "Auf der Seite für Adressen, die es nicht gibt, fehlten manchmal alle "
                 + "Reiter außer „Start“. Jetzt steht dort dieselbe Leiste wie auf der Startseite.", "Öffentlich"),
-            Besser("2.7.20-fahndung-steckbrief-karte", "Neue öffentliche Fahndungen erscheinen auf Discord jetzt als "
-                + "Steckbrief-Karte mit Foto, Kopfgeld und Warnhinweisen; auch ein erhöhtes Kopfgeld kommt als Karte.",
-                "Öffentlich"),
-            Neu("2.7.21-noosei-vorschlaege", "Bittest du NOOSEI um eine Wiedervorlage, ein Stichwort, eine Aufgabe, "
-                + "eine Verknüpfung oder das Beobachten einer Akte, erscheint unter der Antwort eine Karte. Erst dein "
-                + "Klick auf „Ausführen“ schreibt, mit deinen Rechten; „Verwerfen“ schließt sie.", "NOOSEI"),
-            Neu("2.7.22-dubletten-radar", "Beim Anlegen einer Person warnt die Seite jetzt auch, wenn es einen ähnlich "
+            Neu("2.7.20-dubletten-radar", "Beim Anlegen einer Person warnt die Seite jetzt auch, wenn es einen ähnlich "
                 + "klingenden oder vertippten Namen schon gibt, und die Ermittlungshinweise zeigen mögliche doppelte "
-                + "Personenakten, die die Führung direkt zusammenführt.", "Personen"),
-            Neu("2.7.23-dienstuebergabe", "Scheidet ein Agent aus, übergibt die Führung mit „Arbeit übergeben“ in "
+                + "Personenakten, die die Führung direkt zusammenführt.", "Personen", "2.7.22-dubletten-radar"),
+            Neu("2.7.21-dienstuebergabe", "Scheidet ein Agent aus, übergibt die Führung mit „Arbeit übergeben“ in "
                 + "seiner Personalakte alles, was noch offen an ihm hängt, in einem Schritt an Nachfolger; nach einer "
-                + "Kündigung öffnet sich das von selbst.", "Personal"),
-            Neu("2.7.24-dienstaufsicht", "Der neue Reiter „Dienstaufsicht“ in der Personalakte zeigt der Führung auf "
+                + "Kündigung öffnet sich das von selbst.", "Personal", "2.7.23-dienstuebergabe"),
+            Neu("2.7.22-dienstaufsicht", "Der neue Reiter „Dienstaufsicht“ in der Personalakte zeigt der Führung auf "
                 + "einem Blatt, was vor einem Beförderungs-, Ermahnungs- oder Kündigungsgespräch zählt, über 30, 90 "
-                + "oder 365 Tage und im Vergleich zu den übrigen Agenten.", "Personal"),
-            Neu("2.7.25-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
+                + "oder 365 Tage und im Vergleich zu den übrigen Agenten.", "Personal", "2.7.24-dienstaufsicht"),
+        ]),
+
+        new("2.8.00", new DateTime(2026, 11, 2), "NOOSEI schlägt vor, Steckbrief-Karten und Akten-Export",
+        [
+            Besser("2.8.00-fahndung-steckbrief-karte", "Neue öffentliche Fahndungen erscheinen auf Discord jetzt als "
+                + "Steckbrief-Karte mit Foto, Kopfgeld und Warnhinweisen; auch ein erhöhtes Kopfgeld kommt als Karte.",
+                "Öffentlich", "2.7.20-fahndung-steckbrief-karte"),
+            Neu("2.8.01-noosei-vorschlaege", "Bittest du NOOSEI um eine Wiedervorlage, ein Stichwort, eine Aufgabe, "
+                + "eine Verknüpfung oder das Beobachten einer Akte, erscheint unter der Antwort eine Karte. Erst dein "
+                + "Klick auf „Ausführen“ schreibt, mit deinen Rechten; „Verwerfen“ schließt sie.",
+                "NOOSEI", "2.7.21-noosei-vorschlaege"),
+            Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
-                + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten"),
+                + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),
         ]),
     ];
 }
