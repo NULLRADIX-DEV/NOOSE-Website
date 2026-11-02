@@ -888,7 +888,7 @@ public static partial class DossierContextBuilder
 
         var links = await db.AgentActivityLinks.AsNoTracking()
             .Where(l => l.AgentActivityId == id)
-            .Select(l => new { l.TargetType, l.TargetId }).Take(50).ToListAsync(ct);
+            .Select(l => new { l.TargetType, l.TargetId }).Take(Cap(50)).ToListAsync(ct);
         if (links.Count > 0)
         {
             var resolved = await RecordsReference.ResolveAsync(db,
@@ -1050,7 +1050,7 @@ public static partial class DossierContextBuilder
     static async Task AppendAssignedAgentsAsync(
         StringBuilder sb, AppDbContext db, IQueryable<string> agentIds, CancellationToken ct)
     {
-        var ids = await agentIds.Take(50).ToListAsync(ct);
+        var ids = await agentIds.Take(Cap(50)).ToListAsync(ct);
         if (ids.Count == 0)
         {
             return;

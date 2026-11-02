@@ -11,6 +11,7 @@
             Subtitle="Organisationen (Gangs, Konzerne, …) mit Mitgliedern, Beständen, Rängen und Konflikten.">
     <Actions>
         <SavedViewButton BaseRoute="/fraktionen" Filters="FilterState" OnApply="ApplyViewAsync" />
+        <ListExportButton T="FactionRow" RecordType="@nameof(Faction)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
         <AuthorizeView Policy="@Policies.Leadership">
             <MudButton Href="/papierkorb?tab=fraktionen" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
         </AuthorizeView>
@@ -26,7 +27,7 @@
 }
 else
 {
-    <MudDataGrid T="FactionRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
+    <MudDataGrid @ref="_grid" T="FactionRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
                  QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
         <ToolBarContent>
             <MudTextField Value="_search" ValueChanged="@((string v) => SearchChangedAsync(v))" Placeholder="Suchen (Name, Aktenzeichen, Art)…" Immediate="true"
@@ -169,6 +170,24 @@ else
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private MudDataGrid<FactionRow>? _grid;
+
+    /// <summary>The CSV export's columns: the grid's own, minus image and trend curve.</summary>
+    private static readonly IReadOnlyList<ExportColumn<FactionRow>> ExportColumns =
+    [
+        new("Aktenzeichen", r => r.CaseNumber),
+        new("Name", r => r.Name),
+        new("Archiviert", r => ExportText.Flag(r.IsArchived)),
+        new("Art", r => r.Kind),
+        new("Mitglieder", r => r.MemberCount.ToString()),
+        new("Einstufung", r => ClassificationDisplay.Name(r.Classification)),
+        new("Gefährdung", r => ExportText.Hazard(r.Hazard, r.ThreatScore)),
+        new("Verschluss", r => ExportText.Secrecy(r.IsClassified, r.SecrecyLevel)),
+        new("Aktualität", r => RecencyLevelDisplay.Name(r.Level)),
+        new("Ältester Stand", r => ExportText.Stamp(r.Refreshed)),
+        new("Ältester Bereich", r => FactionRecencyFacetDisplay.Name(r.OldestFacet)),
+    ];
 
     private bool _load = true;
     private int _loadGeneration;

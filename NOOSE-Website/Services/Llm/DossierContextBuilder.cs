@@ -45,6 +45,22 @@ public static partial class DossierContextBuilder
             _ => await BuildOperationsAsync(db, entityType, entityId, scope, cancellationToken),
         };
 
+    /// <summary>The same dossier without the list caps NOOSEI's context window needs; what the dossier export ships.</summary>
+    public static async Task<DossierContext?> BuildCompleteAsync(
+        AppDbContext db, string entityType, string entityId, ViewerScope scope, CancellationToken cancellationToken = default)
+    {
+        // an async method hands its caller's context back on return, so the lift ends with this build
+        Complete.Value = true;
+        return await BuildAsync(db, entityType, entityId, scope, cancellationToken);
+    }
+
+    // set only by BuildCompleteAsync. Threading a flag instead would touch every builder and helper signature for
+    // a value that is the same all the way down.
+    static readonly AsyncLocal<bool> Complete = new();
+
+    /// <summary>The cap a list gets in NOOSEI's brief; none in a complete build.</summary>
+    static int Cap(int brief) => Complete.Value ? int.MaxValue : brief;
+
     // ---- per-type builders ----
 
     static async Task<DossierContext?> BuildPersonAsync(AppDbContext db, string id, ViewerScope? scope, CancellationToken ct)
@@ -222,7 +238,7 @@ public static partial class DossierContextBuilder
         var relTotal = await relBase.CountAsync(ct);
         if (relTotal > 0)
         {
-            var rels = await relBase.Take(50).Select(r => new
+            var rels = await relBase.Take(Cap(50)).Select(r => new
             {
                 r.PersonAId,
                 r.Type,
@@ -679,7 +695,7 @@ public static partial class DossierContextBuilder
                 RoleLabel = "Rang",
                 RoleOrRank = m.Rank,
                 IsLead = m.IsLead,
-            }).Take(25).ToListAsync(ct));
+            }).Take(Cap(25)).ToListAsync(ct));
         rows.AddRange(await db.PersonGroupMembers.AsNoTracking().Where(m => m.PersonId == personId)
             .Select(m => new AffiliationProj
             {
@@ -692,7 +708,7 @@ public static partial class DossierContextBuilder
                 RoleLabel = "Rolle",
                 RoleOrRank = m.Role,
                 IsLead = m.IsLead,
-            }).Take(25).ToListAsync(ct));
+            }).Take(Cap(25)).ToListAsync(ct));
         rows.AddRange(await db.PartyMembers.AsNoTracking().Where(m => m.PersonId == personId)
             .Select(m => new AffiliationProj
             {
@@ -705,7 +721,7 @@ public static partial class DossierContextBuilder
                 RoleLabel = "Rolle",
                 RoleOrRank = m.Role,
                 IsLead = m.IsLead,
-            }).Take(25).ToListAsync(ct));
+            }).Take(Cap(25)).ToListAsync(ct));
 
         if (rows.Count == 0)
         {
@@ -770,7 +786,7 @@ public static partial class DossierContextBuilder
         var tags = await db.TagMappings.AsNoTracking()
             .Where(m => m.EntityType == type && m.EntityId == id)
             .Join(db.Tags, m => m.TagId, t => t.Id, (m, t) => t.Name)
-            .Take(50).ToListAsync(ct);
+            .Take(Cap(50)).ToListAsync(ct);
         if (tags.Count > 0)
         {
             sb.AppendLine($"— Tags ({tags.Count}) —");
@@ -828,7 +844,7 @@ public static partial class DossierContextBuilder
             .Where(v => v.EntityType == type && v.EntityId == id)
             .Join(db.CustomFieldDefinitions, v => v.CustomFieldDefinitionId, def => def.Id,
                 (v, def) => new { def.Name, def.Order, v.Value })
-            .OrderBy(x => x.Order).Take(50).ToListAsync(ct);
+            .OrderBy(x => x.Order).Take(Cap(50)).ToListAsync(ct);
         if (customFields.Count > 0)
         {
             sb.AppendLine($"— Weitere Felder ({customFields.Count}) —");
@@ -843,7 +859,7 @@ public static partial class DossierContextBuilder
         var linksTotal = await linkBase.CountAsync(ct);
         if (linksTotal > 0)
         {
-            var links = await linkBase.OrderByDescending(l => l.CreatedAt).Take(50)
+            var links = await linkBase.OrderByDescending(l => l.CreatedAt).Take(Cap(50))
                 .Select(l => new { l.SourceType, l.SourceId, l.TargetType, l.TargetId, l.Label }).ToListAsync(ct);
             var refs = new List<(string, string)>();
             foreach (var l in links)
@@ -895,7 +911,7 @@ public static partial class DossierContextBuilder
         {
             var history = await db.ClassificationHistory.AsNoTracking()
                 .Where(h => h.EntityType == type && h.EntityId == id)
-                .OrderByDescending(h => h.Timestamp).Take(10)
+                .OrderByDescending(h => h.Timestamp).Take(Cap(10))
                 .Select(h => new { h.Timestamp, h.Value, h.Justification }).ToListAsync(ct);
             if (history.Count > 0)
             {
@@ -939,7 +955,7 @@ public static partial class DossierContextBuilder
     static async Task<(List<T> Items, int Total)> TakeAsync<T>(IQueryable<T> query, CancellationToken ct)
     {
         var total = await query.CountAsync(ct);
-        var items = total == 0 ? new List<T>() : await query.Take(50).ToListAsync(ct);
+        var items = total == 0 ? new List<T>() : await query.Take(Cap(50)).ToListAsync(ct);
         return (items, total);
     }
 

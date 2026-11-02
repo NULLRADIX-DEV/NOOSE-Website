@@ -1,0 +1,52 @@
+@typeparam T
+@inject IRecordExportService ExportService
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+@* every internal agent: the file holds the rows the list already shows them *@
+@if (_mayExport)
+{
+    <MudTooltip Text="Die gefilterte Liste in der angezeigten Sortierung als CSV herunterladen">
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Download"
+                   OnClick="ExportAsync" Disabled="@(Disabled || _busy)">CSV</MudButton>
+    </MudTooltip>
+}
+
+@code {
+    [Parameter, EditorRequired] public string RecordType { get; set; } = default!;
+    /// <summary>The rows as the grid holds them after filter and sort, read at click time so both are current.</summary>
+    [Parameter, EditorRequired] public Func<IEnumerable<T>> Items { get; set; } = default!;
+    [Parameter, EditorRequired] public IReadOnlyList<ExportColumn<T>> Columns { get; set; } = default!;
+    [Parameter] public bool Disabled { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _mayExport;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+        => _mayExport = (await AuthStateTask).User.IsInternalAgent();
+
+    private async Task ExportAsync()
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var user = (await AuthStateTask).User;
+            var file = await ExportService.ListAsync(RecordType, ListExport.Head(Columns),
+                ListExport.Rows(Items(), Columns), user);
+            await FileDownload.SaveAsync(JS, file);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

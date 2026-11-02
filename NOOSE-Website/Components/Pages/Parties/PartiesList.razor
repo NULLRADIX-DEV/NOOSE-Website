@@ -9,6 +9,7 @@
     <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" />
     <MudText Typo="Typo.h4">Parteien</MudText>
     <MudSpacer />
+    <ListExportButton T="PartyRow" RecordType="@nameof(Party)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
     <AuthorizeView Policy="@Policies.Leadership">
         <MudButton Href="/papierkorb?tab=parteien" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
     </AuthorizeView>
@@ -26,7 +27,7 @@
 }
 else
 {
-    <MudDataGrid T="PartyRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
+    <MudDataGrid @ref="_grid" T="PartyRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
                  QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
         <ToolBarContent>
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Name, Aktenzeichen)…" Immediate="true"
@@ -107,6 +108,21 @@ else
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private MudDataGrid<PartyRow>? _grid;
+
+    /// <summary>The CSV export's columns: the grid's own, minus the image.</summary>
+    private static readonly IReadOnlyList<ExportColumn<PartyRow>> ExportColumns =
+    [
+        new("Aktenzeichen", r => r.CaseNumber),
+        new("Name", r => r.Name),
+        new("Archiviert", r => ExportText.Flag(r.IsArchived)),
+        new("Mitglieder", r => r.MemberCount.ToString()),
+        new("Einstufung", r => ClassificationDisplay.Name(r.Classification)),
+        new("Verschluss", r => ExportText.Secrecy(r.IsClassified, r.SecrecyLevel)),
+        new("Aktualität", r => RecencyLevelDisplay.Name(r.Level)),
+        new("Zuletzt", r => ExportText.Stamp(r.Refreshed)),
+    ];
 
     private bool _load = true;
     private ArchiveFilter _archive = ArchiveFilter.Active;

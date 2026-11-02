@@ -276,4 +276,85 @@ public sealed class DossierContextBuilderTests
         Assert.Contains("Kontakt zu", text);
         Assert.Contains("bestätigt.", text);
     }
+
+    // ---- the complete build behind the dossier export ----
+
+    private static void SeedComments(SqliteTestContext ctx, int count)
+    {
+        using var db = ctx.NewContext();
+        for (var i = 1; i <= count; i++)
+        {
+            db.Comments.Add(new Comment
+            {
+                EntityType = nameof(Data.Entities.Factions.Faction),
+                EntityId = Faction,
+                AuthorName = "Codename-x",
+                Text = $"Notiz {i:00}",
+                CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMinutes(i),
+            });
+        }
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task CompleteBuild_ListsEveryComment()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedFaction(ctx);
+        SeedComments(ctx, 60);
+
+        await using var db = ctx.NewContext();
+        var context = await DossierContextBuilder.BuildCompleteAsync(
+            db, nameof(Data.Entities.Factions.Faction), Faction, Scope(classifiedRead: true));
+
+        Assert.NotNull(context);
+        Assert.Contains("Notiz 60", context!.Value.Text);
+    }
+
+    [Fact]
+    public async Task CompleteBuild_ListsEveryClassificationChange()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedFaction(ctx);
+        using (var seed = ctx.NewContext())
+        {
+            for (var i = 1; i <= 12; i++)
+            {
+                seed.ClassificationHistory.Add(new ClassificationHistory
+                {
+                    EntityType = nameof(Data.Entities.Factions.Faction),
+                    EntityId = Faction,
+                    Value = Classification.ReviewCase,
+                    Justification = $"Grund {i:00}",
+                    Timestamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddDays(i),
+                });
+            }
+            seed.SaveChanges();
+        }
+
+        await using var db = ctx.NewContext();
+        var context = await DossierContextBuilder.BuildCompleteAsync(
+            db, nameof(Data.Entities.Factions.Faction), Faction, Scope(classifiedRead: true));
+
+        // newest first, so the oldest is the one the brief drops
+        Assert.Contains("Grund 01", context!.Value.Text);
+    }
+
+    [Fact]
+    public async Task CompleteBuild_LeavesTheBriefCapped()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedFaction(ctx);
+        SeedComments(ctx, 60);
+
+        await using (var db = ctx.NewContext())
+        {
+            await DossierContextBuilder.BuildCompleteAsync(
+                db, nameof(Data.Entities.Factions.Faction), Faction, Scope(classifiedRead: true));
+        }
+        var brief = await BuildAsync(ctx, Scope(classifiedRead: true));
+
+        Assert.Contains("Notiz 50", brief);
+        Assert.DoesNotContain("Notiz 51", brief);
+    }
 }
