@@ -6,6 +6,9 @@ public sealed record ShareChannel(string Id, string Name);
 /// <summary>A share channel as the settings show it; the webhook only masked, never in full.</summary>
 public sealed record ShareChannelSetting(string Id, string Name, string MaskedWebhook);
 
+/// <summary>The settings list plus the version the save of an edit must hand back.</summary>
+public sealed record ShareChannelList(IReadOnlyList<ShareChannelSetting> Channels, string Version);
+
 /// <summary>One row of the share-channel settings; an empty URL keeps the stored webhook.</summary>
 public sealed class ShareChannelInput
 {

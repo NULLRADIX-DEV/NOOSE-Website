@@ -161,6 +161,19 @@ public sealed class ChannelShareRulesTests
     }
 
     [Fact]
+    public void The_version_follows_the_stored_text_and_hides_it()
+    {
+        var json = ChannelShareRules.Serialize([new StoredShareChannel("a", "Alt", Hook)]);
+        var replaced = json.Replace("Alt", "Neu");
+
+        Assert.Equal(ChannelShareRules.Version(json), ChannelShareRules.Version(json));
+        Assert.NotEqual(ChannelShareRules.Version(json), ChannelShareRules.Version(replaced));
+        // no row reads like an empty one
+        Assert.Equal(ChannelShareRules.Version(null), ChannelShareRules.Version(string.Empty));
+        Assert.DoesNotContain("discord", ChannelShareRules.Version(json), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void An_empty_url_keeps_the_stored_webhook_and_a_new_one_replaces_it()
     {
         var stored = new List<StoredShareChannel> { new("a", "Alt", Hook), new("b", "Zwei", Hook) };

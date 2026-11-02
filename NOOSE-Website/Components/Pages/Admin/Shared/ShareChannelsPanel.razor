@@ -67,6 +67,7 @@
 
     private ClaimsPrincipal _user = new();
     private List<Row> _rows = new();
+    private string _version = string.Empty;
     private bool _mayEdit;
     private bool _load = true;
     private bool _saving;
@@ -83,7 +84,8 @@
         try
         {
             var settings = await Shares.GetSettingsAsync(_user);
-            _rows = settings.Select(s => new Row { Id = s.Id, Name = s.Name, Masked = s.MaskedWebhook }).ToList();
+            _rows = settings.Channels.Select(s => new Row { Id = s.Id, Name = s.Name, Masked = s.MaskedWebhook }).ToList();
+            _version = settings.Version;
         }
         catch (Exception ex)
         {
@@ -103,7 +105,7 @@
         try
         {
             var input = _rows.Select(r => new ShareChannelInput { Id = r.Id, Name = r.Name, WebhookUrl = r.WebhookUrl }).ToList();
-            await Shares.SaveSettingsAsync(input, _user);
+            await Shares.SaveSettingsAsync(input, _version, _user);
             Snackbar.Add("Kanäle gespeichert.", Severity.Success);
             // drops typed URLs
             await LoadAsync();

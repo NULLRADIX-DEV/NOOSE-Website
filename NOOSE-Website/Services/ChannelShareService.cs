@@ -46,23 +46,32 @@ public sealed class ChannelShareService(
         return snapshot.Enabled ? snapshot.Channels.Select(c => new ShareChannel(c.Id, c.Name)).ToList() : [];
     }
 
-    public async Task<IReadOnlyList<ShareChannelSetting>> GetSettingsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task<ShareChannelList> GetSettingsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireInternalAgent(actor);
         Permission.RequireClassifiedRead(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var stored = ChannelShareRules.Parse(await StoredValueAsync(db, cancellationToken));
-        return stored.Select(c => new ShareChannelSetting(c.Id, c.Name, ChannelShareRules.Mask(c.Url))).ToList();
+        var raw = await StoredValueAsync(db, cancellationToken);
+        var channels = ChannelShareRules.Parse(raw)
+            .Select(c => new ShareChannelSetting(c.Id, c.Name, ChannelShareRules.Mask(c.Url))).ToList();
+        return new ShareChannelList(channels, ChannelShareRules.Version(raw));
     }
 
-    public async Task SaveSettingsAsync(IReadOnlyList<ShareChannelInput> channels, ClaimsPrincipal actor,
+    public async Task SaveSettingsAsync(IReadOnlyList<ShareChannelInput> channels, string version, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
         Permission.RequireShareChannelAdministration(actor);
         ArgumentNullException.ThrowIfNull(channels);
+        ArgumentNullException.ThrowIfNull(version);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        // list and audit row together
+        await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
         var current = await StoredValueAsync(db, cancellationToken);
+        if (ChannelShareRules.Version(current) != version)
+        {
+            throw new InvalidOperationException(ChannelShareRules.StaleList);
+        }
         var exists = current is not null
             || await db.SystemSettings.AnyAsync(s => s.Key == SystemSettingKeys.DiscordShareChannels, cancellationToken);
         var stored = ChannelShareRules.Parse(current);
@@ -73,19 +82,22 @@ public sealed class ChannelShareService(
             return;
         }
 
-        // list and audit row together
-        await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
         if (exists)
         {
             // keeps webhooks out of audit
             var now = DateTime.UtcNow;
             var actorId = actor.GetAgentId();
-            await db.SystemSettings
-                .Where(s => s.Key == SystemSettingKeys.DiscordShareChannels)
+            // only if still as read
+            var written = await db.SystemSettings
+                .Where(s => s.Key == SystemSettingKeys.DiscordShareChannels && s.Value == current)
                 .ExecuteUpdateAsync(u => u
                     .SetProperty(s => s.Value, json)
                     .SetProperty(s => s.ModifiedAt, now)
                     .SetProperty(s => s.ModifiedById, actorId), cancellationToken);
+            if (written == 0)
+            {
+                throw new InvalidOperationException(ChannelShareRules.StaleList);
+            }
         }
         else
         {
@@ -101,7 +113,15 @@ public sealed class ChannelShareService(
         }
         db.AuditLogs.Add(ManualAudit.Row(ChannelShareRules.AuditType, SystemSettingKeys.DiscordShareChannels,
             AuditAction.Modified, actor, changes));
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException) when (!exists)
+        {
+            // a parallel first save won
+            throw new InvalidOperationException(ChannelShareRules.StaleList);
+        }
         await tx.CommitAsync(cancellationToken);
         cache.Remove(CacheKey);
     }

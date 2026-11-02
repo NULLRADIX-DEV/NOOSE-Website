@@ -1,4 +1,6 @@
+using System.Data.Common;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
@@ -340,7 +342,7 @@ public sealed class ChannelShareServiceTests : IDisposable
     {
         foreach (var reader in new[] { Leader, Supervision })
         {
-            var settings = await _service.GetSettingsAsync(reader);
+            var settings = (await _service.GetSettingsAsync(reader)).Channels;
 
             Assert.Equal(2, settings.Count);
             Assert.All(settings, s => Assert.DoesNotContain("token", s.MaskedWebhook));
@@ -364,8 +366,9 @@ public sealed class ChannelShareServiceTests : IDisposable
             _ => Partner,
         };
 
+        var version = await VersionAsync();
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _service.SaveSettingsAsync(
-            [new ShareChannelInput { Name = "Neu", WebhookUrl = Hook }], actor));
+            [new ShareChannelInput { Name = "Neu", WebhookUrl = Hook }], version, actor));
     }
 
     [Fact]
@@ -377,7 +380,7 @@ public sealed class ChannelShareServiceTests : IDisposable
         [
             new ShareChannelInput { Id = "ch1", Name = "Ermittlung", WebhookUrl = "" },
             new ShareChannelInput { Name = "Neu", WebhookUrl = replacement },
-        ], Leader);
+        ], await VersionAsync(), Leader);
 
         using var db = _ctx.NewContext();
         var stored = ChannelShareRules.Parse(db.SystemSettings.Single(s => s.Key == SystemSettingKeys.DiscordShareChannels).Value);
@@ -401,7 +404,8 @@ public sealed class ChannelShareServiceTests : IDisposable
             db.SaveChanges();
         }
 
-        await _service.SaveSettingsAsync([new ShareChannelInput { Name = "Erster", WebhookUrl = Hook }], Leader);
+        await _service.SaveSettingsAsync([new ShareChannelInput { Name = "Erster", WebhookUrl = Hook }],
+            await VersionAsync(), Leader);
 
         using var check = _ctx.NewContext();
         Assert.Single(ChannelShareRules.Parse(
@@ -420,7 +424,7 @@ public sealed class ChannelShareServiceTests : IDisposable
         [
             new ShareChannelInput { Id = "ch1", Name = "Ermittlungen" },
             new ShareChannelInput { Id = "ch2", Name = "Allgemein" },
-        ], Leader);
+        ], await VersionAsync(), Leader);
 
         using var db = _ctx.NewContext();
         Assert.Empty(db.AuditLogs.Where(a => a.EntityType == ChannelShareRules.AuditType));
@@ -431,12 +435,106 @@ public sealed class ChannelShareServiceTests : IDisposable
     {
         Assert.Equal(2, (await _service.GetChannelsAsync(Agent)).Count);
 
-        await _service.SaveSettingsAsync([new ShareChannelInput { Id = "ch2", Name = "Allgemein" }], Leader);
+        await _service.SaveSettingsAsync([new ShareChannelInput { Id = "ch2", Name = "Allgemein" }],
+            await VersionAsync(), Leader);
 
         Assert.Equal("ch2", Assert.Single(await _service.GetChannelsAsync(Agent)).Id);
         var id = SeedPerson();
         await Assert.ThrowsAsync<InvalidOperationException>(() => ShareAsync(id, Agent, channel: "ch1"));
         await NothingPosted();
+    }
+
+    // ---- stale editor ----
+
+    [Fact]
+    public async Task A_stale_editor_cannot_drop_a_channel_added_since_it_loaded()
+    {
+        var stale = await VersionAsync();
+        var added = "https://discord.com/api/webhooks/333333333333333333/fresh-token_C";
+        // a second leader adds a channel first
+        await _service.SaveSettingsAsync(
+        [
+            new ShareChannelInput { Id = "ch1", Name = "Ermittlungen" },
+            new ShareChannelInput { Id = "ch2", Name = "Allgemein" },
+            new ShareChannelInput { Name = "Neu", WebhookUrl = added },
+        ], stale, Leader);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.SaveSettingsAsync(
+        [
+            new ShareChannelInput { Id = "ch1", Name = "Ermittlung" },
+            new ShareChannelInput { Id = "ch2", Name = "Allgemein" },
+        ], stale, Leader));
+
+        Assert.Equal(ChannelShareRules.StaleList, ex.Message);
+        using var db = _ctx.NewContext();
+        var kept = ChannelShareRules.Parse(db.SystemSettings.Single(s => s.Key == SystemSettingKeys.DiscordShareChannels).Value);
+        Assert.Equal(new[] { "Ermittlungen", "Allgemein", "Neu" }, kept.Select(c => c.Name));
+        Assert.Equal(added, kept[2].Url);
+        Assert.Single(db.AuditLogs.Where(a => a.EntityType == ChannelShareRules.AuditType));
+    }
+
+    [Fact]
+    public async Task A_version_is_good_for_one_save_only_even_when_only_a_webhook_changed()
+    {
+        var version = await VersionAsync();
+        await _service.SaveSettingsAsync(
+        [
+            new ShareChannelInput { Id = "ch1", Name = "Ermittlungen", WebhookUrl = "https://discord.com/api/webhooks/333333333333333333/fresh-token_C" },
+            new ShareChannelInput { Id = "ch2", Name = "Allgemein" },
+        ], version, Leader);
+
+        Assert.NotEqual(version, await VersionAsync());
+        // refused although nothing would change
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.SaveSettingsAsync(
+        [
+            new ShareChannelInput { Id = "ch1", Name = "Ermittlungen" },
+            new ShareChannelInput { Id = "ch2", Name = "Allgemein" },
+        ], version, Leader));
+        Assert.Equal(ChannelShareRules.StaleList, ex.Message);
+    }
+
+    [Fact]
+    public async Task A_write_slipping_in_between_the_read_and_the_update_is_refused()
+    {
+        var rival = new RivalWrite();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(_ctx.Connection)
+            .AddInterceptors(new AuditSaveChangesInterceptor(new FixedUser()), rival)
+            .Options;
+        var service = new ChannelShareService(new TestDbContextFactory(options), _discord, _log, _cache,
+            new ChannelShareQuota(_clock));
+        var version = await VersionAsync();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveSettingsAsync(
+            [new ShareChannelInput { Id = "ch2", Name = "Allgemein" }], version, Leader));
+
+        Assert.True(rival.Fired);
+        Assert.Equal(ChannelShareRules.StaleList, ex.Message);
+        using var db = _ctx.NewContext();
+        Assert.Empty(db.AuditLogs.Where(a => a.EntityType == ChannelShareRules.AuditType));
+    }
+
+    private async Task<string> VersionAsync() => (await _service.GetSettingsAsync(Leader)).Version;
+
+    /// <summary>Overwrites the list right before the service's own update runs, as a parallel save would.</summary>
+    private sealed class RivalWrite : DbCommandInterceptor
+    {
+        public bool Fired { get; private set; }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (!Fired && command.CommandText.StartsWith("UPDATE", StringComparison.Ordinal))
+            {
+                Fired = true;
+                // same connection, rolls back with the save
+                using var rival = command.Connection!.CreateCommand();
+                rival.Transaction = command.Transaction;
+                rival.CommandText = $"UPDATE \"SystemEinstellungen\" SET \"Wert\" = '[]' WHERE \"Schluessel\" = '{SystemSettingKeys.DiscordShareChannels}'";
+                rival.ExecuteNonQuery();
+            }
+            return ValueTask.FromResult(result);
+        }
     }
 
     private sealed class FixedUser : ICurrentUserService

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using NOOSE_Website.Data.Entities.Cases;
@@ -31,6 +32,9 @@ public static class ChannelShareRules
     public const string Refused =
         "Diese Akte lässt sich nicht teilen: Verschlusssachen und Akten außerhalb deiner Sicht bleiben im Haus.";
 
+    /// <summary>Refusal of a save made from an out-of-date list, so it cannot drop a newer channel or webhook.</summary>
+    public const string StaleList = "Die Liste wurde inzwischen geändert, lade die Seite neu.";
+
     /// <summary>Access-log type of a share; the log has no column for the kind of access.</summary>
     public const string LogType = "Teilen";
 
@@ -55,6 +59,10 @@ public static class ChannelShareRules
     public static bool IsRestricted(IClassifiableRecord record)
         => RecordVisibility.LevelOf(record.IsClassified, record.IsTRUClassified, record.IsHRBClassified)
             != DocumentClassification.None;
+
+    /// <summary>Version of the stored list; a save must hand back the one it was loaded with. A hash, never the content.</summary>
+    public static string Version(string? storedJson)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(storedJson ?? string.Empty)));
 
     /// <summary>The note as one line, or null when empty; throws when it is too long.</summary>
     public static string? CleanNote(string? raw)
