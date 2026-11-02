@@ -22,8 +22,12 @@ internal static class ToolsChapter
                 <li><strong>NOOSEI sieht genau so viel wie du.</strong> Eine Verschlusssache, die du nicht
                 lesen darfst, kommt in ihrer Antwort nicht vor - nicht einmal als Andeutung. Für sie sieht die
                 Akte aus, als gäbe es sie nicht.</li>
-                <li><strong>NOOSEI schreibt nichts.</strong> Sie liest, fasst zusammen und formuliert Entwürfe.
-                Eine Akte ändert immer ein Mensch.</li>
+                <li><strong>NOOSEI schreibt nicht selbst.</strong> Sie liest, fasst zusammen und formuliert
+                Entwürfe. Bittest du sie um eine Änderung - eine Wiedervorlage, ein Stichwort, eine Aufgabe, eine
+                Verknüpfung oder das Beobachten einer Akte -, legt sie unter der Antwort eine
+                <strong>Vorschlagskarte</strong> an. Erst dein Klick auf <em>Ausführen</em> schreibt, und zwar mit
+                deinen Rechten, die in diesem Moment noch einmal geprüft werden. <em>Verwerfen</em> schließt die
+                Karte ohne Änderung. Eine Akte ändert also weiter immer ein Mensch.</li>
                 </ul>
                 <p>Unter jeder Antwort stehen die <strong>Quellen</strong>: die Akten, in die sie geschaut hat.
                 Klick sie an und prüf nach. Eine Antwort ohne Quelle ist eine Formulierung, kein Befund.</p>
@@ -44,6 +48,8 @@ internal static class ToolsChapter
                         "Unter der Antwort steht, worin NOOSEI nachgeschlagen hat."),
                     new Step("FactCheck", "Quellen prüfen",
                         "Die Quellen-Chips führen direkt in die Akte. Nimm nichts ungeprüft in einen Bericht."),
+                    new Step("TaskAlt", "Vorschlag ausführen",
+                        "Prüf die Karte unter der Antwort. Erst Ausführen schreibt, Verwerfen schließt sie."),
                     new Step("DataUsage", "Aufs Kontingent achten",
                         "Jede Anfrage kostet Kontingent. Es füllt sich wöchentlich wieder auf."),
                 ]),

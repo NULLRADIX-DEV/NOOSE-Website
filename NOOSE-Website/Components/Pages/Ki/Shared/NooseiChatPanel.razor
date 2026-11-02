@@ -3,6 +3,8 @@
 @using NOOSE_Website.Authorization
 @using NOOSE_Website.Models.Llm
 @inject INooseiChatService Chat
+@inject INooseiProposalExecutor Proposals
+@inject ILogger<NooseiChatPanel> Logger
 @inject ILlmQuotaService Quota
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -160,6 +162,16 @@ else
                                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">@note</MudAlert>
                                 }
                             }
+                            @if (m.Proposals is { Count: > 0 } cards)
+                            {
+                                @* nothing is written before the click *@
+                                @foreach (var proposal in cards)
+                                {
+                                    <NooseiProposalCard Proposal="proposal" Busy="_deciding.Contains(proposal.Id)"
+                                                        OnExecute="() => DecideAsync(m.Id, proposal, execute: true)"
+                                                        OnDismiss="() => DecideAsync(m.Id, proposal, execute: false)" />
+                                }
+                            }
                             @if (m.Sources.Count > 0)
                             {
                                 @* what NOOSEI read, not a claim about what every sentence rests on *@
@@ -281,6 +293,7 @@ else
     private readonly List<NooseiChatMessage> _messages = new();
     private readonly List<string> _steps = new();
     private readonly HashSet<string> _openTraces = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _deciding = new(StringComparer.Ordinal);
     private string? _conversationId;
     private string? _input;
     private string? _lastDraft;
@@ -533,6 +546,76 @@ else
     }
 
     private void Cancel() => _cts?.Cancel();
+
+    /// <summary>Executes or dismisses a proposal; the card then shows the stored state.</summary>
+    private async Task DecideAsync(string messageId, NooseiProposal proposal, bool execute)
+    {
+        if (_user is null || !_deciding.Add(proposal.Id))
+        {
+            return;
+        }
+        try
+        {
+            var decided = execute
+                ? await Proposals.ExecuteAsync(messageId, proposal.Id, _user)
+                : await Proposals.DismissAsync(messageId, proposal.Id, _user);
+            Replace(messageId, decided);
+            if (execute)
+            {
+                Snackbar.Add($"{proposal.Title}: ausgeführt.", Severity.Success);
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or InvalidOperationException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            // maybe decided in another tab
+            await ReloadCardsAsync(messageId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "NOOSEI-Vorschlag {Proposal} ließ sich nicht entscheiden.", proposal.Id);
+            Snackbar.Add("Der Vorschlag ließ sich nicht bearbeiten.", Severity.Error);
+            await ReloadCardsAsync(messageId);
+        }
+        finally
+        {
+            _deciding.Remove(proposal.Id);
+        }
+    }
+
+    private void Replace(string messageId, NooseiProposal decided)
+    {
+        var index = _messages.FindIndex(x => x.Id == messageId);
+        if (index >= 0 && _messages[index].Proposals is { } cards)
+        {
+            _messages[index] = _messages[index] with
+            {
+                Proposals = cards.Select(p => p.Id == decided.Id ? decided : p).ToList(),
+            };
+        }
+    }
+
+    /// <summary>Re-reads one answer's cards; the rest of the list stays, even mid-question.</summary>
+    private async Task ReloadCardsAsync(string messageId)
+    {
+        if (_conversationId is null || _user is null)
+        {
+            return;
+        }
+        try
+        {
+            var fresh = (await Chat.GetMessagesAsync(_conversationId, _user)).FirstOrDefault(m => m.Id == messageId);
+            var index = _messages.FindIndex(m => m.Id == messageId);
+            if (fresh is not null && index >= 0)
+            {
+                _messages[index] = _messages[index] with { Proposals = fresh.Proposals };
+            }
+        }
+        catch (Exception)
+        {
+            /* best effort */
+        }
+    }
 
     /// <summary>Counts the seconds while an answer is being built; ends with the turn.</summary>
     private async Task TickAsync(CancellationToken cancellationToken)

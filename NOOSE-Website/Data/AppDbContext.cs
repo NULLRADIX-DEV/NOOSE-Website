@@ -1259,6 +1259,7 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(x => x.Content).HasColumnType("longtext");
             b.Property(x => x.ToolCallsJson).HasColumnType("longtext");
             b.Property(x => x.SourcesJson).HasColumnType("longtext");
+            b.Property(x => x.ProposalsJson).HasColumnType("longtext");
             b.HasIndex(x => new { x.ConversationId, x.Sequence }).IsUnique();
             // a message has no life without its thread
             b.HasOne(x => x.Conversation).WithMany()

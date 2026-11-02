@@ -568,6 +568,9 @@ public static class ChangelogContent
             Besser("2.7.20-fahndung-steckbrief-karte", "Neue öffentliche Fahndungen erscheinen auf Discord jetzt als "
                 + "Steckbrief-Karte mit Foto, Kopfgeld und Warnhinweisen; auch ein erhöhtes Kopfgeld kommt als Karte.",
                 "Öffentlich"),
+            Neu("2.7.21-noosei-vorschlaege", "Bittest du NOOSEI um eine Wiedervorlage, ein Stichwort, eine Aufgabe, "
+                + "eine Verknüpfung oder das Beobachten einer Akte, erscheint unter der Antwort eine Karte. Erst dein "
+                + "Klick auf „Ausführen“ schreibt, mit deinen Rechten; „Verwerfen“ schließt sie.", "NOOSEI"),
         ]),
     ];
 }
