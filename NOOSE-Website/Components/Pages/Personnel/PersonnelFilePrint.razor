@@ -8,7 +8,7 @@
 @inject ISupervisionSheetService SheetService
 @using NOOSE_Website.Models.Personnel
 
-<PageTitle>@(_agent is null ? "Druckansicht" : $"Personalakte {_agent.Codename}") · NOOSE</PageTitle>
+<PageTitle>@(_agent is null ? "Druckansicht" : $"Personalakte {_agent.Codename}") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -22,7 +22,7 @@ else
 {
     <PrintFrame Title="@($"Personalakte – {DisplayName(_agent)}")" BackHref="@($"/personal/{Id}")"
                  PrintedBy="@_printBy" IsClassified="false"
-                 Footer="NOOSE-interne Personalakte · Weitergabe nur nach Freigabe durch die Führung.">
+                 Footer="FIB-interne Personalakte · Weitergabe nur nach Freigabe durch die Führung.">
         <section>
             <h2>Stammdaten</h2>
             <table class="druck-felder">

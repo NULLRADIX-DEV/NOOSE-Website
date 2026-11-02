@@ -14,10 +14,10 @@ public sealed class PersonnelFileServiceTests
         => new(ctx.Factory, discord ?? Substitute.For<IDiscordWebhookService>());
 
     private static ClaimsPrincipal Leadership(string id = "lead-1", string codename = "Falcon")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SupervisorySpecialAgent).WithCodename(codename).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename(codename).Build();
 
     private static ClaimsPrincipal Rank1(string id = "rookie-1")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static DateTime Utc(int day) => new(2026, 3, day, 12, 0, 0, DateTimeKind.Utc);
 
@@ -29,10 +29,10 @@ public sealed class PersonnelFileServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.AgentRankHistories.Add(new AgentRankHistory { AgentId = "a1", New = Rank.JuniorAgent, Timestamp = Utc(1) });
-            db.AgentRankHistories.Add(new AgentRankHistory { AgentId = "a1", Alt = Rank.JuniorAgent, New = Rank.SpecialAgent, Timestamp = Utc(3) });
+            db.AgentRankHistories.Add(new AgentRankHistory { AgentId = "a1", New = Rank.Trainee, Timestamp = Utc(1) });
+            db.AgentRankHistories.Add(new AgentRankHistory { AgentId = "a1", Alt = Rank.Trainee, New = Rank.SpecialAgent, Timestamp = Utc(3) });
             db.AgentRankHistories.Add(new AgentRankHistory { AgentId = "a1", Alt = Rank.SpecialAgent, New = Rank.SeniorSpecialAgent, Timestamp = Utc(2) });
-            db.AgentRankHistories.Add(new AgentRankHistory { AgentId = "other", New = Rank.JuniorAgent, Timestamp = Utc(5) });
+            db.AgentRankHistories.Add(new AgentRankHistory { AgentId = "other", New = Rank.Trainee, Timestamp = Utc(5) });
             db.SaveChanges();
         }
 
@@ -173,7 +173,7 @@ public sealed class PersonnelFileServiceTests
         }
 
         // Non-leadership, but the author of the note.
-        var author = ClaimsPrincipalBuilder.Agent("author-1").WithRank(Rank.JuniorAgent).Build();
+        var author = ClaimsPrincipalBuilder.Agent("author-1").WithRank(Rank.Trainee).Build();
         await NewService(ctx).NoteDeleteAsync("n1", author);
 
         using var verify = ctx.NewContext();
@@ -190,7 +190,7 @@ public sealed class PersonnelFileServiceTests
             db.SaveChanges();
         }
 
-        var stranger = ClaimsPrincipalBuilder.Agent("stranger-1").WithRank(Rank.JuniorAgent).Build();
+        var stranger = ClaimsPrincipalBuilder.Agent("stranger-1").WithRank(Rank.Trainee).Build();
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => NewService(ctx).NoteDeleteAsync("n1", stranger));
 
         using var verify = ctx.NewContext();

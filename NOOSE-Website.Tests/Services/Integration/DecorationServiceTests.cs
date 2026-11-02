@@ -50,7 +50,7 @@ public sealed class DecorationServiceTests : IDisposable
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename("Adler").Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).WithCodename("Falke").Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).WithCodename("Falke").Build();
 
     private static ClaimsPrincipal Colleague()
         => ClaimsPrincipalBuilder.Agent("other").WithRank(Rank.SeniorSpecialAgent).Build();
@@ -131,7 +131,7 @@ public sealed class DecorationServiceTests : IDisposable
         Assert.Equal(id, award.Id);
         Assert.Equal("ann-1", award.AnnouncementId);
         Assert.Equal(new DateTime(2026, 10, 1), award.AwardedOn);
-        Assert.Equal(Rank.JuniorAgent, award.RecipientRank);
+        Assert.Equal(Rank.Trainee, award.RecipientRank);
         Assert.Equal("Adler", award.AwardedByName);
 
         var bell = Assert.Single(Notices());
@@ -344,7 +344,7 @@ public sealed class DecorationServiceTests : IDisposable
     public async Task Nobody_corrects_or_revokes_his_own_decoration()
     {
         var id = await _service.AwardAsync(Input("lead2"), Leader());
-        var lead2 = ClaimsPrincipalBuilder.Agent("lead2").WithRank(Rank.SupervisorySpecialAgent).Build();
+        var lead2 = ClaimsPrincipalBuilder.Agent("lead2").WithRank(Rank.SpecialAgentInCharge).Build();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.UpdateAsync(id, Input("lead2"), lead2));
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.RevokeAsync(id, "weg damit", lead2));
@@ -434,22 +434,22 @@ public sealed class DecorationServiceTests : IDisposable
         Assert.Null(await _service.GetCertificateAsync(id, Colleague()));
         Assert.Equal(CertificateKind.Decoration, forLeader.Kind);
         Assert.Equal("Verdienstmedaille", forLeader.DecorationName);
-        Assert.Equal(Rank.JuniorAgent, forLeader.Rank);
+        Assert.Equal(Rank.Trainee, forLeader.Rank);
     }
 
     [Fact]
     public async Task The_rank_history_prints_appointments_and_promotions_never_demotions()
     {
-        SeedHistory("h-start", null, Rank.JuniorAgent);
-        SeedHistory("h-up", Rank.JuniorAgent, Rank.SpecialAgent);
-        SeedHistory("h-down", Rank.SpecialAgent, Rank.JuniorAgent);
+        SeedHistory("h-start", null, Rank.Trainee);
+        SeedHistory("h-up", Rank.Trainee, Rank.SpecialAgent);
+        SeedHistory("h-down", Rank.SpecialAgent, Rank.Trainee);
         await _service.SaveCertificateSettingsAsync(new CertificateSettings("dd", ""), Leader());
 
         var appointment = await _service.GetRankCertificateAsync("h-start", Junior());
         var promotion = await _service.GetRankCertificateAsync("h-up", Leader());
 
         Assert.Equal(CertificateKind.Appointment, appointment!.Kind);
-        Assert.Equal(Rank.JuniorAgent, appointment.Rank);
+        Assert.Equal(Rank.Trainee, appointment.Rank);
         Assert.Equal(CertificateKind.Promotion, promotion!.Kind);
         Assert.Equal(Rank.SpecialAgent, promotion.Rank);
         Assert.Equal("Codename-dd", promotion.SignatoryName);
@@ -493,9 +493,9 @@ public sealed class DecorationServiceTests : IDisposable
         using var db = _ctx.NewContext();
         db.Users.AddRange(
             Seed.Agent("lead", Rank.Director, configure: a => a.Codename = "Adler"),
-            Seed.Agent("lead2", Rank.SupervisorySpecialAgent),
+            Seed.Agent("lead2", Rank.SpecialAgentInCharge),
             Seed.Agent("dd", Rank.DeputyDirector),
-            Seed.Agent("junior", Rank.JuniorAgent, configure: a =>
+            Seed.Agent("junior", Rank.Trainee, configure: a =>
             {
                 a.Codename = "Falke";
                 a.RealName = "Max Falk";

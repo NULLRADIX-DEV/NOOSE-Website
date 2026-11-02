@@ -61,7 +61,7 @@ public static class Permission
     {
         if (actor.IsPartner() || actor.IsDemo() || actor.IsOnlyReader())
         {
-            throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+            throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
         }
     }
 
@@ -71,7 +71,7 @@ public static class Permission
     {
         if (actor.IsDemo() || actor.IsOnlyReader() || actor.IsPartner() != (feature == LlmFeature.LegalChat))
         {
-            throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+            throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
         }
     }
 
@@ -105,7 +105,7 @@ public static class Permission
         }
         if (!actor.MayClassifiedRead())
         {
-            throw new UnauthorizedAccessException("Kein Zugriff auf dieses NOOSEI-Kontingent.");
+            throw new UnauthorizedAccessException("Kein Zugriff auf dieses FIBI-Kontingent.");
         }
     }
 

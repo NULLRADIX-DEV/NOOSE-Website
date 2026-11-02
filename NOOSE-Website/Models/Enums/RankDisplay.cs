@@ -11,10 +11,10 @@ public static class RankDisplay
     /// <summary>Code-defined label, without DB override.</summary>
     public static string DefaultName(Rank? rank) => rank switch
     {
-        Rank.JuniorAgent => "Junior Agent",
+        Rank.Trainee => "Junior Agent",
         Rank.SpecialAgent => "Special Agent",
         Rank.SeniorSpecialAgent => "Senior Special Agent",
-        Rank.SupervisorySpecialAgent => "Supervisory Special Agent",
+        Rank.SpecialAgentInCharge => "Supervisory Special Agent",
         Rank.DeputyDirector => "Deputy Director",
         Rank.Director => "Director",
         _ => "— (kein Rang)",
@@ -23,10 +23,10 @@ public static class RankDisplay
     /// <summary>All ranks ascending.</summary>
     public static readonly IReadOnlyList<Rank> All = new[]
     {
-        Rank.JuniorAgent,
+        Rank.Trainee,
         Rank.SpecialAgent,
         Rank.SeniorSpecialAgent,
-        Rank.SupervisorySpecialAgent,
+        Rank.SpecialAgentInCharge,
         Rank.DeputyDirector,
         Rank.Director,
     };

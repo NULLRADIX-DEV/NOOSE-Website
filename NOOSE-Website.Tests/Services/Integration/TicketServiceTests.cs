@@ -123,7 +123,7 @@ public sealed class TicketServiceTests
         var seq = 0;
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
 
         var notifications = Substitute.For<INotificationService>();
         var discord = Substitute.For<IDiscordWebhookService>();
@@ -208,7 +208,7 @@ public sealed class TicketServiceTests
 
         var caseNumber = await OpenAsync(host);
 
-        Assert.StartsWith("NOOSE-T-", caseNumber, StringComparison.Ordinal);
+        Assert.StartsWith("FIB-T-", caseNumber, StringComparison.Ordinal);
         await using var db = ctx.NewContext();
         var row = await db.Tickets.SingleAsync();
         Assert.Equal(ProfileId, row.CitizenProfileId);
@@ -373,7 +373,7 @@ public sealed class TicketServiceTests
         await host.Service.SetStatusAsync(await IdAsync(host, first), TicketStatus.Geschlossen, Leader(), TicketAbschlussgrund.Erledigt);
         // the daily cap is 3, so exactly one more fits through
         var third = await OpenAsync(host);
-        Assert.StartsWith("NOOSE-T-", third, StringComparison.Ordinal);
+        Assert.StartsWith("FIB-T-", third, StringComparison.Ordinal);
     }
 
     [Fact]

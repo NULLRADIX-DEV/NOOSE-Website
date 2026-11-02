@@ -221,7 +221,7 @@ public static class NotificationTypeDisplay
         NotificationType.AcknowledgmentReminder => "Quittierung überfällig",
         NotificationType.SavedSearchHit => "Neue Treffer einer gespeicherten Suche",
         NotificationType.CounterIntelFinding => "Gegenaufklärung",
-        NotificationType.NooseiAnomaly => "NOOSEI-Auffälligkeit",
+        NotificationType.NooseiAnomaly => "FIBI-Auffälligkeit",
         NotificationType.DecorationAwarded => "Ehrung",
         NotificationType.InactivityNudge => "Rückmeldung erbeten",
         NotificationType.FactionThreatBoard => "Gefahrenlage (Fraktionen)",

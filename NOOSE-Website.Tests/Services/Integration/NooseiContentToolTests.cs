@@ -19,7 +19,7 @@ public sealed class NooseiContentToolTests
     private const string SecretPerson = "p-secret";
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();

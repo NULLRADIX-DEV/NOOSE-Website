@@ -314,7 +314,7 @@ public sealed class MySqlTranslationTests : IDisposable
         // ExecuteUpdate itself cannot be compiled without a connection; its Where clause is the part that could fail
         var now = new DateTime(2026, 8, 14, 12, 0, 0, DateTimeKind.Utc);
         var sql = _db.OeffentlicheFahndungen
-            .Where(f => f.CaseNumber == "NOOSE-FA-2026-0001"
+            .Where(f => f.CaseNumber == "FIB-FA-2026-0001"
                 && f.Status == PublicWantedStatus.Veroeffentlicht
                 && (f.ExpiresAt == null || f.ExpiresAt > now))
             .ToQueryString();
@@ -481,7 +481,7 @@ public sealed class MySqlTranslationTests : IDisposable
     public void TheReceiptLookup_TranslatesTheWholeChainToTheNotice()
     {
         var sql = _db.HinweisBelohnungen.AsNoTracking()
-            .Where(b => b.ReceiptNumber == "NOOSE-BEL-2026-0001")
+            .Where(b => b.ReceiptNumber == "FIB-BEL-2026-0001")
             .Select(b => new
             {
                 b.Amount,

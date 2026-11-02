@@ -69,7 +69,7 @@ internal static class DutyChapter
                 du beim Vortrag siehst.</p>
                 <p>Liegt die Präsentation schon in <strong>Google Slides</strong>, holst du sie mit <em>Aus Google
                 Slides importieren</em>: per Freigabe-Link (in Google „Jeder mit dem Link“), über die
-                <strong>Google-Anmeldung</strong> (auch für Präsentationen, die nicht freigegeben sind; NOOSE liest
+                <strong>Google-Anmeldung</strong> (auch für Präsentationen, die nicht freigegeben sind; das FIB liest
                 nur die eine Datei, die du im Google-Fenster wählst) oder als hochgeladene PDF-Datei (<em>Datei →
                 Herunterladen → PDF-Dokument</em>). Jede Seite wird eine Folie und sieht aus
                 wie in Google, auch im Vollbild am Beamer; Animationen, Übergänge und eingebettete Videos gehen dabei

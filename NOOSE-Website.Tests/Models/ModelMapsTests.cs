@@ -66,7 +66,7 @@ public class ModelMapsTests
     [Fact]
     public void For_hit_usesCategory_whenTargetTypeNull()
     {
-        var hit = new SearchHit("Faction", "f-1", "Title", "Snippet", "NOOSE-F-1", TargetType: null);
+        var hit = new SearchHit("Faction", "f-1", "Title", "Snippet", "FIB-F-1", TargetType: null);
 
         Assert.Equal("/fraktionen/f-1", SearchNavigation.For(hit));
     }
@@ -75,7 +75,7 @@ public class ModelMapsTests
     public void For_hit_prefersTargetType_overCategory_andAppendsTheSection()
     {
         // A comment (Category) that belongs to a Party (TargetType) resolves to the party's Kommentare tab.
-        var hit = new SearchHit("Comment", "p-7", "Title", "Snippet", "NOOSE-PA-7", TargetType: "Party");
+        var hit = new SearchHit("Comment", "p-7", "Title", "Snippet", "FIB-PA-7", TargetType: "Party");
 
         Assert.Equal("/parteien/p-7?tab=kommentare", SearchNavigation.For(hit));
     }
@@ -84,7 +84,7 @@ public class ModelMapsTests
     public void For_hit_emptyTargetType_fallsBackToTheCategory()
     {
         // "" used to be non-null and skipped the ?? fallthrough, routing the hit to "/personen/".
-        var hit = new SearchHit("Faction", "z-3", "Title", "Snippet", "NOOSE-F-3", TargetType: "");
+        var hit = new SearchHit("Faction", "z-3", "Title", "Snippet", "FIB-F-3", TargetType: "");
 
         Assert.Equal("/fraktionen/z-3", SearchNavigation.For(hit));
     }

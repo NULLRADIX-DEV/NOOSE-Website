@@ -74,7 +74,7 @@ public sealed class PublicWantedServiceTests
 
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-0001");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-0001");
 
         var peopleFiles = Substitute.For<IFileStorageService>();
         var publicFiles = Substitute.For<IPublicWantedPhotoStorageService>();
@@ -112,7 +112,7 @@ public sealed class PublicWantedServiceTests
         }
         db.People.Add(Seed.Person(PersonId, "Max Mustermann", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0001";
+            p.CaseNumber = "FIB-P-2026-0001";
             p.WantedReason = "Verdacht auf Waffenhandel";
             p.ThreatScore = 80;
             person?.Invoke(p);
@@ -193,7 +193,7 @@ public sealed class PublicWantedServiceTests
     }
 
     [Fact]
-    public async Task Publishing_ForAJuniorAgent_DoesNotRevealThatTheFileIsClassified()
+    public async Task Publishing_ForATrainee_DoesNotRevealThatTheFileIsClassified()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -264,7 +264,7 @@ public sealed class PublicWantedServiceTests
 
         Assert.Equal(PublicWantedPublishOutcome.Published, outcome);
         var card = Assert.Single((await host.Service.GetBoardAsync()).Cards);
-        Assert.Equal("NOOSE-FA-2026-0001", card.CaseNumber);
+        Assert.Equal("FIB-FA-2026-0001", card.CaseNumber);
     }
 
     [Fact]
@@ -446,8 +446,8 @@ public sealed class PublicWantedServiceTests
         DropCache(host);
 
         Assert.Empty((await host.Service.GetBoardAsync()).Cards);
-        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-FA-2026-0001"));
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetByCaseNumberAsync("FIB-FA-2026-0001"));
+        Assert.Null(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
         // the row itself is untouched — the belt subtracts, it does not rewrite
         await using var db = ctx.NewContext();
         Assert.Equal(PublicWantedStatus.Veroeffentlicht, (await db.OeffentlicheFahndungen.SingleAsync(f => f.Id == id)).Status);
@@ -513,8 +513,8 @@ public sealed class PublicWantedServiceTests
         DropCache(host);
 
         Assert.Empty((await host.Service.GetBoardAsync()).Cards);
-        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-FA-2026-0001"));
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetByCaseNumberAsync("FIB-FA-2026-0001"));
+        Assert.Null(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
     }
 
     [Fact]
@@ -639,8 +639,8 @@ public sealed class PublicWantedServiceTests
         }
         DropCache(host);
 
-        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-FA-2026-0001"));
-        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-FA-9999-0001"));
+        Assert.Null(await host.Service.GetByCaseNumberAsync("FIB-FA-2026-0001"));
+        Assert.Null(await host.Service.GetByCaseNumberAsync("FIB-FA-9999-0001"));
     }
 
     [Fact]
@@ -650,7 +650,7 @@ public sealed class PublicWantedServiceTests
         var host = NewHost(ctx);
         await PublishedAsync(host);
 
-        Assert.NotNull(await host.Service.GetByCaseNumberAsync("noose-fa-2026-0001"));
+        Assert.NotNull(await host.Service.GetByCaseNumberAsync("fib-fa-2026-0001"));
     }
 
     [Fact]
@@ -681,7 +681,7 @@ public sealed class PublicWantedServiceTests
             ClaimsPrincipalBuilder.Agent("admin").WithRank(Rank.Director).AsAdmin().Build());
 
         Assert.Empty((await host.Service.GetBoardAsync()).Cards);
-        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetByCaseNumberAsync("FIB-FA-2026-0001"));
     }
 
     // ---- the accusation text ----
@@ -741,7 +741,7 @@ public sealed class PublicWantedServiceTests
 
         await host.Service.PublishAsync(id, null, Leader());
 
-        var detail = await host.Service.GetByCaseNumberAsync("NOOSE-FA-2026-0001");
+        var detail = await host.Service.GetByCaseNumberAsync("FIB-FA-2026-0001");
         Assert.DoesNotContain("<script", detail!.ChargeHtml, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -757,7 +757,7 @@ public sealed class PublicWantedServiceTests
         await host.Service.RetractAsync(id, "Hinweis war falsch", Leader());
 
         var draft = await host.Service.GetDraftAsync(id, Leader());
-        Assert.Equal("NOOSE-FA-2026-0001", draft!.CaseNumber);
+        Assert.Equal("FIB-FA-2026-0001", draft!.CaseNumber);
         Assert.Contains("Waffenhandel", draft.ChargeHtml);
         Assert.Equal(PublicWantedStatus.Zurueckgezogen, draft.Status);
     }
@@ -855,7 +855,7 @@ public sealed class PublicWantedServiceTests
         await host.Service.PublishAsync(id, null, Leader());
 
         var card = Assert.Single((await host.Service.GetBoardAsync()).Cards);
-        Assert.Equal("NOOSE-FA-2026-0001", card.CaseNumber);
+        Assert.Equal("FIB-FA-2026-0001", card.CaseNumber);
         // the substitute answers with a constant, so only the call count can tell ??= from =
         await host.CaseNumbers.Received(1)
             .NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
@@ -908,7 +908,7 @@ public sealed class PublicWantedServiceTests
             new PublicWantedInput { Id = id, DisplayName = "Max Mustermann", PhotoSourceId = "foto-1" }, Leader());
         await host.Service.PublishAsync(id, null, Leader());
 
-        var photo = await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001");
+        var photo = await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001");
         Assert.Equal("oeffentlich.jpg", photo!.FileNameSaved);
         Assert.Equal("image/jpeg", photo.ContentType);
         Assert.NotEqual("intern.jpg", photo.FileNameSaved);
@@ -925,12 +925,12 @@ public sealed class PublicWantedServiceTests
         await host.Service.UpdateSnapshotAsync(
             new PublicWantedInput { Id = id, DisplayName = "Max Mustermann", PhotoSourceId = "foto-1" }, Leader());
         await host.Service.PublishAsync(id, null, Leader());
-        Assert.NotNull(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.NotNull(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
 
         await host.Service.UpdateSnapshotAsync(
             new PublicWantedInput { Id = id, DisplayName = "Max Mustermann", PhotoSourceId = null }, Leader());
 
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
         Assert.False(Assert.Single((await host.Service.GetBoardAsync()).Cards).HasPhoto);
         host.PublicFiles.Received().Delete("oeffentlich.jpg");
     }
@@ -950,7 +950,7 @@ public sealed class PublicWantedServiceTests
         await host.Service.UpdateSnapshotAsync(
             new PublicWantedInput { Id = id, DisplayName = "Max Mustermann", PhotoSourceId = "foto-2" }, Leader());
 
-        var photo = await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001");
+        var photo = await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001");
         Assert.Equal("zweite.png", photo!.FileNameSaved);
         host.PublicFiles.Received().Delete("oeffentlich.jpg");
     }
@@ -962,7 +962,7 @@ public sealed class PublicWantedServiceTests
         var host = NewHost(ctx);
         await DraftAsync(host);
 
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
         Assert.Null(await host.Service.GetPublishedPhotoAsync("gibt-es-nicht"));
         Assert.Null(await host.Service.GetPublishedPhotoAsync(null));
     }
@@ -995,7 +995,7 @@ public sealed class PublicWantedServiceTests
     // ---- guards on the internal read paths ----
 
     [Fact]
-    public async Task GetAllAsync_AdmitsRankThreeAndTheSupervision_ButNotAJuniorAgent()
+    public async Task GetAllAsync_AdmitsRankThreeAndTheSupervision_ButNotATrainee()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -1046,7 +1046,7 @@ public sealed class PublicWantedServiceTests
         await host.Service.ApprovePublicationRequestAsync(requestId, "Passt", Leader());
 
         var card = Assert.Single((await host.Service.GetBoardAsync()).Cards);
-        Assert.Equal("NOOSE-FA-2026-0001", card.CaseNumber);
+        Assert.Equal("FIB-FA-2026-0001", card.CaseNumber);
         await using var db = ctx.NewContext();
         Assert.Equal(RequestStatus.Approved, (await db.Requests.SingleAsync()).Status);
         Assert.Equal(PublicWantedStatus.Veroeffentlicht,
@@ -1248,7 +1248,7 @@ public sealed class PublicWantedServiceTests
         await host.Service.CapturedAsync(id, Leader());
 
         var card = Assert.Single(await host.Service.GetArchiveAsync());
-        Assert.Equal("NOOSE-FA-2026-0001", card.CaseNumber);
+        Assert.Equal("FIB-FA-2026-0001", card.CaseNumber);
         Assert.Equal("Max Mustermann", card.DisplayName);
         // and it left the live board in the same snapshot
         Assert.Empty((await host.Service.GetBoardAsync()).Cards);
@@ -1376,7 +1376,7 @@ public sealed class PublicWantedServiceTests
 
         // the card is all the draft may know: it cannot carry a PersonId, the internal case number or a score
         await host.Press.Received(1).CreateCaptureDraftAsync(
-            Arg.Is<PublicWantedCard>(c => c.CaseNumber == "NOOSE-FA-2026-0001" && c.DisplayName == "Max Mustermann"),
+            Arg.Is<PublicWantedCard>(c => c.CaseNumber == "FIB-FA-2026-0001" && c.DisplayName == "Max Mustermann"),
             Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
     }
 
@@ -1409,7 +1409,7 @@ public sealed class PublicWantedServiceTests
 
         await host.Service.CapturedAsync(id, Leader());
 
-        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetByCaseNumberAsync("FIB-FA-2026-0001"));
     }
 
     [Fact]
@@ -1550,7 +1550,7 @@ public sealed class PublicWantedServiceTests
 
         await host.Service.CapturedAsync(id, Leader());
 
-        Assert.NotNull(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.NotNull(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
     }
 
     [Fact]
@@ -1563,7 +1563,7 @@ public sealed class PublicWantedServiceTests
 
         await host.Service.CapturedAsync(id, Leader());
 
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
     }
 
     [Fact]
@@ -1573,11 +1573,11 @@ public sealed class PublicWantedServiceTests
         var host = await PhotoHostAsync(ctx);
         await ModuleAsync(ctx, host, PublicModules.WantedArchive, true);
         await PublishedWithPhotoAsync(host);
-        Assert.NotNull(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.NotNull(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
 
         await ModuleAsync(ctx, host, PublicModules.Wanted, false);
 
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
     }
 
     [Fact]
@@ -1592,7 +1592,7 @@ public sealed class PublicWantedServiceTests
         await ClassifyAsync(ctx, p => p.IsTRUClassified = true);
         DropCache(host);
 
-        Assert.Null(await host.Service.GetPublishedPhotoAsync("NOOSE-FA-2026-0001"));
+        Assert.Null(await host.Service.GetPublishedPhotoAsync("FIB-FA-2026-0001"));
     }
 
     // ---- the view counter ----
@@ -1604,8 +1604,8 @@ public sealed class PublicWantedServiceTests
         var host = NewHost(ctx);
         await PublishedAsync(host);
 
-        await host.Service.CountViewAsync("NOOSE-FA-2026-0001");
-        await host.Service.CountViewAsync("NOOSE-FA-2026-0001");
+        await host.Service.CountViewAsync("FIB-FA-2026-0001");
+        await host.Service.CountViewAsync("FIB-FA-2026-0001");
 
         await using var db = ctx.NewContext();
         Assert.Equal(2, (await db.OeffentlicheFahndungen.SingleAsync()).ViewCount);
@@ -1627,7 +1627,7 @@ public sealed class PublicWantedServiceTests
             auditBefore = await db.AuditLogs.CountAsync();
         }
 
-        await host.Service.CountViewAsync("NOOSE-FA-2026-0001");
+        await host.Service.CountViewAsync("FIB-FA-2026-0001");
 
         await using var check = ctx.NewContext();
         var row = await check.OeffentlicheFahndungen.SingleAsync();
@@ -1645,11 +1645,11 @@ public sealed class PublicWantedServiceTests
         await using (var db = ctx.NewContext())
         {
             var row = await db.OeffentlicheFahndungen.SingleAsync(f => f.Id == id);
-            row.CaseNumber = "NOOSE-FA-2026-0001";
+            row.CaseNumber = "FIB-FA-2026-0001";
             await db.SaveChangesAsync();
         }
 
-        await host.Service.CountViewAsync("NOOSE-FA-2026-0001");
+        await host.Service.CountViewAsync("FIB-FA-2026-0001");
 
         await using var check = ctx.NewContext();
         Assert.Equal(0, (await check.OeffentlicheFahndungen.SingleAsync()).ViewCount);
@@ -1663,7 +1663,7 @@ public sealed class PublicWantedServiceTests
         var id = await PublishedAsync(host);
         await host.Service.RetractAsync(id, "Grund", Leader());
 
-        await host.Service.CountViewAsync("NOOSE-FA-2026-0001");
+        await host.Service.CountViewAsync("FIB-FA-2026-0001");
 
         await using var db = ctx.NewContext();
         Assert.Equal(0, (await db.OeffentlicheFahndungen.SingleAsync()).ViewCount);
@@ -1677,7 +1677,7 @@ public sealed class PublicWantedServiceTests
         await PublishedAsync(host);
         await ExpireInThePastAsync(ctx);
 
-        await host.Service.CountViewAsync("NOOSE-FA-2026-0001");
+        await host.Service.CountViewAsync("FIB-FA-2026-0001");
 
         await using var db = ctx.NewContext();
         Assert.Equal(0, (await db.OeffentlicheFahndungen.SingleAsync()).ViewCount);
@@ -1692,7 +1692,7 @@ public sealed class PublicWantedServiceTests
         await host.Service.RetractAsync(id, "Grund", Leader());
         await host.Service.DeleteAsync(id, Leader());
 
-        await host.Service.CountViewAsync("NOOSE-FA-2026-0001");
+        await host.Service.CountViewAsync("FIB-FA-2026-0001");
 
         await using var db = ctx.NewContext();
         var row = await db.OeffentlicheFahndungen.IgnoreQueryFilters().SingleAsync();
@@ -2020,7 +2020,7 @@ public sealed class PublicWantedServiceTests
         await PublishedAsync(host);
 
         await host.Discord.Received(1).PushWantedCardAsync(NotificationType.PublicWantedPublished,
-            Arg.Is<WantedDiscordEmbed>(c => c.ProfilePath == "/gesucht/NOOSE-FA-2026-0001"), Arg.Any<CancellationToken>());
+            Arg.Is<WantedDiscordEmbed>(c => c.ProfilePath == "/gesucht/FIB-FA-2026-0001"), Arg.Any<CancellationToken>());
         // the old one-line text is gone, or Discord would show two posts for one notice
         await host.Discord.DidNotReceive().PushCustomAsync(Arg.Any<NotificationType>(), Arg.Any<string>(),
             Arg.Any<string?>(), Arg.Any<CancellationToken>());
@@ -2049,7 +2049,8 @@ public sealed class PublicWantedServiceTests
 
         var text = WantedCardText.Of(PushedCard(host));
         Assert.Contains("Max Mustermann", text, StringComparison.Ordinal);
-        Assert.Contains("NOOSE-FA-2026-0001", text, StringComparison.Ordinal);
+        Assert.Contains("FIB-FA-2026-0001", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("FIB-P-", text, StringComparison.Ordinal);
         Assert.DoesNotContain("NOOSE-P-", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Falcon", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Waffenhandel", text, StringComparison.Ordinal);
@@ -2106,7 +2107,7 @@ public sealed class PublicWantedServiceTests
         await PublishedWithPhotoAsync(host);
 
         var card = PushedCard(host);
-        Assert.Equal("/gesucht/NOOSE-FA-2026-0001/foto", card.ImagePath);
+        Assert.Equal("/gesucht/FIB-FA-2026-0001/foto", card.ImagePath);
         Assert.Null(card.ThumbnailPath);
     }
 
@@ -2183,7 +2184,7 @@ public sealed class PublicWantedServiceTests
         await host.Service.ApprovePublicationRequestAsync(requestId, null, Leader());
 
         await host.Discord.Received(1).PushWantedCardAsync(NotificationType.PublicWantedPublished,
-            Arg.Is<WantedDiscordEmbed>(c => c.ProfilePath == "/gesucht/NOOSE-FA-2026-0001"), Arg.Any<CancellationToken>());
+            Arg.Is<WantedDiscordEmbed>(c => c.ProfilePath == "/gesucht/FIB-FA-2026-0001"), Arg.Any<CancellationToken>());
     }
 
     [Fact]

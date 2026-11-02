@@ -13,19 +13,19 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="AppointmentService"/> against in-memory SQLite.</summary>
 public sealed class AppointmentServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership().
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership().
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: neither leadership nor admin.
     private static ClaimsPrincipal NonLeader(string id)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static (AppointmentService Svc, INotificationService Notifications) Build(SqliteTestContext ctx)
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-TM-2026-0001");
+            .Returns("FIB-TM-2026-0001");
         var notifications = Substitute.For<INotificationService>();
         var svc = new AppointmentService(ctx.Factory, caseNo, notifications);
         return (svc, notifications);
@@ -54,7 +54,7 @@ public sealed class AppointmentServiceTests
         var a = new Appointment
         {
             Id = id,
-            CaseNumber = $"NOOSE-TM-2026-{id}",
+            CaseNumber = $"FIB-TM-2026-{id}",
             Title = $"Termin {id}",
             Start = new DateTime(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc),
             Visibility = visibility,
@@ -221,7 +221,7 @@ public sealed class AppointmentServiceTests
             new[] { "a1", "a2", "a3", "ghost", "creator-1" },
             actor);
 
-        Assert.Equal("NOOSE-TM-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-TM-2026-0001", created.CaseNumber);
         Assert.Equal("Team", created.Title);
 
         using var db2 = ctx.NewContext();
@@ -251,7 +251,7 @@ public sealed class AppointmentServiceTests
         using (var db = ctx.NewContext())
         {
             db.Users.Add(Seed.Agent("boss", configure: a => a.Rank = Rank.Director));
-            db.Users.Add(Seed.Agent("guest", configure: a => a.Rank = Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("guest", configure: a => a.Rank = Rank.Trainee));
             db.SaveChanges();
         }
         var (svc, notifications) = Build(ctx);
@@ -280,7 +280,7 @@ public sealed class AppointmentServiceTests
         {
             db.Users.Add(Seed.Agent("boss", configure: a => a.Rank = Rank.Director));
             db.Users.Add(Seed.Agent("admin", configure: a => a.IsAdmin = true));
-            db.Users.Add(Seed.Agent("junior", configure: a => a.Rank = Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("junior", configure: a => a.Rank = Rank.Trainee));
             db.Users.Add(Seed.Agent("tl", configure: a =>
             {
                 a.Rank = Rank.Director;

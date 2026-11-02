@@ -10,5 +10,5 @@ namespace NOOSE_Website.Services;
 public static class LeadershipChart
 {
     /// <summary>Supervisory Special Agent and up; the band the house calls leadership.</summary>
-    public const Rank RankFloor = Rank.SupervisorySpecialAgent;
+    public const Rank RankFloor = Rank.SpecialAgentInCharge;
 }

@@ -1013,7 +1013,7 @@ public class TipService(
         row.Status = TipStatus.FuehrteZurErgreifung;
         row.HandlerId ??= actor.GetAgentId();
         // written here rather than through AskCitizenAsync: that one refuses a closed tip and would switch the
-        // status to Rueckfrage. No author, so the line reads as "NOOSE" outside.
+        // status to Rueckfrage. No author, so the line reads as "FIB" outside.
         db.HinweisNachrichten.Add(new HinweisNachricht
         {
             HinweisId = row.Id,
@@ -1349,7 +1349,7 @@ public class TipService(
 
     private static Task<List<string>> DeskRecipientsAsync(AppDbContext db, CancellationToken ct)
         => db.Users.OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
             .Select(u => u.Id)
             .ToListAsync(ct);
 }

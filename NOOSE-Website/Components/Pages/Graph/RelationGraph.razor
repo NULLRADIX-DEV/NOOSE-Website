@@ -10,7 +10,7 @@
 @inject Microsoft.Extensions.Logging.ILogger<RelationGraph> Logger
 @implements IAsyncDisposable
 
-<PageTitle>Beziehungsgraph · NOOSE</PageTitle>
+<PageTitle>Beziehungsgraph · FIB</PageTitle>
 
 <MudStack Spacing="3">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
@@ -396,7 +396,7 @@
         try
         {
             // Bump ?v= when graph.js changes
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/graph.js?v=14");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/graph.js?v=15");
             _ref = DotNetObjectReference.Create(this);
             _ready = true;
             await LoadAndDrawAsync();

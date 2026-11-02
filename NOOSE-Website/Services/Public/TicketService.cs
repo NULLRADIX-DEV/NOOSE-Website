@@ -1488,7 +1488,7 @@ public class TicketService(
     // leadership hears about a ticket; no other agent sees the desk at all
     private static Task<List<string>> DeskRecipientsAsync(AppDbContext db, CancellationToken ct)
         => db.Users.OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
             .Select(u => u.Id)
             .ToListAsync(ct);
 }

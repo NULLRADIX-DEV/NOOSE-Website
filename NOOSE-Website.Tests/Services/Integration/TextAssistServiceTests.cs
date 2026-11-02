@@ -186,10 +186,10 @@ public sealed class TextAssistServiceTests
     [Fact]
     public async Task Correct_RejectsAChangedCaseNumber()
     {
-        var svc = Build("[1] Siehe Akte NOOSE-P-2026-0002.");
+        var svc = Build("[1] Siehe Akte FIB-P-2026-0002.");
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.CorrectAsync("<p>Siehe Akte NOOSE-P-2026-0001.</p>", TextAssistContext.Document, Agent()));
+            () => svc.CorrectAsync("<p>Siehe Akte FIB-P-2026-0001.</p>", TextAssistContext.Document, Agent()));
     }
 
     [Fact]

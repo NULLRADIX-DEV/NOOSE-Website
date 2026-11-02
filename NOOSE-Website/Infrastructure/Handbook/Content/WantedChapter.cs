@@ -97,7 +97,7 @@ internal static class WantedChapter
                 <em>Rückfrage</em> und schreibst ihm direkt - er bekommt sie in seinem Bürgerkonto.</p>
                 <p>Übernimm einen Hinweis, bevor du daran arbeitest. Dann sieht jeder, dass er nicht liegen
                 bleibt, und ihr schreibt dem Bürger nicht zu zweit.</p>
-                <p>Unter dem Antwortfeld schreibt dir <em>NOOSEI-Entwurf</em> einen Vorschlag aus dem Hinweis und dem
+                <p>Unter dem Antwortfeld schreibt dir <em>FIBI-Entwurf</em> einen Vorschlag aus dem Hinweis und dem
                 bisherigen Schriftwechsel, ohne interne Notizen. Lies den Entwurf, pass ihn an und schick ihn
                 selbst ab.</p>
                 """,
@@ -152,8 +152,8 @@ internal static class WantedChapter
                 zieh die Ausschreibung zurück.</p>
                 <p>Der Bürger bekommt in jedem Fall eine Antwort. Formuliere sie so, dass sie ohne Kenntnis der
                 Akte verständlich ist.</p>
-                <p>Dabei hilft <em>NOOSEI-Entwurf</em> unter dem Begründungsfeld: Schreib deine Gründe in
-                Stichpunkten hinein und wähle, ob du stattgeben oder ablehnen willst. NOOSEI formuliert daraus den
+                <p>Dabei hilft <em>FIBI-Entwurf</em> unter dem Begründungsfeld: Schreib deine Gründe in
+                Stichpunkten hinein und wähle, ob du stattgeben oder ablehnen willst. FIBI formuliert daraus den
                 Text, erfindet aber keine Gründe. Entscheiden tust du danach mit den Knöpfen darunter.</p>
                 """),
 
@@ -173,7 +173,7 @@ internal static class WantedChapter
             new Article("art-presse", "presse-und-warnungen", "Presse und Warnungen",
                 "Was die Behörde von sich aus sagt.",
                 """
-                <p>Zwei Wege führen von der NOOSE zur Öffentlichkeit, ohne dass jemand fragt:</p>
+                <p>Zwei Wege führen vom FIB zur Öffentlichkeit, ohne dass jemand fragt:</p>
                 <p>Eine <strong>Presseerklärung</strong> ist eine redaktionelle Mitteilung. Sie wird
                 geschrieben, geprüft und dann veröffentlicht - mit Datum und ohne Verfasser.</p>
                 <p>Eine <strong>Warnung</strong> ist dringender: eine Gefahr, vor der die Bevölkerung jetzt

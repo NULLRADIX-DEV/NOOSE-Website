@@ -39,7 +39,7 @@ public sealed class FactionThreatBoardServiceTests : IDisposable
     public void Dispose() => _ctx.Dispose();
 
     private static DiscordWebhookConfig Config(string? url, bool enabled = true, int threshold = 90)
-        => new(enabled, "https://noose.info",
+        => new(enabled, "https://fibhq.com",
             new Dictionary<NotificationType, string?> { [NotificationType.FactionThreatBoard] = url },
             new Dictionary<NotificationType, string?>(), IncludeHeadline: true, ThreatBoardThreshold: threshold);
 
@@ -445,7 +445,7 @@ public sealed class FactionThreatBoardServiceTests : IDisposable
     public async Task Only_writing_leadership_may_refresh_by_hand()
     {
         SeedFaction("vagos", "Vagos", 97);
-        var junior = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        var junior = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
         var supervision = ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build();
         var demo = ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsDemo().Build();
         var leader = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();

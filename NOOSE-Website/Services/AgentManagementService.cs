@@ -195,7 +195,7 @@ public class AgentManagementService(
             $"Bewerber hochgestuft als {rank}{(isTRU ? " (TRU)" : "")}{(isHRB ? " (HRB)" : "")}");
         await Save(agent, newStamp: true);
 
-        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Dein NOOSE-Zugang wurde freigeschaltet.", "/"); }
+        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Dein FIB-Zugang wurde freigeschaltet.", "/"); }
         catch { /* best effort */ }
     }
 
@@ -559,7 +559,7 @@ public class AgentManagementService(
         }
         if (agent.PartnerAgency is null)
         {
-            throw new InvalidOperationException("Dieser Account ist bereits ein interner NOOSE-Agent.");
+            throw new InvalidOperationException("Dieser Account ist bereits ein interner FIB-Agent.");
         }
 
         agent.PartnerAgency = null;
@@ -569,10 +569,10 @@ public class AgentManagementService(
         agent.ActiveSinceAt = DateTime.UtcNow;
 
         HistoryEntryAdd(agent.Id, null, rank, actor, "Von Partner zu intern");
-        Audit(agent, AuditAction.Modified, actor, $"Zugehörigkeit → intern NOOSE ({rank})");
+        Audit(agent, AuditAction.Modified, actor, $"Zugehörigkeit → intern FIB ({rank})");
         await Save(agent, newStamp: true);
 
-        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Deine Zugehörigkeit wurde auf einen internen NOOSE-Zugang umgestellt.", "/"); }
+        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Deine Zugehörigkeit wurde auf einen internen FIB-Zugang umgestellt.", "/"); }
         catch { /* best effort */ }
     }
 

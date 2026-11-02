@@ -16,7 +16,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="BewerbungService"/> over in-memory SQLite.</summary>
 public sealed class BewerbungServiceTests
 {
-    private const string CaseNo = "NOOSE-B-2026-0001";
+    private const string CaseNo = "FIB-B-2026-0001";
     private static readonly DateTime T0 = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private static (BewerbungService Svc, ISourcesStorageService Storage, IBewerbungssperreService Sperren,
@@ -38,15 +38,15 @@ public sealed class BewerbungServiceTests
 
     // HRB member (flag), junior rank => IsHrbOrLeadership() true, MayClassifiedRead() false.
     private static ClaimsPrincipal Hrb(string id = "hrb", string codename = "Falcon")
-        => ClaimsPrincipalBuilder.Agent(id).AsHrb().WithRank(Rank.JuniorAgent).WithCodename(codename).Build();
+        => ClaimsPrincipalBuilder.Agent(id).AsHrb().WithRank(Rank.Trainee).WithCodename(codename).Build();
 
-    // Rank >= SupervisorySpecialAgent => leadership; MayClassifiedRead() true.
+    // Rank >= SpecialAgentInCharge => leadership; MayClassifiedRead() true.
     private static ClaimsPrincipal Leader(string id = "lead", string codename = "Director")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).WithCodename(codename).Build();
 
     // Junior active agent: not HRB, not leadership.
     private static ClaimsPrincipal Junior(string id = "me")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // Leadership-by-rank team lead (not admin) = read-only supervision: passes the rank check, may not write.
     private static ClaimsPrincipal OnlyReader(string id = "reader")
@@ -67,7 +67,7 @@ public sealed class BewerbungServiceTests
         var b = new Bewerbung
         {
             Id = id,
-            CaseNumber = "NOOSE-B-2026-" + System.Guid.NewGuid().ToString("N").Substring(0, 8),
+            CaseNumber = "FIB-B-2026-" + System.Guid.NewGuid().ToString("N").Substring(0, 8),
             ApplicantUserId = applicantUserId,
             Name = name,
             Status = status,
@@ -153,7 +153,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { Name = "Trevor Ward", CoverLetter = "Wechsel zur NOOSE" };
+        var model = new BewerbungSubmitModel { Name = "Trevor Ward", CoverLetter = "Wechsel zum FIB" };
 
         var created = await svc.SubmitAsync(model, null, null, null, Partner("partner-1"));
 
@@ -703,7 +703,7 @@ public sealed class BewerbungServiceTests
             db.Bewerbungen.Add(Bew("b1", "u1", configure: b => b.LinkedPersonId = "p1"));
             db.People.Add(Seed.Person(id: "p1", name: "Ziel", configure: p =>
             {
-                p.CaseNumber = "NOOSE-P-2026-0042";
+                p.CaseNumber = "FIB-P-2026-0042";
                 p.ThreatScore = 77;
             }));
             db.SaveChanges();
@@ -714,7 +714,7 @@ public sealed class BewerbungServiceTests
         Assert.NotNull(info);
         Assert.Equal("p1", info!.PersonId);
         Assert.Equal("Ziel", info.Name);
-        Assert.Equal("NOOSE-P-2026-0042", info.CaseNumber);
+        Assert.Equal("FIB-P-2026-0042", info.CaseNumber);
         Assert.Equal(77, info.ThreatScore);
     }
 
@@ -987,7 +987,7 @@ public sealed class BewerbungServiceTests
             db.SaveChanges();
         }
 
-        var msg = await svc.PostToApplicantAsync("b1", "<p>Willkommen bei der NOOSE</p>", Hrb("hrb", "Falcon"));
+        var msg = await svc.PostToApplicantAsync("b1", "<p>Willkommen beim FIB</p>", Hrb("hrb", "Falcon"));
 
         Assert.Equal(BewerbungMessageAudience.Bewerber, msg.Audience);
         Assert.False(msg.AuthorIsApplicant);

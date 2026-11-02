@@ -9,15 +9,15 @@ public class DepartmentRulesTests
     [Theory]
     [InlineData(Rank.SpecialAgent)]
     [InlineData(Rank.SeniorSpecialAgent)]
-    [InlineData(Rank.SupervisorySpecialAgent)]
+    [InlineData(Rank.SpecialAgentInCharge)]
     [InlineData(Rank.DeputyDirector)]
     [InlineData(Rank.Director)]
     public void MayHold_FromSpecialAgentUpwards(Rank rank)
         => Assert.True(DepartmentRules.MayHold(rank));
 
     [Fact]
-    public void MayHold_JuniorAgentMayNot()
-        => Assert.False(DepartmentRules.MayHold(Rank.JuniorAgent));
+    public void MayHold_TraineeMayNot()
+        => Assert.False(DepartmentRules.MayHold(Rank.Trainee));
 
     /// <summary>A rankless account is a partner or a pending one; neither belongs to a department.</summary>
     [Fact]
@@ -36,7 +36,7 @@ public class DepartmentRulesTests
     public void RequireMayHold_NamesTheDepartmentAndTheRank()
     {
         var ex = Assert.Throws<InvalidOperationException>(
-            () => DepartmentRules.RequireMayHold(Rank.JuniorAgent, "Die Human Resource Branch"));
+            () => DepartmentRules.RequireMayHold(Rank.Trainee, "Die Human Resource Branch"));
 
         Assert.Contains("Human Resource Branch", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Special Agent", ex.Message, StringComparison.Ordinal);

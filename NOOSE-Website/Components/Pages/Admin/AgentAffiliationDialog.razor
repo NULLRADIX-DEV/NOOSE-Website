@@ -7,12 +7,12 @@
             <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
                 Beim Wechsel zu einer Partnerbehörde verliert das Konto Dienstgrad, TRU/HRB, Teamleitung
                 und Admin-Rechte und erhält nur noch Lesezugriff auf freigegebene Akten. Beim Wechsel zu
-                einem internen NOOSE-Agenten wird die Partner-Zugehörigkeit entfernt und ein Dienstgrad
+                einem internen FIB-Agenten wird die Partner-Zugehörigkeit entfernt und ein Dienstgrad
                 vergeben. In beiden Fällen muss sich der Agent neu anmelden.
             </MudAlert>
 
             <MudRadioGroup @bind-Value="_isPartner">
-                <MudRadio T="bool" Value="@false" Color="Color.Primary">Interner NOOSE-Agent</MudRadio>
+                <MudRadio T="bool" Value="@false" Color="Color.Primary">Interner FIB-Agent</MudRadio>
                 <MudRadio T="bool" Value="@true" Color="Color.Info">Partnerbehörde</MudRadio>
             </MudRadioGroup>
 
@@ -58,14 +58,14 @@
     private bool _isPartner;
     private PartnerAgency _agency = PartnerAgency.DoJ;
     private PartnerRank _partnerRank = PartnerRank.Member;
-    private Rank _rank = Rank.JuniorAgent;
+    private Rank _rank = Rank.Trainee;
 
     protected override void OnInitialized()
     {
         _isPartner = CurrentAgency is not null;
         _agency = CurrentAgency ?? PartnerAgency.DoJ;
         _partnerRank = CurrentPartnerRank ?? PartnerRank.Member;
-        _rank = CurrentRank ?? Rank.JuniorAgent;
+        _rank = CurrentRank ?? Rank.Trainee;
     }
 
     private void Confirm()

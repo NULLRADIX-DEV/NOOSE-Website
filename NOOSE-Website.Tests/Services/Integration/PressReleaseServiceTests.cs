@@ -64,7 +64,7 @@ public sealed class PressReleaseServiceTests
         var caseNumbers = Substitute.For<ICaseNumberService>();
         var counter = 0;
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
 
         var discord = Substitute.For<IDiscordWebhookService>();
         var service = new PressReleaseService(factory, modules, caseNumbers, discord, cache);
@@ -249,7 +249,7 @@ public sealed class PressReleaseServiceTests
         var id = await PublishedAsync(host);
 
         var row = (await host.Service.GetAllAsync(Leader())).Single(r => r.Id == id);
-        Assert.StartsWith($"NOOSE-{PressReleaseService.CaseNumberPrefix}-", row.CaseNumber, StringComparison.Ordinal);
+        Assert.StartsWith($"FIB-{PressReleaseService.CaseNumberPrefix}-", row.CaseNumber, StringComparison.Ordinal);
         Assert.Equal(PressReleaseStatus.Veroeffentlicht, row.Status);
         Assert.Single((await host.Service.GetPublishedAsync()).Cards);
         Assert.Equal("Falcon", row.PublishedByName);
@@ -467,7 +467,7 @@ public sealed class PressReleaseServiceTests
     // ---- the automatic draft after a capture ----
 
     private static PublicWantedCard Card()
-        => new("NOOSE-FA-2026-0001", PublicWantedKind.Fahndung, "Frank Miller", null, false,
+        => new("FIB-FA-2026-0001", PublicWantedKind.Fahndung, "Frank Miller", null, false,
             HazardLevel.High, DateTime.UtcNow, []);
 
     [Fact]

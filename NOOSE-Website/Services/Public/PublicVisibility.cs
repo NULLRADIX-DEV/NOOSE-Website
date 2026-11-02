@@ -21,7 +21,7 @@ public static class PublicVisibility
     private const string Protocol = "Protokollzeile; nach außen nie.";
     private const string Finance = "Interne Finanzdaten; öffentlich erscheint höchstens eine Summe aus einer eigenen Tabelle.";
     private const string Recruiting = "Bewerbungsverfahren; vertraulich zwischen Bewerber und Behörde.";
-    private const string Assistant = "NOOSEI-Interna; nach außen nie.";
+    private const string Assistant = "FIBI-Interna; nach außen nie.";
     private const string SearchInternal = "Suchindex des internen Bestands; nach außen nie.";
 
     /// <summary>Entity name → what exactly is published from it.</summary>

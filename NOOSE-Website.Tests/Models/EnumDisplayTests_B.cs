@@ -541,10 +541,10 @@ public class EnumDisplayTests_B
     // ---------------------------------------------------------------------
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, "Junior Agent")]
+    [InlineData(Rank.Trainee, "Junior Agent")]
     [InlineData(Rank.SpecialAgent, "Special Agent")]
     [InlineData(Rank.SeniorSpecialAgent, "Senior Special Agent")]
-    [InlineData(Rank.SupervisorySpecialAgent, "Supervisory Special Agent")]
+    [InlineData(Rank.SpecialAgentInCharge, "Supervisory Special Agent")]
     [InlineData(Rank.DeputyDirector, "Deputy Director")]
     [InlineData(Rank.Director, "Director")]
     public void RankName_definedValue_mapsToLabel(Rank rank, string expected)
@@ -563,8 +563,8 @@ public class EnumDisplayTests_B
         => Assert.Equal(
             new[]
             {
-                Rank.JuniorAgent, Rank.SpecialAgent, Rank.SeniorSpecialAgent,
-                Rank.SupervisorySpecialAgent, Rank.DeputyDirector, Rank.Director,
+                Rank.Trainee, Rank.SpecialAgent, Rank.SeniorSpecialAgent,
+                Rank.SpecialAgentInCharge, Rank.DeputyDirector, Rank.Director,
             },
             RankDisplay.All);
 

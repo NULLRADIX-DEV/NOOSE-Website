@@ -114,7 +114,7 @@ internal static class EquipmentChapter
                 und dürfen Dritten ohne ausdrückliche Genehmigung weder zugänglich gemacht noch überlassen
                 werden.</p>
                 <p>Es gilt die Straßenverkehrsordnung; Abweichungen sind nur im Rahmen konkreter Einsatzlagen
-                zulässig. Bei sichtbarer NOOSE-Lackierung sind ausschließlich Modifikationen erlaubt, die der
+                zulässig. Bei sichtbarer FIB-Lackierung sind ausschließlich Modifikationen erlaubt, die der
                 Seriosität der Behörde entsprechen. Dienstfahrzeuge werden grundsätzlich nur in
                 <strong>schwarzer oder dunkelgrauer</strong> Lackierung geführt; alles andere braucht die
                 Genehmigung der zuständigen Leitung.</p>
@@ -157,7 +157,7 @@ internal static class EquipmentChapter
                 betreten. Alle unterirdischen Bereiche, Sicherheitsanlagen, Fluchttunnel und Zellenbereiche
                 unterliegen der höchsten Geheimhaltungsstufe; wer in sicherheitsrelevante Bereiche verbracht
                 wird, wird über den Fluchttunnel transportiert.</p>
-                <p><strong>Bunker of the National Office of Security Enforcement</strong> (§9.2) ist die geheime
+                <p><strong>Bunker of the Federal Investigation Bureau</strong> (§9.2) ist die geheime
                 Sicherheits- und Ausweicheinrichtung: Ort der Grundeinweisungen, Tarnausbildungen und
                 Sonderunterweisungen. Von seiner Existenz dürfen ausschließlich Angehörige der Behörde und
                 Mitglieder des Parlamentspräsidiums wissen. Im Serverraum führt ein verborgener Zugang hinter

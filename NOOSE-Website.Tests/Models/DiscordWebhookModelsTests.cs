@@ -404,7 +404,7 @@ public class DiscordWebhookModelsTests
     [Fact]
     public void DiscordWebhookConfig_DefaultBaseUrl_isNooseInfo()
     {
-        Assert.Equal("https://noose.info", DiscordWebhookConfig.DefaultBaseUrl);
+        Assert.Equal("https://fibhq.com", DiscordWebhookConfig.DefaultBaseUrl);
     }
 
     [Fact]

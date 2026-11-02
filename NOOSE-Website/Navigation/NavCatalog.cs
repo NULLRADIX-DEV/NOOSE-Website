@@ -72,7 +72,7 @@ public static class NavCatalog
         new NavEntry("informanten", "/informanten", Icons.Material.Filled.VisibilityOff, "Informanten", NavSection.Fahndung, NavArea.Ermittlung,
             Description: "Vertrauliche Quellen (V-Personen) mit Treffen-Protokollen"),
         new NavEntry("entfuehrungen", "/entfuehrungen", Icons.Material.Filled.PersonOff, "Entführungen", NavSection.Fahndung, NavArea.Ermittlung,
-            Description: "Entführungen von NOOSE-Agenten: Täter, Informationsabfluss und kompromittierte Akten"),
+            Description: "Entführungen von FIB-Agenten: Täter, Informationsabfluss und kompromittierte Akten"),
 
         new NavEntry("dokumente", "/dokumente", Icons.Material.Filled.MenuBook, "Dokumenten-Bibliothek", NavSection.Wissen, NavArea.Ermittlung,
             Description: "Zentrale Ablage aller behördlichen Dokumente"),
@@ -93,7 +93,7 @@ public static class NavCatalog
         new NavEntry("hinweise", "/ermittlungshinweise", Icons.Material.Filled.Lightbulb, "Ermittlungshinweise", NavSection.Analyse, NavArea.Ermittlung,
             Description: "Algorithmische Hinweise: mögliche Verbindungen, Konflikte, veraltete Einstufungen"),
         // key stays "ki": stored favourites and hidden-entry settings reference it
-        new NavEntry("ki", "/ki-assistent", Icons.Material.Filled.SmartToy, "NOOSEI", NavSection.Analyse, NavArea.Ermittlung,
+        new NavEntry("ki", "/ki-assistent", Icons.Material.Filled.SmartToy, "FIBI", NavSection.Analyse, NavArea.Ermittlung,
             Description: "Fragen zur Aktenlage mit Zugriff auf die Aktendatenbank, plus Schreibhilfe"),
         new NavEntry("statistik", "/statistik", Icons.Material.Filled.QueryStats, "Statistik", NavSection.Analyse, NavArea.Ermittlung,
             Description: "Auswertungen, Kennzahlen und Lageberichte"),
@@ -122,7 +122,7 @@ public static class NavCatalog
         new NavEntry("admin.agenten", "/admin/agenten", Icons.Material.Filled.ManageAccounts, "Agenten-Verwaltung", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Dienstgrad, Status und Rechte der Agenten setzen"),
         new NavEntry("kasse", "/kasse", Icons.Material.Filled.AccountBalanceWallet, "Kasse", NavSection.Dienststelle, NavArea.Dienststelle,
-            Description: "NOOSE-Kasse: Schwarz- und Grüngeld buchen, Vorlagen und Statistik"),
+            Description: "FIB-Kasse: Schwarz- und Grüngeld buchen, Vorlagen und Statistik"),
         new NavEntry("einstellungen", "/einstellungen", Icons.Material.Filled.SettingsApplications, "Einstellungen", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "System, Vorlagen, Tags, Score, Partner und Protokoll an einer Stelle"),
         new NavEntry("tickets", "/tickets", Icons.Material.Filled.Forum, "Bürger-Tickets",
@@ -194,7 +194,7 @@ public static class NavCatalog
 
     private static readonly (PartnerFeature Feature, string Key, string Href, string Icon, string Label)[] PartnerFeaturePages =
     {
-        (PartnerFeature.Noosei, "partner.ki", "/ki-assistent", Icons.Material.Filled.Gavel, "NOOSEI-Rechtsauskunft"),
+        (PartnerFeature.Noosei, "partner.ki", "/ki-assistent", Icons.Material.Filled.Gavel, "FIBI-Rechtsauskunft"),
         (PartnerFeature.Graph, "partner.graph", "/graph", Icons.Material.Filled.Hub, "Beziehungsgraph"),
         (PartnerFeature.Radio, "partner.funk", "/funk", Icons.Material.Filled.SettingsInputAntenna, "Funkplan"),
         (PartnerFeature.SituationReports, "partner.lageberichte", "/lageberichte/archiv", Icons.Material.Filled.Assessment, "Lageberichte"),

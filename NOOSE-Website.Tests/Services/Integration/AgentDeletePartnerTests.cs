@@ -92,7 +92,7 @@ public sealed class AgentDeletePartnerTests : IDisposable
         }));
 
         var document = new Document { Title = "Akte" };
-        var meeting = new Meeting { CaseNumber = "NOOSE-BES-2026-0001", Title = "Lage" };
+        var meeting = new Meeting { CaseNumber = "FIB-BES-2026-0001", Title = "Lage" };
         db.Documents.Add(document);
         db.Meetings.Add(meeting);
 
@@ -101,7 +101,7 @@ public sealed class AgentDeletePartnerTests : IDisposable
         db.BuergerProfile.Add(profile);
         var ticket = new Ticket
         {
-            CaseNumber = "NOOSE-TIC-2026-0001",
+            CaseNumber = "FIB-TIC-2026-0001",
             Kind = TicketArt.Fuehrungsebene,
             CitizenProfileId = profile.Id,
             OpenedByAgentId = agentId,
@@ -116,7 +116,7 @@ public sealed class AgentDeletePartnerTests : IDisposable
         db.TicketBeteiligte.Add(new TicketParticipant { TicketId = ticket.Id, AgentId = agentId });
         db.Hinweise.Add(new Hinweis
         {
-            CaseNumber = "NOOSE-HIN-2026-0001",
+            CaseNumber = "FIB-HIN-2026-0001",
             CitizenProfileId = profile.Id,
             Text = "Beobachtung",
             HandlerId = agentId,
@@ -144,7 +144,7 @@ public sealed class AgentDeletePartnerTests : IDisposable
             AgentId = agentId, Year = 2026, Week = 10, Tokens = 500, Reason = "Nachschlag",
         });
         db.LlmRequests.Add(new LlmRequestLog { AgentId = agentId, BudgetYear = 2026, BudgetWeek = 10 });
-        var conversation = new NooseiConversation { AgentId = agentId, Title = "Frage an NOOSEI" };
+        var conversation = new NooseiConversation { AgentId = agentId, Title = "Frage an FIBI" };
         db.NooseiConversations.Add(conversation);
         db.NooseiMessages.Add(new NooseiMessage
         {
@@ -164,16 +164,16 @@ public sealed class AgentDeletePartnerTests : IDisposable
         // records that outlive the account and only carry it as a pointer
         db.EvidenceEntries.Add(new EvidenceEntry
         {
-            CaseNumber = "NOOSE-ASS-2026-0001", OwnerType = "NOOSE", HandlerAgentId = agentId,
+            CaseNumber = "FIB-ASS-2026-0001", OwnerType = "NOOSE", HandlerAgentId = agentId,
         });
-        db.Informants.Add(new Informant { CaseNumber = "NOOSE-INF-2026-0001", HandlerId = agentId });
+        db.Informants.Add(new Informant { CaseNumber = "FIB-INF-2026-0001", HandlerId = agentId });
         db.AgentAbductions.Add(new AgentAbduction
         {
-            CaseNumber = "NOOSE-ENT-2026-0001", VictimAgentId = agentId,
+            CaseNumber = "FIB-ENT-2026-0001", VictimAgentId = agentId,
         });
         db.FinancingRequests.Add(new FinancingRequest
         {
-            CaseNumber = "NOOSE-FIN-2026-0001", AgentId = agentId, Justification = "Ausrüstung",
+            CaseNumber = "FIB-FIN-2026-0001", AgentId = agentId, Justification = "Ausrüstung",
         });
         db.FinancingBudgetPeriods.Add(new FinancingBudgetPeriod
         {

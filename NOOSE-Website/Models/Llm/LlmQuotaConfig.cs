@@ -36,10 +36,10 @@ public sealed class LlmQuotaConfig
     {
         Ranks = new Dictionary<string, LlmRankQuota>
         {
-            [RankKey(Rank.JuniorAgent)] = new() { BaseWeekly = 20_000, CarryOverPercent = 0 },
+            [RankKey(Rank.Trainee)] = new() { BaseWeekly = 20_000, CarryOverPercent = 0 },
             [RankKey(Rank.SpecialAgent)] = new() { BaseWeekly = 35_000, CarryOverPercent = 0 },
             [RankKey(Rank.SeniorSpecialAgent)] = new() { BaseWeekly = 50_000, CarryOverPercent = 25 },
-            [RankKey(Rank.SupervisorySpecialAgent)] = new() { BaseWeekly = 80_000, CarryOverPercent = 50 },
+            [RankKey(Rank.SpecialAgentInCharge)] = new() { BaseWeekly = 80_000, CarryOverPercent = 50 },
             [RankKey(Rank.DeputyDirector)] = new() { BaseWeekly = 120_000, CarryOverPercent = 50 },
             [RankKey(Rank.Director)] = new() { BaseWeekly = 200_000, CarryOverPercent = 50 },
         },

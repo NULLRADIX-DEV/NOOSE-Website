@@ -15,7 +15,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class HandbookLookupToolTests
 {
     private static ClaimsPrincipal Agent()
-        => ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.JuniorAgent).WithCodename("Wren").Build();
+        => ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.Trainee).WithCodename("Wren").Build();
 
     private static NooseiToolContext Context() => NooseiToolContext.From(Agent());
 

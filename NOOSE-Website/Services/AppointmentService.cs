@@ -115,7 +115,7 @@ public class AppointmentService(
         try
         {
             var recipients = await db.Users.AsNoTracking().OnlySelectable()
-                .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+                .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
 

@@ -41,7 +41,7 @@ public sealed class PublicLeadershipServiceTests
     private static PublicLeadershipService NewService(SqliteTestContext ctx) => NewHost(ctx).Service;
 
     private static Agent Named(string id, Rank? rank, string? realName, Action<Agent>? configure = null)
-        => Seed.Agent(id, rank ?? Rank.JuniorAgent, configure: a =>
+        => Seed.Agent(id, rank ?? Rank.Trainee, configure: a =>
         {
             a.Rank = rank;
             a.RealName = realName;
@@ -62,9 +62,9 @@ public sealed class PublicLeadershipServiceTests
             [
                 Named("chef", Rank.Director, "Zora Zett"),
                 Named("vize", Rank.DeputyDirector, "Bert Berg"),
-                Named("ssa", Rank.SupervisorySpecialAgent, "Anna Alt"),
-                Named("ssa2", Rank.SupervisorySpecialAgent, "Albert Ast"),
-                Named("junior", Rank.JuniorAgent, "Clara Cello"),
+                Named("ssa", Rank.SpecialAgentInCharge, "Anna Alt"),
+                Named("ssa2", Rank.SpecialAgentInCharge, "Albert Ast"),
+                Named("junior", Rank.Trainee, "Clara Cello"),
                 Named("special", Rank.SpecialAgent, "Ärne Ahorn"),
             ]);
         await db.SaveChangesAsync();
@@ -412,7 +412,7 @@ public sealed class PublicLeadershipServiceTests
     {
         using var ctx = await SeededAsync(true,
             Seed.Agent("neu", Rank.Director, configure: a => a.RealName = "Nora Neu"),
-            Seed.Agent("frisch", Rank.JuniorAgent, configure: a => a.RealName = "Fritz Frisch"));
+            Seed.Agent("frisch", Rank.Trainee, configure: a => a.RealName = "Fritz Frisch"));
         var service = NewService(ctx);
         Assert.True(await service.IsOwnHiddenAsync(Self("neu", Rank.Director)));
         Assert.Empty((await service.GetPublicAsync()).Leadership);
@@ -431,13 +431,13 @@ public sealed class PublicLeadershipServiceTests
         var service = NewService(ctx);
         await service.GetPublicAsync();
 
-        await service.SetOwnHiddenAsync(true, Self("junior", Rank.JuniorAgent));
+        await service.SetOwnHiddenAsync(true, Self("junior", Rank.Trainee));
         await service.SetOwnHiddenAsync(true, Self("vize", Rank.DeputyDirector));
 
         var roster = await service.GetPublicAsync();
         Assert.Equal(["Director", "Supervisory Special Agent"], roster.Leadership.Select(t => t.Title).ToList());
         Assert.Equal(["Ärne Ahorn"], roster.Members.Select(m => m.Name).ToList());
-        Assert.True(await service.IsOwnHiddenAsync(Self("junior", Rank.JuniorAgent)));
+        Assert.True(await service.IsOwnHiddenAsync(Self("junior", Rank.Trainee)));
         Assert.False(await service.IsOwnHiddenAsync(Self("special", Rank.SpecialAgent)));
     }
 
@@ -477,7 +477,7 @@ public sealed class PublicLeadershipServiceTests
         var demo = ClaimsPrincipalBuilder.Agent("chef").WithRank(Rank.Director).AsDemo().Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.SetOwnHiddenAsync(true, demo));
-        await service.SetOwnHiddenAsync(true, Self("junior", Rank.JuniorAgent));
+        await service.SetOwnHiddenAsync(true, Self("junior", Rank.Trainee));
 
         await using var db = ctx.NewContext();
         Assert.Equal(["junior"], await db.Users.Where(u => u.HiddenFromPublicRoster).Select(u => u.Id).ToListAsync());

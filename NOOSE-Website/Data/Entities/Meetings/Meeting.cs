@@ -10,7 +10,7 @@ public class Meeting : IAuditable, ISoftDelete
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
-    /// <summary>Human-readable unique case number (e.g. NOOSE-BS-2026-0001).</summary>
+    /// <summary>Human-readable unique case number (e.g. FIB-BS-2026-0001).</summary>
     [Column("Aktenzeichen")]
     public string CaseNumber { get; set; } = string.Empty;
 

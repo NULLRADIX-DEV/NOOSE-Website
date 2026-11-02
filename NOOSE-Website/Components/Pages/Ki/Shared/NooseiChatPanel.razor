@@ -12,7 +12,7 @@
 @if (!Chat.IsConfigured)
 {
     <EmptyState Icon="@Icons.Material.Filled.SmartToy"
-                Text="NOOSEI ist nicht konfiguriert. Ein Admin muss Endpoint, Modell und Schlüssel hinterlegen." />
+                Text="FIBI ist nicht konfiguriert. Ein Admin muss Endpoint, Modell und Schlüssel hinterlegen." />
 }
 else
 {
@@ -81,7 +81,7 @@ else
             @if (_quota?.IsBlocked == true)
             {
                 <MudAlert Severity="Severity.Error" Dense="true" Class="mb-2">
-                    Dein NOOSEI-Kontingent ist aufgebraucht.
+                    Dein FIBI-Kontingent ist aufgebraucht.
                     @if (_quota.NextResetLocal is { } reset)
                     {
                         <text> Neues Kontingent ab @reset.ToString("dd.MM.yyyy HH:mm") Uhr.</text>
@@ -104,12 +104,12 @@ else
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
                         @if (_isPartner)
                         {
-                            <text>Frag nach den Gesetzbüchern — NOOSEI sucht die passenden Paragrafen selbst.
+                            <text>Frag nach den Gesetzbüchern — FIBI sucht die passenden Paragrafen selbst.
                             Zum Beispiel: „Welche Strafe steht auf Geiselnahme?"</text>
                         }
                         else
                         {
-                            <text>Frag nach der Aktenlage — NOOSEI durchsucht die Datenbank selbst.
+                            <text>Frag nach der Aktenlage — FIBI durchsucht die Datenbank selbst.
                             Zum Beispiel: „Was weißt du über die Ballas und wer führt sie?"</text>
                         }
                     </MudText>
@@ -130,7 +130,7 @@ else
                                   Style="@($"max-width:80%;background:{(m.FromUser ? "rgba(34,211,238,0.10)" : "rgba(255,255,255,0.05)")};border-radius:10px;")">
                             @if (!m.FromUser)
                             {
-                                <MudText Typo="Typo.overline" Class="mud-text-secondary">NOOSEI · ungeprüft</MudText>
+                                <MudText Typo="Typo.overline" Class="mud-text-secondary">FIBI · ungeprüft</MudText>
                             }
                             @if (m.Html is { } html)
                             {
@@ -192,7 +192,7 @@ else
                                 <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default" Class="mt-1"
                                            StartIcon="@(_openTraces.Contains(m.Id) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
                                            OnClick="() => ToggleTrace(m.Id)">
-                                    NOOSEI hat @ToolCount(m) @(ToolCount(m) == 1 ? "Werkzeug" : "Werkzeuge") benutzt
+                                    FIBI hat @ToolCount(m) @(ToolCount(m) == 1 ? "Werkzeug" : "Werkzeuge") benutzt
                                 </MudButton>
                                 <MudCollapse Expanded="@_openTraces.Contains(m.Id)">
                                     <div class="d-flex flex-wrap mt-1" style="gap:4px;">
@@ -242,7 +242,7 @@ else
 
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
                 @* NOOSEI resolves the token itself via loese_erwaehnung_auf, so an @ here points it at a record *@
-                <MentionInput @bind-Text="_input" Label="Frage an NOOSEI" Lines="3" HelperText="@MentionInput.Hint"
+                <MentionInput @bind-Text="_input" Label="Frage an FIBI" Lines="3" HelperText="@MentionInput.Hint"
                               Class="flex-grow-1" Disabled="@(_busy || Locked)" />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
                            OnClick="SendAsync"
@@ -250,8 +250,8 @@ else
             </MudStack>
             <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
                 @(_isPartner
-                    ? "NOOSEI beantwortet hier nur Rechtsfragen zu den Gesetzbüchern. Antworten sind KI-generiert und ungeprüft."
-                    : "NOOSEI sieht nur, was du sehen darfst. Antworten sind KI-generiert und ungeprüft.")
+                    ? "FIBI beantwortet hier nur Rechtsfragen zu den Gesetzbüchern. Antworten sind KI-generiert und ungeprüft."
+                    : "FIBI sieht nur, was du sehen darfst. Antworten sind KI-generiert und ungeprüft.")
             </MudText>
         </MudItem>
     </MudGrid>
@@ -491,7 +491,7 @@ else
         _busy = true;
         _elapsed = 0;
         _steps.Clear();
-        _steps.Add("NOOSEI arbeitet …");
+        _steps.Add("FIBI arbeitet …");
 
         // every step is kept: the trace is what a 60-second answer has to show instead of a bare spinner
         var progress = new Progress<string>(step =>
@@ -515,13 +515,13 @@ else
             _lastCost = turn.QuotaTokens;
             if (turn.Degraded)
             {
-                Snackbar.Add("NOOSEI konnte diesmal nicht auf die Aktendatenbank zugreifen.", Severity.Warning);
+                Snackbar.Add("FIBI konnte diesmal nicht auf die Aktendatenbank zugreifen.", Severity.Warning);
             }
             if (turn.ScopeChanged)
             {
                 // otherwise it just looks as if NOOSEI forgot what it had read a minute ago
                 Snackbar.Add("Deine Rechte haben sich geändert. Frühere Werkzeug-Ergebnisse dieser Unterhaltung "
-                    + "wurden verworfen; NOOSEI liest neu.", Severity.Info);
+                    + "wurden verworfen; FIBI liest neu.", Severity.Info);
             }
             await ReloadConversationsAsync();
         }
@@ -573,7 +573,7 @@ else
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "NOOSEI-Vorschlag {Proposal} ließ sich nicht entscheiden.", proposal.Id);
+            Logger.LogError(ex, "FIBI-Vorschlag {Proposal} ließ sich nicht entscheiden.", proposal.Id);
             Snackbar.Add("Der Vorschlag ließ sich nicht bearbeiten.", Severity.Error);
             await ReloadCardsAsync(messageId);
         }

@@ -13,7 +13,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
-<PageTitle>Meine Hinweise · NOOSE</PageTitle>
+<PageTitle>Meine Hinweise · FIB</PageTitle>
 
 @if (_anonymous)
 {
@@ -142,7 +142,7 @@ else if (_ready)
                                 <MudStack Spacing="1">
                                     @* a line you may already have read can be corrected; saying so costs no identity *@
                                     <MudText Typo="Typo.caption" Color="@(message.FromCitizen ? Color.Default : Color.Primary)">
-                                        @(message.FromCitizen ? "Du" : "NOOSE")
+                                        @(message.FromCitizen ? "Du" : "FIB")
                                         · @message.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
                                         @if (message.EditedAt is not null)
                                         {

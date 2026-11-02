@@ -473,7 +473,7 @@ export function alsBildExportieren(containerId) {
     try {
         const a = document.createElement('a');
         a.href = canvas.toDataURL('image/png');
-        a.download = 'noose-beziehungsgraph.png';
+        a.download = 'fib-beziehungsgraph.png';
         a.click();
     } catch (e) { /* ignore */ }
 }

@@ -88,7 +88,7 @@ public class DiscordWebhookService(
                 title = "📝 EINTRAG",
                 description = link,
                 color = 0x00B8D4, // NOOSE cyan
-                footer = new { text = "National Office of Security Enforcement" },
+                footer = new { text = "Federal Investigation Bureau" },
                 fields = new object[]
                 {
                     new { name = "👤 Name", value = Field(subjectDisplay), inline = false },
@@ -142,7 +142,7 @@ public class DiscordWebhookService(
                 title = "🎖️ EHRUNG",
                 description = link,
                 color = 0xC9A227, // decoration gold
-                footer = new { text = "National Office of Security Enforcement" },
+                footer = new { text = "Federal Investigation Bureau" },
                 fields = fields.ToArray(),
             };
             await SendEmbedAsync(url, mention, embed, cancellationToken);
@@ -181,12 +181,12 @@ public class DiscordWebhookService(
             }
             var embed = new
             {
-                author = new { name = "National Office of Security Enforcement" },
+                author = new { name = "Federal Investigation Bureau" },
                 title = "⚠️ KÜNDIGUNG",
                 description = description.ToString(),
                 color = 0xE53935, // termination red
                 timestamp = stamp.ToString("yyyy-MM-ddTHH:mm:sszzz"),
-                footer = new { text = "National Office of Security Enforcement" },
+                footer = new { text = "Federal Investigation Bureau" },
                 fields = new object[]
                 {
                     new
@@ -321,7 +321,7 @@ public class DiscordWebhookService(
         {
             var payload = new
             {
-                username = "NOOSE",
+                username = "FIB",
                 embeds = new[] { BoardEmbed(embed) },
                 allowed_mentions = new { parse = Array.Empty<string>() },
             };
@@ -603,7 +603,7 @@ public class DiscordWebhookService(
         var payload = new
         {
             content = mention.Prefix.Length > 0 ? $"{mention.Prefix} {content}" : content,
-            username = "NOOSE",
+            username = "FIB",
             allowed_mentions = mention.AllowedMentions,
         };
         var client = httpFactory.CreateClient("discord");
@@ -621,7 +621,7 @@ public class DiscordWebhookService(
         var payload = new
         {
             content = mention.Prefix.Length > 0 ? mention.Prefix : (string?)null,
-            username = "NOOSE",
+            username = "FIB",
             embeds = new[] { embed },
             allowed_mentions = mention.AllowedMentions,
         };

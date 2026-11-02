@@ -126,7 +126,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
 
                 if (agent is null)
                 {
-                    return RedirectToLoginPage("Das NOOSE-Konto konnte nicht angelegt werden.");
+                    return RedirectToLoginPage("Das FIB-Konto konnte nicht angelegt werden.");
                 }
             }
             else

@@ -9,7 +9,7 @@ namespace NOOSE_Website.Tests.Services.Public;
 /// <summary>The Discord card of a public notice: wording, colour, image placement, limits and what it must never carry.</summary>
 public class WantedDiscordCardTests
 {
-    private const string Case = "NOOSE-FA-2026-0001";
+    private const string Case = "FIB-FA-2026-0001";
     private static readonly DateTime At = new(2026, 11, 2, 14, 3, 0, DateTimeKind.Utc);
 
     private static PublicWantedCard Card(
@@ -257,8 +257,8 @@ public class WantedDiscordCardTests
     [Fact]
     public void TheFooter_IsTheOffice()
     {
-        Assert.Equal("National Office of Security Enforcement", Published(Card()).Footer);
-        Assert.Equal("National Office of Security Enforcement", Raised(Card()).Footer);
+        Assert.Equal("Federal Investigation Bureau", Published(Card()).Footer);
+        Assert.Equal("Federal Investigation Bureau", Raised(Card()).Footer);
     }
 
     [Fact]
@@ -364,6 +364,7 @@ public class WantedDiscordCardTests
             Assert.DoesNotContain("Waffenhandel", text, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Vinewood", text, StringComparison.Ordinal);
             Assert.DoesNotContain("Sultan", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("FIB-P-", text, StringComparison.Ordinal);
             Assert.DoesNotContain("NOOSE-P-", text, StringComparison.Ordinal);
             Assert.DoesNotContain("Falcon", text, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Score", text, StringComparison.OrdinalIgnoreCase);

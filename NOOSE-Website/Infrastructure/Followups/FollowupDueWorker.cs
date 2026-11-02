@@ -102,7 +102,7 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
                 var allowed = new List<string>();
                 foreach (var u in active)
                 {
-                    var uLeadership = u.IsAdmin || u.Rank is >= Rank.SupervisorySpecialAgent;
+                    var uLeadership = u.IsAdmin || u.Rank is >= Rank.SpecialAgentInCharge;
                     // the bool shim cannot carry IsInternalAgent, and the types gated on it — a citizen ticket, a
                     // citizen tip — read it as "not an in-house account" and hide the record from everyone. Same
                     // flags as the shim otherwise, so no other type changes answer

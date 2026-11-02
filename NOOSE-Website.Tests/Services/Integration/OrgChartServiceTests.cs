@@ -9,13 +9,13 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="OrgChartService"/> against in-memory SQLite.</summary>
 public sealed class OrgChartServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership() => MayAllTaskforcesSee() == true.
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership() => MayAllTaskforcesSee() == true.
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, not admin => sees only assigned taskforces.
     private static ClaimsPrincipal Plain(string id)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static OrgChartService NewService(SqliteTestContext ctx) => new(ctx.Factory);
 
@@ -34,7 +34,7 @@ public sealed class OrgChartServiceTests
         => new()
         {
             Id = id,
-            CaseNumber = $"NOOSE-TF-2026-{id}",
+            CaseNumber = $"FIB-TF-2026-{id}",
             Name = name,
             Status = status,
             Scope = TaskforceScope.InternalAgency,
@@ -58,7 +58,7 @@ public sealed class OrgChartServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Ag("a1", Rank.JuniorAgent, codename: "Alpha"));
+            db.Users.Add(Ag("a1", Rank.Trainee, codename: "Alpha"));
             db.Users.Add(Ag("a2", Rank.Director, codename: "Bravo"));
             db.Users.Add(Ag("a3", Rank.SpecialAgent, codename: "Charlie"));
             db.SaveChanges();
@@ -67,7 +67,7 @@ public sealed class OrgChartServiceTests
         var data = await NewService(ctx).GetAsync(Leader());
 
         Assert.Equal(
-            new[] { Rank.Director, Rank.SpecialAgent, Rank.JuniorAgent },
+            new[] { Rank.Director, Rank.SpecialAgent, Rank.Trainee },
             data.Ranks.Select(g => g.Rank).ToArray());
         Assert.Equal("Bravo", data.Ranks[0].Agents.Single().Codename);
     }
@@ -237,7 +237,7 @@ public sealed class OrgChartServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Ag("viewer", Rank.JuniorAgent));
+            db.Users.Add(Ag("viewer", Rank.Trainee));
             db.Taskforces.Add(Tf("t1"));
             db.SaveChanges();
         }
@@ -253,7 +253,7 @@ public sealed class OrgChartServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Ag("viewer", Rank.JuniorAgent));
+            db.Users.Add(Ag("viewer", Rank.Trainee));
             db.Taskforces.Add(Tf("t1", "Assigned"));
             db.Taskforces.Add(Tf("t2", "Unassigned"));
             db.TaskforceAgents.Add(Alloc("t1", "viewer"));

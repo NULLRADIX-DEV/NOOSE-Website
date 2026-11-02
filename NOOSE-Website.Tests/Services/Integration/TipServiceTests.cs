@@ -77,7 +77,7 @@ public sealed class TipServiceTests
         var seq = 0;
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
 
         var tipPriority = new TipPriorityService(factory);
         var wanted = new PublicWantedService(factory, modules, caseNumbers,
@@ -118,7 +118,7 @@ public sealed class TipServiceTests
 
         db.People.Add(Seed.Person(PersonId, "Max Mustermann", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0001";
+            p.CaseNumber = "FIB-P-2026-0001";
             p.WantedReason = "Verdacht auf Waffenhandel";
         }));
 
@@ -182,7 +182,7 @@ public sealed class TipServiceTests
         {
             db.People.Add(Seed.Person(personId, $"Gesuchter {index}", p =>
             {
-                p.CaseNumber = $"NOOSE-P-2026-90{index:00}";
+                p.CaseNumber = $"FIB-P-2026-90{index:00}";
                 p.WantedReason = "Verdacht auf Raub";
             }));
             await db.SaveChangesAsync();
@@ -327,7 +327,7 @@ public sealed class TipServiceTests
 
         var caseNumber = await SubmitAsync(host);
 
-        Assert.StartsWith("NOOSE-H-", caseNumber, StringComparison.Ordinal);
+        Assert.StartsWith("FIB-H-", caseNumber, StringComparison.Ordinal);
         await using var db = ctx.NewContext();
         var row = await db.Hinweise.SingleAsync();
         Assert.Equal(ProfileId, row.CitizenProfileId);
@@ -544,7 +544,7 @@ public sealed class TipServiceTests
         await host.Wanted.CreateDraftFromPersonAsync(PersonId, Leader());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => SubmitAsync(host, reference: "NOOSE-FA-2026-0001"));
+            () => SubmitAsync(host, reference: "FIB-FA-2026-0001"));
     }
 
     // ---- anonymity ----

@@ -14,7 +14,7 @@ public sealed class GlossaryHtmlTests
     private static readonly GlossaryMatcher Standard = Matcher(
         Term("t-vs", "Verschlusssache", "Ein Inhalt, den nur die Führung sieht.", "VS"),
         Term("t-fahndung", "Fahndung", "Die öffentliche Ausschreibung einer Person."),
-        Term("t-agent", "Agent", "Ein Mitglied der NOOSE."),
+        Term("t-agent", "Agent", "Ein Mitglied des FIB."),
         Term("t-senior", "Senior Special Agent", "Der dritte Dienstgrad."));
 
     // --- what it marks ----------------------------------------------------
@@ -228,7 +228,7 @@ public sealed class GlossaryHtmlTests
 
         Assert.Equal(1, Occurrences(result, "class=\"glossar\""));
         Assert.Contains("Der dritte Dienstgrad.", result, StringComparison.Ordinal);
-        Assert.DoesNotContain("Ein Mitglied der NOOSE.", result, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ein Mitglied des FIB.", result, StringComparison.Ordinal);
     }
 
     /// <summary>The wrapped run is what was matched, so the odd separator stays inside the bubble.</summary>

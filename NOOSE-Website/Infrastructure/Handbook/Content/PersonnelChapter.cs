@@ -182,7 +182,7 @@ internal static class PersonnelChapter
             new Article("art-bewerbungen", "bewerbungen", "Bewerbungen",
                 "Der Weg von außen in die Behörde.",
                 """
-                <p>Wer zur NOOSE will, bewirbt sich über den öffentlichen Bereich. Die Bewerbung durchläuft
+                <p>Wer zum FIB will, bewirbt sich über den öffentlichen Bereich. Die Bewerbung durchläuft
                 feste Stufen: <em>Eingereicht</em> → <em>Sicherheitsüberprüfung</em> → <em>Test</em> →
                 <em>Vorstellungsgespräch</em> → <em>Angenommen</em> oder <em>Abgelehnt</em>.</p>
                 <p>Bearbeitet wird sie von der <strong>HRB</strong> und der Führung. Es gibt einen
@@ -237,7 +237,7 @@ internal static class PersonnelChapter
             new Article("art-partner", "partner-freigaben", "Partnerbehörden",
                 "LSPD, DoJ, LSMD und Parlament - und was sie sehen dürfen.",
                 """
-                <p>Konten von <strong>Partnerbehörden</strong> sind keine NOOSE-Agenten. Sie sehen
+                <p>Konten von <strong>Partnerbehörden</strong> sind keine FIB-Agenten. Sie sehen
                 standardmäßig <strong>nichts</strong> - und das ändert sich nur durch ausdrückliche
                 Freigaben.</p>
                 <p>Eine Akte wird auf zwei Wegen freigegeben:</p>
@@ -254,7 +254,7 @@ internal static class PersonnelChapter
                 <strong>nie</strong> sieht - zum Beispiel Doks und Befragungen. Das schlägt jede Freigabe,
                 auch eine Einzelfreigabe mit „Ganze Akte“.</p>
                 <p>Je Behörde lassen sich dort auch <strong>Funktionen</strong> freischalten: die
-                NOOSEI-Rechtsauskunft, Beziehungsgraph, Funkplan, Lageberichte und Anfragen. Die Rechtsauskunft
+                FIBI-Rechtsauskunft, Beziehungsgraph, Funkplan, Lageberichte und Anfragen. Die Rechtsauskunft
                 kennt nur die Gesetzbücher; ihr Wochenkontingent je Konto legt der KI-Eigner fest. Graph und Funkplan zeigen einem Partner nur, was für ihn
                 freigegeben ist; Lageberichte bekommt er ohne Doks, ohne Namen von Personen und ohne Finanzen.</p>
                 <p>Über <em>Freigaben anfragen</em> bittet eine Behörde in eigenen Worten um weitere Akten. Die

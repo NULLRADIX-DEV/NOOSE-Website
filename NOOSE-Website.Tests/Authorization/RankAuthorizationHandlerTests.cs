@@ -31,16 +31,16 @@ public class RankAuthorizationHandlerTests
     public async Task HandleAsync_AdminWithRankBelowMinimum_Succeeds()
     {
         var requirement = new RankRequirement(Rank.Director);
-        var principal = ClaimsPrincipalBuilder.Agent().AsAdmin().WithRank(Rank.JuniorAgent).Build();
+        var principal = ClaimsPrincipalBuilder.Agent().AsAdmin().WithRank(Rank.Trainee).Build();
 
         Assert.True(await EvaluateAsync(requirement, principal));
     }
 
     [Theory]
-    [InlineData(Rank.JuniorAgent)]
+    [InlineData(Rank.Trainee)]
     [InlineData(Rank.SpecialAgent)]
     [InlineData(Rank.SeniorSpecialAgent)]
-    [InlineData(Rank.SupervisorySpecialAgent)]
+    [InlineData(Rank.SpecialAgentInCharge)]
     [InlineData(Rank.DeputyDirector)]
     [InlineData(Rank.Director)]
     public async Task HandleAsync_AdminAgainstEveryMinimum_Succeeds(Rank minimum)
@@ -74,7 +74,7 @@ public class RankAuthorizationHandlerTests
     [Fact]
     public async Task HandleAsync_TopRankAgainstLowestMinimum_Succeeds()
     {
-        var requirement = new RankRequirement(Rank.JuniorAgent);
+        var requirement = new RankRequirement(Rank.Trainee);
         var principal = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).Build();
 
         Assert.True(await EvaluateAsync(requirement, principal));
@@ -86,7 +86,7 @@ public class RankAuthorizationHandlerTests
     public async Task HandleAsync_RankOneBelowMinimum_Fails()
     {
         var requirement = new RankRequirement(Rank.SpecialAgent);
-        var principal = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        var principal = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
 
         Assert.False(await EvaluateAsync(requirement, principal));
     }
@@ -95,19 +95,19 @@ public class RankAuthorizationHandlerTests
     public async Task HandleAsync_LowestRankAgainstTopMinimum_Fails()
     {
         var requirement = new RankRequirement(Rank.Director);
-        var principal = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        var principal = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
 
         Assert.False(await EvaluateAsync(requirement, principal));
     }
 
     [Theory]
     // rank, minimum, expected success (rank >= minimum)
-    [InlineData(Rank.JuniorAgent, Rank.JuniorAgent, true)]
-    [InlineData(Rank.JuniorAgent, Rank.SpecialAgent, false)]
-    [InlineData(Rank.SpecialAgent, Rank.JuniorAgent, true)]
-    [InlineData(Rank.SeniorSpecialAgent, Rank.SupervisorySpecialAgent, false)]
-    [InlineData(Rank.SupervisorySpecialAgent, Rank.SeniorSpecialAgent, true)]
-    [InlineData(Rank.SupervisorySpecialAgent, Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.Trainee, Rank.Trainee, true)]
+    [InlineData(Rank.Trainee, Rank.SpecialAgent, false)]
+    [InlineData(Rank.SpecialAgent, Rank.Trainee, true)]
+    [InlineData(Rank.SeniorSpecialAgent, Rank.SpecialAgentInCharge, false)]
+    [InlineData(Rank.SpecialAgentInCharge, Rank.SeniorSpecialAgent, true)]
+    [InlineData(Rank.SpecialAgentInCharge, Rank.SpecialAgentInCharge, true)]
     [InlineData(Rank.DeputyDirector, Rank.Director, false)]
     [InlineData(Rank.Director, Rank.Director, true)]
     public async Task HandleAsync_RankLadder_MatchesThreshold(Rank rank, Rank minimum, bool expected)
@@ -123,7 +123,7 @@ public class RankAuthorizationHandlerTests
     [Fact]
     public async Task HandleAsync_NoRankClaimNonAdmin_Fails()
     {
-        var requirement = new RankRequirement(Rank.JuniorAgent);
+        var requirement = new RankRequirement(Rank.Trainee);
         var principal = ClaimsPrincipalBuilder.Agent().Build();
 
         Assert.False(await EvaluateAsync(requirement, principal));
@@ -132,7 +132,7 @@ public class RankAuthorizationHandlerTests
     [Fact]
     public async Task HandleAsync_AnonymousPrincipal_Fails()
     {
-        var requirement = new RankRequirement(Rank.JuniorAgent);
+        var requirement = new RankRequirement(Rank.Trainee);
         var principal = ClaimsPrincipalBuilder.Anonymous();
 
         Assert.False(await EvaluateAsync(requirement, principal));
@@ -141,7 +141,7 @@ public class RankAuthorizationHandlerTests
     [Fact]
     public async Task HandleAsync_MalformedRankClaimNonAdmin_Fails()
     {
-        var requirement = new RankRequirement(Rank.JuniorAgent);
+        var requirement = new RankRequirement(Rank.Trainee);
         var principal = ClaimsPrincipalBuilder.Agent().Raw(AgentClaimTypes.Rank, "not-a-number").Build();
 
         Assert.False(await EvaluateAsync(requirement, principal));
@@ -151,7 +151,7 @@ public class RankAuthorizationHandlerTests
     public async Task HandleAsync_OutOfRangeRankClaimNonAdmin_Fails()
     {
         // 99 is not a defined Rank -> GetRank returns null -> no success
-        var requirement = new RankRequirement(Rank.JuniorAgent);
+        var requirement = new RankRequirement(Rank.Trainee);
         var principal = ClaimsPrincipalBuilder.Agent().Raw(AgentClaimTypes.Rank, "99").Build();
 
         Assert.False(await EvaluateAsync(requirement, principal));

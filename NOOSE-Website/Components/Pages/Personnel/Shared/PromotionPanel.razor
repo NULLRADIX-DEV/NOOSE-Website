@@ -94,7 +94,7 @@
 
     private async Task RequestAsync()
     {
-        var choice = await PromotionDialog.ShowAsync(DialogService, Agent.Id, Agent.Codename, Agent.Rank ?? Rank.JuniorAgent);
+        var choice = await PromotionDialog.ShowAsync(DialogService, Agent.Id, Agent.Codename, Agent.Rank ?? Rank.Trainee);
         if (choice is null)
         {
             return;

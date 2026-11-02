@@ -22,9 +22,9 @@ public sealed class PlaceholderServiceTests
     private static ClaimsPrincipal Leader(string codename = "Falke")
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename(codename).Build();
 
-    // JuniorAgent: not leadership, not admin => cannot read classified records.
+    // Trainee: not leadership, not admin => cannot read classified records.
     private static ClaimsPrincipal Regular(string codename = "Spatz")
-        => ClaimsPrincipalBuilder.Agent("reg").WithRank(Rank.JuniorAgent).WithCodename(codename).Build();
+        => ClaimsPrincipalBuilder.Agent("reg").WithRank(Rank.Trainee).WithCodename(codename).Build();
 
     private const string AllTokens =
         "<p>{{Name}}|{{Aktenzeichen}}|{{Datum}}|{{Uhrzeit}}|{{Agent}}|{{Dienstgrad}}</p>";
@@ -152,7 +152,7 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("p1", "Tony Prince", p => p.CaseNumber = "NOOSE-P-2026-0042"));
+            db.People.Add(Seed.Person("p1", "Tony Prince", p => p.CaseNumber = "FIB-P-2026-0042"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -160,7 +160,7 @@ public sealed class PlaceholderServiceTests
         // Non-classified record => even a non-leadership viewer sees it.
         var result = await svc.ApplyAsync("{{Name}} :: {{Aktenzeichen}}", nameof(Person), "p1", Regular());
 
-        Assert.Equal("Tony Prince :: NOOSE-P-2026-0042", result);
+        Assert.Equal("Tony Prince :: FIB-P-2026-0042", result);
     }
 
     [Fact]
@@ -261,14 +261,14 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Factions.Add(Seed.Faction("f1", "Vagos", f => f.CaseNumber = "NOOSE-F-2026-0007"));
+            db.Factions.Add(Seed.Faction("f1", "Vagos", f => f.CaseNumber = "FIB-F-2026-0007"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
 
         var result = await svc.ApplyAsync("{{Name}}|{{Aktenzeichen}}", nameof(Faction), "f1", Regular());
 
-        Assert.Equal("Vagos|NOOSE-F-2026-0007", result);
+        Assert.Equal("Vagos|FIB-F-2026-0007", result);
     }
 
     [Fact]
@@ -277,14 +277,14 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Zelle Nord", CaseNumber = "NOOSE-G-2026-0001" });
+            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Zelle Nord", CaseNumber = "FIB-G-2026-0001" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
 
         var result = await svc.ApplyAsync("{{Name}}|{{Aktenzeichen}}", nameof(PersonGroup), "g1", Regular());
 
-        Assert.Equal("Zelle Nord|NOOSE-G-2026-0001", result);
+        Assert.Equal("Zelle Nord|FIB-G-2026-0001", result);
     }
 
     [Fact]
@@ -293,14 +293,14 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Parties.Add(new Party { Id = "pt1", Name = "Volkspartei", CaseNumber = "NOOSE-PT-2026-0001" });
+            db.Parties.Add(new Party { Id = "pt1", Name = "Volkspartei", CaseNumber = "FIB-PT-2026-0001" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
 
         var result = await svc.ApplyAsync("{{Name}}|{{Aktenzeichen}}", nameof(Party), "pt1", Regular());
 
-        Assert.Equal("Volkspartei|NOOSE-PT-2026-0001", result);
+        Assert.Equal("Volkspartei|FIB-PT-2026-0001", result);
     }
 
     [Fact]
@@ -309,14 +309,14 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Operations.Add(new Operation { Id = "o1", Title = "Nachtfalke", CaseNumber = "NOOSE-OP-2026-0003" });
+            db.Operations.Add(new Operation { Id = "o1", Title = "Nachtfalke", CaseNumber = "FIB-OP-2026-0003" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
 
         var result = await svc.ApplyAsync("{{Name}}|{{Aktenzeichen}}", nameof(Operation), "o1", Regular());
 
-        Assert.Equal("Nachtfalke|NOOSE-OP-2026-0003", result);
+        Assert.Equal("Nachtfalke|FIB-OP-2026-0003", result);
     }
 
     [Fact]
@@ -325,14 +325,14 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Cases.Add(Seed.Case("c1", "Ermittlung Alpha", c => c.CaseNumber = "NOOSE-V-2026-0005"));
+            db.Cases.Add(Seed.Case("c1", "Ermittlung Alpha", c => c.CaseNumber = "FIB-V-2026-0005"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
 
         var result = await svc.ApplyAsync("{{Name}}|{{Aktenzeichen}}", nameof(Case), "c1", Regular());
 
-        Assert.Equal("Ermittlung Alpha|NOOSE-V-2026-0005", result);
+        Assert.Equal("Ermittlung Alpha|FIB-V-2026-0005", result);
     }
 
     [Fact]
@@ -341,7 +341,7 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Jobs.Add(new Job { Id = "j1", Title = "Aktenpflege", CaseNumber = "NOOSE-A-2026-0002" });
+            db.Jobs.Add(new Job { Id = "j1", Title = "Aktenpflege", CaseNumber = "FIB-A-2026-0002" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -349,7 +349,7 @@ public sealed class PlaceholderServiceTests
         // Jobs are always visible if they exist; a junior agent resolves it.
         var result = await svc.ApplyAsync("{{Name}}|{{Aktenzeichen}}", nameof(Job), "j1", Regular());
 
-        Assert.Equal("Aktenpflege|NOOSE-A-2026-0002", result);
+        Assert.Equal("Aktenpflege|FIB-A-2026-0002", result);
     }
 
     [Fact]
@@ -358,7 +358,7 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "t1", Name = "TF Sturm", CaseNumber = "NOOSE-TF-2026-0001" });
+            db.Taskforces.Add(new Taskforce { Id = "t1", Name = "TF Sturm", CaseNumber = "FIB-TF-2026-0001" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -366,7 +366,7 @@ public sealed class PlaceholderServiceTests
         // Leadership may see all taskforces without membership.
         var result = await svc.ApplyAsync("{{Name}}|{{Aktenzeichen}}", nameof(Taskforce), "t1", Leader());
 
-        Assert.Equal("TF Sturm|NOOSE-TF-2026-0001", result);
+        Assert.Equal("TF Sturm|FIB-TF-2026-0001", result);
     }
 
     [Fact]
@@ -409,7 +409,7 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "t1", Name = "TF Sturm", CaseNumber = "NOOSE-TF-2026-0001" });
+            db.Taskforces.Add(new Taskforce { Id = "t1", Name = "TF Sturm", CaseNumber = "FIB-TF-2026-0001" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -489,14 +489,14 @@ public sealed class PlaceholderServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("p1", "Tony Prince", p => p.CaseNumber = "NOOSE-P-2026-0042"));
+            db.People.Add(Seed.Person("p1", "Tony Prince", p => p.CaseNumber = "FIB-P-2026-0042"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
 
         var result = await svc.ApplyPlainAsync("{{Name}} :: {{Aktenzeichen}}", nameof(Person), "p1", Regular());
 
-        Assert.Equal("Tony Prince :: NOOSE-P-2026-0042", result);
+        Assert.Equal("Tony Prince :: FIB-P-2026-0042", result);
     }
 
     [Fact]
@@ -508,7 +508,7 @@ public sealed class PlaceholderServiceTests
             db.People.Add(Seed.Person("p1", "Geheimer Name", p =>
             {
                 p.IsClassified = true;
-                p.CaseNumber = "NOOSE-P-2026-0099";
+                p.CaseNumber = "FIB-P-2026-0099";
             }));
             db.SaveChanges();
         }
@@ -519,7 +519,7 @@ public sealed class PlaceholderServiceTests
         // not visible is handled like no record at all, and nothing about it may reach the field
         Assert.Equal("[{{Name}}] [{{Aktenzeichen}}]", result);
         Assert.DoesNotContain("Geheimer Name", result);
-        Assert.DoesNotContain("NOOSE-P-2026-0099", result);
+        Assert.DoesNotContain("FIB-P-2026-0099", result);
     }
 
     [Fact]

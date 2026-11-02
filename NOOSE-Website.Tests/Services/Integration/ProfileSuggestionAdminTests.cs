@@ -17,14 +17,14 @@ public sealed class ProfileSuggestionAdminTests
     private static ProfileSuggestionService Build(SqliteTestContext ctx) => new(ctx.Factory);
 
     private static ClaimsPrincipal Leader
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
 
     // read-only supervision passes the leadership check but must still be blocked from writes
     private static ClaimsPrincipal ReadOnlySupervision
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).AsTeamLead().Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).AsTeamLead().Build();
 
     private static ClaimsPrincipal PlainAgent
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
 
     // ---------- GetEntriesAsync ----------
 

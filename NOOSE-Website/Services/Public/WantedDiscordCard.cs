@@ -39,7 +39,7 @@ public static class WantedDiscordCard
 
     private const int Cyan = 0x00B8D4;
     private const int Gold = 0xC9A227;
-    private const string Office = "National Office of Security Enforcement";
+    private const string Office = "Federal Investigation Bureau";
 
     /// <summary>The card of a fresh notice; the bounty shows only when there is money on the head.</summary>
     public static WantedDiscordEmbed Published(PublicWantedCard card, PublicBounty? bounty)

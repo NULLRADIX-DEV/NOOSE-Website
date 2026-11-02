@@ -5,17 +5,17 @@
 @using NOOSE_Website.Models.Public
 @inject IPublicSituationService Situation
 
-<PageTitle>Gefahrenlage · NOOSE</PageTitle>
+<PageTitle>Gefahrenlage · FIB</PageTitle>
 
 <LinkPreview Title="Aktuelle Gefahrenlage"
-             Description="Die Einschätzung des National Office of Security Enforcement für das gesamte Staatsgebiet." />
+             Description="Die Einschätzung des Federal Investigation Bureau für das gesamte Staatsgebiet." />
 
 <PublicModuleGate Module="@PublicModules.HazardLevel" Title="Gefahrenlage">
 <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
     <MudStack Spacing="4">
         <MudText Typo="Typo.h4">Aktuelle Gefahrenlage</MudText>
         <MudText Typo="Typo.body1" Class="mud-text-secondary">
-            Die Einschätzung des National Office of Security Enforcement für das gesamte Staatsgebiet. Sie wird von
+            Die Einschätzung des Federal Investigation Bureau für das gesamte Staatsgebiet. Sie wird von
             der Behörde festgelegt und gilt, bis sie geändert wird.
         </MudText>
 

@@ -83,7 +83,7 @@ public class AgentManagementServiceTests
 
     private static Agent NewAgent(string id, AgentStatus status = AgentStatus.Pending,
         Rank? rank = null, Action<Agent>? cfg = null)
-        => Seed.Agent(id, rank ?? Rank.JuniorAgent, status, a =>
+        => Seed.Agent(id, rank ?? Rank.Trainee, status, a =>
         {
             a.Rank = rank;
             a.SecurityStamp = System.Guid.NewGuid().ToString();
@@ -95,10 +95,10 @@ public class AgentManagementServiceTests
         => ClaimsPrincipalBuilder.Agent(id).AsAdmin().WithRank(Rank.Director).WithCodename("Chief").Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SupervisorySpecialAgent).WithCodename("Lead").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename("Lead").Build();
 
     private static ClaimsPrincipal Junior(string id = "jr")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal OnlyReader(string id = "ro")
         => ClaimsPrincipalBuilder.Agent(id).AsTeamLead().WithRank(Rank.Director).Build();
@@ -280,7 +280,7 @@ public class AgentManagementServiceTests
         using var db = ctx.NewContext();
         db.Bewerbungen.Add(new NOOSE_Website.Data.Entities.Recruiting.Bewerbung
         {
-            CaseNumber = "NOOSE-B-2026-0001", ApplicantUserId = applicantUserId, Name = "Trevor Ward",
+            CaseNumber = "FIB-B-2026-0001", ApplicantUserId = applicantUserId, Name = "Trevor Ward",
         });
         db.SaveChanges();
     }
@@ -534,7 +534,7 @@ public class AgentManagementServiceTests
     public async Task RankChangeAsync_SetsRank_WritesHistory()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
 
         await f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, Admin());
 
@@ -628,7 +628,7 @@ public class AgentManagementServiceTests
     public async Task PromotionDecideAsync_ApprovesAndSetsRank()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
         using (var db = f.Ctx.NewContext())
         {
             db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
@@ -669,7 +669,7 @@ public class AgentManagementServiceTests
 
     [Theory]
     [InlineData(null)]
-    [InlineData(Rank.JuniorAgent)]
+    [InlineData(Rank.Trainee)]
     public async Task TruSetAsync_BelowSpecialAgent_Throws(Rank? rank)
     {
         using var f = Make();
@@ -682,7 +682,7 @@ public class AgentManagementServiceTests
 
     [Theory]
     [InlineData(null)]
-    [InlineData(Rank.JuniorAgent)]
+    [InlineData(Rank.Trainee)]
     public async Task HrbSetAsync_BelowSpecialAgent_Throws(Rank? rank)
     {
         using var f = Make();
@@ -698,7 +698,7 @@ public class AgentManagementServiceTests
     public async Task HrbSetAsync_ClearingIsAllowedBelowTheThreshold()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.JuniorAgent, cfg: a => a.IsHRB = true));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee, cfg: a => a.IsHRB = true));
 
         await f.Svc.HrbSetAsync("t", false, Admin());
 
@@ -726,13 +726,13 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task ReleaseAsync_JuniorAgentWithDepartment_Throws()
+    public async Task ReleaseAsync_TraineeWithDepartment_Throws()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.ReleaseAsync("t", Rank.JuniorAgent, isTRU: false, isHRB: true, Admin()));
+            () => f.Svc.ReleaseAsync("t", Rank.Trainee, isTRU: false, isHRB: true, Admin()));
         Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
     }
 
@@ -757,10 +757,10 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
             cfg: a => { a.IsTRU = true; a.IsHRB = true; }));
 
-        await f.Svc.RankChangeAsync("t", Rank.JuniorAgent, Admin());
+        await f.Svc.RankChangeAsync("t", Rank.Trainee, Admin());
 
         var a = Reload(f, "t");
-        Assert.Equal(Rank.JuniorAgent, a.Rank);
+        Assert.Equal(Rank.Trainee, a.Rank);
         Assert.False(a.IsTRU);
         Assert.False(a.IsHRB);
     }
@@ -789,7 +789,7 @@ public class AgentManagementServiceTests
         {
             db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
             {
-                Id = "req-down", AgentId = "t", TargetRank = Rank.JuniorAgent, Status = PromotionStatus.Requested,
+                Id = "req-down", AgentId = "t", TargetRank = Rank.Trainee, Status = PromotionStatus.Requested,
             });
             db.SaveChanges();
         }
@@ -797,7 +797,7 @@ public class AgentManagementServiceTests
         await f.Svc.PromotionDecideAsync("req-down", approved: true, note: null, Admin());
 
         var a = Reload(f, "t");
-        Assert.Equal(Rank.JuniorAgent, a.Rank);
+        Assert.Equal(Rank.Trainee, a.Rank);
         Assert.False(a.IsHRB);
     }
 
@@ -1255,7 +1255,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_BelowLeadership_StagesForRelease()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
 
@@ -1271,7 +1271,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Leadership_AppliesInstantly()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("lead", AgentStatus.Active, Rank.SupervisorySpecialAgent));
+        Persist(f.Ctx, NewAgent("lead", AgentStatus.Active, Rank.SpecialAgentInCharge));
 
         await f.Svc.AvatarSetAsync("lead", Image(), "image/jpeg", 32, Leader("lead"));
 
@@ -1286,7 +1286,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_SecondUpload_ReplacesStagedFile()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var first = Reload(f, "jr").PendingAvatarFileName!;
@@ -1305,7 +1305,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_OnDisallowedType(string contentType)
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => f.Svc.AvatarSetAsync("jr", Image(), contentType, 32, Junior("jr")));
@@ -1317,7 +1317,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_WhenTooLarge()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         var tooBig = new FileUploadOptions().AvatarMaxBytes + 1;
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -1330,7 +1330,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_ForForeignAccount_EvenAsLeadership()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         // leadership moderates by removing, it never uploads on someone else's behalf
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -1351,7 +1351,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_ForPartner()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("pa", AgentStatus.Active, Rank.JuniorAgent, a => a.PartnerAgency = PartnerAgency.LSPD));
+        Persist(f.Ctx, NewAgent("pa", AgentStatus.Active, Rank.Trainee, a => a.PartnerAgency = PartnerAgency.LSPD));
         var partner = ClaimsPrincipalBuilder.Agent("pa").AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -1362,7 +1362,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_MovesStagedToActive_AndNotifies()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var staged = Reload(f, "jr").PendingAvatarFileName!;
 
@@ -1382,7 +1382,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_DeletesThePreviousPicture()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         await f.Svc.AvatarApproveAsync("jr", Leader());
@@ -1401,7 +1401,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_Throws_WithoutStagedPicture()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => f.Svc.AvatarApproveAsync("jr", Leader()));
     }
@@ -1410,7 +1410,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_Throws_ForNonLeadership()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.AvatarApproveAsync("jr", Junior("other")));
@@ -1420,7 +1420,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRejectAsync_DropsStaged_KeepsActive()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent,
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee,
             a => { a.AvatarFileName = "alt.png"; a.AvatarContentType = "image/png"; }));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var staged = Reload(f, "jr").PendingAvatarFileName!;
@@ -1438,7 +1438,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRejectAsync_Throws_ForNonLeadership()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.AvatarRejectAsync("jr", "nein", Junior("other")));
@@ -1448,7 +1448,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRemoveAsync_OwnAccount_ClearsBothAndDeletesFiles()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         await f.Svc.AvatarApproveAsync("jr", Leader());
         var active = Reload(f, "jr").AvatarFileName!;
@@ -1470,7 +1470,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRemoveAsync_ForeignAccount_LeadershipOnly()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent,
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee,
             a => { a.AvatarFileName = "alt.png"; a.AvatarContentType = "image/png"; }));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.AvatarRemoveAsync("jr", Junior("other")));
@@ -1485,9 +1485,9 @@ public class AgentManagementServiceTests
     {
         using var f = Make();
         Persist(f.Ctx,
-            NewAgent("a", AgentStatus.Active, Rank.JuniorAgent),
-            NewAgent("b", AgentStatus.Active, Rank.JuniorAgent),
-            NewAgent("c", AgentStatus.Active, Rank.JuniorAgent,
+            NewAgent("a", AgentStatus.Active, Rank.Trainee),
+            NewAgent("b", AgentStatus.Active, Rank.Trainee),
+            NewAgent("c", AgentStatus.Active, Rank.Trainee,
                 a => { a.AvatarFileName = "aktiv.png"; a.AvatarContentType = "image/png"; }));
         await f.Svc.AvatarSetAsync("b", Image(), "image/png", 32, Junior("b"));
         await f.Svc.AvatarSetAsync("a", Image(), "image/png", 32, Junior("a"));
@@ -1502,9 +1502,9 @@ public class AgentManagementServiceTests
     {
         using var f = Make();
         Persist(f.Ctx,
-            NewAgent("act", AgentStatus.Active, Rank.JuniorAgent,
+            NewAgent("act", AgentStatus.Active, Rank.Trainee,
                 a => { a.AvatarFileName = "aktiv.png"; a.AvatarContentType = "image/png"; }),
-            NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+            NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var staged = Reload(f, "jr").PendingAvatarFileName!;
 

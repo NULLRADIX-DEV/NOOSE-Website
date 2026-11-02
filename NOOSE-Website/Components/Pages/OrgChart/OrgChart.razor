@@ -2,14 +2,14 @@
 @inject IOrgChartService OrgChartService
 @inject IDecorationService Decorations
 
-<PageTitle>Organigramm · NOOSE</PageTitle>
+<PageTitle>Organigramm · FIB</PageTitle>
 
 <MudStack Spacing="4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
         <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" Size="Size.Large" />
         <div>
             <MudText Typo="Typo.h5">Organigramm</MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">NOOSE-Struktur: Dienstgrade, TRU, HRB und Taskforce-Besetzung.</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">FIB-Struktur: Dienstgrade, TRU, HRB und Taskforce-Besetzung.</MudText>
         </div>
     </MudStack>
 
@@ -27,7 +27,7 @@
         {
             <div class="org-scroll">
                 <div class="org">
-                    <div class="org-node org-root">N.O.O.S.E.</div>
+                    <div class="org-node org-root">F.I.B.</div>
                     @foreach (var rank in _data.Ranks)
                     {
                         <div class="org-link"></div>

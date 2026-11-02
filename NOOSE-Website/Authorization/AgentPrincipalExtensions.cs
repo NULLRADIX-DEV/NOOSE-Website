@@ -97,7 +97,7 @@ public static class AgentPrincipalExtensions
 
     /// <summary>Leadership = rank ≥ Supervisory Special Agent or admin.</summary>
     public static bool IsLeadership(this ClaimsPrincipal user)
-        => user.IsAdmin() || user.GetRank() is >= Rank.SupervisorySpecialAgent;
+        => user.IsAdmin() || user.GetRank() is >= Rank.SpecialAgentInCharge;
 
     /// <summary>May READ classified content = leadership or read-only supervision. Read gates only, never write/real-name.</summary>
     public static bool MayClassifiedRead(this ClaimsPrincipal user)

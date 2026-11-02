@@ -17,8 +17,8 @@ public class WorkforceStatisticsService(
     /// <summary>Highest rank first, so the pyramid reads top-down.</summary>
     private static readonly Rank[] RanksTopDown =
     [
-        Rank.Director, Rank.DeputyDirector, Rank.SupervisorySpecialAgent,
-        Rank.SeniorSpecialAgent, Rank.SpecialAgent, Rank.JuniorAgent,
+        Rank.Director, Rank.DeputyDirector, Rank.SpecialAgentInCharge,
+        Rank.SeniorSpecialAgent, Rank.SpecialAgent, Rank.Trainee,
     ];
 
     /// <summary>Recruiting stages in funnel order; the terminal outcomes come last.</summary>

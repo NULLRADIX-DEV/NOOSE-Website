@@ -31,7 +31,7 @@ public sealed class TicketFollowupWorkerTests
         db.Tickets.Add(new Ticket
         {
             Id = "t1",
-            CaseNumber = "NOOSE-T-2026-0001",
+            CaseNumber = "FIB-T-2026-0001",
             Subject = "Beschädigtes Fahrzeug",
             CitizenProfileId = ProfileId,
             Status = status,

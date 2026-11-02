@@ -18,15 +18,15 @@ public static class PublicPageSeeder
     public static readonly IReadOnlyList<Starter> Starters =
     [
         new("auftrag", "Unser Auftrag", "Auftrag", "Shield", 10,
-            "<p>Das National Office of Security Enforcement schützt die staatliche Ordnung vor organisierter "
+            "<p>Das Federal Investigation Bureau schützt die staatliche Ordnung vor organisierter "
             + "Kriminalität und verfassungsfeindlichen Bestrebungen.</p><p><em>Dieser Text ist ein Platzhalter "
             + "und muss vor der Veröffentlichung ersetzt werden.</em></p>"),
         new("befugnisse", "Unsere Befugnisse", "Befugnisse", "Gavel", 20,
-            "<p>Hier stehen die gesetzlichen Grundlagen, auf die sich Maßnahmen des NOOSE stützen, und die "
+            "<p>Hier stehen die gesetzlichen Grundlagen, auf die sich Maßnahmen des FIB stützen, und die "
             + "Grenzen dieser Befugnisse.</p><p><em>Dieser Text ist ein Platzhalter und muss vor der "
             + "Veröffentlichung ersetzt werden.</em></p>"),
         new("zustaendigkeiten", "Zuständigkeiten", "Zuständigkeiten", "Groups", 30,
-            "<p>Hier steht, welche Anliegen das NOOSE bearbeitet und welche an andere Behörden gehören.</p>"
+            "<p>Hier steht, welche Anliegen das FIB bearbeitet und welche an andere Behörden gehören.</p>"
             + "<p><em>Dieser Text ist ein Platzhalter und muss vor der Veröffentlichung ersetzt werden.</em></p>"),
         // the odd one out: this row is not an Information page but the heading and intro of /faq, which has a
         // module and a route of its own. Held out of the /info menu by PublicPageService; retracting it takes

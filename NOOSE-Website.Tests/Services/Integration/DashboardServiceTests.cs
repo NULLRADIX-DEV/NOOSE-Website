@@ -57,38 +57,38 @@ public sealed class DashboardServiceTests
     // --- entity factories (unique case numbers per id to satisfy the unique index) ---
 
     private static Person Per(string id, string name = "Person", Action<Person>? cfg = null)
-        => Seed.Person(id, name, p => { p.CaseNumber = $"NOOSE-P-{id}"; cfg?.Invoke(p); });
+        => Seed.Person(id, name, p => { p.CaseNumber = $"FIB-P-{id}"; cfg?.Invoke(p); });
 
     private static Faction Fac(string id, string name = "Faction", Action<Faction>? cfg = null)
-        => Seed.Faction(id, name, f => { f.CaseNumber = $"NOOSE-F-{id}"; cfg?.Invoke(f); });
+        => Seed.Faction(id, name, f => { f.CaseNumber = $"FIB-F-{id}"; cfg?.Invoke(f); });
 
     private static Case Cas(string id, string title = "Case", Action<Case>? cfg = null)
-        => Seed.Case(id, title, c => { c.CaseNumber = $"NOOSE-V-{id}"; cfg?.Invoke(c); });
+        => Seed.Case(id, title, c => { c.CaseNumber = $"FIB-V-{id}"; cfg?.Invoke(c); });
 
     private static PersonGroup Grp(string id, string name = "Group", Action<PersonGroup>? cfg = null)
     {
-        var g = new PersonGroup { Id = id, Name = name, CaseNumber = $"NOOSE-G-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var g = new PersonGroup { Id = id, Name = name, CaseNumber = $"FIB-G-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(g);
         return g;
     }
 
     private static Party Pty(string id, string name = "Party", Action<Party>? cfg = null)
     {
-        var p = new Party { Id = id, Name = name, CaseNumber = $"NOOSE-PT-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var p = new Party { Id = id, Name = name, CaseNumber = $"FIB-PT-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(p);
         return p;
     }
 
     private static Operation Op(string id, string title = "Operation", Action<Operation>? cfg = null)
     {
-        var o = new Operation { Id = id, Title = title, CaseNumber = $"NOOSE-OP-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var o = new Operation { Id = id, Title = title, CaseNumber = $"FIB-OP-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(o);
         return o;
     }
 
     private static Taskforce Tf(string id, string name = "Taskforce", TaskforceStatus status = TaskforceStatus.Approved, Action<Taskforce>? cfg = null)
     {
-        var t = new Taskforce { Id = id, Name = $"{name}-{id}", CaseNumber = $"NOOSE-TF-{id}", Status = status, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var t = new Taskforce { Id = id, Name = $"{name}-{id}", CaseNumber = $"FIB-TF-{id}", Status = status, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(t);
         return t;
     }

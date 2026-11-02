@@ -75,7 +75,7 @@ public sealed class RewardServiceTests
         var seq = 0;
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
 
         var notifications = Substitute.For<INotificationService>();
         var tipPriority = new TipPriorityService(factory);
@@ -110,7 +110,7 @@ public sealed class RewardServiceTests
 
         db.People.Add(Seed.Person(PersonId, "Max Mustermann", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-9001";
+            p.CaseNumber = "FIB-P-2026-9001";
             p.WantedReason = "Verdacht auf Waffenhandel";
             p.ThreatScore = 80;
         }));
@@ -221,7 +221,7 @@ public sealed class RewardServiceTests
         var receipts = await host.Reward.PayoutAsync(Split(id, (tip, 50_000m)), Leader());
 
         var receipt = Assert.Single(receipts);
-        Assert.StartsWith("NOOSE-BEL-", receipt, StringComparison.Ordinal);
+        Assert.StartsWith("FIB-BEL-", receipt, StringComparison.Ordinal);
 
         var payout = Assert.Single(await BookingsAsync(ctx, KassenBuchungArt.Auszahlung));
         Assert.Equal(50_000m, payout.Amount);
@@ -619,7 +619,7 @@ public sealed class RewardServiceTests
         var payout = Assert.Single(await BookingsAsync(ctx, KassenBuchungArt.Auszahlung));
         Assert.DoesNotContain("Erika", payout.Reason ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Musterfrau", payout.Reason ?? string.Empty, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("NOOSE-H-", payout.Reason ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("FIB-H-", payout.Reason ?? string.Empty, StringComparison.Ordinal);
         Assert.Contains(caseNumber, payout.Reason ?? string.Empty, StringComparison.Ordinal);
     }
 
@@ -646,7 +646,7 @@ public sealed class RewardServiceTests
         Assert.NotNull(await host.Reward.GetReceiptAsync(receipt, Leader()));
         Assert.Null(await host.Reward.GetReceiptAsync(receipt, Citizen(OtherUserId)));
         Assert.Null(await host.Reward.GetReceiptAsync(receipt, Senior()));
-        Assert.Null(await host.Reward.GetReceiptAsync("NOOSE-BEL-2026-9999", Citizen()));
+        Assert.Null(await host.Reward.GetReceiptAsync("FIB-BEL-2026-9999", Citizen()));
     }
 
     [Fact]

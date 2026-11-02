@@ -32,7 +32,7 @@ public sealed class ApplicationCaseServiceTests
                Substitute.For<ILogger<ApplicationCaseService>>());
 
     private static ClaimsPrincipal Hrb()
-        => ClaimsPrincipalBuilder.Agent("hrb").AsHrb().WithRank(Rank.JuniorAgent).WithCodename("Falcon").Build();
+        => ClaimsPrincipalBuilder.Agent("hrb").AsHrb().WithRank(Rank.Trainee).WithCodename("Falcon").Build();
 
     private static void SeedBewerbung(SqliteTestContext ctx, string id = "b1", string name = "Max Mustermann", string? linkedCaseId = null)
     {
@@ -42,7 +42,7 @@ public sealed class ApplicationCaseServiceTests
             Id = id,
             Name = name,
             ApplicantUserId = "u1",
-            CaseNumber = "NOOSE-B-2026-0001",
+            CaseNumber = "FIB-B-2026-0001",
             LinkedCaseId = linkedCaseId,
             SubmittedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         });
@@ -126,7 +126,7 @@ public sealed class ApplicationCaseServiceTests
             {
                 using var db = ctx.NewContext();
                 db.Bewerbungen.Single(x => x.Id == "b1").LinkedCaseId = "winner";
-                db.Cases.Add(new Case { Id = "case1", CaseNumber = "NOOSE-V-2026-0002", Title = ((CaseInput)ci[0]).Title });
+                db.Cases.Add(new Case { Id = "case1", CaseNumber = "FIB-V-2026-0002", Title = ((CaseInput)ci[0]).Title });
                 db.CaseAgents.Add(new CaseAgent { CaseId = "case1", AgentId = "hrb", IsCaseLead = true });
                 db.SaveChanges();
                 return new Case { Id = "case1", Title = ((CaseInput)ci[0]).Title };

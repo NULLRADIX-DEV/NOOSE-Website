@@ -4,7 +4,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<PageTitle>Agenten-Verwaltung · NOOSE</PageTitle>
+<PageTitle>Agenten-Verwaltung · FIB</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
     <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Color="Color.Primary" Size="Size.Large" />
@@ -117,7 +117,7 @@ else
                 }
                 else
                 {
-                    <MudSelect T="Rank" Value="@(context.Rank ?? Rank.JuniorAgent)"
+                    <MudSelect T="Rank" Value="@(context.Rank ?? Rank.Trainee)"
                                ValueChanged="@(degree => RankChange(context, degree))"
                                Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
                                Disabled="@(context.Status != AgentStatus.Active)">
@@ -168,7 +168,7 @@ else
                     </MudTooltip>
                     @if (context.Status == AgentStatus.Active)
                     {
-                        <MudTooltip Text="Zugehörigkeit ändern (intern NOOSE ↔ Partnerbehörde)">
+                        <MudTooltip Text="Zugehörigkeit ändern (intern FIB ↔ Partnerbehörde)">
                             <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Color="Color.Info"
                                            Disabled="@(context.Id == _myId)"
                                            OnClick="() => ChangeAffiliation(context)" aria-label="Zugehörigkeit ändern" />
@@ -333,7 +333,7 @@ else
             else
             {
                 await AgentService.ConvertToInternalAsync(agent.Id, result.Rank, user);
-                Snackbar.Add($"{DisplayName(agent)}: Zugehörigkeit auf interner NOOSE-Agent ({RankDisplay.Name(result.Rank)}) gesetzt.", Severity.Success);
+                Snackbar.Add($"{DisplayName(agent)}: Zugehörigkeit auf interner FIB-Agent ({RankDisplay.Name(result.Rank)}) gesetzt.", Severity.Success);
             }
         }
         catch (Exception ex)

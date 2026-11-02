@@ -128,13 +128,13 @@ public static class ChangelogContent
             Neu("0.7.02-wertelisten", "Auswahllisten wie Status und Kategorien sind selbst pflegbar.", "Konfiguration"),
         ], "0.7"),
 
-        new("0.8.00", new DateTime(2026, 8, 8), "Asservatenkammer, Kasse und NOOSEI",
+        new("0.8.00", new DateTime(2026, 8, 8), "Asservatenkammer, Kasse und FIBI",
         [
             Neu("0.8.00-asservate", "Asservatenkammer für Beweismittel, mit Ein- und Auslagerung.", "Asservate"),
             Neu("0.8.01-kasse", "Kasse der Behörde mit Buchungen und Belegen.", "Kasse"),
             Neu("0.8.02-finanzierung", "Finanzierungsanträge mit Genehmigungsweg.", "Finanzierung"),
             Neu("0.8.03-entfuehrungen", "Entführungen als eigene Akte.", "Ermittlung"),
-            Neu("0.8.04-noosei", "NOOSEI beantwortet Fragen zum Aktenbestand.", "NOOSEI"),
+            Neu("0.8.04-noosei", "FIBI beantwortet Fragen zum Aktenbestand.", "FIBI"),
             Neu("0.8.05-bestenliste", "Bestenliste der Agenten.", "Bestenliste"),
             Neu("0.8.06-feedback", "Feedback-Seite für Rückmeldungen zur Website.", "Feedback"),
             Besser("0.8.07-kasse-offen", "Kasse und Asservatenkammer stehen allen Agenten offen.", "Berechtigungen"),
@@ -211,7 +211,7 @@ public static class ChangelogContent
             Neu("2.0.10-erklaerblasen-aus", "Die Worterklärungen lassen sich unter „Menü anpassen“ abschalten.", "Bedienung"),
             Neu("2.0.11-einarbeitung", "Eine Karte im Lagezentrum zeigt neuen Agenten die ersten sechs Schritte.", "Bedienung"),
             Neu("2.0.12-einarbeitung-stand", "Führung und HRB sehen in der Personalakte, wie weit die Einarbeitung ist.", "Personal"),
-            Neu("2.0.13-noosei-handbuch", "NOOSEI beantwortet Fragen zur Bedienung aus dem Handbuch, mit Quellenangabe.", "Handbuch"),
+            Neu("2.0.13-noosei-handbuch", "FIBI beantwortet Fragen zur Bedienung aus dem Handbuch, mit Quellenangabe.", "Handbuch"),
             Neu("2.0.14-suche-handbuch", "Die Suche findet jetzt auch Handbuch-Artikel und Glossarbegriffe.", "Suche"),
         ], "1.4"),
 
@@ -236,8 +236,8 @@ public static class ChangelogContent
                 + "Öffnen bietet der Editor ihn zur Wiederherstellung an.", "Bedienung"),
             Neu("2.1.09-editor-bilder", "Bilder im Text lassen sich jetzt in der Größe anpassen, ausrichten "
                 + "und mit einer Beschriftung versehen – ein Klick auf das Bild öffnet die Einstellungen.", "Bedienung"),
-            Neu("2.1.10-noosei-kontingent", "Das NOOSEI-Wochenkontingent lässt sich für alle Dienstgrade zugleich "
-                + "anheben, ohne die Regeln je Dienstgrad anzufassen.", "NOOSEI"),
+            Neu("2.1.10-noosei-kontingent", "Das FIBI-Wochenkontingent lässt sich für alle Dienstgrade zugleich "
+                + "anheben, ohne die Regeln je Dienstgrad anzufassen.", "FIBI"),
             Neu("2.1.11-editor-einfuegen", "Eingefügtes aus Word oder einer Webseite kommt jetzt aufgeräumt an, und "
                 + "mit Strg+Shift+V fügt man nur den reinen Text ein.", "Bedienung"),
             Neu("2.1.12-editor-struktur", "Hinweis-, Warnungs- und Info-Kästen, Trennlinien und ein "
@@ -256,7 +256,7 @@ public static class ChangelogContent
             Fix("2.1.18-editor-bilder", "Zwei Bilder in derselben Zeile gehen beim Speichern nicht mehr "
                 + "verloren.", "Bedienung"),
             Fix("2.1.19-noosei-kontingent", "Ein individuelles Kontingent lässt sich bestätigen, ohne dass sich "
-                + "der Wert dabei jedes Mal vervielfacht.", "NOOSEI"),
+                + "der Wert dabei jedes Mal vervielfacht.", "FIBI"),
             Fix("2.1.20-editor-codeblock", "In einem Codeblock bleiben Raute, Strich und Schrägstrich stehen, "
                 + "statt die Zeile umzuformatieren, und „Text\" löst jetzt auch Zitat und Codeblock auf.", "Bedienung"),
             Fix("2.1.21-editor-gliederung", "Das eingefügte Inhaltsverzeichnis behält seine Ebenen.", "Bedienung"),
@@ -327,10 +327,10 @@ public static class ChangelogContent
                 + "die schon verknüpft ist.", "Akten"),
             Fix("2.1.55-entfuehrung-typen", "Auch beim Anlegen und Bearbeiten einer Entführung lassen sich "
                 + "nur echte Akten als kompromittiert vermerken.", "Akten"),
-            Fix("2.1.56-noosei-kontingent-parallel", "Zwei gleichzeitig gestellte NOOSEI-Fragen überziehen das "
-                + "Wochenkontingent nicht mehr.", "NOOSEI"),
-            Fix("2.1.57-noosei-handbuch", "NOOSEI sagt zuverlässig, wenn im Handbuch nichts zu einer Frage "
-                + "steht, statt leer zu antworten.", "NOOSEI"),
+            Fix("2.1.56-noosei-kontingent-parallel", "Zwei gleichzeitig gestellte FIBI-Fragen überziehen das "
+                + "Wochenkontingent nicht mehr.", "FIBI"),
+            Fix("2.1.57-noosei-handbuch", "FIBI sagt zuverlässig, wenn im Handbuch nichts zu einer Frage "
+                + "steht, statt leer zu antworten.", "FIBI"),
             Fix("2.1.58-bilder-aufraeumen", "Ein ersetztes oder gelöschtes Bild belegt keinen Speicherplatz "
                 + "mehr.", "Bedienung"),
             Fix("2.1.59-doppelte-eingabe", "Legen zwei Redakteure gleichzeitig dieselbe Fassung oder Adresse "
@@ -421,8 +421,8 @@ public static class ChangelogContent
                 "Gesetze", "2.2.16-gesetzestext-formatiert"),
             Fix("2.4.03-zeilenumbrueche", "Zeilenumbrüche in Texten bleiben nach dem Speichern sichtbar, statt "
                 + "zu einer Zeile zusammenzulaufen.", "Bedienung", "2.2.17-zeilenumbrueche"),
-            Fix("2.4.04-noosei-lange-antworten", "NOOSEI schreibt lange Antworten auf umfangreiche Fragen jetzt zu "
-                + "Ende, statt sie nach wenigen Sätzen abzubrechen.", "NOOSEI", "2.2.18-noosei-lange-antworten"),
+            Fix("2.4.04-noosei-lange-antworten", "FIBI schreibt lange Antworten auf umfangreiche Fragen jetzt zu "
+                + "Ende, statt sie nach wenigen Sätzen abzubrechen.", "FIBI", "2.2.18-noosei-lange-antworten"),
             Neu("2.4.05-parlament", "Das Parlament bekommt einen eigenen Partnerzugang: Gesetzbücher, Badfraks mit "
                 + "ihren Mitgliedern, Personengruppen und Parteien – Doks und Befragungen sieht es nie.",
                 "Partner", "2.2.19-parlament"),
@@ -441,9 +441,9 @@ public static class ChangelogContent
             Neu("2.4.11-partner-anfragen", "Partnerbehörden fragen unter „Freigaben anfragen“ nach weiteren Akten; die "
                 + "Führung beantwortet die Anfrage im Eingang, indem sie die passende Akte freigibt.",
                 "Partner", "2.2.25-partner-anfragen"),
-            Neu("2.4.12-noosei-rechtsauskunft", "Partnerbehörden können NOOSEI Fragen zu den Gesetzbüchern stellen; "
+            Neu("2.4.12-noosei-rechtsauskunft", "Partnerbehörden können FIBI Fragen zu den Gesetzbüchern stellen; "
                 + "die Antwort zitiert die Paragrafen, Akten sieht diese Rechtsauskunft nie.",
-                "NOOSEI", "2.2.26-noosei-rechtsauskunft"),
+                "FIBI", "2.2.26-noosei-rechtsauskunft"),
         ]),
 
         new("2.5.00", new DateTime(2026, 10, 13), "Meine Schicht und Benachrichtigungen nach Wunsch",
@@ -476,9 +476,9 @@ public static class ChangelogContent
                 + "von selbst in der Glocke der Führung, ohne einen Namen zu nennen. Unter Auffälligkeiten ist markiert, "
                 + "was seit deinem letzten Blick neu ist, und für jede Regel lässt sich die Meldung abschalten.",
                 "Gegenaufklärung", "2.2.33-gegenaufklaerung-meldet"),
-            Neu("2.6.01-noosei-auffaelligkeiten-melden", "Auch neue Auffälligkeiten bei der NOOSEI-Nutzung melden sich "
+            Neu("2.6.01-noosei-auffaelligkeiten-melden", "Auch neue Auffälligkeiten bei der FIBI-Nutzung melden sich "
                 + "von selbst in der Glocke der Führung und sind in den Kontingenten als neu markiert.",
-                "NOOSEI", "2.2.34-noosei-auffaelligkeiten-melden"),
+                "FIBI", "2.2.34-noosei-auffaelligkeiten-melden"),
             Fix("2.6.02-suche-regel-link", "Ein Suchtreffer auf eine Gegenaufklärungs-Regel öffnet jetzt die Regeln "
                 + "statt der Chronik.", "Suche", "2.2.35-suche-regel-link"),
             Fix("2.6.03-chronik-neu-markierung", "Die Linie „Seit deinem letzten Besuch“ in der Chronik verschwindet "
@@ -523,7 +523,7 @@ public static class ChangelogContent
                 + "auch im Vollbild am Beamer scharf; eine geänderte Fassung holst du mit „Aktualisieren“, deine "
                 + "Notizen bleiben.", "Präsentationen"),
             Neu("2.7.04-google-anmeldung", "Google-Docs und -Präsentationen, die nicht freigegeben sind, holst du "
-                + "jetzt über die Google-Anmeldung: Du wählst die Datei im Google-Fenster, und NOOSE liest nur diese "
+                + "jetzt über die Google-Anmeldung: Du wählst die Datei im Google-Fenster, und das FIB liest nur diese "
                 + "eine. Einen Zugang merkt sich die Seite nicht.", "Dokumente"),
             Neu("2.7.05-praesentationen-verknuepfen", "Präsentationen lassen sich mit anderen Akten verknüpfen, etwa "
                 + "mit einem Vorgang, einer Person oder einer Besprechung: auf der Präsentation selbst oder dort beim "
@@ -536,12 +536,12 @@ public static class ChangelogContent
                 + "blätterte.", "Präsentationen"),
             Fix("2.7.08-eingeschraenkte-aufgabe-verknuepft", "Eine eingeschränkte Aufgabe, die mit einer anderen Akte "
                 + "verknüpft ist, steht dort nur noch für die, die sie auch sehen dürfen.", "Dienstbetrieb"),
-            Neu("2.7.09-noosei-praesentationen", "NOOSEI öffnet jetzt auch Präsentationen und liest ihre Folien, "
+            Neu("2.7.09-noosei-praesentationen", "FIBI öffnet jetzt auch Präsentationen und liest ihre Folien, "
                 + "soweit du sie selbst sehen darfst. Die Sprechernotizen bekommt nur, wer die Präsentation angelegt "
-                + "hat, und die Führung.", "NOOSEI"),
-            Neu("2.7.10-noosei-buergerantworten", "NOOSEI entwirft jetzt auch die Nachricht an einen Hinweisgeber "
+                + "hat, und die Führung.", "FIBI"),
+            Neu("2.7.10-noosei-buergerantworten", "FIBI entwirft jetzt auch die Nachricht an einen Hinweisgeber "
                 + "und die Begründung, wenn über einen Einspruch entschieden wird. Beim Einspruch schreibst du erst "
-                + "deine Stichpunkte ins Feld. Der Entwurf landet im Textfeld, abschicken tust du selbst.", "NOOSEI"),
+                + "deine Stichpunkte ins Feld. Der Entwurf landet im Textfeld, abschicken tust du selbst.", "FIBI"),
             Neu("2.7.11-besprechung-massnahmen", "Aus einem Tagesordnungspunkt wird mit „Maßnahme“ eine Aufgabe oder "
                 + "Wiedervorlage mit Zuständigem und Frist. Der Punkt zeigt danach, ob sie offen, überfällig oder "
                 + "erledigt ist, auch in der nächsten Besprechung.", "Dienstbetrieb"),
@@ -578,15 +578,15 @@ public static class ChangelogContent
                 + "oder 365 Tage und im Vergleich zu den übrigen Agenten.", "Personal", "2.7.24-dienstaufsicht"),
         ]),
 
-        new("2.8.00", new DateTime(2026, 11, 2), "NOOSEI schlägt vor, Steckbrief-Karten und Akten-Export",
+        new("2.8.00", new DateTime(2026, 11, 2), "FIBI schlägt vor, Steckbrief-Karten und Akten-Export",
         [
             Besser("2.8.00-fahndung-steckbrief-karte", "Neue öffentliche Fahndungen erscheinen auf Discord jetzt als "
                 + "Steckbrief-Karte mit Foto, Kopfgeld und Warnhinweisen; auch ein erhöhtes Kopfgeld kommt als Karte.",
                 "Öffentlich", "2.7.20-fahndung-steckbrief-karte"),
-            Neu("2.8.01-noosei-vorschlaege", "Bittest du NOOSEI um eine Wiedervorlage, ein Stichwort, eine Aufgabe, "
+            Neu("2.8.01-noosei-vorschlaege", "Bittest du FIBI um eine Wiedervorlage, ein Stichwort, eine Aufgabe, "
                 + "eine Verknüpfung oder das Beobachten einer Akte, erscheint unter der Antwort eine Karte. Erst dein "
                 + "Klick auf „Ausführen“ schreibt, mit deinen Rechten; „Verwerfen“ schließt sie.",
-                "NOOSEI", "2.7.21-noosei-vorschlaege"),
+                "FIBI", "2.7.21-noosei-vorschlaege"),
             Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
                 + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),

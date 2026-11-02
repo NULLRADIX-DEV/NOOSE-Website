@@ -15,7 +15,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class NooseiAreaToolTests
 {
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();

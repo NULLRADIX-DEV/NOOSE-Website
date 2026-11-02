@@ -35,7 +35,7 @@ public class SearchPageParityTests
 {
     private static ClaimsPrincipal Viewer(string kind) => kind switch
     {
-        "plain" => ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.JuniorAgent).Build(),
+        "plain" => ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.Trainee).Build(),
         "lead" => ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.Director).Build(),
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
@@ -51,18 +51,18 @@ public class SearchPageParityTests
         db.People.Add(Seed.Person("p-tru", "Tim TRU", p => { p.IsClassified = true; p.IsTRUClassified = true; }));
         db.Factions.Add(Seed.Faction("f-open", "Offene Bande"));
         db.Factions.Add(Seed.Faction("f-vs", "Geheimbund", f => f.IsClassified = true));
-        db.PersonGroups.Add(new Data.Entities.Groups.PersonGroup { Id = "g-open", Name = "Offene Gruppe", CaseNumber = "NOOSE-G-1" });
-        db.PersonGroups.Add(new Data.Entities.Groups.PersonGroup { Id = "g-vs", Name = "Geheime Gruppe", CaseNumber = "NOOSE-G-2", IsClassified = true });
-        db.Parties.Add(new Data.Entities.Parties.Party { Id = "pa-open", Name = "Offene Partei", CaseNumber = "NOOSE-PA-1" });
-        db.Parties.Add(new Data.Entities.Parties.Party { Id = "pa-vs", Name = "Geheime Partei", CaseNumber = "NOOSE-PA-2", IsClassified = true });
-        db.Operations.Add(new Data.Entities.Operations.Operation { Id = "o-open", Title = "Offener Zugriff", CaseNumber = "NOOSE-O-1" });
-        db.Operations.Add(new Data.Entities.Operations.Operation { Id = "o-vs", Title = "Geheimer Zugriff", CaseNumber = "NOOSE-O-2", IsClassified = true });
+        db.PersonGroups.Add(new Data.Entities.Groups.PersonGroup { Id = "g-open", Name = "Offene Gruppe", CaseNumber = "FIB-G-1" });
+        db.PersonGroups.Add(new Data.Entities.Groups.PersonGroup { Id = "g-vs", Name = "Geheime Gruppe", CaseNumber = "FIB-G-2", IsClassified = true });
+        db.Parties.Add(new Data.Entities.Parties.Party { Id = "pa-open", Name = "Offene Partei", CaseNumber = "FIB-PA-1" });
+        db.Parties.Add(new Data.Entities.Parties.Party { Id = "pa-vs", Name = "Geheime Partei", CaseNumber = "FIB-PA-2", IsClassified = true });
+        db.Operations.Add(new Data.Entities.Operations.Operation { Id = "o-open", Title = "Offener Zugriff", CaseNumber = "FIB-O-1" });
+        db.Operations.Add(new Data.Entities.Operations.Operation { Id = "o-vs", Title = "Geheimer Zugriff", CaseNumber = "FIB-O-2", IsClassified = true });
         db.Cases.Add(Seed.Case("v-open", "Offener Vorgang"));
         db.Cases.Add(Seed.Case("v-vs", "Geheimer Vorgang", v => v.IsClassified = true));
 
         // taskforces gate on membership, not classification
-        db.Taskforces.Add(new Taskforce { Id = "t-mine", Name = "Meine Einheit", CaseNumber = "NOOSE-TF-1" });
-        db.Taskforces.Add(new Taskforce { Id = "t-other", Name = "Fremde Einheit", CaseNumber = "NOOSE-TF-2" });
+        db.Taskforces.Add(new Taskforce { Id = "t-mine", Name = "Meine Einheit", CaseNumber = "FIB-TF-1" });
+        db.Taskforces.Add(new Taskforce { Id = "t-other", Name = "Fremde Einheit", CaseNumber = "FIB-TF-2" });
         db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "t-mine", AgentId = "me" });
 
         // documents: three independent layers
@@ -85,8 +85,8 @@ public class SearchPageParityTests
             ContentType = "application/pdf", SizeBytes = 1, IsClassified = true,
         });
 
-        db.Informants.Add(new Informant { Id = "i-mine", CaseNumber = "NOOSE-VP-1", RealName = "Meine VP", HandlerId = "me" });
-        db.Informants.Add(new Informant { Id = "i-other", CaseNumber = "NOOSE-VP-2", RealName = "Fremde VP", HandlerId = "someone" });
+        db.Informants.Add(new Informant { Id = "i-mine", CaseNumber = "FIB-VP-1", RealName = "Meine VP", HandlerId = "me" });
+        db.Informants.Add(new Informant { Id = "i-other", CaseNumber = "FIB-VP-2", RealName = "Fremde VP", HandlerId = "someone" });
 
         db.EvidenceItems.Add(new EvidenceItem { Id = "e1", Name = "Schalldämpfer", Category = "Waffenteil" });
 

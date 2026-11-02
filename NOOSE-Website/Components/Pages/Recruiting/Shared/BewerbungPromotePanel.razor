@@ -7,7 +7,7 @@
     <MudPaper Elevation="2" Class="pa-4">
         <MudText Typo="Typo.h6" Class="mb-2">Zum Agent hochstufen</MudText>
         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-            Stuft den Bewerber direkt zu einem aktiven NOOSE-Agent hoch. Der Bewerber-Zugang endet, der interne
+            Stuft den Bewerber direkt zu einem aktiven FIB-Agent hoch. Der Bewerber-Zugang endet, der interne
             Zugang beginnt. Nur die Führung kann diese Aktion ausführen.
         </MudText>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
@@ -37,7 +37,7 @@
     [Parameter] public EventCallback OnPromoted { get; set; }
 
     private static readonly Rank[] Ranks = Enum.GetValues<Rank>();
-    private Rank _rank = Rank.JuniorAgent;
+    private Rank _rank = Rank.Trainee;
     private bool _tru;
     private bool _hrb;
     private bool _busy;
@@ -61,7 +61,7 @@
     private async Task PromoteAsync()
     {
         var ok = await ConfirmDialog.ShowAsync(DialogService, "Bewerber hochstufen?",
-            $"{ApplicantName ?? "Der Bewerber"} wird als {RankDisplay.Name(_rank)} freigeschaltet und wird ein aktiver NOOSE-Agent.",
+            $"{ApplicantName ?? "Der Bewerber"} wird als {RankDisplay.Name(_rank)} freigeschaltet und wird ein aktiver FIB-Agent.",
             "Hochstufen");
         if (!ok)
         {

@@ -70,7 +70,7 @@ public sealed class NooseiSettingsService(IDbContextFactory<AppDbContext> dbFact
             row.Value = value;
         }
         db.AuditLogs.Add(ManualAudit.Row(AuditType, "global", AuditAction.Modified, actor,
-            ManualAudit.Change("NOOSEI-Zusatzhinweis", null, value ?? "(entfernt)")));
+            ManualAudit.Change("FIBI-Zusatzhinweis", null, value ?? "(entfernt)")));
         await db.SaveChangesAsync(cancellationToken);
         cache.Remove(CacheKey);
     }

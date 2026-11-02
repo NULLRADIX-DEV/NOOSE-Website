@@ -14,7 +14,7 @@
 @using NOOSE_Website.Models.Enums
 @using NOOSE_Website.Models.Public
 
-<PageTitle>Freigaben · NOOSE</PageTitle>
+<PageTitle>Freigaben · FIB</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
     <MudIcon Icon="@Icons.Material.Filled.HowToReg" Color="Color.Primary" Size="Size.Large" />
@@ -572,7 +572,7 @@ else
 
     private sealed class SelectionState
     {
-        private Rank _degree = Rank.JuniorAgent;
+        private Rank _degree = Rank.Trainee;
 
         /// <summary>Picking a rank below the threshold drops the departments with it, so the release cannot fail on save.</summary>
         public Rank Degree

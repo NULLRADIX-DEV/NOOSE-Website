@@ -115,7 +115,7 @@ public sealed record DiscordWebhookConfig(
     int ThreatBoardThreshold = DiscordWebhookConfig.DefaultThreatBoardThreshold)
 {
     /// <summary>Default site base for absolute links in Discord messages when unset.</summary>
-    public const string DefaultBaseUrl = "https://noose.info";
+    public const string DefaultBaseUrl = "https://fibhq.com";
 
     /// <summary>A faction appears on the threat board when its score lies above this.</summary>
     public const int DefaultThreatBoardThreshold = 90;

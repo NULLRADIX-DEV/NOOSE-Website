@@ -563,7 +563,7 @@ public class FinancingService(
             await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
             // same recipient shape as the other leadership notifications: never team leads, never partners
             var deciders = await db.Users.AsNoTracking().OnlySelectable()
-                .Where(a => a.IsAdmin || a.Rank >= Rank.SupervisorySpecialAgent)
+                .Where(a => a.IsAdmin || a.Rank >= Rank.SpecialAgentInCharge)
                 .Select(a => a.Id)
                 .ToListAsync(cancellationToken);
             await notifications.NotifyManyAsync(deciders, NotificationType.Financing,

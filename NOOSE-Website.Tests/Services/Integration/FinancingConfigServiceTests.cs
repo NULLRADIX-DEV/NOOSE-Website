@@ -19,7 +19,7 @@ public sealed class FinancingConfigServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal OnlyReader()
         => ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build();
@@ -42,8 +42,8 @@ public sealed class FinancingConfigServiceTests
 
         var config = await svc.GetAsync();
 
-        Assert.Equal(25_000m, config.For(Rank.JuniorAgent).BaseMonthly);
-        Assert.Equal(0, config.For(Rank.JuniorAgent).CarryOverPercent);
+        Assert.Equal(25_000m, config.For(Rank.Trainee).BaseMonthly);
+        Assert.Equal(0, config.For(Rank.Trainee).CarryOverPercent);
         Assert.Equal(250_000m, config.For(Rank.Director).BaseMonthly);
         Assert.Equal(50, config.For(Rank.Director).CarryOverPercent);
     }
@@ -75,7 +75,7 @@ public sealed class FinancingConfigServiceTests
         var config = await Build(ctx).GetAsync();
 
         Assert.Equal(1m, config.For(Rank.Director).BaseMonthly);
-        Assert.Equal(0m, config.For(Rank.JuniorAgent).BaseMonthly);
+        Assert.Equal(0m, config.For(Rank.Trainee).BaseMonthly);
     }
 
     [Theory]
@@ -89,7 +89,7 @@ public sealed class FinancingConfigServiceTests
 
         var config = await Build(ctx).GetAsync();
 
-        Assert.Equal(25_000m, config.For(Rank.JuniorAgent).BaseMonthly);
+        Assert.Equal(25_000m, config.For(Rank.Trainee).BaseMonthly);
     }
 
     [Fact]
@@ -138,17 +138,17 @@ public sealed class FinancingConfigServiceTests
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);
         // warm the cache with the defaults
-        Assert.Equal(25_000m, (await svc.GetAsync()).For(Rank.JuniorAgent).BaseMonthly);
+        Assert.Equal(25_000m, (await svc.GetAsync()).For(Rank.Trainee).BaseMonthly);
 
         await svc.SaveAsync(new FinancingBudgetConfig
         {
             Ranks = new Dictionary<string, FinancingRankBudget>
             {
-                [FinancingBudgetConfig.RankKey(Rank.JuniorAgent)] = new() { BaseMonthly = 1m, CarryOverPercent = 0 },
+                [FinancingBudgetConfig.RankKey(Rank.Trainee)] = new() { BaseMonthly = 1m, CarryOverPercent = 0 },
             },
         }, Leader());
 
-        Assert.Equal(1m, (await svc.GetAsync()).For(Rank.JuniorAgent).BaseMonthly);
+        Assert.Equal(1m, (await svc.GetAsync()).For(Rank.Trainee).BaseMonthly);
     }
 
     [Fact]
@@ -162,11 +162,11 @@ public sealed class FinancingConfigServiceTests
         {
             Ranks = new Dictionary<string, FinancingRankBudget>
             {
-                [FinancingBudgetConfig.RankKey(Rank.JuniorAgent)] = new() { BaseMonthly = 777m, CarryOverPercent = 0 },
+                [FinancingBudgetConfig.RankKey(Rank.Trainee)] = new() { BaseMonthly = 777m, CarryOverPercent = 0 },
             },
         }));
 
-        Assert.Equal(777m, (await svc.GetEditableAsync()).For(Rank.JuniorAgent).BaseMonthly);
+        Assert.Equal(777m, (await svc.GetEditableAsync()).For(Rank.Trainee).BaseMonthly);
     }
 
     [Fact]

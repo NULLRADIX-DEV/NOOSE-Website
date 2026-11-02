@@ -35,8 +35,9 @@ public static class PublicRoutes
         "/css",
         "/lib",
         "/app.css",
-        "/NooseIcon.png",
+        "/FibIcon.png",
         "/favicon.png",
+        "/apple-touch-icon.png",
     ];
 
     /// <summary>Every public path prefix: module nav routes plus the extras. Assets are not part of this.</summary>

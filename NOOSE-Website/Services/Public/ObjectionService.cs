@@ -466,7 +466,7 @@ public class ObjectionService(
         try
         {
             var recipients = await db.Users.OnlySelectable()
-                .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+                .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
             await notifications.NotifyManyAsync(recipients, NotificationType.PublicObjectionReceived,

@@ -6,7 +6,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
-<PageTitle>@(_document?.Title ?? "Dokument") · NOOSE</PageTitle>
+<PageTitle>@(_document?.Title ?? "Dokument") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -71,7 +71,7 @@ else
             {
                 <MudPaper Class="pa-4 mt-4" Elevation="1">
                     <MudText Typo="Typo.h6" GutterBottom="true" Class="d-flex align-center">
-                        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Class="mr-2" />NOOSEI-Kurzbrief
+                        <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Class="mr-2" />FIBI-Kurzbrief
                     </MudText>
                     <KiBriefPanel EntityType="@nameof(Document)" EntityId="@_document.Id" User="_user" />
                 </MudPaper>

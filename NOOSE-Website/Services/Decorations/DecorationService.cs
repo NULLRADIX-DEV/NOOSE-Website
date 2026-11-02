@@ -227,7 +227,7 @@ public class DecorationService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // the picker offers selectable agents only; a raw id off the wire must not get past that
         var agent = await db.Users.OnlySelectable().FirstOrDefaultAsync(u => u.Id == input.AgentId, cancellationToken)
-            ?? throw new InvalidOperationException("Ehrenzeichen gehen nur an aktive Agenten der NOOSE.");
+            ?? throw new InvalidOperationException("Ehrenzeichen gehen nur an aktive Agenten des FIB.");
         // again on the resolved row: MariaDB matches ids case-insensitively
         if (string.Equals(agent.Id, actorId, StringComparison.OrdinalIgnoreCase))
         {

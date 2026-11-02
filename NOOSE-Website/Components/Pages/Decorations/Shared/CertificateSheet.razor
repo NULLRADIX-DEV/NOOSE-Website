@@ -3,15 +3,15 @@
 <div class="urkunde">
     <div class="urkunde-rahmen">
         <div class="urkunde-kopf">
-            <img class="urkunde-logo" src="@LogoSrc" alt="Wappen der NOOSE" />
-            <div class="urkunde-behoerde">National Office of Security Enforcement</div>
+            <img class="urkunde-logo" src="@LogoSrc" alt="Wappen des FIB" />
+            <div class="urkunde-behoerde">Federal Investigation Bureau</div>
         </div>
 
         <div class="urkunde-titel">@Heading</div>
 
         @if (View.Kind == CertificateKind.Decoration)
         {
-            <p class="urkunde-satz">Das National Office of Security Enforcement verleiht</p>
+            <p class="urkunde-satz">Das Federal Investigation Bureau verleiht</p>
             <p class="urkunde-name">@NameLine</p>
             @if (View.BadgeNumber is { Length: > 0 } badge)
             {
@@ -29,7 +29,7 @@
         }
         else
         {
-            <p class="urkunde-satz">Im Namen des National Office of Security Enforcement wird</p>
+            <p class="urkunde-satz">Im Namen des Federal Investigation Bureau wird</p>
             <p class="urkunde-name">@NameLine</p>
             @if (View.BadgeNumber is { Length: > 0 } badge)
             {
@@ -61,7 +61,7 @@
 @code {
     [Parameter, EditorRequired] public CertificateView View { get; set; } = default!;
     [Parameter] public bool UseRealName { get; set; }
-    [Parameter] public string LogoSrc { get; set; } = "NooseIcon.png";
+    [Parameter] public string LogoSrc { get; set; } = "FibIcon.png";
 
     private string Heading => View.Kind switch
     {

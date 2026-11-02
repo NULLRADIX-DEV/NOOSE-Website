@@ -16,9 +16,9 @@ public sealed class PersonnelTemplateServiceTests
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // JuniorAgent: not leadership, not admin.
+    // Trainee: not leadership, not admin.
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static PersonnelTemplate NewTemplate(
         string id,

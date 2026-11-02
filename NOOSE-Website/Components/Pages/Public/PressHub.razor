@@ -5,17 +5,17 @@
 @using NOOSE_Website.Models.Public
 @inject IPressReleaseService Press
 
-<PageTitle>Presse · NOOSE</PageTitle>
+<PageTitle>Presse · FIB</PageTitle>
 
 <LinkPreview Title="Pressemitteilungen"
-             Description="Amtliche Verlautbarungen des National Office of Security Enforcement." />
+             Description="Amtliche Verlautbarungen des Federal Investigation Bureau." />
 
 <PublicModuleGate Module="@PublicModules.Press" Title="Presse">
 <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
     <MudStack Spacing="4">
         <MudText Typo="Typo.h4">Pressemitteilungen</MudText>
         <MudText Typo="Typo.body1" Class="mud-text-secondary">
-            Amtliche Verlautbarungen des National Office of Security Enforcement.
+            Amtliche Verlautbarungen des Federal Investigation Bureau.
         </MudText>
 
         @if (_cards.Count == 0)

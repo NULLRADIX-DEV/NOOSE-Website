@@ -91,8 +91,8 @@ public static class RecruitingSeeder
             "<p>Sehr geehrter BEWERBER,</p>" +
             "<p>im Rahmen der gegen Sie eingeleiteten Sicherheitsüberprüfung wurden Sachverhalte festgestellt, " +
             "die einer persönlichen Erörterung bedürfen.</p>" +
-            "<p>Die Anhörung wird am DATUM um UHRZEIT Uhr in der Government Facility des National Office of " +
-            "Security Enforcement 5020, Los Santos, San Andreas stattfinden.</p>" +
+            "<p>Die Anhörung wird am DATUM um UHRZEIT Uhr in der Government Facility des Federal Investigation " +
+            "Bureau 5020, Los Santos, San Andreas stattfinden.</p>" +
             SecurityClause() +
             "<p>Eine Missachtung der Sicherheitsauflagen führt zum sofortigen Entzug der Zutrittsberechtigung " +
             "und zum Ausschluss aus dem Auswahlverfahren.</p>" +
@@ -104,8 +104,8 @@ public static class RecruitingSeeder
             "<p>Sehr geehrter BEWERBER,</p>" +
             "<p>im Rahmen des laufenden Auswahlverfahrens ergeht hiermit die Einladung zu einem persönlichen " +
             "Vorstellungsgespräch.</p>" +
-            "<p>Das Auswahlverfahren wird am DATUM um UHRZEIT Uhr in der Government Facility des National Office " +
-            "of Security Enforcement 5020, Los Santos, San Andreas stattfinden. Bitte planen Sie sich viel Zeit ein.</p>" +
+            "<p>Das Auswahlverfahren wird am DATUM um UHRZEIT Uhr in der Government Facility des Federal Investigation " +
+            "Bureau 5020, Los Santos, San Andreas stattfinden. Bitte planen Sie sich viel Zeit ein.</p>" +
             "<p>Diese Einladung erfolgt ausdrücklich unter dem Vorbehalt der noch ausstehenden Ergebnisse der " +
             "Sicherheitsüberprüfung. Sollten im Rahmen dieser Überprüfung sicherheitsrelevante Erkenntnisse zutage " +
             "treten, verliert diese Einladung mit sofortiger Wirkung ihre Gültigkeit.</p>" +
@@ -115,15 +115,15 @@ public static class RecruitingSeeder
             Sign() + Footer()),
 
         ("Anfrage von Personalakten",
-            "<p><strong>National Office of Security Enforcement</strong><br>Sicherheitsfreigabe: 6</p>" +
+            "<p><strong>Federal Investigation Bureau</strong><br>Sicherheitsfreigabe: 6</p>" +
             "<p><strong>Anforderung von Personalunterlagen</strong><br>hier: VORNAME NACHNAME</p>" +
             "<p>Sehr geehrte Damen und Herren,</p>" +
-            "<p>das National Office of Security Enforcement fordert Sie hiermit im Wege der Amtshilfe dazu auf, die " +
+            "<p>das Federal Investigation Bureau fordert Sie hiermit im Wege der Amtshilfe dazu auf, die " +
             "vollständige und ungeschwärzte Personalakte (einschließlich Disziplinarverfahren, internen Ermittlungen " +
             "und Aktennotizen) von Herrn BEWERBER an uns zu übermitteln.</p>" +
             "<p>Wir verweisen in diesem Zusammenhang auf die Verfassung des Staates San Andreas sowie die gesetzliche " +
             "Pflicht zur Amtshilfe und interbehördlichen Zusammenarbeit. Demnach sind alle Behörden des öffentlichen " +
-            "Dienstes dazu verpflichtet, dem National Office of Security Enforcement zur Erfüllung seiner gesetzlichen " +
+            "Dienstes dazu verpflichtet, dem Federal Investigation Bureau zur Erfüllung seiner gesetzlichen " +
             "Aufgaben uneingeschränkte Unterstützung zu leisten.</p>" +
             "<p>Aufgrund der zeitkritischen Einstufung des Verfahrens wird eine Übermittlung der Dokumente auf sicherem, " +
             "digitalem oder physischem Dienstweg bis zum DATUM erwartet.</p>" +
@@ -135,7 +135,7 @@ public static class RecruitingSeeder
             Head("Auswahlverfahren") +
             "<p><strong>Mitteilung über die Verweigerung von Auskünften</strong></p>" +
             "<p>Sehr geehrter BEWERBER,</p>" +
-            "<p>das National Office of Security Enforcement erteilt grundsätzlich keinerlei Auskünfte über den Verlauf, " +
+            "<p>das Federal Investigation Bureau erteilt grundsätzlich keinerlei Auskünfte über den Verlauf, " +
             "Fortführung, Beendigung oder die konkreten Gründe für eine Ablehnung innerhalb des behördlichen " +
             "Auswahlverfahrens.</p>" +
             "<p>Sämtliche im Rahmen der Personalgewinnung erhobenen Daten, Ergebnisse, Profile sowie die Erkenntnisse " +
@@ -148,7 +148,7 @@ public static class RecruitingSeeder
     ];
 
     private static string Head(string subtitle)
-        => "<p><strong>National Office of Security Enforcement</strong><br>" +
+        => "<p><strong>Federal Investigation Bureau</strong><br>" +
            $"{subtitle}<br>Abteilung: Criminal Investigation Division<br>Sicherheitsfreigabe: 6</p>";
 
     private static string SecurityClause()
@@ -162,6 +162,6 @@ public static class RecruitingSeeder
         => "<p>Mit freundlichen Grüßen<br>NAME<br><em>DIENSTGRAD</em></p>";
 
     private static string Footer()
-        => "<p><em>Das National Office of Security Enforcement entspricht hohen Standards und der höchsten Stufe der " +
+        => "<p><em>Das Federal Investigation Bureau entspricht hohen Standards und der höchsten Stufe der " +
            "Geheimhaltung. Sprechen Sie mit niemandem über Ihr Interesse oder den Stand des Auswahlverfahrens.</em></p>";
 }

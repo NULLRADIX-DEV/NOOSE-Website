@@ -4,14 +4,14 @@
 @inject IInactivityRadarService RadarService
 @inject NavigationManager Nav
 
-<PageTitle>Personal · NOOSE</PageTitle>
+<PageTitle>Personal · FIB</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
     <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
     <MudText Typo="Typo.h4">Personal</MudText>
 </MudStack>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Personalakten aller NOOSE-Agenten: Dienstgrad-Verlauf, Belobigungen, Disziplinarisches und Beförderungen.
+    Personalakten aller FIB-Agenten: Dienstgrad-Verlauf, Belobigungen, Disziplinarisches und Beförderungen.
 </MudText>
 
 @if (_load)
@@ -23,7 +23,7 @@ else
     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="false"
              @bind-ActivePanelIndex="_tab" Class="mb-3">
         <MudTabPanel Icon="@Icons.Material.Filled.Badge" IconColor="Color.Primary"
-                     Text="@($"NOOSE ({CountInternal})")" />
+                     Text="@($"FIB ({CountInternal})")" />
         <MudTabPanel Icon="@Icons.Material.Filled.Handshake" IconColor="Color.Info"
                      Text="@($"Partner ({CountPartner})")" />
         @if (_isLeadership)

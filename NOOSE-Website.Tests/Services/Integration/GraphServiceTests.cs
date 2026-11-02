@@ -20,9 +20,9 @@ public sealed class GraphServiceTests
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // JuniorAgent: not leadership, classified nodes hidden.
+    // Trainee: not leadership, classified nodes hidden.
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Partner()
         => ClaimsPrincipalBuilder.Agent("partner").AsPartner(PartnerAgency.DoJ, PartnerRank.Member).Build();
@@ -86,7 +86,7 @@ public sealed class GraphServiceTests
         {
             db.People.Add(Seed.Person("p1", "Max"));
             db.Factions.Add(Seed.Faction("f1", "Ballas"));
-            db.Taskforces.Add(new NOOSE_Website.Data.Entities.Taskforces.Taskforce { Id = "tf1", Name = "TF", CaseNumber = "NOOSE-T-2026-9001" });
+            db.Taskforces.Add(new NOOSE_Website.Data.Entities.Taskforces.Taskforce { Id = "tf1", Name = "TF", CaseNumber = "FIB-T-2026-9001" });
             db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Faction", TargetId = "f1" });
             db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Taskforce", TargetId = "tf1" });
             db.PartnerAgencyProfiles.Add(new PartnerAgencyProfile { Agency = PartnerAgency.DoJ, Features = PartnerFeature.Graph });

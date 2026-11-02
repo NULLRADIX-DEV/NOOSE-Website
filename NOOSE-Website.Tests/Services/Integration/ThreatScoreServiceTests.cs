@@ -14,13 +14,13 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class ThreatScoreServiceTests
 {
     // --- actors ---
-    // Director: leadership (rank >= SupervisorySpecialAgent) => passes RequireLeadership.
+    // Director: leadership (rank >= SpecialAgentInCharge) => passes RequireLeadership.
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership => fails RequireLeadership.
     private static ClaimsPrincipal LowRank(string id = "low")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // Demo visitor: rank Director like DemoIdentity, but read-only => fails RequireThreatScoreAdministration.
     private static ClaimsPrincipal DemoVisitor()

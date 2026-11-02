@@ -15,7 +15,7 @@ public sealed class FinancingCatalogServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal OnlyReader()
         => ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build();
@@ -24,7 +24,7 @@ public sealed class FinancingCatalogServiceTests
         => new(ctx.Factory, Substitute.For<IProfileSuggestionService>());
 
     private static FinancingItemInput Input(string name, decimal price = 1_000m, int percent = 100,
-        int max = 1, Rank min = Rank.JuniorAgent, bool active = true, string? category = null, int sorting = 0)
+        int max = 1, Rank min = Rank.Trainee, bool active = true, string? category = null, int sorting = 0)
         => new()
         {
             Name = name,
@@ -115,8 +115,8 @@ public sealed class FinancingCatalogServiceTests
     {
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);
-        await svc.CreateAsync(Input("Für alle", min: Rank.JuniorAgent), Leader());
-        await svc.CreateAsync(Input("Nur Führung", min: Rank.SupervisorySpecialAgent), Leader());
+        await svc.CreateAsync(Input("Für alle", min: Rank.Trainee), Leader());
+        await svc.CreateAsync(Input("Nur Führung", min: Rank.SpecialAgentInCharge), Leader());
 
         var forSpecial = await svc.GetActiveForRankAsync(Rank.SpecialAgent);
         Assert.Equal(new[] { "Für alle" }, forSpecial.Select(i => i.Name).ToArray());

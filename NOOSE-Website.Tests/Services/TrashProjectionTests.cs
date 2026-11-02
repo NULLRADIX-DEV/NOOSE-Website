@@ -21,12 +21,12 @@ public class TrashProjectionTests
     {
         var row = TrashProjection.Person(new Person
         {
-            Id = "p1", Name = "Marcus Klein", CaseNumber = "NOOSE-P-2026-0042", DeletedAt = Deleted,
+            Id = "p1", Name = "Marcus Klein", CaseNumber = "FIB-P-2026-0042", DeletedAt = Deleted,
         });
 
         Assert.Equal("personen", row.Kind);
         Assert.Equal("p1", row.Id);
-        Assert.Equal("NOOSE-P-2026-0042", row.Reference);
+        Assert.Equal("FIB-P-2026-0042", row.Reference);
         Assert.Equal("Marcus Klein", row.Title);
         Assert.Null(row.Detail);
         Assert.Equal(Deleted, row.DeletedAt);
@@ -37,11 +37,11 @@ public class TrashProjectionTests
     {
         var row = TrashProjection.Case(new Case
         {
-            Id = "c1", Title = "Razzia Vinewood", CaseNumber = "NOOSE-V-2026-0007", DeletedAt = Deleted,
+            Id = "c1", Title = "Razzia Vinewood", CaseNumber = "FIB-V-2026-0007", DeletedAt = Deleted,
         });
 
         Assert.Equal("vorgaenge", row.Kind);
-        Assert.Equal("NOOSE-V-2026-0007", row.Reference);
+        Assert.Equal("FIB-V-2026-0007", row.Reference);
         Assert.Equal("Razzia Vinewood", row.Title);
         Assert.Null(row.Detail);
     }
@@ -52,7 +52,7 @@ public class TrashProjectionTests
         var start = new DateTime(2026, 3, 12, 14, 0, 0, DateTimeKind.Local);
         var row = TrashProjection.Appointment(new Appointment
         {
-            Id = "a1", Title = "Lagebesprechung", CaseNumber = "NOOSE-T-2026-0001", Start = start, DeletedAt = Deleted,
+            Id = "a1", Title = "Lagebesprechung", CaseNumber = "FIB-T-2026-0001", Start = start, DeletedAt = Deleted,
         });
 
         Assert.Equal("kalender", row.Kind);
@@ -66,7 +66,7 @@ public class TrashProjectionTests
         {
             Id = "m1",
             Title = "Wochenbesprechung",
-            CaseNumber = "NOOSE-B-2026-0003",
+            CaseNumber = "FIB-B-2026-0003",
             Start = new DateTime(2026, 3, 12, 14, 0, 0, DateTimeKind.Local),
             Location = "Konferenzraum",
             Status = MeetingStatus.Canceled,
@@ -133,15 +133,15 @@ public class TrashProjectionTests
         var row = TrashProjection.Tip(new Hinweis
         {
             Id = "h1",
-            CaseNumber = "NOOSE-H-2026-0001",
+            CaseNumber = "FIB-H-2026-0001",
             Text = "Gesehen am Hafen, Kennzeichen 12ABC",
             Status = TipStatus.InPruefung,
             DeletedAt = new DateTime(2026, 3, 12, 8, 0, 0, DateTimeKind.Utc),
         });
 
         Assert.Equal("hinweise", row.Kind);
-        Assert.Equal("NOOSE-H-2026-0001", row.Reference);
-        Assert.Equal("Bürgerhinweis NOOSE-H-2026-0001", row.Title);
+        Assert.Equal("FIB-H-2026-0001", row.Reference);
+        Assert.Equal("Bürgerhinweis FIB-H-2026-0001", row.Title);
         Assert.Equal("In Prüfung", row.Detail);
         Assert.DoesNotContain("Hafen", row.Title + row.Detail, StringComparison.Ordinal);
     }
