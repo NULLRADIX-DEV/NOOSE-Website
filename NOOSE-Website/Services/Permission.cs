@@ -159,7 +159,7 @@ public static class Permission
         if (!DocumentViewerScope.From(actor).CanSee(level))
         {
             throw new UnauthorizedAccessException(
-                "Diese Akte ist als Verschlusssache nur für die zuständige Stelle (Führung, TRU oder HRB) zugänglich.");
+                "Diese Akte ist als Verschlusssache nur für die zuständige Stelle (Führung, HRT oder Administration Division) zugänglich.");
         }
     }
 
@@ -432,7 +432,7 @@ public static class Permission
         if (!actor.MayWrite() || !actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 
@@ -662,7 +662,7 @@ public static class Permission
         if (!actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 
@@ -678,7 +678,7 @@ public static class Permission
         if (!actor.MayWrite() || !actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 
@@ -693,7 +693,7 @@ public static class Permission
         if (!actor.MayWrite() || !actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 

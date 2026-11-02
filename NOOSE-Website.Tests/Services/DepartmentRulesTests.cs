@@ -3,7 +3,7 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Tests.Services;
 
-/// <summary>Unit tests for the TRU/HRB rank threshold from the service regulation.</summary>
+/// <summary>Unit tests for the Administration Division rank threshold from the service regulation.</summary>
 public class DepartmentRulesTests
 {
     [Theory]
@@ -42,5 +42,25 @@ public class DepartmentRulesTests
 
         Assert.Contains("Administration Division", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Special Agent", ex.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Switches and guard share one sentence.</summary>
+    [Fact]
+    public void Hint_IsTheSentenceTheGuardThrows()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => DepartmentRules.RequireMayHold(Rank.Trainee, DepartmentRules.Name));
+
+        Assert.Equal(ex.Message, DepartmentRules.Hint);
+        Assert.Equal(
+            "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.",
+            DepartmentRules.Hint);
+    }
+
+    [Fact]
+    public void ColumnLabel_NamesTheDivisionNotTheOldBranch()
+    {
+        Assert.Equal("Administration", DepartmentRules.ColumnLabel);
+        Assert.DoesNotContain("HRB", DepartmentRules.Hint, StringComparison.Ordinal);
     }
 }

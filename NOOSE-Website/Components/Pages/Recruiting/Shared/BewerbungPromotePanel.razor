@@ -15,20 +15,22 @@
                        Margin="Margin.Dense" Style="min-width:220px;">
                 @foreach (var r in RankOptions)
                 {
-                    <MudSelectItem T="Rank" Value="@r">@RankDisplay.Name(r)</MudSelectItem>
+                    <MudSelectItem T="Rank" Value="@r">@RankDisplay.Name(r, _division)</MudSelectItem>
                 }
             </MudSelect>
             <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
-                <MudSelect T="Division" @bind-Value="_division" Label="Abteilung" Variant="Variant.Outlined"
-                           Margin="Margin.Dense" Style="min-width:120px;">
-                    @foreach (var d in DivisionDisplay.All)
-                    {
-                        <MudSelectItem T="Division" Value="@d" Disabled="@(!DivisionRules.MayHold(d, _rank))">@DivisionDisplay.Short(d)</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudTooltip Text="@DivisionRules.PickerHint(_rank)" Disabled="@(DivisionRules.PickerHint(_rank) is null)">
+                    <MudSelect T="Division" @bind-Value="_division" Label="Abteilung" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Style="min-width:120px;">
+                        @foreach (var d in DivisionDisplay.All)
+                        {
+                            <MudSelectItem T="Division" Value="@d" Disabled="@(!DivisionRules.MayHold(d, _rank))">@DivisionDisplay.Short(d)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTooltip>
             </AuthorizeView>
-            <MudTooltip Text="@DepartmentHint" Disabled="DepartmentsOpen">
-                <MudCheckBox T="bool" @bind-Value="_hrb" Label="HRB" Disabled="@(!DepartmentsOpen)" />
+            <MudTooltip Text="@DepartmentRules.Hint" Disabled="DepartmentsOpen">
+                <MudCheckBox T="bool" @bind-Value="_hrb" Label="@DepartmentRules.ColumnLabel" Disabled="@(!DepartmentsOpen)" />
             </MudTooltip>
             <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.MilitaryTech"
                        OnClick="PromoteAsync" Disabled="_busy">Hochstufen</MudButton>
@@ -66,9 +68,6 @@
     /// <summary>Mirrors DepartmentRules.MayHold; ticking a box the service refuses fails only on save.</summary>
     private bool DepartmentsOpen => DepartmentRules.MayHold(_rank);
 
-    private const string DepartmentHint =
-        "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
-
     private void RankChanged(Rank rank)
     {
         _rank = rank;
@@ -85,7 +84,7 @@
     private async Task PromoteAsync()
     {
         var ok = await ConfirmDialog.ShowAsync(DialogService, "Bewerber hochstufen?",
-            $"{ApplicantName ?? "Der Bewerber"} wird als {RankDisplay.Name(_rank)} freigeschaltet und wird ein aktiver FIB-Agent.",
+            $"{ApplicantName ?? "Der Bewerber"} wird als {RankDisplay.Name(_rank, _division)} freigeschaltet und wird ein aktiver FIB-Agent.",
             "Hochstufen");
         if (!ok)
         {

@@ -49,8 +49,8 @@ public class EnumDisplayTests_A
     [Theory]
     [InlineData(AnnouncementAudience.AllActive, "Alle aktiven Agenten")]
     [InlineData(AnnouncementAudience.Taskforce, "Bestimmte Taskforce")]
-    [InlineData(AnnouncementAudience.TruUnit, "TRU-Einheit")]
-    [InlineData(AnnouncementAudience.HrbUnit, "HRB-Einheit")]
+    [InlineData(AnnouncementAudience.TruUnit, "HRT")]
+    [InlineData(AnnouncementAudience.HrbUnit, "Administration Division")]
     [InlineData(AnnouncementAudience.FromRank, "Ab Dienstgrad")]
     public void AnnouncementAudience_Name_MapsEachValue(AnnouncementAudience audience, string expected)
     {
@@ -430,8 +430,8 @@ public class EnumDisplayTests_A
     [Theory]
     [InlineData(DocumentClassification.None, "Keine Verschlusssache")]
     [InlineData(DocumentClassification.Leadership, "Verschlusssache nur für Führung")]
-    [InlineData(DocumentClassification.Tru, "Verschlusssache nur für TRU")]
-    [InlineData(DocumentClassification.Hrb, "Verschlusssache nur für HRB")]
+    [InlineData(DocumentClassification.Tru, "Verschlusssache nur für HRT")]
+    [InlineData(DocumentClassification.Hrb, "Verschlusssache nur für die Administration Division")]
     public void DocumentClassification_Label_MapsEachValue(DocumentClassification classification, string expected)
     {
         Assert.Equal(expected, DocumentClassificationDisplay.Label(classification));
@@ -452,8 +452,8 @@ public class EnumDisplayTests_A
 
     [Theory]
     [InlineData(DocumentClassification.Leadership, "Verschlusssache")]
-    [InlineData(DocumentClassification.Tru, "VS – TRU")]
-    [InlineData(DocumentClassification.Hrb, "VS – HRB")]
+    [InlineData(DocumentClassification.Tru, "VS – HRT")]
+    [InlineData(DocumentClassification.Hrb, "VS – Administration")]
     public void DocumentClassification_ChipLabel_MapsClassifiedValues(DocumentClassification classification, string expected)
     {
         Assert.Equal(expected, DocumentClassificationDisplay.ChipLabel(classification));

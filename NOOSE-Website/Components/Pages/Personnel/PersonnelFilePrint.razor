@@ -38,13 +38,13 @@ else
                     }
                     <tr><th>Dienstgrad</th><td>@DivisionRules.RankName(_agent)</td></tr>
                     <tr><th>Status</th><td>@AgentStatusDisplay.Name(_agent.Status)</td></tr>
-                    @if (_agent.IsTRU)
+                    @if (DivisionRules.Of(_agent) is { IsNone: false } unit)
                     {
-                        <tr><th>Einheit</th><td>TRU (Tactical Response Unit)</td></tr>
+                        <tr><th>Abteilung</th><td>@DivisionRules.LongLabel(unit)</td></tr>
                     }
                     @if (_agent.IsHRB)
                     {
-                        <tr><th>Einheit</th><td>HRB (Human Resources Branch)</td></tr>
+                        <tr><th>Kennzeichen</th><td>Administration Division</td></tr>
                     }
                     <tr><th>Registriert am</th><td>@_agent.RegisteredAt.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
                     @if (_agent.Status == AgentStatus.Terminated)

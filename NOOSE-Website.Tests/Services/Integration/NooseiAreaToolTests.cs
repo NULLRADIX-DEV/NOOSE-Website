@@ -64,6 +64,40 @@ public sealed class NooseiAreaToolTests
     }
 
     [Fact]
+    public async Task Roster_NamesTheDivisionAndTheAdministrationFlag_NotTheOldUnits()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent(id: "a1", Rank.SpecialAgent, configure: a =>
+            {
+                a.Codename = "Falke";
+                a.Division = Division.Hrt;
+                a.IsTRU = true;
+                a.IsHRB = true;
+            }));
+            db.Users.Add(Seed.Agent(id: "a2", Rank.Director, configure: a =>
+            {
+                a.Codename = "Adler";
+                a.Division = Division.Ctd;
+            }));
+            db.SaveChanges();
+        }
+
+        var result = await NooseiToolHost.Area(ctx).InvokeAsync(
+            Args("""{"bereich":"personal"}"""), NooseiToolContext.From(Leader()));
+
+        var falke = result.Text.Split('\n').Single(l => l.Contains("Falke"));
+        // HRT title, unit, flag
+        Assert.Contains("Operator", falke);
+        Assert.Contains("Abteilung: HRT", falke);
+        Assert.Contains("Administration Division", falke);
+        Assert.Contains("Abteilung: Board (CTD)", result.Text.Split('\n').Single(l => l.Contains("Adler")));
+        Assert.DoesNotContain("TRU", result.Text);
+        Assert.DoesNotContain("HRB", result.Text);
+    }
+
+    [Fact]
     public async Task AnAreaTheViewerMayNotRead_AnswersLikeAnEmptyOne()
     {
         using var ctx = new SqliteTestContext();

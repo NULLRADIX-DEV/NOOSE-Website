@@ -39,7 +39,7 @@ public static class NavCatalog
         new NavEntry("abmeldungen", "/abmeldungen", Icons.Material.Filled.EventBusy, "Abmeldungen", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Eigene Abwesenheiten melden und einsehen"),
         new NavEntry("tests", "/tests", Icons.Material.Filled.Quiz, "Interne Tests", NavSection.MeinDienst, NavArea.MeinDienst,
-            Description: "Zugewiesene Tests ablegen; HRB und Führung vergeben und korrigieren"),
+            Description: "Zugewiesene Tests ablegen; Administration Division und Führung vergeben und korrigieren"),
         new NavEntry("finanzierungen", "/finanzierungen", Icons.Material.Filled.RequestQuote, "Finanzierungen", NavSection.MeinDienst, NavArea.MeinDienst, BadgeKey: "financing",
             Description: "Finanzierungsanträge stellen und das eigene Monatsbudget einsehen"),
         new NavEntry("feedback", "/feedback", Icons.Material.Filled.Feedback, "Feedback", NavSection.MeinDienst, NavArea.MeinDienst, Description: "Feedback zur Website"),
@@ -98,7 +98,7 @@ public static class NavCatalog
         new NavEntry("statistik", "/statistik", Icons.Material.Filled.QueryStats, "Statistik", NavSection.Analyse, NavArea.Ermittlung,
             Description: "Auswertungen, Kennzahlen und Lageberichte"),
         new NavEntry("organigramm", "/organigramm", Icons.Material.Filled.AccountTree, "Organigramm", NavSection.Analyse, NavArea.Dienststelle,
-            Description: "Aufbau der Behörde nach Dienstgrad und Einheit"),
+            Description: "Aufbau der Behörde nach Board, Abteilung und Dienstgrad"),
 
         new NavEntry("brett", "/brett", Icons.Material.Filled.Campaign, "Schwarzes Brett", NavSection.Dienststelle, NavArea.Dienststelle, BadgeKey: "acknowledgments",
             Description: "Behördliche Ankündigungen, teils quittierungspflichtig"),

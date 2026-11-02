@@ -475,8 +475,7 @@ public class AnnouncementService(
         AnnouncementAudience.AllActive => "Alle aktiven Agenten",
         AnnouncementAudience.Taskforce => targetId != null && taskforceNames.TryGetValue(targetId, out var n)
             ? $"Taskforce: {n}" : "Taskforce",
-        AnnouncementAudience.TruUnit => "TRU-Einheit",
-        AnnouncementAudience.HrbUnit => "HRB-Einheit",
+        AnnouncementAudience.TruUnit or AnnouncementAudience.HrbUnit => AnnouncementAudienceDisplay.Name(audience),
         AnnouncementAudience.FromRank => $"Ab {RankDisplay.Name(minRank)}",
         _ => "—",
     };

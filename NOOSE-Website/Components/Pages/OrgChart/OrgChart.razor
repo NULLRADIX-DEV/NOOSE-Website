@@ -9,7 +9,7 @@
         <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" Size="Size.Large" />
         <div>
             <MudText Typo="Typo.h5">Organigramm</MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">FIB-Struktur: Dienstgrade, TRU, HRB und Taskforce-Besetzung.</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">FIB-Struktur: Board, Abteilungen, Administration Division und Taskforce-Besetzung.</MudText>
         </div>
     </MudStack>
 
@@ -19,83 +19,37 @@
     }
     else if (_data is not null)
     {
-        @if (_data.Ranks.Count == 0)
+        @if (!_data.HasAgents)
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine aktiven Agenten erfasst.</MudText>
         }
         else
         {
-            <div class="org-scroll">
-                <div class="org">
-                    <div class="org-node org-root">F.I.B.</div>
-                    @foreach (var rank in _data.Ranks)
+            <div class="org">
+                <div class="org-node org-root">F.I.B.</div>
+                <div class="org-link"></div>
+                @UnitPanel(_data.Board)
+                <div class="org-link"></div>
+                <div class="org-columns">
+                    @foreach (var column in _data.Divisions)
                     {
-                        <div class="org-link"></div>
-                        <div class="org-tier">
-                            <div class="org-node org-rank">
-                                @RankDisplay.Name(rank.Rank)<span class="org-count">@rank.Agents.Count</span>
-                            </div>
-                            <ul class="org-leaves">
-                                @foreach (var a in rank.Agents)
-                                {
-                                    <li class="org-leaf">
-                                        <a class="org-card" href="@($"/personal/{a.Id}")">
-                                            <span class="org-card-avatar">@Initials(a.Codename)</span>
-                                            <span class="org-card-name">@(string.IsNullOrWhiteSpace(a.Codename) ? "Unbenannt" : a.Codename)</span>
-                                            @if (_mayRealName && !string.IsNullOrWhiteSpace(a.RealName))
-                                            {
-                                                <span class="org-card-sub">@a.RealName</span>
-                                            }
-                                            @if (a.IsTRU)
-                                            {
-                                                <span class="org-card-badge">TRU</span>
-                                            }
-                                            @if (a.IsHRB)
-                                            {
-                                                <span class="org-card-badge org-card-badge--hrb">HRB</span>
-                                            }
-                                            <DecorationStrip Plaques="@PlaquesOf(a.Id)" Max="3" Class="org-card-ehrenzeichen" />
-                                        </a>
-                                    </li>
-                                }
-                            </ul>
-                        </div>
+                        @UnitPanel(column)
                     }
                 </div>
             </div>
         }
 
-        @if (_data.Tru.Count > 0)
-        {
-            <MudDivider />
-            <MudStack Spacing="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-                    <MudIcon Icon="@Icons.Material.Filled.LocalPolice" Color="Color.Warning" />
-                    <MudText Typo="Typo.h6">Tactical Response Unit (TRU)</MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">· @_data.Tru.Count rangübergreifend</MudText>
-                </MudStack>
-                <MudGrid Spacing="2">
-                    @foreach (var a in _data.Tru)
-                    {
-                        <MudItem xs="12" sm="6" md="4" lg="3">
-                            <AgentTile Agent="a" MayRealName="_mayRealName" Plaques="@PlaquesOf(a.Id)" />
-                        </MudItem>
-                    }
-                </MudGrid>
-            </MudStack>
-        }
-
-        @if (_data.Hrb.Count > 0)
+        @if (_data.Administration.Count > 0)
         {
             <MudDivider />
             <MudStack Spacing="2">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
                     <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Info" />
-                    <MudText Typo="Typo.h6">Human Resources Branch (HRB)</MudText>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">· @_data.Hrb.Count rangübergreifend</MudText>
+                    <MudText Typo="Typo.h6">Administration Division</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">· @_data.Administration.Count abteilungsübergreifend</MudText>
                 </MudStack>
                 <MudGrid Spacing="2">
-                    @foreach (var a in _data.Hrb)
+                    @foreach (var a in _data.Administration)
                     {
                         <MudItem xs="12" sm="6" md="4" lg="3">
                             <AgentTile Agent="a" MayRealName="_mayRealName" Plaques="@PlaquesOf(a.Id)" />
@@ -161,6 +115,47 @@
         = new Dictionary<string, IReadOnlyList<DecorationPlaqueView>>();
     private string _taskforceEmptyText = "Keine genehmigten Taskforces vorhanden.";
 
+    /// <summary>One column: title and seats against the soft limit, then the rank tiers with their agents.</summary>
+    private RenderFragment<OrgChartColumn> UnitPanel => column =>
+        @<section class="@(column.IsBoard ? "org-unit org-unit--board" : "org-unit")" aria-label="@column.Title">
+            <header class="org-unit-head">
+                <MudIcon Icon="@column.Icon" Color="@column.Colour" />
+                <span class="org-unit-title">@column.Title</span>
+                <span class="@(column.OverLimit ? "org-count org-count--over" : "org-count")" title="@SeatsTitle(column)">@column.Count / @column.Limit</span>
+            </header>
+            @if (column.Count == 0)
+            {
+                <p class="org-unit-empty">Keine Mitglieder.</p>
+            }
+            @foreach (var tier in column.Ranks)
+            {
+                <div class="org-tier">
+                    <div class="org-node org-rank">@RankDisplay.Name(tier.Rank, column.Division)<span class="org-count">@tier.Agents.Count</span></div>
+                    <ul class="org-cards">
+                        @foreach (var a in tier.Agents)
+                        {
+                            <li>@Card(a)</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </section>;
+
+    private RenderFragment<Agent> Card => a =>
+        @<a class="org-card" href="@($"/personal/{a.Id}")">
+            <span class="org-card-avatar">@Initials(a.Codename)</span>
+            <span class="org-card-name">@(string.IsNullOrWhiteSpace(a.Codename) ? "Unbenannt" : a.Codename)</span>
+            @if (_mayRealName && !string.IsNullOrWhiteSpace(a.RealName))
+            {
+                <span class="org-card-sub">@a.RealName</span>
+            }
+            @if (a.IsHRB)
+            {
+                <span class="org-card-badge">@DepartmentRules.ColumnLabel</span>
+            }
+            <DecorationStrip Plaques="@PlaquesOf(a.Id)" Max="3" Class="org-card-ehrenzeichen" />
+        </a>;
+
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
@@ -171,10 +166,9 @@
         _data = await OrgChartService.GetAsync(user);
         try
         {
-            var ids = _data.Ranks.SelectMany(r => r.Agents).Select(a => a.Id)
-                .Concat(_data.Tru.Select(a => a.Id))
-                .Concat(_data.Hrb.Select(a => a.Id))
+            var ids = _data.Agents.Select(a => a.Id)
                 .Concat(_data.Taskforces.SelectMany(t => t.Members).Select(m => m.AgentId))
+                .Distinct()
                 .ToList();
             _plaques = await Decorations.GetPlaquesAsync(ids, user);
         }
@@ -186,6 +180,11 @@
     }
 
     private IReadOnlyList<DecorationPlaqueView>? PlaquesOf(string agentId) => _plaques.GetValueOrDefault(agentId);
+
+    private static string SeatsTitle(OrgChartColumn column)
+        => column.OverLimit
+            ? $"{column.Count} von {column.Limit} Plätzen besetzt, das weiche Limit ist überschritten"
+            : $"{column.Count} von {column.Limit} Plätzen besetzt";
 
     private static string Initials(string? codename)
     {

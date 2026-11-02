@@ -674,6 +674,27 @@ public sealed class PermissionTests
         AssertDenied(() => Permission.RequireHrbOrLeadership(actor));
     }
 
+    [Fact]
+    public void RequireHrbOrLeadership_plainAgent_namesTheAdministrationDivision()
+    {
+        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgent);
+
+        var ex = Assert.Throws<UnauthorizedAccessException>(() => Permission.RequireHrbOrLeadership(actor));
+
+        Assert.Equal("Diese Aktion ist der Administration Division und der Führung vorbehalten.", ex.Message);
+    }
+
+    [Fact]
+    public void RequireMaySeeClassified_outsideTheAudience_namesHrtAndAdministrationDivision()
+    {
+        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgent);
+
+        var ex = Assert.Throws<UnauthorizedAccessException>(
+            () => Permission.RequireMaySeeClassified(actor, DocumentClassification.Leadership));
+
+        Assert.Contains("(Führung, HRT oder Administration Division)", ex.Message, StringComparison.Ordinal);
+    }
+
     // ------------------------------------------------------- RequireHrbOrLeadershipWrite
 
     // The write variant behind the handbook and behind ticking off a training module. It differs from

@@ -15,8 +15,21 @@ public static class DepartmentRules
     /// <summary>Lowest rank that may hold the flag.</summary>
     public const Rank MinimumRank = Rank.SpecialAgent;
 
+    /// <summary>Flag name with article, as guard and hints write it.</summary>
+    public const string Name = "Die Administration Division";
+
+    /// <summary>Column header and switch label.</summary>
+    public const string ColumnLabel = "Administration";
+
     /// <summary>True when that rank may carry the department flag. A rankless account never may.</summary>
     public static bool MayHold(Rank? rank) => rank is { } r && r >= MinimumRank;
+
+    /// <summary>Why a rank cannot carry the flag; the guard throws it, the switches show it.</summary>
+    public static string HoldHint(string department)
+        => $"{department} ist laut Dienstverordnung erst ab dem Dienstgrad {RankDisplay.DefaultName(MinimumRank)} möglich.";
+
+    /// <summary>Tooltip of a switch that <see cref="MayHold"/> keeps off.</summary>
+    public static string Hint => HoldHint(Name);
 
     /// <summary>Guard for a write that switches the department flag on.</summary>
     /// <remarks>Clearing is always allowed - a demoted account must not stay stuck with a flag it may not hold.</remarks>
@@ -24,8 +37,7 @@ public static class DepartmentRules
     {
         if (!MayHold(rank))
         {
-            throw new InvalidOperationException(
-                $"{department} ist laut Dienstverordnung erst ab dem Dienstgrad {RankDisplay.DefaultName(MinimumRank)} möglich.");
+            throw new InvalidOperationException(HoldHint(department));
         }
     }
 }

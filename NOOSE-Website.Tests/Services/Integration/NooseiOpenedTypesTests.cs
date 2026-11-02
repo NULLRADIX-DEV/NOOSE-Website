@@ -243,6 +243,32 @@ public sealed class NooseiOpenedTypesTests
     }
 
     [Fact]
+    public async Task AnAgentFile_NamesTheDivisionAndTheAdministrationFlag_NotTheOldUnits()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent(id: Owner, Rank.SpecialAgent, configure: a =>
+            {
+                a.Codename = "Falke";
+                a.Division = Division.Hrt;
+                a.IsTRU = true;
+                a.IsHRB = true;
+            }));
+            db.SaveChanges();
+        }
+
+        var result = await Tool(ctx).InvokeAsync(
+            Args($$"""{"typ":"Personalakte","id":"{{Owner}}"}"""), NooseiToolContext.From(Leader()));
+
+        Assert.Contains("Abteilung: HRT", result.Text);
+        Assert.Contains("Administration Division: Ja", result.Text);
+        Assert.Contains("Dienstgrad: Operator", result.Text);
+        Assert.DoesNotContain("TRU", result.Text);
+        Assert.DoesNotContain("HRB", result.Text);
+    }
+
+    [Fact]
     public async Task AnAgentFile_StaysHiddenFromAnOrdinaryAgent()
     {
         using var ctx = new SqliteTestContext();

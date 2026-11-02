@@ -93,6 +93,14 @@ public static class DivisionRules
             ? "Nur interne Konten mit Dienstgrad gehören einer Abteilung an."
             : $"{Capital(DivisionDisplay.WithArticle(division))} ist erst ab dem Dienstgrad {RankDisplay.DefaultName(HrtMinimumRank)} möglich.";
 
+    /// <summary>Picker tooltip: why a division is out of reach for the rank; null when all are open.</summary>
+    public static string? PickerHint(Rank? rank)
+        => DivisionDisplay.All.Where(d => !MayHold(d, rank)).Select(d => HoldHint(d, rank)).FirstOrDefault();
+
+    /// <summary>Seated in the division; the Board is its own seat, not its members' home.</summary>
+    public static bool IsMember(Agent agent, Division division)
+        => Of(agent) is { IsBoard: false } unit && unit.Home == division;
+
     public static int Limit(OrgUnit unit)
         => unit.IsBoard ? DivisionDisplay.BoardLimit : unit.Home is { } home ? DivisionDisplay.Limit(home) : 0;
 
@@ -101,6 +109,17 @@ public static class DivisionRules
         => unit.IsBoard
             ? DivisionDisplay.BoardShort + (unit.Home is { } home ? $" ({DivisionDisplay.Short(home)})" : string.Empty)
             : unit.Home is { } division ? DivisionDisplay.Short(division) : "—";
+
+    /// <summary>Full name for printouts; the Board names its home division.</summary>
+    public static string LongLabel(OrgUnit unit)
+        => unit.IsBoard
+            ? DivisionDisplay.BoardName + (unit.Home is { } home ? $" (Heimatabteilung: {DivisionDisplay.Short(home)})" : string.Empty)
+            : unit.Home is { } division ? DivisionDisplay.Name(division) : "—";
+
+    /// <summary>Chip colour of the unit.</summary>
+    public static MudBlazor.Color Colour(OrgUnit unit)
+        => unit.IsBoard ? DivisionDisplay.BoardColour
+            : unit.Home is { } home ? DivisionDisplay.Colour(home) : MudBlazor.Color.Default;
 
     /// <summary>Same seat; a Board member holds one whatever the home division.</summary>
     public static bool SameSeat(OrgUnit a, OrgUnit b)
