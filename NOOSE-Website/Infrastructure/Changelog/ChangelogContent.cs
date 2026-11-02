@@ -590,6 +590,8 @@ public static class ChangelogContent
             Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
                 + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),
+            Neu("2.8.03-fahndungsposter-qr", "Das Fahndungsposter trägt jetzt einen QR-Code und eine kurze Adresse zum "
+                + "Abtippen; beide führen direkt zum Steckbrief, wo man gleich einen Hinweis geben kann.", "Öffentlich"),
         ]),
     ];
 }

@@ -593,6 +593,7 @@ app.MapNooseSystemEndpoints();
 app.MapNooseStatisticsExportEndpoints();
 app.MapNooseRecruitingFileEndpoints();
 app.MapNoosePublicWantedFileEndpoints();
+app.MapNooseWantedShortLinkEndpoints();
 app.MapNoosePublicLeadershipFileEndpoints();
 app.MapNooseTipFileEndpoints();
 app.MapNooseTicketFileEndpoints();

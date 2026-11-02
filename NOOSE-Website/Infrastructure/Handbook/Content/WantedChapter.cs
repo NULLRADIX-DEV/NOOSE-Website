@@ -40,6 +40,11 @@ internal static class WantedChapter
                 <p>Mit der ersten Veröffentlichung bekommt die Ausschreibung ein eigenes Aktenzeichen, das mit
                 <em>FA</em> beginnt. Unter dieser Nummer meldet sich später jeder Bürger, der etwas dazu
                 sagen will.</p>
+                <p>Am öffentlichen Steckbrief liegt ein <strong>Fahndungsposter</strong> zum Drucken. Es trägt einen
+                QR-Code und eine kurze Adresse, die man abtippen kann: aus <em>NOOSE-FA-2026-0042</em> wird
+                <em>/g/2026-0042</em>. Beides führt direkt zum Steckbrief, wo ein Bürger seinen Hinweis abgibt,
+                solange das Hinweisformular eingeschaltet ist. Die kurze Adresse funktioniert nur, solange die
+                Ausschreibung öffentlich steht.</p>
                 <p>Ist die Person gefasst, setzt du die Ausschreibung auf <strong>gefasst</strong>; war sie
                 falsch, ziehst du sie <strong>zurück</strong>. Beides nimmt sie sofort von der öffentlichen
                 Seite. Zurückgezogen behält sie Aktenzeichen und Inhalt - ein erneutes Veröffentlichen ist ein

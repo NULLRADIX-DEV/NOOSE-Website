@@ -18,6 +18,12 @@ public interface IPublicWantedService
     /// <summary>The advertised bounty of one published notice; null when there is none or the module is off.</summary>
     Task<PublicBounty?> GetBountyAsync(string? caseNumber, CancellationToken cancellationToken = default);
 
+    /// <summary>QR code and short address for the poster of a published notice, on the configured site; null for every other state.</summary>
+    Task<WantedPosterLink?> GetPosterLinkAsync(string? caseNumber, CancellationToken cancellationToken = default);
+
+    /// <summary>Profile path a typed short code leads to; null for every miss, so the short route cannot become an existence oracle.</summary>
+    Task<string?> ResolveShortLinkAsync(string? code, CancellationToken cancellationToken = default);
+
     /// <summary>The recently captured notices, cached; empty while the archive module is off.</summary>
     Task<IReadOnlyList<PublicWantedArchiveCard>> GetArchiveAsync(CancellationToken cancellationToken = default);
 

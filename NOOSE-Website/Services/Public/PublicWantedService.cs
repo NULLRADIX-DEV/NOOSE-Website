@@ -110,6 +110,26 @@ public class PublicWantedService(
     public async Task<PublicBounty?> GetBountyAsync(string? caseNumber, CancellationToken cancellationToken = default)
         => (await GetBoardAsync(cancellationToken)).BountyFor(caseNumber);
 
+    public async Task<WantedPosterLink?> GetPosterLinkAsync(string? caseNumber, CancellationToken cancellationToken = default)
+    {
+        // gated by the board
+        var entry = await GetByCaseNumberAsync(caseNumber, cancellationToken);
+        if (entry is null)
+        {
+            return null;
+        }
+        var tipsOn = await modules.IsEnabledAsync(PublicModules.Tips, cancellationToken);
+        // configured site only
+        var config = await discord.GetConfigAsync(cancellationToken);
+        return WantedShortLink.Poster(config.SiteBaseUrl, entry.CaseNumber, tipsOn);
+    }
+
+    public async Task<string?> ResolveShortLinkAsync(string? code, CancellationToken cancellationToken = default)
+    {
+        var entry = await GetByCaseNumberAsync(WantedShortLink.CaseNumberFor(code), cancellationToken);
+        return entry is null ? null : WantedShortLink.ProfilePath(entry.CaseNumber);
+    }
+
     public async Task<IReadOnlyList<PublicWantedArchiveCard>> GetArchiveAsync(CancellationToken cancellationToken = default)
     {
         // its own switch, read outside the content cache for the same reason as the board: the archive has to stay
