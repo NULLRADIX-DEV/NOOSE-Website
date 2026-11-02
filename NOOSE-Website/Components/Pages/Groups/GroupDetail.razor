@@ -381,13 +381,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Personengruppe löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Personengruppe löschen?",
             "Die Gruppe wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await GroupService.DeleteAsync(_group.Id, _user);
+        await GroupService.DeleteAsync(_group.Id, reason, _user);
         Snackbar.Add("Personengruppe in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/personengruppen");
     }

@@ -122,6 +122,8 @@ public class OperationService(
 
     public async Task RefreshAsync(string id, OperationInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var operation = await db.Operations.FirstOrDefaultAsync(o => o.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Operation '{id}' nicht gefunden.");
@@ -140,6 +142,7 @@ public class OperationService(
         operation.Result = input.Result.TrimToNull();
         operation.Remarks = input.Remarks.TrimToNull();
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
+        CriticalChange.NoteSecrecy(db, nameof(Operation), id, operation.SecrecyLevel, input.SecrecyLevel, input.SecrecyReason, actor);
         operation.SecrecyLevel = input.SecrecyLevel;
 
         await SuggestionsStageAsync(db, operation.IsRestricted, input.Type, cancellationToken);
@@ -149,19 +152,23 @@ public class OperationService(
             nameof(Operation), operation.Id, actor, cancellationToken);
     }
 
-    public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
+        var note = CriticalChange.RequireDeletionReason(reason);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var operation = await db.Operations.FirstOrDefaultAsync(o => o.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Operation '{id}' nicht gefunden.");
         db.Operations.Remove(operation);
+        CriticalChange.NoteDeletion(db, nameof(Operation), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -207,6 +214,7 @@ public class OperationService(
 
     public async Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         ClassificationHelper.CheckRankGate(@new, actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -216,6 +224,7 @@ public class OperationService(
         // classified record is writable by leadership or the record's own audience (TRU/HRB), not leadership alone
         Permission.RequireMaySeeClassified(actor, operation.SecrecyLevel);
 
+        CriticalChange.NoteDowngrade(db, nameof(Operation), id, operation.Classification, @new, justification, actor);
         operation.Classification = @new;
         db.ClassificationHistory.Add(ClassificationHelper.Entry(nameof(Operation), id, @new, justification, actor));
         await db.SaveChangesAsync(cancellationToken);

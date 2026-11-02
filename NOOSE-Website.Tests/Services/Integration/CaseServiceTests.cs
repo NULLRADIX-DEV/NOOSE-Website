@@ -247,7 +247,7 @@ public sealed class CaseServiceTests
         }
         var svc = Build(ctx);
 
-        await svc.DeleteAsync("c1", Director());
+        await svc.DeleteAsync("c1", "Dublette", Director());
 
         // No soft-delete interceptor in the test context => the row is hard-deleted.
         using var check = ctx.NewContext();
@@ -261,7 +261,7 @@ public sealed class CaseServiceTests
         var svc = Build(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => svc.DeleteAsync("any", Junior()));
+            () => svc.DeleteAsync("any", "Dublette", Junior()));
     }
 
     [Fact]
@@ -271,7 +271,7 @@ public sealed class CaseServiceTests
         var svc = Build(ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.DeleteAsync("missing", Director()));
+            () => svc.DeleteAsync("missing", "Dublette", Director()));
     }
 
     // ---------- RestoreAsync ----------

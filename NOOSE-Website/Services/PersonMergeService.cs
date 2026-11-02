@@ -15,9 +15,9 @@ public class PersonMergeService(
 {
     public async Task MergeAsync(string sourceId, string targetId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLeadership(actor);
         // ExecuteUpdate bypasses the SaveChanges interceptor → gate read-only here explicitly
         Permission.RequireWriteAccess(actor);
+        Permission.RequireLeadership(actor);
 
         if (string.IsNullOrWhiteSpace(sourceId) || string.IsNullOrWhiteSpace(targetId) || sourceId == targetId)
         {
@@ -307,6 +307,9 @@ public class PersonMergeService(
 
         // ---- send source record to the trash (interceptor soft-deletes) ----
         db.People.Remove(source);
+        // the merge is the reason, so the source's own timeline says where it went
+        CriticalChange.NoteDeletion(db, nameof(Person), sourceId,
+            $"Zusammengeführt in „{target.Name}“ ({target.CaseNumber}).", actor);
 
         await db.SaveChangesAsync(cancellationToken);
 

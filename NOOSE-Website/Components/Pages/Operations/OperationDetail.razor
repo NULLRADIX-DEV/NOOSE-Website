@@ -345,13 +345,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Operation löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Operation löschen?",
             "Die Operation wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await OperationService.DeleteAsync(_operation.Id, _user);
+        await OperationService.DeleteAsync(_operation.Id, reason, _user);
         Snackbar.Add("Operation in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/operationen");
     }

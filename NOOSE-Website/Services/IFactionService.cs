@@ -24,7 +24,8 @@ public interface IFactionService
     Task<List<DrugRouteConflict>> GetDrugRouteConflictsAsync(string? factionId, IEnumerable<string> designations,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Moves the record to the trash; the reason is required and lands on its timeline.</summary>
+    Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Files the record away: out of listings, pickers and the default search, still fully readable.</summary>
@@ -33,7 +34,7 @@ public interface IFactionService
     /// <summary>Brings the record back into the active stock.</summary>
     Task UnarchiveAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Set classification; "Gesichert staatsgefährdend" requires Senior Special Agent+ or Admin.</summary>
+    /// <summary>Set classification; "Gesichert staatsgefährdend" requires Senior Special Agent+ or Admin, a downgrade a justification.</summary>
     Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Append-only classification history of the faction, newest first; visibility-filtered.</summary>

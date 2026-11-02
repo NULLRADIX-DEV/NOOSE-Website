@@ -80,7 +80,9 @@ internal static class RecordsChapter
                 </ul>
                 <p>Eine Einstufung zu setzen ist eine <strong>Entscheidung</strong>, keine Notiz. Jede Änderung
                 wird mit Begründung und Datum festgehalten und ist im Abschnitt <em>Einstufung</em> als
-                Verlauf nachlesbar. Die höchste Stufe darf erst ab Senior Special Agent vergeben werden.</p>
+                Verlauf nachlesbar. Die höchste Stufe darf erst ab Senior Special Agent vergeben werden. Wer
+                eine Einstufung <strong>herabsetzt</strong>, muss das begründen - mehr dazu unter
+                <em>Begründungspflicht</em>.</p>
                 <p>Die Einstufung hebt außerdem den <strong>Bedrohungs-Score</strong> auf einen festen Sockel.
                 Eine leichtfertige Einstufung färbt also die ganze Lageübersicht ein.</p>
                 """,
@@ -104,13 +106,42 @@ internal static class RecordsChapter
                 erscheint auch in der Suche nicht, taucht in keiner Liste auf und wird von NOOSEI nicht
                 erwähnt. Für dich sieht es so aus, als gäbe es das Dokument nicht - und das ist Absicht.</p>
                 <p>Stufe hoch heißt nicht „sicherer“. Was niemand findet, hilft auch niemandem. Stufe eine
-                Sache nur ein, wenn es einen Grund gibt, den du benennen kannst.</p>
+                Sache nur ein, wenn es einen Grund gibt, den du benennen kannst. Umgekehrt gilt dasselbe: wer
+                die Verschlusssache einer Akte aufhebt oder sie für mehr Agenten öffnet, gibt einen Grund an.</p>
                 <p>Verwechsle diese vier Stufen nicht mit den <strong>Sicherheitsfreigaben</strong> der
                 Dienstverordnung - Confidential, Secret, Top Secret und das Special Access Program. Das ist eine
                 zweite, rein nach Dienstgrad gestaffelte Leiter; wie beide zusammenhängen, steht unter
                 <em>Dienstvorschrift → Sicherheitsfreigaben</em>.</p>
                 """,
                 DiagramKey: "vs-stufen"),
+
+            new Article("art-begruendungspflicht", "begruendungspflicht", "Begründungspflicht",
+                "Vier Änderungen an einer Akte gehen nur mit einem Grund.",
+                """
+                <p>Manche Änderungen sind nicht nur eine Korrektur, sondern eine <strong>Entscheidung</strong>,
+                die später jemand nachvollziehen muss. Vier davon verlangen deshalb einen Grund:</p>
+                <ul>
+                <li>eine <strong>Einstufung herabsetzen</strong>, etwa vom Verdachtsfall zum Prüffall oder
+                zurück auf <em>Unbekannt</em>,</li>
+                <li>eine <strong>Verschlusssache lockern</strong> - ganz aufheben oder für mehr Agenten öffnen,
+                zum Beispiel von <em>Führung</em> auf <em>TRU</em>,</li>
+                <li>eine <strong>Akte löschen</strong> - Person, Fraktion, Personengruppe, Partei, Vorgang,
+                Operation oder Taskforce,</li>
+                <li>eine <strong>Fahndung aufheben</strong>, die an der Personenakte ausgeschrieben ist.</li>
+                </ul>
+                <p>Die Seite fragt dich dann in einem Fenster nach dem Grund. Ohne Grund wird nichts geändert.
+                Bei der Einstufung schreibst du ihn wie gewohnt in das Feld <em>Begründung</em>.</p>
+                <p>Der Grund steht danach als eigene Zeile <em>Begründung</em> im <strong>Zeitstrahl</strong>
+                der Akte und im Änderungsprotokoll unter <em>Nachweis</em>, direkt neben der Änderung, die er
+                erklärt. Partnerbehörden sehen diese Zeile nicht.</p>
+                <p>Eine Akte enger stellen, höher einstufen oder zur Fahndung ausschreiben braucht keinen
+                eigenen Grund. Eine öffentliche Ausschreibung zurückzuziehen verlangt ohnehin einen Grund.</p>
+                """,
+                """
+                <p>Die Dienstaufsicht fragt bei einer Herabstufung nicht „was“, sondern „warum“. Schreib den Grund
+                so, dass ihn jemand versteht, der die Akte nicht kennt: „Hinweise haben sich nicht bestätigt,
+                siehe Dok vom 12.10.“ hilft, „erledigt“ hilft niemandem.</p>
+                """),
 
             new Article("art-fraktionen", "fraktionen", "Fraktionen",
                 "Die Akte einer organisierten Gruppe: Mitglieder, Ränge, Bestände, Beziehungen.",
@@ -293,7 +324,8 @@ internal static class RecordsChapter
                 """
                 <p>Wenn du eine Akte löschst, wird sie nicht vernichtet. Sie wandert in den
                 <strong>Papierkorb</strong> und verschwindet nur aus Listen, Suche und Verknüpfungen. Der
-                Inhalt bleibt erhalten.</p>
+                Inhalt bleibt erhalten. Beim Löschen fragt die Seite nach einem <strong>Grund</strong>; er
+                steht danach im Zeitstrahl der Akte.</p>
                 <p>Unter <em>Papierkorb</em> liegen die gelöschten Einträge <strong>aller</strong> Aktenarten
                 an einer Stelle, nach Art gruppiert. Ein Klick auf <em>Wiederherstellen</em> holt eine Akte
                 zurück, als wäre nichts gewesen.</p>

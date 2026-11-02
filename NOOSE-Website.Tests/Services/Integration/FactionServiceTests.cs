@@ -348,7 +348,7 @@ public sealed class FactionServiceTests
         }
         var svc = NewService(ctx);
 
-        await svc.DeleteAsync("f1", Leader());
+        await svc.DeleteAsync("f1", "Dublette", Leader());
 
         // interceptor absent in tests => hard delete; row gone from the filtered set.
         using var check = ctx.NewContext();
@@ -361,7 +361,7 @@ public sealed class FactionServiceTests
         using var ctx = new SqliteTestContext();
         var svc = NewService(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.DeleteAsync("f1", LowRank()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.DeleteAsync("f1", "Dublette", LowRank()));
     }
 
     [Fact]
@@ -370,7 +370,7 @@ public sealed class FactionServiceTests
         using var ctx = new SqliteTestContext();
         var svc = NewService(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.DeleteAsync("nope", Leader()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.DeleteAsync("nope", "Dublette", Leader()));
     }
 
     // ==================== RestoreAsync ====================

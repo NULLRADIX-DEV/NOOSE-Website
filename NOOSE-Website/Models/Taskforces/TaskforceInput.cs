@@ -10,4 +10,7 @@ public class TaskforceInput
     public TaskforceScope Scope { get; set; } = TaskforceScope.InternalAgency;
     public string? Remarks { get; set; }
     public bool IsClassified { get; set; }
+
+    /// <summary>Why the secrecy level is loosened; required by the service when the audience widens.</summary>
+    public string? SecrecyReason { get; set; }
 }

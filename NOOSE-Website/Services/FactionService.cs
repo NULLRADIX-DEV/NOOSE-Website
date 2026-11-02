@@ -205,6 +205,8 @@ public class FactionService(
 
     public async Task RefreshAsync(string id, FactionInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var faction = await db.Factions
             .Include(f => f.Ranks)
@@ -230,6 +232,7 @@ public class FactionService(
         faction.Targets = input.Targets.TrimToNull();
         faction.Description = input.Description.TrimToNull();
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
+        CriticalChange.NoteSecrecy(db, nameof(Faction), id, faction.SecrecyLevel, input.SecrecyLevel, input.SecrecyReason, actor);
         faction.SecrecyLevel = input.SecrecyLevel;
         faction.IsStateFaction = input.IsStateFaction;
         faction.IsBadFaction = input.IsBadFaction && !input.IsStateFaction;
@@ -287,15 +290,18 @@ public class FactionService(
         }
     }
 
-    public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
+        var note = CriticalChange.RequireDeletionReason(reason);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var faction = await db.Factions.FirstOrDefaultAsync(f => f.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Fraktion '{id}' nicht gefunden.");
         // Interceptor rewrites Remove to soft-delete.
         db.Factions.Remove(faction);
+        CriticalChange.NoteDeletion(db, nameof(Faction), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
 
         // a public profile of a deleted file has nothing behind it any more
@@ -304,6 +310,7 @@ public class FactionService(
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -372,6 +379,7 @@ public class FactionService(
 
     public async Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         ClassificationHelper.CheckRankGate(@new, actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -381,6 +389,7 @@ public class FactionService(
         // classified record is writable by leadership or the record's own audience (TRU/HRB), not leadership alone
         Permission.RequireMaySeeClassified(actor, faction.SecrecyLevel);
 
+        CriticalChange.NoteDowngrade(db, nameof(Faction), id, faction.Classification, @new, justification, actor);
         faction.Classification = @new;
         db.ClassificationHistory.Add(ClassificationHelper.Entry(nameof(Faction), id, @new, justification, actor));
         await db.SaveChangesAsync(cancellationToken);

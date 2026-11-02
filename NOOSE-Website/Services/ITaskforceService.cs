@@ -20,7 +20,8 @@ public interface ITaskforceService
 
     Task<Taskforce> CreateAsync(TaskforceInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RefreshAsync(string id, TaskforceInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-    Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Moves the record to the trash; the reason is required and lands on its timeline.</summary>
+    Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Files the record away: out of listings, pickers and the default search, still fully readable.</summary>

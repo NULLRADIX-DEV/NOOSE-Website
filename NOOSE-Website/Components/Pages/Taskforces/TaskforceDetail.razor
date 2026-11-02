@@ -344,13 +344,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Taskforce löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Taskforce löschen?",
             "Die Taskforce wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await TaskforceService.DeleteAsync(_taskforce.Id, _user);
+        await TaskforceService.DeleteAsync(_taskforce.Id, reason, _user);
         Snackbar.Add("Taskforce in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/taskforces");
     }

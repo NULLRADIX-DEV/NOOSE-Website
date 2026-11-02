@@ -590,6 +590,9 @@ public static class ChangelogContent
             Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
                 + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),
+            Neu("2.8.03-begruendungspflicht", "Wer eine Einstufung herabsetzt, eine Verschlusssache lockert, eine Akte "
+                + "löscht oder eine Fahndung aufhebt, gibt jetzt einen Grund an; er steht danach im Zeitstrahl der Akte "
+                + "und im Änderungsprotokoll.", "Akten"),
         ]),
     ];
 }

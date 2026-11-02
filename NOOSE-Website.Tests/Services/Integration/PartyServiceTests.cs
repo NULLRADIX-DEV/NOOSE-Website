@@ -339,7 +339,7 @@ public sealed class PartyServiceTests
         }
         var svc = NewService(ctx);
 
-        await svc.DeleteAsync("p1", Leader());
+        await svc.DeleteAsync("p1", "Dublette", Leader());
 
         // interceptor absent in tests => hard delete; row gone from the filtered set.
         using var check = ctx.NewContext();
@@ -352,7 +352,7 @@ public sealed class PartyServiceTests
         using var ctx = new SqliteTestContext();
         var svc = NewService(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.DeleteAsync("p1", Junior()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.DeleteAsync("p1", "Dublette", Junior()));
     }
 
     // ---- RestoreAsync ----

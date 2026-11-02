@@ -199,6 +199,8 @@ public class PersonService(
 
     public async Task RefreshAsync(string id, PersonInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var person = await db.People
             .Include(p => p.Aliases)
@@ -221,6 +223,7 @@ public class PersonService(
         person.Name = input.Name.Trim();
         person.Description = input.Description.TrimToNull();
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
+        CriticalChange.NoteSecrecy(db, nameof(Person), id, person.SecrecyLevel, input.SecrecyLevel, input.SecrecyReason, actor);
         person.SecrecyLevel = input.SecrecyLevel;
         person.LifeStatus = input.LifeStatus;
         if (input.LifeStatus == LifeStatus.Dead)
@@ -258,15 +261,19 @@ public class PersonService(
         }
     }
 
-    public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        // delete/archive is leadership/admin only
+        // supervision and demo carry rank but write nothing
+        Permission.RequireWriteAccess(actor);
+        // delete is leadership/admin only
         Permission.RequireLeadership(actor);
+        var note = CriticalChange.RequireDeletionReason(reason);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var person = await db.People.FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Person '{id}' nicht gefunden.");
         db.People.Remove(person);
+        CriticalChange.NoteDeletion(db, nameof(Person), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
 
         // a poster for a deleted file has nothing behind it any more
@@ -275,6 +282,7 @@ public class PersonService(
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         // restore from trash is leadership/admin only
         Permission.RequireLeadership(actor);
 
@@ -321,6 +329,7 @@ public class PersonService(
 
     public async Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         ClassificationHelper.CheckRankGate(@new, actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -330,6 +339,7 @@ public class PersonService(
         // classified record is writable by leadership or the record's own audience (TRU/HRB), not leadership alone
         Permission.RequireMaySeeClassified(actor, person.SecrecyLevel);
 
+        CriticalChange.NoteDowngrade(db, nameof(Person), id, person.Classification, @new, justification, actor);
         person.Classification = @new;
         db.ClassificationHistory.Add(ClassificationHelper.Entry(nameof(Person), id, @new, justification, actor));
         await db.SaveChangesAsync(cancellationToken);
@@ -348,6 +358,7 @@ public class PersonService(
         // cannot flag a classified record you are not cleared for
         Permission.RequireMaySeeClassified(actor, person.SecrecyLevel);
 
+        CriticalChange.NoteWantedLift(db, id, person.IsWanted, wanted, reason, actor);
         var oldMentions = person.WantedReason;
         person.IsWanted = wanted;
         person.WantedReason = wanted && !string.IsNullOrWhiteSpace(reason) ? reason.Trim() : null;

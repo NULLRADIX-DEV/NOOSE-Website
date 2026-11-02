@@ -483,13 +483,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Fraktion löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Fraktion löschen?",
             "Die Fraktion wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await FactionService.DeleteAsync(_faction.Id, _user);
+        await FactionService.DeleteAsync(_faction.Id, reason, _user);
         Snackbar.Add("Fraktion in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/fraktionen");
     }
