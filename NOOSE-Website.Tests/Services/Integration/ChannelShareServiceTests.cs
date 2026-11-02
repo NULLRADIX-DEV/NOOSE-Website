@@ -1,10 +1,13 @@
 using System.Security.Claims;
 using Microsoft.Extensions.Caching.Memory;
+using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Infrastructure.Audit;
+using NOOSE_Website.Infrastructure.CurrentUser;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
@@ -48,7 +51,13 @@ public sealed class ChannelShareServiceTests : IDisposable
     {
         _discord.PushToShareChannelAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(true);
-        _service = new ChannelShareService(_ctx.Factory, _discord, _log, _cache, new ChannelShareQuota(_clock));
+        // real audit trail on writes
+        var audited = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(_ctx.Connection)
+            .AddInterceptors(new AuditSaveChangesInterceptor(new FixedUser()))
+            .Options;
+        _service = new ChannelShareService(new TestDbContextFactory(audited), _discord, _log, _cache,
+            new ChannelShareQuota(_clock));
         SeedSettings(enabled: true, new StoredShareChannel("ch1", "Ermittlungen", Hook),
             new StoredShareChannel("ch2", "Allgemein", OtherHook));
     }
@@ -378,6 +387,8 @@ public sealed class ChannelShareServiceTests : IDisposable
 
         var audit = Assert.Single(db.AuditLogs.Where(a => a.EntityType == ChannelShareRules.AuditType));
         Assert.Contains("Ermittlung", audit.ChangesJson);
+        // update bypasses the tracked audit
+        Assert.Empty(db.AuditLogs.Where(a => a.EntityType == nameof(SystemSetting)));
         Assert.All(db.AuditLogs.ToList(), a => Assert.DoesNotContain("token", a.ChangesJson ?? string.Empty));
     }
 
@@ -395,6 +406,10 @@ public sealed class ChannelShareServiceTests : IDisposable
         using var check = _ctx.NewContext();
         Assert.Single(ChannelShareRules.Parse(
             check.SystemSettings.Single(s => s.Key == SystemSettingKeys.DiscordShareChannels).Value));
+        // the tracked insert carries no values
+        var insert = Assert.Single(check.AuditLogs.Where(a => a.EntityType == nameof(SystemSetting)).ToList());
+        Assert.Equal(AuditAction.Created, insert.Action);
+        Assert.Null(insert.ChangesJson);
         Assert.All(check.AuditLogs.ToList(), a => Assert.DoesNotContain("token", a.ChangesJson ?? string.Empty));
     }
 
@@ -422,6 +437,13 @@ public sealed class ChannelShareServiceTests : IDisposable
         var id = SeedPerson();
         await Assert.ThrowsAsync<InvalidOperationException>(() => ShareAsync(id, Agent, channel: "ch1"));
         await NothingPosted();
+    }
+
+    private sealed class FixedUser : ICurrentUserService
+    {
+        public Task<CurrentUserInfo> GetAsync() => Task.FromResult(Get());
+
+        public CurrentUserInfo Get() => new("lead", "Hawk", true, false, false);
     }
 
     private sealed class ManualClock(DateTimeOffset now) : TimeProvider

@@ -98,6 +98,9 @@ public static class AgentPrincipalExtensions
     /// <summary>May share a record into a Discord channel = internal writers. Sole source of this rule.</summary>
     public static bool MayShareToChannel(this ClaimsPrincipal user) => user.MayWrite() && user.IsInternalAgent();
 
+    /// <summary>May set up the share channels = internal leadership with write access.</summary>
+    public static bool MayManageShareChannels(this ClaimsPrincipal user) => user.MayShareToChannel() && user.IsLeadership();
+
     /// <summary>Leadership = rank ≥ Supervisory Special Agent or admin.</summary>
     public static bool IsLeadership(this ClaimsPrincipal user)
         => user.IsAdmin() || user.GetRank() is >= Rank.SupervisorySpecialAgent;

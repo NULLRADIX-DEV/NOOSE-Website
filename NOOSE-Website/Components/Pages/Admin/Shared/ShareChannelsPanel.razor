@@ -74,7 +74,7 @@
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
-        _mayEdit = _user.IsInternalAgent() && _user.MayWrite() && _user.IsLeadership();
+        _mayEdit = _user.MayManageShareChannels();
         await LoadAsync();
     }
 

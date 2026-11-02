@@ -260,7 +260,7 @@ public static class Permission
     public static void RequireShareChannelAdministration(ClaimsPrincipal actor)
     {
         RequireWriteAccess(actor);
-        if (!actor.IsInternalAgent() || !actor.IsLeadership())
+        if (!actor.MayManageShareChannels())
         {
             throw new UnauthorizedAccessException("Die Kanäle zum Teilen richtet nur die Führung ein.");
         }
