@@ -47,16 +47,16 @@ public static class CalendarDisplay
     {
         CalendarSource.Appointment => "#3FB950",
         CalendarSource.Operation => "#F0883E",
-        CalendarSource.Observation => "#58A6FF",
-        CalendarSource.Job => "#8B98A8",
+        CalendarSource.Observation => "#B27923",
+        CalendarSource.Job => "#9A9488",
         CalendarSource.Followup => "#D29922",
-        CalendarSource.FactionActivity => "#7C8CF8",
+        CalendarSource.FactionActivity => "#83A412",
         CalendarSource.PersonDoc => "#A371F7",
-        CalendarSource.Meeting => "#22D3EE",
+        CalendarSource.Meeting => "#8A7650",
         CalendarSource.Absence => "#DB61A2",
         // muted sibling of the own-absence pink
         CalendarSource.TeamAbsence => "#B07C9E",
-        _ => "#8B98A8",
+        _ => "#9A9488",
     };
 
     public static string Name(CalendarSource source) => source switch

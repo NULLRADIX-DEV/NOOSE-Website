@@ -121,7 +121,7 @@
         try
         {
             // Bump ?v= when kalender.js changes
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/kalender.js?v=8");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/kalender.js?v=9");
             _ref = DotNetObjectReference.Create(this);
             _ready = true;
             // Render empty; FullCalendar reports its range (datesSet) and data loads then

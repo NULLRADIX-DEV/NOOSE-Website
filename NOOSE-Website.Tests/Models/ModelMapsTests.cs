@@ -202,12 +202,12 @@ public class ModelMapsTests
     [Theory]
     [InlineData(CalendarSource.Appointment, "#3FB950")]
     [InlineData(CalendarSource.Operation, "#F0883E")]
-    [InlineData(CalendarSource.Observation, "#58A6FF")]
-    [InlineData(CalendarSource.Job, "#8B98A8")]
+    [InlineData(CalendarSource.Observation, "#B27923")]
+    [InlineData(CalendarSource.Job, "#9A9488")]
     [InlineData(CalendarSource.Followup, "#D29922")]
-    [InlineData(CalendarSource.FactionActivity, "#7C8CF8")]
+    [InlineData(CalendarSource.FactionActivity, "#83A412")]
     [InlineData(CalendarSource.PersonDoc, "#A371F7")]
-    [InlineData(CalendarSource.Meeting, "#22D3EE")]
+    [InlineData(CalendarSource.Meeting, "#8A7650")]
     [InlineData(CalendarSource.Absence, "#DB61A2")]
     [InlineData(CalendarSource.TeamAbsence, "#B07C9E")]
     public void Colour_knownSource_returnsMappedHex(CalendarSource source, string expected)
@@ -221,7 +221,7 @@ public class ModelMapsTests
     [InlineData(1000)]
     public void Colour_undefinedSource_fallsBackToGrey(int rawValue)
     {
-        Assert.Equal("#8B98A8", CalendarDisplay.Colour((CalendarSource)rawValue));
+        Assert.Equal("#9A9488", CalendarDisplay.Colour((CalendarSource)rawValue));
     }
 
     // ---------------------------------------------------------------

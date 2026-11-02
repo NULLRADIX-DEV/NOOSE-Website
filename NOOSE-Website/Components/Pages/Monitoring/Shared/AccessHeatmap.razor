@@ -14,7 +14,7 @@ else
                     <th></th>
                     @for (var h = 0; h < 24; h++)
                     {
-                        <th style="font-size:.6rem;color:#9BA8B8;width:18px;text-align:center;font-weight:400;">@h</th>
+                        <th style="font-size:.6rem;color:#A8A29A;width:18px;text-align:center;font-weight:400;">@h</th>
                     }
                 </tr>
             </thead>
@@ -40,13 +40,13 @@ else
 
     private string CellStyle(int count)
     {
-        var baseStyle = "width:18px;height:18px;border:1px solid #222B36;";
+        var baseStyle = "width:18px;height:18px;border:1px solid #333333;";
         if (count == 0 || Data.MaxCount == 0)
         {
             return baseStyle + "background:transparent;";
         }
         var alpha = 0.12 + 0.88 * count / Data.MaxCount;
         var a = alpha.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
-        return baseStyle + $"background:rgba(34,211,238,{a});";
+        return baseStyle + $"background:rgba(197,159,103,{a});";
     }
 }

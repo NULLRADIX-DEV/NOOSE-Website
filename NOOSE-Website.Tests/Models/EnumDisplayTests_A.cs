@@ -250,7 +250,7 @@ public class EnumDisplayTests_A
 
     [Theory]
     [InlineData(AttendanceAnomalyLevel.None, "#3FB950")]
-    [InlineData(AttendanceAnomalyLevel.Insufficient, "#8B98A8")]
+    [InlineData(AttendanceAnomalyLevel.Insufficient, "#9A9488")]
     [InlineData(AttendanceAnomalyLevel.Yellow, "#D29922")]
     [InlineData(AttendanceAnomalyLevel.Red, "#F85149")]
     public void AttendanceAnomalyLevel_Colour_MapsEachValue(AttendanceAnomalyLevel level, string expected)
@@ -261,7 +261,7 @@ public class EnumDisplayTests_A
     [Fact]
     public void AttendanceAnomalyLevel_Colour_Undefined_ReturnsGreyFallback()
     {
-        Assert.Equal("#8B98A8", AttendanceAnomalyLevelDisplay.Colour((AttendanceAnomalyLevel)Undefined));
+        Assert.Equal("#9A9488", AttendanceAnomalyLevelDisplay.Colour((AttendanceAnomalyLevel)Undefined));
     }
 
     [Fact]

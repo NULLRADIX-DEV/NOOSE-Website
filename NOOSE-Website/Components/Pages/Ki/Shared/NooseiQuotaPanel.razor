@@ -54,7 +54,7 @@ else
     {
         <MudPaper Elevation="0" Class="pa-3 mt-4">
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Verbrauch der letzten Wochen</MudText>
-            <MudChart ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels" Height="220px" />
+            <MudChart ChartType="ChartType.Line" ChartSeries="@_series" XAxisLabels="@_labels" ChartOptions="_chartOptions" Height="220px" />
         </MudPaper>
     }
 
@@ -90,6 +90,8 @@ else
     private LlmQuotaStatus? _status;
     private IReadOnlyList<LlmRequestRow> _recent = [];
     private IReadOnlyList<LlmWeekPoint> _trend = [];
+    // two series: consumed and available, not MudBlazor's built-in palette
+    private readonly ChartOptions _chartOptions = new() { ChartPalette = ChartPalette.Series(2) };
     private List<ChartSeries<double>> _series = [];
     private string[] _labels = [];
 
