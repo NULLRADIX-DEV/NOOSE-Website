@@ -57,6 +57,8 @@ else
         {
             <FollowButton EntityType="@nameof(Party)" EntityId="@_party.Id" User="_user" />
             <JobCreateButton EntityType="@nameof(Party)" EntityId="@_party.Id" />
+            <ChannelShareButton EntityType="@nameof(Party)" EntityId="@_party.Id"
+                                Restricted="@ChannelShareRules.IsRestricted(_party)" />
         }
         <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
             <PartnerShareButton EntityType="@nameof(Party)" EntityId="@_party.Id" />

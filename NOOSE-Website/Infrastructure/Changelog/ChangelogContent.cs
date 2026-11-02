@@ -590,6 +590,9 @@ public static class ChangelogContent
             Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
                 + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),
+            Neu("2.8.03-akte-teilen", "Mit dem neuen Knopf auf einer Akte teilst du sie in einen Discord-Kanal, den die "
+                + "Führung eingerichtet hat: Name, Aktenzeichen, dein kurzer Hinweis und ein Link, ohne Ping. "
+                + "Verschlusssachen lassen sich nicht teilen.", "Akten"),
         ]),
     ];
 }

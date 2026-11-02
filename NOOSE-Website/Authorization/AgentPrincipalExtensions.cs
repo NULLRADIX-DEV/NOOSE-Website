@@ -95,6 +95,9 @@ public static class AgentPrincipalExtensions
     /// <summary>May contribute content (post taskforce chat, author documents) = internal writers plus partner contributors, never read-only supervision or demo.</summary>
     public static bool MayContribute(this ClaimsPrincipal user) => user.MayWrite() || user.IsPartner();
 
+    /// <summary>May share a record into a Discord channel = internal writers. Sole source of this rule.</summary>
+    public static bool MayShareToChannel(this ClaimsPrincipal user) => user.MayWrite() && user.IsInternalAgent();
+
     /// <summary>Leadership = rank ≥ Supervisory Special Agent or admin.</summary>
     public static bool IsLeadership(this ClaimsPrincipal user)
         => user.IsAdmin() || user.GetRank() is >= Rank.SupervisorySpecialAgent;

@@ -50,6 +50,9 @@ public static class SystemSettingKeys
     /// <summary>Hash of the threat board content last delivered; worker state, not user-edited.</summary>
     public const string DiscordThreatBoardState = "DiscordGefahrenlageStand";
 
+    /// <summary>Channels a record can be shared into, as JSON with their webhook URLs; written past the audit.</summary>
+    public const string DiscordShareChannels = "DiscordTeilenKanaele";
+
     // periodic top-3 agent announcement; the interval also drives its wording
     public const string BestAgentEnabled = "BesterAgentAktiv";
     public const string BestAgentIntervalDays = "BesterAgentIntervallTage";

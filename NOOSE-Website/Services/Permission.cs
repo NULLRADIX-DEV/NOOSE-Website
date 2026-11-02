@@ -247,6 +247,25 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to share a record into a Discord channel: internal writers only.</summary>
+    public static void RequireChannelShare(ClaimsPrincipal actor)
+    {
+        if (!actor.MayShareToChannel())
+        {
+            throw new UnauthorizedAccessException("Akten teilt nur ein interner Agent mit Schreibrecht.");
+        }
+    }
+
+    /// <summary>Require leadership with write access to set up the share channels; written past the write barrier.</summary>
+    public static void RequireShareChannelAdministration(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.IsInternalAgent() || !actor.IsLeadership())
+        {
+            throw new UnauthorizedAccessException("Die Kanäle zum Teilen richtet nur die Führung ein.");
+        }
+    }
+
     /// <summary>Require the right to author meetings and agenda items.</summary>
     public static void RequireMeetingWrite(ClaimsPrincipal actor)
     {

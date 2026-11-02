@@ -41,6 +41,9 @@ public interface IDiscordWebhookService
     /// <summary>Post an app-authored message to a category's channel with that category's ping (role or none) and an optional login-gated link. Best-effort; returns true on 2xx.</summary>
     Task<bool> PushCustomAsync(NotificationType type, string content, string? href = null, CancellationToken cancellationToken = default);
 
+    /// <summary>Post app-composed text to a share channel's webhook. Pings nobody, whatever the text holds. Best-effort; returns true on 2xx.</summary>
+    Task<bool> PushToShareChannelAsync(string webhookUrl, string content, CancellationToken cancellationToken = default);
+
     /// <summary>Post a wanted-notice card as an embed with the category's ping; the link sits on the embed, not in the content. Best-effort; returns true on 2xx.</summary>
     Task<bool> PushWantedCardAsync(NotificationType type, WantedDiscordEmbed card, CancellationToken cancellationToken = default);
 
