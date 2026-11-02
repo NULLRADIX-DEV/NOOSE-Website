@@ -2012,15 +2012,18 @@ public sealed class PublicWantedServiceTests
     // ---- the Discord announcement ----
 
     [Fact]
-    public async Task Publishing_PushesOneMessageToThePublicChannel()
+    public async Task Publishing_PushesOneCardToThePublicChannel()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
 
         await PublishedAsync(host);
 
-        await host.Discord.Received(1).PushCustomAsync(NotificationType.PublicWantedPublished,
-            Arg.Any<string>(), "/gesucht/NOOSE-FA-2026-0001", Arg.Any<CancellationToken>());
+        await host.Discord.Received(1).PushWantedCardAsync(NotificationType.PublicWantedPublished,
+            Arg.Is<WantedDiscordEmbed>(c => c.ProfilePath == "/gesucht/NOOSE-FA-2026-0001"), Arg.Any<CancellationToken>());
+        // the old one-line text is gone, or Discord would show two posts for one notice
+        await host.Discord.DidNotReceive().PushCustomAsync(Arg.Any<NotificationType>(), Arg.Any<string>(),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -2037,21 +2040,120 @@ public sealed class PublicWantedServiceTests
     }
 
     [Fact]
-    public async Task ThePushText_NamesNeitherTheRecordCaseNumberNorACodename()
+    public async Task TheCard_NamesNeitherTheRecordCaseNumberNorACodenameNorTheCharge()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
 
         await PublishedAsync(host);
 
-        await host.Discord.Received(1).PushCustomAsync(
-            NotificationType.PublicWantedPublished,
-            Arg.Is<string>(text => text.Contains("Max Mustermann", StringComparison.Ordinal)
-                && text.Contains("NOOSE-FA-2026-0001", StringComparison.Ordinal)
-                && !text.Contains("NOOSE-P-", StringComparison.Ordinal)
-                && !text.Contains("Falcon", StringComparison.Ordinal)
-                && !text.Contains("Waffenhandel", StringComparison.Ordinal)),
-            Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        var text = WantedCardText.Of(PushedCard(host));
+        Assert.Contains("Max Mustermann", text, StringComparison.Ordinal);
+        Assert.Contains("NOOSE-FA-2026-0001", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("NOOSE-P-", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Falcon", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Waffenhandel", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheCard_ShowsTheActiveHintsInTheirSortOrder()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        // created in the wrong order and with an inactive one in between: only sort order and the switch count
+        var late = await HintAsync(ctx, "fluchtgefährdet", "Warning", sortOrder: 20);
+        var off = await HintAsync(ctx, "abgeschaltet", "Info", active: false, sortOrder: 15);
+        var early = await HintAsync(ctx, "bewaffnet", "Error", sortOrder: 10);
+        var id = await DraftAsync(host);
+        await host.Service.SetHintsAsync(id, [late, off, early], Leader());
+
+        await host.Service.PublishAsync(id, null, Leader());
+
+        Assert.Equal("🔴 bewaffnet\n🟠 fluchtgefährdet", WantedCardText.Field(PushedCard(host), "Warnhinweise"));
+    }
+
+    [Fact]
+    public async Task TheCard_WithoutHints_HasNoHintField()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+
+        await PublishedAsync(host);
+
+        Assert.Null(WantedCardText.Field(PushedCard(host), "Warnhinweise"));
+    }
+
+    [Fact]
+    public async Task TheCard_ColoursByTheStoredHazardLevel()
+    {
+        // the seeded file scores 80, which is Kritisch
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+
+        await PublishedAsync(host);
+
+        var card = PushedCard(host);
+        Assert.Equal(0xE53935, card.Color);
+        Assert.Equal("Kritisch", WantedCardText.Field(card, "Gefahrenstufe"));
+    }
+
+    [Fact]
+    public async Task TheCard_ShowsThePublishedPhotoAsTheImage()
+    {
+        using var ctx = await SeededAsync();
+        var host = await PhotoHostAsync(ctx);
+
+        await PublishedWithPhotoAsync(host);
+
+        var card = PushedCard(host);
+        Assert.Equal("/gesucht/NOOSE-FA-2026-0001/foto", card.ImagePath);
+        Assert.Null(card.ThumbnailPath);
+    }
+
+    [Fact]
+    public async Task TheCard_WithoutAPhoto_HasNoImage()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+
+        await PublishedAsync(host);
+
+        var card = PushedCard(host);
+        Assert.Null(card.ImagePath);
+        Assert.Null(card.ThumbnailPath);
+    }
+
+    [Fact]
+    public async Task TheCard_CarriesThePublicationMoment()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var before = DateTime.UtcNow.AddSeconds(-1);
+
+        await PublishedAsync(host);
+
+        var stamp = PushedCard(host).TimestampUtc;
+        Assert.NotNull(stamp);
+        Assert.InRange(stamp!.Value, before, DateTime.UtcNow.AddSeconds(1));
+    }
+
+    [Fact]
+    public async Task ANoticeTheBoardDoesNotList_IsNotPosted()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await DraftAsync(host);
+        await using (var db = ctx.NewContext())
+        {
+            // expired before it went out
+            (await db.OeffentlicheFahndungen.SingleAsync(f => f.Id == id)).ExpiresAt = DateTime.UtcNow.AddHours(-1);
+            await db.SaveChangesAsync();
+        }
+
+        await host.Service.PublishAsync(id, null, Leader());
+
+        await host.Discord.DidNotReceive().PushWantedCardAsync(Arg.Any<NotificationType>(),
+            Arg.Any<WantedDiscordEmbed>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -2065,10 +2167,12 @@ public sealed class PublicWantedServiceTests
 
         await host.Discord.DidNotReceive().PushCustomAsync(Arg.Any<NotificationType>(), Arg.Any<string>(),
             Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        await host.Discord.DidNotReceive().PushWantedCardAsync(Arg.Any<NotificationType>(),
+            Arg.Any<WantedDiscordEmbed>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ApprovingARequest_PushesTheSameOneMessage()
+    public async Task ApprovingARequest_PushesTheSameOneCard()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -2078,8 +2182,8 @@ public sealed class PublicWantedServiceTests
 
         await host.Service.ApprovePublicationRequestAsync(requestId, null, Leader());
 
-        await host.Discord.Received(1).PushCustomAsync(NotificationType.PublicWantedPublished,
-            Arg.Any<string>(), "/gesucht/NOOSE-FA-2026-0001", Arg.Any<CancellationToken>());
+        await host.Discord.Received(1).PushWantedCardAsync(NotificationType.PublicWantedPublished,
+            Arg.Is<WantedDiscordEmbed>(c => c.ProfilePath == "/gesucht/NOOSE-FA-2026-0001"), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -2098,6 +2202,8 @@ public sealed class PublicWantedServiceTests
 
         await host.Discord.DidNotReceive().PushCustomAsync(Arg.Any<NotificationType>(), Arg.Any<string>(),
             Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        await host.Discord.DidNotReceive().PushWantedCardAsync(Arg.Any<NotificationType>(),
+            Arg.Any<WantedDiscordEmbed>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -2134,10 +2240,11 @@ public sealed class PublicWantedServiceTests
     }
 
     /// <summary>Adds one warning to the value list and returns its id.</summary>
-    private static async Task<string> HintAsync(SqliteTestContext ctx, string name, string colour, bool active = true)
+    private static async Task<string> HintAsync(SqliteTestContext ctx, string name, string colour, bool active = true,
+        int sortOrder = 10)
     {
         await using var db = ctx.NewContext();
-        var row = new Warnhinweis { Name = name, Colour = colour, SortOrder = 10, IsActive = active };
+        var row = new Warnhinweis { Name = name, Colour = colour, SortOrder = sortOrder, IsActive = active };
         db.Warnhinweise.Add(row);
         await db.SaveChangesAsync();
         return row.Id;
@@ -2176,4 +2283,10 @@ public sealed class PublicWantedServiceTests
 
     /// <summary>Drops the 10-second snapshot; a test that changes the database around the service has to say so.</summary>
     private static void DropCache(Host host) => host.Cache.Remove("OeffentlicheFahndungen");
+
+    /// <summary>The one card the host pushed to the public channel.</summary>
+    private static WantedDiscordEmbed PushedCard(Host host)
+        => (WantedDiscordEmbed)host.Discord.ReceivedCalls()
+            .Single(c => c.GetMethodInfo().Name == nameof(IDiscordWebhookService.PushWantedCardAsync))
+            .GetArguments()[1]!;
 }

@@ -673,6 +673,30 @@ public sealed class BountyServiceTests
 
     // ---- Discord ----
 
+    /// <summary>Nothing went to the public channel, neither as a card nor as the old one-line text.</summary>
+    private static async Task AssertNothingAnnouncedAsync(Host host)
+    {
+        await host.Discord.DidNotReceive().PushWantedCardAsync(Arg.Any<NotificationType>(),
+            Arg.Any<WantedDiscordEmbed>(), Arg.Any<CancellationToken>());
+        await host.Discord.DidNotReceive().PushCustomAsync(Arg.Any<NotificationType>(), Arg.Any<string>(),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>The one card the host pushed since the last <c>ClearReceivedCalls</c>.</summary>
+    private static WantedDiscordEmbed PushedCard(Host host)
+        => (WantedDiscordEmbed)host.Discord.ReceivedCalls()
+            .Single(c => c.GetMethodInfo().Name == nameof(IDiscordWebhookService.PushWantedCardAsync))
+            .GetArguments()[1]!;
+
+    private static async Task<string> HintAsync(SqliteTestContext ctx, string name, string colour)
+    {
+        await using var db = ctx.NewContext();
+        var row = new Warnhinweis { Name = name, Colour = colour, SortOrder = 10, IsActive = true };
+        db.Warnhinweise.Add(row);
+        await db.SaveChangesAsync();
+        return row.Id;
+    }
+
     [Fact]
     public async Task ARaiseOnALiveNotice_IsAnnouncedExactlyOnce()
     {
@@ -683,12 +707,15 @@ public sealed class BountyServiceTests
 
         await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
 
-        await host.Discord.Received(1).PushCustomAsync(NotificationType.PublicWantedBountyRaised,
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await host.Discord.Received(1).PushWantedCardAsync(NotificationType.PublicWantedBountyRaised,
+            Arg.Any<WantedDiscordEmbed>(), Arg.Any<CancellationToken>());
+        // the old one-line text is gone, or Discord would show two posts for one raise
+        await host.Discord.DidNotReceive().PushCustomAsync(Arg.Any<NotificationType>(), Arg.Any<string>(),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task TheAnnouncement_NamesNoCodenameAndNoInternalCaseNumber()
+    public async Task TheAnnouncement_NamesNoCodenameAndNoInternalCaseNumberAndNoCharge()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -697,12 +724,175 @@ public sealed class BountyServiceTests
 
         await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
 
-        var text = (string)host.Discord.ReceivedCalls()
-            .Single(c => c.GetMethodInfo().Name == nameof(IDiscordWebhookService.PushCustomAsync))
-            .GetArguments()[1]!;
+        var text = WantedCardText.Of(PushedCard(host));
         Assert.DoesNotContain("Falcon", text, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("NOOSE-P-", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Waffenhandel", text, StringComparison.Ordinal);
         Assert.Contains("250.000", text, StringComparison.Ordinal);
+        Assert.Contains("Max Mustermann", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task TheRaiseCard_IsGoldAndCarriesTheNewTotalAndTheCaseNumber()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        var caseNumber = await CaseAsync(ctx, id);
+        host.Discord.ClearReceivedCalls();
+
+        await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
+
+        var card = PushedCard(host);
+        Assert.Equal("💰 Kopfgeld erhöht: Max Mustermann", card.Title);
+        Assert.Equal(0xC9A227, card.Color);
+        Assert.Equal("/gesucht/" + caseNumber, card.ProfilePath);
+        Assert.Equal("250.000 $", WantedCardText.Field(card, "Neues Kopfgeld"));
+        Assert.Equal(caseNumber, WantedCardText.Field(card, "Aktenzeichen"));
+        Assert.NotNull(card.TimestampUtc);
+    }
+
+    [Fact]
+    public async Task ASecondRaise_ShowsTheWholeTotalNotTheIncrement()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
+        host.Discord.ClearReceivedCalls();
+
+        await host.Bounty.AddPrivateAsync(id, 50_000m, Leader());
+
+        Assert.Equal("300.000 $", WantedCardText.Field(PushedCard(host), "Neues Kopfgeld"));
+    }
+
+    [Fact]
+    public async Task ACapBounty_IsAnnouncedWithBis()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        await using (var db = ctx.NewContext())
+        {
+            (await db.OeffentlicheFahndungen.SingleAsync(f => f.Id == id)).BountyIsCap = true;
+            await db.SaveChangesAsync();
+        }
+        host.Cache.Remove("OeffentlicheFahndungen");
+        host.Discord.ClearReceivedCalls();
+
+        await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
+
+        Assert.Equal("bis 250.000 $", WantedCardText.Field(PushedCard(host), "Neues Kopfgeld"));
+    }
+
+    [Fact]
+    public async Task TheRaiseCard_ShowsThePhotoAsAThumbnailNotAsTheLargeImage()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        var caseNumber = await CaseAsync(ctx, id);
+        await using (var db = ctx.NewContext())
+        {
+            (await db.OeffentlicheFahndungen.SingleAsync(f => f.Id == id)).PhotoFileName = "oeffentlich.jpg";
+            await db.SaveChangesAsync();
+        }
+        host.Cache.Remove("OeffentlicheFahndungen");
+        host.Discord.ClearReceivedCalls();
+
+        await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
+
+        var card = PushedCard(host);
+        Assert.Equal($"/gesucht/{caseNumber}/foto", card.ThumbnailPath);
+        Assert.Null(card.ImagePath);
+    }
+
+    [Fact]
+    public async Task TheRaiseCard_TakesHintsAndHazardFromTheOutwardBoard()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        await host.Wanted.SetHintsAsync(id, [await HintAsync(ctx, "bewaffnet", "Error")], Leader());
+        host.Discord.ClearReceivedCalls();
+
+        await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
+
+        var card = PushedCard(host);
+        Assert.Equal("🔴 bewaffnet", WantedCardText.Field(card, "Warnhinweise"));
+        // the seeded file scores 80
+        Assert.Equal("Kritisch", WantedCardText.Field(card, "Gefahrenstufe"));
+    }
+
+    [Fact]
+    public async Task ThePublishCard_ShowsTheBountyThatWasPledgedOnTheDraft()
+    {
+        // a raise on a draft is silent, so the publish card is the first announcement of that money
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await DraftAsync(host);
+        await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
+        host.Discord.ClearReceivedCalls();
+
+        await host.Wanted.PublishAsync(id, null, Leader());
+
+        Assert.Equal("250.000 $", WantedCardText.Field(PushedCard(host), "Kopfgeld"));
+    }
+
+    [Fact]
+    public async Task ThePublishCard_HidesTheBountyWhileTheBountyModuleIsOff()
+    {
+        using var ctx = await SeededAsync(bountyOn: false);
+        var host = NewHost(ctx);
+        var id = await DraftAsync(host);
+        await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
+        host.Discord.ClearReceivedCalls();
+
+        await host.Wanted.PublishAsync(id, null, Leader());
+
+        Assert.Null(WantedCardText.Field(PushedCard(host), "Kopfgeld"));
+    }
+
+    [Fact]
+    public async Task ANoticeTheBoardDoesNotList_IsNotAnnounced()
+    {
+        // no page to link to means nothing to announce, however the row looks
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        var blind = Substitute.For<IPublicWantedService>();
+        blind.GetBoardAsync(Arg.Any<CancellationToken>()).Returns(PublicWantedBoard.Empty);
+        var options = new DbContextOptionsBuilder<AppDbContext>().UseSqlite(ctx.Connection).Options;
+        var factory = new TestDbContextFactory(options);
+        var bounty = new BountyService(factory, blind, new PublicModuleService(factory, host.Cache), host.Kasse,
+            host.Notifications, new TipPriorityService(factory), host.Discord);
+        host.Discord.ClearReceivedCalls();
+
+        await bounty.AddPrivateAsync(id, 250_000m, Leader());
+
+        await AssertNothingAnnouncedAsync(host);
+        // the stubbed service dropped no snapshot, so the real one is dropped here
+        host.Cache.Remove("OeffentlicheFahndungen");
+        Assert.Equal(250_000m, await AdvertisedAsync(host, await CaseAsync(ctx, id)));
+    }
+
+    [Fact]
+    public void TheComposer_TakesOnlyOutwardTypes()
+    {
+        // the bolt is the parameter type, not the care taken: none of these can hold a PersonId, the internal case
+        // number, a codename, a breakdown or the charge
+        var method = typeof(BountyService)
+            .GetMethod("Compose", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var offenders = method!.GetParameters()
+            .Select(p => p.ParameterType)
+            .Where(t => t != typeof(PublicWantedCard) && t != typeof(PublicBounty) && t != typeof(DateTime))
+            .Select(t => t.Name)
+            .ToArray();
+
+        Assert.True(offenders.Length == 0,
+            "Die Karte darf nur Nach-außen-Typen sehen: " + string.Join(", ", offenders));
     }
 
     [Fact]
@@ -715,8 +905,7 @@ public sealed class BountyServiceTests
 
         await host.Bounty.AddOfficialAsync(id, 250_000m, KassenKonto.Gruengeld, "Grund", Junior());
 
-        await host.Discord.DidNotReceive().PushCustomAsync(NotificationType.PublicWantedBountyRaised,
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await AssertNothingAnnouncedAsync(host);
     }
 
     [Fact]
@@ -731,8 +920,7 @@ public sealed class BountyServiceTests
 
         await host.Bounty.WithdrawAsync(share.Id, "Irrtum", Leader());
 
-        await host.Discord.DidNotReceive().PushCustomAsync(NotificationType.PublicWantedBountyRaised,
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await AssertNothingAnnouncedAsync(host);
     }
 
     [Fact]
@@ -745,8 +933,7 @@ public sealed class BountyServiceTests
 
         await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
 
-        await host.Discord.DidNotReceive().PushCustomAsync(NotificationType.PublicWantedBountyRaised,
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await AssertNothingAnnouncedAsync(host);
     }
 
     [Fact]
@@ -759,8 +946,7 @@ public sealed class BountyServiceTests
 
         await host.Bounty.AddPrivateAsync(id, 250_000m, Leader());
 
-        await host.Discord.DidNotReceive().PushCustomAsync(NotificationType.PublicWantedBountyRaised,
-            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await AssertNothingAnnouncedAsync(host);
     }
 
     [Fact]
@@ -769,10 +955,15 @@ public sealed class BountyServiceTests
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
         var id = await PublishedAsync(host);
-        host.Discord.PushCustomAsync(Arg.Any<NotificationType>(), Arg.Any<string>(), Arg.Any<string>(),
+        host.Discord.PushWantedCardAsync(Arg.Any<NotificationType>(), Arg.Any<WantedDiscordEmbed>(),
             Arg.Any<CancellationToken>()).Returns<Task<bool>>(_ => throw new HttpRequestException("tot"));
+        host.Discord.ClearReceivedCalls();
 
         await Assert.ThrowsAnyAsync<Exception>(() => host.Bounty.AddPrivateAsync(id, 250_000m, Leader()));
+
+        // it was the card that failed, so the commit really did come first
+        await host.Discord.Received(1).PushWantedCardAsync(NotificationType.PublicWantedBountyRaised,
+            Arg.Any<WantedDiscordEmbed>(), Arg.Any<CancellationToken>());
 
         // the money is committed before the announcement; a dead webhook must not undo it
         Assert.Equal(250_000m, await AdvertisedAsync(host, await CaseAsync(ctx, id)));

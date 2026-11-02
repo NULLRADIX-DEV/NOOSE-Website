@@ -44,11 +44,6 @@ public sealed record PublicWantedHint(string Label, string Colour);
 /// </remarks>
 public sealed record PublicBounty(decimal Total, bool IsCap);
 
-/// <summary>What a raise may carry into the public Discord channel.</summary>
-/// <remarks>The bolt is the parameter type, not the care taken: this record cannot hold a PersonId, the internal
-/// NOOSE-P case number, a codename or a breakdown, so the message cannot either.</remarks>
-public sealed record PublicBountyAnnouncement(string CaseNumber, string DisplayName, decimal Total, bool IsCap);
-
 /// <summary>One row of the anonymous archive: the fact that someone was caught, not a profile.</summary>
 /// <remarks>
 /// Its own type rather than nullable fields on <see cref="PublicWantedCard"/>. The archive must carry no hazard level,
@@ -100,6 +95,12 @@ public sealed record PublicWantedBoard(
 
     public PublicWantedDetail? Find(string? caseNumber)
         => caseNumber is not null && ByCaseNumber.TryGetValue(caseNumber, out var entry) ? entry : null;
+
+    /// <summary>The board card of a live notice; null for every other state.</summary>
+    public PublicWantedCard? CardFor(string? caseNumber)
+        => caseNumber is null
+            ? null
+            : Cards.FirstOrDefault(c => string.Equals(c.CaseNumber, caseNumber, StringComparison.OrdinalIgnoreCase));
 
     public PublicWantedArchiveCard? FindCaptured(string? caseNumber)
         => caseNumber is not null && CapturedByCaseNumber.TryGetValue(caseNumber, out var entry) ? entry : null;

@@ -11,6 +11,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Services;
 
@@ -248,6 +249,36 @@ public class DiscordWebhookService(
         {
             /* best effort */
             logger.LogWarning(ex, "Discord custom push for {Type} failed.", type);
+            return false;
+        }
+    }
+
+    // one card, no content link
+    public async Task<bool> PushWantedCardAsync(NotificationType type, WantedDiscordEmbed card, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (!DiscordRouting.IsRoutable(type))
+            {
+                return false;
+            }
+            var config = await GetCachedConfigAsync(cancellationToken);
+            if (!config.Enabled || !config.Webhooks.TryGetValue(type, out var url) || string.IsNullOrWhiteSpace(url))
+            {
+                return false;
+            }
+            var embed = WantedEmbed(card, config.SiteBaseUrl);
+            var sent = true;
+            foreach (var mention in await ResolveMentionsAsync(type, null, config, 0, cancellationToken))
+            {
+                sent &= await SendEmbedAsync(url, mention, embed, cancellationToken);
+            }
+            return sent;
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            logger.LogWarning(ex, "Discord wanted card for {Type} failed.", type);
             return false;
         }
     }
@@ -601,6 +632,35 @@ public class DiscordWebhookService(
             logger.LogWarning("Discord webhook (embed) returned {Status}.", (int)response.StatusCode);
         }
         return response.IsSuccessStatusCode;
+    }
+
+    // absent keys, no nulls
+    private static Dictionary<string, object> WantedEmbed(WantedDiscordEmbed card, string baseUrl)
+    {
+        var embed = new Dictionary<string, object>
+        {
+            ["title"] = card.Title,
+            ["color"] = card.Color,
+            ["footer"] = new { text = card.Footer },
+            ["fields"] = card.Fields.Select(f => new { name = f.Name, value = f.Value, inline = f.Inline }).ToArray(),
+        };
+        if (Link(baseUrl, card.ProfilePath) is { } profile)
+        {
+            embed["url"] = profile;
+        }
+        if (Link(baseUrl, card.ImagePath) is { } image)
+        {
+            embed["image"] = new { url = image };
+        }
+        if (Link(baseUrl, card.ThumbnailPath) is { } thumbnail)
+        {
+            embed["thumbnail"] = new { url = thumbnail };
+        }
+        if (card.TimestampUtc is { } at)
+        {
+            embed["timestamp"] = Local(at).ToString("yyyy-MM-ddTHH:mm:sszzz", CultureInfo.InvariantCulture);
+        }
+        return embed;
     }
 
     // generic per-category notice + login-gated link; NEVER the in-app title (which may carry names/notes/VS content)
