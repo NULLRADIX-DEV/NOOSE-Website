@@ -77,6 +77,7 @@ public static class NotificationMutes
             NotificationType.CounterIntelFinding,
             NotificationType.NooseiAnomaly,
             NotificationType.DecorationAwarded,
+            NotificationType.FirearmUseReported,
         ]),
         new("Öffentlichkeit und Bürgerkontakt", MudBlazor.Icons.Material.Filled.Public,
         [

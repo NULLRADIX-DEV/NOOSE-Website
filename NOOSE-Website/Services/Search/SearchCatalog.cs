@@ -468,6 +468,8 @@ public static class SearchCatalog
             ["ClassificationHistory"] = "Einstufungs-Verlauf; die Akte selbst ist durchsuchbar.",
             ["AgentRankHistory"] = "Dienstgrad-Verlauf; die Personalakte ist durchsuchbar.",
             ["AgentPromotionRequest"] = "Beförderungsantrag; die Personalakte ist durchsuchbar.",
+            ["FirearmUse"] = "Meldung eines Schusswaffengebrauchs; gelesen wird sie auf /schusswaffengebrauch und in der "
+                + "eigenen Personalakte, eine Volltextsuche über Begründungen wäre ein Verzeichnis, wer wann geschossen hat.",
 
             // --- numeric or derived state ---
             ["CaseNumberCounter"] = "Interner Aktenzeichen-Zähler.",

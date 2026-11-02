@@ -200,4 +200,7 @@ public static class AgentPrincipalExtensions
         => user.GetStatus() == AgentStatus.Active
            && !user.IsPartner()
            && !string.IsNullOrEmpty(user.GetAgentId());
+
+    /// <summary>May report a firearm use = an in-house account that may write; never partner, read-only supervision or demo. Sole source of this rule.</summary>
+    public static bool MayReportFirearmUse(this ClaimsPrincipal user) => user.IsInternalAgent() && user.MayWrite();
 }

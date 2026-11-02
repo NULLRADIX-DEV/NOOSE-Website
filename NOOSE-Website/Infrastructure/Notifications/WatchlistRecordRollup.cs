@@ -96,6 +96,8 @@ public static class WatchlistRecordRollup
             case MeetingSignOff:
             case MeetingMeasure:
             case Absence:
+            // a firearm report is for the leadership overview and the bell, not for followers of a personnel file
+            case FirearmUse:
             // funding is deliberately not watchable: followers of a personnel file must not be
             // pushed another agent's budget details
             case FinancingRequest:

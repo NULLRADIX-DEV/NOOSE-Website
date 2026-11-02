@@ -1009,6 +1009,8 @@ public class AgentManagementService(
         // the rows go rather than the pointer. Badges, quota and KI logs are derived or per-account bookkeeping;
         // an absence, a meeting attendance and a document access revocation only ever describe this one agent.
         await db.Absences.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        // a firearm-use report is filed about this one agent and means nothing without the account
+        await db.FirearmUses.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.Feedbacks.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentBadges.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.DecorationAwards.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);

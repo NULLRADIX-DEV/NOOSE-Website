@@ -73,6 +73,13 @@ public static class Policies
     /// </remarks>
     public const string DivisionSetWrite = "AbteilungSetzenSchreiben";
 
+    /// <summary>Report a firearm use: an in-house account that may write.</summary>
+    /// <remarks>
+    /// Mirrors <c>Permission.RequireFirearmUseReport</c>. <see cref="WriteAccess"/> alone would show the top-bar
+    /// button to a signed-in citizen, who carries no rank and no agent status.
+    /// </remarks>
+    public const string FirearmUseReport = "SchusswaffengebrauchMelden";
+
     /// <summary>Applicant portal access: signed in with status Applicant.</summary>
     public const string ApplicantPortal = "BewerberPortal";
 

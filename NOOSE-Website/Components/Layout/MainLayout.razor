@@ -35,6 +35,8 @@
                                            OnClick="QuickAddAsync" aria-label="Schnellerfassung" />
                         </MudTooltip>
                     </AuthorizeView>
+                    @* firearm-use quick report, shown to in-house writers only *@
+                    <FirearmUseButton />
                     <MudTextField T="string" @bind-Value="_search" Placeholder="Suchen…" Immediate="true"
                                   Margin="Margin.Dense" Variant="Variant.Outlined"
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"

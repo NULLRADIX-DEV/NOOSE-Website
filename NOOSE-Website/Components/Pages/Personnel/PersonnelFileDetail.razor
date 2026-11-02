@@ -146,6 +146,13 @@ else
                 <MudTabPanel Text="Entführungen" Icon="@Icons.Material.Filled.PersonOff">
                     <AbductionsPanel VictimAgentId="@_agent.Id" />
                 </MudTabPanel>
+                @* the file is open to every internal agent, this section only to its owner and the leadership read *@
+                @if (_mayFirearmUse)
+                {
+                    <MudTabPanel Text="Schusswaffengebrauch" Icon="@Icons.Material.Filled.GpsFixed">
+                        <FirearmUsePanel AgentId="@_agent.Id" />
+                    </MudTabPanel>
+                }
                 @if (_isLeadership)
                 {
                     <MudTabPanel Text="Kommentare" Icon="@Icons.Material.Filled.Comment">
@@ -189,11 +196,21 @@ else
         _mayRealName = _user.MayRealNameSee();
         _mayWrite = _user.MayWrite();
         _maySupervise = _user.MayClassifiedRead() && !_user.IsPartner();
+        BuildTabs();
+    }
+
+    private bool _mayFirearmUse;
+
+    // own-ness depends on the file shown, so this runs again when the page is reused for another agent
+    private void BuildTabs()
+    {
+        _mayFirearmUse = FirearmUseRules.MayRead(_user, AgentId);
         _tabs =
         [
             .. _maySupervise ? new[] { "dienstaufsicht" } : [],
             "verlauf", "vermerke", "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen",
             "entfuehrungen",
+            .. _mayFirearmUse ? new[] { "schusswaffengebrauch" } : [],
             .. _isLeadership ? new[] { "kommentare" } : [],
         ];
     }
@@ -208,6 +225,7 @@ else
         _loadedId = AgentId;
         _load = true;
         _agent = null;
+        BuildTabs();
         _activeTab = TabUrlState.Read(Nav, _tabs);
         _agent = await AgentService.FindAsync(AgentId);
         await LoadOnboardingAsync();
