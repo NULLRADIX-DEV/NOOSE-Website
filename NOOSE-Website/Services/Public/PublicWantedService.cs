@@ -105,10 +105,10 @@ public class PublicWantedService(
     }
 
     public async Task<PublicWantedDetail?> GetByCaseNumberAsync(string? caseNumber, CancellationToken cancellationToken = default)
-        => (await GetBoardAsync(cancellationToken)).Find(caseNumber);
+        => (await GetBoardAsync(cancellationToken)).Find(CaseNumbers.Normalize(caseNumber));
 
     public async Task<PublicBounty?> GetBountyAsync(string? caseNumber, CancellationToken cancellationToken = default)
-        => (await GetBoardAsync(cancellationToken)).BountyFor(caseNumber);
+        => (await GetBoardAsync(cancellationToken)).BountyFor(CaseNumbers.Normalize(caseNumber));
 
     public async Task<IReadOnlyList<PublicWantedArchiveCard>> GetArchiveAsync(CancellationToken cancellationToken = default)
     {
@@ -147,6 +147,7 @@ public class PublicWantedService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         // per-entry gate, not "either module is on": with the archive off a captured photo must 404, and with the
         // board off a live one must, or turning a module off would leave its pictures downloadable
@@ -1017,6 +1018,7 @@ public class PublicWantedService(
         {
             return;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         var now = DateTime.UtcNow;
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);

@@ -336,7 +336,7 @@ else if (_ready)
         }
         var mine = string.IsNullOrWhiteSpace(CaseNumber)
             ? _rows.Any(r => r.CaseNumber == caseNumber)
-            : CaseNumber == caseNumber;
+            : CaseNumbers.Normalize(CaseNumber) == caseNumber;
         if (!mine)
         {
             return;

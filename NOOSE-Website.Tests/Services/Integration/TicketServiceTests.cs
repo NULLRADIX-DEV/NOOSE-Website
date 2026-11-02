@@ -286,6 +286,21 @@ public sealed class TicketServiceTests
     }
 
     [Fact]
+    public async Task A_legacy_NOOSE_number_still_opens_and_answers_the_own_ticket()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var caseNumber = await OpenAsync(host);
+        var legacy = caseNumber.Replace("FIB-", "NOOSE-", StringComparison.Ordinal);
+
+        Assert.Equal(caseNumber, (await host.Service.GetOwnDetailAsync(legacy, Citizen()))!.CaseNumber);
+        await host.Service.ReplyAsCitizenAsync(legacy, "Ich habe den Kaufvertrag gefunden.", Citizen());
+
+        Assert.Equal(2, (await host.Service.GetOwnDetailAsync(caseNumber, Citizen()))!.Messages.Count);
+        Assert.Null(await host.Service.GetOwnDetailAsync("NOOSE-T-2026-9999", Citizen()));
+    }
+
+    [Fact]
     public async Task An_account_without_a_profile_cannot_open_one()
     {
         using var ctx = await SeededAsync();

@@ -23,7 +23,7 @@ public static class DecorationRules
     public const int RecentDays = 30;
     public const int RecentMax = 5;
     public const int TileMax = 5;
-    public const string DefaultPlace = "Los Santos, Observatorium 5020";
+    public const string DefaultPlace = "FIB-Tower, Los Santos";
 
     /// <summary>Lowest rank that signs for every division: the Board.</summary>
     public const Rank SignatoryFloor = DivisionRules.BoardFloor;
