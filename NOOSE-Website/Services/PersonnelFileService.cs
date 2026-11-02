@@ -116,13 +116,19 @@ public class PersonnelFileService(IDbContextFactory<AppDbContext> dbFactory, IDi
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<List<AgentPromotionRequest>> GetOpenPromotionRequestsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<AgentPromotionRequest>> GetOpenPromotionRequestsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return await db.AgentPromotionRequests
-            .Where(a => a.Status == PromotionStatus.Requested)
-            .OrderBy(a => a.CreatedAt)
-            .ToListAsync(cancellationToken);
+        // the list is cut to what the actor may decide: standing read fresh, so a Section Chief sees the own division only
+        var standing = await PromotionStanding.ReadAsync(db.Users, actor, cancellationToken);
+        return await PromotionRules.OpenRequestsAsync(db, standing, cancellationToken);
+    }
+
+    public async Task<int> CountOpenPromotionRequestsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var standing = await PromotionStanding.ReadAsync(db.Users, actor, cancellationToken);
+        return await PromotionRules.CountOpenAsync(db, standing, cancellationToken);
     }
 
     public async Task<AgentPromotionRequest> PromotionRequestAsync(string agentId, Rank targetRank, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

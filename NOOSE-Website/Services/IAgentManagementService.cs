@@ -38,7 +38,7 @@ public interface IAgentManagementService
     /// <summary>Set an agent's master data; codename is required.</summary>
     Task MasterDataChangeAsync(string agentId, string? realName, string codename, string? badgeNumber, ClaimsPrincipal actor);
 
-    /// <summary>Request a self master-data change (below Supervisory): staged until leadership approves; codename required. A repeat call overwrites a pending request.</summary>
+    /// <summary>Request a self master-data change (below Special Agent in Charge): staged until leadership approves; codename required. A repeat call overwrites a pending request.</summary>
     Task NameChangeRequestAsync(string agentId, string? realName, string codename, string? badgeNumber, ClaimsPrincipal actor);
 
     /// <summary>Pending name-change requests for the release inbox.</summary>
@@ -68,6 +68,7 @@ public interface IAgentManagementService
     /// <summary>Resolve the owner of a stored picture file; the serving endpoint's only way into the data.</summary>
     Task<Agent?> FindByAvatarFileAsync(string fileName, CancellationToken cancellationToken = default);
 
+    /// <summary>Set the rank of an agent; which rank for whom is the fine gate of <see cref="PromotionRules"/>. Rotates the SecurityStamp.</summary>
     Task RankChangeAsync(string agentId, Rank rank, ClaimsPrincipal actor);
 
     /// <summary>Change a partner account's partner rank; refreshes the claims.</summary>
@@ -77,10 +78,10 @@ public interface IAgentManagementService
     /// partner). Clears the internal rank, division and Administration Division/team-lead/admin flags; forces re-login.</summary>
     Task ConvertToPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor);
 
-    /// <summary>Switch an active partner account back to an internal FIB agent with the given rank (CID); forces re-login.</summary>
+    /// <summary>Switch an active partner account back to an internal FIB agent with the given rank (CID); forces re-login. Passes the fine rank gate like a first release.</summary>
     Task ConvertToInternalAsync(string agentId, Rank rank, ClaimsPrincipal actor);
 
-    /// <summary>Decide a promotion request (Deputy Director+/Admin); on approval sets the rank, logs it, and rotates the SecurityStamp.</summary>
+    /// <summary>Decide a promotion request (Section Chief for the own division, Board or Admin for all; see <see cref="PromotionRules"/>); on approval sets the rank, logs it, and rotates the SecurityStamp.</summary>
     Task PromotionDecideAsync(string requestId, bool approved, string? note, ClaimsPrincipal actor);
 
     /// <summary>Move an agent to a division; Board or admin only. Writes the TRU flag with it and ends the agent's sessions.</summary>

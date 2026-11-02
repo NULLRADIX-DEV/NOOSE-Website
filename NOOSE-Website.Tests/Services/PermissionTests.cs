@@ -23,9 +23,11 @@ public sealed class PermissionTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, false)]
     [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
-    public void RequireLeadership_byRank_gatesAtSupervisory(Rank rank, bool allowed)
+    public void RequireLeadership_byRank_gatesAtSpecialAgentInCharge(Rank rank, bool allowed)
     {
         ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(rank);
         if (allowed)
@@ -262,9 +264,11 @@ public sealed class PermissionTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, false)]
     [InlineData(Rank.SpecialAgentInCharge, false)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
-    public void RequirePromotionDecide_byRank_gatesAtDeputyDirector(Rank rank, bool allowed)
+    public void RequirePromotionDecide_byRank_gatesAtSectionChief(Rank rank, bool allowed)
     {
         ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(rank);
         if (allowed)
@@ -275,6 +279,20 @@ public sealed class PermissionTests
         {
             AssertDenied(() => Permission.RequirePromotionDecide(actor));
         }
+    }
+
+    [Fact]
+    public void RequirePromotionDecide_names_the_section_chief_floor_and_stops_at_the_write_guard()
+    {
+        var below = Assert.Throws<UnauthorizedAccessException>(
+            () => Permission.RequirePromotionDecide(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge)));
+        Assert.Contains("ab Section Chief", below.Message);
+
+        // the read-only supervision and the demo visitor carry a Board rank and still stop at the write guard
+        AssertDenied(() => Permission.RequirePromotionDecide(
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsTeamLead()));
+        AssertDenied(() => Permission.RequirePromotionDecide(
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsDemo()));
     }
 
     [Fact]
@@ -295,6 +313,8 @@ public sealed class PermissionTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void RequireHighestClassification_byRank_gatesAtSeniorSpecial(Rank rank, bool allowed)
@@ -437,6 +457,8 @@ public sealed class PermissionTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void RequireEvidenceEntryWrite_withdrawal_byRank_gatesAtSenior(Rank rank, bool allowed)
@@ -546,6 +568,8 @@ public sealed class PermissionTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void RequireKassenBookingWrite_auszahlung_byRank_gatesAtSeniorSpecialAgent(Rank rank, bool allowed)

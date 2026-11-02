@@ -18,8 +18,10 @@ public interface IPersonnelFileService
     Task NoteDeleteAsync(string noteId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     Task<List<AgentPromotionRequest>> GetPromotionRequestsAsync(string agentId, CancellationToken cancellationToken = default);
-    /// <summary>Open promotion requests (for the inbox + counter).</summary>
-    Task<List<AgentPromotionRequest>> GetOpenPromotionRequestsAsync(CancellationToken cancellationToken = default);
+    /// <summary>Open promotion requests the actor may decide (for the inbox): a Section Chief sees the own division, the Board and admins all, everyone else none.</summary>
+    Task<List<AgentPromotionRequest>> GetOpenPromotionRequestsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Count of <see cref="GetOpenPromotionRequestsAsync"/>; the badge and the dashboard read this, so they never disagree with the list.</summary>
+    Task<int> CountOpenPromotionRequestsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     /// <summary>Request a promotion - leadership only; one open request per agent.</summary>
     Task<AgentPromotionRequest> PromotionRequestAsync(string agentId, Rank targetRank, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 }

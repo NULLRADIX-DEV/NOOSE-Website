@@ -45,6 +45,9 @@ public class DivisionPrincipalTests
 
     [Theory]
     [InlineData(Rank.SpecialAgentInCharge, false)]
+    [InlineData(Rank.SectionChief, false)]
+    [InlineData(Rank.AssistantDirector, true)]
+    [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void IsBoard_FollowsTheRankAlone(Rank rank, bool expected)
     {
@@ -72,6 +75,14 @@ public class DivisionPrincipalTests
         Assert.True(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgent).AsAdmin().Build().MayDivisionSet());
         Assert.False(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build().MayDivisionSet());
         Assert.False(ClaimsPrincipalBuilder.Anonymous().MayDivisionSet());
+    }
+
+    /// <summary>A Section Chief hands out ranks in the own division but does not move agents between divisions: that is the Board's.</summary>
+    [Fact]
+    public void MayDivisionSet_StartsAtAssistantDirectorNotAtSectionChief()
+    {
+        Assert.False(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief).Build().MayDivisionSet());
+        Assert.True(ClaimsPrincipalBuilder.Agent().WithRank(Rank.AssistantDirector).Build().MayDivisionSet());
     }
 
     [Fact]

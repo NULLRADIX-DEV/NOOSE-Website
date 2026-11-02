@@ -92,6 +92,27 @@ public sealed class PlaceholderServiceTests
         Assert.DoesNotContain("{{Uhrzeit}}", result);
     }
 
+    /// <summary>The token is expanded into stored text and leaves the house with it, so the division never shows in it.</summary>
+    [Theory]
+    [InlineData(Rank.SpecialAgent, "Special Agent")]
+    [InlineData(Rank.SeniorSpecialAgent, "Senior Special Agent")]
+    [InlineData(Rank.SpecialAgentInCharge, "Special Agent in Charge")]
+    [InlineData(Rank.SectionChief, "Section Chief")]
+    public async Task ApplyAsync_RankToken_IsTheNeutralTitleEvenForAnHrtMember(Rank rank, string expected)
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = NewService(ctx);
+        var actor = ClaimsPrincipalBuilder.Agent("hrt").WithRank(rank).AsDivision(Division.Hrt).AsTru()
+            .WithCodename("Ghost").Build();
+
+        var html = await svc.ApplyAsync("{{Dienstgrad}}", null, null, actor);
+        var plain = await svc.ApplyPlainAsync("{{Dienstgrad}}", null, null, actor);
+
+        Assert.Equal(expected, html);
+        Assert.Equal(expected, plain);
+        Assert.NotEqual(RankDisplay.HrtTitle(rank), html);
+    }
+
     [Fact]
     public async Task ApplyAsync_MissingCodenameClaim_YieldsEmptyAgentToken()
     {

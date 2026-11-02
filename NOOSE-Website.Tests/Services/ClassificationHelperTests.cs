@@ -43,6 +43,8 @@ public class ClassificationHelperTests
     [Theory]
     [InlineData(Rank.SeniorSpecialAgent)] // boundary: rank 3, exactly the threshold
     [InlineData(Rank.SpecialAgentInCharge)]
+    [InlineData(Rank.SectionChief)]
+    [InlineData(Rank.AssistantDirector)]
     [InlineData(Rank.DeputyDirector)]
     [InlineData(Rank.Director)]
     public void CheckRankGate_SecuredStateThreatening_atOrAboveSeniorSpecialAgent_doesNotThrow(Rank rank)

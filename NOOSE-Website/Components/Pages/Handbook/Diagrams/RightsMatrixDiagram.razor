@@ -1,20 +1,19 @@
 @* Rank ladder against the three flags: two independent axes, which is the whole point of the picture. *@
 
-<svg viewBox="0 0 640 360" role="img" aria-labelledby="rightsDiagramTitle rightsDiagramDesc"
+<svg viewBox="0 0 640 380" role="img" aria-labelledby="rightsDiagramTitle rightsDiagramDesc"
      style="width:100%;height:auto;max-width:640px;">
     <title id="rightsDiagramTitle">Dienstgrad und Kennzeichen</title>
     <desc id="rightsDiagramDesc">
-        Senkrecht die sechs Dienstgrade von Junior Agent bis Director, mit der Führungsschwelle ab
-        Supervisory Special Agent. Waagerecht die drei Kennzeichen Admin, TRU und HRB, die neben dem
+        Senkrecht die acht Dienstgrade von Trainee bis Director, mit der Führungsschwelle ab
+        Special Agent in Charge. Waagerecht die drei Kennzeichen Admin, TRU und HRB, die neben dem
         Dienstgrad stehen; TRU und HRB werden erst ab Special Agent vergeben.
     </desc>
 
     @{
-        var ranks = new[]
-        {
-            ("Director", 6), ("Deputy Director", 5), ("Supervisory Special Agent", 4),
-            ("Senior Special Agent", 3), ("Special Agent", 2), ("Junior Agent", 1),
-        };
+        // top-down from the ladder
+        var ranks = RankDisplay.All.Reverse().Select(r => (RankDisplay.Name(r), (int)r)).ToArray();
+        var leadershipFloor = (int)Rank.SpecialAgentInCharge;
+        var leadershipRows = ranks.Count(r => r.Item2 >= leadershipFloor);
     }
 
     <text x="16" y="24" font-size="12" fill="var(--mud-palette-text-secondary)">Dienstgrad</text>
@@ -22,27 +21,30 @@
     @for (var i = 0; i < ranks.Length; i++)
     {
         var (name, value) = ranks[i];
-        var y = 40 + (i * 38);
-        var leadership = value >= 4;
+        var y = 40 + (i * 32);
+        var leadership = value >= leadershipFloor;
         @* wrapped in a group: Razor claims a bare <text> inside a code block for its own use *@
         <g>
-            <rect x="16" y="@y" width="300" height="30" rx="5"
+            <rect x="16" y="@y" width="300" height="26" rx="5"
                   fill="@(leadership ? "var(--mud-palette-primary)" : "var(--mud-palette-surface)")"
                   opacity="@(leadership ? "0.22" : "1")"
                   stroke="var(--mud-palette-lines-default)" />
-            <text x="30" y="@(y + 20)" font-size="12" fill="var(--mud-palette-text-primary)">@name</text>
-            <text x="298" y="@(y + 20)" font-size="11" text-anchor="end"
+            <text x="30" y="@(y + 18)" font-size="12" fill="var(--mud-palette-text-primary)">@name</text>
+            <text x="298" y="@(y + 18)" font-size="11" text-anchor="end"
                   fill="var(--mud-palette-text-secondary)">@value</text>
         </g>
     }
 
-    @* the leadership threshold sits between rank 3 and rank 4 *@
-    <line x1="10" y1="150" x2="326" y2="150"
+    @* the leadership threshold sits right below the last leadership row *@
+    @{
+        var thresholdY = 40 + (leadershipRows * 32) - 3;
+    }
+    <line x1="10" y1="@thresholdY" x2="326" y2="@thresholdY"
           stroke="var(--mud-palette-primary)" stroke-width="2" stroke-dasharray="6 4" />
-    <text x="332" y="146" font-size="11" fill="var(--mud-palette-primary)">
+    <text x="332" y="@(thresholdY - 4)" font-size="11" fill="var(--mud-palette-primary)">
         ab hier Führung
     </text>
-    <text x="332" y="162" font-size="10" fill="var(--mud-palette-text-secondary)">
+    <text x="332" y="@(thresholdY + 12)" font-size="10" fill="var(--mud-palette-text-secondary)">
         Verschlusssachen, Klarnamen
     </text>
 
@@ -68,19 +70,19 @@
         </g>
     }
 
-    <rect x="380" y="206" width="244" height="62" rx="5"
+    <rect x="380" y="226" width="244" height="62" rx="5"
           fill="var(--mud-palette-background)" stroke="var(--mud-palette-lines-default)" stroke-dasharray="4 3" />
-    <text x="396" y="228" font-size="11" fill="var(--mud-palette-text-primary)">Kein Dienstgrad - aber nicht frei</text>
-    <text x="396" y="245" font-size="10" fill="var(--mud-palette-text-secondary)">TRU und HRB erst ab Special Agent</text>
-    <text x="396" y="260" font-size="10" fill="var(--mud-palette-text-secondary)">(Dienstverordnung §2.4.1).</text>
+    <text x="396" y="248" font-size="11" fill="var(--mud-palette-text-primary)">Kein Dienstgrad - aber nicht frei</text>
+    <text x="396" y="265" font-size="10" fill="var(--mud-palette-text-secondary)">TRU und HRB erst ab Special Agent</text>
+    <text x="396" y="280" font-size="10" fill="var(--mud-palette-text-secondary)">(Dienstverordnung §2.4.1).</text>
 
-    <rect x="16" y="286" width="608" height="58" rx="5"
+    <rect x="16" y="306" width="608" height="58" rx="5"
           fill="var(--mud-palette-background)" stroke="var(--mud-palette-lines-default)" />
-    <text x="32" y="308" font-size="11" fill="var(--mud-palette-text-primary)">Zwei Sonderfälle</text>
-    <text x="32" y="325" font-size="10" fill="var(--mud-palette-text-secondary)">
+    <text x="32" y="328" font-size="11" fill="var(--mud-palette-text-primary)">Zwei Sonderfälle</text>
+    <text x="32" y="345" font-size="10" fill="var(--mud-palette-text-secondary)">
         Aufsicht: liest alles, speichert nichts, sieht nie Klarnamen.
     </text>
-    <text x="32" y="339" font-size="10" fill="var(--mud-palette-text-secondary)">
+    <text x="32" y="359" font-size="10" fill="var(--mud-palette-text-secondary)">
         Partnerbehörde (LSPD, DoJ, LSMD, Parlament): sieht nur freigegebene Akten.
     </text>
 </svg>

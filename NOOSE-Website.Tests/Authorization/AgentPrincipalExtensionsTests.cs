@@ -81,6 +81,8 @@ public class AgentPrincipalExtensionsTests
     [InlineData(4)]
     [InlineData(5)]
     [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
     public void GetRank_definedRankClaim_returnsRank(int rankValue)
     {
         ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Raw(AgentClaimTypes.Rank, rankValue.ToString()).Build();
@@ -96,7 +98,7 @@ public class AgentPrincipalExtensionsTests
 
     [Theory]
     [InlineData("0")]      // below first defined member (Trainee = 1)
-    [InlineData("7")]      // one above Director (6)
+    [InlineData("9")]      // one above Director (8)
     [InlineData("99")]     // far out of range
     [InlineData("-1")]     // negative
     [InlineData("abc")]    // non-numeric
@@ -477,6 +479,8 @@ public class AgentPrincipalExtensionsTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, false)]
     [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void IsLeadership_byRank(Rank rank, bool expected)
@@ -615,6 +619,8 @@ public class AgentPrincipalExtensionsTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void MayHighestClassification_byRank(Rank rank, bool expected)
@@ -644,6 +650,8 @@ public class AgentPrincipalExtensionsTests
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void MayEvidenceWithdraw_byRank(Rank rank, bool expected)
@@ -731,13 +739,15 @@ public class AgentPrincipalExtensionsTests
         Assert.False(user.MayMeetingRead());
     }
 
-    // ---------- MayPromotionDecide (admin || rank >= DeputyDirector(5)) ----------
+    // ---------- MayPromotionDecide (admin || rank >= SectionChief(5)); the coarse gate, PromotionRules is the fine one ----------
 
     [Theory]
     [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, false)]
     [InlineData(Rank.SpecialAgentInCharge, false)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void MayPromotionDecide_byRank(Rank rank, bool expected)

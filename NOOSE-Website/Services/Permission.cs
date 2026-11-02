@@ -26,7 +26,7 @@ public static class Permission
         if (!actor.IsLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist der Führung (ab Supervisory Special Agent) oder Admins vorbehalten.");
+                "Diese Aktion ist der Führung (ab Special Agent in Charge) oder Admins vorbehalten.");
         }
     }
 
@@ -163,8 +163,7 @@ public static class Permission
         }
     }
 
-    /// <summary>Require promotion authority.</summary>
-    /// <summary>Write guard ahead of the rank guard: the decision changes a rank and writes an audit row.</summary>
+    /// <summary>Require the coarse promotion gate (Section Chief or admin), write guard first: the decision changes a rank and writes an audit row.</summary>
     /// <remarks>
     /// MayWrite() as well, because the rank alone lets the read-only supervision and the demo visitor - who carry
     /// Director - through to the save, where the write barrier refuses. By then the rank is already set in memory
@@ -176,7 +175,7 @@ public static class Permission
         if (!actor.MayPromotionDecide())
         {
             throw new UnauthorizedAccessException(
-                "Über Beförderungen entscheidet nur Deputy Director aufwärts oder ein Admin.");
+                "Über Beförderungen entscheidet nur, wer ab Section Chief dient (der Section Chief in der eigenen Abteilung, ab Assistant Director für alle), oder ein Admin.");
         }
     }
 
@@ -425,7 +424,7 @@ public static class Permission
     /// get as far as validating a slug before the ReadOnlyBarrierInterceptor refuses the save.
     /// <para>
     /// One predicate for the handbook and for ticking off a training module, because it is one question: who looks
-    /// after new agents. HRB is rank-independent, so this admits a Junior Agent carrying the flag, on purpose.
+    /// after new agents. HRB is rank-independent, so this admits a Trainee carrying the flag, on purpose.
     /// </para>
     /// </remarks>
     public static void RequireHrbOrLeadershipWrite(ClaimsPrincipal actor)

@@ -1315,6 +1315,32 @@ public sealed class MySqlTranslationTests : IDisposable
         Assert.Contains("COALESCE", sql, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheSignatoryCandidates_TranslateWithTheRankFloor()
+    {
+        // the Board and admins, plus every Section Chief: the home of the chiefs is then resolved in memory
+        var sql = _db.Users.AsNoTracking().OnlySelectable()
+            .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SectionChief))
+            .ToQueryString();
+
+        Assert.Contains("WHERE", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePromotionRequestList_TranslatesBothQueriesItReads()
+    {
+        List<string> ids = ["a1", "a2"];
+
+        var open = _db.AgentPromotionRequests.AsNoTracking()
+            .Where(a => a.Status == PromotionStatus.Requested)
+            .OrderBy(a => a.CreatedAt)
+            .ToQueryString();
+        var targets = _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToQueryString();
+
+        Assert.Contains("ORDER BY", open, StringComparison.Ordinal);
+        Assert.Contains("IN (", targets, StringComparison.Ordinal);
+    }
+
     private static int Occurrences(string text, string needle)
     {
         var count = 0;

@@ -56,6 +56,29 @@ public sealed class LlmQuotaConfigServiceTests
         Assert.All(RankDisplay.All, rank => Assert.True(config.For(rank).BaseWeekly > 0));
     }
 
+    /// <summary>The numbers the data migration writes for the two new levels: the same ones, or code and database diverge.</summary>
+    [Fact]
+    public async Task DefaultsPutTheNewLevelsBetweenTheOldOnesAndRiseWithTheLadder()
+    {
+        using var ctx = new SqliteTestContext();
+
+        var config = await Build(ctx).GetAsync();
+
+        Assert.Equal(80_000L, config.For(Rank.SpecialAgentInCharge).BaseWeekly);
+        Assert.Equal(95_000L, config.For(Rank.SectionChief).BaseWeekly);
+        Assert.Equal(105_000L, config.For(Rank.AssistantDirector).BaseWeekly);
+        Assert.Equal(120_000L, config.For(Rank.DeputyDirector).BaseWeekly);
+        Assert.Equal(50, config.For(Rank.SectionChief).CarryOverPercent);
+        Assert.Equal(50, config.For(Rank.AssistantDirector).CarryOverPercent);
+        Assert.Equal(RankDisplay.All.Count, LlmQuotaConfig.Default().Ranks.Count);
+        var weekly = RankDisplay.All.Select(r => config.For(r).BaseWeekly).ToList();
+        Assert.Equal(weekly.OrderBy(w => w).ToList(), weekly);
+    }
+
+    [Fact]
+    public void TheDefaultConfigPassesItsOwnValidation()
+        => Assert.Null(Record.Exception(() => LlmQuotaConfigService.Validate(LlmQuotaConfig.Default())));
+
     [Fact]
     public async Task UnrankedAgent_GetsNothing()
     {

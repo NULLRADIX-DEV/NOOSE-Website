@@ -23,7 +23,7 @@ public sealed class DivisionLimitExceededException(string unitName, int taken, i
 public static class DivisionRules
 {
     /// <summary>First rank on the Board.</summary>
-    public const Rank BoardFloor = Rank.DeputyDirector;
+    public const Rank BoardFloor = Rank.AssistantDirector;
 
     /// <summary>Lowest rank in the HRT; CID and CTD take every rank.</summary>
     public const Rank HrtMinimumRank = Rank.SpecialAgent;
@@ -53,6 +53,9 @@ public static class DivisionRules
         var division = requested ?? Division.Cid;
         return division == Division.Hrt && rank < HrtMinimumRank ? Division.Cid : division;
     }
+
+    /// <summary>Rank title as the house sees it, HRT title included; internal display only.</summary>
+    public static string RankName(Agent agent) => RankDisplay.Name(agent.Rank, Of(agent).Home);
 
     /// <summary>Legacy TRU flag: HRT below the Board.</summary>
     public static bool IsTru(Rank? rank, Division? home) => home == Division.Hrt && !IsBoard(rank);

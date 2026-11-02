@@ -6,7 +6,7 @@ public static class Policies
     /// <summary>Signed in with status Active. App-wide default.</summary>
     public const string ActiveAgent = "AktiverAgent";
 
-    /// <summary>Leadership: rank ≥ Supervisory Special Agent or admin.</summary>
+    /// <summary>Leadership: rank ≥ Special Agent in Charge or admin.</summary>
     public const string Leadership = "Fuehrung";
 
     /// <summary>The write half of <see cref="Leadership"/>: the changelog editor on /einstellungen.</summary>
@@ -56,7 +56,7 @@ public static class Policies
     /// <summary>Set "secured state-threatening" directly: rank ≥ Senior Special Agent or admin.</summary>
     public const string HighestClassification = "HoechsteEinstufung";
 
-    /// <summary>Decide promotions: rank ≥ Deputy Director or admin.</summary>
+    /// <summary>Decide promotions: rank ≥ Section Chief or admin. Coarse gate; the fine one is <c>PromotionRules</c>.</summary>
     public const string PromotionDecide = "BefoerderungEntscheiden";
 
     /// <summary>Decide promotions AND be allowed to write.</summary>

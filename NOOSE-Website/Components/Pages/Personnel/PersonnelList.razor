@@ -118,7 +118,7 @@ else
                 }
                 @if (_tab == TabTerminated)
                 {
-                    <MudTd DataLabel="Letzter Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
+                    <MudTd DataLabel="Letzter Dienstgrad">@DivisionRules.RankName(context)</MudTd>
                     <MudTd DataLabel="Gekündigt am">@(context.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</MudTd>
                     <MudTd DataLabel="Gekündigt von">@(context.TerminatedByName ?? "—")</MudTd>
                     <MudTd DataLabel="Grund">
@@ -135,7 +135,7 @@ else
                 }
                 else
                 {
-                    <MudTd DataLabel="Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
+                    <MudTd DataLabel="Dienstgrad">@DivisionRules.RankName(context)</MudTd>
                     <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
                     <MudTd DataLabel="TRU">@(context.IsTRU ? "TRU" : "")</MudTd>
                     <MudTd DataLabel="HRB">@(context.IsHRB ? "HRB" : "")</MudTd>

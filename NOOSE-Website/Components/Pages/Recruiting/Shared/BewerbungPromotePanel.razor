@@ -13,7 +13,7 @@
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
             <MudSelect T="Rank" Value="_rank" ValueChanged="RankChanged" Label="Dienstgrad" Variant="Variant.Outlined"
                        Margin="Margin.Dense" Style="min-width:220px;">
-                @foreach (var r in Ranks)
+                @foreach (var r in RankOptions)
                 {
                     <MudSelectItem T="Rank" Value="@r">@RankDisplay.Name(r)</MudSelectItem>
                 }
@@ -42,11 +42,26 @@
     [Parameter] public string? ApplicantName { get; set; }
     [Parameter] public EventCallback OnPromoted { get; set; }
 
-    private static readonly Rank[] Ranks = Enum.GetValues<Rank>();
+    private PromotionStanding _standing;
+    private bool _mayPickDivision;
     private Rank _rank = Rank.Trainee;
     private Division _division = Division.Cid;
     private bool _hrb;
     private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        _standing = PromotionStanding.Of(User);
+        _mayPickDivision = User.MayWrite() && User.MayDivisionSet();
+        // no picker: own division or CID
+        _division = _mayPickDivision ? Division.Cid : PromotionRules.ReleaseDivision(_standing);
+        _rank = RankOptions.FirstOrDefault(Rank.Trainee);
+    }
+
+    /// <summary>Ranks the viewer may hand out as a first release.</summary>
+    private IEnumerable<Rank> RankOptions
+        => PromotionRules.AssignableRanks(_standing, _division, null)
+            .Where(r => _mayPickDivision || DivisionRules.MayHold(_division, r));
 
     /// <summary>Mirrors DepartmentRules.MayHold; ticking a box the service refuses fails only on save.</summary>
     private bool DepartmentsOpen => DepartmentRules.MayHold(_rank);

@@ -115,6 +115,8 @@ public sealed class DashboardServiceTests
             db.Users.Add(Seed.Agent("u2", configure: a => a.NameChangeRequestedAt = DateTime.UtcNow));
             db.Taskforces.Add(Tf("tf1", status: TaskforceStatus.Requested));
             db.AgentPromotionRequests.Add(new AgentPromotionRequest { AgentId = "u1", Status = PromotionStatus.Requested });
+            // the promotion is counted for who may decide it, and that is read from the row of the viewer
+            db.Users.Add(Seed.Agent("lead", Rank.Director));
             db.SaveChanges();
         }
 
@@ -127,6 +129,43 @@ public sealed class DashboardServiceTests
         Assert.Equal(7, m.OpenRequests);              // 3 upgrades + pending + name-change + requested TF + promotion
         Assert.Equal(1, m.Classified);                // only the classified person
         Assert.Equal(0, m.StaleRecords);
+    }
+
+    /// <summary>Tile and distribution count the same promotions as the inbox lists for that viewer: the Board and admins all, a Section Chief the own division, nobody else any.</summary>
+    [Theory]
+    [InlineData("board", 2)]
+    [InlineData("adm", 2)]
+    [InlineData("sc-cid", 1)]
+    [InlineData("sc-hrt", 1)]
+    [InlineData("sac", 0)]
+    [InlineData("cid", 0)]
+    [InlineData("ghost", 0)]
+    public async Task GetMetricsAsync_CountsPromotionsOnlyForWhoMayDecideThem(string viewer, int expected)
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx, SettingsFor(agingDisabled: true), openRequestCount: 0);
+        using (var db = ctx.NewContext())
+        {
+            db.Users.AddRange(
+                Seed.Agent("cid", Rank.SpecialAgent, configure: a => a.Division = Division.Cid),
+                Seed.Agent("hrt", Rank.SpecialAgent, configure: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+                Seed.Agent("board", Rank.AssistantDirector),
+                Seed.Agent("sc-cid", Rank.SectionChief, configure: a => a.Division = Division.Cid),
+                Seed.Agent("sc-hrt", Rank.SectionChief, configure: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+                Seed.Agent("sac", Rank.SpecialAgentInCharge),
+                Seed.Agent("adm", Rank.Trainee, configure: a => a.IsAdmin = true));
+            db.AgentPromotionRequests.AddRange(
+                new AgentPromotionRequest { AgentId = "cid", Status = PromotionStatus.Requested },
+                new AgentPromotionRequest { AgentId = "hrt", Status = PromotionStatus.Requested },
+                new AgentPromotionRequest { AgentId = "hrt", Status = PromotionStatus.Approved });
+            db.SaveChanges();
+        }
+
+        var metrics = await svc.GetMetricsAsync(isLeadership: true, meId: viewer);
+        var distributions = await svc.GetDistributionsAsync(isLeadership: true, meId: viewer);
+
+        Assert.Equal(expected, metrics.OpenRequests);
+        Assert.Equal(expected, distributions.OpenRequestsByKind.Single(s => s.Designation == "Beförderung").Count);
     }
 
     [Fact]
@@ -371,6 +410,7 @@ public sealed class DashboardServiceTests
             db.Users.Add(Seed.Agent("u2", configure: a => a.NameChangeRequestedAt = DateTime.UtcNow));
             db.Taskforces.Add(Tf("tf1", status: TaskforceStatus.Requested));
             db.AgentPromotionRequests.Add(new AgentPromotionRequest { AgentId = "u1", Status = PromotionStatus.Requested });
+            db.Users.Add(Seed.Agent("lead", Rank.Director));
             db.SaveChanges();
         }
 

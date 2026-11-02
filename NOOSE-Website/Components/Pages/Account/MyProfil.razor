@@ -118,7 +118,7 @@
                             </MudStack>
 
                             <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Shield">
-                                @RankDisplay.Name(_agent.Rank)
+                                @DivisionRules.RankName(_agent)
                                 @if (!string.IsNullOrWhiteSpace(_agent.DiscordUsername))
                                 {
                                     <span class="mud-text-secondary"> · Discord: @_agent.DiscordUsername</span>

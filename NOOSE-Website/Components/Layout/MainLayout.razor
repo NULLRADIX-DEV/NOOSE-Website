@@ -316,7 +316,7 @@
         var parts = new List<string>();
         var badgeNumber = user.GetBadgeNumber();
         if (!string.IsNullOrWhiteSpace(badgeNumber)) parts.Add($"Nr. {badgeNumber}");
-        parts.Add(RankDisplay.Name(user.GetRank()));
+        parts.Add(RankDisplay.Name(user.GetRank(), user.GetDivision()));
         if (user.IsTRU()) parts.Add("TRU");
         if (user.IsHRB()) parts.Add("HRB");
         if (user.IsAdmin()) parts.Add("Admin");

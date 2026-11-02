@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Authorization;
 
@@ -63,7 +64,7 @@ public static class AuthorizationRegistration
                 .AddRequirements(new RankRequirement(Rank.SeniorSpecialAgent)))
             .AddPolicy(Policies.PromotionDecide, p => p
                 .RequireAuthenticatedUser()
-                .AddRequirements(new RankRequirement(Rank.DeputyDirector)))
+                .AddRequirements(new RankRequirement(PromotionRules.DeciderFloor)))
             .AddPolicy(Policies.PromotionDecideWrite, p => p
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => ctx.User.MayWrite() && ctx.User.MayPromotionDecide()))

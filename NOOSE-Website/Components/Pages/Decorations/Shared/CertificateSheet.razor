@@ -47,7 +47,7 @@
                 @if (View.SignatoryName is { Length: > 0 } signatory)
                 {
                     <div class="urkunde-unterzeichner">@signatory</div>
-                    <div class="urkunde-funktion">@RankDisplay.Name(View.SignatoryRank) · Behördenleitung</div>
+                    <div class="urkunde-funktion">@SignatoryFunction</div>
                 }
                 else
                 {
@@ -62,6 +62,14 @@
     [Parameter, EditorRequired] public CertificateView View { get; set; } = default!;
     [Parameter] public bool UseRealName { get; set; }
     [Parameter] public string LogoSrc { get; set; } = "FibIcon.png";
+
+    /// <summary>Rank of the signatory; "Behördenleitung" only for the Board.</summary>
+    private string SignatoryFunction => View.SignatoryRank switch
+    {
+        { } rank when DivisionRules.IsBoard(rank) => $"{RankDisplay.Name(rank)} · Behördenleitung",
+        { } rank => RankDisplay.Name(rank),
+        _ => "Behördenleitung",
+    };
 
     private string Heading => View.Kind switch
     {

@@ -60,6 +60,28 @@ public sealed class FinancingConfigServiceTests
         }
     }
 
+    /// <summary>The numbers the data migration writes for the two new levels: the same ones, or code and database diverge.</summary>
+    [Fact]
+    public async Task DefaultsPutTheNewLevelsBetweenTheOldOnesAndRiseWithTheLadder()
+    {
+        using var ctx = new SqliteTestContext();
+        var config = await Build(ctx).GetAsync();
+
+        Assert.Equal(150_000m, config.For(Rank.SpecialAgentInCharge).BaseMonthly);
+        Assert.Equal(165_000m, config.For(Rank.SectionChief).BaseMonthly);
+        Assert.Equal(180_000m, config.For(Rank.AssistantDirector).BaseMonthly);
+        Assert.Equal(200_000m, config.For(Rank.DeputyDirector).BaseMonthly);
+        Assert.Equal(50, config.For(Rank.SectionChief).CarryOverPercent);
+        Assert.Equal(50, config.For(Rank.AssistantDirector).CarryOverPercent);
+        Assert.Equal(RankDisplay.All.Count, FinancingBudgetConfig.Default().Ranks.Count);
+        var budgets = RankDisplay.All.Select(r => config.For(r).BaseMonthly).ToList();
+        Assert.Equal(budgets.OrderBy(b => b).ToList(), budgets);
+    }
+
+    [Fact]
+    public void TheDefaultConfigPassesItsOwnValidation()
+        => Assert.Null(Record.Exception(() => FinancingConfigService.Validate(FinancingBudgetConfig.Default())));
+
     [Fact]
     public async Task UnknownRankKey_FallsBackToNothing()
     {

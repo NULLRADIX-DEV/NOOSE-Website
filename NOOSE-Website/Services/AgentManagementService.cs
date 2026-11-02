@@ -103,6 +103,7 @@ public class AgentManagementService(
         RequireDepartmentsFitRank(rank, division, isHRB);
 
         var agent = await GetOrThrow(agentId);
+        await RequireMayAssignAsync(actor, DivisionRules.Normalize(rank, division), agent.Rank, rank);
         var after = new OrgUnit(DivisionRules.Normalize(rank, division), DivisionRules.IsBoard(rank));
         await RequireSeatAsync(agent, after, counts: !agent.IsTeamLead && agent.PartnerAgency is null, confirmOverLimit);
 
@@ -172,6 +173,7 @@ public class AgentManagementService(
         RequireDepartmentsFitRank(rank, division, isHRB);
 
         var agent = await GetOrThrow(applicantUserId);
+        await RequireMayAssignAsync(actor, DivisionRules.Normalize(rank, division), agent.Rank, rank);
         // a partner applies without ever leaving status Active, so it arrives here as an Active account with an
         // agency rather than as an Applicant; the partner role ends with the same save that hands out the rank.
         // The application has to exist: status Applicant is the applicant's own proof of having gone through
@@ -485,12 +487,14 @@ public class AgentManagementService(
 
     public async Task RankChangeAsync(string agentId, Rank rank, ClaimsPrincipal actor)
     {
-        Permission.RequireLeadership(actor);
         Permission.RequireWriteAccess(actor);
+        Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
         var alt = agent.Rank;
         var home = DivisionRules.Of(agent).Home;
+        // fine gate, the socket takes any rank
+        await RequireMayAssignAsync(actor, home, alt, rank);
         agent.Rank = rank;
         DivisionRules.Apply(agent, home);
         var lost = DepartmentsFollowRank(agent, home);
@@ -562,6 +566,8 @@ public class AgentManagementService(
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
+        // former partners start in the CID
+        await RequireMayAssignAsync(actor, DivisionRules.Normalize(rank, null), agent.Rank, rank);
         if (agent.Status != AgentStatus.Active)
         {
             throw new InvalidOperationException("Die Zugehörigkeit kann nur für aktive Konten geändert werden.");
@@ -598,12 +604,14 @@ public class AgentManagementService(
             throw new InvalidOperationException("Über diesen Antrag wurde bereits entschieden.");
         }
 
+        var agent = await GetOrThrow(request.AgentId);
+        // fine gate, before any mutation
+        await RequireMayAssignAsync(actor, DivisionRules.Of(agent).Home, agent.Rank, request.TargetRank);
+
         request.Status = approved ? PromotionStatus.Approved : PromotionStatus.Rejected;
         request.DeciderName = actor.GetCodename();
         request.DecidedAt = DateTime.UtcNow;
         request.DecisionNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
-
-        var agent = await GetOrThrow(request.AgentId);
         if (approved)
         {
             var alt = agent.Rank;
@@ -628,6 +636,10 @@ public class AgentManagementService(
             await db.SaveChangesAsync();
         }
     }
+
+    /// <summary>Fine rank gate of every rank write; the actor is read from the row, not the claims.</summary>
+    private async Task RequireMayAssignAsync(ClaimsPrincipal actor, Division? targetDivision, Rank? fromRank, Rank toRank)
+        => PromotionRules.RequireMayAssign(await PromotionStanding.ReadAsync(db.Users, actor), targetDivision, fromRank, toRank);
 
     /// <summary>Reject a release that would hand out a division or flag the rank may not carry.</summary>
     private static void RequireDepartmentsFitRank(Rank rank, Division division, bool isHRB)

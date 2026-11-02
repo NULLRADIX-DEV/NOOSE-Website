@@ -73,6 +73,26 @@ public sealed class OrgChartServiceTests
     }
 
     [Fact]
+    public async Task GetAsync_ShowsEveryRankOfTheEightLevelLadderAsATier_TopDown()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            foreach (var rank in RankDisplay.All)
+            {
+                db.Users.Add(Ag($"r{(int)rank}", rank, codename: $"Agent {(int)rank}"));
+            }
+            db.SaveChanges();
+        }
+
+        var data = await NewService(ctx).GetAsync(Leader());
+
+        Assert.Equal(8, data.Ranks.Count);
+        Assert.Equal(RankDisplay.All.Reverse().ToArray(), data.Ranks.Select(g => g.Rank).ToArray());
+        Assert.All(data.Ranks, g => Assert.Single(g.Agents));
+    }
+
+    [Fact]
     public async Task GetAsync_OrdersAgentsByCodenameWithinRank()
     {
         using var ctx = new SqliteTestContext();

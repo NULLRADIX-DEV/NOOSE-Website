@@ -225,7 +225,7 @@ public sealed class ReadAreaTool(
         // the one named rule the personnel page uses; filtering db.Users by hand here is how the search leaked
         var rows = await db.Users.AsNoTracking().OnlyWithPersonnelFile()
             .OrderBy(u => u.Rank == null).ThenByDescending(u => u.Rank).ThenBy(u => u.Codename)
-            .Select(u => new { u.Codename, u.Rank, u.Status, u.IsTRU, u.IsHRB })
+            .Select(u => new { u.Codename, u.Rank, u.Division, u.Status, u.IsTRU, u.IsHRB })
             .ToListAsync(ct);
         if (rows.Count == 0)
         {
@@ -239,7 +239,7 @@ public sealed class ReadAreaTool(
         foreach (var r in rows.Take(max))
         {
             sb.Append("• ").Append(string.IsNullOrWhiteSpace(r.Codename) ? "(unbenannt)" : r.Codename)
-                .Append(" | ").Append(r.Rank is { } rank ? RankDisplay.Name(rank) : "ohne Dienstgrad")
+                .Append(" | ").Append(r.Rank is { } rank ? RankDisplay.Name(rank, DivisionRules.Of(rank, r.Division, r.IsTRU).Home) : "ohne Dienstgrad")
                 .Append(" | ").Append(AgentStatusDisplay.Name(r.Status));
             if (r.IsTRU) { sb.Append(" | TRU"); }
             if (r.IsHRB) { sb.Append(" | HRB"); }

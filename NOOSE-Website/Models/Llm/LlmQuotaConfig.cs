@@ -40,6 +40,8 @@ public sealed class LlmQuotaConfig
             [RankKey(Rank.SpecialAgent)] = new() { BaseWeekly = 35_000, CarryOverPercent = 0 },
             [RankKey(Rank.SeniorSpecialAgent)] = new() { BaseWeekly = 50_000, CarryOverPercent = 25 },
             [RankKey(Rank.SpecialAgentInCharge)] = new() { BaseWeekly = 80_000, CarryOverPercent = 50 },
+            [RankKey(Rank.SectionChief)] = new() { BaseWeekly = 95_000, CarryOverPercent = 50 },
+            [RankKey(Rank.AssistantDirector)] = new() { BaseWeekly = 105_000, CarryOverPercent = 50 },
             [RankKey(Rank.DeputyDirector)] = new() { BaseWeekly = 120_000, CarryOverPercent = 50 },
             [RankKey(Rank.Director)] = new() { BaseWeekly = 200_000, CarryOverPercent = 50 },
         },

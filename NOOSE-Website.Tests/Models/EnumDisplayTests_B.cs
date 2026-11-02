@@ -541,10 +541,12 @@ public class EnumDisplayTests_B
     // ---------------------------------------------------------------------
 
     [Theory]
-    [InlineData(Rank.Trainee, "Junior Agent")]
+    [InlineData(Rank.Trainee, "Trainee")]
     [InlineData(Rank.SpecialAgent, "Special Agent")]
     [InlineData(Rank.SeniorSpecialAgent, "Senior Special Agent")]
-    [InlineData(Rank.SpecialAgentInCharge, "Supervisory Special Agent")]
+    [InlineData(Rank.SpecialAgentInCharge, "Special Agent in Charge")]
+    [InlineData(Rank.SectionChief, "Section Chief")]
+    [InlineData(Rank.AssistantDirector, "Assistant Director")]
     [InlineData(Rank.DeputyDirector, "Deputy Director")]
     [InlineData(Rank.Director, "Director")]
     public void RankName_definedValue_mapsToLabel(Rank rank, string expected)
@@ -564,9 +566,17 @@ public class EnumDisplayTests_B
             new[]
             {
                 Rank.Trainee, Rank.SpecialAgent, Rank.SeniorSpecialAgent,
-                Rank.SpecialAgentInCharge, Rank.DeputyDirector, Rank.Director,
+                Rank.SpecialAgentInCharge, Rank.SectionChief, Rank.AssistantDirector,
+                Rank.DeputyDirector, Rank.Director,
             },
             RankDisplay.All);
+
+    [Fact]
+    public void RankAll_isEveryDefinedMember_andTheIntsNeverMove()
+    {
+        Assert.Equal(Enum.GetValues<Rank>().OrderBy(r => (int)r), RankDisplay.All);
+        Assert.Equal(Enumerable.Range(1, 8), RankDisplay.All.Select(r => (int)r));
+    }
 
     // ---------------------------------------------------------------------
     // AgentStatusDisplay

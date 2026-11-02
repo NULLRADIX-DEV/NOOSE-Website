@@ -250,7 +250,7 @@ public static partial class DossierContextBuilder
             Line(sb, "Klarname", a.RealName);
         }
         Line(sb, "Dienstnummer", a.BadgeNumber);
-        Line(sb, "Dienstgrad", a.Rank is { } rank ? RankDisplay.Name(rank) : null);
+        Line(sb, "Dienstgrad", a.Rank is not null ? DivisionRules.RankName(a) : null);
         Line(sb, "Status", AgentStatusDisplay.Name(a.Status));
         Line(sb, "TRU", a.IsTRU);
         Line(sb, "HRB", a.IsHRB);

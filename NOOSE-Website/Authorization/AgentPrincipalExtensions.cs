@@ -108,7 +108,7 @@ public static class AgentPrincipalExtensions
     /// <summary>May contribute content (post taskforce chat, author documents) = internal writers plus partner contributors, never read-only supervision or demo.</summary>
     public static bool MayContribute(this ClaimsPrincipal user) => user.MayWrite() || user.IsPartner();
 
-    /// <summary>Leadership = rank ≥ Supervisory Special Agent or admin.</summary>
+    /// <summary>Leadership = rank ≥ Special Agent in Charge or admin.</summary>
     public static bool IsLeadership(this ClaimsPrincipal user)
         => user.IsAdmin() || user.GetRank() is >= Rank.SpecialAgentInCharge;
 
@@ -152,9 +152,10 @@ public static class AgentPrincipalExtensions
     public static bool MayMeetingRead(this ClaimsPrincipal user)
         => user.MayHighestClassification() || user.IsOnlyReader();
 
-    /// <summary>May decide promotions = rank ≥ Deputy Director or admin.</summary>
+    /// <summary>Coarse gate for deciding promotions and handing out ranks = rank ≥ Section Chief or admin.</summary>
+    /// <remarks>Which agent and which rank is the fine gate, <see cref="PromotionRules"/>.</remarks>
     public static bool MayPromotionDecide(this ClaimsPrincipal user)
-        => user.IsAdmin() || user.GetRank() is >= Rank.DeputyDirector;
+        => user.IsAdmin() || user.GetRank() is >= PromotionRules.DeciderFloor;
 
     /// <summary>May move an agent between divisions = Board or admin. Sole source of this rule.</summary>
     public static bool MayDivisionSet(this ClaimsPrincipal user) => user.IsAdmin() || user.IsBoard();

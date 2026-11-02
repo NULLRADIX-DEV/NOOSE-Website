@@ -36,7 +36,7 @@ else
                     {
                         <tr><th>Dienstnummer</th><td>@_agent.BadgeNumber</td></tr>
                     }
-                    <tr><th>Dienstgrad</th><td>@RankDisplay.Name(_agent.Rank)</td></tr>
+                    <tr><th>Dienstgrad</th><td>@DivisionRules.RankName(_agent)</td></tr>
                     <tr><th>Status</th><td>@AgentStatusDisplay.Name(_agent.Status)</td></tr>
                     @if (_agent.IsTRU)
                     {

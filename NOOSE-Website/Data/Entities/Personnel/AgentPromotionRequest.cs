@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NOOSE_Website.Data.Entities.Personnel;
 
-/// <summary>A promotion request; leadership proposes a target rank, Deputy Director+/admin decides.</summary>
+/// <summary>A promotion request; leadership proposes a target rank, the Board and admins decide all, a Section Chief the own division.</summary>
 [Table("AgentBefoerderungsantraege")]
 public class AgentPromotionRequest : IAuditable, ISoftDelete
 {

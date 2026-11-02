@@ -5,16 +5,33 @@ namespace NOOSE_Website.Models.Enums;
 /// <summary>Display labels.</summary>
 public static class RankDisplay
 {
+    /// <summary>Neutral title for anything that leaves the house or is stored.</summary>
     public static string Name(Rank? rank) =>
         rank is { } r && EnumLabelText.Get(nameof(Rank), r.ToString()) is { } label ? label : DefaultName(rank);
+
+    /// <summary>Title as the house sees it: the HRT has its own for levels 2 to 5. Internal display only, outward text uses <see cref="Name(Rank?)"/>.</summary>
+    public static string Name(Rank? rank, Division? division)
+        => division == Division.Hrt && HrtTitle(rank) is { } title ? title : Name(rank);
+
+    /// <summary>HRT title of a rank; null outside the HRT levels (Special Agent up to Section Chief).</summary>
+    public static string? HrtTitle(Rank? rank) => rank switch
+    {
+        Rank.SpecialAgent => "Operator",
+        Rank.SeniorSpecialAgent => "Senior Operator",
+        Rank.SpecialAgentInCharge => "Leading Operator",
+        Rank.SectionChief => "Commanding Operator",
+        _ => null,
+    };
 
     /// <summary>Code-defined label, without DB override.</summary>
     public static string DefaultName(Rank? rank) => rank switch
     {
-        Rank.Trainee => "Junior Agent",
+        Rank.Trainee => "Trainee",
         Rank.SpecialAgent => "Special Agent",
         Rank.SeniorSpecialAgent => "Senior Special Agent",
-        Rank.SpecialAgentInCharge => "Supervisory Special Agent",
+        Rank.SpecialAgentInCharge => "Special Agent in Charge",
+        Rank.SectionChief => "Section Chief",
+        Rank.AssistantDirector => "Assistant Director",
         Rank.DeputyDirector => "Deputy Director",
         Rank.Director => "Director",
         _ => "— (kein Rang)",
@@ -27,6 +44,8 @@ public static class RankDisplay
         Rank.SpecialAgent,
         Rank.SeniorSpecialAgent,
         Rank.SpecialAgentInCharge,
+        Rank.SectionChief,
+        Rank.AssistantDirector,
         Rank.DeputyDirector,
         Rank.Director,
     };

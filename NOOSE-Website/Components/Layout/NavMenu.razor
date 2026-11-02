@@ -475,7 +475,7 @@
                     + (await AgentService.GetPendingNameChangesAsync()).Count
                     + (await AgentService.GetPendingAvatarsAsync()).Count
                     + (await TaskforceService.GetRequestedAsync()).Count
-                    + (await PersonnelFileService.GetOpenPromotionRequestsAsync()).Count;
+                    + await PersonnelFileService.CountOpenPromotionRequestsAsync(_user);
             }
             _openShares = open;
         }

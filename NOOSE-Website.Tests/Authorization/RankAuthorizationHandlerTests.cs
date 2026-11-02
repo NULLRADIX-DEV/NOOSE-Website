@@ -41,6 +41,8 @@ public class RankAuthorizationHandlerTests
     [InlineData(Rank.SpecialAgent)]
     [InlineData(Rank.SeniorSpecialAgent)]
     [InlineData(Rank.SpecialAgentInCharge)]
+    [InlineData(Rank.SectionChief)]
+    [InlineData(Rank.AssistantDirector)]
     [InlineData(Rank.DeputyDirector)]
     [InlineData(Rank.Director)]
     public async Task HandleAsync_AdminAgainstEveryMinimum_Succeeds(Rank minimum)
@@ -108,6 +110,11 @@ public class RankAuthorizationHandlerTests
     [InlineData(Rank.SeniorSpecialAgent, Rank.SpecialAgentInCharge, false)]
     [InlineData(Rank.SpecialAgentInCharge, Rank.SeniorSpecialAgent, true)]
     [InlineData(Rank.SpecialAgentInCharge, Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SpecialAgentInCharge, Rank.SectionChief, false)]
+    [InlineData(Rank.SectionChief, Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, Rank.SectionChief, true)]
+    [InlineData(Rank.SectionChief, Rank.AssistantDirector, false)]
+    [InlineData(Rank.AssistantDirector, Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, Rank.Director, false)]
     [InlineData(Rank.Director, Rank.Director, true)]
     public async Task HandleAsync_RankLadder_MatchesThreshold(Rank rank, Rank minimum, bool expected)

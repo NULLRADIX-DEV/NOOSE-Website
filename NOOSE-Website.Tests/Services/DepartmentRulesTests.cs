@@ -10,6 +10,8 @@ public class DepartmentRulesTests
     [InlineData(Rank.SpecialAgent)]
     [InlineData(Rank.SeniorSpecialAgent)]
     [InlineData(Rank.SpecialAgentInCharge)]
+    [InlineData(Rank.SectionChief)]
+    [InlineData(Rank.AssistantDirector)]
     [InlineData(Rank.DeputyDirector)]
     [InlineData(Rank.Director)]
     public void MayHold_FromSpecialAgentUpwards(Rank rank)

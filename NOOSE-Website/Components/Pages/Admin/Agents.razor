@@ -117,15 +117,23 @@ else
                 }
                 else
                 {
-                    <MudSelect T="Rank" Value="@(context.Rank ?? Rank.Trainee)"
-                               ValueChanged="@(degree => RankChange(context, degree))"
-                               Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                               Disabled="@(context.Status != AgentStatus.Active)">
-                        @foreach (var dg in RankDisplay.All)
-                        {
-                            <MudSelectItem Value="dg">@RankDisplay.Name(dg)</MudSelectItem>
-                        }
-                    </MudSelect>
+                    @if (RankOptions(context) is { Count: > 0 } options)
+                    {
+                        <MudSelect T="Rank" Value="@(context.Rank ?? Rank.Trainee)"
+                                   ValueChanged="@(degree => RankChange(context, degree))"
+                                   Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                                   Disabled="@(context.Status != AgentStatus.Active)">
+                            @foreach (var dg in options)
+                            {
+                                <MudSelectItem Value="dg">@RankDisplay.Name(dg, HomeOf(context))</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        @* nothing assignable: plain label *@
+                        <MudText Typo="Typo.body2">@RankDisplay.Name(context.Rank, HomeOf(context))</MudText>
+                    }
                 }
             </MudTd>
             <MudTd DataLabel="Status">
@@ -247,6 +255,7 @@ else
     private List<Agent> _agents = new();
     private string? _myId;
     private bool _amAdmin;
+    private PromotionStanding _standing;
     
     // Tabs: 0 active internal, 1 blocked, 2 team-lead, 3 partner. Partners show only in the partner tab.
     private int _tab;
@@ -299,6 +308,7 @@ else
         var user = (await AuthStateTask).User;
         _myId = user.GetAgentId();
         _amAdmin = user.IsAdmin();
+        _standing = PromotionStanding.Of(user);
         await LoadAsync();
     }
 
@@ -394,6 +404,17 @@ else
             Snackbar.Add(ex.Message, Severity.Error);
         }
         await LoadAsync();
+    }
+
+    /// <summary>Ranks the viewer may set, plus the current one.</summary>
+    private List<Rank> RankOptions(Agent agent)
+    {
+        var allowed = PromotionRules.AssignableRanks(_standing, HomeOf(agent), agent.Rank);
+        if (allowed.Count == 0)
+        {
+            return [];
+        }
+        return RankDisplay.All.Where(r => r == agent.Rank || allowed.Contains(r)).ToList();
     }
 
     /// <summary>Mirrors DepartmentRules.MayHold; a switch the service then refuses is a dialog that fails on save.</summary>

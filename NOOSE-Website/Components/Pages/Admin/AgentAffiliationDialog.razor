@@ -33,12 +33,21 @@
             }
             else
             {
-                <MudSelect T="Rank" @bind-Value="_rank" Label="Dienstgrad" Variant="Variant.Outlined" Dense="true">
-                    @foreach (var dg in RankDisplay.All)
-                    {
-                        <MudSelectItem Value="dg">@RankDisplay.Name(dg)</MudSelectItem>
-                    }
-                </MudSelect>
+                @if (_ranks.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                        Mit deinem Dienstgrad kannst du hier keinen Dienstgrad vergeben.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudSelect T="Rank" @bind-Value="_rank" Label="Dienstgrad" Variant="Variant.Outlined" Dense="true">
+                        @foreach (var dg in _ranks)
+                        {
+                            <MudSelectItem Value="dg">@RankDisplay.Name(dg)</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
             }
         </MudStack>
     </DialogContent>
@@ -50,6 +59,7 @@
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     [Parameter] public PartnerAgency? CurrentAgency { get; set; }
     [Parameter] public PartnerRank? CurrentPartnerRank { get; set; }
@@ -59,13 +69,17 @@
     private PartnerAgency _agency = PartnerAgency.DoJ;
     private PartnerRank _partnerRank = PartnerRank.Member;
     private Rank _rank = Rank.Trainee;
+    private IReadOnlyList<Rank> _ranks = [];
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        // a switch to internal is a CID release
+        var viewer = PromotionStanding.Of((await AuthStateTask).User);
+        _ranks = PromotionRules.AssignableRanks(viewer, Division.Cid, null);
         _isPartner = CurrentAgency is not null;
         _agency = CurrentAgency ?? PartnerAgency.DoJ;
         _partnerRank = CurrentPartnerRank ?? PartnerRank.Member;
-        _rank = CurrentRank ?? Rank.Trainee;
+        _rank = CurrentRank is { } current && _ranks.Contains(current) ? current : _ranks.FirstOrDefault(Rank.Trainee);
     }
 
     private void Confirm()

@@ -299,7 +299,7 @@
 
     private async Task InsertTemplate(DocumentTemplate t)
     {
-        var dienstgrad = User.GetRank() is { } rank ? RankDisplay.Name(rank) : null;
+        var dienstgrad = BewerbungTemplateRenderer.SenderRank(User.GetRank());
         var rendered = BewerbungTemplateRenderer.RenderForApplicant(t.ContentHtml, ApplicantName, dienstgrad);
         if (_editor is not null)
         {

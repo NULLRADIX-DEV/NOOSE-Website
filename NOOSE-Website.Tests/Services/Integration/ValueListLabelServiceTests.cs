@@ -69,6 +69,23 @@ public sealed class ValueListLabelServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SetAsync_AppliesToTheNewLevels_ByMemberName()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+
+        await svc.SetAsync("Rank", "SectionChief", "Abteilungsleiter", Leader);
+        await svc.SetAsync("Rank", "AssistantDirector", "Stellvertretender Direktor", Leader);
+
+        Assert.Equal("Abteilungsleiter", RankDisplay.Name(Rank.SectionChief));
+        Assert.Equal("Stellvertretender Direktor", RankDisplay.Name(Rank.AssistantDirector));
+        Assert.Equal("Section Chief", RankDisplay.DefaultName(Rank.SectionChief));
+        // the neighbours keep their code names
+        Assert.Equal("Special Agent in Charge", RankDisplay.Name(Rank.SpecialAgentInCharge));
+        Assert.Equal("Deputy Director", RankDisplay.Name(Rank.DeputyDirector));
+    }
+
+    [Fact]
     public async Task SetAsync_RejectsEmptyLabel()
     {
         using var ctx = new SqliteTestContext();

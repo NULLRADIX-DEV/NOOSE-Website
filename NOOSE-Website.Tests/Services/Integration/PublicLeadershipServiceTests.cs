@@ -90,7 +90,7 @@ public sealed class PublicLeadershipServiceTests
 
         var roster = await service.GetPublicAsync();
 
-        Assert.Equal(["Director", "Deputy Director", "Supervisory Special Agent"],
+        Assert.Equal(["Director", "Deputy Director", "Special Agent in Charge"],
             roster.Leadership.Select(t => t.Title).ToList());
         Assert.Equal("Zora Zett | Bert Berg | Albert Ast, Anna Alt",
             string.Join(" | ", roster.Leadership.Select(t => string.Join(", ", t.Cards.Select(c => c.Name)))));
@@ -425,6 +425,31 @@ public sealed class PublicLeadershipServiceTests
     }
 
     [Fact]
+    public async Task The_roster_prints_the_neutral_title_of_an_hrt_agent_never_the_hrt_one()
+    {
+        // the divisions never leave the house: a Leading Operator is a Special Agent in Charge out here
+        using var ctx = await SeededAsync(true,
+            Named("hrt-lead", Rank.SpecialAgentInCharge, "Hanna Hrt", a => a.Division = Division.Hrt),
+            Named("hrt-chief", Rank.SectionChief, "Hugo Hrt", a => a.Division = Division.Hrt),
+            Named("board", Rank.AssistantDirector, "Alma Board"),
+            Named("hrt-member", Rank.SpecialAgent, "Hedi Hrt", a => a.Division = Division.Hrt));
+        var service = NewService(ctx);
+
+        var roster = await service.GetPublicAsync();
+
+        Assert.Equal(["Assistant Director", "Section Chief", "Special Agent in Charge"],
+            roster.Leadership.Select(t => t.Title).ToList());
+        var shown = string.Join(" | ", roster.Leadership.Select(t => t.Title)
+            .Concat(roster.Leadership.SelectMany(t => t.Cards.Select(c => c.Name)))
+            .Concat(roster.Members.Select(m => m.Name)));
+        foreach (var hrtTitle in RankDisplay.All.Select(r => RankDisplay.HrtTitle(r)).OfType<string>())
+        {
+            Assert.DoesNotContain(hrtTitle, shown);
+        }
+        Assert.Equal(["Hedi Hrt"], roster.Members.Select(m => m.Name).ToList());
+    }
+
+    [Fact]
     public async Task Whoever_opts_out_is_simply_absent_at_once()
     {
         using var ctx = await SeededAsync();
@@ -435,7 +460,7 @@ public sealed class PublicLeadershipServiceTests
         await service.SetOwnHiddenAsync(true, Self("vize", Rank.DeputyDirector));
 
         var roster = await service.GetPublicAsync();
-        Assert.Equal(["Director", "Supervisory Special Agent"], roster.Leadership.Select(t => t.Title).ToList());
+        Assert.Equal(["Director", "Special Agent in Charge"], roster.Leadership.Select(t => t.Title).ToList());
         Assert.Equal(["Ärne Ahorn"], roster.Members.Select(m => m.Name).ToList());
         Assert.True(await service.IsOwnHiddenAsync(Self("junior", Rank.Trainee)));
         Assert.False(await service.IsOwnHiddenAsync(Self("special", Rank.SpecialAgent)));

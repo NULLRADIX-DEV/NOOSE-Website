@@ -22,7 +22,7 @@
                 @if (ShowRank)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
-                             Icon="@Icons.Material.Filled.MilitaryTech">@RankDisplay.Name(Agent.Rank)</MudChip>
+                             Icon="@Icons.Material.Filled.MilitaryTech">@DivisionRules.RankName(Agent)</MudChip>
                 }
                 @if (Agent.IsTRU)
                 {
