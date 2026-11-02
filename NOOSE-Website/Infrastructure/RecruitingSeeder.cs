@@ -91,8 +91,7 @@ public static class RecruitingSeeder
             "<p>Sehr geehrter BEWERBER,</p>" +
             "<p>im Rahmen der gegen Sie eingeleiteten Sicherheitsüberprüfung wurden Sachverhalte festgestellt, " +
             "die einer persönlichen Erörterung bedürfen.</p>" +
-            "<p>Die Anhörung wird am DATUM um UHRZEIT Uhr in der Government Facility des Federal Investigation " +
-            "Bureau 5020, Los Santos, San Andreas stattfinden.</p>" +
+            "<p>Die Anhörung wird am DATUM um UHRZEIT Uhr im FIB-Tower, Los Santos, San Andreas stattfinden.</p>" +
             SecurityClause() +
             "<p>Eine Missachtung der Sicherheitsauflagen führt zum sofortigen Entzug der Zutrittsberechtigung " +
             "und zum Ausschluss aus dem Auswahlverfahren.</p>" +
@@ -104,8 +103,8 @@ public static class RecruitingSeeder
             "<p>Sehr geehrter BEWERBER,</p>" +
             "<p>im Rahmen des laufenden Auswahlverfahrens ergeht hiermit die Einladung zu einem persönlichen " +
             "Vorstellungsgespräch.</p>" +
-            "<p>Das Auswahlverfahren wird am DATUM um UHRZEIT Uhr in der Government Facility des Federal Investigation " +
-            "Bureau 5020, Los Santos, San Andreas stattfinden. Bitte planen Sie sich viel Zeit ein.</p>" +
+            "<p>Das Auswahlverfahren wird am DATUM um UHRZEIT Uhr im FIB-Tower, Los Santos, San Andreas " +
+            "stattfinden. Bitte planen Sie sich viel Zeit ein.</p>" +
             "<p>Diese Einladung erfolgt ausdrücklich unter dem Vorbehalt der noch ausstehenden Ergebnisse der " +
             "Sicherheitsüberprüfung. Sollten im Rahmen dieser Überprüfung sicherheitsrelevante Erkenntnisse zutage " +
             "treten, verliert diese Einladung mit sofortiger Wirkung ihre Gültigkeit.</p>" +

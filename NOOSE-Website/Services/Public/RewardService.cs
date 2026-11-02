@@ -174,6 +174,7 @@ public class RewardService(
     {
         await RequireRewardViewAsync(cancellationToken);
         Permission.RequireCitizenPortal(actor);
+        receiptNumber = CaseNumbers.Normalize(receiptNumber);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // rooted for the same reason as GetOwnAsync: the receipt must survive the deletion of its tip

@@ -347,6 +347,22 @@ public sealed class PublicWantedServiceTests
     }
 
     [Fact]
+    public async Task ALegacyNooseNumber_StillOpensThePublishedNotice()
+    {
+        // posters printed before the rename carry NOOSE-FA-… and must keep resolving
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        await PublishedAsync(host);
+        var card = Assert.Single((await host.Service.GetBoardAsync()).Cards);
+        var legacy = card.CaseNumber.Replace("FIB-", "NOOSE-", StringComparison.Ordinal);
+
+        var detail = await host.Service.GetByCaseNumberAsync($" {legacy} ");
+
+        Assert.Equal(card.CaseNumber, detail!.CaseNumber);
+        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-FA-9999-0001"));
+    }
+
+    [Fact]
     public async Task ChangingTheThreatScore_DoesNotChangeThePublishedHazardLevel()
     {
         using var ctx = await SeededAsync();

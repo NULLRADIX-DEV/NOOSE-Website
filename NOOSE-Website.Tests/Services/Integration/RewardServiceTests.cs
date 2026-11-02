@@ -650,6 +650,24 @@ public sealed class RewardServiceTests
     }
 
     [Fact]
+    public async Task A_legacy_NOOSE_receipt_number_still_opens_the_receipt()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var (id, caseNumber) = await PublishedAsync(host);
+        await host.Bounty.AddOfficialAsync(id, 50_000m, KassenKonto.Gruengeld, null, Leader());
+        var tip = await WorkedTipAsync(host, caseNumber);
+        await FundAsync(host, KassenKonto.Gruengeld, 100_000m);
+        await host.Wanted.CapturedAsync(id, Leader());
+        var receipt = (await host.Reward.PayoutAsync(Split(id, (tip, 50_000m)), Leader())).Single();
+
+        var own = await host.Reward.GetReceiptAsync(receipt.Replace("FIB-", "NOOSE-", StringComparison.Ordinal), Citizen());
+
+        Assert.Equal(receipt, own!.ReceiptNumber);
+        Assert.Null(await host.Reward.GetReceiptAsync("NOOSE-BEL-2026-9999", Citizen()));
+    }
+
+    [Fact]
     public async Task The_module_gates_the_citizen_view_but_never_the_payout()
     {
         using var ctx = await SeededAsync(rewardOn: false);

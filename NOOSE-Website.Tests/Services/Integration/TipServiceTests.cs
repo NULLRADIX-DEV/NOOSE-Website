@@ -336,6 +336,24 @@ public sealed class TipServiceTests
     }
 
     [Fact]
+    public async Task A_legacy_NOOSE_number_still_opens_the_own_tip_and_the_notice_it_names()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var notice = await PublishedNoticeAsync(host);
+
+        // a poster from before the rename names the notice, a saved link names the tip
+        var caseNumber = await SubmitAsync(host, reference: notice.Replace("FIB-", "NOOSE-", StringComparison.Ordinal));
+        var legacy = caseNumber.Replace("FIB-", "NOOSE-", StringComparison.Ordinal);
+
+        var detail = await host.Service.GetOwnDetailAsync(legacy, Citizen());
+
+        Assert.Equal(caseNumber, detail!.CaseNumber);
+        Assert.Equal(notice, detail.WantedCaseNumber);
+        Assert.Null(await host.Service.GetOwnDetailAsync("NOOSE-H-2026-9999", Citizen()));
+    }
+
+    [Fact]
     public async Task Submitting_pings_the_configured_role_on_Discord_without_naming_the_citizen()
     {
         using var ctx = await SeededAsync();

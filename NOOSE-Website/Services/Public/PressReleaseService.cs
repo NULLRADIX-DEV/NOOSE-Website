@@ -44,6 +44,7 @@ public class PressReleaseService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
         // its own row read, NOT a lookup in the hub snapshot: that list is capped at HubLimit, so an older release
         // would answer "not published" at the permanent address its own Discord post points at
         if (!await modules.IsEnabledAsync(PublicModules.Press, cancellationToken))

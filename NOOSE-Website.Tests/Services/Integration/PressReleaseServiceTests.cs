@@ -171,6 +171,22 @@ public sealed class PressReleaseServiceTests
     }
 
     [Fact]
+    public async Task ALegacyNooseNumber_StillOpensThePublishedRelease()
+    {
+        // the permanent address of a release was posted to Discord before the rename
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        var number = (await host.Service.GetAllAsync(Leader())).Single(r => r.Id == id).CaseNumber!;
+        var legacy = number.Replace("FIB-", "NOOSE-", StringComparison.Ordinal);
+
+        var view = await host.Service.GetByCaseNumberAsync($" {legacy.ToLowerInvariant()} ");
+
+        Assert.Equal(number, view!.CaseNumber);
+        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-PM-2026-9999"));
+    }
+
+    [Fact]
     public async Task AChangedHeadline_ShowsAsADivergingDraft()
     {
         // the chip has to notice a title-only change, otherwise the panel calls a stale headline up to date
