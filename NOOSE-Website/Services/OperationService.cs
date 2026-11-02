@@ -233,14 +233,7 @@ public class OperationService(
     public async Task<List<ClassificationHistory>> GetClassificationHistoryAsync(string id, ViewerScope scope, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        if (!await Visibility.IsRecordVisibleAsync(db, nameof(Operation), id, scope, cancellationToken))
-        {
-            return new();
-        }
-        return await db.ClassificationHistory
-            .Where(e => e.EntityType == nameof(Operation) && e.EntityId == id)
-            .OrderByDescending(e => e.Timestamp)
-            .ToListAsync(cancellationToken);
+        return await ClassificationHelper.HistoryAsync(db, nameof(Operation), id, scope, cancellationToken);
     }
 
     // scope-filtered operation query

@@ -288,14 +288,7 @@ public class PersonGroupService(
     public async Task<List<ClassificationHistory>> GetClassificationHistoryAsync(string id, ViewerScope scope, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        if (!await Visibility.IsRecordVisibleAsync(db, nameof(PersonGroup), id, scope, cancellationToken))
-        {
-            return new();
-        }
-        return await db.ClassificationHistory
-            .Where(e => e.EntityType == nameof(PersonGroup) && e.EntityId == id)
-            .OrderByDescending(e => e.Timestamp)
-            .ToListAsync(cancellationToken);
+        return await ClassificationHelper.HistoryAsync(db, nameof(PersonGroup), id, scope, cancellationToken);
     }
 
     // scope-filtered group query

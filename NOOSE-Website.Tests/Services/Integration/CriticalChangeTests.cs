@@ -19,6 +19,7 @@ using NOOSE_Website.Models.Operations;
 using NOOSE_Website.Models.Parties;
 using NOOSE_Website.Models.People;
 using NOOSE_Website.Models.Taskforces;
+using NOOSE_Website.Models.Timeline;
 using NOOSE_Website.Services;
 using NOOSE_Website.Services.Public;
 using NSubstitute;
@@ -223,6 +224,77 @@ public sealed class CriticalChangeTests
         var change = Assert.Single(AuditDisplay.Parse(row.ChangesJson));
         Assert.Equal(CriticalChange.DeletionField, change.Field);
         Assert.Contains("NOOSE-P-2026-0042", change.New);
+    }
+
+    [Theory]
+    [InlineData(DocumentClassification.Leadership)]
+    [InlineData(DocumentClassification.Tru)]
+    [InlineData(DocumentClassification.Hrb)]
+    public async Task A_merge_into_a_restricted_file_keeps_it_unnamed_on_the_source(DocumentClassification level)
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("src", "Max Muster"));
+            db.People.Add(Seed.Person("dst", "Geheimer Kopf", p =>
+            {
+                p.CaseNumber = "NOOSE-P-2026-0042";
+                p.SecrecyLevel = level;
+            }));
+            db.SaveChanges();
+        }
+
+        await new PersonMergeService(ctx.Factory, Substitute.For<IPublicWantedService>())
+            .MergeAsync("src", "dst", Leader());
+
+        // source row is unrestricted, so its reason must not name the target
+        using var check = ctx.NewContext();
+        var reason = Assert.Single(check.AuditLogs.Where(a => a.EntityId == "src" && a.Action == AuditAction.Justified));
+        Assert.Contains("Duplikat", reason.ChangesJson);
+        Assert.DoesNotContain("Geheimer Kopf", reason.ChangesJson);
+        Assert.DoesNotContain("NOOSE-P-2026-0042", reason.ChangesJson);
+    }
+
+    [Theory]
+    [InlineData(null, "Raub", "Raub")]
+    [InlineData("", "Raub", "Raub")]
+    [InlineData("Mord", "Raub", "Mord")]
+    public async Task A_merge_keeps_the_wanted_flag_of_the_source_on_the_surviving_file(
+        string? targetReason, string sourceReason, string expected)
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("src", "Max Muster", p => { p.IsWanted = true; p.WantedReason = sourceReason; }));
+            db.People.Add(Seed.Person("dst", "Max Mustermann", p => p.WantedReason = targetReason));
+            db.SaveChanges();
+        }
+
+        await new PersonMergeService(ctx.Factory, Substitute.For<IPublicWantedService>())
+            .MergeAsync("src", "dst", Leader());
+
+        using var read = ctx.NewContext();
+        var survivor = read.People.Single(p => p.Id == "dst");
+        Assert.True(survivor.IsWanted);
+        Assert.Equal(expected, survivor.WantedReason);
+    }
+
+    [Fact]
+    public async Task A_merge_leaves_an_unwanted_target_unwanted_when_the_source_was_never_wanted()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.People.Add(Seed.Person("src", "Max Muster"));
+            db.People.Add(Seed.Person("dst", "Max Mustermann"));
+            db.SaveChanges();
+        }
+
+        await new PersonMergeService(ctx.Factory, Substitute.For<IPublicWantedService>())
+            .MergeAsync("src", "dst", Leader());
+
+        using var read = ctx.NewContext();
+        Assert.False(read.People.Single(p => p.Id == "dst").IsWanted);
     }
 
     // ---------- downgrading ----------
@@ -517,6 +589,36 @@ public sealed class CriticalChangeTests
         Assert.DoesNotContain(partnerView, e => e.Title == "Begründung");
     }
 
+    [Theory]
+    [MemberData(nameof(ClassifiedTypes))]
+    public async Task A_partner_sees_a_downgrade_without_its_reason(string type)
+    {
+        using var ctx = new SqliteTestContext();
+        SeedRecord(ctx, type, classification: Classification.SuspicionCase);
+        using (var db = ctx.NewContext())
+        {
+            db.PartnerShares.Add(new PartnerShare
+            {
+                EntityType = type, EntityId = Id, Agency = PartnerAgency.LSPD, IncludesChildren = true,
+            });
+            db.SaveChanges();
+        }
+        await ClassifyAsync(ctx, type, Classification.ReviewCase, Reason, Leader());
+        var partner = ClaimsPrincipalBuilder.Agent("p").AsPartner(PartnerAgency.LSPD, PartnerRank.Member).Build();
+
+        Assert.Equal(Reason, Assert.Single(await HistoryAsync(ctx, type, Leader())).Justification);
+        var shown = Assert.Single(await HistoryAsync(ctx, type, partner));
+        Assert.Equal(Classification.ReviewCase, shown.Value);
+        Assert.Null(shown.Justification);
+
+        var timeline = new TimelineService(ctx.Factory);
+        var internalView = await timeline.GetTimelineAsync(type, Id, Leader());
+        var partnerView = await timeline.GetTimelineAsync(type, Id, partner);
+        Assert.Equal(Reason, Assert.Single(internalView, e => e.Category == TimelineCategory.Classification).Detail);
+        Assert.Null(Assert.Single(partnerView, e => e.Category == TimelineCategory.Classification).Detail);
+        Assert.DoesNotContain(partnerView, e => Flatten(e).Contains(Reason));
+    }
+
     [Fact]
     public async Task Counter_intelligence_does_not_count_a_reason_as_a_second_write()
     {
@@ -763,6 +865,31 @@ public sealed class CriticalChangeTests
             _ => CriticalChange.TaskforceLevel(db.Taskforces.Single(x => x.Id == Id).IsClassified),
         };
     }
+
+    private static Task<List<ClassificationHistory>> HistoryAsync(SqliteTestContext ctx, string type, ClaimsPrincipal viewer)
+    {
+        var scope = ViewerScope.From(viewer);
+        return type switch
+        {
+            nameof(Person) => People(ctx).GetClassificationHistoryAsync(Id, scope),
+            nameof(Faction) => Factions(ctx).GetClassificationHistoryAsync(Id, scope),
+            nameof(PersonGroup) => Groups(ctx).GetClassificationHistoryAsync(Id, scope),
+            nameof(Party) => Parties(ctx).GetClassificationHistoryAsync(Id, scope),
+            nameof(Case) => Cases(ctx).GetClassificationHistoryAsync(Id, scope),
+            _ => Operations(ctx).GetClassificationHistoryAsync(Id, scope),
+        };
+    }
+
+    // every text an entry shows
+    private static string Flatten(ChronikEvent e)
+        => Flatten(e.Name, e.Title, e.Detail, e.ActorName, e.Changes);
+
+    private static string Flatten(TimelineEntry e)
+        => Flatten(e.Title, e.Detail, e.ActorName, null, e.Changes);
+
+    private static string Flatten(string? a, string? b, string? c, string? d, IReadOnlyList<AuditDisplay.FieldChange>? changes)
+        => string.Join("|", new[] { a, b, c, d }
+            .Concat(changes?.SelectMany(x => new[] { x.Field, x.Alt, x.New }) ?? []));
 
     private static List<AuditLog> AuditRows(SqliteTestContext ctx)
     {

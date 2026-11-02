@@ -135,7 +135,8 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
             .ToListAsync(cancellationToken))
         {
             raw.Add(new Raw(e.Timestamp, TimelineCategory.Classification,
-                $"Einstufung: {ClassificationDisplay.Name(e.Value)}", e.Justification, e.AgentName, e.AgentId, null, null));
+                $"Einstufung: {ClassificationDisplay.Name(e.Value)}", ClassificationHelper.JustificationFor(e.Justification, scope),
+                e.AgentName, e.AgentId, null, null));
         }
 
         // ---- 3) comments ----

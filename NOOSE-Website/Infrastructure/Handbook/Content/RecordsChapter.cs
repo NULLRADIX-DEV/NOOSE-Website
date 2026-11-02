@@ -133,7 +133,7 @@ internal static class RecordsChapter
                 Bei der Einstufung schreibst du ihn wie gewohnt in das Feld <em>Begründung</em>.</p>
                 <p>Der Grund steht danach als eigene Zeile <em>Begründung</em> im <strong>Zeitstrahl</strong>
                 der Akte und im Änderungsprotokoll unter <em>Nachweis</em>, direkt neben der Änderung, die er
-                erklärt. Partnerbehörden sehen diese Zeile nicht.</p>
+                erklärt. Partnerbehörden sehen den Grund nicht, auch nicht im Verlauf der Einstufung.</p>
                 <p>Eine Akte enger stellen, höher einstufen oder zur Fahndung ausschreiben braucht keinen
                 eigenen Grund. Eine öffentliche Ausschreibung zurückzuziehen verlangt ohnehin einen Grund.</p>
                 """,

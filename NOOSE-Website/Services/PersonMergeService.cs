@@ -283,6 +283,15 @@ public class PersonMergeService(
         // classified status carries over to the merged record
         var targetBecomesRestricted = !target.IsRestricted && source.IsClassified;
         target.IsClassified = target.IsClassified || source.IsClassified;
+        // wanted flag survives, else the merge lifts it with no reason
+        if (source.IsWanted)
+        {
+            target.IsWanted = true;
+            if (string.IsNullOrWhiteSpace(target.WantedReason))
+            {
+                target.WantedReason = source.WantedReason;
+            }
+        }
         // target's classification/life status left untouched (rank-gated)
 
         // leave a trail on the target record beyond the audit log
@@ -307,9 +316,8 @@ public class PersonMergeService(
 
         // ---- send source record to the trash (interceptor soft-deletes) ----
         db.People.Remove(source);
-        // the merge is the reason, so the source's own timeline says where it went
-        CriticalChange.NoteDeletion(db, nameof(Person), sourceId,
-            $"Zusammengeführt in „{target.Name}“ ({target.CaseNumber}).", actor);
+        // merge is the reason
+        CriticalChange.NoteDeletion(db, nameof(Person), sourceId, MergeReason(target), actor);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -321,4 +329,10 @@ public class PersonMergeService(
             await publicWanted.RetractForRecordAsync(targetId, "Akte als Verschlusssache eingestuft.", actor, cancellationToken);
         }
     }
+
+    /// <summary>Deletion reason on the source; names the target only when every agent may read it.</summary>
+    private static string MergeReason(Person target)
+        => target.IsRestricted
+            ? "Zusammengeführt in eine andere Akte (Duplikat)."
+            : $"Zusammengeführt in „{target.Name}“ ({target.CaseNumber}).";
 }
