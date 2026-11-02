@@ -34,10 +34,12 @@ public sealed record NooseiToolUse(string Name, int Count)
 /// conversation is reopened, which is the only place the reader can still see what was missing.</param>
 /// <param name="Degraded">Answered without record access.</param>
 /// <param name="UnsupportedNote">Case numbers the answer cites that no tool result backs, already phrased.</param>
+/// <param name="Proposals">Writes NOOSEI proposed under this answer, as stored; the agent executes or dismisses them.</param>
 public sealed record NooseiChatMessage(
     string Id, bool FromUser, string Text, string? Html, DateTime CreatedAt, bool IsError, long? QuotaTokens,
     IReadOnlyList<NooseiSource> Sources, IReadOnlyList<NooseiToolUse> Tools,
-    bool Truncated = false, bool Degraded = false, string? UnsupportedNote = null)
+    bool Truncated = false, bool Degraded = false, string? UnsupportedNote = null,
+    IReadOnlyList<NooseiProposal>? Proposals = null)
 {
     /// <summary>The agent's own message on its way into the list, before it comes back from storage.</summary>
     public static NooseiChatMessage FromAgent(string text)
@@ -207,6 +209,7 @@ public sealed class NooseiChatService(
 
         var context = NooseiToolContext.From(actor);
         var stamp = ScopeStamp(context.Scope);
+        var proposals = new NooseiProposalTray();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         if (mode == NooseiChatMode.Legal)
@@ -254,7 +257,7 @@ public sealed class NooseiChatService(
                 messages,
                 LoggedPrompt: trimmed,
                 Tools: tools.DefinitionsFor(mode),
-                ToolExecutor: (call, ct) => RunToolAsync(call, context, mode, progress, ct),
+                ToolExecutor: (call, ct) => RunToolAsync(call, context, mode, proposals, progress, ct),
                 ConversationId: conversation.Id,
                 EntityType: conversation.AnchorEntityType,
                 EntityId: conversation.AnchorEntityId),
@@ -286,7 +289,8 @@ public sealed class NooseiChatService(
             Sources(answer.Refs),
             answer.Truncated,
             answer.Degraded,
-            NooseiCitations.Notice(unsupported));
+            NooseiCitations.Notice(unsupported),
+            proposals);
         var stored = await AppendTurnAsync(db, conversation, turn, stamp, cancellationToken);
 
         return new NooseiTurn(conversation.Id, stored, answer.Charge.Status, answer.Charge.QuotaTokens,
@@ -316,7 +320,7 @@ public sealed class NooseiChatService(
     // ---- tools ----
 
     private async Task<NooseiToolOutcome> RunToolAsync(LlmToolCall call, NooseiToolContext context, NooseiChatMode mode,
-        IProgress<string>? progress, CancellationToken cancellationToken)
+        NooseiProposalTray proposals, IProgress<string>? progress, CancellationToken cancellationToken)
     {
         var tool = tools.Find(call.Name, mode);
         if (tool is null)
@@ -334,12 +338,42 @@ public sealed class NooseiChatService(
             return NooseiToolOutcome.Failed("Die Werkzeug-Parameter waren kein gültiges JSON. Bitte erneut versuchen.");
         }
 
+        // reserve in model order
+        var proposing = tool is INooseiProposingTool;
+        if (proposing && (string.IsNullOrEmpty(call.Id) || !proposals.TryReserve()))
+        {
+            return NooseiToolOutcome.Plain($"Kein Vorschlag angelegt: höchstens {NooseiProposalTray.Max} Vorschläge je Antwort.");
+        }
+
         progress?.Report(NooseiToolLabels.Progress(call.Name));
-        var result = await tool.InvokeAsync(arguments, context, cancellationToken);
+        NooseiToolResult result;
+        try
+        {
+            result = await tool.InvokeAsync(arguments, context, cancellationToken);
+        }
+        catch
+        {
+            if (proposing)
+            {
+                proposals.Release();
+            }
+            throw;
+        }
         // reported after the call, because only the result knows which record was actually reached
         if (Touched(result.Refs) is { } record)
         {
             progress?.Report($"NOOSEI hat {record} gelesen.");
+        }
+        if (proposing)
+        {
+            if (result.Proposal is { } proposal)
+            {
+                proposals.Fill(call.Id, proposal);
+            }
+            else
+            {
+                proposals.Release();
+            }
         }
         // a tool that answered "not found" answered; that belongs in the conversation, not in the barren list
         return new NooseiToolOutcome(result.Text, result.Refs);
@@ -471,7 +505,8 @@ public sealed class NooseiChatService(
         IReadOnlyList<NooseiSource> Sources,
         bool Truncated,
         bool Degraded,
-        string? Unsupported);
+        string? Unsupported,
+        NooseiProposalTray Proposals);
 
     /// <summary>How many records are kept under one answer. A single filter call may touch forty; three of them
     /// would bury the answer under chips and blow up the stored row for no gain.</summary>
@@ -587,6 +622,10 @@ public sealed class NooseiChatService(
             Truncated = turn.Truncated,
             Degraded = turn.Degraded,
             UnsupportedCitations = turn.Unsupported is { Length: > 0 } note ? Shorten(note, 300) : null,
+            // only calls that kept their row
+            ProposalsJson = NooseiProposalJson.Serialize(turn.Proposals.For(turn.NewMessages
+                .Where(m => m.Role == LlmRole.Tool && m.ToolCallId is { Length: > 0 } id && kept.Contains(id))
+                .Select(m => m.ToolCallId!))),
             CreatedAt = now,
         };
         db.NooseiMessages.Add(stored);
@@ -627,7 +666,7 @@ public sealed class NooseiChatService(
         var html = fromUser || string.IsNullOrWhiteSpace(text) ? null : MarkdownRenderer.ToSafeHtml(text);
         return new NooseiChatMessage(row.Id, fromUser, text, html, row.CreatedAt, row.IsError, row.QuotaTokens,
             ReadSources(row.SourcesJson), fromUser ? [] : tools ?? [],
-            row.Truncated, row.Degraded, row.UnsupportedCitations);
+            row.Truncated, row.Degraded, row.UnsupportedCitations, NooseiProposalJson.Read(row.ProposalsJson));
     }
 
     /// <summary>Answers stored before sources existed, and a row corrupted by hand, both render without chips.</summary>

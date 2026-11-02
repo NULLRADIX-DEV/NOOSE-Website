@@ -28,6 +28,11 @@ public static class NooseiToolLabels
         "liste_gesetzbuecher" => "NOOSEI sieht die Gesetzbücher durch …",
         "suche_gesetz" => "NOOSEI sucht in den Gesetzen …",
         "lies_gesetz" => "NOOSEI liest einen Paragrafen …",
+        "vorschlag_wiedervorlage" => "NOOSEI bereitet eine Wiedervorlage vor …",
+        "vorschlag_stichwort" => "NOOSEI bereitet Stichwörter vor …",
+        "vorschlag_aufgabe" => "NOOSEI bereitet eine Aufgabe vor …",
+        "vorschlag_beobachten" => "NOOSEI bereitet das Beobachten vor …",
+        "vorschlag_verknuepfung" => "NOOSEI bereitet eine Verknüpfung vor …",
         _ => "NOOSEI arbeitet …",
     };
 
@@ -53,6 +58,11 @@ public static class NooseiToolLabels
         "liste_gesetzbuecher" => "Gesetzbücher",
         "suche_gesetz" => "Gesetzessuche",
         "lies_gesetz" => "Paragraf gelesen",
+        "vorschlag_wiedervorlage" => "Vorschlag Wiedervorlage",
+        "vorschlag_stichwort" => "Vorschlag Stichwort",
+        "vorschlag_aufgabe" => "Vorschlag Aufgabe",
+        "vorschlag_beobachten" => "Vorschlag Beobachten",
+        "vorschlag_verknuepfung" => "Vorschlag Verknüpfung",
         _ => toolName,
     };
 }

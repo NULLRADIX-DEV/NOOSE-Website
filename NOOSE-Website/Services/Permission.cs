@@ -85,6 +85,15 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the actor owns this conversation, the AI owner included: reading a chat is not acting in it.</summary>
+    public static void RequireConversationOwner(ClaimsPrincipal actor, string ownerId)
+    {
+        if (!string.Equals(actor.GetAgentId(), ownerId, StringComparison.Ordinal))
+        {
+            throw new UnauthorizedAccessException("Diese Unterhaltung gehört einem anderen Agenten.");
+        }
+    }
+
     /// <summary>Require the actor may read NOOSEI quotas: their own always, anyone else's (or the whole roster,
     /// with no id) only with the classified-read scope. Read-only supervision keeps the bare numbers here; the
     /// behaviour analysis on top of them stays behind <see cref="RequireLeadershipNoReader"/>.</summary>

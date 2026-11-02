@@ -308,6 +308,14 @@ builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_W
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ExplainThreatScoreTool>();
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.MyRecordsTool>();
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.HandbookLookupTool>();
+// propose only; the executor writes
+builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ProposeFollowupTool>();
+builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ProposeTagTool>();
+builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ProposeJobTool>();
+builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ProposeWatchTool>();
+builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ProposeLinkTool>();
+builder.Services.AddScoped<INooseiProposalService, NooseiProposalService>();
+builder.Services.AddScoped<INooseiProposalExecutor, NooseiProposalExecutor>();
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.NooseiToolRegistry>();
 builder.Services.AddScoped<INooseiChatService, NooseiChatService>();
 builder.Services.AddScoped<ITextAssistService, TextAssistService>();

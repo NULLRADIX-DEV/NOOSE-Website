@@ -565,6 +565,9 @@ public static class ChangelogContent
                 + "das interne Menü.", "Öffentlich"),
             Fix("2.7.19-nicht-gefunden-reiter", "Auf der Seite für Adressen, die es nicht gibt, fehlten manchmal alle "
                 + "Reiter außer „Start“. Jetzt steht dort dieselbe Leiste wie auf der Startseite.", "Öffentlich"),
+            Neu("2.7.20-noosei-vorschlaege", "Bittest du NOOSEI um eine Wiedervorlage, ein Stichwort, eine Aufgabe, "
+                + "eine Verknüpfung oder das Beobachten einer Akte, erscheint unter der Antwort eine Karte. Erst dein "
+                + "Klick auf „Ausführen“ schreibt, mit deinen Rechten; „Verwerfen“ schließt sie.", "NOOSEI"),
         ]),
     ];
 }
