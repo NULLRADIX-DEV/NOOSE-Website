@@ -16,7 +16,7 @@ Live-Demo: **https://demo.noose.info**, dort sind nicht alle Funktionen verfügb
 | Geld und Material | Kasse, Asservatenkammer, Finanzierungsanträge |
 | Wissen | Dokumente mit VS-Stufen, Datei-Bibliothek, Gesetzbuch, Schwarzes Brett, Informanten |
 | Suche und Analyse | Volltextsuche über alles Sichtbare, Beziehungsgraph mit Pfadsuche, Bedrohungs-Score, Dashboard, Statistik, Lageberichte |
-| NOOSEI | KI-Assistent, der über Lesewerkzeuge in der Aktendatenbank nachsieht, Kurzbriefe je Akte, Schreibhilfe im Editor |
+| NOOSEI | KI-Assistent, der über Lesewerkzeuge in der Aktendatenbank nachsieht und Änderungen nur vorschlägt, die der Agent selbst ausführt; Kurzbriefe je Akte, Schreibhilfe im Editor |
 | Partnerbehörden | Lesezugriff für DoJ, LSPD und LSMD auf ausdrücklich freigegebene Akten |
 | Öffentlicher Bereich | Fahndungsboard mit Steckbriefen und Kopfgeld, Presse, Warnungen, Gefahrenlage, Organisationsprofile, Gesetzesauszüge, öffentliche Suche |
 | Bürgerkonto | Hinweise geben, eine Ergreifung melden, Belohnungen erhalten, Tickets an die Führung, Einspruch gegen eine Fahndung |

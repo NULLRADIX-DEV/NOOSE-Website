@@ -40,7 +40,9 @@ public sealed record NooseiToolContext(ClaimsPrincipal Actor, ViewerScope Scope)
 }
 
 /// <summary>German plain-text result of one tool call, already clipped, plus what it touched.</summary>
-public sealed record NooseiToolResult(string Text, IReadOnlyList<LlmContextRef>? Refs = null, bool IsError = false)
+/// <param name="Proposal">A write the agent may execute from a card under the answer; never written by the tool.</param>
+public sealed record NooseiToolResult(
+    string Text, IReadOnlyList<LlmContextRef>? Refs = null, bool IsError = false, NooseiProposal? Proposal = null)
 {
     /// <summary>Deliberately identical for "does not exist" and "you may not see it" — anything else turns
     /// every tool into an existence oracle for classified records.</summary>
@@ -50,7 +52,7 @@ public sealed record NooseiToolResult(string Text, IReadOnlyList<LlmContextRef>?
     public static NooseiToolResult Empty(string what) => new($"Keine {what} gefunden.");
 }
 
-/// <summary>One read capability NOOSEI may call. Every implementation filters by the actor's own scope.</summary>
+/// <summary>One capability NOOSEI may call: it reads, or prepares a card. Each filters by the actor's own scope.</summary>
 public interface INooseiTool
 {
     string Name { get; }
@@ -61,6 +63,9 @@ public interface INooseiTool
 
     Task<NooseiToolResult> InvokeAsync(JsonElement arguments, NooseiToolContext context, CancellationToken cancellationToken = default);
 }
+
+/// <summary>A tool that only prepares a card for the agent; it holds no write service.</summary>
+public interface INooseiProposingTool : INooseiTool;
 
 /// <summary>Caps every tool honours, so a single result cannot blow the context or the token budget.</summary>
 public static class NooseiLimits
@@ -97,6 +102,20 @@ public static class NooseiLimits
             && value.TryGetInt32(out var number)
                 ? Math.Clamp(number, 1, max)
                 : fallback;
+
+    /// <summary>Reads an integer argument unclamped; missing or wrong-typed yields null.</summary>
+    public static int? Number(JsonElement args, string name)
+        => args.ValueKind == JsonValueKind.Object
+            && args.TryGetProperty(name, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetInt32(out var number)
+                ? number
+                : null;
+
+    public static bool Flag(JsonElement args, string name)
+        => args.ValueKind == JsonValueKind.Object
+            && args.TryGetProperty(name, out var value)
+            && value.ValueKind == JsonValueKind.True;
 
     public static IReadOnlyList<string> Strings(JsonElement args, string name)
     {

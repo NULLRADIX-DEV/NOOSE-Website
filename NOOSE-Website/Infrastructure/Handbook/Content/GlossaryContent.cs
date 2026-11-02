@@ -404,7 +404,7 @@ internal static class GlossaryContent
 
         // --- tools ----------------------------------------------------------
         new("beg-noosei", "NOOSEI",
-            "Die KI der Behörde. Sie liest genau so viel wie du - und schreibt nie selbst in eine Akte.",
+            "Die KI der Behörde. Sie liest genau so viel wie du und schreibt nie selbst; Änderungen schlägt sie nur vor.",
             ArticleKey: "art-noosei"),
         new("beg-kontingent", "Kontingent",
             "Dein wöchentliches Guthaben für NOOSEI-Anfragen. Es füllt sich von selbst wieder auf.",

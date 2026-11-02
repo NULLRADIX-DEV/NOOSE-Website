@@ -1,0 +1,70 @@
+@* one proposed write under a NOOSEI answer; the parent executes it with the agent's own rights *@
+
+<MudPaper Outlined="true" Class="pa-3 mt-2" Style="border-radius:8px;">
+    <div class="d-flex align-center" style="gap:8px;">
+        <MudIcon Icon="@Icon" Size="Size.Small" Color="@(Proposal.IsOpen ? Color.Primary : Color.Default)" />
+        <MudText Typo="Typo.subtitle2" Class="flex-grow-1">@Proposal.Title</MudText>
+        @switch (Proposal.State)
+        {
+            case NooseiProposalState.Executed:
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success"
+                         Icon="@Icons.Material.Filled.Check">ausgeführt @Decided</MudChip>
+                break;
+            case NooseiProposalState.Dismissed:
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
+                         Icon="@Icons.Material.Filled.Close">verworfen @Decided</MudChip>
+                break;
+            default:
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">Vorschlag</MudChip>
+                break;
+        }
+    </div>
+    @foreach (var line in Proposal.Lines)
+    {
+        <div class="d-flex mt-1" style="gap:8px;">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="min-width:110px;">@line.Label</MudText>
+            <MudText Typo="Typo.body2"><MentionDisplay Text="@line.Value" /></MudText>
+        </div>
+    }
+    @if (Proposal.Warning is { Length: > 0 } warning)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-2">@warning</MudAlert>
+    }
+    @if (Proposal.IsOpen)
+    {
+        <div class="d-flex align-center mt-2" style="gap:8px;">
+            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Check" Disabled="Busy" OnClick="OnExecute">Ausführen</MudButton>
+            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                       Disabled="Busy" OnClick="OnDismiss">Verwerfen</MudButton>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Schreibt mit deinen Rechten.</MudText>
+        </div>
+    }
+    else if (Proposal.State == NooseiProposalState.Executed && Proposal.ResultHref is { } href)
+    {
+        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" Class="mt-1"
+                   StartIcon="@Icons.Material.Filled.OpenInNew" Href="@href">Öffnen</MudButton>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public NooseiProposal Proposal { get; set; } = default!;
+
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback OnExecute { get; set; }
+
+    [Parameter] public EventCallback OnDismiss { get; set; }
+
+    private string Icon => Proposal.Kind switch
+    {
+        NooseiProposalKind.Followup => Icons.Material.Filled.EventRepeat,
+        NooseiProposalKind.Tag => Icons.Material.Filled.LocalOffer,
+        NooseiProposalKind.Job => Icons.Material.Filled.AssignmentTurnedIn,
+        NooseiProposalKind.Watch => Icons.Material.Filled.Visibility,
+        NooseiProposalKind.Link => Icons.Material.Filled.Link,
+        _ => Icons.Material.Filled.Lightbulb,
+    };
+
+    private string Decided => Proposal.DecidedAt is { } at ? at.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : string.Empty;
+}

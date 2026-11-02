@@ -6002,6 +6002,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IstFehler");
 
+                    b.Property<string>("ProposalsJson")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Vorschlaege");
+
                     b.Property<long?>("QuotaTokens")
                         .HasColumnType("bigint")
                         .HasColumnName("KontingentTokens");

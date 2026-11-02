@@ -37,6 +37,10 @@ public class NooseiMessage
     [Column("Quellen")]
     public string? SourcesJson { get; set; }
 
+    /// <summary>Proposal cards under this answer and their state; never part of the replay.</summary>
+    [Column("Vorschlaege")]
+    public string? ProposalsJson { get; set; }
+
     [Column("KontingentTokens")]
     public long? QuotaTokens { get; set; }
 
