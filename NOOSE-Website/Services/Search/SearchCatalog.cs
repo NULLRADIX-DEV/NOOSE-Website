@@ -32,6 +32,7 @@ using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Taskforces;
+using NOOSE_Website.Data.Entities.Warrants;
 
 namespace NOOSE_Website.Services.Search;
 
@@ -412,6 +413,11 @@ public static class SearchCatalog
             Icons.Material.Filled.CoPresent, SearchHitShape.Record,
             SearchTraits.Quick | SearchTraits.Assistant,
             "/praesentationen/{0}"),
+        // found by case number and subject; deliberately no assistant trait, NOOSEI does not read warrants yet
+        new(nameof(Warrant), "Anordnung", "Anordnungen", SearchGroup.Records,
+            Icons.Material.Filled.Approval, SearchHitShape.Record,
+            SearchTraits.None,
+            "/anordnungen/{0}"),
     ];
 
     /// <summary>Entities deliberately left out of the search, each with the reason.</summary>

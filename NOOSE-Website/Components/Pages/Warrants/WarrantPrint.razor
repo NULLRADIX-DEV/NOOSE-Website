@@ -1,0 +1,89 @@
+@* The paper to show in roleplay: what is ordered, against whom, on which legal basis, signed by whom and until when. *@
+@page "/anordnungen/{Id}/druck"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@layout PrintLayout
+@inject IWarrantService WarrantService
+
+<PageTitle>@(_view is null ? "Druckansicht" : $"Anordnung {_view.Warrant.CaseNumber}") · NOOSE</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Diese Anordnung existiert nicht (mehr).</MudAlert>
+}
+else if (!WarrantRules.WasSigned(_view.Warrant))
+{
+    @* an unsigned request must never look like a paper *@
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Diese Anordnung ist nicht unterzeichnet; eine Druckansicht gibt es erst mit der Unterschrift der Führung.
+    </MudAlert>
+}
+else
+{
+    var w = _view.Warrant;
+    <PrintFrame Title="@WarrantTypeDisplay.Name(w.Type)" BackHref="@($"/anordnungen/{Id}")" BackText="Zurück zur Anordnung"
+                PrintedBy="@_printBy" IsClassified="false"
+                Footer="@($"Amtliches Schriftstück der NOOSE · {w.CaseNumber} · Gilt nur im angegebenen Zeitraum und nur ohne Vermerk der Aufhebung.")">
+        @if (_view.State != WarrantState.Valid)
+        {
+            <p><span class="druck-poster-warnung">Ungültig – @WarrantStateDisplay.Name(_view.State)</span></p>
+        }
+
+        <section>
+            <table class="druck-felder">
+                <tbody>
+                    <tr><th>Aktenzeichen</th><td>@w.CaseNumber</td></tr>
+                    <tr><th>Betroffene Person</th><td>@_view.PersonName</td></tr>
+                    <tr><th>Gültig ab</th><td>@w.ValidFrom?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td></tr>
+                    <tr><th>Gültig bis</th><td>@w.ValidUntil?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td></tr>
+                    @if (w.CancelledAt is { } cancelled)
+                    {
+                        <tr><th>Aufgehoben am</th><td>@cancelled.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td></tr>
+                    }
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Anordnung</h2>
+            <p>@WarrantTypeDisplay.Order(w.Type)</p>
+            <div class="druck-mehrzeilig">@w.Subject</div>
+        </section>
+
+        <section>
+            <h2>Rechtsgrundlage</h2>
+            @foreach (var line in WarrantRules.LegalBasisLines(w))
+            {
+                <div>@line</div>
+            }
+        </section>
+
+        <section>
+            <h2>Unterschrift</h2>
+            <p>
+                gez. @(w.DeciderName ?? "—")@(w.DeciderRank is { } rank ? $", {RankDisplay.Name(rank)}" : string.Empty)<br />
+                National Office of Security Enforcement, @(w.DecidedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"))
+            </p>
+        </section>
+    </PrintFrame>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private string? _printBy;
+    private WarrantView? _view;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _printBy = user.GetCodename();
+        _view = await WarrantService.GetAsync(Id, user);
+        _load = false;
+    }
+}

@@ -73,6 +73,8 @@ public static class NavCatalog
             Description: "Vertrauliche Quellen (V-Personen) mit Treffen-Protokollen"),
         new NavEntry("entfuehrungen", "/entfuehrungen", Icons.Material.Filled.PersonOff, "Entführungen", NavSection.Fahndung, NavArea.Ermittlung,
             Description: "Entführungen von NOOSE-Agenten: Täter, Informationsabfluss und kompromittierte Akten"),
+        new NavEntry("anordnungen", "/anordnungen", Icons.Material.Filled.Approval, "Anordnungen", NavSection.Fahndung, NavArea.Ermittlung,
+            Description: "Durchsuchungs-, Beschlagnahme- und Festnahmeanordnungen beantragen, unterzeichnen und drucken"),
 
         new NavEntry("dokumente", "/dokumente", Icons.Material.Filled.MenuBook, "Dokumenten-Bibliothek", NavSection.Wissen, NavArea.Ermittlung,
             Description: "Zentrale Ablage aller behördlichen Dokumente"),

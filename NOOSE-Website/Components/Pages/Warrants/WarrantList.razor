@@ -1,0 +1,119 @@
+@page "/anordnungen"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@inject IWarrantService WarrantService
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Anordnungen · NOOSE</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.Approval"
+            Title="Anordnungen"
+            Subtitle="Durchsuchungs-, Beschlagnahme- und Festnahmeanordnungen: beantragt von Agenten, unterzeichnet von der Führung, zum Vorzeigen im Rollenspiel.">
+    <Actions>
+        @if (_mayRequest)
+        {
+            <MudButton Href="/anordnungen/neu" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">Anordnung beantragen</MudButton>
+        }
+    </Actions>
+</PageHeader>
+
+<RecordSectionRail HideRailWhenSingle="true">
+    <RecordSection Slug="uebersicht" Label="Übersicht" Icon="@Icons.Material.Filled.FormatListBulleted">
+        <MudStack Spacing="3">
+            <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Class="flex-wrap">
+                <MudSelect T="WarrantState?" Value="_state" ValueChanged="StateChangedAsync" Label="Status"
+                           Variant="Variant.Outlined" Dense="true" Style="min-width:200px; max-width:260px;">
+                    <MudSelectItem T="WarrantState?" Value="null">Alle</MudSelectItem>
+                    @foreach (var state in WarrantStateDisplay.All)
+                    {
+                        <MudSelectItem T="WarrantState?" Value="state">@WarrantStateDisplay.Name(state)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" Value="_text" ValueChanged="TextChangedAsync" Label="Suchen"
+                              Placeholder="Aktenzeichen, Person oder Gegenstand" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Immediate="true" DebounceInterval="250" Clearable="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:360px;" />
+            </MudStack>
+
+            @if (_load)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (Shown.Count == 0)
+            {
+                <EmptyState Icon="@Icons.Material.Filled.Approval" Title="Keine Anordnungen"
+                            Text="Eine Anordnung beantragst du hier oder direkt an der Personenakte im Abschnitt Anordnungen." />
+            }
+            else
+            {
+                <WarrantTable Rows="Shown" />
+            }
+        </MudStack>
+    </RecordSection>
+    <AuthorizeView Policy="@Policies.LeadershipPage" Context="trash">
+        <RecordSection Slug="papierkorb" Label="Papierkorb" Icon="@Icons.Material.Filled.Delete">
+            <TrashPanel Kind="anordnungen" />
+        </RecordSection>
+    </AuthorizeView>
+</RecordSectionRail>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _mayRequest;
+    private WarrantState? _state;
+    private string? _text;
+    private List<WarrantView> _rows = new();
+    // only the newest load may write the rows
+    private int _generation;
+
+    private IReadOnlyList<WarrantView> Shown => string.IsNullOrWhiteSpace(_text)
+        ? _rows
+        : _rows.Where(r => Matches(r, _text.Trim())).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayRequest = _user.MayWarrantRequest();
+        _state = QueryState.ReadEnum<WarrantState>(Nav, "status");
+        _text = QueryState.Read(Nav, "q");
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var generation = ++_generation;
+        _load = true;
+        var rows = await WarrantService.GetListAsync(_state, _user);
+        if (generation != _generation)
+        {
+            return;
+        }
+        _rows = rows;
+        _load = false;
+    }
+
+    private async Task StateChangedAsync(WarrantState? state)
+    {
+        _state = state;
+        await WriteQueryAsync();
+        await LoadAsync();
+    }
+
+    private async Task TextChangedAsync(string? text)
+    {
+        _text = text;
+        await WriteQueryAsync();
+    }
+
+    private Task WriteQueryAsync()
+        => QueryState.WriteAsync(JS, Nav, ("status", _state?.ToString()), ("q", _text));
+
+    private static bool Matches(WarrantView row, string text)
+        => row.Warrant.CaseNumber.Contains(text, StringComparison.OrdinalIgnoreCase)
+           || row.PersonName.Contains(text, StringComparison.OrdinalIgnoreCase)
+           || row.Warrant.Subject.Contains(text, StringComparison.OrdinalIgnoreCase);
+}

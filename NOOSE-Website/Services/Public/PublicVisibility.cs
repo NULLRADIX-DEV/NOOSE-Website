@@ -159,6 +159,8 @@ public static class PublicVisibility
             ["Observation"] = Operational,
             ["AgentAbduction"] = Operational,
             ["AbductionCompromise"] = Operational,
+            ["Warrant"] = "Anordnung an einer Person; sie wird im Rollenspiel ausgedruckt vorgezeigt, nie über die "
+                + "Seite veröffentlicht.",
             ["EvidenceItem"] = Operational,
             ["EvidenceEntry"] = Operational,
             ["EvidenceEntryLine"] = Operational,

@@ -30,6 +30,7 @@ public static class SearchProviderRegistration
         services.AddScoped<ISearchProvider, EvidenceEntrySearchProvider>();
         services.AddScoped<ISearchProvider, KassenBuchungSearchProvider>();
         services.AddScoped<ISearchProvider, FinancingRequestSearchProvider>();
+        services.AddScoped<ISearchProvider, WarrantSearchProvider>();
 
         // Inhalte
         services.AddScoped<ISearchProvider, AgentActivitySearchProvider>();

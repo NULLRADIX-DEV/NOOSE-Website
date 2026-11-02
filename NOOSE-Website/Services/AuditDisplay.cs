@@ -4,6 +4,7 @@ using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Radio;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services;
@@ -35,6 +36,8 @@ public static class AuditDisplay
         "ReportFrom",
         // decoration ids and rank snapshots; a decoration switch is logged by name by hand
         "DecorationId", "AnnouncementId", "AwardedById", "RecipientRank", "SignatoryRank",
+        // a warrant's decider is logged by name; the cited paragraphs by their snapshot text
+        "DeciderId", "DeciderRank", "LawIds",
     };
 
     // Document bodies, layouts and score snapshots are unreadable as a before/after pair and swamp
@@ -111,6 +114,10 @@ public static class AuditDisplay
         ["AwardedByName"] = "Verliehen von", ["SignatoryName"] = "Unterzeichner",
         ["RevokedAt"] = "Aberkannt am", ["RevokedByName"] = "Aberkannt von", ["RevocationReason"] = "Grund der Aberkennung",
         ["Symbol"] = "Symbol", ["Tier"] = "Stufe", ["IsActive"] = "Aktiv", ["Order"] = "Reihenfolge",
+        ["LegalBasis"] = "Rechtsgrundlage", ["ValidityDays"] = "Gültigkeit (Tage)",
+        ["ValidFrom"] = "Gültig ab", ["ValidUntil"] = "Gültig bis", ["DecisionNote"] = "Entscheidungsnotiz",
+        ["CancelledAt"] = "Aufgehoben am", ["CancelledByName"] = "Aufgehoben von",
+        ["CancellationReason"] = "Grund der Aufhebung",
     };
 
     // whole-day values carry no instant, so they must never be shifted into a time zone
@@ -126,6 +133,30 @@ public static class AuditDisplay
         "DueDate", "DueAt", "DoneAt", "CompletedAt", "ScoreCalculatedAt", "AcknowledgedAt", "DecidedAt",
         "RevokedAt",
     };
+
+    // qualified: a public warning's ValidUntil is a calendar day and must not be shifted
+    private static readonly HashSet<string> WarrantInstantFields = new(StringComparer.Ordinal)
+    {
+        "ValidFrom", "ValidUntil", "CancelledAt",
+    };
+
+    private static bool IsInstant(string field, string? entityType)
+        => InstantFields.Contains(field) || (entityType == nameof(Warrant) && WarrantInstantFields.Contains(field));
+
+    // qualified: a ticket's Subject is its title, not what an order covers
+    private static readonly Dictionary<string, string> WarrantLabels = new(StringComparer.Ordinal)
+    {
+        ["Subject"] = "Gegenstand", ["Justification"] = "Begründung", ["RequesterName"] = "Beantragt von",
+    };
+
+    private static string LabelOf(string field, string? entityType)
+        => entityType == nameof(Warrant) && WarrantLabels.TryGetValue(field, out var label)
+            ? label
+            : Labels.GetValueOrDefault(field, field);
+
+    // a warrant's case is an id like its person; the page links both
+    private static bool IsHiddenFor(string field, string? entityType)
+        => entityType == nameof(Warrant) && field == "CaseId";
 
     /// <summary>Parses JSON into field changes; empty on null/invalid.
     /// <paramref name="maxValueLength"/> above zero clips long values — for feeds, not for the audit log itself.
@@ -154,13 +185,13 @@ public static class AuditDisplay
         var list = new List<FieldChange>();
         foreach (var (field, values) in raw)
         {
-            if (Hidden.Contains(field) || IsPayload(field, entityType))
+            if (Hidden.Contains(field) || IsPayload(field, entityType) || IsHiddenFor(field, entityType))
             {
                 continue;
             }
             var alt = Clip(values.Length > 0 ? Format(field, values[0], entityType) : "—", maxValueLength);
             var @new = Clip(values.Length > 1 ? Format(field, values[1], entityType) : "—", maxValueLength);
-            list.Add(new FieldChange(Labels.GetValueOrDefault(field, field), alt, @new));
+            list.Add(new FieldChange(LabelOf(field, entityType), alt, @new));
         }
         return list;
     }
@@ -197,7 +228,7 @@ public static class AuditDisplay
                 {
                     return dayTime.ToString("dd.MM.yyyy");
                 }
-                if (InstantFields.Contains(field)
+                if (IsInstant(field, entityType)
                     && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dt))
                 {
                     return dt.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
@@ -225,6 +256,8 @@ public static class AuditDisplay
         "Status" when entityType == nameof(Ticket) => TicketStatusDisplay.Name((TicketStatus)n),
         "ClosingReason" when entityType == nameof(Ticket)
             => TicketAbschlussgrundDisplay.Name((TicketAbschlussgrund)n),
+        "Status" when entityType == nameof(Warrant) => WarrantStatusDisplay.Name((WarrantStatus)n),
+        "Type" when entityType == nameof(Warrant) => WarrantTypeDisplay.Name((WarrantType)n),
         _ => n.ToString(),
     };
 

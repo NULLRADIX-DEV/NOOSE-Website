@@ -180,6 +180,28 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to request a warrant: an internal agent who may write.</summary>
+    public static void RequireWarrantRequest(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayWarrantRequest())
+        {
+            throw new UnauthorizedAccessException(
+                "Anordnungen beantragen nur aktive interne Agenten.");
+        }
+    }
+
+    /// <summary>Require the right to sign, refuse or cancel a warrant; write guard ahead of the rank guard.</summary>
+    public static void RequireWarrantSign(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayWarrantSign())
+        {
+            throw new UnauthorizedAccessException(
+                "Anordnungen unterzeichnet nur die Führung (ab Supervisory Special Agent) oder ein Admin.");
+        }
+    }
+
     /// <summary>Require highest classification right.</summary>
     public static void RequireHighestClassification(ClaimsPrincipal actor)
     {

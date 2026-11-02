@@ -43,6 +43,7 @@ public static class AuditEntityDisplay
         "TextSnippet" => "Textbaustein",
         "KassenBuchung" => "Kassenbuchung",
         "FinancingRequest" => "Finanzierungsantrag",
+        "Warrant" => "Anordnung",
         "FinancingRequestLine" => "Finanzierungsposition (Antrag)",
         "FinancingItem" => "Finanzierungs-Katalogposition",
         "FinancingBudgetConfig" => "Finanzierungs-Budgets",
@@ -114,6 +115,7 @@ public static class AuditEntityDisplay
         "TextSnippet" => "/profil",
         "KassenBuchung" => $"/kasse/buchung/{id}",
         "FinancingRequest" => $"/finanzierungen/{id}",
+        "Warrant" => $"/anordnungen/{id}",
         // catalog positions and config have no own page; point at the section that edits them
         "FinancingItem" => "/finanzierungen?tab=katalog",
         "FinancingBudgetConfig" => "/einstellungen?tab=finanzierung",

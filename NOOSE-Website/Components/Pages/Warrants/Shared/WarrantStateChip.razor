@@ -1,0 +1,8 @@
+@* State of a warrant as a chip; expiry is already computed into the state. *@
+
+<MudChip T="string" Size="Size.Small" Color="@WarrantStateDisplay.ChipColor(State)"
+         Icon="@WarrantStateDisplay.Icon(State)" Class="ma-0">@WarrantStateDisplay.Name(State)</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public WarrantState State { get; set; }
+}

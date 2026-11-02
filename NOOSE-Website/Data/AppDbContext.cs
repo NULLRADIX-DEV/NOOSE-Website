@@ -34,6 +34,7 @@ using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Infrastructure.Audit;
@@ -148,6 +149,9 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<FinancingRequest> FinancingRequests => Set<FinancingRequest>();
     public DbSet<FinancingRequestLine> FinancingRequestLines => Set<FinancingRequestLine>();
     public DbSet<FinancingBudgetPeriod> FinancingBudgetPeriods => Set<FinancingBudgetPeriod>();
+
+    // ---- warrants (search, seizure, arrest orders) ----
+    public DbSet<Warrant> Warrants => Set<Warrant>();
 
     // ---- NOOSEI token quota (request log, weekly ledger, manual corrections) ----
     public DbSet<LlmRequestLog> LlmRequests => Set<LlmRequestLog>();
@@ -1159,6 +1163,31 @@ public class AppDbContext : IdentityDbContext<Agent>
             // Restrict FK to identity Agent (no cascade from the user table)
             b.HasOne(x => x.Agent).WithMany()
                 .HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Warrant>(b =>
+        {
+            b.Property(x => x.CaseNumber).HasMaxLength(32).IsRequired();
+            b.Property(x => x.PersonId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.CaseId).HasMaxLength(64);
+            b.Property(x => x.Subject).HasMaxLength(1000).IsRequired();
+            b.Property(x => x.Justification).HasMaxLength(2000).IsRequired();
+            b.Property(x => x.LegalBasis).HasMaxLength(2000).IsRequired();
+            b.Property(x => x.LawIds).HasMaxLength(1000).IsRequired();
+            b.Property(x => x.RequesterName).HasMaxLength(128);
+            b.Property(x => x.DeciderId).HasMaxLength(255);
+            b.Property(x => x.DeciderName).HasMaxLength(128);
+            b.Property(x => x.DecisionNote).HasMaxLength(1000);
+            b.Property(x => x.CancelledByName).HasMaxLength(128);
+            b.Property(x => x.CancellationReason).HasMaxLength(1000);
+            // two deciders at once: the later save matches no row instead of overwriting the first
+            b.Property(x => x.Status).IsConcurrencyToken();
+            b.HasIndex(x => x.CaseNumber).IsUnique();
+            b.HasIndex(x => x.PersonId);
+            b.HasIndex(x => x.CaseId);
+            b.HasIndex(x => x.Status);
+            b.HasOne<Person>().WithMany().HasForeignKey(x => x.PersonId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Case>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<FinancingRequestLine>(b =>

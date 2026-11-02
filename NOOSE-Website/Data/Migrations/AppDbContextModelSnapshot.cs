@@ -17,7 +17,7 @@ namespace NOOSE_Website.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.21")
+                .HasAnnotation("ProductVersion", "9.0.22")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -11565,6 +11565,155 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("TaskforceNachrichten");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Warrants.Warrant", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Aufhebungsgrund");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AufgehobenAm");
+
+                    b.Property<string>("CancelledByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AufgehobenVonName");
+
+                    b.Property<string>("CaseId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("VorgangId");
+
+                    b.Property<string>("CaseNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("Aktenzeichen");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("EntschiedenAm");
+
+                    b.Property<string>("DeciderId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("EntscheiderId");
+
+                    b.Property<string>("DeciderName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("EntscheiderName");
+
+                    b.Property<int?>("DeciderRank")
+                        .HasColumnType("int")
+                        .HasColumnName("EntscheiderDienstgrad");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Entscheidungsnotiz");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<string>("Justification")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Begruendung");
+
+                    b.Property<string>("LawIds")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("GesetzIds");
+
+                    b.Property<string>("LegalBasis")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Rechtsgrundlage");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("PersonId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<string>("RequesterName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AntragstellerName");
+
+                    b.Property<int>("Status")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Gegenstand");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int")
+                        .HasColumnName("Art");
+
+                    b.Property<DateTime?>("ValidFrom")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GueltigAb");
+
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GueltigBis");
+
+                    b.Property<int>("ValidityDays")
+                        .HasColumnType("int")
+                        .HasColumnName("GueltigkeitTage");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("CaseNumber")
+                        .IsUnique();
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("Anordnungen");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Watchlist.WatchlistEntry", b =>
                 {
                     b.Property<string>("Id")
@@ -13188,6 +13337,20 @@ namespace NOOSE_Website.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Taskforce");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Warrants.Warrant", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Cases.Case", null)
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NOOSE_Website.Data.Entities.People.Person", null)
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Watchlist.WatchlistEntry", b =>

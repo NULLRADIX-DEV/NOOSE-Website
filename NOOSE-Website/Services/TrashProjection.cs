@@ -22,6 +22,7 @@ using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Models.Activities;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Informants;
+using NOOSE_Website.Models.Warrants;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Public;
 using FeedbackEntity = NOOSE_Website.Data.Entities.Feedback.Feedback;
@@ -100,6 +101,10 @@ public static class TrashProjection
     public static TrashItem FinancingRequest(FinancingRequest x)
         => new("finanzierungen", x.Id, x.CaseNumber, FinancingStatusDisplay.Name(x.Status),
             Join(Money.Format(x.ApprovedSubsidy ?? x.RequestedSubsidy), $"{x.Lines.Count} Positionen"), x.DeletedAt);
+
+    public static TrashItem Warrant(WarrantView x)
+        => new("anordnungen", x.Warrant.Id, x.Warrant.CaseNumber, WarrantTypeDisplay.Name(x.Warrant.Type),
+            Join(x.PersonName, WarrantStateDisplay.Name(x.State)), x.Warrant.DeletedAt);
 
     // feedback carries no Aktenzeichen; the kind plus a text snippet identifies the row
     public static TrashItem Feedback(FeedbackEntity x)
