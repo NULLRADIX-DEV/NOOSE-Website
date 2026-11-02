@@ -1,9 +1,12 @@
+using System.Data.Common;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Infrastructure.Followups;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Data.Entities.People;
@@ -610,6 +613,175 @@ public sealed class FollowupPlanTests
         // not yet: the new due date is tomorrow
         Assert.Equal(0, await svc.EscalateOverdueAsync(Now));
         Assert.Equal(1, await svc.EscalateOverdueAsync(Now.AddDays(FollowupPlanRules.EscalateAfterDays + 2)));
+    }
+
+    // ---------- races with the worker ----------
+
+    // one concurrent write after the load, before the save
+    private sealed class BeforeSave(Func<Task> concurrent) : SaveChangesInterceptor
+    {
+        private Func<Task>? _pending = concurrent;
+
+        public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(DbContextEventData eventData,
+            InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Exchange(ref _pending, null) is { } run)
+            {
+                await run();
+            }
+            return result;
+        }
+    }
+
+    // one concurrent write before the first bulk update
+    private sealed class BeforeFirstUpdate(Func<Task> concurrent) : DbCommandInterceptor
+    {
+        private Func<Task>? _pending = concurrent;
+
+        public override async ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)
+                && Interlocked.Exchange(ref _pending, null) is { } run)
+            {
+                await run();
+            }
+            return result;
+        }
+    }
+
+    private static FollowupService BuildWith(SqliteTestContext ctx, IInterceptor interceptor,
+        INotificationService? notifications = null)
+        => new(new TestDbContextFactory(new DbContextOptionsBuilder<Data.AppDbContext>()
+                .UseSqlite(ctx.Connection)
+                .AddInterceptors(interceptor)
+                .Options),
+            notifications ?? Substitute.For<INotificationService>());
+
+    private static IWatchlistService NoFollowers()
+    {
+        var watchlist = Substitute.For<IWatchlistService>();
+        watchlist.GetFollowerIdsAsync(default!, default!, default).ReturnsForAnyArgs(_ => Task.FromResult(new List<string>()));
+        return watchlist;
+    }
+
+    private static async Task<int> RunRemindersAsync(SqliteTestContext ctx, INotificationService notifications,
+        IWatchlistService? watchlist = null)
+    {
+        await using var db = ctx.NewContext();
+        return await FollowupDueWorker.NotifyDueAsync(db, notifications, watchlist ?? NoFollowers(), Now, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task A_postpone_saved_before_the_escalation_claim_stops_the_escalation()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            SeedLeadership(db);
+            db.People.Add(Seed.Person("p1"));
+            db.Followups.Add(Due("f", "p1", "junior", Now.AddDays(-20)));
+            db.SaveChanges();
+        }
+        var notifications = Substitute.For<INotificationService>();
+        var svc = BuildWith(ctx, new BeforeFirstUpdate(() => Build(ctx).PostponeAsync("f", 1, Junior("junior"))),
+            notifications);
+
+        Assert.Equal(0, await svc.EscalateOverdueAsync(Now));
+
+        var f = Read(ctx, "f");
+        Assert.True(f.DueAt > Now);
+        Assert.Null(f.EscalatedAt);
+        await notifications.DidNotReceiveWithAnyArgs().NotifyManyOnceAsync(default!, default, default!, default, default);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Moving_the_due_date_rearms_stamps_the_worker_claimed_after_the_load(bool postpone)
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            SeedLeadership(db);
+            db.People.Add(Seed.Person("p1"));
+            db.Followups.Add(Due("f", "p1", "junior", Now.AddDays(-20)));
+            db.SaveChanges();
+        }
+        var worker = Build(ctx);
+        var svc = BuildWith(ctx, new BeforeSave(async () =>
+        {
+            Assert.Equal(1, await worker.EscalateOverdueAsync(Now));
+            await RunRemindersAsync(ctx, Substitute.For<INotificationService>());
+        }));
+
+        if (postpone)
+        {
+            await svc.PostponeAsync("f", 1, Junior("junior"));
+        }
+        else
+        {
+            await svc.RefreshAsync("f", new FollowupInput(Now.AddDays(2), "neu", "junior"), Junior("junior"));
+        }
+
+        var f = Read(ctx, "f");
+        Assert.True(f.DueAt > Now);
+        Assert.Null(f.NotifiedAt);
+        Assert.Null(f.EscalatedAt);
+    }
+
+    [Fact]
+    public async Task A_due_followup_reminds_its_responsible_once()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            SeedLeadership(db);
+            db.People.Add(Seed.Person("p1", "Anna Akte"));
+            db.Followups.AddRange(
+                Due("due", "p1", "junior", Now.AddHours(-1)),
+                Due("ahead", "p1", "junior", Now.AddHours(1)));
+            db.SaveChanges();
+        }
+        var notifications = Substitute.For<INotificationService>();
+
+        Assert.Equal(1, await RunRemindersAsync(ctx, notifications));
+        Assert.Equal(0, await RunRemindersAsync(ctx, notifications));
+
+        Assert.NotNull(Read(ctx, "due").NotifiedAt);
+        Assert.Null(Read(ctx, "ahead").NotifiedAt);
+        await notifications.Received(1).NotifyManyAsync(
+            Arg.Is<IReadOnlyCollection<string>>(ids => ids.SequenceEqual(new[] { "junior" })),
+            Arg.Is(NotificationType.Followup), Arg.Is<string>(t => t.Contains("Anna Akte")), Arg.Any<string?>(),
+            Arg.Is<string?>(t => t == null), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_postpone_during_the_reminder_run_keeps_the_next_reminder()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            SeedLeadership(db);
+            db.People.Add(Seed.Person("p1"));
+            db.Followups.Add(Due("f", "p1", "junior", Now.AddHours(-1)));
+            db.SaveChanges();
+        }
+        var notifications = Substitute.For<INotificationService>();
+        // the click lands after the worker read the due list
+        var watchlist = Substitute.For<IWatchlistService>();
+        watchlist.GetFollowerIdsAsync(default!, default!, default).ReturnsForAnyArgs(async _ =>
+        {
+            await Build(ctx).PostponeAsync("f", 1, Junior("junior"));
+            return new List<string>();
+        });
+
+        Assert.Equal(0, await RunRemindersAsync(ctx, notifications, watchlist));
+
+        var f = Read(ctx, "f");
+        Assert.True(f.DueAt > Now);
+        Assert.Null(f.NotifiedAt);
+        await notifications.DidNotReceiveWithAnyArgs().NotifyManyAsync(default!, default, default!, default, default, default);
     }
 
     // ---------- shared recipient rule ----------

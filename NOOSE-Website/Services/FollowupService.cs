@@ -101,17 +101,17 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
     public async Task RefreshAsync(string id, FollowupInput input, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var w = await db.Followups.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new InvalidOperationException("Wiedervorlage nicht gefunden.");
         RequireEdit(w, actor);
 
         var newDue = input.DueAt.ToUniversalTime();
-        // Re-notify on a moved due date by clearing the dedupe stamp.
+        // moved date notifies again
         if (w.DueAt != newDue)
         {
-            w.NotifiedAt = null;
-            w.EscalatedAt = null;
+            Rearm(db, w);
         }
         var oldNote = w.Note;
         w.DueAt = newDue;
@@ -126,6 +126,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
 
     public async Task CompleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var w = await db.Followups.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new InvalidOperationException("Wiedervorlage nicht gefunden.");
@@ -142,6 +143,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
 
     public async Task ReopenAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var w = await db.Followups.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new InvalidOperationException("Wiedervorlage nicht gefunden.");
@@ -160,6 +162,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
 
     public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var w = await db.Followups.FirstOrDefaultAsync(x => x.Id == id, cancellationToken)
             ?? throw new InvalidOperationException("Wiedervorlage nicht gefunden.");
@@ -283,9 +286,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         await RequireVisibleParentAsync(db, w, actor, cancellationToken);
 
         w.DueAt = FollowupPlanRules.Postponed(w.DueAt, days, DateTime.UtcNow);
-        // rearm both stamps
-        w.NotifiedAt = null;
-        w.EscalatedAt = null;
+        Rearm(db, w);
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -425,9 +426,9 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
             {
                 break;
             }
-            // claim before notifying
+            // claim; a postpone wins
             var claimed = await db.Followups
-                .Where(x => x.Id == w.Id && !x.Done && x.EscalatedAt == null)
+                .Where(x => x.Id == w.Id && !x.Done && x.EscalatedAt == null && x.DueAt <= cutoff)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.EscalatedAt, nowUtc), CancellationToken.None);
             // trashed parent: stamp silently
             if (claimed == 1 && resolved.ContainsKey((w.EntityType, w.EntityId)))
@@ -460,6 +461,16 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         // else citizen tickets hide
         return new ViewerScope(leadership, leadership, agentId, null, MayAgenda: leadership,
             IsInternalAgent: partnerAgency is null);
+    }
+
+    /// <summary>Clears both stamps, written even if already null so a concurrent claim cannot survive.</summary>
+    private static void Rearm(AppDbContext db, Followup w)
+    {
+        w.NotifiedAt = null;
+        w.EscalatedAt = null;
+        var entry = db.Entry(w);
+        entry.Property(x => x.NotifiedAt).IsModified = true;
+        entry.Property(x => x.EscalatedAt).IsModified = true;
     }
 
     private enum ParentState
