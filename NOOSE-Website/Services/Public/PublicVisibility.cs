@@ -34,7 +34,7 @@ public static class PublicVisibility
                 + "sich selbst eingeschaltet hat (`HiddenFromPublicRoster` ist standardmäßig gesetzt; die Seite "
                 + "verrät nicht, dass jemand fehlt), und nur für die Führung ab Special Agent in Charge zusätzlich die "
                 + "Dienstgradbezeichnung. "
-                + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Einheit (TRU/HRB), "
+                + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Abteilung (CID, CTD, HRT), Administration Division, "
                 + "Profilbild, Discord-Daten, Kennungen und Flags verlassen das Haus nie, und ohne laufendes "
                 + "Modul bleibt jeder Agent anonym.",
             ["OeffentlicheTelefonnummer"] = "Telefonnummer und eine KOPIERTE Fotodatei einer Führungskraft auf "

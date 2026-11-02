@@ -238,11 +238,12 @@ public sealed class ReadAreaTool(
         sb.Append("— Agenten (").Append(Math.Min(max, rows.Count)).Append(" von ").Append(rows.Count).AppendLine(") —");
         foreach (var r in rows.Take(max))
         {
+            var unit = DivisionRules.Of(r.Rank, r.Division, r.IsTRU);
             sb.Append("• ").Append(string.IsNullOrWhiteSpace(r.Codename) ? "(unbenannt)" : r.Codename)
-                .Append(" | ").Append(r.Rank is { } rank ? RankDisplay.Name(rank, DivisionRules.Of(rank, r.Division, r.IsTRU).Home) : "ohne Dienstgrad")
+                .Append(" | ").Append(r.Rank is { } rank ? RankDisplay.Name(rank, unit.Home) : "ohne Dienstgrad")
                 .Append(" | ").Append(AgentStatusDisplay.Name(r.Status));
-            if (r.IsTRU) { sb.Append(" | TRU"); }
-            if (r.IsHRB) { sb.Append(" | HRB"); }
+            if (!unit.IsNone) { sb.Append(" | Abteilung: ").Append(DivisionRules.Label(unit)); }
+            if (r.IsHRB) { sb.Append(" | Administration Division"); }
             sb.AppendLine();
         }
     }

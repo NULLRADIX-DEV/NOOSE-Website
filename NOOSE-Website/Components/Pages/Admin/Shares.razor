@@ -190,7 +190,7 @@ else
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.RegisteredAt)">Registriert</MudTableSortLabel></MudTh>
                 <MudTh Style="min-width:220px;"><MudTableSortLabel T="Agent" SortBy="@(x => (int)Selection(x.Id).Degree)">Dienstgrad</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => (int)Selection(x.Id).Home)">Abteilung</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Hrb)">HRB</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Hrb)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
                 <MudTh Style="min-width:170px;">Partner</MudTh>
                 <MudTh Style="text-align:right;">Aktion</MudTh>
             </HeaderContent>
@@ -209,20 +209,23 @@ else
                                Variant="Variant.Outlined">
                         @foreach (var dg in RankOptions(Selection(context.Id)))
                         {
-                            <MudSelectItem Value="dg">@RankDisplay.Name(dg)</MudSelectItem>
+                            <MudSelectItem Value="dg">@RankDisplay.Name(dg, Selection(context.Id).Partner is null ? Selection(context.Id).Home : null)</MudSelectItem>
                         }
                     </MudSelect>
                 </MudTd>
                 <MudTd DataLabel="Abteilung">
                     <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
                         <Authorized>
-                            <MudSelect T="Division" @bind-Value="Selection(context.Id).Home" Dense="true" Margin="Margin.Dense"
-                                       Variant="Variant.Outlined" Style="min-width:110px;">
-                                @foreach (var d in DivisionDisplay.All)
-                                {
-                                    <MudSelectItem Value="d" Disabled="@(!DivisionRules.MayHold(d, Selection(context.Id).Degree))">@DivisionDisplay.Short(d)</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudTooltip Text="@DivisionRules.PickerHint(Selection(context.Id).Degree)"
+                                        Disabled="@(DivisionRules.PickerHint(Selection(context.Id).Degree) is null)">
+                                <MudSelect T="Division" @bind-Value="Selection(context.Id).Home" Dense="true" Margin="Margin.Dense"
+                                           Variant="Variant.Outlined" Style="min-width:110px;">
+                                    @foreach (var d in DivisionDisplay.All)
+                                    {
+                                        <MudSelectItem Value="d" Disabled="@(!DivisionRules.MayHold(d, Selection(context.Id).Degree))">@DivisionDisplay.Short(d)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudTooltip>
                         </Authorized>
                         <NotAuthorized>
                             @* fixed division *@
@@ -230,8 +233,8 @@ else
                         </NotAuthorized>
                     </AuthorizeView>
                 </MudTd>
-                <MudTd DataLabel="HRB">
-                    <MudTooltip Text="@DepartmentHint" Disabled="Selection(context.Id).DepartmentsOpen">
+                <MudTd DataLabel="@DepartmentRules.ColumnLabel">
+                    <MudTooltip Text="@DepartmentRules.Hint" Disabled="Selection(context.Id).DepartmentsOpen">
                         <MudCheckBox T="bool" @bind-Value="Selection(context.Id).Hrb" Color="Color.Info"
                                      Disabled="@(!Selection(context.Id).DepartmentsOpen)" />
                     </MudTooltip>
@@ -588,9 +591,6 @@ else
     private PromotionStanding _standing;
     private bool _mayPickDivision;
     private readonly Dictionary<string, SelectionState> _selection = new();
-
-    private const string DepartmentHint =
-        "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
 
     private sealed class SelectionState
     {

@@ -101,8 +101,8 @@ else
                 {
                     <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
                     <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTRU)">TRU</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">HRB</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => UnitLabel(x))">Abteilung</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
                 }
             </HeaderContent>
             <RowTemplate>
@@ -137,8 +137,8 @@ else
                 {
                     <MudTd DataLabel="Dienstgrad">@DivisionRules.RankName(context)</MudTd>
                     <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
-                    <MudTd DataLabel="TRU">@(context.IsTRU ? "TRU" : "")</MudTd>
-                    <MudTd DataLabel="HRB">@(context.IsHRB ? "HRB" : "")</MudTd>
+                    <MudTd DataLabel="Abteilung">@UnitLabel(context)</MudTd>
+                    <MudTd DataLabel="@DepartmentRules.ColumnLabel">@(context.IsHRB ? "Ja" : "")</MudTd>
                 }
             </RowTemplate>
             <NoRecordsContent>
@@ -247,6 +247,10 @@ else
             Nav.NavigateTo($"/personal/{a.Id}");
         }
     }
+
+    /// <summary>Board or division; empty for an account without a rank.</summary>
+    private static string UnitLabel(Agent agent)
+        => DivisionRules.Of(agent) is { IsNone: false } unit ? DivisionRules.Label(unit) : string.Empty;
 
     private static string Shorten(string? text)
         => string.IsNullOrWhiteSpace(text) ? "—"

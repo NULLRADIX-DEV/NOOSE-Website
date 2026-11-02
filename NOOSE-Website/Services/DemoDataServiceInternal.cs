@@ -338,7 +338,7 @@ public partial class DemoDataService
             LeakCategories = LeakCategory.Safehouses | LeakCategory.Operations,
             LeakSeverity = LeakSeverity.High,
             Outcome = AbductionOutcome.Rescued,
-            Notes = "Befreiung durch die TRU nach sechs Stunden. Der Agent wurde unter Wahrheitsserum befragt; "
+            Notes = "Befreiung durch das HRT nach sechs Stunden. Der Agent wurde unter Wahrheitsserum befragt; "
                 + "nach eigener Aussage wurden zwei Deckadressen und eine laufende Maßnahme preisgegeben.",
         };
         db.AgentAbductions.Add(abduction);

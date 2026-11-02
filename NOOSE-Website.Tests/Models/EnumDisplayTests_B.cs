@@ -382,7 +382,7 @@ public class EnumDisplayTests_B
     [InlineData(TaskforceRole.Member, "Mitglied")]
     [InlineData(TaskforceRole.LeadInvestigator, "Chefermittler")]
     [InlineData(TaskforceRole.CidLead, "CID-Lead")]
-    [InlineData(TaskforceRole.TruLead, "TRU-Lead")]
+    [InlineData(TaskforceRole.TruLead, "HRT-Lead")]
     public void TaskforceRoleName_definedValue_mapsToLabel(TaskforceRole role, string expected)
         => Assert.Equal(expected, TaskforceRoleDisplay.Name(role));
 

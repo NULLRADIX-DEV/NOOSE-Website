@@ -316,9 +316,11 @@
         var parts = new List<string>();
         var badgeNumber = user.GetBadgeNumber();
         if (!string.IsNullOrWhiteSpace(badgeNumber)) parts.Add($"Nr. {badgeNumber}");
-        parts.Add(RankDisplay.Name(user.GetRank(), user.GetDivision()));
-        if (user.IsTRU()) parts.Add("TRU");
-        if (user.IsHRB()) parts.Add("HRB");
+        var rank = user.GetRank();
+        var unit = DivisionRules.Of(rank, user.GetDivision(), user.IsTRU());
+        parts.Add(RankDisplay.Name(rank, unit.Home));
+        if (!unit.IsNone) parts.Add(DivisionRules.Label(unit));
+        if (user.IsHRB()) parts.Add(DepartmentRules.ColumnLabel);
         if (user.IsAdmin()) parts.Add("Admin");
         return string.Join(" · ", parts);
     }

@@ -35,13 +35,13 @@
         <MudStack Row="true" Spacing="2" Class="flex-wrap" AlignItems="AlignItems.Center">
             <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.MilitaryTech">@DivisionRules.RankName(Agent)</MudChip>
             <MudChip T="string" Size="Size.Small" Color="@AgentStatusDisplay.Colour(Agent.Status)" Variant="Variant.Outlined">@AgentStatusDisplay.Name(Agent.Status)</MudChip>
-            @if (Agent.IsTRU)
+            @if (!Unit.IsNone)
             {
-                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">TRU</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="@DivisionRules.Colour(Unit)" Variant="Variant.Outlined">@DivisionRules.Label(Unit)</MudChip>
             }
             @if (Agent.IsHRB)
             {
-                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">HRB</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@DepartmentRules.ColumnLabel</MudChip>
             }
             @if (Agent.IsAdmin)
             {
@@ -63,4 +63,6 @@
     /// <summary>Shows the moderation button; the page decides who may and runs the service call.</summary>
     [Parameter] public bool MayRemove { get; set; }
     [Parameter] public EventCallback OnRemove { get; set; }
+
+    private OrgUnit Unit => DivisionRules.Of(Agent);
 }

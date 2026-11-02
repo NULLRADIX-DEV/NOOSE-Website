@@ -7,11 +7,11 @@ public enum AnnouncementAudience
     AllActive = 0,
     /// <summary>Specific taskforce members.</summary>
     Taskforce = 1,
-    /// <summary>TRU unit only.</summary>
+    /// <summary>HRT only (stored as the legacy TRU unit).</summary>
     TruUnit = 2,
     /// <summary>Agents from minimum rank.</summary>
     FromRank = 3,
-    /// <summary>HRB unit only.</summary>
+    /// <summary>Administration Division only (stored as the legacy HRB unit).</summary>
     HrbUnit = 4,
 }
 
@@ -22,8 +22,8 @@ public static class AnnouncementAudienceDisplay
     {
         AnnouncementAudience.AllActive => "Alle aktiven Agenten",
         AnnouncementAudience.Taskforce => "Bestimmte Taskforce",
-        AnnouncementAudience.TruUnit => "TRU-Einheit",
-        AnnouncementAudience.HrbUnit => "HRB-Einheit",
+        AnnouncementAudience.TruUnit => "HRT",
+        AnnouncementAudience.HrbUnit => "Administration Division",
         AnnouncementAudience.FromRank => "Ab Dienstgrad",
         _ => "—",
     };

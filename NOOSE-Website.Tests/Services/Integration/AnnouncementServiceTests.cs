@@ -511,6 +511,26 @@ public sealed class AnnouncementServiceTests
     }
 
     [Fact]
+    public async Task GetBoardAsync_NamesTheUnitAudiencesLikeThePickers()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _) = Build(ctx);
+
+        var hrt = Ann("Hrt", x => x.Audience = AnnouncementAudience.TruUnit);
+        var administration = Ann("Administration", x => x.Audience = AnnouncementAudience.HrbUnit);
+        using (var db = ctx.NewContext())
+        {
+            db.Announcements.AddRange(hrt, administration);
+            db.SaveChanges();
+        }
+
+        var rows = await svc.GetBoardAsync(Leader());
+
+        Assert.Equal("HRT", rows.Single(r => r.Id == hrt.Id).TargetDisplay);
+        Assert.Equal("Administration Division", rows.Single(r => r.Id == administration.Id).TargetDisplay);
+    }
+
+    [Fact]
     public async Task GetBoardAsync_Leadership_SeesAll_ImportantThenNewest()
     {
         using var ctx = new SqliteTestContext();

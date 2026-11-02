@@ -71,7 +71,7 @@ public static class AuditDisplay
         ["CaseNumber"] = "Aktenzeichen", ["Description"] = "Beschreibung", ["Title"] = "Titel",
         ["LifeStatus"] = "Lebensstatus", ["DeadUntil"] = "Tot-Fenster",
         ["Classification"] = "Einstufung", ["IsClassified"] = "Verschlusssache",
-        ["IsTRUClassified"] = "VS-Stufe TRU", ["IsHRBClassified"] = "VS-Stufe HRB",
+        ["IsTRUClassified"] = "VS-Stufe HRT", ["IsHRBClassified"] = "VS-Stufe Administration",
         ["IsWanted"] = "Zur Fahndung", ["WantedReason"] = "Fahndungsgrund",
         ["AgingDisabled"] = "Aktualitäts-Ausnahme",
         ["ThreatScore"] = "Bedrohungs-Score", ["ThreatConfidence"] = "Score-Konfidenz",

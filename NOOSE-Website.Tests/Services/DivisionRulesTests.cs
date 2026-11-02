@@ -183,6 +183,35 @@ public class DivisionRulesTests
     public void RequireMayHold_PassesAtTheThreshold()
         => DivisionRules.RequireMayHold(Division.Hrt, Rank.SpecialAgent);
 
+    [Fact]
+    public void PickerHint_ExplainsTheClosedHrtForATrainee_AndIsEmptyOnceEveryDivisionIsOpen()
+    {
+        var hint = DivisionRules.PickerHint(Rank.Trainee);
+
+        Assert.NotNull(hint);
+        Assert.Equal(DivisionRules.HoldHint(Division.Hrt, Rank.Trainee), hint);
+        Assert.Contains("Hostage Rescue Team", hint, StringComparison.Ordinal);
+        Assert.Null(DivisionRules.PickerHint(Rank.SpecialAgent));
+        Assert.Null(DivisionRules.PickerHint(Rank.Director));
+    }
+
+    [Fact]
+    public void PickerHint_RanklessAccountHasNoDivisionToPick()
+        => Assert.Contains("Dienstgrad", DivisionRules.PickerHint(null), StringComparison.Ordinal);
+
+    [Fact]
+    public void IsMember_BoardIsASeatOfItsOwnNotTheHomeDivision()
+    {
+        var operatorRow = Seed.Agent("op", Rank.SpecialAgent, configure: a => a.Division = Division.Hrt);
+        var director = Seed.Agent("dir", Rank.Director, configure: a => a.Division = Division.Hrt);
+        var legacyTru = Seed.Agent("tru", Rank.SpecialAgent, configure: a => a.IsTRU = true);
+
+        Assert.True(DivisionRules.IsMember(operatorRow, Division.Hrt));
+        Assert.False(DivisionRules.IsMember(operatorRow, Division.Cid));
+        Assert.False(DivisionRules.IsMember(director, Division.Hrt));
+        Assert.True(DivisionRules.IsMember(legacyTru, Division.Hrt));
+    }
+
     // ---- display and limits ----
 
     [Fact]
@@ -217,6 +246,23 @@ public class DivisionRulesTests
         Assert.Equal("CTD", DivisionRules.Label(new OrgUnit(Division.Ctd, false)));
         Assert.Equal("Board (HRT)", DivisionRules.Label(new OrgUnit(Division.Hrt, true)));
         Assert.Equal("—", DivisionRules.Label(default));
+    }
+
+    [Fact]
+    public void LongLabel_NamesTheDivisionOrTheBoardWithItsHome()
+    {
+        Assert.Equal("Hostage Rescue Team (HRT)", DivisionRules.LongLabel(new OrgUnit(Division.Hrt, false)));
+        Assert.Equal("Board of Directors (Heimatabteilung: CTD)", DivisionRules.LongLabel(new OrgUnit(Division.Ctd, true)));
+        Assert.Equal("Board of Directors", DivisionRules.LongLabel(new OrgUnit(null, true)));
+        Assert.Equal("—", DivisionRules.LongLabel(default));
+    }
+
+    [Fact]
+    public void Colour_BoardAndEveryDivisionGetOneOfTheirOwn()
+    {
+        Assert.Equal(DivisionDisplay.BoardColour, DivisionRules.Colour(new OrgUnit(Division.Hrt, true)));
+        Assert.Equal(DivisionDisplay.Colour(Division.Ctd), DivisionRules.Colour(new OrgUnit(Division.Ctd, false)));
+        Assert.Equal(MudBlazor.Color.Default, DivisionRules.Colour(default));
     }
 
     [Fact]

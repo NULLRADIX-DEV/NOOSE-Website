@@ -11,7 +11,7 @@
     <MudText Typo="Typo.h4">Agenten-Verwaltung</MudText>
 </MudStack>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Dienstgrade und Abteilungen vergeben, HRB- und Teamleitung-Rechte verwalten sowie Accounts sperren. Eine Sperre beendet
+    Dienstgrade und Abteilungen vergeben, die Administration Division und Teamleitung-Rechte verwalten sowie Accounts sperren. Eine Sperre beendet
     alle laufenden Sitzungen des Agents sofort (Kill-Switch). Teamleitungen (FiveM-Aufsicht) sind im RP-Betrieb
     überall ausgeblendet und nur hier sichtbar – Vollzugriff erst durch den Admin-Haken. Das Setzen des
     Admin-Hakens selbst ist ausschließlich Admins vorbehalten; die Führung kann ihn nur einsehen.
@@ -70,7 +70,7 @@ else
             <MudTh Style="min-width:220px;"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DivisionRules.Of(x).Home)">Abteilung</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">HRB</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTeamLead)">Teamleitung</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsAdmin)">Admin</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
@@ -145,14 +145,16 @@ else
             <MudTd DataLabel="Abteilung">
                 <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
                     <Authorized>
-                        <MudSelect T="Division" Value="HomeOf(context)" ValueChanged="@(d => DivisionSet(context, d))"
-                                   Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:110px;"
-                                   Disabled="@(!HasDivision(context))">
-                            @foreach (var d in DivisionDisplay.All)
-                            {
-                                <MudSelectItem Value="d" Disabled="@(!DivisionRules.MayHold(d, context.Rank))">@DivisionDisplay.Short(d)</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudTooltip Text="@DivisionRules.PickerHint(context.Rank)" Disabled="@(DivisionRules.PickerHint(context.Rank) is null)">
+                            <MudSelect T="Division" Value="HomeOf(context)" ValueChanged="@(d => DivisionSet(context, d))"
+                                       Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:110px;"
+                                       Disabled="@(!HasDivision(context))">
+                                @foreach (var d in DivisionDisplay.All)
+                                {
+                                    <MudSelectItem Value="d" Disabled="@(!DivisionRules.MayHold(d, context.Rank))">@DivisionDisplay.Short(d)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTooltip>
                     </Authorized>
                     <NotAuthorized>
                         <MudText Typo="Typo.body2">@(HasDivision(context) ? DivisionDisplay.Short(HomeOf(context)) : "—")</MudText>
@@ -163,8 +165,8 @@ else
                     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">Board</MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="HRB">
-                <MudTooltip Text="@DepartmentHint" Disabled="@(context.PartnerAgency != null || DepartmentOpen(context))">
+            <MudTd DataLabel="@DepartmentRules.ColumnLabel">
+                <MudTooltip Text="@DepartmentRules.Hint" Disabled="@(context.PartnerAgency != null || DepartmentOpen(context))">
                     <MudSwitch T="bool" Value="context.IsHRB" ValueChanged="@(v => HrbSet(context, v))" Color="Color.Info"
                                Disabled="@(context.PartnerAgency != null || (!DepartmentOpen(context) && !context.IsHRB))" />
                 </MudTooltip>
@@ -420,9 +422,6 @@ else
     /// <summary>Mirrors DepartmentRules.MayHold; a switch the service then refuses is a dialog that fails on save.</summary>
     private static bool DepartmentOpen(Agent agent) => DepartmentRules.MayHold(agent.Rank);
 
-    private const string DepartmentHint =
-        "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
-
     /// <summary>Only an active internal agent with a rank has a division to pick.</summary>
     private static bool HasDivision(Agent agent) => agent.Status == AgentStatus.Active && !DivisionRules.Of(agent).IsNone;
 
@@ -456,7 +455,7 @@ else
         try
         {
             await AgentService.HrbSetAsync(agent.Id, value, user);
-            Snackbar.Add($"{DisplayName(agent)}: HRB {(value ? "gesetzt" : "entfernt")}.", Severity.Success);
+            Snackbar.Add($"{DisplayName(agent)}: Administration Division {(value ? "gesetzt" : "entfernt")}.", Severity.Success);
         }
         catch (Exception ex)
         {
