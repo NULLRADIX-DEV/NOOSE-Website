@@ -11,6 +11,7 @@ using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Requests;
+using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.Shares;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -32,7 +33,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
     public async Task<IReadOnlyList<PartnerShareState>> GetForRecordAsync(string entityType, string entityId, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var shares = await db.PartnerShares.AsNoTracking()
+        var shares = await PartnerVisibility.ActiveShares(db).AsNoTracking()
             .Where(s => s.EntityType == entityType && s.EntityId == entityId && s.PartnerAgentId == null)
             .ToListAsync(cancellationToken);
         return BuildStates(shares);
@@ -41,7 +42,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
     public async Task<IReadOnlyList<PartnerShareState>> GetForChildAsync(string childType, string childId, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var shares = await db.PartnerShares.AsNoTracking()
+        var shares = await PartnerVisibility.ActiveShares(db).AsNoTracking()
             .Where(s => s.EntityType == childType && s.EntityId == childId && s.PartnerAgentId == null)
             .ToListAsync(cancellationToken);
         return BuildStates(shares);
@@ -51,11 +52,11 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // order on the real column before projecting; ordering by the record's property is untranslatable
-        var rows = await db.PartnerShares.AsNoTracking()
+        var rows = await PartnerVisibility.ActiveShares(db).AsNoTracking()
             .Where(s => s.EntityType == entityType && s.EntityId == entityId && s.PartnerAgentId != null)
             .Join(db.Users.AsNoTracking(), s => s.PartnerAgentId, a => a.Id, (s, a) => new { s, a })
             .OrderBy(x => x.a.Codename)
-            .Select(x => new PartnerIndividualShareState(x.a.Id, x.a.Codename, x.s.Agency, x.a.PartnerRank, x.s.IncludesChildren))
+            .Select(x => new PartnerIndividualShareState(x.a.Id, x.a.Codename, x.s.Agency, x.a.PartnerRank, x.s.IncludesChildren, x.s.ValidUntil))
             .ToListAsync(cancellationToken);
         return rows;
     }
@@ -70,12 +71,20 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
             .ToListAsync(cancellationToken);
     }
 
-    public async Task SetParentAsync(string entityType, string entityId, PartnerAgency agency, bool released, bool includesChildren,
+    public Task SetParentAsync(string entityType, string entityId, PartnerAgency agency, bool released, bool includesChildren,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+        => SetParentCoreAsync(entityType, entityId, agency, released, includesChildren, ExpiryChange.Keep, actor, cancellationToken);
+
+    public Task SetParentAsync(string entityType, string entityId, PartnerAgency agency, bool released, bool includesChildren,
+        DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+        => SetParentCoreAsync(entityType, entityId, agency, released, includesChildren, ExpiryChange.To(validUntil), actor, cancellationToken);
+
+    private async Task SetParentCoreAsync(string entityType, string entityId, PartnerAgency agency, bool released, bool includesChildren,
+        ExpiryChange expiry, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         Permission.RequireLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        await UpsertAsync(db, entityType, entityId, agency, partnerAgentId: null, released, includesChildren, cancellationToken);
+        await UpsertAsync(db, entityType, entityId, agency, partnerAgentId: null, released, includesChildren, expiry, actor, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -84,19 +93,47 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
     {
         Permission.RequireLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        await UpsertAsync(db, childType, childId, agency, partnerAgentId: null, released, includesChildren: false, cancellationToken);
+        await UpsertAsync(db, childType, childId, agency, partnerAgentId: null, released, includesChildren: false, ExpiryChange.Keep, actor, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task SetIndividualParentAsync(string entityType, string entityId, string partnerAgentId, bool released, bool includesChildren,
+    public Task SetIndividualParentAsync(string entityType, string entityId, string partnerAgentId, bool released, bool includesChildren,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+        => SetIndividualCoreAsync(entityType, entityId, partnerAgentId, released, includesChildren, ExpiryChange.Keep, actor, cancellationToken);
+
+    public Task SetIndividualParentAsync(string entityType, string entityId, string partnerAgentId, bool released, bool includesChildren,
+        DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+        => SetIndividualCoreAsync(entityType, entityId, partnerAgentId, released, includesChildren, ExpiryChange.To(validUntil), actor, cancellationToken);
+
+    private async Task SetIndividualCoreAsync(string entityType, string entityId, string partnerAgentId, bool released, bool includesChildren,
+        ExpiryChange expiry, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         Permission.RequireLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // agency derived from the account
         var agency = await db.Users.Where(a => a.Id == partnerAgentId).Select(a => a.PartnerAgency).FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("Das gewählte Konto ist kein Partner-Konto.");
-        await UpsertAsync(db, entityType, entityId, agency, partnerAgentId, released, includesChildren, cancellationToken);
+        await UpsertAsync(db, entityType, entityId, agency, partnerAgentId, released, includesChildren, expiry, actor, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task SetValidUntilAsync(string entityType, string entityId, PartnerAgency agency, string? partnerAgentId,
+        DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireLeadership(actor);
+        var now = DateTime.UtcNow;
+        var end = PartnerShareExpiry.Require(validUntil, now);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var row = await PartnerVisibility.ActiveShares(db)
+            .FirstOrDefaultAsync(s => s.EntityType == entityType && s.EntityId == entityId && s.Agency == agency && s.PartnerAgentId == partnerAgentId, cancellationToken)
+            ?? throw new InvalidOperationException("Diese Freigabe gibt es nicht (mehr).");
+        if (row.ValidUntil != end)
+        {
+            var before = PartnerShareExpiry.Until(row.ValidUntil);
+            row.ValidUntil = end;
+            db.AuditLogs.Add(RecordRow(entityType, entityId, await LabelAsync(db, agency, partnerAgentId, cancellationToken),
+                actor, "freigegeben, " + before, "freigegeben, " + PartnerShareExpiry.Until(end)));
+        }
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -105,7 +142,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         // agency-wide shares only; one active row per (type, record, agency) so a row count = record count
-        var sharedCounts = (await db.PartnerShares
+        var sharedCounts = (await PartnerVisibility.ActiveShares(db)
             .Where(s => s.Agency == agency && s.PartnerAgentId == null)
             .GroupBy(s => s.EntityType)
             .Select(g => new { Type = g.Key, Count = g.Count() })
@@ -150,11 +187,17 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
         var existingById = existing.ToDictionary(s => s.EntityId);
 
         var added = 0;
+        var now = DateTime.UtcNow;
         foreach (var id in allIds)
         {
             if (existingById.TryGetValue(id, out var row))
             {
                 row.IncludesChildren = includesChildren;
+                // an expired row the sweep has not removed yet is released again, unlimited
+                if (!PartnerShareExpiry.IsActive(row.ValidUntil, now))
+                {
+                    row.ValidUntil = null;
+                }
             }
             else
             {
@@ -203,9 +246,18 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
             _ => 0,
         };
 
-    private static async Task UpsertAsync(AppDbContext db, string entityType, string entityId, PartnerAgency agency, string? partnerAgentId,
-        bool released, bool includesChildren, CancellationToken cancellationToken)
+    /// <summary>What a write does to the end date: leave it, or set it (null = unlimited).</summary>
+    private readonly record struct ExpiryChange(bool Set, DateTime? Value)
     {
+        public static ExpiryChange Keep => default;
+        public static ExpiryChange To(DateTime? value) => new(true, value);
+    }
+
+    private static async Task UpsertAsync(AppDbContext db, string entityType, string entityId, PartnerAgency agency, string? partnerAgentId,
+        bool released, bool includesChildren, ExpiryChange expiry, ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var end = expiry.Set ? PartnerShareExpiry.Require(expiry.Value, now) : null;
         var row = await db.PartnerShares
             .FirstOrDefaultAsync(s => s.EntityType == entityType && s.EntityId == entityId && s.Agency == agency && s.PartnerAgentId == partnerAgentId, cancellationToken);
         if (released)
@@ -219,18 +271,62 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
                     Agency = agency,
                     PartnerAgentId = partnerAgentId,
                     IncludesChildren = includesChildren,
+                    ValidUntil = end,
                 });
+                db.AuditLogs.Add(RecordRow(entityType, entityId, await LabelAsync(db, agency, partnerAgentId, cancellationToken),
+                    actor, null, "freigegeben, " + PartnerShareExpiry.Until(end)));
             }
             else
             {
+                var wasActive = PartnerShareExpiry.IsActive(row.ValidUntil, now);
+                var before = wasActive ? PartnerShareExpiry.Until(row.ValidUntil) : null;
                 row.IncludesChildren = includesChildren;
+                // an expired row the sweep has not removed yet comes back unlimited unless a date says otherwise
+                if (expiry.Set)
+                {
+                    row.ValidUntil = end;
+                }
+                else if (!wasActive)
+                {
+                    row.ValidUntil = null;
+                }
+                var after = PartnerShareExpiry.Until(row.ValidUntil);
+                if (before != after)
+                {
+                    db.AuditLogs.Add(RecordRow(entityType, entityId, await LabelAsync(db, agency, partnerAgentId, cancellationToken),
+                        actor, before is null ? null : "freigegeben, " + before, "freigegeben, " + after));
+                }
             }
         }
         else if (row is not null)
         {
+            var wasActive = PartnerShareExpiry.IsActive(row.ValidUntil, now);
             // soft-delete via interceptor
             db.PartnerShares.Remove(row);
+            db.AuditLogs.Add(RecordRow(entityType, entityId, await LabelAsync(db, agency, partnerAgentId, cancellationToken),
+                actor, wasActive ? "freigegeben, " + PartnerShareExpiry.Until(row.ValidUntil) : "abgelaufen", "entzogen"));
         }
+    }
+
+    /// <summary>Audit row on the released record itself, so the release shows on its timeline next to the other changes.</summary>
+    internal static AuditLog RecordRow(string entityType, string entityId, string label, ClaimsPrincipal? actor, string? before, string after)
+    {
+        var changes = ManualAudit.Change("Partner-Freigabe " + label, before, after);
+        return actor is null
+            ? ManualAudit.SystemRow(entityType, entityId, AuditAction.Modified, changes)
+            : ManualAudit.Row(entityType, entityId, AuditAction.Modified, actor, changes);
+    }
+
+    /// <summary>Agency name, plus the codename for a single-account release.</summary>
+    internal static async Task<string> LabelAsync(AppDbContext db, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken)
+    {
+        var name = PartnerAgencyDisplay.Name(agency);
+        if (partnerAgentId is null)
+        {
+            return name;
+        }
+        var codename = await db.Users.AsNoTracking().Where(a => a.Id == partnerAgentId).Select(a => a.Codename).FirstOrDefaultAsync(cancellationToken);
+        return codename is null ? name : $"{name} · {codename}";
     }
 
     private static IReadOnlyList<PartnerShareState> BuildStates(List<PartnerShare> shares)
@@ -238,22 +334,23 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
             .Select(agency =>
             {
                 var row = shares.FirstOrDefault(s => s.Agency == agency);
-                return new PartnerShareState(agency, row is not null, row?.IncludesChildren ?? false);
+                return new PartnerShareState(agency, row is not null, row?.IncludesChildren ?? false, row?.ValidUntil);
             })
             .ToList();
 
     public async Task RequestPartnerShareAsync(ClaimsPrincipal actor, string entityType, string entityId,
         PartnerAgency agency, string? partnerAgentId, bool includesChildren, string justification,
-        CancellationToken cancellationToken = default)
+        DateTime? validUntil = null, CancellationToken cancellationToken = default)
     {
         Permission.RequireWriteAccess(actor);
         if (string.IsNullOrWhiteSpace(justification))
             throw new InvalidOperationException("Bitte eine Begründung für den Freigabe-Antrag angeben.");
+        var end = PartnerShareExpiry.Require(validUntil, DateTime.UtcNow);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         // block if already released agency-wide (also covers an individual target)
-        if (await db.PartnerShares.AnyAsync(s =>
+        if (await PartnerVisibility.ActiveShares(db).AnyAsync(s =>
             s.EntityType == entityType && s.EntityId == entityId &&
             s.Agency == agency && s.PartnerAgentId == null, cancellationToken))
         {
@@ -261,7 +358,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
         }
 
         // block if this exact partner account already has it
-        if (partnerAgentId != null && await db.PartnerShares.AnyAsync(s =>
+        if (partnerAgentId != null && await PartnerVisibility.ActiveShares(db).AnyAsync(s =>
             s.EntityType == entityType && s.EntityId == entityId &&
             s.Agency == agency && s.PartnerAgentId == partnerAgentId, cancellationToken))
         {
@@ -290,6 +387,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
             FreigabeAgency = agency,
             FreigabePartnerAgentId = partnerAgentId,
             FreigabeIncludesChildren = includesChildren,
+            FreigabeValidUntil = end,
             Justification = justification.Trim(),
             Status = RequestStatus.Requested,
             RequesterName = actor.GetCodename(),
@@ -324,7 +422,8 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
 
         await UpsertAsync(db, request.TargetType, request.TargetId,
             request.FreigabeAgency!.Value, request.FreigabePartnerAgentId,
-            released: true, request.FreigabeIncludesChildren, cancellationToken);
+            released: true, request.FreigabeIncludesChildren,
+            request.FreigabeValidUntil is null ? ExpiryChange.Keep : ExpiryChange.To(request.FreigabeValidUntil), actor, cancellationToken);
 
         request.Status = RequestStatus.Approved;
         request.DeciderName = actor.GetCodename();
@@ -471,9 +570,9 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
         }
         var target = toAccountOnly ? request.FreigabePartnerAgentId : null;
         // never narrows an existing release
-        includesChildren |= await db.PartnerShares.AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId
+        includesChildren |= await PartnerVisibility.ActiveShares(db).AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId
             && s.Agency == request.FreigabeAgency && s.PartnerAgentId == target && s.IncludesChildren, cancellationToken);
-        await UpsertAsync(db, entityType, entityId, request.FreigabeAgency!.Value, target, released: true, includesChildren, cancellationToken);
+        await UpsertAsync(db, entityType, entityId, request.FreigabeAgency!.Value, target, released: true, includesChildren, ExpiryChange.Keep, actor, cancellationToken);
 
         // answer names a record
         request.TargetType = entityType;

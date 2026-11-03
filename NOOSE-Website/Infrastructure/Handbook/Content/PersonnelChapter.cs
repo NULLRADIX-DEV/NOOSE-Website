@@ -28,6 +28,34 @@ internal static class PersonnelChapter
                 """,
                 NavKey: "personal"),
 
+            new Article("art-dienstausweis", "dienstausweis", "Der Dienstausweis",
+                "Der gedruckte Ausweis, was draufsteht und wie jemand von außen seine Echtheit prüft.",
+                """
+                <p>Jeder aktive Agent mit einer <strong>Dienstnummer</strong> von I bis XL hat einen
+                <strong>Dienstausweis</strong>. Du druckst ihn in deinem <em>Profil</em> mit
+                <em>Dienstausweis drucken</em>; die Führung und die Administration Division finden denselben Knopf
+                oben in der <em>Personalakte</em> und drucken ihn für jeden Agenten. Teamleitungen, Partner und
+                Konten ohne Dienstnummer haben keinen.</p>
+                <p>Auf dem Ausweis stehen dein Lichtbild (das freigegebene Profilbild, sonst deine Initialen), dein
+                Name, dein Dienstgrad, deine Abteilung, die Dienstnummer und ein <strong>QR-Code</strong>. Der Name
+                ist dein Codename. Der Klarname steht nie darauf, auch nicht auf dem Ausweis, den die Führung für
+                dich druckt. Der Ausweis gilt, solange du im Dienst bist; ein Ablaufdatum gibt es nicht.</p>
+                <p>Scannt jemand den Code oder tippt die Adresse darunter ab, landet er auf der Prüfseite
+                <em>/ausweis/Nummer</em>. Sie sagt nur drei Dinge: ob der Ausweis gültig ist, wie sein Inhaber
+                heißt und welchen Rang er hat. Vergleiche beides mit dem Ausweis, den dir jemand zeigt. Ein Ausweis
+                eines ausgeschiedenen Agenten gilt dort als ungültig, ohne Namen und Rang.</p>
+                <p>Die Prüfseite ist <strong>standardmäßig abgeschaltet</strong>; die Führung schaltet das Modul
+                <em>Dienstausweis-Prüfung</em> bei den Einstellungen des öffentlichen Bereichs ein. Sie
+                antwortet außerdem nur für Agenten, die sich in ihrem Profil auf die öffentliche Mitarbeiterliste
+                gesetzt haben; für alle anderen, gesperrte Konten eingeschlossen, sagt sie dasselbe wie bei einer
+                erfundenen Nummer: gibt es nicht.</p>
+                """,
+                RoleplayHtml: """
+                <p>Im Rollenspiel ist der Ausweis das, was du auf Zuruf zeigst. Wer ihn prüfen will, scannt den
+                Code in der Spielwelt auf dem Handy; die Seite bestätigt, dass es dich gibt und dass du noch dabei
+                bist.</p>
+                """),
+
             new Article("art-inaktivitaet", "inaktivitaets-radar", "Das Inaktivitäts-Radar",
                 "Wer seit Wochen kein Lebenszeichen gibt - und was die Führung dann tut.",
                 """
@@ -296,6 +324,10 @@ internal static class PersonnelChapter
                 </ul>
                 <p>Die <strong>Typ-Erlaubnis</strong> je Rang schränkt danach nur noch ein; sie gibt nichts
                 frei. Verschlusssachen sieht ein Partner nie.</p>
+                <p>Eine Einzelfreigabe lässt sich <strong>befristen</strong>: beim Freigeben wählst du
+                1 Tag, 7 Tage, 30 Tage, ein Datum oder unbegrenzt. Mit dem Ablauf endet der Zugriff sofort; im
+                Verlauf der Akte steht, dass die Freigabe abgelaufen ist. Die Frist lässt sich später
+                verlängern oder verkürzen. Wer eine Freigabe beantragt, kann ein Ende vorschlagen.</p>
                 <p>Unter <em>Einstellungen → Partnerbehörden</em> steht außerdem, welche Inhalte eine Behörde
                 <strong>nie</strong> sieht - zum Beispiel Doks und Befragungen. Das schlägt jede Freigabe,
                 auch eine Einzelfreigabe mit „Ganze Akte“.</p>

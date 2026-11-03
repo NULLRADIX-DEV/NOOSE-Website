@@ -34,6 +34,7 @@ public static class PublicModules
     public const string HazardLevel = "Gefahrenlage";
     public const string Statistics = "Statistik";
     public const string Leadership = "Fuehrung";
+    public const string ServiceId = "Dienstausweis";
 
     // --- service ---
     public const string Tips = "Hinweise";
@@ -86,6 +87,10 @@ public static class PublicModules
         new(Leadership, "Mitarbeiter", "Organigramm der Behördenleitung mit Foto und Telefon, dazu alle Agenten mit Namen.",
             Icons.Material.Filled.Groups, "/fuehrung", PublicModuleGroup.Behoerde, 125, false, true,
             OffGeneric),
+        // no nav route: a check is opened from the QR code on a card, not from a tab. It names a codename and a rank,
+        // so it answers only for agents who are on the public roster, and it is off by default like everything else
+        new(ServiceId, "Dienstausweis-Prüfung", "Prüfseite /ausweis/{Nummer}: Codename, Rang und gültig ja oder nein.",
+            Icons.Material.Filled.Badge, null, PublicModuleGroup.Behoerde, 127, false, true, OffGeneric),
         // /berichte, not /lageberichte: that route is internal (the legacy redirect and the leadership-only print page
         // with the classified aggregates). Because Prefixes collects the nav routes without asking Available, naming it
         // here declared an internal page indexable

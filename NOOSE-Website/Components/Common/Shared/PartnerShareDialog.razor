@@ -13,6 +13,7 @@
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                 Geben Sie diese Akte gezielt für einzelne Partnerbehörden frei. „Ganze Akte" schließt alle
                 Inhalte ein (außer Verschlusssachen); ohne diesen Haken ist nur die Akte selbst sichtbar.
+                Mit einer Gültigkeit endet der Zugriff von selbst; sie lässt sich später verlängern oder verkürzen.
             </MudText>
             @foreach (var st in _states)
             {
@@ -29,6 +30,18 @@
                                          Disabled="@(!st.Released)" Color="Color.Primary" Label="Ganze Akte" />
                         </MudStack>
                     </MudStack>
+                    <div class="mt-2">
+                        @if (st.Released)
+                        {
+                            <PartnerShareExpiryPicker Value="st.ValidUntil"
+                                                      ValueChanged="@(v => ExpiryChangedAsync(st.Agency, null, v))" />
+                        }
+                        else
+                        {
+                            <PartnerShareExpiryPicker Value="@_newExpiry.GetValueOrDefault(st.Agency)" Label="Gültigkeit beim Freigeben"
+                                                      ValueChanged="@(v => _newExpiry[st.Agency] = v)" />
+                        }
+                    </div>
                 </MudPaper>
             }
 
@@ -54,8 +67,15 @@
                                            OnClick="@(() => RemoveIndividual(ind))" aria-label="Einzel-Freigabe entfernen" />
                         </MudStack>
                     </MudStack>
+                    <div class="mt-2">
+                        <PartnerShareExpiryPicker Value="ind.ValidUntil"
+                                                  ValueChanged="@(v => ExpiryChangedAsync(ind.Agency, ind.AgentId, v))" />
+                    </div>
                 </MudPaper>
             }
+
+            <PartnerShareExpiryPicker Value="_newIndividualExpiry" Label="Gültigkeit für ein neues Konto"
+                                      ValueChanged="@(v => _newIndividualExpiry = v)" />
 
             <MudAutocomplete T="PartnerAccountOption" Label="Partner-Konto hinzufügen" Class="mt-2"
                              Value="_toAdd" ValueChanged="OnPartnerSelected"
@@ -92,6 +112,9 @@
                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.PersonAdd" />
             }
             <MudCheckBox T="bool" @bind-Value="_reqIncludesChildren" Color="Color.Primary" Label="Ganze Akte (inklusive Unterpunkte)" Class="mb-3" />
+            <div class="mb-3">
+                <PartnerShareExpiryPicker @bind-Value="_reqExpiry" Label="Gewünschte Gültigkeit" />
+            </div>
             <MentionInput @bind-Text="_reqJustification" Label="Begründung" Lines="3" Required="true"
                           Placeholder="Warum sollte diese Akte freigegeben werden?" HelperText="@MentionInput.Hint" />
         }
@@ -125,6 +148,11 @@
     private PartnerAgency _reqAgency;
     private PartnerAccountOption? _reqPartner;
     private bool _reqIncludesChildren;
+    private DateTime? _reqExpiry;
+
+    // chosen before a release exists
+    private readonly Dictionary<PartnerAgency, DateTime?> _newExpiry = new();
+    private DateTime? _newIndividualExpiry;
     private string? _reqJustification;
     private bool _submitting;
 
@@ -157,16 +185,31 @@
     }
 
     private async Task ReleasedChanged(PartnerShareState st, bool released)
-        => await ApplyAsync(st.Agency, released, released && st.IncludesChildren);
+    {
+        if (released)
+        {
+            await ApplyAsync(st.Agency, true, st.IncludesChildren, _newExpiry.GetValueOrDefault(st.Agency), withExpiry: true);
+            _newExpiry.Remove(st.Agency);
+            return;
+        }
+        await ApplyAsync(st.Agency, false, false);
+    }
 
     private async Task ChildrenChanged(PartnerShareState st, bool includesChildren)
         => await ApplyAsync(st.Agency, true, includesChildren);
 
-    private async Task ApplyAsync(PartnerAgency agency, bool released, bool includesChildren)
+    private async Task ApplyAsync(PartnerAgency agency, bool released, bool includesChildren, DateTime? validUntil = null, bool withExpiry = false)
     {
         try
         {
-            await ShareService.SetParentAsync(EntityType, EntityId, agency, released, includesChildren, _user);
+            if (withExpiry)
+            {
+                await ShareService.SetParentAsync(EntityType, EntityId, agency, released, includesChildren, validUntil, _user);
+            }
+            else
+            {
+                await ShareService.SetParentAsync(EntityType, EntityId, agency, released, includesChildren, _user);
+            }
             await ReloadAsync();
         }
         catch (Exception ex)
@@ -194,7 +237,22 @@
         {
             return;
         }
-        await ApplyIndividualAsync(option.AgentId, true, false);
+        await ApplyIndividualAsync(option.AgentId, true, false, _newIndividualExpiry, withExpiry: true);
+    }
+
+    // extend, shorten or clear the end date of a release that already exists
+    private async Task ExpiryChangedAsync(PartnerAgency agency, string? partnerAgentId, DateTime? validUntil)
+    {
+        try
+        {
+            await ShareService.SetValidUntilAsync(EntityType, EntityId, agency, partnerAgentId, validUntil, _user);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            await ReloadAsync();
+        }
     }
 
     private Task IndividualChildrenChanged(PartnerIndividualShareState ind, bool includesChildren)
@@ -203,11 +261,18 @@
     private Task RemoveIndividual(PartnerIndividualShareState ind)
         => ApplyIndividualAsync(ind.AgentId, false, false);
 
-    private async Task ApplyIndividualAsync(string partnerAgentId, bool released, bool includesChildren)
+    private async Task ApplyIndividualAsync(string partnerAgentId, bool released, bool includesChildren, DateTime? validUntil = null, bool withExpiry = false)
     {
         try
         {
-            await ShareService.SetIndividualParentAsync(EntityType, EntityId, partnerAgentId, released, includesChildren, _user);
+            if (withExpiry)
+            {
+                await ShareService.SetIndividualParentAsync(EntityType, EntityId, partnerAgentId, released, includesChildren, validUntil, _user);
+            }
+            else
+            {
+                await ShareService.SetIndividualParentAsync(EntityType, EntityId, partnerAgentId, released, includesChildren, _user);
+            }
             await ReloadAsync();
         }
         catch (Exception ex)
@@ -234,7 +299,7 @@
             var agency = _reqIndividual ? _reqPartner!.Agency : _reqAgency;
             var partnerAgentId = _reqIndividual ? _reqPartner!.AgentId : null;
             await ShareService.RequestPartnerShareAsync(
-                _user, EntityType, EntityId, agency, partnerAgentId, _reqIncludesChildren, _reqJustification);
+                _user, EntityType, EntityId, agency, partnerAgentId, _reqIncludesChildren, _reqJustification, _reqExpiry);
             Snackbar.Add("Freigabe-Antrag gestellt. Die Führung entscheidet zeitnah.", Severity.Success);
             MudDialog.Close();
         }

@@ -21,9 +21,16 @@ public static class PartnerVisibility
         or nameof(Operation) or nameof(Case) or nameof(Document) or nameof(Law)
         or nameof(Taskforce);
 
+    /// <summary>Share rows that still grant access: no end date, or one in the future. Every read of a release goes through here.</summary>
+    public static IQueryable<PartnerShare> ActiveShares(AppDbContext db)
+    {
+        var now = DateTime.UtcNow;
+        return db.PartnerShares.Where(s => s.ValidUntil == null || s.ValidUntil > now);
+    }
+
     /// <summary>True if an active share row grants this record to the agency or the viewer's account (whole or shell).</summary>
     public static Task<bool> HasShareAsync(AppDbContext db, string entityType, string entityId, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
-        => db.PartnerShares.AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId && s.Agency == agency
+        => ActiveShares(db).AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId && s.Agency == agency
             && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId), cancellationToken);
 
     /// <summary>Parent point-check: released to agency or account (share or rule), exists, and not classified.</summary>
@@ -70,7 +77,7 @@ public static class PartnerVisibility
 
     /// <summary>True if the parent record is released whole (all children covered) to the agency or the viewer's account. Says nothing about the parent's own visibility; check that first.</summary>
     public static async Task<bool> ParentIncludesChildrenAsync(AppDbContext db, string parentType, string parentId, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
-        => await db.PartnerShares.AnyAsync(s => s.EntityType == parentType && s.EntityId == parentId && s.Agency == agency && s.IncludesChildren
+        => await ActiveShares(db).AnyAsync(s => s.EntityType == parentType && s.EntityId == parentId && s.Agency == agency && s.IncludesChildren
                 && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId), cancellationToken)
             || (await RuleMatchedIdsAsync(db, agency, parentType, new[] { parentId }, wholeOnly: true, cancellationToken)).Count > 0;
 
@@ -107,7 +114,7 @@ public static class PartnerVisibility
         {
             return new();
         }
-        var ids = await db.PartnerShares
+        var ids = await ActiveShares(db)
             .Where(s => s.EntityType == childType && s.Agency == agency && childIds.Contains(s.EntityId)
                 && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
             .Select(s => s.EntityId)
@@ -153,7 +160,7 @@ public static class PartnerVisibility
 
         var parentIds = candidates.Select(c => c.ParentId).Distinct().ToList();
         // whole by share
-        var whole = (await db.PartnerShares
+        var whole = (await ActiveShares(db)
                 .Where(s => s.Agency == agency && s.IncludesChildren && parentIds.Contains(s.EntityId)
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 .Select(s => new { s.EntityType, s.EntityId })
@@ -195,7 +202,7 @@ public static class PartnerVisibility
         {
             return new();
         }
-        var ids = await db.PartnerShares
+        var ids = await ActiveShares(db)
             .Where(s => s.EntityType == entityType && s.Agency == agency && candidateIds.Contains(s.EntityId)
                 && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
             .Select(s => s.EntityId)
@@ -249,9 +256,10 @@ public static class PartnerVisibility
     public static IQueryable<Person> OnlyPartnerVisible(this IQueryable<Person> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Person));
+        var shares = ActiveShares(db);
         var badMembers = BadFactionMemberIds(db);
         return query.Where(p => !p.IsClassified
-            && (db.PartnerShares.Any(s => s.EntityType == nameof(Person) && s.EntityId == p.Id && s.Agency == agency
+            && (shares.Any(s => s.EntityType == nameof(Person) && s.EntityId == p.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)
                 || (rules.Any(r => r.Scope == PartnerRuleScope.BadFactionMembers) && badMembers.Contains(p.Id))));
@@ -260,8 +268,9 @@ public static class PartnerVisibility
     public static IQueryable<Faction> OnlyPartnerVisible(this IQueryable<Faction> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Faction));
+        var shares = ActiveShares(db);
         return query.Where(f => !f.IsClassified
-            && (db.PartnerShares.Any(s => s.EntityType == nameof(Faction) && s.EntityId == f.Id && s.Agency == agency
+            && (shares.Any(s => s.EntityType == nameof(Faction) && s.EntityId == f.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)
                 || (f.IsBadFaction && !f.IsArchived && rules.Any(r => r.Scope == PartnerRuleScope.BadFactions))));
@@ -270,8 +279,9 @@ public static class PartnerVisibility
     public static IQueryable<PersonGroup> OnlyPartnerVisible(this IQueryable<PersonGroup> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(PersonGroup));
+        var shares = ActiveShares(db);
         return query.Where(g => !g.IsClassified
-            && (db.PartnerShares.Any(s => s.EntityType == nameof(PersonGroup) && s.EntityId == g.Id && s.Agency == agency
+            && (shares.Any(s => s.EntityType == nameof(PersonGroup) && s.EntityId == g.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)));
     }
@@ -279,8 +289,9 @@ public static class PartnerVisibility
     public static IQueryable<Party> OnlyPartnerVisible(this IQueryable<Party> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Party));
+        var shares = ActiveShares(db);
         return query.Where(p => !p.IsClassified
-            && (db.PartnerShares.Any(s => s.EntityType == nameof(Party) && s.EntityId == p.Id && s.Agency == agency
+            && (shares.Any(s => s.EntityType == nameof(Party) && s.EntityId == p.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)));
     }
@@ -288,8 +299,9 @@ public static class PartnerVisibility
     public static IQueryable<Operation> OnlyPartnerVisible(this IQueryable<Operation> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Operation));
+        var shares = ActiveShares(db);
         return query.Where(o => !o.IsClassified
-            && (db.PartnerShares.Any(s => s.EntityType == nameof(Operation) && s.EntityId == o.Id && s.Agency == agency
+            && (shares.Any(s => s.EntityType == nameof(Operation) && s.EntityId == o.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)));
     }
@@ -297,8 +309,9 @@ public static class PartnerVisibility
     public static IQueryable<Case> OnlyPartnerVisible(this IQueryable<Case> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Case));
+        var shares = ActiveShares(db);
         return query.Where(v => !v.IsClassified
-            && (db.PartnerShares.Any(s => s.EntityType == nameof(Case) && s.EntityId == v.Id && s.Agency == agency
+            && (shares.Any(s => s.EntityType == nameof(Case) && s.EntityId == v.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)));
     }
@@ -306,9 +319,10 @@ public static class PartnerVisibility
     public static IQueryable<Document> OnlyPartnerVisible(this IQueryable<Document> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Document));
+        var shares = ActiveShares(db);
         return query.Where(d => !(d.IsClassified || d.IsTRUClassified || d.IsHRBClassified)
             && ((partnerAgentId != null && d.CreatedById == partnerAgentId)
-                || db.PartnerShares.Any(s => s.EntityType == nameof(Document) && s.EntityId == d.Id && s.Agency == agency
+                || shares.Any(s => s.EntityType == nameof(Document) && s.EntityId == d.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)));
     }
@@ -316,7 +330,8 @@ public static class PartnerVisibility
     public static IQueryable<Law> OnlyPartnerVisible(this IQueryable<Law> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Law));
-        return query.Where(l => db.PartnerShares.Any(s => s.EntityType == nameof(Law) && s.EntityId == l.Id && s.Agency == agency
+        var shares = ActiveShares(db);
+        return query.Where(l => shares.Any(s => s.EntityType == nameof(Law) && s.EntityId == l.Id && s.Agency == agency
                 && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
             || rules.Any(r => r.Scope == PartnerRuleScope.All));
     }
@@ -324,8 +339,9 @@ public static class PartnerVisibility
     public static IQueryable<Taskforce> OnlyPartnerVisible(this IQueryable<Taskforce> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
         var rules = Rules(db, agency, nameof(Taskforce));
+        var shares = ActiveShares(db);
         return query.Where(t => !t.IsClassified
-            && (db.PartnerShares.Any(s => s.EntityType == nameof(Taskforce) && s.EntityId == t.Id && s.Agency == agency
+            && (shares.Any(s => s.EntityType == nameof(Taskforce) && s.EntityId == t.Id && s.Agency == agency
                     && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
                 || rules.Any(r => r.Scope == PartnerRuleScope.All)));
     }

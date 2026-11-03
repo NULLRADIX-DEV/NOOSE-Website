@@ -426,6 +426,8 @@ builder.Services.AddScoped<ILibraryStorageService, LibraryStorageService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddScoped<IPersonMergeService, PersonMergeService>();
 builder.Services.AddScoped<IPartnerShareService, PartnerShareService>();
+builder.Services.AddScoped<IPartnerShareExpiryService, PartnerShareExpiryService>();
+builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Shares.PartnerShareExpiryWorker>();
 
 // ---- recruiting (applications, invites, tests) ----
 builder.Services.AddScoped<IAgentInviteService, AgentInviteService>();
@@ -457,6 +459,8 @@ builder.Services.AddScoped<IPublicStatisticsService, PublicStatisticsService>();
 builder.Services.AddScoped<IPublicSearchService, PublicSearchService>();
 builder.Services.AddScoped<IPublicKpiService, PublicKpiService>();
 builder.Services.AddScoped<IPublicLeadershipService, PublicLeadershipService>();
+builder.Services.AddScoped<IPublicServiceIdService, PublicServiceIdService>();
+builder.Services.AddScoped<IServiceIdService, ServiceIdService>();
 builder.Services.AddScoped<IPublicWantedService, PublicWantedService>();
 builder.Services.AddScoped<IWantedPhotoUploadService, WantedPhotoUploadService>();
 builder.Services.AddHostedService<PublicWantedExpiryWorker>();
@@ -527,6 +531,8 @@ builder.Services.AddRateLimiter(options =>
     // The public search rebuilds its haystacks per request, and it is a Razor route: it carries no endpoint
     // metadata a named policy could attach to, so it has to be gated here. Everything else - above all the
     // SignalR and framework paths - stays unlimited.
+    // The ID check is a Razor route too: forty possible numbers, so a tight bucket per caller keeps it from being
+    // walked as a directory.
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         context.Request.Path.StartsWithSegments("/suche-oeffentlich", StringComparison.OrdinalIgnoreCase)
             ? RateLimitPartition.GetFixedWindowLimiter(
@@ -537,7 +543,16 @@ builder.Services.AddRateLimiter(options =>
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                 })
-            : RateLimitPartition.GetNoLimiter<string>("unbegrenzt"));
+            : context.Request.Path.StartsWithSegments(ServiceIdAddress.Prefix, StringComparison.OrdinalIgnoreCase)
+                ? RateLimitPartition.GetFixedWindowLimiter(
+                    "ausweis:" + CallerKey(context),
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 15,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                    })
+                : RateLimitPartition.GetNoLimiter<string>("unbegrenzt"));
 
     static string CallerKey(HttpContext context)
         => context.Connection.RemoteIpAddress?.ToString() ?? "unbekannt";

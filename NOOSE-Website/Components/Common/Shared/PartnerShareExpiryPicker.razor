@@ -1,0 +1,99 @@
+@* End date of a partner release: quick presets or a day of your own; the value is a UTC instant, null = unlimited. *@
+<MudStack Spacing="1">
+    <MudSelect T="PartnerShareDuration" Value="_preset" ValueChanged="OnPresetAsync" Label="@Label" Dense="true"
+               Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="Disabled"
+               ToStringFunc="@(d => Name(d))">
+        @foreach (var d in Options)
+        {
+            <MudSelectItem T="PartnerShareDuration" Value="d">@Name(d)</MudSelectItem>
+        }
+    </MudSelect>
+    @if (_preset == PartnerShareDuration.Custom)
+    {
+        <MudDatePicker Date="_day" DateChanged="OnDayAsync" Label="Gilt bis einschließlich" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" DateFormat="dd.MM.yyyy" MinDate="DateTime.Today" Disabled="Disabled" />
+    }
+    @if (Value is { } until)
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Zugriff endet @PartnerShareExpiry.Describe(until, DateTime.UtcNow)
+        </MudText>
+    }
+</MudStack>
+
+@code {
+    [Parameter] public DateTime? Value { get; set; }
+    [Parameter] public EventCallback<DateTime?> ValueChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "Gültigkeit";
+    [Parameter] public bool Disabled { get; set; }
+
+    private static readonly PartnerShareDuration[] Options =
+    [
+        PartnerShareDuration.Unlimited, PartnerShareDuration.OneDay, PartnerShareDuration.SevenDays,
+        PartnerShareDuration.ThirtyDays, PartnerShareDuration.Custom,
+    ];
+
+    private PartnerShareDuration _preset;
+    private DateTime? _day;
+    private DateTime? _lastValue;
+    private bool _synced;
+
+    protected override void OnParametersSet()
+    {
+        // follow the parent only when it changed the value itself (reload after a save), not our own echo
+        if (_synced && Value == _lastValue)
+        {
+            return;
+        }
+        _synced = true;
+        _lastValue = Value;
+        if (Value is { } until)
+        {
+            _preset = PartnerShareDuration.Custom;
+            _day = MeetingTime.Local(until).Date;
+        }
+        else
+        {
+            _preset = PartnerShareDuration.Unlimited;
+            _day = null;
+        }
+    }
+
+    private static string Name(PartnerShareDuration d) => d switch
+    {
+        PartnerShareDuration.OneDay => "1 Tag",
+        PartnerShareDuration.SevenDays => "7 Tage",
+        PartnerShareDuration.ThirtyDays => "30 Tage",
+        PartnerShareDuration.Custom => "Bis zu einem Datum",
+        _ => "Unbegrenzt",
+    };
+
+    private async Task OnPresetAsync(PartnerShareDuration preset)
+    {
+        _preset = preset;
+        if (preset == PartnerShareDuration.Custom)
+        {
+            // wait for a date; nothing changes until one is picked
+            return;
+        }
+        _day = null;
+        await PublishAsync(PartnerShareExpiry.FromPreset(preset, DateTime.UtcNow));
+    }
+
+    private async Task OnDayAsync(DateTime? day)
+    {
+        _day = day;
+        if (day is null)
+        {
+            return;
+        }
+        await PublishAsync(PartnerShareExpiry.EndOfDay(DateOnly.FromDateTime(day.Value)));
+    }
+
+    private async Task PublishAsync(DateTime? value)
+    {
+        Value = value;
+        _lastValue = value;
+        await ValueChanged.InvokeAsync(value);
+    }
+}

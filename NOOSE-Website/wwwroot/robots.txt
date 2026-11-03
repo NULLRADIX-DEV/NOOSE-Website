@@ -7,6 +7,7 @@ Disallow: /
 
 Allow: /$
 Allow: /karriere
+Allow: /ausweis
 Allow: /datenschutz
 Allow: /nutzungsbedingungen
 Allow: /info

@@ -28,6 +28,10 @@ public class PartnerShare : IAuditable, ISoftDelete
     [Column("InklusiveKinder")]
     public bool IncludesChildren { get; set; }
 
+    /// <summary>UTC instant the release ends; null = unlimited. The read gate ignores the row from then on.</summary>
+    [Column("GueltigBis")]
+    public DateTime? ValidUntil { get; set; }
+
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }
     [Column("ErstelltVonId")]
