@@ -166,6 +166,15 @@ public static class AgentPrincipalExtensions
     /// <summary>May move an agent between divisions = Board or admin. Sole source of this rule.</summary>
     public static bool MayDivisionSet(this ClaimsPrincipal user) => user.IsAdmin() || user.IsBoard();
 
+    /// <summary>May request a warrant = internal agent with write access, never the team lead. Sole source of this rule.</summary>
+    /// <remarks>The team lead is excluded even as admin: the requester's codename is shown, and supervision stays RP-wide invisible.</remarks>
+    public static bool MayWarrantRequest(this ClaimsPrincipal user)
+        => user.MayWrite() && user.IsInternalAgent() && !user.IsTeamLead();
+
+    /// <summary>May sign, refuse or cancel a warrant = a warrant requester who is also leadership. Sole source of this rule.</summary>
+    public static bool MayWarrantSign(this ClaimsPrincipal user)
+        => user.MayWarrantRequest() && user.IsLeadership();
+
     /// <summary>Public applicant (status Applicant): portal-only access, never an internal agent.</summary>
     public static bool IsApplicant(this ClaimsPrincipal user) => user.GetStatus() == AgentStatus.Applicant;
 

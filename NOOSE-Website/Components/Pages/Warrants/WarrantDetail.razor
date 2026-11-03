@@ -1,0 +1,239 @@
+@page "/anordnungen/{Id}"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@inject IWarrantService WarrantService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject SharesBroadcaster SharesBroadcaster
+
+<PageTitle>@(_view?.Warrant.CaseNumber ?? "Anordnung") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Anordnung nicht gefunden oder nicht zugänglich.
+    </MudAlert>
+}
+else
+{
+    var w = _view.Warrant;
+    <PageHeader Icon="@WarrantTypeDisplay.Icon(w.Type)" Title="@($"{WarrantTypeDisplay.Name(w.Type)} {w.CaseNumber}")"
+                BackHref="/anordnungen">
+        <Actions>
+            @if (WarrantRules.WasSigned(w))
+            {
+                <MudTooltip Text="Druckansicht zum Vorzeigen">
+                    <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/anordnungen/{w.Id}/druck")" Target="_blank"
+                                   aria-label="Druckansicht öffnen" />
+                </MudTooltip>
+            }
+            <WarrantDecisionButtons View="_view" User="_user" Changed="ReloadAsync" />
+            @if (MayDelete)
+            {
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteAsync">Löschen</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudAlert Severity="@BannerSeverity" Variant="Variant.Outlined" Dense="true" Class="mb-4">@Banner</MudAlert>
+
+    <RecordSectionRail>
+        <RecordSection Slug="anordnung" Label="Anordnung" Icon="@Icons.Material.Filled.Description">
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Status</MudText>
+                    <div><WarrantStateChip State="_view.State" /></div>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Betroffene Person</MudText>
+                    <MudText Typo="Typo.body1">
+                        <MudLink Href="@($"/personen/{w.PersonId}")">@_view.PersonName</MudLink>
+                        <span class="mud-text-secondary"> @_view.PersonCaseNumber</span>
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Vorgang</MudText>
+                    <MudText Typo="Typo.body1">
+                        @if (w.CaseId is { } caseId)
+                        {
+                            <MudLink Href="@($"/vorgaenge/{caseId}")">@(_view.CaseTitle ?? "Vorgang")</MudLink>
+                            <span class="mud-text-secondary"> @_view.CaseCaseNumber</span>
+                        }
+                        else
+                        {
+                            <text>—</text>
+                        }
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Gültigkeit</MudText>
+                    <MudText Typo="Typo.body1">
+                        @if (w.ValidFrom is { } from && w.ValidUntil is { } until)
+                        {
+                            @($"{from.ToLocalTime():dd.MM.yyyy HH:mm} bis {until.ToLocalTime():dd.MM.yyyy HH:mm}")
+                        }
+                        else
+                        {
+                            @($"{WarrantRules.ValidityLabel(w.ValidityDays)} ab Unterschrift (beantragt)")
+                        }
+                    </MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Gegenstand</MudText>
+                    <MudText Typo="Typo.body1" Style="white-space:pre-line;">@w.Subject</MudText>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Rechtsgrundlage</MudText>
+                    @foreach (var line in WarrantRules.LegalBasisLines(w))
+                    {
+                        <MudText Typo="Typo.body1">@line</MudText>
+                    }
+                    @if (_view.Laws is { Count: > 0 } laws)
+                    {
+                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1" Class="mt-1">
+                            @foreach (var law in laws)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Icon="@Icons.Material.Filled.Gavel"
+                                         Href="@($"/gesetze/{law.Id}")">Im Gesetzbuch öffnen: @law.Label</MudChip>
+                            }
+                        </MudStack>
+                    }
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary">Begründung (intern, nicht auf dem Papier)</MudText>
+                    <MudText Typo="Typo.body2" Style="white-space:pre-line;">@w.Justification</MudText>
+                </MudItem>
+            </MudGrid>
+        </RecordSection>
+        <RecordSection Slug="verlauf" Label="Verlauf" Icon="@Icons.Material.Filled.History">
+            <MudTimeline TimelinePosition="TimelinePosition.Start">
+                <MudTimelineItem Color="Color.Info" Size="Size.Small">
+                    <MudText Typo="Typo.body2"><strong>Beantragt</strong> von @(w.RequesterName ?? "—")</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@w.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                </MudTimelineItem>
+                @if (w.DecidedAt is { } decided)
+                {
+                    <MudTimelineItem Color="@(w.Status == WarrantStatus.Rejected ? Color.Error : Color.Success)" Size="Size.Small">
+                        <MudText Typo="Typo.body2">
+                            <strong>@(w.Status == WarrantStatus.Rejected ? "Abgelehnt" : "Unterzeichnet")</strong>
+                            von @(w.DeciderName ?? "—")@(w.DeciderRank is { } rank ? $", {RankDisplay.Name(rank)}" : string.Empty)
+                        </MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@decided.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                        @if (!string.IsNullOrWhiteSpace(w.DecisionNote))
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;">@w.DecisionNote</MudText>
+                        }
+                    </MudTimelineItem>
+                }
+                @if (w.CancelledAt is { } cancelled)
+                {
+                    <MudTimelineItem Color="Color.Warning" Size="Size.Small">
+                        <MudText Typo="Typo.body2"><strong>Aufgehoben</strong> von @(w.CancelledByName ?? "—")</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@cancelled.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                        @if (!string.IsNullOrWhiteSpace(w.CancellationReason))
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;">@w.CancellationReason</MudText>
+                        }
+                    </MudTimelineItem>
+                }
+                @if (_view.State == WarrantState.Expired && w.ValidUntil is { } expired)
+                {
+                    <MudTimelineItem Color="Color.Default" Size="Size.Small">
+                        <MudText Typo="Typo.body2"><strong>Abgelaufen</strong></MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@expired.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+        </RecordSection>
+    </RecordSectionRail>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private WarrantView? _view;
+    private string? _loadedId;
+
+    // mirrors the service: leadership any, the requester only an open own request
+    private bool MayDelete => _view is { } v
+        && (_user.MayWarrantSign()
+            || (_user.MayWarrantRequest() && v.State == WarrantState.Requested
+                && !string.IsNullOrEmpty(v.Warrant.CreatedById) && v.Warrant.CreatedById == _user.GetAgentId()));
+
+    private string Banner => _view is not { } v ? string.Empty : v.State switch
+    {
+        WarrantState.Requested => "Wartet auf die Unterschrift der Führung. Bis dahin gilt nichts und es gibt kein Papier.",
+        WarrantState.Valid => $"Gültig bis {v.Warrant.ValidUntil?.ToLocalTime():dd.MM.yyyy HH:mm}. Das Papier darf vorgezeigt werden.",
+        WarrantState.Expired => $"Abgelaufen am {v.Warrant.ValidUntil?.ToLocalTime():dd.MM.yyyy HH:mm}. Das Papier gilt nicht mehr.",
+        WarrantState.Cancelled => $"Aufgehoben am {v.Warrant.CancelledAt?.ToLocalTime():dd.MM.yyyy HH:mm}. Das Papier gilt nicht mehr.",
+        WarrantState.Rejected => "Abgelehnt. Diese Anordnung ist nie in Kraft getreten.",
+        _ => string.Empty,
+    };
+
+    private Severity BannerSeverity => _view?.State switch
+    {
+        WarrantState.Valid => Severity.Success,
+        WarrantState.Requested => Severity.Info,
+        WarrantState.Rejected => Severity.Error,
+        _ => Severity.Warning,
+    };
+
+    protected override async Task OnInitializedAsync() => _user = (await AuthStateTask).User;
+
+    // the page is reused across ids, so loading follows the parameter
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _load = true;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _view = await WarrantService.GetAsync(Id, _user);
+        _load = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        await LoadAsync();
+        StateHasChanged();
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_view is null)
+        {
+            return;
+        }
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Anordnung löschen?",
+            "Die Anordnung wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await WarrantService.DeleteAsync(_view.Warrant.Id, _user);
+            SharesBroadcaster.Report();
+            Snackbar.Add("Anordnung in den Papierkorb verschoben.", Severity.Success);
+            Nav.NavigateTo("/anordnungen");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

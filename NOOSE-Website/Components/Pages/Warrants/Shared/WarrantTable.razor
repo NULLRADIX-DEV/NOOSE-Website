@@ -1,0 +1,51 @@
+@* Rows of warrants; a click opens the warrant. *@
+@inject NavigationManager Nav
+
+<MudSimpleTable Dense="true" Hover="true" Striped="true">
+    <thead>
+        <tr>
+            <th>Aktenzeichen</th>
+            <th>Art</th>
+            @if (ShowPerson)
+            {
+                <th>Person</th>
+            }
+            <th>Status</th>
+            <th>Gültig bis</th>
+            <th>Beantragt</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in Rows)
+        {
+            var w = row.Warrant;
+            <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/anordnungen/{w.Id}"))">
+                <td>@w.CaseNumber</td>
+                <td>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudIcon Icon="@WarrantTypeDisplay.Icon(w.Type)" Size="Size.Small" />
+                        <span>@WarrantTypeDisplay.Name(w.Type)</span>
+                    </MudStack>
+                </td>
+                @if (ShowPerson)
+                {
+                    <td>@row.PersonName</td>
+                }
+                <td><WarrantStateChip State="row.State" /></td>
+                <td>@(w.ValidUntil?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")</td>
+                <td>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @(w.RequesterName ?? "—") · @w.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                    </MudText>
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<WarrantView> Rows { get; set; } = [];
+
+    /// <summary>Off on a person's own file, where the column would repeat the same name.</summary>
+    [Parameter] public bool ShowPerson { get; set; } = true;
+}

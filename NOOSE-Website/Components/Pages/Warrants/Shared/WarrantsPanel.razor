@@ -1,0 +1,62 @@
+@* Warrants concerning one person or filed under one case; internal sections only. *@
+@inject IWarrantService WarrantService
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Durchsuchungs-, Beschlagnahme- und Festnahmeanordnungen. Die Führung unterzeichnet; erst dann gilt das Papier.
+        </MudText>
+        <MudSpacer />
+        @if (_mayRequest)
+        {
+            <MudButton Href="@RequestHref" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">Anordnung beantragen</MudButton>
+        }
+    </MudStack>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_rows.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Approval" Title="Keine Anordnungen" />
+    }
+    else
+    {
+        <WarrantTable Rows="_rows" ShowPerson="@(PersonId is null)" />
+    }
+</MudStack>
+
+@code {
+    [Parameter] public string? PersonId { get; set; }
+    [Parameter] public string? CaseId { get; set; }
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _mayRequest;
+    private List<WarrantView> _rows = new();
+    private string? _loadedKey;
+
+    private string RequestHref => PersonId is not null
+        ? $"/anordnungen/neu?person={Uri.EscapeDataString(PersonId)}"
+        : $"/anordnungen/neu?vorgang={Uri.EscapeDataString(CaseId ?? string.Empty)}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = $"{PersonId}|{CaseId}";
+        if (_loadedKey == key)
+        {
+            return;
+        }
+        _loadedKey = key;
+        _mayRequest = User.MayWarrantRequest();
+        _load = true;
+        _rows = PersonId is not null
+            ? await WarrantService.GetForPersonAsync(PersonId, User)
+            : CaseId is not null
+                ? await WarrantService.GetForCaseAsync(CaseId, User)
+                : new();
+        _load = false;
+    }
+}

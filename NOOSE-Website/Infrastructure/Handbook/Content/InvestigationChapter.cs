@@ -148,6 +148,42 @@ internal static class InvestigationChapter
                 """,
                 NavKey: "entfuehrungen"),
 
+            new Article("art-anordnungen", "anordnungen", "Anordnungen",
+                "Durchsuchung, Beschlagnahme, Festnahme - beantragen, unterzeichnen, vorzeigen.",
+                """
+                <p>Eine <strong>Anordnung</strong> ist das Papier, das du im Rollenspiel vorzeigst: eine
+                <em>Durchsuchungs</em>-, <em>Beschlagnahme</em>- oder <em>Festnahmeanordnung</em> gegen eine Person.
+                Du beantragst sie unter <em>Anordnungen</em> oder direkt an der Personenakte oder am Vorgang im
+                Abschnitt <em>Anordnungen</em>. Dazu gehören der <strong>Gegenstand</strong> (was durchsucht oder beschlagnahmt
+                wird, wer festgenommen wird), mindestens ein Paragraf aus dem Gesetzbuch als
+                <strong>Rechtsgrundlage</strong>, eine Begründung und die gewünschte Gültigkeit.</p>
+                <p>Jede Anordnung bekommt sofort ein eigenes Aktenzeichen, das mit <em>AN</em> beginnt. Gelten tut sie
+                aber erst, wenn die <strong>Führung</strong> sie im Posteingang unter <em>Freigaben</em> oder auf ihrer
+                Seite <em>unterzeichnet</em>. Die eigene Anordnung unterzeichnet immer eine andere Führungskraft. Mit der
+                Unterschrift läuft die Gültigkeit los; danach ist sie von selbst <strong>abgelaufen</strong>, ohne dass
+                jemand etwas tun muss. Die Führung kann eine gültige Anordnung vorher <strong>aufheben</strong>.</p>
+                <p>Die <em>Druckansicht</em> gibt es nur für unterzeichnete Anordnungen. Sie zeigt Art, Person, Gegenstand,
+                Rechtsgrundlage, Gültigkeit und die Unterschrift. Die Begründung bleibt intern und steht nie auf dem
+                Papier. Ist die Anordnung abgelaufen oder aufgehoben, trägt der Ausdruck den Vermerk
+                <strong>ungültig</strong>.</p>
+                <p>Wer eine Anordnung sieht, entscheidet die Personenakte: Sie ist nie weiter sichtbar als die Person
+                und, falls angegeben, der Vorgang, um die es geht. Partnerbehörden sehen Anordnungen nicht.</p>
+                """,
+                RoleplayHtml: """
+                <p>Vorzeigen darfst du nur eine <strong>gültige</strong> Anordnung. Ein abgelaufenes oder aufgehobenes
+                Papier ist wertlos, und ein Anwalt darf das bemerken.</p>
+                """,
+                NavKey: "anordnungen",
+                Steps:
+                [
+                    new Step("Approval", "Beantragen",
+                        "Art, Person, Gegenstand, Rechtsgrundlage und Begründung angeben. Der Antrag landet bei der Führung."),
+                    new Step("HowToReg", "Unterzeichnen lassen",
+                        "Eine andere Führungskraft unterzeichnet oder lehnt ab. Du bekommst Bescheid."),
+                    new Step("Print", "Drucken und vorzeigen",
+                        "Die Druckansicht zeigt das Papier ohne interne Begründung. Gilt nur bis zum aufgedruckten Ende."),
+                ]),
+
             new Article("art-asservate", "asservatenkammer", "Asservatenkammer",
                 "Ein- und Auslagern von Gegenständen mit Bestand und Besitzer.",
                 """

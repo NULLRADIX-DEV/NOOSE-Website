@@ -208,6 +208,7 @@ builder.Services.AddScoped<IFinancingConfigService, FinancingConfigService>();
 builder.Services.AddScoped<IFinancingCatalogService, FinancingCatalogService>();
 builder.Services.AddScoped<IFinancingBudgetService, FinancingBudgetService>();
 builder.Services.AddScoped<IFinancingService, FinancingService>();
+builder.Services.AddScoped<IWarrantService, WarrantService>();
 builder.Services.AddScoped<IProfileSuggestionService, ProfileSuggestionService>();
 builder.Services.AddScoped<IValueListLabelService, ValueListLabelService>();
 builder.Services.AddScoped<IDocTemplateService, DocTemplateService>();

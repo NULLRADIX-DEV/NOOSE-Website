@@ -204,7 +204,7 @@ public sealed class ChannelShareServiceTests : IDisposable
                  {
                      () => ShareAsync("gibt-es-nicht", Agent),
                      () => ShareAsync(deleted, Agent),
-                     // TRU-only, agent isn't TRU
+                     // HRT-only, agent isn't HRT
                      () => ShareAsync(classified, Agent),
                      () => ShareAsync(classified, Leader),
                      // wrong type

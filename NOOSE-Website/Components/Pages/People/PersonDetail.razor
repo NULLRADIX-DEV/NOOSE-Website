@@ -190,6 +190,10 @@ else
                 <RecordSection Group="Ermittlung" Slug="hinweisgeber" Label="Hinweisgeber" Icon="@Icons.Material.Filled.TipsAndUpdates">
                     <TipHistoryPanel PersonId="@_person.Id" User="_user" />
                 </RecordSection>
+                @* internal only and outside _tabs/PartnerTabCatalog: a warrant is never released to a partner *@
+                <RecordSection Group="Ermittlung" Slug="anordnungen" Label="Anordnungen" Icon="@Icons.Material.Filled.Approval">
+                    <WarrantsPanel PersonId="@_person.Id" User="_user" />
+                </RecordSection>
                 }
                 @if (TabOn("einstufung"))
                 {
