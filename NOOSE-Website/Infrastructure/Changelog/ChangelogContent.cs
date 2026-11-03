@@ -629,7 +629,10 @@ public static class ChangelogContent
                 + "Wiedervorlagen nach überfällig, heute, diese Woche und später; verschieben und erledigen geht per "
                 + "Klick. Die Führung sieht im Wiedervorlagen-Rückstand, was liegen bleibt, hängt es um und erfährt, was "
                 + "sieben Tage überfällig ist.", "Bedienung"),
-            Besser("3.0.12-organigramm-archiv", "Archivierte Taskforces erscheinen nicht mehr im Organigramm.",
+            Neu("3.0.12-begruendungspflicht", "Wer eine Einstufung herabsetzt, eine Verschlusssache lockert, eine Akte "
+                + "löscht oder eine Fahndung aufhebt, gibt jetzt einen Grund an; er steht danach im Zeitstrahl der Akte "
+                + "und im Änderungsprotokoll.", "Akten"),
+            Besser("3.0.13-organigramm-archiv", "Archivierte Taskforces erscheinen nicht mehr im Organigramm.",
                 "Organigramm"),
         ]),
     ];

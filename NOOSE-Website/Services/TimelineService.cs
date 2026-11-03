@@ -114,7 +114,9 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
         }
         foreach (var log in await db.AuditLogs
             .Where(a => types.Contains(a.EntityType) && auditIds.Contains(a.EntityId)
-                && a.EntityType != nameof(Link))
+                && a.EntityType != nameof(Link)
+                // a written reason is for internal supervision, not for a partner agency
+                && (!isPartner || a.Action != AuditAction.Justified))
             .Select(a => new { a.Timestamp, a.EntityType, a.Action, a.ChangesJson, a.AgentName, a.AgentId })
             .ToListAsync(cancellationToken))
         {
@@ -133,7 +135,8 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
             .ToListAsync(cancellationToken))
         {
             raw.Add(new Raw(e.Timestamp, TimelineCategory.Classification,
-                $"Einstufung: {ClassificationDisplay.Name(e.Value)}", e.Justification, e.AgentName, e.AgentId, null, null));
+                $"Einstufung: {ClassificationDisplay.Name(e.Value)}", ClassificationHelper.JustificationFor(e.Justification, scope),
+                e.AgentName, e.AgentId, null, null));
         }
 
         // ---- 3) comments ----

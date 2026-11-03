@@ -17,4 +17,7 @@ public class OperationInput
     public Classification Classification { get; set; } = Classification.Unknown;
     public string? ClassificationJustification { get; set; }
     public DocumentClassification SecrecyLevel { get; set; } = DocumentClassification.None;
+
+    /// <summary>Why the secrecy level is loosened; required by the service when the audience widens.</summary>
+    public string? SecrecyReason { get; set; }
 }

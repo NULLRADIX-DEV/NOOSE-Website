@@ -182,6 +182,8 @@ public class PersonGroupService(
 
     public async Task RefreshAsync(string id, PersonGroupInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var group = await db.PersonGroups.FirstOrDefaultAsync(g => g.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Personengruppe '{id}' nicht gefunden.");
@@ -196,6 +198,7 @@ public class PersonGroupService(
         group.Kind = input.Kind;
         group.EstimatedMemberCount = input.EstimatedMemberCount;
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
+        CriticalChange.NoteSecrecy(db, nameof(PersonGroup), id, group.SecrecyLevel, input.SecrecyLevel, input.SecrecyReason, actor);
         group.SecrecyLevel = input.SecrecyLevel;
 
         await db.SaveChangesAsync(cancellationToken);
@@ -204,19 +207,23 @@ public class PersonGroupService(
             nameof(PersonGroup), id, actor, cancellationToken);
     }
 
-    public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
+        var note = CriticalChange.RequireDeletionReason(reason);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var group = await db.PersonGroups.FirstOrDefaultAsync(g => g.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Personengruppe '{id}' nicht gefunden.");
         db.PersonGroups.Remove(group);
+        CriticalChange.NoteDeletion(db, nameof(PersonGroup), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -262,6 +269,7 @@ public class PersonGroupService(
 
     public async Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         ClassificationHelper.CheckRankGate(@new, actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -271,6 +279,7 @@ public class PersonGroupService(
         // classified record is writable by leadership or the record's own audience (TRU/HRB), not leadership alone
         Permission.RequireMaySeeClassified(actor, group.SecrecyLevel);
 
+        CriticalChange.NoteDowngrade(db, nameof(PersonGroup), id, group.Classification, @new, justification, actor);
         group.Classification = @new;
         db.ClassificationHistory.Add(ClassificationHelper.Entry(nameof(PersonGroup), id, @new, justification, actor));
         await db.SaveChangesAsync(cancellationToken);
@@ -279,14 +288,7 @@ public class PersonGroupService(
     public async Task<List<ClassificationHistory>> GetClassificationHistoryAsync(string id, ViewerScope scope, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        if (!await Visibility.IsRecordVisibleAsync(db, nameof(PersonGroup), id, scope, cancellationToken))
-        {
-            return new();
-        }
-        return await db.ClassificationHistory
-            .Where(e => e.EntityType == nameof(PersonGroup) && e.EntityId == id)
-            .OrderByDescending(e => e.Timestamp)
-            .ToListAsync(cancellationToken);
+        return await ClassificationHelper.HistoryAsync(db, nameof(PersonGroup), id, scope, cancellationToken);
     }
 
     // scope-filtered group query

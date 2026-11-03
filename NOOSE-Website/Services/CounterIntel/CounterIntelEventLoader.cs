@@ -67,7 +67,8 @@ public static class CounterIntelEventLoader
         if (wantsWrites)
         {
             var writes = await db.AuditLogs.AsNoTracking()
-                .Where(a => a.AgentId != null && a.Timestamp >= since)
+                // a reason row rides along with a write that is already counted
+                .Where(a => a.AgentId != null && a.Timestamp >= since && a.Action != AuditAction.Justified)
                 .OrderByDescending(a => a.Timestamp)
                 .Take(MaxRowsPerSource)
                 .Select(a => new { a.AgentId, a.AgentName, a.Timestamp, a.EntityType, a.EntityId, a.Action })

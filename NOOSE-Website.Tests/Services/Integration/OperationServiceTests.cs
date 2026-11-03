@@ -336,7 +336,7 @@ public sealed class OperationServiceTests
             db.SaveChanges();
         }
 
-        await svc.DeleteAsync("op1", Leader());
+        await svc.DeleteAsync("op1", "Dublette", Leader());
 
         // no soft-delete interceptor in the test context => the row is hard-deleted.
         using var db2 = ctx.NewContext();
@@ -350,7 +350,7 @@ public sealed class OperationServiceTests
         var (svc, _) = Build(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => svc.DeleteAsync("any", NonLeader()));
+            () => svc.DeleteAsync("any", "Dublette", NonLeader()));
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public sealed class OperationServiceTests
         var (svc, _) = Build(ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.DeleteAsync("missing", Leader()));
+            () => svc.DeleteAsync("missing", "Dublette", Leader()));
     }
 
     // ---------- RestoreAsync ----------
