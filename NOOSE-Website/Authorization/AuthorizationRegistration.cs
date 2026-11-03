@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Authorization;
 
@@ -18,7 +19,7 @@ public static class AuthorizationRegistration
                 .RequireAssertion(ctx => ctx.User.GetStatus() == AgentStatus.Active))
             .AddPolicy(Policies.Leadership, p => p
                 .RequireAuthenticatedUser()
-                .AddRequirements(new RankRequirement(Rank.SupervisorySpecialAgent)))
+                .AddRequirements(new RankRequirement(Rank.SpecialAgentInCharge)))
             .AddPolicy(Policies.Admin, p => p
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => ctx.User.IsAdmin()))
@@ -63,10 +64,16 @@ public static class AuthorizationRegistration
                 .AddRequirements(new RankRequirement(Rank.SeniorSpecialAgent)))
             .AddPolicy(Policies.PromotionDecide, p => p
                 .RequireAuthenticatedUser()
-                .AddRequirements(new RankRequirement(Rank.DeputyDirector)))
+                .AddRequirements(new RankRequirement(PromotionRules.DeciderFloor)))
             .AddPolicy(Policies.PromotionDecideWrite, p => p
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => ctx.User.MayWrite() && ctx.User.MayPromotionDecide()))
+            .AddPolicy(Policies.DivisionSetWrite, p => p
+                .RequireAuthenticatedUser()
+                .RequireAssertion(ctx => ctx.User.MayWrite() && ctx.User.MayDivisionSet()))
+            .AddPolicy(Policies.FirearmUseReport, p => p
+                .RequireAuthenticatedUser()
+                .RequireAssertion(ctx => ctx.User.MayReportFirearmUse()))
             // recruiting
             // MayApply, not the raw status: a partner applies while staying Active, so the status alone would
             // lock the very accounts this portal has to serve

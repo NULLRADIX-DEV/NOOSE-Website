@@ -12,8 +12,8 @@ using NOOSE_Website.Data;
 namespace NOOSE_Website.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261102085519_Phase105_WiedervorlageEskalation")]
-    partial class Phase105_WiedervorlageEskalation
+    [Migration("20261103000239_Phase109_FibTexte")]
+    partial class Phase109_FibTexte
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -572,6 +572,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<string>("DiscordUsername")
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");
+
+                    b.Property<int?>("Division")
+                        .HasColumnType("int")
+                        .HasColumnName("Abteilung");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -1961,10 +1965,6 @@ namespace NOOSE_Website.Data.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("varchar(128)")
                         .HasColumnName("EntitaetTyp");
-
-                    b.Property<DateTime?>("EscalatedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("EskaliertAm");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)")
@@ -8120,6 +8120,63 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("AgentTestZuweisungen");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.FirearmUse", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Begruendung");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Zeitpunkt");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Timestamp");
+
+                    b.HasIndex("AgentId", "Timestamp");
+
+                    b.ToTable("Schusswaffengebraeuche");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.TrainingModule", b =>
                 {
                     b.Property<string>("Id")
@@ -12657,6 +12714,17 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Agent");
 
                     b.Navigation("Test");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.FirearmUse", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Presentations.PresentationFile", b =>

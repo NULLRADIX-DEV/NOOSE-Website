@@ -118,7 +118,7 @@ public sealed class DossierContextBuilderTests
             {
                 Id = "tf1",
                 Name = "Operation Nachtfalke",
-                CaseNumber = "NOOSE-TF-2026-0001",
+                CaseNumber = "FIB-TF-2026-0001",
                 Scope = TaskforceScope.InternalAgency,
                 Status = TaskforceStatus.Approved,
             });
@@ -137,7 +137,7 @@ public sealed class DossierContextBuilderTests
         var visible = await BuildAsync(ctx, Scope(allTaskforces: true));
 
         Assert.DoesNotContain("Operation Nachtfalke", hidden);
-        Assert.DoesNotContain("NOOSE-TF-2026-0001", hidden);
+        Assert.DoesNotContain("FIB-TF-2026-0001", hidden);
         Assert.Contains("Operation Nachtfalke", visible);
     }
 
@@ -152,7 +152,7 @@ public sealed class DossierContextBuilderTests
             {
                 Id = "tf1",
                 Name = "Operation Nachtfalke",
-                CaseNumber = "NOOSE-TF-2026-0001",
+                CaseNumber = "FIB-TF-2026-0001",
                 Scope = TaskforceScope.InternalAgency,
                 Status = TaskforceStatus.Approved,
             });

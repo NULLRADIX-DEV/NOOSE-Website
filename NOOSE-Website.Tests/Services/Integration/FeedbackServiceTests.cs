@@ -46,7 +46,7 @@ public class FeedbackServiceTests
 
     // the codename claim is what SetStatusAsync stamps as DeciderName
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SupervisorySpecialAgent)
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge)
             .WithCodename($"Codename-{id}").Build();
 
     private static ClaimsPrincipal OnlyReader(string id = "tl")
@@ -57,7 +57,7 @@ public class FeedbackServiceTests
 
     // read-only supervision that also carries leadership rank: passes the read gate, fails the write gate
     private static ClaimsPrincipal LeadingOnlyReader(string id = "tl-lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SupervisorySpecialAgent).AsTeamLead().Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).AsTeamLead().Build();
 
     // ---------- CreateAsync ----------
 

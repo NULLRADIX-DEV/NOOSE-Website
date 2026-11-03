@@ -15,7 +15,7 @@ public sealed class SearchIndexBackfillWorker(IServiceScopeFactory scopeFactory,
     /// <summary>Bump whenever <see cref="SearchIndexProjection"/> gains or changes a type. A stored version below this
     /// re-runs the whole pass; the pass wipes both tables first, so re-running is idempotent. Without this an existing
     /// installation would index zero rows of a newly added type — phonetic recall would just look flaky for months.</summary>
-    public const int Version = 4;
+    public const int Version = 5;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {

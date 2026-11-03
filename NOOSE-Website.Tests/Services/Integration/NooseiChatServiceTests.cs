@@ -210,7 +210,7 @@ public sealed class NooseiChatServiceTests
 
         // turn 1 as leadership, turn 2 after losing that right
         var first = await svc.AskAsync(null, "Erste Frage", Actor(rank: Rank.Director));
-        await svc.AskAsync(first.ConversationId, "Zweite Frage", Actor(rank: Rank.JuniorAgent));
+        await svc.AskAsync(first.ConversationId, "Zweite Frage", Actor(rank: Rank.Trainee));
 
         // the tool text was authorised under rights the agent no longer has
         Assert.DoesNotContain("Geheime Akteninhalte", replayed[1]);
@@ -447,7 +447,7 @@ public sealed class NooseiChatServiceTests
             {
                 Id = "tf1",
                 Name = "Operation Nachtfalke",
-                CaseNumber = "NOOSE-TF-2026-0001",
+                CaseNumber = "FIB-TF-2026-0001",
                 Scope = TaskforceScope.InternalAgency,
                 Status = TaskforceStatus.Approved,
             });
@@ -669,12 +669,12 @@ public sealed class NooseiChatServiceTests
         using var ctx = new SqliteTestContext();
         await SeedAgentsAsync(ctx);
         var (svc, _) = Build(ctx, call =>
-            Answer("Die Ballas [Fraktion Ballas · NOOSE-F-2026-0099] sind aktiv.", call: call));
+            Answer("Die Ballas [Fraktion Ballas · FIB-F-2026-0099] sind aktiv.", call: call));
 
         var turn = await svc.AskAsync(null, "Was ist mit den Ballas?", Actor());
         var reopened = await svc.GetMessagesAsync(turn.ConversationId, Actor());
 
-        Assert.Contains("NOOSE-F-2026-0099", turn.Answer.UnsupportedNote);
+        Assert.Contains("FIB-F-2026-0099", turn.Answer.UnsupportedNote);
         Assert.DoesNotContain("existiert", turn.Answer.UnsupportedNote!);
         // warned, not rejected: unlike proofreading there is no correct alternative to fall back on
         Assert.Contains("Ballas", turn.Answer.Text);
@@ -687,8 +687,8 @@ public sealed class NooseiChatServiceTests
         using var ctx = new SqliteTestContext();
         await SeedAgentsAsync(ctx);
         var (svc, _) = Build(ctx, call => Answer(
-            "Die Ballas [Fraktion Ballas · NOOSE-F-2026-0099] sind aktiv.",
-            added: Round("c1", "suche_akten", "• Fraktion | Ballas | Aktenzeichen: NOOSE-F-2026-0099 | id=f1"),
+            "Die Ballas [Fraktion Ballas · FIB-F-2026-0099] sind aktiv.",
+            added: Round("c1", "suche_akten", "• Fraktion | Ballas | Aktenzeichen: FIB-F-2026-0099 | id=f1"),
             call: call));
 
         var turn = await svc.AskAsync(null, "Was ist mit den Ballas?", Actor());
@@ -709,7 +709,7 @@ public sealed class NooseiChatServiceTests
         });
 
         var first = await svc.AskAsync(null, "Erste Frage", Actor(rank: Rank.Director));
-        var second = await svc.AskAsync(first.ConversationId, "Zweite Frage", Actor(rank: Rank.JuniorAgent));
+        var second = await svc.AskAsync(first.ConversationId, "Zweite Frage", Actor(rank: Rank.Trainee));
 
         Assert.True(second.ScopeChanged);
         Assert.Contains(seen[1], m => m.Role == LlmRole.System && m.Content == NooseiPrompts.ScopeChanged);

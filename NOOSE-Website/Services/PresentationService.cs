@@ -568,7 +568,7 @@ public sealed partial class PresentationService(
                 .ToDictionaryAsync(t => t.Id, t => t.Name, cancellationToken);
     }
 
-    /// <summary>"Öffentlich", "Nur HRB", "Taskforce Kobra", "Ab Senior Special Agent", "Privat".</summary>
+    /// <summary>"Öffentlich", "Nur HRT", "Taskforce Kobra", "Ab Senior Special Agent", "Privat".</summary>
     public static string AccessLabel(PresentationAccess access, AnnouncementAudience? audience, string? targetId, Rank? minRank,
         IReadOnlyDictionary<string, string> taskforces)
         => access switch
@@ -577,8 +577,8 @@ public sealed partial class PresentationService(
             PresentationAccess.Private => "Privat",
             _ => audience switch
             {
-                AnnouncementAudience.TruUnit => "Nur TRU",
-                AnnouncementAudience.HrbUnit => "Nur HRB",
+                AnnouncementAudience.TruUnit => "Nur HRT",
+                AnnouncementAudience.HrbUnit => "Nur Administration Division",
                 AnnouncementAudience.Taskforce => targetId is not null && taskforces.TryGetValue(targetId, out var name)
                     ? $"Taskforce {name}" : "Taskforce",
                 AnnouncementAudience.FromRank => minRank is { } rank ? $"Ab {RankDisplay.Name(rank)}" : "Ab Dienstgrad",

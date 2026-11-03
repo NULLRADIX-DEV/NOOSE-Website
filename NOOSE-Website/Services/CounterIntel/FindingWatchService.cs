@@ -64,7 +64,7 @@ public sealed class FindingWatchService(
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogError(ex, "Finding watch: NOOSEI pass failed.");
+            logger.LogError(ex, "Finding watch: FIBI pass failed.");
         }
         return reported;
     }
@@ -214,7 +214,7 @@ public sealed class FindingWatchService(
         catch (Exception ex)
         {
             // what is already claimed still rings below
-            logger.LogError(ex, "Finding watch: claiming NOOSEI findings failed.");
+            logger.LogError(ex, "Finding watch: claiming FIBI findings failed.");
         }
 
         if (claimed.Count > 0)
@@ -379,7 +379,7 @@ public sealed class FindingWatchService(
     private static Task<List<Recipient>> LeadershipAsync(AppDbContext db)
         => db.Users.AsNoTracking()
             .OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
             .Where(u => u.Id != DemoIdentity.AgentId)
             .Select(u => new Recipient(u.Id, u.NavPreferencesJson))
             .ToListAsync(CancellationToken.None);

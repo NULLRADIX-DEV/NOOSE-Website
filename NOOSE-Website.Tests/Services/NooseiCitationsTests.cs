@@ -10,11 +10,21 @@ public class NooseiCitationsTests
     [Fact]
     public void Unsupported_FindsACaseNumberNoToolEverReturned()
     {
-        var evidence = new[] { "Treffer: Person | Max Mustermann | Aktenzeichen: NOOSE-P-2026-0001" };
+        var evidence = new[] { "Treffer: Person | Max Mustermann | Aktenzeichen: FIB-P-2026-0001" };
 
         var unsupported = NooseiCitations.Unsupported(
-            "Max Mustermann [Person Max Mustermann · NOOSE-P-2026-0001] führt die Ballas "
-            + "[Fraktion Ballas · NOOSE-F-2026-0099].", evidence);
+            "Max Mustermann [Person Max Mustermann · FIB-P-2026-0001] führt die Ballas "
+            + "[Fraktion Ballas · FIB-F-2026-0099].", evidence);
+
+        Assert.Equal("FIB-F-2026-0099", Assert.Single(unsupported));
+    }
+
+    [Fact]
+    public void Unsupported_StillReadsTheLegacyNoosePrefix()
+    {
+        var unsupported = NooseiCitations.Unsupported(
+            "Siehe [Person Max Mustermann · NOOSE-P-2026-0001] und NOOSE-F-2026-0099.",
+            ["Treffer: Aktenzeichen: NOOSE-P-2026-0001"]);
 
         Assert.Equal("NOOSE-F-2026-0099", Assert.Single(unsupported));
     }
@@ -24,7 +34,7 @@ public class NooseiCitationsTests
     {
         // a case number quoted back at the asker is not a fabrication
         var unsupported = NooseiCitations.Unsupported(
-            "Zu NOOSE-P-2026-0042 finde ich nichts.", ["Was steht in NOOSE-P-2026-0042?"]);
+            "Zu FIB-P-2026-0042 finde ich nichts.", ["Was steht in FIB-P-2026-0042?"]);
 
         Assert.Empty(unsupported);
     }
@@ -40,8 +50,8 @@ public class NooseiCitationsTests
     [Fact]
     public void Unsupported_ReportsEachNumberOnce_AndCapsTheList()
     {
-        var answer = string.Join(" ", Enumerable.Range(1, 12).Select(i => $"NOOSE-P-2026-{i:0000}"))
-            + " NOOSE-P-2026-0001";
+        var answer = string.Join(" ", Enumerable.Range(1, 12).Select(i => $"FIB-P-2026-{i:0000}"))
+            + " FIB-P-2026-0001";
 
         var unsupported = NooseiCitations.Unsupported(answer, []);
 
@@ -54,18 +64,18 @@ public class NooseiCitationsTests
     {
         IReadOnlyList<LlmMessage> transcript =
         [
-            LlmMessage.User("Alte Frage zu NOOSE-P-2026-0004"),
-            LlmMessage.Assistant("Frühere Antwort mit NOOSE-P-2026-0002"),
-            LlmMessage.Tool("c1", "suche_akten", "Treffer NOOSE-P-2026-0001"),
+            LlmMessage.User("Alte Frage zu FIB-P-2026-0004"),
+            LlmMessage.Assistant("Frühere Antwort mit FIB-P-2026-0002"),
+            LlmMessage.Tool("c1", "suche_akten", "Treffer FIB-P-2026-0001"),
         ];
 
         var evidence = NooseiCitations.Evidence(transcript, "Neue Frage").ToList();
 
-        Assert.Contains(evidence, e => e!.Contains("NOOSE-P-2026-0001"));
-        Assert.Contains(evidence, e => e!.Contains("NOOSE-P-2026-0004"));
+        Assert.Contains(evidence, e => e!.Contains("FIB-P-2026-0001"));
+        Assert.Contains(evidence, e => e!.Contains("FIB-P-2026-0004"));
         Assert.Contains(evidence, e => e == "Neue Frage");
         // a number the model invented once would otherwise vouch for itself in every follow-up
-        Assert.DoesNotContain(evidence, e => e!.Contains("NOOSE-P-2026-0002"));
+        Assert.DoesNotContain(evidence, e => e!.Contains("FIB-P-2026-0002"));
     }
 
     [Fact]
@@ -76,10 +86,10 @@ public class NooseiCitationsTests
         IReadOnlyList<LlmMessage> transcript = [LlmMessage.System(NooseiPrompts.Chat)];
 
         var unsupported = NooseiCitations.Unsupported(
-            "Siehe [Person Max Mustermann · NOOSE-P-2026-0001].",
+            "Siehe [Person Max Mustermann · FIB-P-2026-0001].",
             NooseiCitations.Evidence(transcript, "Frage"));
 
-        Assert.Equal("NOOSE-P-2026-0001", Assert.Single(unsupported));
+        Assert.Equal("FIB-P-2026-0001", Assert.Single(unsupported));
     }
 
     [Fact]
@@ -88,11 +98,11 @@ public class NooseiCitationsTests
         // the shape a scope change and every pre-tool-call conversation produce
         IReadOnlyList<LlmMessage> transcript =
         [
-            LlmMessage.Assistant(NooseiHistoryWindow.Flatten("lies_akte", "Akte NOOSE-P-2026-0007")),
+            LlmMessage.Assistant(NooseiHistoryWindow.Flatten("lies_akte", "Akte FIB-P-2026-0007")),
         ];
 
         var unsupported = NooseiCitations.Unsupported(
-            "Siehe NOOSE-P-2026-0007.", NooseiCitations.Evidence(transcript, "Frage"));
+            "Siehe FIB-P-2026-0007.", NooseiCitations.Evidence(transcript, "Frage"));
 
         Assert.Empty(unsupported);
     }
@@ -104,12 +114,12 @@ public class NooseiCitationsTests
     [Fact]
     public void Notice_SaysNotEvidenced_AndNeverThatSomethingDoesNotExist()
     {
-        var one = NooseiCitations.Notice(["NOOSE-P-2026-0009"]);
-        var two = NooseiCitations.Notice(["NOOSE-P-2026-0009", "NOOSE-F-2026-0002"]);
+        var one = NooseiCitations.Notice(["FIB-P-2026-0009"]);
+        var two = NooseiCitations.Notice(["FIB-P-2026-0009", "FIB-F-2026-0002"]);
 
         Assert.NotNull(one);
         Assert.Contains("Nicht belegt", one);
-        Assert.Contains("NOOSE-P-2026-0009", one);
+        Assert.Contains("FIB-P-2026-0009", one);
         Assert.DoesNotContain("existiert", one);
         Assert.DoesNotContain("existiert", two);
         // singular and plural differ, because a warning that reads wrong reads as a bug

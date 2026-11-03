@@ -9,7 +9,7 @@
 @inject IAgentManagementService Agents
 @inject ISnackbar Snackbar
 
-<PageTitle>@(_view is null ? "Live" : $"Live: {_view.Presentation.Title}") · NOOSE</PageTitle>
+<PageTitle>@(_view is null ? "Live" : $"Live: {_view.Presentation.Title}") · FIB</PageTitle>
 
 @if (_loading)
 {
@@ -116,7 +116,7 @@ else if (_role == LiveRole.Presenter && _session is not null)
                                    HelperText="Sie sehen nur diese Vorführung, nicht die Präsentation selbst.">
                             @foreach (var a in Invitable)
                             {
-                                <MudSelectItem T="string" Value="@a.Id">@a.Codename (@RankDisplay.Name(a.Rank))</MudSelectItem>
+                                <MudSelectItem T="string" Value="@a.Id">@a.Codename (@DivisionRules.RankName(a))</MudSelectItem>
                             }
                         </MudSelect>
                         <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="mt-2"
@@ -194,7 +194,7 @@ else
                        HelperText="Eingeladene sehen nur diese Vorführung, nicht die Präsentation selbst; die Einladung endet mit ihr.">
                 @foreach (var a in Invitable)
                 {
-                    <MudSelectItem T="string" Value="@a.Id">@a.Codename (@RankDisplay.Name(a.Rank))</MudSelectItem>
+                    <MudSelectItem T="string" Value="@a.Id">@a.Codename (@DivisionRules.RankName(a))</MudSelectItem>
                 }
             </MudSelect>
             <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.PlayArrow"

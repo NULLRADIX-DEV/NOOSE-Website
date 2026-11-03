@@ -188,7 +188,7 @@ public sealed class ThreatScoreConfigServiceTests : IDisposable
     public async Task SaveAsync_ThrowsUnauthorized_WhenActorNotLeadership()
     {
         var svc = NewService();
-        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.JuniorAgent).Build();
+        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.Trainee).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.SaveAsync(Valid(halfLifeDays: 99.0), junior));

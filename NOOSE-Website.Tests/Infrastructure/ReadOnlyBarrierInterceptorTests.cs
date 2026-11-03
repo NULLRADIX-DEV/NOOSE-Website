@@ -64,7 +64,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
             open.Tickets.Add(new Ticket
             {
                 Id = "t1",
-                CaseNumber = "NOOSE-T-2026-0001",
+                CaseNumber = "FIB-T-2026-0001",
                 CitizenProfileId = ProfileId,
                 Status = TicketStatus.Offen,
                 Subject = "Anfrage an die Führungsebene",
@@ -97,7 +97,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
     private static Ticket Ticket(string id, string author) => new()
     {
         Id = id,
-        CaseNumber = $"NOOSE-T-2026-{id}",
+        CaseNumber = $"FIB-T-2026-{id}",
         CitizenProfileId = ProfileId,
         Status = TicketStatus.Offen,
         Subject = "Anfrage an die Führungsebene",
@@ -241,7 +241,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
         db.Hinweise.Add(new Hinweis
         {
             Id = "h1",
-            CaseNumber = "NOOSE-H-2026-0001",
+            CaseNumber = "FIB-H-2026-0001",
             CitizenProfileId = ProfileId,
             Status = TipStatus.Neu,
             Text = "Der gesuchte Van stand heute Nacht am Hafen.",
@@ -371,7 +371,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
 
         db.Bewerbungen.Add(new Bewerbung
         {
-            CaseNumber = "NOOSE-BEW-2026-0001", ApplicantUserId = PartnerId, Name = "Trevor Ward",
+            CaseNumber = "FIB-BEW-2026-0001", ApplicantUserId = PartnerId, Name = "Trevor Ward",
         });
 
         await db.SaveChangesAsync();
@@ -386,7 +386,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
         {
             seed.Bewerbungen.Add(new Bewerbung
             {
-                Id = "bew1", CaseNumber = "NOOSE-BEW-2026-0001", ApplicantUserId = PartnerId, Name = "Trevor Ward",
+                Id = "bew1", CaseNumber = "FIB-BEW-2026-0001", ApplicantUserId = PartnerId, Name = "Trevor Ward",
             });
             await seed.SaveChangesAsync();
         }
@@ -428,7 +428,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
         {
             seed.Bewerbungen.Add(new Bewerbung
             {
-                Id = "bew1", CaseNumber = "NOOSE-BEW-2026-0001", ApplicantUserId = "fremd", Name = "Wer anders",
+                Id = "bew1", CaseNumber = "FIB-BEW-2026-0001", ApplicantUserId = "fremd", Name = "Wer anders",
                 CreatedById = "fremd",
             });
             await seed.SaveChangesAsync();
@@ -449,7 +449,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
 
         db.Bewerbungen.Add(new Bewerbung
         {
-            CaseNumber = "NOOSE-BEW-2026-0001", ApplicantUserId = "aufsicht", Name = "Owl",
+            CaseNumber = "FIB-BEW-2026-0001", ApplicantUserId = "aufsicht", Name = "Owl",
         });
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => db.SaveChangesAsync());
@@ -463,7 +463,7 @@ public sealed class ReadOnlyBarrierInterceptorTests
 
         db.Bewerbungen.Add(new Bewerbung
         {
-            CaseNumber = "NOOSE-BEW-2026-0001", ApplicantUserId = "demo-agent", Name = "Demo",
+            CaseNumber = "FIB-BEW-2026-0001", ApplicantUserId = "demo-agent", Name = "Demo",
         });
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => db.SaveChangesAsync());

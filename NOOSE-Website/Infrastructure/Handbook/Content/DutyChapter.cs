@@ -69,7 +69,7 @@ internal static class DutyChapter
                 du beim Vortrag siehst.</p>
                 <p>Liegt die Präsentation schon in <strong>Google Slides</strong>, holst du sie mit <em>Aus Google
                 Slides importieren</em>: per Freigabe-Link (in Google „Jeder mit dem Link“), über die
-                <strong>Google-Anmeldung</strong> (auch für Präsentationen, die nicht freigegeben sind; NOOSE liest
+                <strong>Google-Anmeldung</strong> (auch für Präsentationen, die nicht freigegeben sind; das FIB liest
                 nur die eine Datei, die du im Google-Fenster wählst) oder als hochgeladene PDF-Datei (<em>Datei →
                 Herunterladen → PDF-Dokument</em>). Jede Seite wird eine Folie und sieht aus
                 wie in Google, auch im Vollbild am Beamer; Animationen, Übergänge und eingebettete Videos gehen dabei
@@ -78,7 +78,7 @@ internal static class DutyChapter
                 Platz und Notizen ihrer Seitennummer, neue Seiten kommen dahinter. Den Inhalt einer Google-Folie
                 änderst du in Google, hier pflegst du nur ihre Notizen.</p>
                 <p>Wer eine Präsentation sieht, legst du beim Anlegen fest: <strong>öffentlich</strong> für alle
-                internen Agenten, <strong>geschlossen</strong> für eine Gruppe (TRU, HRB, eine Taskforce oder ab einem
+                internen Agenten, <strong>geschlossen</strong> für eine Gruppe (HRT, Administration Division, eine Taskforce oder ab einem
                 Dienstgrad) oder <strong>privat</strong> nur für die Eingeladenen. Schließen kannst du sie nur für eine
                 Gruppe, zu der du selbst gehörst. Du und die Führung sehen deine Präsentationen immer.</p>
                 <p>Mit <em>Vorführen</em> startest du den Vortrag. Wer die Präsentation sehen darf und gerade online

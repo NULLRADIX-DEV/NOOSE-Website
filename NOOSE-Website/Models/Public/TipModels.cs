@@ -6,7 +6,7 @@ namespace NOOSE_Website.Models.Public;
 
 /// <summary>One of the citizen's own tips in their list.</summary>
 /// <remarks>
-/// Addressed by case number, never by row id, and it carries no agent at all — the agency answers as "NOOSE", and a
+/// Addressed by case number, never by row id, and it carries no agent at all — the agency answers as "FIB", and a
 /// record that cannot hold a codename cannot leak one.
 /// </remarks>
 public record CitizenTipRow(

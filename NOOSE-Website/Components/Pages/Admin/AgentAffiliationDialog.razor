@@ -5,14 +5,14 @@
     <DialogContent>
         <MudStack Spacing="3">
             <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
-                Beim Wechsel zu einer Partnerbehörde verliert das Konto Dienstgrad, TRU/HRB, Teamleitung
-                und Admin-Rechte und erhält nur noch Lesezugriff auf freigegebene Akten. Beim Wechsel zu
-                einem internen NOOSE-Agenten wird die Partner-Zugehörigkeit entfernt und ein Dienstgrad
+                Beim Wechsel zu einer Partnerbehörde verliert das Konto Dienstgrad, Abteilung, Administration Division,
+                Teamleitung und Admin-Rechte und erhält nur noch Lesezugriff auf freigegebene Akten. Beim Wechsel zu
+                einem internen FIB-Agenten wird die Partner-Zugehörigkeit entfernt und ein Dienstgrad
                 vergeben. In beiden Fällen muss sich der Agent neu anmelden.
             </MudAlert>
 
             <MudRadioGroup @bind-Value="_isPartner">
-                <MudRadio T="bool" Value="@false" Color="Color.Primary">Interner NOOSE-Agent</MudRadio>
+                <MudRadio T="bool" Value="@false" Color="Color.Primary">Interner FIB-Agent</MudRadio>
                 <MudRadio T="bool" Value="@true" Color="Color.Info">Partnerbehörde</MudRadio>
             </MudRadioGroup>
 
@@ -33,23 +33,34 @@
             }
             else
             {
-                <MudSelect T="Rank" @bind-Value="_rank" Label="Dienstgrad" Variant="Variant.Outlined" Dense="true">
-                    @foreach (var dg in RankDisplay.All)
-                    {
-                        <MudSelectItem Value="dg">@RankDisplay.Name(dg)</MudSelectItem>
-                    }
-                </MudSelect>
+                @if (_ranks.Count == 0)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                        Mit deinem Dienstgrad kannst du hier keinen Dienstgrad vergeben.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudSelect T="Rank" @bind-Value="_rank" Label="Dienstgrad" Variant="Variant.Outlined" Dense="true">
+                        @foreach (var dg in _ranks)
+                        {
+                            <MudSelectItem Value="dg">@RankDisplay.Name(dg)</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
             }
         </MudStack>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Abbrechen</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm">Übernehmen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm"
+                   Disabled="@(!_isPartner && _ranks.Count == 0)">Übernehmen</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     [Parameter] public PartnerAgency? CurrentAgency { get; set; }
     [Parameter] public PartnerRank? CurrentPartnerRank { get; set; }
@@ -58,14 +69,19 @@
     private bool _isPartner;
     private PartnerAgency _agency = PartnerAgency.DoJ;
     private PartnerRank _partnerRank = PartnerRank.Member;
-    private Rank _rank = Rank.JuniorAgent;
+    private Rank _rank = Rank.Trainee;
+    private IReadOnlyList<Rank> _ranks = [];
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        // a switch to internal is a first release: the CID, or the own division for a Section Chief
+        var viewer = PromotionStanding.Of((await AuthStateTask).User);
+        var division = PromotionRules.ReleaseDivision(viewer);
+        _ranks = PromotionRules.AssignableRanks(viewer, division, null).Where(r => DivisionRules.MayHold(division, r)).ToList();
         _isPartner = CurrentAgency is not null;
         _agency = CurrentAgency ?? PartnerAgency.DoJ;
         _partnerRank = CurrentPartnerRank ?? PartnerRank.Member;
-        _rank = CurrentRank ?? Rank.JuniorAgent;
+        _rank = CurrentRank is { } current && _ranks.Contains(current) ? current : _ranks.FirstOrDefault(Rank.Trainee);
     }
 
     private void Confirm()

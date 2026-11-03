@@ -24,7 +24,7 @@ public sealed class FactionRecencyStampTests
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-F-2026-0001");
+            .Returns("FIB-F-2026-0001");
         return new FactionService(
             ctx.Factory,
             caseNo,

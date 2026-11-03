@@ -18,13 +18,13 @@ public sealed class TaskforceChatServiceTests
         return (svc, notifications);
     }
 
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership() + MayAllTaskforcesSee(): sees every taskforce.
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership() + MayAllTaskforcesSee(): sees every taskforce.
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).WithCodename("Falcon").Build();
 
     // Junior agent: not leadership, sees only taskforces it is assigned to.
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).WithCodename("Rookie").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).WithCodename("Rookie").Build();
 
     // External partner: read-only, may post but not retract.
     private static ClaimsPrincipal Partner(string id = "partner1")
@@ -37,7 +37,7 @@ public sealed class TaskforceChatServiceTests
         {
             Id = id,
             Name = "Taskforce " + id,
-            CaseNumber = "NOOSE-TF-2026-0001",
+            CaseNumber = "FIB-TF-2026-0001",
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         });
         if (memberAgentId is not null)

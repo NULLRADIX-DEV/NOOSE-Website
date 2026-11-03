@@ -15,7 +15,7 @@ public static class DemoIdentity
 
     public const string Codename = "Demo";
 
-    /// <summary>Director + TRU + HRB for full read access; not admin; marked read-only via IsDemo.</summary>
+    /// <summary>Director (Board, home CID, so no TRU) + HRB for full read access; not admin; marked read-only via IsDemo.</summary>
     public static ClaimsPrincipal BuildPrincipal()
     {
         var identity = new ClaimsIdentity(AuthenticationType);
@@ -23,7 +23,8 @@ public static class DemoIdentity
         identity.AddClaim(new Claim(AgentClaimTypes.Codename, Codename));
         identity.AddClaim(new Claim(AgentClaimTypes.Status, AgentStatus.Active.ToString()));
         identity.AddClaim(new Claim(AgentClaimTypes.Rank, ((int)Rank.Director).ToString()));
-        identity.AddClaim(new Claim(AgentClaimTypes.IsTRU, "true"));
+        identity.AddClaim(new Claim(AgentClaimTypes.Division, ((int)Division.Cid).ToString()));
+        identity.AddClaim(new Claim(AgentClaimTypes.IsTRU, "false"));
         identity.AddClaim(new Claim(AgentClaimTypes.IsHRB, "true"));
         identity.AddClaim(new Claim(AgentClaimTypes.IsAdmin, "false"));
         identity.AddClaim(new Claim(AgentClaimTypes.IsTeamLead, "false"));

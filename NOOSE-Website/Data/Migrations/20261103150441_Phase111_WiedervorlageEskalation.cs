@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NOOSE_Website.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Phase105_WiedervorlageEskalation : Migration
+    public partial class Phase111_WiedervorlageEskalation : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

@@ -42,7 +42,7 @@ public sealed class PublicReportServiceTests
     /// <summary>A recognisable figure and a named person, both of which the public snapshot must never carry.</summary>
     private const int ClassifiedCount = 4711;
     private const string TopPersonName = "Marek Kowalski";
-    private const string TopPersonCaseNumber = "NOOSE-P-2026-0777";
+    private const string TopPersonCaseNumber = "FIB-P-2026-0777";
 
     /// <summary>The service with the audit interceptor attached, as in production.</summary>
     /// <remarks>

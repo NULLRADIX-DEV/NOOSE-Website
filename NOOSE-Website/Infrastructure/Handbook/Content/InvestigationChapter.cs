@@ -137,7 +137,7 @@ internal static class InvestigationChapter
             new Article("art-entfuehrungen", "entfuehrungen", "Entführungen",
                 "Wenn ein eigener Agent in fremde Hände gerät.",
                 """
-                <p>Der Bereich <strong>Entführungen</strong> behandelt einen einzigen Fall: ein NOOSE-Agent
+                <p>Der Bereich <strong>Entführungen</strong> behandelt einen einzigen Fall: ein FIB-Agent
                 wurde entführt. Festgehalten wird, wer die Täter sind, wie lange es dauerte und - das ist der
                 eigentliche Zweck - <strong>welche Informationen abgeflossen sind</strong>.</p>
                 <p>Zu jeder Entführung lassen sich die Akten benennen, die als kompromittiert gelten müssen.
@@ -241,7 +241,7 @@ internal static class InvestigationChapter
                 Freigabe-Link (in Google auf „Jeder mit dem Link“ stellen), über die <strong>Google-Anmeldung</strong>
                 oder als hochgeladene Datei (<em>Datei → Herunterladen → Webseite (.html, gezippt)</em>). Bei der
                 Anmeldung meldest du dich im Google-Fenster an und wählst das Dokument; das geht auch, wenn es nicht
-                freigegeben ist. NOOSE darf dabei nur diese eine Datei lesen und merkt sich keinen Zugang, zum
+                freigegeben ist. Das FIB darf dabei nur diese eine Datei lesen und merkt sich keinen Zugang, zum
                 Aktualisieren meldest du dich wieder an. Als <strong>Original</strong> sieht es
                 aus wie in Google, der Text bleibt dort und kommt mit <em>Aktualisieren</em> neu. Als
                 <strong>bearbeitbare Kopie</strong> wird es ein normales Dokument; Schriften und Abstände, die der

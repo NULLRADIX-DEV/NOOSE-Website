@@ -1,0 +1,38 @@
+@* Top-bar button that opens the firearm-use report; shown to in-house accounts that may write. *@
+@inject IDialogService DialogService
+@inject IFirearmUseService FirearmUses
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<AuthorizeView Policy="@Policies.FirearmUseReport" Context="melden">
+    <MudTooltip Text="Schusswaffengebrauch melden">
+        <MudIconButton Icon="@Icons.Material.Filled.GpsFixed" Color="Color.Inherit"
+                       OnClick="ReportAsync" aria-label="Schusswaffengebrauch melden" />
+    </MudTooltip>
+</AuthorizeView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private async Task ReportAsync()
+    {
+        var reason = await FirearmUseDialog.ShowAsync(DialogService);
+        if (reason is null || AuthStateTask is null)
+        {
+            return;
+        }
+
+        var user = (await AuthStateTask).User;
+        try
+        {
+            await FirearmUses.ReportAsync(reason, user);
+            // the dialog closed before the save, so the draft is dropped here, and only once it went through
+            await TextDraft.DiscardScopeAsync(JS, user.GetAgentId(), FirearmUseDialog.DraftScope);
+            Snackbar.Add("Schusswaffengebrauch gemeldet.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -12,7 +12,7 @@ namespace NOOSE_Website.Infrastructure.Export;
 /// </remarks>
 public static partial class DossierMarkdown
 {
-    private const string ReleaseNote = "NOOSE-interne Akte · Weitergabe nur nach Freigabe durch die Führung.";
+    private const string ReleaseNote = "FIB-interne Akte · Weitergabe nur nach Freigabe durch die Führung.";
 
     private const int MaxSlugLength = 80;
 
@@ -63,7 +63,7 @@ public static partial class DossierMarkdown
         return Join(output);
     }
 
-    /// <summary>"dossier-" and the title as lowercase ASCII, e.g. dossier-max-mustermann-noose-p-2026-0001.md.</summary>
+    /// <summary>"dossier-" and the title as lowercase ASCII, e.g. dossier-max-mustermann-fib-p-2026-0001.md.</summary>
     public static string FileName(string title)
     {
         var lowered = title.ToLowerInvariant()

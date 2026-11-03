@@ -19,7 +19,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class NooseiCoverageToolTests
 {
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
@@ -163,7 +163,7 @@ public sealed class NooseiCoverageToolTests
     }
 
     [Fact]
-    public async Task ExplainThreatScore_KeepsTheNumbersButWithholdsTheDriversFromAJuniorAgent()
+    public async Task ExplainThreatScore_KeepsTheNumbersButWithholdsTheDriversFromATrainee()
     {
         using var ctx = new SqliteTestContext();
         SeedScored(ctx, DetailJson());
@@ -423,7 +423,7 @@ public sealed class NooseiCoverageToolTests
         search.SearchAsync(Arg.Any<SearchCriteria>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Results(
                 new SearchResultGroup("Person", "Personen",
-                    [new SearchHit("Person", "p1", "Otto Offen", "", "NOOSE-P-2026-0001")]))));
+                    [new SearchHit("Person", "p1", "Otto Offen", "", "FIB-P-2026-0001")]))));
 
         var result = await new SearchRecordsTool(search, Substitute.For<ITagService>()).InvokeAsync(
             Args("""{"suchtext":"Otto","typen":["Person","Hausmeister"]}"""), NooseiToolContext.From(Leader()));

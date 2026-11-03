@@ -215,7 +215,7 @@ public class NotificationService(
             }
             else
             {
-                var recipientIsLeadership = e.IsAdmin || e.Rank is >= Rank.SupervisorySpecialAgent;
+                var recipientIsLeadership = e.IsAdmin || e.Rank is >= Rank.SpecialAgentInCharge;
                 if (!await Visibility.IsRecordVisibleAsync(db, targetType, targetId, recipientIsLeadership, cancellationToken, e.Id))
                 {
                     continue;

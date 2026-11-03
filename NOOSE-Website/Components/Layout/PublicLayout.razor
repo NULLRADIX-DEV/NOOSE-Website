@@ -6,17 +6,17 @@
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<div style="min-height:100vh;background:#0E1116;padding:32px 16px;">
+<div style="min-height:100vh;background:var(--mud-palette-background,#1C1C1C);padding:32px 16px;">
     @* 860px like the citizen and applicant shells: 880 was a third width for no reason *@
     <div style="max-width:860px;margin:0 auto;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
             @* the wordmark is the only way out of an invite link, as in the other shells *@
             <MudLink Href="/" Underline="Underline.None" Color="Color.Inherit">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                    <MudImage Src="NooseIcon.png" Alt="NOOSE Wappen" Height="40" />
+                    <MudImage Src="FibIcon.png" Alt="Wappen des FIB" Height="40" />
                     <MudStack Spacing="0">
-                        <MudText Typo="Typo.h6" Style="font-weight:700;letter-spacing:.12em;line-height:1.1;">N.O.O.S.E.</MudText>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">National Office of Security Enforcement</MudText>
+                        <MudText Typo="Typo.h6" Style="font-weight:700;letter-spacing:.12em;line-height:1.1;">F.I.B.</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Federal Investigation Bureau</MudText>
                     </MudStack>
                 </MudStack>
             </MudLink>

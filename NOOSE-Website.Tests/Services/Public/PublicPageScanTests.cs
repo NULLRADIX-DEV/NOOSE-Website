@@ -15,7 +15,7 @@ public partial class PublicPageScanTests
     private static readonly string[] IdentityMarkers =
     [
         "Codename", "RealName", "Klarname", "Dienstgrad", "BadgeNumber", "Dienstnummer",
-        "IsAdmin", "IsTeamLead", "IsTRU", "IsHRB", "GetAgentId",
+        "IsAdmin", "IsTeamLead", "IsTRU", "IsHRB", "GetDivision", "GetAgentId",
     ];
 
     /// <summary>Anything that reaches past the publication snapshot into the record surface.</summary>

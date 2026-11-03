@@ -60,7 +60,7 @@ public sealed class WatchlistFanout(IDbContextFactory<AppDbContext> dbFactory, I
                 {
                     continue;
                 }
-                var isLeadership = f.IsAdmin || f.Rank is >= Rank.SupervisorySpecialAgent;
+                var isLeadership = f.IsAdmin || f.Rank is >= Rank.SpecialAgentInCharge;
                 if (!await Visibility.IsRecordVisibleAsync(db, type, id, isLeadership, cancellationToken, f.Id))
                 {
                     continue;

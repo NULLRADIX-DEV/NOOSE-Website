@@ -18,9 +18,9 @@ public sealed class LinkSuggestionServiceTests
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.Director).Build();
 
-    // JuniorAgent: not leadership => classified candidates hidden.
+    // Trainee: not leadership => classified candidates hidden.
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.Trainee).Build();
 
     // ---- entity-type gate --------------------------------------------------
 
@@ -113,7 +113,7 @@ public sealed class LinkSuggestionServiceTests
         {
             db.People.Add(Seed.Person("p1", "Max Mueller"));
             db.People.Add(Seed.Person("p2", "Anna Schmidt"));
-            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Kartell", CaseNumber = "NOOSE-G-2026-0001" });
+            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Kartell", CaseNumber = "FIB-G-2026-0001" });
             db.PersonGroupMembers.Add(new PersonGroupMember { PersonGroupId = "g1", PersonId = "p1" });
             db.PersonGroupMembers.Add(new PersonGroupMember { PersonGroupId = "g1", PersonId = "p2" });
             db.SaveChanges();

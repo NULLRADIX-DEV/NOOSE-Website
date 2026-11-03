@@ -174,8 +174,11 @@ public enum NotificationType
     /// leaves with what is personnel business, not a channel's.</summary>
     HandoverReceived = 50,
 
+    /// <summary>An agent reported a firearm use. Bell only, for the leadership of the agent's division and the Board;
+    /// the title names agent and time, never the reason.</summary>
+    FirearmUseReported = 51,
     /// <summary>Follow-ups went long overdue; leadership bell only, naming neither record nor agent.</summary>
-    FollowupEscalated = 51,
+    FollowupEscalated = 52,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -224,7 +227,7 @@ public static class NotificationTypeDisplay
         NotificationType.AcknowledgmentReminder => "Quittierung überfällig",
         NotificationType.SavedSearchHit => "Neue Treffer einer gespeicherten Suche",
         NotificationType.CounterIntelFinding => "Gegenaufklärung",
-        NotificationType.NooseiAnomaly => "NOOSEI-Auffälligkeit",
+        NotificationType.NooseiAnomaly => "FIBI-Auffälligkeit",
         NotificationType.DecorationAwarded => "Ehrung",
         NotificationType.InactivityNudge => "Rückmeldung erbeten",
         NotificationType.FactionThreatBoard => "Gefahrenlage (Fraktionen)",
@@ -234,6 +237,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestDueReminder => "Test fällig",
         NotificationType.PresentationLive => "Präsentation live",
         NotificationType.HandoverReceived => "Übernahme",
+        NotificationType.FirearmUseReported => "Schusswaffengebrauch",
         NotificationType.FollowupEscalated => "Wiedervorlagen-Rückstand",
         _ => "Benachrichtigung",
     };
@@ -292,6 +296,7 @@ public static class NotificationTypeDisplay
         NotificationType.TestDueReminder => Icons.Material.Filled.AlarmOn,
         NotificationType.PresentationLive => Icons.Material.Filled.CoPresent,
         NotificationType.HandoverReceived => Icons.Material.Filled.MoveDown,
+        NotificationType.FirearmUseReported => Icons.Material.Filled.GpsFixed,
         NotificationType.FollowupEscalated => Icons.Material.Filled.PendingActions,
         _ => Icons.Material.Filled.Notifications,
     };

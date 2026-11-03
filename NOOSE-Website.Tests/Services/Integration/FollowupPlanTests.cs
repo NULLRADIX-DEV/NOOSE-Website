@@ -23,8 +23,8 @@ public sealed class FollowupPlanTests
     private static FollowupService Build(SqliteTestContext ctx, INotificationService? notifications = null)
         => new(ctx.Factory, notifications ?? Substitute.For<INotificationService>());
 
-    private static ClaimsPrincipal Junior(string id = "me")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Trainee(string id = "me")
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
@@ -81,7 +81,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        var plan = await Build(ctx).GetMyPlanAsync(Junior());
+        var plan = await Build(ctx).GetMyPlanAsync(Trainee());
 
         Assert.Equal(["late", "today", "later"], plan.Items.Select(i => i.Id).ToArray());
         Assert.Equal([FollowupBucket.Overdue, FollowupBucket.Today, FollowupBucket.Later], plan.Items.Select(i => i.Bucket).ToArray());
@@ -99,7 +99,7 @@ public sealed class FollowupPlanTests
         {
             db.People.Add(Seed.Person("open", "Offene Akte"));
             db.People.Add(Seed.Person("vs", "Geheime Akte", p => p.IsClassified = true));
-            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Sonderkommando", CaseNumber = "NOOSE-TF-2026-0001" });
+            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Sonderkommando", CaseNumber = "FIB-TF-2026-0001" });
             db.Followups.AddRange(
                 Due("visible", "open", "me", Now),
                 Due("secret", "vs", "me", Now, f => f.Note = "Geheime Notiz"),
@@ -107,7 +107,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        var plan = await Build(ctx).GetMyPlanAsync(Junior());
+        var plan = await Build(ctx).GetMyPlanAsync(Trainee());
 
         var item = Assert.Single(plan.Items);
         Assert.Equal("visible", item.Id);
@@ -144,7 +144,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        var plan = await Build(ctx).GetMyPlanAsync(Junior());
+        var plan = await Build(ctx).GetMyPlanAsync(Trainee());
 
         Assert.Empty(plan.Items);
         Assert.Equal(0, plan.Hidden);
@@ -171,7 +171,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        var plan = await Build(ctx).GetMyPlanAsync(Junior());
+        var plan = await Build(ctx).GetMyPlanAsync(Trainee());
 
         Assert.True(plan.Capped);
         Assert.Equal(FollowupPlanRules.MaxRows, plan.Items.Count);
@@ -196,7 +196,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        await Build(ctx).PostponeAsync("f", 1, Junior());
+        await Build(ctx).PostponeAsync("f", 1, Trainee());
 
         var f = Read(ctx, "f");
         Assert.Equal(MeetingTime.Day(Now).AddDays(1), MeetingTime.Day(f.DueAt));
@@ -216,7 +216,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        await Build(ctx).PostponeAsync("f", 7, Junior());
+        await Build(ctx).PostponeAsync("f", 7, Trainee());
 
         Assert.Equal(MeetingTime.Day(due).AddDays(7), MeetingTime.Day(Read(ctx, "f").DueAt));
     }
@@ -242,7 +242,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).PostponeAsync("f", 1, Junior()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).PostponeAsync("f", 1, Trainee()));
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).PostponeAsync("f", 1, Junior()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).PostponeAsync("f", 1, Trainee()));
         Assert.Equal(MeetingTime.Day(Now), MeetingTime.Day(Read(ctx, "f").DueAt));
     }
 
@@ -274,7 +274,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Build(ctx).PostponeAsync("f", days, Junior()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Build(ctx).PostponeAsync("f", days, Trainee()));
     }
 
     [Fact]
@@ -288,7 +288,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => Build(ctx).PostponeAsync("f", 1, Junior()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => Build(ctx).PostponeAsync("f", 1, Trainee()));
     }
 
     [Fact]
@@ -305,10 +305,10 @@ public sealed class FollowupPlanTests
         var svc = Build(ctx);
         var stored = Read(ctx, "f").DueAt;
 
-        await svc.RefreshAsync("f", new FollowupInput(DateTime.SpecifyKind(stored, DateTimeKind.Utc), "anders", "me"), Junior());
+        await svc.RefreshAsync("f", new FollowupInput(DateTime.SpecifyKind(stored, DateTimeKind.Utc), "anders", "me"), Trainee());
         Assert.NotNull(Read(ctx, "f").EscalatedAt);
 
-        await svc.RefreshAsync("f", new FollowupInput(DateTime.SpecifyKind(stored, DateTimeKind.Utc).AddDays(20), "anders", "me"), Junior());
+        await svc.RefreshAsync("f", new FollowupInput(DateTime.SpecifyKind(stored, DateTimeKind.Utc).AddDays(20), "anders", "me"), Trainee());
         Assert.Null(Read(ctx, "f").EscalatedAt);
     }
 
@@ -320,7 +320,7 @@ public sealed class FollowupPlanTests
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetBacklogAsync(Junior()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetBacklogAsync(Trainee()));
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetBacklogAsync(Partner()));
         Assert.Empty((await svc.GetBacklogAsync(Supervision())).Items);
         Assert.Empty((await svc.GetBacklogAsync(Leader())).Items);
@@ -333,8 +333,8 @@ public sealed class FollowupPlanTests
         using (var db = ctx.NewContext())
         {
             db.Users.AddRange(
-                Seed.Agent("a1", Rank.JuniorAgent),
-                Seed.Agent("gone", Rank.JuniorAgent, AgentStatus.Terminated));
+                Seed.Agent("a1", Rank.Trainee),
+                Seed.Agent("gone", Rank.Trainee, AgentStatus.Terminated));
             db.People.Add(Seed.Person("p1", "Anna Akte"));
             db.Followups.AddRange(
                 Due("fresh", "p1", "a1", Now.AddDays(2)),
@@ -367,7 +367,7 @@ public sealed class FollowupPlanTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee));
             db.Documents.Add(new Document { Id = "d1", Title = "Gesperrtes Dokument" });
             db.DocumentAccessExclusions.Add(new DocumentAccessExclusion { Id = "x1", DocumentId = "d1", AgentId = "lead" });
             db.Followups.Add(Due("f", "d1", "a1", Now.AddDays(-2), f =>
@@ -395,8 +395,8 @@ public sealed class FollowupPlanTests
         using var db = ctx.NewContext();
         db.Users.AddRange(
             Seed.Agent("lead", Rank.Director),
-            Seed.Agent("from", Rank.JuniorAgent),
-            Seed.Agent("to", Rank.JuniorAgent));
+            Seed.Agent("from", Rank.Trainee),
+            Seed.Agent("to", Rank.Trainee));
         db.People.Add(Seed.Person("p1", "Anna Akte"));
         db.Followups.Add(Due("f", "p1", "from", Now.AddDays(-8), f => f.EscalatedAt = Now));
         more?.Invoke(db);
@@ -451,7 +451,7 @@ public sealed class FollowupPlanTests
         using var ctx = new SqliteTestContext();
         SeedReassign(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).ReassignAsync("f", "to", Junior("from")));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).ReassignAsync("f", "to", Trainee("from")));
         Assert.Equal("from", Read(ctx, "f").ResponsibleAgentId);
     }
 
@@ -464,7 +464,7 @@ public sealed class FollowupPlanTests
     {
         using var ctx = new SqliteTestContext();
         SeedReassign(ctx, db => db.Users.AddRange(
-            Seed.Agent("terminated", Rank.JuniorAgent, AgentStatus.Terminated),
+            Seed.Agent("terminated", Rank.Trainee, AgentStatus.Terminated),
             Seed.Agent("teamlead", Rank.Director, configure: a => a.IsTeamLead = true),
             Seed.Agent("partner", Rank.Director, configure: a => a.PartnerAgency = PartnerAgency.LSPD)));
 
@@ -516,8 +516,8 @@ public sealed class FollowupPlanTests
     {
         db.Users.AddRange(
             Seed.Agent("lead", Rank.Director),
-            Seed.Agent("admin", Rank.JuniorAgent, configure: a => a.IsAdmin = true),
-            Seed.Agent("junior", Rank.JuniorAgent),
+            Seed.Agent("admin", Rank.Trainee, configure: a => a.IsAdmin = true),
+            Seed.Agent("junior", Rank.Trainee),
             Seed.Agent("teamlead", Rank.Director, configure: a => a.IsTeamLead = true),
             Seed.Agent("partner", Rank.Director, configure: a => a.PartnerAgency = PartnerAgency.LSPD),
             Seed.Agent("terminated", Rank.Director, AgentStatus.Terminated),
@@ -607,7 +607,7 @@ public sealed class FollowupPlanTests
         var svc = Build(ctx);
 
         Assert.Equal(1, await svc.EscalateOverdueAsync(Now));
-        await svc.PostponeAsync("f", 1, Junior("junior"));
+        await svc.PostponeAsync("f", 1, Trainee("junior"));
         Assert.Null(Read(ctx, "f").EscalatedAt);
 
         // not yet: the new due date is tomorrow
@@ -684,7 +684,7 @@ public sealed class FollowupPlanTests
             db.SaveChanges();
         }
         var notifications = Substitute.For<INotificationService>();
-        var svc = BuildWith(ctx, new BeforeFirstUpdate(() => Build(ctx).PostponeAsync("f", 1, Junior("junior"))),
+        var svc = BuildWith(ctx, new BeforeFirstUpdate(() => Build(ctx).PostponeAsync("f", 1, Trainee("junior"))),
             notifications);
 
         Assert.Equal(0, await svc.EscalateOverdueAsync(Now));
@@ -717,11 +717,11 @@ public sealed class FollowupPlanTests
 
         if (postpone)
         {
-            await svc.PostponeAsync("f", 1, Junior("junior"));
+            await svc.PostponeAsync("f", 1, Trainee("junior"));
         }
         else
         {
-            await svc.RefreshAsync("f", new FollowupInput(Now.AddDays(2), "neu", "junior"), Junior("junior"));
+            await svc.RefreshAsync("f", new FollowupInput(Now.AddDays(2), "neu", "junior"), Trainee("junior"));
         }
 
         var f = Read(ctx, "f");
@@ -772,7 +772,7 @@ public sealed class FollowupPlanTests
         var watchlist = Substitute.For<IWatchlistService>();
         watchlist.GetFollowerIdsAsync(default!, default!, default).ReturnsForAnyArgs(async _ =>
         {
-            await Build(ctx).PostponeAsync("f", 1, Junior("junior"));
+            await Build(ctx).PostponeAsync("f", 1, Trainee("junior"));
             return new List<string>();
         });
 
@@ -789,8 +789,8 @@ public sealed class FollowupPlanTests
     [Fact]
     public void The_reminder_scope_reads_leadership_from_rank_or_admin()
     {
-        Assert.True(FollowupService.ReminderScope("a", false, Rank.SupervisorySpecialAgent, null).MayClassifiedRead);
-        Assert.True(FollowupService.ReminderScope("a", true, Rank.JuniorAgent, null).MayClassifiedRead);
+        Assert.True(FollowupService.ReminderScope("a", false, Rank.SpecialAgentInCharge, null).MayClassifiedRead);
+        Assert.True(FollowupService.ReminderScope("a", true, Rank.Trainee, null).MayClassifiedRead);
         Assert.False(FollowupService.ReminderScope("a", false, Rank.SeniorSpecialAgent, null).MayClassifiedRead);
         Assert.False(FollowupService.ReminderScope("a", false, null, PartnerAgency.LSPD).IsInternalAgent);
     }

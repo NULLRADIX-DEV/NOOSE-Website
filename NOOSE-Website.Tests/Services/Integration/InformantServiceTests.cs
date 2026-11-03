@@ -16,7 +16,7 @@ public sealed class InformantServiceTests
     private static ClaimsPrincipal Handler(string id) => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgent).Build();
     private static ClaimsPrincipal Stranger() => ClaimsPrincipalBuilder.Agent("stranger").WithRank(Rank.SpecialAgent).Build();
     private static ClaimsPrincipal OnlyReader() => ClaimsPrincipalBuilder.Agent("or").AsTeamLead().Build();
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.Trainee).Build();
     private static ClaimsPrincipal Partner() => ClaimsPrincipalBuilder.Agent("p")
         .AsPartner(PartnerAgency.DoJ, PartnerRank.Chief).Build();
 
@@ -28,7 +28,7 @@ public sealed class InformantServiceTests
         SeedHandlers(ctx);
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult($"NOOSE-VP-2026-{++_caseNumber:0000}"));
+            .Returns(_ => Task.FromResult($"FIB-VP-2026-{++_caseNumber:0000}"));
         return new InformantService(ctx.Factory, caseNumbers);
     }
 

@@ -5,19 +5,19 @@
 @using NOOSE_Website.Models.Public
 @inject IPublicLeadershipService Leadership
 
-<PageTitle>Mitarbeiter · NOOSE</PageTitle>
+<PageTitle>Mitarbeiter · FIB</PageTitle>
 
 <LinkPreview Title="Mitarbeiter"
-             Description="Das Organigramm der Führung mit Rang und Telefonnummer und alle Mitarbeiterinnen und Mitarbeiter des NOOSE mit Namen." />
+             Description="Das Organigramm der Führung mit Rang und Telefonnummer und alle Mitarbeiterinnen und Mitarbeiter des FIB mit Namen." />
 
 <PublicModuleGate Module="@PublicModules.Leadership" Title="Mitarbeiter">
     <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
         <MudStack Spacing="5">
             <MudStack Spacing="1">
-                <MudText Typo="Typo.overline" Color="Color.Primary">National Office of Security Enforcement</MudText>
+                <MudText Typo="Typo.overline" Color="Color.Primary">Federal Investigation Bureau</MudText>
                 <MudText Typo="Typo.h4">Mitarbeiter</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="max-width:680px;">
-                    Wer beim NOOSE Dienst tut, steht hier mit Namen. Die Führung erreichen Sie direkt unter der
+                    Wer beim FIB Dienst tut, steht hier mit Namen. Die Führung erreichen Sie direkt unter der
                     angegebenen Telefonnummer.
                 </MudText>
             </MudStack>
@@ -33,7 +33,7 @@
                 {
                     <div class="org-scroll">
                         <div class="org">
-                            <div class="org-node org-root">N.O.O.S.E.</div>
+                            <div class="org-node org-root">F.I.B.</div>
                             @foreach (var tier in _roster.Leadership)
                             {
                                 <div class="org-link"></div>

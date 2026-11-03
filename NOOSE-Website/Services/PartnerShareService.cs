@@ -413,7 +413,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
         try
         {
             var leadership = await db.Users.OnlySelectable()
-                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SupervisorySpecialAgent))
+                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SpecialAgentInCharge))
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
             await notifications.NotifyManyAsync(leadership, NotificationType.PartnerInquiry,

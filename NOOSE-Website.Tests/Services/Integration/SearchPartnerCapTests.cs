@@ -63,7 +63,7 @@ public class SearchPartnerCapTests
         {
             db.People.Add(Seed.Person("p1", "Otto Offen"));
             db.Factions.Add(Seed.Faction("f1", "Otto-Bande"));
-            db.KassenBuchungen.Add(new KassenBuchung { Id = "k1", CaseNumber = "NOOSE-K-2026-0001", Reason = "Otto" });
+            db.KassenBuchungen.Add(new KassenBuchung { Id = "k1", CaseNumber = "FIB-K-2026-0001", Reason = "Otto" });
             // released to the agency, so the two record types are genuinely reachable
             db.PartnerShares.Add(Share(nameof(Person), "p1"));
             db.PartnerShares.Add(Share(nameof(Faction), "f1"));
@@ -147,7 +147,7 @@ public class SearchPartnerCapTests
             await db.SaveChangesAsync();
         }
         var policy = new SearchTestHost.RankRestrictedPartnerPolicy(nameof(Person));
-        var agent = ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.JuniorAgent).Build();
+        var agent = ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.Trainee).Build();
 
         var results = await SearchTestHost.NewService(ctx, policy).SearchAsync(Text("Otto"), agent);
 
@@ -163,7 +163,7 @@ public class SearchPartnerCapTests
 
         var asPartner = await SearchTestHost.NewService(ctx).SearchAsync(Text("nichts"), PartnerUser());
         var asAgent = await SearchTestHost.NewService(ctx)
-            .SearchAsync(Text("nichts"), ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.JuniorAgent).Build());
+            .SearchAsync(Text("nichts"), ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.Trainee).Build());
 
         Assert.True(asPartner.VisibleCategories > 0);
         Assert.True(asPartner.VisibleCategories < asAgent.VisibleCategories,

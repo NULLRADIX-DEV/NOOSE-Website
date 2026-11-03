@@ -225,7 +225,7 @@ public sealed class ReadAreaTool(
         // the one named rule the personnel page uses; filtering db.Users by hand here is how the search leaked
         var rows = await db.Users.AsNoTracking().OnlyWithPersonnelFile()
             .OrderBy(u => u.Rank == null).ThenByDescending(u => u.Rank).ThenBy(u => u.Codename)
-            .Select(u => new { u.Codename, u.Rank, u.Status, u.IsTRU, u.IsHRB })
+            .Select(u => new { u.Codename, u.Rank, u.Division, u.Status, u.IsTRU, u.IsHRB })
             .ToListAsync(ct);
         if (rows.Count == 0)
         {
@@ -238,11 +238,12 @@ public sealed class ReadAreaTool(
         sb.Append("— Agenten (").Append(Math.Min(max, rows.Count)).Append(" von ").Append(rows.Count).AppendLine(") —");
         foreach (var r in rows.Take(max))
         {
+            var unit = DivisionRules.Of(r.Rank, r.Division, r.IsTRU);
             sb.Append("• ").Append(string.IsNullOrWhiteSpace(r.Codename) ? "(unbenannt)" : r.Codename)
-                .Append(" | ").Append(r.Rank is { } rank ? RankDisplay.Name(rank) : "ohne Dienstgrad")
+                .Append(" | ").Append(r.Rank is { } rank ? RankDisplay.Name(rank, unit.Home) : "ohne Dienstgrad")
                 .Append(" | ").Append(AgentStatusDisplay.Name(r.Status));
-            if (r.IsTRU) { sb.Append(" | TRU"); }
-            if (r.IsHRB) { sb.Append(" | HRB"); }
+            if (!unit.IsNone) { sb.Append(" | Abteilung: ").Append(DivisionRules.Label(unit)); }
+            if (r.IsHRB) { sb.Append(" | Administration Division"); }
             sb.AppendLine();
         }
     }

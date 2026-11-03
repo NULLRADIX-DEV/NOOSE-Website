@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using NOOSE_Website.Models.Decorations;
+using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services.Decorations;
 
@@ -15,13 +16,14 @@ public interface IDecorationService
     /// <summary>Removes an entry that was never awarded; one that was must be switched off instead.</summary>
     Task DeleteDecorationAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Signatory and place of every certificate.</summary>
+    /// <summary>Signatories (global and per division) and place of the certificates.</summary>
     Task<CertificateSettings> GetCertificateSettingsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Who may be picked as signatory, plus the stored one even if no longer eligible.</summary>
-    Task<IReadOnlyList<SignatoryOption>> GetSignatoryOptionsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Who may be picked as signatory of a division (null = the global one), plus the stored one even if no longer eligible.</summary>
+    /// <remarks>The Board and admins may sign for any division, a Section Chief only for the own; see <c>DecorationRules.MaySign</c>.</remarks>
+    Task<IReadOnlyList<SignatoryOption>> GetSignatoryOptionsAsync(ClaimsPrincipal actor, Division? division = null, CancellationToken cancellationToken = default);
 
-    /// <summary>Stores signatory and place; leadership with write access.</summary>
+    /// <summary>Stores signatories and place; leadership with write access.</summary>
     Task SaveCertificateSettingsAsync(CertificateSettings input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Awards a decoration and runs the chosen announcements; returns the award id.</summary>

@@ -25,7 +25,7 @@ public sealed class MeetingServiceTests
         // service, and seeded meetings use distinct "BS-<id>" numbers, so this cannot collide
         // with the unique index on Meeting.CaseNumber.
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-BS-2026-0001");
+            .Returns("FIB-BS-2026-0001");
         var notifications = Substitute.For<INotificationService>();
         var links = Substitute.For<ILinkService>();
         var svc = new MeetingService(ctx.Factory, caseNo, notifications, links);
@@ -36,9 +36,9 @@ public sealed class MeetingServiceTests
     private static ClaimsPrincipal WriteActor() =>
         ClaimsPrincipalBuilder.Agent("lead").AsAdmin().WithRank(Rank.Director).Build();
 
-    // JuniorAgent, no admin => fails RequireMeetingWrite and RequireLeadership
+    // Trainee, no admin => fails RequireMeetingWrite and RequireLeadership
     private static ClaimsPrincipal LowActor() =>
-        ClaimsPrincipalBuilder.Agent("low").WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipalBuilder.Agent("low").WithRank(Rank.Trainee).Build();
 
     // TeamLead without admin => IsOnlyReader => fails RequireWriteAccess
     private static ClaimsPrincipal ReaderActor() =>

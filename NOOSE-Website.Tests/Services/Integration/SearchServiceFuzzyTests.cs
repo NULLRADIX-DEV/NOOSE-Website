@@ -13,7 +13,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class SearchServiceFuzzyTests
 {
     private static SearchService Svc(SqliteTestContext ctx) => SearchTestHost.NewService(ctx);
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.Trainee).Build();
     private static ClaimsPrincipal Leader() => ClaimsPrincipalBuilder.Agent("l").WithRank(Rank.Director).Build();
 
     private static SearchCriteria Fuzzy(string text) => new() { Text = text, Fuzzy = true };
@@ -158,7 +158,7 @@ public sealed class SearchServiceFuzzyTests
     {
         var informant = new NOOSE_Website.Data.Entities.Informants.Informant
         {
-            Id = "i1", CaseNumber = "NOOSE-VP-2026-0001", RealName = "Mayr", HandlerId = "h1",
+            Id = "i1", CaseNumber = "FIB-VP-2026-0001", RealName = "Mayr", HandlerId = "h1",
         };
 
         // the only field worth a phonetic pass is the V-person's real name, and this table has no gate

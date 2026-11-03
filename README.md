@@ -1,24 +1,24 @@
 # NOOSE-Website
 
-Die zentrale Akten- und Intelligence-Datenbank der NOOSE (National Office of Security Enforcement), einer fiktiven Sicherheitsbehörde auf einem FiveM-/GTA-RP-Server. Sie ersetzt verstreute Discord-Threads durch eine durchsuchbare Datenbank, in der alles in beide Richtungen verlinkt ist. Für jede Person und jede Fraktion gibt es genau eine Akte, in der Beobachtungen, Dokumente, Beziehungen, Einstufungen und Bedrohungsbewertungen zusammenlaufen.
+Die zentrale Akten- und Intelligence-Datenbank des FIB (Federal Investigation Bureau), einer fiktiven Sicherheitsbehörde auf einem FiveM-/GTA-RP-Server. Bis November 2026 hieß die Behörde NOOSE, deshalb heißen Repo, Projekt und Image weiter so. Die App ersetzt verstreute Discord-Threads durch eine durchsuchbare Datenbank, in der alles in beide Richtungen verlinkt ist. Für jede Person und jede Fraktion gibt es genau eine Akte, in der Beobachtungen, Dokumente, Beziehungen, Einstufungen und Bedrohungsbewertungen zusammenlaufen.
 
 Unter derselben Domain liegt ein öffentlicher Bereich mit Fahndungen, Presse und Warnungen, dazu ein Bürgerkonto, über das Bürger Hinweise geben und mit der Behörde schreiben. Was nach außen geht, entscheidet immer ein ausdrücklicher Schritt der Veröffentlichung. Ab Werk ist fast jedes öffentliche Modul aus, und ein Not-Aus nimmt den ganzen Außenauftritt vom Netz.
 
-Live-Demo: **https://demo.noose.info**, dort sind nicht alle Funktionen verfügbar.
+Live: **https://fibhq.com**. Eine Demo mit dem FIB-Stand gibt es nicht. `demo.noose.info` zeigt weiter die NOOSE-Fassung vor der Umstellung, mit eingeschränktem Funktionsumfang.
 
-## Was NOOSE kann
+## Was das FIB kann
 
 | Bereich | Was es gibt |
 |---|---|
 | Akten | Personen, Fraktionen, Personengruppen und Parteien mit Steckbrief, Fotos, Verknüpfungen, Einstufung, Zeitstrahl und Änderungshistorie |
 | Vorgänge und Einsätze | Vorgänge, Operationen, Observationen, Taskforces mit eigenem Chat, Aufgaben-Board, Kalender, Dienstbesprechungen |
-| Personal | Personalakten, Beförderungen, Abmeldungen, Dienst-Aktivitäten, Recruiting mit Bewerber-Portal und Eignungstest, Bestenliste |
+| Personal | Personalakten, Beförderungen, Abteilungen (CID, CTD, HRT) und Board, Abmeldungen, Dienst-Aktivitäten, Schusswaffengebrauch, Recruiting mit Bewerber-Portal und Eignungstest, Bestenliste |
 | Geld und Material | Kasse, Asservatenkammer, Finanzierungsanträge |
 | Wissen | Dokumente mit VS-Stufen, Datei-Bibliothek, Gesetzbuch, Schwarzes Brett, Informanten |
 | Suche und Analyse | Volltextsuche über alles Sichtbare, Beziehungsgraph mit Pfadsuche, Bedrohungs-Score, Dashboard, Statistik, Lageberichte |
-| NOOSEI | KI-Assistent, der über Lesewerkzeuge in der Aktendatenbank nachsieht und Änderungen nur vorschlägt, die der Agent selbst ausführt; Kurzbriefe je Akte, Schreibhilfe im Editor |
+| FIBI | KI-Assistent, der über Lesewerkzeuge in der Aktendatenbank nachsieht und Änderungen nur vorschlägt, die der Agent selbst ausführt; Kurzbriefe je Akte, Schreibhilfe im Editor |
 | Partnerbehörden | Lesezugriff für DoJ, LSPD und LSMD auf ausdrücklich freigegebene Akten |
-| Öffentlicher Bereich | Fahndungsboard mit Steckbriefen und Kopfgeld, Presse, Warnungen, Gefahrenlage, Organisationsprofile, Gesetzesauszüge, öffentliche Suche |
+| Öffentlicher Bereich | Fahndungsboard mit Steckbriefen und Kopfgeld, Presse, Warnungen, Gefahrenlage in fünf DEFCON-Stufen, Organisationsprofile, Gesetzesauszüge, öffentliche Suche |
 | Bürgerkonto | Hinweise geben, eine Ergreifung melden, Belohnungen erhalten, Tickets an die Führung, Einspruch gegen eine Fahndung |
 | Betrieb | Änderungsprotokoll, Papierkorb, Benachrichtigungen mit Discord-Webhooks, Wartungsmodus, Einstellungen |
 
@@ -65,12 +65,13 @@ Migrationen für den internen Bereich heißen `PhaseNN_<Name>`, die für den öf
 
 ## Deployment
 
-Prod (`noose.info`) und Demo (`demo.noose.info`) rollst du über GitHub Actions aus, mit **Actions → Deploy → Run workflow** und `environment` = `production` oder `demo`. Vorher muss der Workflow „Container-Image“ für den Commit fertig sein. Wie der Deploy abläuft, welche Konfiguration die App braucht und was bei Fehlern hilft, steht in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), die Demo in [`docs/DEPLOYMENT-DEMO.md`](docs/DEPLOYMENT-DEMO.md).
+Das FIB unter `fibhq.com` rollst du über GitHub Actions aus, mit **Actions → Deploy → Run workflow** und `environment` = `fib`. Vorher muss der Workflow „Container-Image“ für den Commit fertig sein. Die Environments `production` und `demo` gehören zur eingefrorenen NOOSE-Fassung auf `noose.info` und `demo.noose.info`. Von `master` rollst du dort nichts mehr aus, der Vorgabewert des Workflows ist aber weiter `production`, wähle `fib` also ausdrücklich. Wie der Deploy abläuft, welche Konfiguration die App braucht und was bei Fehlern hilft, steht in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), die eingefrorene Demo in [`docs/DEPLOYMENT-DEMO.md`](docs/DEPLOYMENT-DEMO.md).
 
 ## Weiterführende Doku
 
-- [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md): Tech-Stack, Aufbau, tragende Muster, Datenmodell, Rollen und Rechte
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) und [`docs/DEPLOYMENT-DEMO.md`](docs/DEPLOYMENT-DEMO.md): Ausrollen, Konfiguration, Fehlersuche
+- [`docs/ARCHITEKTUR.md`](docs/ARCHITEKTUR.md): Tech-Stack, Aufbau, tragende Muster, Datenmodell, Dienstgrade, Abteilungen und Rechte
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) und [`docs/DEPLOYMENT-DEMO.md`](docs/DEPLOYMENT-DEMO.md): Ausrollen, Konfiguration, Fehlersuche, Stand der NOOSE-Demo
+- [`docs/DatenbankStruktur.html`](docs/DatenbankStruktur.html): Tabellen und Beziehungen, erzeugt aus dem EF-Snapshot mit `python docs/db-schema/generate_schema_html.py`
 - [`NOOSE-Website.Tests/README.md`](NOOSE-Website.Tests/README.md): Aufbau der Tests
 - [`CLAUDE.md`](CLAUDE.md) und [`AGENTS.md`](AGENTS.md): Konventionen und Stolperfallen für die Arbeit mit KI-Agenten
 

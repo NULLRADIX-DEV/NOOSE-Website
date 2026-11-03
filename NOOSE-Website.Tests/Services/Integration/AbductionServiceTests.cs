@@ -22,7 +22,7 @@ public sealed class AbductionServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal OnlyReader()
         => ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.SpecialAgent).AsTeamLead().Build();
@@ -33,7 +33,7 @@ public sealed class AbductionServiceTests
         var caseNo = Substitute.For<ICaseNumberService>();
         var seq = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), "ENT", Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-ENT-2026-{++seq:0000}");
+            .Returns(_ => $"FIB-ENT-2026-{++seq:0000}");
         var svc = new AbductionService(ctx.Factory, caseNo, threat, Substitute.For<INotificationService>());
         return (svc, threat, caseNo);
     }
@@ -66,7 +66,7 @@ public sealed class AbductionServiceTests
 
         var created = await svc.CreateAsync(Input("victim", nameof(Faction), "fac"), Leader());
 
-        Assert.Equal("NOOSE-ENT-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-ENT-2026-0001", created.CaseNumber);
         using (var db = ctx.NewContext())
         {
             Assert.Single(db.AgentAbductions);
@@ -91,7 +91,7 @@ public sealed class AbductionServiceTests
             .Returns(ci =>
             {
                 txPresent = ((AppDbContext)ci[0]).Database.CurrentTransaction is not null;
-                return "NOOSE-ENT-2026-0001";
+                return "FIB-ENT-2026-0001";
             });
         var svc = new AbductionService(ctx.Factory, caseNo,
             Substitute.For<IThreatScoreService>(), Substitute.For<INotificationService>());
@@ -307,13 +307,13 @@ public sealed class AbductionServiceTests
             db.Users.Add(Seed.Agent("v"));
             db.AgentAbductions.Add(new AgentAbduction
             {
-                Id = "del", CaseNumber = "NOOSE-ENT-2026-9001", VictimAgentId = "v",
+                Id = "del", CaseNumber = "FIB-ENT-2026-9001", VictimAgentId = "v",
                 PerpetratorType = nameof(Faction), PerpetratorId = "fac", Timestamp = T0,
                 IsDeleted = true, DeletedAt = T0,
             });
             db.AgentAbductions.Add(new AgentAbduction
             {
-                Id = "live", CaseNumber = "NOOSE-ENT-2026-9002", VictimAgentId = "v",
+                Id = "live", CaseNumber = "FIB-ENT-2026-9002", VictimAgentId = "v",
                 PerpetratorType = nameof(Faction), PerpetratorId = "fac", Timestamp = T0,
             });
             db.SaveChanges();

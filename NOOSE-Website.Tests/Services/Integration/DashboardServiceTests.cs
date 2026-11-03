@@ -57,38 +57,38 @@ public sealed class DashboardServiceTests
     // --- entity factories (unique case numbers per id to satisfy the unique index) ---
 
     private static Person Per(string id, string name = "Person", Action<Person>? cfg = null)
-        => Seed.Person(id, name, p => { p.CaseNumber = $"NOOSE-P-{id}"; cfg?.Invoke(p); });
+        => Seed.Person(id, name, p => { p.CaseNumber = $"FIB-P-{id}"; cfg?.Invoke(p); });
 
     private static Faction Fac(string id, string name = "Faction", Action<Faction>? cfg = null)
-        => Seed.Faction(id, name, f => { f.CaseNumber = $"NOOSE-F-{id}"; cfg?.Invoke(f); });
+        => Seed.Faction(id, name, f => { f.CaseNumber = $"FIB-F-{id}"; cfg?.Invoke(f); });
 
     private static Case Cas(string id, string title = "Case", Action<Case>? cfg = null)
-        => Seed.Case(id, title, c => { c.CaseNumber = $"NOOSE-V-{id}"; cfg?.Invoke(c); });
+        => Seed.Case(id, title, c => { c.CaseNumber = $"FIB-V-{id}"; cfg?.Invoke(c); });
 
     private static PersonGroup Grp(string id, string name = "Group", Action<PersonGroup>? cfg = null)
     {
-        var g = new PersonGroup { Id = id, Name = name, CaseNumber = $"NOOSE-G-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var g = new PersonGroup { Id = id, Name = name, CaseNumber = $"FIB-G-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(g);
         return g;
     }
 
     private static Party Pty(string id, string name = "Party", Action<Party>? cfg = null)
     {
-        var p = new Party { Id = id, Name = name, CaseNumber = $"NOOSE-PT-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var p = new Party { Id = id, Name = name, CaseNumber = $"FIB-PT-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(p);
         return p;
     }
 
     private static Operation Op(string id, string title = "Operation", Action<Operation>? cfg = null)
     {
-        var o = new Operation { Id = id, Title = title, CaseNumber = $"NOOSE-OP-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var o = new Operation { Id = id, Title = title, CaseNumber = $"FIB-OP-{id}", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(o);
         return o;
     }
 
     private static Taskforce Tf(string id, string name = "Taskforce", TaskforceStatus status = TaskforceStatus.Approved, Action<Taskforce>? cfg = null)
     {
-        var t = new Taskforce { Id = id, Name = $"{name}-{id}", CaseNumber = $"NOOSE-TF-{id}", Status = status, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+        var t = new Taskforce { Id = id, Name = $"{name}-{id}", CaseNumber = $"FIB-TF-{id}", Status = status, CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
         cfg?.Invoke(t);
         return t;
     }
@@ -115,6 +115,8 @@ public sealed class DashboardServiceTests
             db.Users.Add(Seed.Agent("u2", configure: a => a.NameChangeRequestedAt = DateTime.UtcNow));
             db.Taskforces.Add(Tf("tf1", status: TaskforceStatus.Requested));
             db.AgentPromotionRequests.Add(new AgentPromotionRequest { AgentId = "u1", Status = PromotionStatus.Requested });
+            // the promotion is counted for who may decide it, and that is read from the row of the viewer
+            db.Users.Add(Seed.Agent("lead", Rank.Director));
             db.SaveChanges();
         }
 
@@ -127,6 +129,43 @@ public sealed class DashboardServiceTests
         Assert.Equal(7, m.OpenRequests);              // 3 upgrades + pending + name-change + requested TF + promotion
         Assert.Equal(1, m.Classified);                // only the classified person
         Assert.Equal(0, m.StaleRecords);
+    }
+
+    /// <summary>Tile and distribution count the same promotions as the inbox lists for that viewer: the Board and admins all, a Section Chief the own division, nobody else any.</summary>
+    [Theory]
+    [InlineData("board", 2)]
+    [InlineData("adm", 2)]
+    [InlineData("sc-cid", 1)]
+    [InlineData("sc-hrt", 1)]
+    [InlineData("sac", 0)]
+    [InlineData("cid", 0)]
+    [InlineData("ghost", 0)]
+    public async Task GetMetricsAsync_CountsPromotionsOnlyForWhoMayDecideThem(string viewer, int expected)
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx, SettingsFor(agingDisabled: true), openRequestCount: 0);
+        using (var db = ctx.NewContext())
+        {
+            db.Users.AddRange(
+                Seed.Agent("cid", Rank.SpecialAgent, configure: a => a.Division = Division.Cid),
+                Seed.Agent("hrt", Rank.SpecialAgent, configure: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+                Seed.Agent("board", Rank.AssistantDirector),
+                Seed.Agent("sc-cid", Rank.SectionChief, configure: a => a.Division = Division.Cid),
+                Seed.Agent("sc-hrt", Rank.SectionChief, configure: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+                Seed.Agent("sac", Rank.SpecialAgentInCharge),
+                Seed.Agent("adm", Rank.Trainee, configure: a => a.IsAdmin = true));
+            db.AgentPromotionRequests.AddRange(
+                new AgentPromotionRequest { AgentId = "cid", Status = PromotionStatus.Requested },
+                new AgentPromotionRequest { AgentId = "hrt", Status = PromotionStatus.Requested },
+                new AgentPromotionRequest { AgentId = "hrt", Status = PromotionStatus.Approved });
+            db.SaveChanges();
+        }
+
+        var metrics = await svc.GetMetricsAsync(isLeadership: true, meId: viewer);
+        var distributions = await svc.GetDistributionsAsync(isLeadership: true, meId: viewer);
+
+        Assert.Equal(expected, metrics.OpenRequests);
+        Assert.Equal(expected, distributions.OpenRequestsByKind.Single(s => s.Designation == "Beförderung").Count);
     }
 
     [Fact]
@@ -371,6 +410,7 @@ public sealed class DashboardServiceTests
             db.Users.Add(Seed.Agent("u2", configure: a => a.NameChangeRequestedAt = DateTime.UtcNow));
             db.Taskforces.Add(Tf("tf1", status: TaskforceStatus.Requested));
             db.AgentPromotionRequests.Add(new AgentPromotionRequest { AgentId = "u1", Status = PromotionStatus.Requested });
+            db.Users.Add(Seed.Agent("lead", Rank.Director));
             db.SaveChanges();
         }
 

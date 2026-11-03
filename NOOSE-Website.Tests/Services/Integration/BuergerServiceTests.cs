@@ -607,10 +607,10 @@ public sealed class BuergerServiceTests
     private static async Task SeedPeopleAsync(SqliteTestContext ctx)
     {
         await using var db = ctx.NewContext();
-        db.People.Add(Seed.Person("p1", "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+        db.People.Add(Seed.Person("p1", "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-0001"));
         db.People.Add(Seed.Person("p2", "Verschluss", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0002";
+            p.CaseNumber = "FIB-P-2026-0002";
             p.IsClassified = true;
         }));
         await db.SaveChangesAsync();
@@ -629,7 +629,7 @@ public sealed class BuergerServiceTests
         var linked = await service.GetLinkedPersonAsync(profileId, Leader());
         Assert.NotNull(linked);
         Assert.Equal("p1", linked!.PersonId);
-        Assert.Equal("NOOSE-P-2026-0001", linked.CaseNumber);
+        Assert.Equal("FIB-P-2026-0001", linked.CaseNumber);
     }
 
     [Fact]
@@ -692,17 +692,17 @@ public sealed class BuergerServiceTests
         {
             db.Hinweise.Add(new Hinweis
             {
-                CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = profileId,
+                CaseNumber = "FIB-H-2026-0001", CitizenProfileId = profileId,
                 Text = "Bestätigt", Status = TipStatus.Bestaetigt,
             });
             db.Hinweise.Add(new Hinweis
             {
-                CaseNumber = "NOOSE-H-2026-0002", CitizenProfileId = profileId,
+                CaseNumber = "FIB-H-2026-0002", CitizenProfileId = profileId,
                 Text = "Führte zur Ergreifung", Status = TipStatus.FuehrteZurErgreifung,
             });
             db.Hinweise.Add(new Hinweis
             {
-                CaseNumber = "NOOSE-H-2026-0003", CitizenProfileId = profileId,
+                CaseNumber = "FIB-H-2026-0003", CitizenProfileId = profileId,
                 Text = "Offen", Status = TipStatus.InPruefung,
             });
             await db.SaveChangesAsync();

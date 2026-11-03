@@ -6,7 +6,7 @@
 @inject Microsoft.Extensions.Logging.ILogger<Calendar> Logger
 @implements IAsyncDisposable
 
-<PageTitle>Kalender · NOOSE</PageTitle>
+<PageTitle>Kalender · FIB</PageTitle>
 
 <MudStack Spacing="3">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
@@ -121,7 +121,7 @@
         try
         {
             // Bump ?v= when kalender.js changes
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/kalender.js?v=8");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/kalender.js?v=9");
             _ref = DotNetObjectReference.Create(this);
             _ready = true;
             // Render empty; FullCalendar reports its range (datesSet) and data loads then

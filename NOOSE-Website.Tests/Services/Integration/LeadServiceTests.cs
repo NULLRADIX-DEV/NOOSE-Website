@@ -14,7 +14,7 @@ public sealed class LeadServiceTests
 {
     private static ClaimsPrincipal Agent(string id = "me") => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgent).Build();
     private static ClaimsPrincipal Leader() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("low").WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("low").WithRank(Rank.Trainee).Build();
 
     private static LeadService Svc(SqliteTestContext ctx) => new(ctx.Factory, new MemoryCache(new MemoryCacheOptions()));
 

@@ -71,7 +71,7 @@ public sealed class BountyServiceTests
         var caseNumbers = Substitute.For<ICaseNumberService>();
         var counter = 0;
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
 
         var discord = Substitute.For<IDiscordWebhookService>();
         var notifications = Substitute.For<INotificationService>();
@@ -98,7 +98,7 @@ public sealed class BountyServiceTests
         }
         db.People.Add(Seed.Person(PersonId, "Max Mustermann", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0001";
+            p.CaseNumber = "FIB-P-2026-0001";
             p.WantedReason = "Verdacht auf Waffenhandel";
             p.ThreatScore = 80;
         }));
@@ -148,7 +148,7 @@ public sealed class BountyServiceTests
     // ---- rights ----
 
     [Fact]
-    public async Task AJuniorAgent_MayPledgeHisOwnMoney()
+    public async Task ATrainee_MayPledgeHisOwnMoney()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -160,7 +160,7 @@ public sealed class BountyServiceTests
     }
 
     [Fact]
-    public async Task AJuniorAgent_CommittingAgencyMoney_FilesARequestInstead()
+    public async Task ATrainee_CommittingAgencyMoney_FilesARequestInstead()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -175,7 +175,7 @@ public sealed class BountyServiceTests
     }
 
     [Fact]
-    public async Task AJuniorAgent_FilingARequestWithoutAReason_IsRefused()
+    public async Task ATrainee_FilingARequestWithoutAReason_IsRefused()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -627,7 +627,7 @@ public sealed class BountyServiceTests
     }
 
     [Fact]
-    public async Task AJuniorAgent_MayNotDecideHisOwnRequest()
+    public async Task ATrainee_MayNotDecideHisOwnRequest()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
@@ -726,6 +726,7 @@ public sealed class BountyServiceTests
 
         var text = WantedCardText.Of(PushedCard(host));
         Assert.DoesNotContain("Falcon", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("FIB-P-", text, StringComparison.Ordinal);
         Assert.DoesNotContain("NOOSE-P-", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Waffenhandel", text, StringComparison.Ordinal);
         Assert.Contains("250.000", text, StringComparison.Ordinal);

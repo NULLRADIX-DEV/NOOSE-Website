@@ -150,10 +150,10 @@ public class RecruitingModelsTests
     [Fact]
     public void LinkedPersonInfo_ExposesPositionalProperties()
     {
-        var info = new LinkedPersonInfo("p1", "Doe", "NOOSE-P-2026-0001", 42, 80, null, true);
+        var info = new LinkedPersonInfo("p1", "Doe", "FIB-P-2026-0001", 42, 80, null, true);
         Assert.Equal("p1", info.PersonId);
         Assert.Equal("Doe", info.Name);
-        Assert.Equal("NOOSE-P-2026-0001", info.CaseNumber);
+        Assert.Equal("FIB-P-2026-0001", info.CaseNumber);
         Assert.Equal(42, info.ThreatScore);
         Assert.Equal(80, info.ThreatConfidence);
         Assert.Null(info.ScoreCalculatedAt);

@@ -9,12 +9,12 @@ public static class NooseiErrors
         LlmQuotaExceededException quota => quota.Message,
         UnauthorizedAccessException denied => denied.Message,
         LlmCapabilityException { SchemaRelated: true } =>
-            "NOOSEI konnte die Antwort nicht im geforderten Format liefern. Bitte einen Admin informieren.",
+            "FIBI konnte die Antwort nicht im geforderten Format liefern. Bitte einen Admin informieren.",
         LlmCapabilityException =>
-            "NOOSEI konnte diesmal nicht auf die Aktendatenbank zugreifen.",
+            "FIBI konnte diesmal nicht auf die Aktendatenbank zugreifen.",
         OperationCanceledException =>
-            "NOOSEI hat nicht rechtzeitig geantwortet. Bitte später erneut versuchen.",
+            "FIBI hat nicht rechtzeitig geantwortet. Bitte später erneut versuchen.",
         InvalidOperationException known => known.Message,
-        _ => "NOOSEI ist derzeit nicht erreichbar.",
+        _ => "FIBI ist derzeit nicht erreichbar.",
     };
 }

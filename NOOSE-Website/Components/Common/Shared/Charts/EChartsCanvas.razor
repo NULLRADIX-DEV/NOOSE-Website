@@ -45,7 +45,7 @@
         }
         try
         {
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/statistik-charts.js?v=1");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/statistik-charts.js?v=2");
             _lastJson = BuildJson();
             await _module.InvokeVoidAsync("render", _containerId, Kind, _lastJson);
             _ready = true;
@@ -120,8 +120,8 @@
         {
             surface = ChartPalette.Surface,
             gridline = ChartPalette.Gridline,
-            textPrimary = "#E6EDF3",
-            textSecondary = "#9BA8B8",
+            textPrimary = "#ECE8E1",
+            textSecondary = "#A8A29A",
         }, JsonOptions));
         return node?.ToJsonString() ?? "{}";
     }

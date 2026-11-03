@@ -19,7 +19,7 @@ public class PublicSearchProviderTests
     private const string Needle = "Kupferdraht";
 
     private static ClaimsPrincipal Plain(string me = "agent-1")
-        => ClaimsPrincipalBuilder.Agent(me).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(me).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Senior(string me = "senior")
         => ClaimsPrincipalBuilder.Agent(me).WithRank(Rank.SeniorSpecialAgent).Build();
@@ -49,10 +49,10 @@ public class PublicSearchProviderTests
         using var ctx = new SqliteTestContext();
         await using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("p-open", "Otto Offen", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+            db.People.Add(Seed.Person("p-open", "Otto Offen", p => p.CaseNumber = "FIB-P-2026-0001"));
             db.People.Add(Seed.Person("p-vs", "Vera Verschluss", p =>
             {
-                p.CaseNumber = "NOOSE-P-2026-0002";
+                p.CaseNumber = "FIB-P-2026-0002";
                 p.IsClassified = true;
             }));
             db.OeffentlicheFahndungen.Add(new OeffentlicheFahndung
@@ -82,7 +82,7 @@ public class PublicSearchProviderTests
         using var ctx = new SqliteTestContext();
         await using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("p1", "Otto Offen", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+            db.People.Add(Seed.Person("p1", "Otto Offen", p => p.CaseNumber = "FIB-P-2026-0001"));
             db.OeffentlicheFahndungen.Add(new OeffentlicheFahndung
             {
                 Id = "f1", CaseNumber = "FA-2026-0001", PersonId = "p1", DisplayName = Needle,
@@ -181,7 +181,7 @@ public class PublicSearchProviderTests
             db.BuergerProfile.Add(Citizen());
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "b1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "b1",
                 Text = "Am Hafen lag " + Needle + " herum.", Status = TipStatus.Neu,
             });
             await db.SaveChangesAsync();
@@ -207,7 +207,7 @@ public class PublicSearchProviderTests
             });
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "b1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "b1",
                 Text = "Am Hafen lag " + Needle + " herum.", Status = TipStatus.Neu,
             });
             await db.SaveChangesAsync();
@@ -227,12 +227,12 @@ public class PublicSearchProviderTests
             db.BuergerProfile.Add(Citizen());
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "b1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "b1",
                 Text = Needle, Status = TipStatus.Neu,
             });
             db.Tickets.Add(new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-2026-0001", CitizenProfileId = "b1", Subject = Needle,
+                Id = "t1", CaseNumber = "FIB-T-2026-0001", CitizenProfileId = "b1", Subject = Needle,
                 Status = TicketStatus.Offen, LastActivityAt = DateTime.UtcNow,
             });
             db.Pressemitteilungen.Add(new Pressemitteilung
@@ -260,7 +260,7 @@ public class PublicSearchProviderTests
             db.BuergerProfile.Add(Citizen());
             db.Tickets.Add(new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-2026-0001", CitizenProfileId = "b1",
+                Id = "t1", CaseNumber = "FIB-T-2026-0001", CitizenProfileId = "b1",
                 Subject = "Anliegen " + Needle, Status = TicketStatus.Offen, LastActivityAt = DateTime.UtcNow,
             });
             await db.SaveChangesAsync();
@@ -371,10 +371,10 @@ public class PublicSearchProviderTests
         await using (var db = ctx.NewContext())
         {
             db.BuergerProfile.Add(Citizen());
-            db.People.Add(Seed.Person("p1", "Otto Offen", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+            db.People.Add(Seed.Person("p1", "Otto Offen", p => p.CaseNumber = "FIB-P-2026-0001"));
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "b1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "b1",
                 Text = "Meldung", Status = TipStatus.InPruefung,
             });
             db.Links.Add(new Link
@@ -390,7 +390,7 @@ public class PublicSearchProviderTests
 
         Assert.Contains(nameof(Link), Categories(results));
         // the tip end resolves to the wording the whole house uses for it
-        Assert.Contains(AllText(results), t => t.Contains("Bürgerhinweis NOOSE-H-2026-0001", StringComparison.Ordinal));
+        Assert.Contains(AllText(results), t => t.Contains("Bürgerhinweis FIB-H-2026-0001", StringComparison.Ordinal));
         // and never to the citizen behind it
         Assert.DoesNotContain(AllText(results), t => t.Contains("Erika", StringComparison.Ordinal));
     }
@@ -406,7 +406,7 @@ public class PublicSearchProviderTests
             db.People.Add(Seed.Person("p1", "Otto Offen"));
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "b1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "b1",
                 Text = "Meldung", Status = TipStatus.InPruefung, IsDeleted = true,
             });
             db.Links.Add(new Link

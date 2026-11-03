@@ -81,7 +81,7 @@ function treemapOption(data, theme) {
             breadcrumb: { show: false },
             // 2px gap in the surface colour separates tiles instead of a drawn border
             itemStyle: { borderColor: theme.surface, borderWidth: 2, gapWidth: 2 },
-            label: { show: true, formatter: '{b}', color: '#0B0E13', fontSize: 11 },
+            label: { show: true, formatter: '{b}', color: '#151515', fontSize: 11 },
             data: data.tiles.map(t => ({
                 name: t.name,
                 value: t.weight,

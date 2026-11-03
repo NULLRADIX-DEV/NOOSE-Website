@@ -9,8 +9,8 @@ namespace NOOSE_Website.Services;
 /// for twenty categories (Doc/Observation/Photo/Source all share one), and three of those are theme
 /// colours — Allocation is TextPrimary (a near-white segment reads as the total), Comment is DrawerIcon
 /// (reads as "no data") and Change is the accent an admin may override at runtime, which would repaint
-/// the band. The hexes below are hue-separated and checked against the dark surface #161B22.
-/// Once Theme/ChartPalette lands, <see cref="Hex"/> becomes ChartPalette.Series(5) + ChartPalette.Muted.
+/// the band. The hexes below are ChartPalette slots (bronze, green, violet, amber, red, muted gray), ordered so
+/// every stacked neighbour clears the normal-vision floor on the dark surface #242424.
 /// </remarks>
 public static class ActivityBandDisplay
 {
@@ -39,7 +39,7 @@ public static class ActivityBandDisplay
 
     private static readonly string[] Colours =
     [
-        "#18a2b7", "#d86b00", "#5f6bb8", "#bb8603", "#e85d53", "#5a6677",
+        "#b27923", "#54aa71", "#9a59cf", "#ad941d", "#d3434c", "#7a756c",
     ];
 
     private static readonly string[] Labels =

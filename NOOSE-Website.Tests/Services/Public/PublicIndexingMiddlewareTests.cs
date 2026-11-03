@@ -20,7 +20,7 @@ public class PublicIndexingMiddlewareTests
     [Theory]
     [InlineData("/")]
     [InlineData("/karriere")]
-    [InlineData("/gesucht/NOOSE-F-2026-0001")]
+    [InlineData("/gesucht/FIB-F-2026-0001")]
     [InlineData("/datenschutz")]
     public async Task Public_routes_get_no_header(string path)
         => Assert.Equal(string.Empty, await HeaderForAsync(path));

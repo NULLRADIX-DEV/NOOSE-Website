@@ -4,25 +4,25 @@ let visLadenPromise = null;
 
 // node colors
 const TYP_FARBE = {
-    Person: '#22D3EE',
-    Faction: '#7C8CF8',
+    Person: '#9A8560',
+    Faction: '#A3C23B',
     PersonGroup: '#D29922',
     Party: '#3FB950',
     Operation: '#F0883E',
     Case: '#A371F7',
-    Taskforce: '#2DD4BF',
-    Job: '#8B98A8',
-    Agent: '#E6EDF3',
+    Taskforce: '#A8552F',
+    Job: '#9A9488',
+    Agent: '#ECE8E1',
     Law: '#C9A227',
-    PersonDoc: '#6E7681',
-    Observation: '#58A6FF',
+    PersonDoc: '#7A756C',
+    Observation: '#D0B8EE',
 };
 
 // border by classification
-const EINSTUFUNG_RAND = { 1: '#9BA8B8', 2: '#D29922', 3: '#F85149' };
+const EINSTUFUNG_RAND = { 1: '#A8A29A', 2: '#D29922', 3: '#F85149' };
 
 // edge colors
-const ART_FARBE = { 0: 'rgba(139,152,168,0.55)', 1: '#F85149', 2: '#3FB950' };
+const ART_FARBE = { 0: 'rgba(168,162,154,0.55)', 1: '#F85149', 2: '#3FB950' };
 
 const instanzen = new Map(); // id → instance
 
@@ -61,18 +61,18 @@ const FOKUS_MAGENTA = '#F778BA';
 const FOKUS_GLUEHEN = 'rgba(247,120,186,0.85)';
 
 function fuellung(schluessel) {
-    return schluessel ? SCHLUESSEL_FUELLUNG : '#161B22';
+    return schluessel ? SCHLUESSEL_FUELLUNG : '#242424';
 }
 
 function knotenfarbe(k, schluessel) {
-    const basis = TYP_FARBE[k.type] || '#8B98A8';
+    const basis = TYP_FARBE[k.type] || '#9A9488';
     const rand = k.isFocus ? FOKUS_MAGENTA : (EINSTUFUNG_RAND[k.classificationLevel] || basis);
-    const hell = schluessel ? SCHLUESSEL_HELL : '#1F2630';
+    const hell = schluessel ? SCHLUESSEL_HELL : '#2E2E2E';
     return {
         background: fuellung(schluessel),
         border: rand,
-        // selecting the focus node must not swap its ring for the cyan one
-        highlight: { background: hell, border: k.isFocus ? FOKUS_MAGENTA : '#22D3EE' },
+        // selecting the focus node must not swap its ring for the highlight one
+        highlight: { background: hell, border: k.isFocus ? FOKUS_MAGENTA : '#E8DCC4' },
         hover: { background: hell, border: rand },
     };
 }
@@ -81,16 +81,16 @@ function baueTooltip(k) {
     const div = document.createElement('div');
     div.className = 'noose-graph-tip';
     const typ = document.createElement('div');
-    typ.style.cssText = 'font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9BA8B8;';
+    typ.style.cssText = 'font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#A8A29A;';
     typ.textContent = k.type + (k.isClassified ? ' · Verschlusssache' : '') + (k.isArchived ? ' · Archiviert' : '');
     const name = document.createElement('div');
-    name.style.cssText = 'font-weight:600;color:#E6EDF3;margin-top:2px;';
+    name.style.cssText = 'font-weight:600;color:#ECE8E1;margin-top:2px;';
     name.textContent = k.designation;
     div.appendChild(typ);
     div.appendChild(name);
     if (k.subtitle) {
         const unter = document.createElement('div');
-        unter.style.cssText = 'font-size:12px;color:#9BA8B8;';
+        unter.style.cssText = 'font-size:12px;color:#A8A29A;';
         unter.textContent = k.subtitle;
         div.appendChild(unter);
     }
@@ -111,7 +111,7 @@ function baueTooltip(k) {
 }
 
 // community palette (workbench cluster colouring)
-const CLUSTER_FARBE = ['#22D3EE', '#F0883E', '#3FB950', '#A371F7', '#D29922', '#58A6FF', '#F85149', '#2DD4BF', '#7C8CF8', '#C9A227'];
+const CLUSTER_FARBE = ['#B5A488', '#F0883E', '#3FB950', '#A371F7', '#D29922', '#A3C23B', '#F85149', '#A8552F', '#D0B8EE', '#C9A227'];
 
 function mapKnoten(k, maxWert) {
     const schluessel = !!k.isKeyFigure;
@@ -138,9 +138,9 @@ function mapKnoten(k, maxWert) {
                     : { enabled: true, color: 'rgba(0,0,0,0.5)', size: 8, x: 0, y: 2 },
     };
     if (schluessel) {
-        node.font = { color: SCHLUESSEL_GOLD, strokeWidth: 4, strokeColor: '#0B0E13', face: 'Inter, Segoe UI, sans-serif' };
+        node.font = { color: SCHLUESSEL_GOLD, strokeWidth: 4, strokeColor: '#151515', face: 'Inter, Segoe UI, sans-serif' };
     } else if (fokus) {
-        node.font = { color: FOKUS_MAGENTA, strokeWidth: 4, strokeColor: '#0B0E13', face: 'Inter, Segoe UI, sans-serif' };
+        node.font = { color: FOKUS_MAGENTA, strokeWidth: 4, strokeColor: '#151515', face: 'Inter, Segoe UI, sans-serif' };
     }
     if (k.photoUrl) {
         node.shape = 'circularImage';
@@ -153,7 +153,7 @@ function mapKnoten(k, maxWert) {
     if (k.isArchived) {
         node.opacity = 0.45;
         node.shapeProperties = Object.assign({}, node.shapeProperties, { borderDashes: [4, 4] });
-        node.font = Object.assign({ size: 14, face: 'Inter, Segoe UI, sans-serif' }, node.font, { color: '#7D8590' });
+        node.font = Object.assign({ size: 14, face: 'Inter, Segoe UI, sans-serif' }, node.font, { color: '#8A857C' });
     }
     return node;
 }
@@ -166,8 +166,8 @@ function mapKante(e) {
         label: e.label || undefined,
         dashes: !!e.automatic,
         width: e.kind === 1 || e.kind === 2 ? 2 : 1,
-        color: { color: farbe, highlight: '#22D3EE', hover: '#22D3EE', opacity: 1 },
-        font: { color: '#9BA8B8', size: 11, strokeWidth: 0, background: 'rgba(14,17,22,0.85)' },
+        color: { color: farbe, highlight: '#E8DCC4', hover: '#E8DCC4', opacity: 1 },
+        font: { color: '#A8A29A', size: 11, strokeWidth: 0, background: 'rgba(28,28,28,0.85)' },
     };
 }
 
@@ -223,7 +223,7 @@ function optionen(knotenAnzahl, kantenAnzahl) {
         nodes: {
             shape: 'dot',
             scaling: { min: 10, max: 40, label: { enabled: true, min: 12, max: 22 } },
-            font: { color: '#E6EDF3', size: 14, face: 'Inter, Segoe UI, sans-serif' },
+            font: { color: '#ECE8E1', size: 14, face: 'Inter, Segoe UI, sans-serif' },
         },
         edges: {
             selectionWidth: 2,
@@ -473,7 +473,7 @@ export function alsBildExportieren(containerId) {
     try {
         const a = document.createElement('a');
         a.href = canvas.toDataURL('image/png');
-        a.download = 'noose-beziehungsgraph.png';
+        a.download = 'fib-beziehungsgraph.png';
         a.click();
     } catch (e) { /* ignore */ }
 }
@@ -495,8 +495,8 @@ export function faerbeNachCommunity(containerId, an) {
             // cluster colour takes over the border; key-figure fill and focus ring must survive it
             const farbe = k.isFocus ? FOKUS_MAGENTA : CLUSTER_FARBE[(k.communityId || 0) % CLUSTER_FARBE.length];
             const grund = fuellung(schluessel);
-            const hell = schluessel ? SCHLUESSEL_HELL : '#1F2630';
-            inst.nodes.update({ id: n.id, color: { background: grund, border: farbe, highlight: { background: hell, border: k.isFocus ? FOKUS_MAGENTA : '#22D3EE' }, hover: { background: hell, border: farbe } } });
+            const hell = schluessel ? SCHLUESSEL_HELL : '#2E2E2E';
+            inst.nodes.update({ id: n.id, color: { background: grund, border: farbe, highlight: { background: hell, border: k.isFocus ? FOKUS_MAGENTA : '#E8DCC4' }, hover: { background: hell, border: farbe } } });
         } else {
             inst.nodes.update({ id: n.id, color: knotenfarbe(k, schluessel) });
         }

@@ -47,7 +47,7 @@
                 @foreach (var a in _agents)
                 {
                     <MudSelectItem T="string" Value="@a.Id">
-                        @a.Codename (@RankDisplay.Name(a.Rank))
+                        @a.Codename (@DivisionRules.RankName(a))
                         @if (AbsenceHint.For(_absent, a.Id, _reference) is { Length: > 0 } hint)
                         {
                             <span class="mud-text-secondary"> · @hint</span>

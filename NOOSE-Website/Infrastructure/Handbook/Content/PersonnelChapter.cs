@@ -91,18 +91,27 @@ internal static class PersonnelChapter
             new Article("art-befoerderung", "befoerderung", "Beförderung",
                 "Vom Antrag bis zum neuen Dienstgrad.",
                 """
-                <p>Eine <strong>Beförderung</strong> beginnt als Antrag: jemand aus der Führung schlägt einen
-                Agenten für den nächsten Dienstgrad vor und begründet es. Der Antrag steht dann zur
-                Entscheidung.</p>
-                <p>Entscheiden darf erst ab <strong>Deputy Director</strong>. Das ist bewusst eine höhere
-                Schwelle als „Führung“ - wer befördert, verändert dauerhaft die Rechte eines Kontos.</p>
+                <p>Eine <strong>Beförderung</strong> beginnt als Antrag: jemand aus der Führung (ab Special Agent
+                in Charge) schlägt einen Agenten für den nächsten Dienstgrad vor und begründet es. Der Antrag
+                steht dann zur Entscheidung.</p>
+                <p>Entscheiden darf erst ab <strong>Section Chief</strong>, und nur so weit, wie der Dienstgrad
+                reicht: Das <strong>Board</strong> entscheidet für alle Abteilungen. Ein <strong>Section
+                Chief</strong> entscheidet nur in seiner eigenen Abteilung, und nur über Dienstgrade bis zum
+                Special Agent in Charge; wer Section Chief oder Assistant Director werden soll, den befördert
+                nur das Board. Das ist bewusst eine höhere Schwelle als „Führung“ - wer befördert, verändert
+                dauerhaft die Rechte eines Kontos.</p>
+                <p>Dieselbe Grenze gilt für jeden anderen Weg, einen Dienstgrad zu vergeben: ein neues Konto
+                freigeben, einen Bewerber annehmen oder den Dienstgrad in der Agenten-Verwaltung ändern. Die
+                Liste der offenen Anträge, der Zähler im Menü und die Knöpfe zeigen dir nur, was du auch
+                entscheiden darfst: dem Section Chief die Anträge seiner Abteilung, dem Board alle.</p>
                 <p>Mit der Entscheidung wird der Dienstgrad gesetzt und im Verlauf festgehalten. Der Betroffene
                 wird einmal abgemeldet und muss sich neu anmelden, damit die neuen Rechte greifen.</p>
                 <p>Die Seite prüft <strong>nicht</strong>, ob der Zielgrad der nächsthöhere ist - sie lässt auch
                 einen Sprung oder eine Herabstufung zu. Das ist Absicht: nach §2.4.4 darf die Behördenleitung
-                jeden Agenten in jeden Dienstgrad setzen.</p>
-                <p>Was die Dienstverordnung für den regulären Weg verlangt - Ausbildungen, Aktivität,
-                Zugehörigkeit zu TRU oder HRB, eine abgeschlossene Infiltration - steht unter
+                jeden Agenten in jeden Dienstgrad setzen. Ein Section Chief darf das nur innerhalb der Grenze
+                von oben.</p>
+                <p>Was die Dienstverordnung für den regulären Weg verlangt - Ausbildungen, Aktivität, aktive
+                Mitarbeit in der Abteilung, eine abgeschlossene Infiltration - steht unter
                 <em>Dienstvorschrift → Beförderungskriterien</em>. Diese Voraussetzungen prüft ein Mensch, nicht
                 die Seite; die Begründung des Antrags ist der Ort, an dem sie belegt werden.</p>
                 """,
@@ -131,9 +140,12 @@ internal static class PersonnelChapter
                 entscheidet immer jemand anderes.</p>
                 <p>Zu jeder Ehrung gibt es eine <strong>Urkunde</strong> im Querformat, ebenso zu jeder Ernennung
                 und Beförderung im Dienstgrad-Verlauf. Drucken dürfen die Führung und der Geehrte selbst. Vor dem
-                Druck wählst du, ob der Codename oder der Klarname darauf steht. Unterschrieben ist sie von der
-                Behördenleitung, die unter <em>Einstellungen → Ehrenzeichen</em> eingetragen ist; eine
-                Ehrungs-Urkunde behält die Unterschrift vom Tag der Verleihung.</p>
+                Druck wählst du, ob der Codename oder der Klarname darauf steht. Unterschrieben ist sie von dem
+                Unterzeichner, den die Führung unter <em>Einstellungen → Ehrenzeichen</em> einträgt: einen für die
+                ganze Behörde und auf Wunsch je einen für CID, CTD und HRT. Die Urkunde eines Agenten trägt die
+                Unterschrift seiner Abteilung, und wo dort keiner steht, die der Behörde. Unterzeichner kann das
+                Board sein oder in der eigenen Abteilung ein Section Chief. Eine Ehrungs-Urkunde behält die
+                Unterschrift vom Tag der Verleihung.</p>
                 """,
                 RoleplayHtml: """
                 <p>Eine Ehrung ist ein feierlicher Moment. Trag sie hier ein - mit dem Tag der Übergabe als Datum -,
@@ -147,15 +159,17 @@ internal static class PersonnelChapter
                 <p>In der Personalakte steht eine Liste von <strong>Ausbildungsmodulen</strong> - Schulungen,
                 Unterweisungen, Nachweise, die jeder Agent durchlaufen soll. Jedes Modul wird einzeln
                 abgehakt, mit Datum und dem Namen dessen, der es abgenommen hat.</p>
-                <p>Abhaken dürfen die <strong>Führung</strong> und das <strong>HRB</strong>. Das Kennzeichen HRB
-                setzt keinen Führungsrang voraus - ein Special Agent mit diesem Kennzeichen darf es also auch.
+                <p>Abhaken dürfen die <strong>Führung</strong> und die <strong>Administration Division</strong>.
+                Das Kennzeichen setzt keinen Führungsrang voraus - ein Special Agent mit diesem Kennzeichen darf
+                es also auch.
                 Wer ein Modul irrtümlich abgehakt hat, kann den Haken wieder entfernen; der Vorgang steht im
                 Protokoll.</p>
                 <p>Die <strong>Liste der Module</strong> selbst ist etwas anderes: sie anzulegen, zu ändern oder
                 zu löschen bleibt der Führung vorbehalten. Ein gelöschtes Modul nimmt die Haken aller Agenten mit.</p>
                 <p>Die Liste wird <strong>leer ausgeliefert</strong>. Welche Module es gibt, entscheidet die
                 Führung - die Dienstverordnung nennt in §2.3 Grundeinweisung, Tarnausbildung, „(Erweiterte)
-                Verhörmethoden“, die Drohnenausbildung sowie die Ausbildungen für TRU und HRB. Was davon
+                Verhörmethoden“, die Drohnenausbildung sowie die Ausbildungen für das HRT und die
+                Administration Division. Was davon
                 Voraussetzung für welche Beförderung ist, steht unter
                 <em>Dienstvorschrift → Aus- und Fortbildungen</em>.</p>
                 <p>Für den Agenten selbst ist die Liste vor allem eine Orientierung: sie sagt, was von ihm
@@ -165,8 +179,8 @@ internal static class PersonnelChapter
             new Article("art-interne-tests", "interne-tests", "Interne Tests",
                 "Tests für Agenten: zuweisen, ablegen, korrigieren.",
                 """
-                <p>Unter <em>Interne Tests</em> findest du die Tests, die dir das <strong>HRB</strong> oder die
-                <strong>Führung</strong> zugewiesen hat. Es ist derselbe Baukasten wie beim Eignungstest der
+                <p>Unter <em>Interne Tests</em> findest du die Tests, die dir die <strong>Administration
+                Division</strong> oder die <strong>Führung</strong> zugewiesen hat. Es ist derselbe Baukasten wie beim Eignungstest der
                 Bewerber: Auswahlfragen, Ja/Nein und Freitext, auf Wunsch mit Bearbeitungszeit.</p>
                 <p>Hat ein Test eine Bearbeitungszeit, startet die Uhr erst, wenn du auf <em>Test jetzt
                 starten</em> klickst. Sie läuft dann durch, auch wenn du das Fenster schließt; bei Ablauf wird
@@ -176,8 +190,8 @@ internal static class PersonnelChapter
                 bestanden hast - nicht, welche Frage falsch war. Das Ergebnis steht als Vermerk in deiner
                 Personalakte. Ist mit dem Test ein <strong>Ausbildungsmodul</strong> verknüpft, wird es beim
                 Bestehen automatisch abgehakt.</p>
-                <p>HRB und Führung weisen Tests einzelnen Agenten oder einer Gruppe zu (TRU, HRB, eine Taskforce
-                oder ab einem Dienstgrad). Wer den Test schon offen hat, wird übersprungen. Nach einem nicht
+                <p>Administration Division und Führung weisen Tests einzelnen Agenten oder einer Gruppe zu (HRT,
+                Administration Division, eine Taskforce oder ab einem Dienstgrad). Wer den Test schon offen hat, wird übersprungen. Nach einem nicht
                 bestandenen Test kannst du ihn <em>erneut zuweisen</em>; der alte Versuch bleibt sichtbar.
                 Den Katalog teilen sich interne Tests und Eignungstests - die <em>Verwendung</em> am Test legt
                 fest, wohin er vergeben werden darf.</p>
@@ -189,14 +203,22 @@ internal static class PersonnelChapter
                 """
                 <p>Unter <em>Agenten-Verwaltung</em> werden neue Konten freigegeben. Ein frisch angemeldetes
                 Konto steht auf <strong>ausstehend</strong> und sieht nichts, bis jemand es freigibt und dabei
-                Dienstgrad und Kennzeichen setzt.</p>
-                <p>Hier werden auch die <strong>Kennzeichen</strong> vergeben: Admin, TRU, HRB und die
-                Nur-Lese-Aufsicht. Sie sind keine Dienstgrade - ein Deputy Director muss kein HRB sein, und ein
-                Special Agent kann es sein.</p>
-                <p>Für <strong>TRU und HRB</strong> gilt dabei eine Schwelle aus der Dienstverordnung: sie
-                werden erst ab dem Dienstgrad <strong>Special Agent</strong> vergeben (§2.4.1). Bei einem Junior
-                Agent sind die beiden Schalter deshalb gesperrt. Wird jemand unter diese Schwelle herabgestuft,
-                nimmt die Seite ihm die Kennzeichen ab und schreibt das ins Protokoll.</p>
+                Dienstgrad und Abteilung setzt.</p>
+                <p>Wer freigeben darf, hängt vom Dienstgrad ab: das Board und Admins geben jeden Dienstgrad in
+                jede Abteilung frei, ein Section Chief nur in die eigene Abteilung und nur unterhalb von Section
+                Chief, ein Special Agent in Charge nur als Trainee in die CID.</p>
+                <p>Hier werden auch die <strong>Abteilung</strong> und die <strong>Kennzeichen</strong> vergeben.
+                Die Abteilung - CID, CTD oder HRT - ändern bei einem bestehenden Agenten nur das Board und
+                Admins; das Board selbst ergibt sich aus dem Dienstgrad. Kennzeichen sind Admin, die
+                Administration Division und die Nur-Lese-Aufsicht. Sie sind keine Dienstgrade - ein Deputy
+                Director muss nicht in der Administration Division sein, und ein Special Agent kann es sein.</p>
+                <p>Für <strong>HRT und Administration Division</strong> gilt dabei eine Schwelle aus der
+                Dienstverordnung: beides gibt es erst ab dem Dienstgrad <strong>Special Agent</strong> (§2.4.1).
+                Bei einem Trainee sind die beiden Auswahlen deshalb gesperrt. Wird jemand unter diese Schwelle
+                herabgestuft, wechselt er aus dem HRT in die CID und verliert die Administration Division; das
+                kommt ins Protokoll.</p>
+                <p>Die Abteilungen haben <strong>Platzgrenzen</strong>: Board 4, HRT 9, CID 21, CTD 6. Ist eine
+                Einheit voll, fragt die Seite ausdrücklich nach, bevor jemand darüber hinaus eingeteilt wird.</p>
                 <p>Jede Änderung an Dienstgrad, Kennzeichen oder Status meldet den Betroffenen einmal ab. Das
                 ist kein Fehler: die Rechte stecken in seiner Anmeldung, und sie werden erst beim nächsten
                 Anmelden neu ausgestellt.</p>
@@ -206,10 +228,10 @@ internal static class PersonnelChapter
             new Article("art-bewerbungen", "bewerbungen", "Bewerbungen",
                 "Der Weg von außen in die Behörde.",
                 """
-                <p>Wer zur NOOSE will, bewirbt sich über den öffentlichen Bereich. Die Bewerbung durchläuft
+                <p>Wer zum FIB will, bewirbt sich über den öffentlichen Bereich. Die Bewerbung durchläuft
                 feste Stufen: <em>Eingereicht</em> → <em>Sicherheitsüberprüfung</em> → <em>Test</em> →
                 <em>Vorstellungsgespräch</em> → <em>Angenommen</em> oder <em>Abgelehnt</em>.</p>
-                <p>Bearbeitet wird sie von der <strong>HRB</strong> und der Führung. Es gibt einen
+                <p>Bearbeitet wird sie von der <strong>Administration Division</strong> und der Führung. Es gibt einen
                 Schriftwechsel mit dem Bewerber; er sieht dabei nie den Namen des Agenten, der ihm schreibt -
                 die Anschreiben sind so gebaut, dass der Name automatisch geschwärzt wird.</p>
                 <p>Der Bewerber sieht außerdem einen <strong>vergröberten Status</strong>: Test und
@@ -236,7 +258,7 @@ internal static class PersonnelChapter
                 "Fragen, Zeitlimit und was beim Zurücksetzen passiert.",
                 """
                 <p>Der <strong>Eignungstest</strong> ist ein Fragebogen, den ein Bewerber im Rahmen seiner
-                Bewerbung ausfüllt. Die Fragen pflegt die HRB; es gibt Auswahlfragen und Freitextfragen.</p>
+                Bewerbung ausfüllt. Die Fragen pflegt die Administration Division; es gibt Auswahlfragen und Freitextfragen.</p>
                 <p>Der Test hat eine <strong>Bearbeitungszeit</strong>. Sie beginnt in dem Moment, in dem der
                 Bewerber die Fragen zum ersten Mal abruft - nicht, wenn du ihn freigibst. Braucht jemand aus
                 gutem Grund länger, kannst du <strong>Zusatzminuten</strong> gewähren, ohne den Test neu zu
@@ -261,7 +283,7 @@ internal static class PersonnelChapter
             new Article("art-partner", "partner-freigaben", "Partnerbehörden",
                 "LSPD, DoJ, LSMD und Parlament - und was sie sehen dürfen.",
                 """
-                <p>Konten von <strong>Partnerbehörden</strong> sind keine NOOSE-Agenten. Sie sehen
+                <p>Konten von <strong>Partnerbehörden</strong> sind keine FIB-Agenten. Sie sehen
                 standardmäßig <strong>nichts</strong> - und das ändert sich nur durch ausdrückliche
                 Freigaben.</p>
                 <p>Eine Akte wird auf zwei Wegen freigegeben:</p>
@@ -278,7 +300,7 @@ internal static class PersonnelChapter
                 <strong>nie</strong> sieht - zum Beispiel Doks und Befragungen. Das schlägt jede Freigabe,
                 auch eine Einzelfreigabe mit „Ganze Akte“.</p>
                 <p>Je Behörde lassen sich dort auch <strong>Funktionen</strong> freischalten: die
-                NOOSEI-Rechtsauskunft, Beziehungsgraph, Funkplan, Lageberichte und Anfragen. Die Rechtsauskunft
+                FIBI-Rechtsauskunft, Beziehungsgraph, Funkplan, Lageberichte und Anfragen. Die Rechtsauskunft
                 kennt nur die Gesetzbücher; ihr Wochenkontingent je Konto legt der KI-Eigner fest. Graph und Funkplan zeigen einem Partner nur, was für ihn
                 freigegeben ist; Lageberichte bekommt er ohne Doks, ohne Namen von Personen und ohne Finanzen.</p>
                 <p>Über <em>Freigaben anfragen</em> bittet eine Behörde in eigenen Worten um weitere Akten. Die
@@ -293,11 +315,14 @@ internal static class PersonnelChapter
             new Article("art-organigramm", "organigramm", "Organigramm",
                 "Wer über wem steht - und wer es nach außen sieht.",
                 """
-                <p>Das <strong>Organigramm</strong> zeigt den Aufbau der Behörde nach Dienstgrad und Einheit.
-                Intern zeigt es alle aktiven Agenten mit ihrem Codenamen.</p>
+                <p>Das <strong>Organigramm</strong> zeigt den Aufbau der Behörde: oben das <strong>Board of
+                Directors</strong> mit seinen Plätzen („besetzt / 4“), darunter CID, CTD und HRT als Spalten,
+                jede mit „besetzt / Limit“. Die Administration Division läuft quer durch die Abteilungen, die
+                genehmigten Taskforces stehen darunter. Intern zeigt es alle aktiven Agenten mit ihrem
+                Codenamen; im HRT stehen die HRT-Titel wie Operator oder Commanding Operator.</p>
                 <p>Nach außen gibt es stattdessen die öffentliche Seite <strong>Mitarbeiter</strong>. Dort steht
                 jeder aktive Agent mit hinterlegtem Klarnamen, der sich dafür eingeschaltet hat. Die Führung ab
-                Supervisory Special Agent steht obenan als Organigramm, eine Ebene je Dienstgrad, jede Karte mit
+                Special Agent in Charge steht obenan als Organigramm, eine Ebene je Dienstgrad, jede Karte mit
                 Foto und Telefonnummer. Alle anderen stehen darunter nur mit Klarnamen, ohne Codename, Dienstgrad,
                 Einheit, Dienstnummer und Foto. Teamleitungen und Partnerbehörden erscheinen nie.</p>
                 <p>Telefonnummer und Foto trägt die Führung in den <em>Einstellungen</em> unter

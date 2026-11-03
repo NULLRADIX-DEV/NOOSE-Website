@@ -48,7 +48,7 @@ public sealed class TipTakeoverServiceTests
         var seq = 0;
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
 
         var threat = Substitute.For<IThreatScoreService>();
         var notifications = Substitute.For<INotificationService>();
@@ -79,7 +79,7 @@ public sealed class TipTakeoverServiceTests
         var ctx = new SqliteTestContext();
         await using var db = ctx.NewContext();
         // out of the stubbed counter's range, which starts at 0001 for every fresh takeover
-        db.People.Add(Seed.Person(ExistingPersonId, "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-9001"));
+        db.People.Add(Seed.Person(ExistingPersonId, "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-9001"));
         db.BuergerProfile.Add(new BuergerProfil
         {
             Id = ProfileId,
@@ -91,7 +91,7 @@ public sealed class TipTakeoverServiceTests
         var tip = new Hinweis
         {
             Id = TipId,
-            CaseNumber = "NOOSE-H-2026-0001",
+            CaseNumber = "FIB-H-2026-0001",
             CitizenProfileId = ProfileId,
             Text = "Der Gesuchte war heute Abend am Hafen und ist in ein Boot gestiegen.",
             Status = TipStatus.Neu,
@@ -127,7 +127,7 @@ public sealed class TipTakeoverServiceTests
         Assert.Equal(TipId, link.SourceId);
         Assert.Equal(nameof(Person), link.TargetType);
         Assert.Equal(personId, link.TargetId);
-        Assert.Contains("NOOSE-H-2026-0001", link.Label);
+        Assert.Contains("FIB-H-2026-0001", link.Label);
         // an automatic link would be filtered out of the timeline, which is the whole point of the link
         Assert.False(link.Automatic);
     }
@@ -143,7 +143,7 @@ public sealed class TipTakeoverServiceTests
             ViewerScope.From(Agent())));
 
         Assert.Equal(nameof(Hinweis), shown.OtherType);
-        Assert.Equal("Bürgerhinweis NOOSE-H-2026-0001", shown.OtherDesignation);
+        Assert.Equal("Bürgerhinweis FIB-H-2026-0001", shown.OtherDesignation);
         Assert.Equal($"/hinweise/{TipId}", shown.Href);
     }
 
@@ -238,7 +238,7 @@ public sealed class TipTakeoverServiceTests
 
         await using var db = host.Factory.CreateDbContext();
         var @case = await db.Cases.SingleAsync(v => v.Id == caseId);
-        Assert.Equal("Bürgerhinweis NOOSE-H-2026-0001", @case.Title);
+        Assert.Equal("Bürgerhinweis FIB-H-2026-0001", @case.Title);
         Assert.Equal(CaseStatus.Open, @case.Status);
         var link = await db.Links.SingleAsync();
         Assert.Equal(nameof(Case), link.TargetType);

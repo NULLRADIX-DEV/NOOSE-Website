@@ -151,7 +151,7 @@ public sealed class DiscordPingTests
         {
             var prefs = new NavPreferences();
             prefs.MutedPings.Add(nameof(NotificationType.Mention));
-            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.JuniorAgent,
+            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.Trainee,
                 configure: a => a.NavPreferencesJson = JsonSerializer.Serialize(prefs)));
             seed.People.Add(Seed.Person(PersonGuid, "Ziel", p => p.IsClassified = false));
             seed.SaveChanges();

@@ -9,7 +9,7 @@
 @inject INavPreferencesService NavPrefs
 @using NOOSE_Website.Models.Gamification
 
-<PageTitle>Mein Profil · NOOSE</PageTitle>
+<PageTitle>Mein Profil · FIB</PageTitle>
 
 @* Centred column; MainLayout already supplies the horizontal gutter. *@
 <MudContainer MaxWidth="MaxWidth.Large" Class="px-0">
@@ -118,7 +118,7 @@
                             </MudStack>
 
                             <MudAlert Severity="Severity.Normal" Dense="true" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Shield">
-                                @RankDisplay.Name(_agent.Rank)
+                                @DivisionRules.RankName(_agent)
                                 @if (!string.IsNullOrWhiteSpace(_agent.DiscordUsername))
                                 {
                                     <span class="mud-text-secondary"> · Discord: @_agent.DiscordUsername</span>

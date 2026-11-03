@@ -22,9 +22,9 @@ public sealed class BewerbungTemplateServiceTests
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // JuniorAgent, no flags: not HRB, not leadership, not admin.
+    // Trainee, no flags: not HRB, not leadership, not admin.
     private static ClaimsPrincipal Outsider()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static DocumentTemplate NewTemplate(
         string id, string name, string? category = Category, bool active = true, int sorting = 0)

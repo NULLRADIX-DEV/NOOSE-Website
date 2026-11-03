@@ -9,20 +9,20 @@ internal static class ToolsChapter
 {
     internal static readonly Chapter Chapter = new(
         "kap-werkzeuge", "werkzeuge", "Werkzeuge",
-        "NOOSEI, Statistik, Nachweis, Gegenaufklärung, Gesetzbuch, Druck und Einstellungen.", "Handyman",
+        "FIBI, Statistik, Nachweis, Gegenaufklärung, Gesetzbuch, Druck und Einstellungen.", "Handyman",
         [
-            new Article("art-noosei", "noosei", "NOOSEI",
+            new Article("art-noosei", "noosei", "FIBI",
                 "Die Behörden-KI: was sie kann, was sie nicht darf.",
                 """
-                <p><strong>NOOSEI</strong> ist die KI der Behörde. Du kannst sie in normaler Sprache nach der
+                <p><strong>FIBI</strong> ist die KI der Behörde. Du kannst sie in normaler Sprache nach der
                 Aktenlage fragen - „Was wissen wir über die Vagos?“, „Welche Fahndungen laufen seit mehr als
                 vier Wochen?“ - und sie schlägt selbst in den Akten nach.</p>
                 <p>Zwei Regeln solltest du kennen:</p>
                 <ul>
-                <li><strong>NOOSEI sieht genau so viel wie du.</strong> Eine Verschlusssache, die du nicht
+                <li><strong>FIBI sieht genau so viel wie du.</strong> Eine Verschlusssache, die du nicht
                 lesen darfst, kommt in ihrer Antwort nicht vor - nicht einmal als Andeutung. Für sie sieht die
                 Akte aus, als gäbe es sie nicht.</li>
-                <li><strong>NOOSEI schreibt nicht selbst.</strong> Sie liest, fasst zusammen und formuliert
+                <li><strong>FIBI schreibt nicht selbst.</strong> Sie liest, fasst zusammen und formuliert
                 Entwürfe. Bittest du sie um eine Änderung - eine Wiedervorlage, ein Stichwort, eine Aufgabe, eine
                 Verknüpfung oder das Beobachten einer Akte -, legt sie unter der Antwort eine
                 <strong>Vorschlagskarte</strong> an. Erst dein Klick auf <em>Ausführen</em> schreibt, und zwar mit
@@ -31,10 +31,10 @@ internal static class ToolsChapter
                 </ul>
                 <p>Unter jeder Antwort stehen die <strong>Quellen</strong>: die Akten, in die sie geschaut hat.
                 Klick sie an und prüf nach. Eine Antwort ohne Quelle ist eine Formulierung, kein Befund.</p>
-                <p>An Akten findest du außerdem den <strong>NOOSEI-Kurzbrief</strong>: eine kurze
+                <p>An Akten findest du außerdem den <strong>FIBI-Kurzbrief</strong>: eine kurze
                 Zusammenfassung der Akte auf Knopfdruck - praktisch, wenn du eine fremde Akte zum ersten Mal
                 öffnest.</p>
-                <p>Partnerbehörden, für die NOOSEI freigeschaltet ist, bekommen eine eigene
+                <p>Partnerbehörden, für die FIBI freigeschaltet ist, bekommen eine eigene
                 <strong>Rechtsauskunft</strong>. Sie beantwortet nur Fragen zu den Gesetzbüchern, zitiert die
                 Paragrafen und kann keine Akte lesen - auch keine freigegebene.</p>
                 """,
@@ -45,7 +45,7 @@ internal static class ToolsChapter
                     new Step("Chat", "Frage stellen",
                         "Ganze Sätze. Je konkreter die Frage, desto brauchbarer die Antwort."),
                     new Step("ManageSearch", "Werkzeugspur ansehen",
-                        "Unter der Antwort steht, worin NOOSEI nachgeschlagen hat."),
+                        "Unter der Antwort steht, worin FIBI nachgeschlagen hat."),
                     new Step("FactCheck", "Quellen prüfen",
                         "Die Quellen-Chips führen direkt in die Akte. Nimm nichts ungeprüft in einen Bericht."),
                     new Step("TaskAlt", "Vorschlag ausführen",
@@ -55,9 +55,9 @@ internal static class ToolsChapter
                 ]),
 
             new Article("art-kontingent", "kontingent", "Das Kontingent",
-                "Warum NOOSEI nicht unbegrenzt antwortet.",
+                "Warum FIBI nicht unbegrenzt antwortet.",
                 """
-                <p>Jeder Agent hat ein wöchentliches <strong>Kontingent</strong> für NOOSEI. Jede Anfrage
+                <p>Jeder Agent hat ein wöchentliches <strong>Kontingent</strong> für FIBI. Jede Anfrage
                 verbraucht davon - lange Fragen und Antworten mehr als kurze. Ist es aufgebraucht, wartest du
                 bis zur nächsten Woche oder bittest die Führung um mehr.</p>
                 <p>Das Kontingent wird in Punkten gerechnet, nicht in Geld. Was die Behörde tatsächlich
@@ -172,7 +172,7 @@ internal static class ToolsChapter
                 <p>Unter <em>Einstellungen</em> liegt alles, was an dieser Seite eingestellt werden kann -
                 nach Abschnitten gegliedert: System und Aussehen, Stichworte, Zusatzfelder, Vorlagen,
                 Aktualitäts-Schwellen, Bedrohungs-Score, öffentliche Module, Partner, Einladungen, Ehrenzeichen,
-                Protokolle, NOOSEI.</p>
+                Protokolle, FIBI.</p>
                 <p>Drei davon greifen weit: der <strong>Wartungsmodus</strong> (alle außer Admins sehen nur
                 einen Hinweis), der <strong>Not-Aus</strong> für den öffentlichen Bereich und die
                 <strong>Schwellen des Bedrohungs-Scores</strong>, die jede Zahl im ganzen Bestand
@@ -196,9 +196,10 @@ internal static class ToolsChapter
                 NavKey: "neuerungen"),
 
             new Article("art-handbuch-pflegen", "handbuch-pflegen", "Handbuch und Glossar pflegen",
-                "Für Führung und HRB: wie du hier etwas änderst.",
+                "Für Führung und Administration Division: wie du hier etwas änderst.",
                 """
-                <p>Dieses Handbuch ist nicht in Stein gemeißelt. <strong>Führung und HRB</strong> können
+                <p>Dieses Handbuch ist nicht in Stein gemeißelt. <strong>Führung und Administration
+                Division</strong> können
                 Kapitel, Artikel und Glossarbegriffe anlegen und bearbeiten - direkt auf dieser Seite.</p>
                 <p>Ein Artikel hat zwei getrennte Textfelder: die <strong>Anleitung</strong> und den Kasten
                 <strong>„Im Rollenspiel bedeutet das …“</strong>. Halte sie auseinander. So lassen sich eure

@@ -10,7 +10,7 @@ public sealed class GetBriefTool(IDossierSummaryService dossier) : INooseiTool
     public string Name => "hole_kurzbrief";
 
     public string Description =>
-        "Liefert den bereits erstellten NOOSEI-Kurzbrief einer Akte, falls vorhanden. "
+        "Liefert den bereits erstellten FIBI-Kurzbrief einer Akte, falls vorhanden. "
         + "Schneller Überblick, bevor du die ganze Akte liest.";
 
     public JsonElement ParameterSchema { get; } = NooseiLimits.Schema($$"""

@@ -44,7 +44,7 @@ public class LlmService(IHttpClientFactory httpFactory, IOptions<LlmOptions> opt
         var provider = request.Context.Provider;
         if (!_o.IsConfiguredFor(provider))
         {
-            throw new InvalidOperationException("NOOSEI ist nicht konfiguriert.");
+            throw new InvalidOperationException("FIBI ist nicht konfiguriert.");
         }
 
         var model = _o.ModelFor(provider, request.Context.Feature);
@@ -98,7 +98,7 @@ public class LlmService(IHttpClientFactory httpFactory, IOptions<LlmOptions> opt
                     logger.LogError("KI-Aufruf endgültig fehlgeschlagen: HTTP {Status} {Detail} (Anbieter {Provider}, Modell {Model}, {Elapsed} ms)",
                         status, detail, provider, model, watch.ElapsedMilliseconds);
                     throw new InvalidOperationException(Public(
-                        $"NOOSEI antwortete nicht (Fehler {status}). Bitte später erneut versuchen.", detail));
+                        $"FIBI antwortete nicht (Fehler {status}). Bitte später erneut versuchen.", detail));
                 }
 
                 var doc = await response.Content.ReadFromJsonAsync<ChatResponse>(Json, attemptCts.Token);
@@ -138,7 +138,7 @@ public class LlmService(IHttpClientFactory httpFactory, IOptions<LlmOptions> opt
                 logger.LogError("KI-Endpunkt hat in {Attempts} Versuchen nicht geantwortet (Anbieter {Provider}, Modell {Model}, {Elapsed} ms)",
                     attempts, provider, model, watch.ElapsedMilliseconds);
                 throw new InvalidOperationException(
-                    "NOOSEI hat nicht rechtzeitig geantwortet. Bitte später erneut versuchen.");
+                    "FIBI hat nicht rechtzeitig geantwortet. Bitte später erneut versuchen.");
             }
             catch (HttpRequestException ex)
             {
@@ -149,7 +149,7 @@ public class LlmService(IHttpClientFactory httpFactory, IOptions<LlmOptions> opt
                     continue;
                 }
                 logger.LogError(ex, "KI-Endpunkt nicht erreichbar (Anbieter {Provider}, Modell {Model})", provider, model);
-                throw new InvalidOperationException(Public("NOOSEI ist derzeit nicht erreichbar.", ex.Message));
+                throw new InvalidOperationException(Public("FIBI ist derzeit nicht erreichbar.", ex.Message));
             }
         }
     }
