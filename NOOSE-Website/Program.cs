@@ -604,8 +604,7 @@ app.MapNoosePresentationFileEndpoints();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // the text sweep of Phase109 rewrites whole tables with one UPDATE each; the default 30 s per command would
-    // kill it half-way, and an aborted migration blocks the start. Only the migration run gets the long timeout.
+    // the text sweep updates whole tables, the default 30 s would abort it
     db.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
     await db.Database.MigrateAsync();
     db.Database.SetCommandTimeout((int?)null);

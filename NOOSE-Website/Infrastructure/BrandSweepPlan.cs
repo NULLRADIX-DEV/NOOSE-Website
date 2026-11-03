@@ -5,20 +5,7 @@ using NOOSE_Website.Models.Common;
 
 namespace NOOSE_Website.Infrastructure;
 
-/// <summary>Decides which text columns the NOOSE to FIB data sweep rewrites and builds its UPDATE statements.</summary>
-/// <remarks>
-/// <para>
-/// One static <c>UPDATE</c> per table over all of its swept columns, so a row is rewritten once and every statement
-/// is its own command with its own timeout. No <c>PREPARE</c>, no user variables and no procedure: MySqlConnector
-/// rejects an <c>@name</c> in command text, and a generated statement is something a reviewer can read.
-/// </para>
-/// <para>
-/// The planner reads a model, so the migration feeds it its own frozen <c>TargetModel</c> (a later column never
-/// changes what Phase109 does) and the test feeds it the live <c>AppDbContext.Model</c> (a column that arrives later
-/// must still be swept or carry a reason). Everything is swept except what is listed here with a reason: the
-/// records, the identifiers and keys a rewrite would break, and files named on disk.
-/// </para>
-/// </remarks>
+/// <summary>Picks the text columns the NOOSE to FIB sweep rewrites, one static UPDATE per table.</summary>
 public static class BrandSweepPlan
 {
     /// <summary>The verdict for one string column of the model.</summary>
@@ -31,8 +18,7 @@ public static class BrandSweepPlan
         public bool Swept => ExcludedBecause is null;
     }
 
-    /// <summary>Case numbers stay strict: only the shared prefix changes, so the swap keeps them unique and a collision
-    /// is a real error. Every other unique text column runs as <c>UPDATE IGNORE</c> and a clash skips the row.</summary>
+    /// <summary>Unique columns that must not clash; every other unique text column runs as <c>UPDATE IGNORE</c>.</summary>
     public static IReadOnlyCollection<string> StrictUniqueColumns { get; } = ["Aktenzeichen", "BelegNummer"];
 
     /// <summary>The four free-text columns of the agent row; the rest of <c>AspNetUsers</c> is account data.</summary>
@@ -63,7 +49,7 @@ public static class BrandSweepPlan
         ["Token"] = "secret token",
         ["ProviderKey"] = "login provider key",
         ["LoginProvider"] = "login provider name",
-        // the suffix rule below skips a bare name, and a column called just Schluessel is a lookup key (value list, signal, module)
+        // the suffix rule skips a bare name
         ["Schluessel"] = "key that code or seeders look rows up by",
         ["Slug"] = "address of a page, referenced by links",
         ["ContentType"] = "media type",
@@ -91,14 +77,12 @@ public static class BrandSweepPlan
     /// <summary>Rows that stay out of a swept table, as a SQL condition.</summary>
     public static IReadOnlyDictionary<string, string> RowGuards { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        // the webhook URL carries a token; a chance match of a word in it must never rewrite it
+        // the webhook URL carries a token
         ["SystemEinstellungen"] =
             $"`Schluessel` NOT LIKE '{SystemSettingKeys.DiscordWebhookPrefix}%'",
     };
 
-    /// <summary>The replacements that can start a rewrite: every <c>From</c> that does not already contain a shorter
-    /// one. A row without any of them cannot change, because the first swap that fires needs its <c>From</c> in the
-    /// original text; the longer swaps are only a refinement of these.</summary>
+    /// <summary>Swaps that can start a rewrite: every <c>From</c> without a shorter <c>From</c> inside it.</summary>
     public static IReadOnlyList<string> Triggers { get; } = BuildTriggers();
 
     /// <summary>A column shorter than the shortest trigger cannot hold a match.</summary>
@@ -177,7 +161,7 @@ public static class BrandSweepPlan
         sql.AppendJoin(", ", columns.Select(c =>
             $"`{c.Column}` = IF(INSTR(`{c.Column}`, 'base64,') > 0, `{c.Column}`, {ReplaceChain($"`{c.Column}`")})"));
 
-        // BINARY: the columns are utf8mb4_general_ci, and the swaps are case-sensitive
+        // BINARY: the swaps are case-sensitive
         sql.Append(" WHERE (");
         sql.AppendJoin(" OR ", columns.SelectMany(c =>
             Triggers.Select(t => $"INSTR(BINARY `{c.Column}`, {Literal(t)}) > 0")));
@@ -222,7 +206,7 @@ public static class BrandSweepPlan
         }
         foreach (var (suffix, reason) in ExcludedColumnSuffixes)
         {
-            // an ending, not the whole name: a column called just "Typ" is free text (case and operation type)
+            // ending only, a bare "Typ" is free text
             if (column.Length > suffix.Length && column.EndsWith(suffix, StringComparison.Ordinal))
             {
                 return reason;
@@ -249,6 +233,6 @@ public static class BrandSweepPlan
         return all.Where(candidate => !all.Any(other => other.Length < candidate.Length && candidate.Contains(other, StringComparison.Ordinal))).ToList();
     }
 
-    /// <summary>A SQL string literal; the swaps hold neither quotes nor backslashes today, but a later one must not break the statement.</summary>
+    /// <summary>A SQL string literal with quotes and backslashes escaped.</summary>
     private static string Literal(string value) => "'" + value.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("'", "''", StringComparison.Ordinal) + "'";
 }

@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace NOOSE_Website.Infrastructure;
 
-/// <summary>Ordered, case-sensitive NOOSE to FIB wording swaps, shared by the data sweep and the demo literals.</summary>
+/// <summary>Ordered, case-sensitive NOOSE to FIB wording swaps of the data sweep; a test holds the demo literals against them.</summary>
 public static class BrandSweep
 {
     /// <summary>One plain, case-sensitive substring swap.</summary>
@@ -40,8 +40,7 @@ public static class BrandSweep
         return text;
     }
 
-    // plain substring swaps (they become nested SQL REPLACE); the order is the grammar, and lowercase
-    // prepositions keep a leading space because REPLACE cannot see word boundaries
+    // the order is the grammar; a leading space stands in for a word boundary
     private static List<Replacement> Build()
     {
         var list = new List<Replacement>

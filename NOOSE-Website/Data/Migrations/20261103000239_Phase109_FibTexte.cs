@@ -8,8 +8,7 @@ namespace NOOSE_Website.Data.Migrations
     /// <inheritdoc />
     public partial class Phase109_FibTexte : Migration
     {
-        /// <summary>Copies of the rows Phase110 resets, taken before the sweep touches their wording.</summary>
-        /// <remarks><c>CREATE TABLE IF NOT EXISTS</c>: a re-run keeps the first copy instead of failing or saving the swept text.</remarks>
+        /// <summary>Copies of the rows the rank migration resets, taken before the sweep; a re-run keeps the first copy.</summary>
         public static IReadOnlyList<string> BackupStatements { get; } =
         [
             "CREATE TABLE IF NOT EXISTS `HandbuchArtikel_Fib_Sicherung` AS SELECT * FROM `HandbuchArtikel` " +
@@ -32,16 +31,13 @@ namespace NOOSE_Website.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // Text only, so a failure half-way leaves nothing the previous release cannot read, and a re-run simply
-            // finds less to rewrite. Every command stands alone (suppressTransaction): the backup tables are DDL, and
-            // one UPDATE per table is its own unit with its own timeout (Program.cs raises it for the migrator).
+            // text only and one command each, so a re-run just finds less to rewrite
             foreach (var sql in BackupStatements)
             {
                 migrationBuilder.Sql(sql, suppressTransaction: true);
             }
 
-            // The columns come from this migration's own frozen model, the swaps from BrandSweep.Replacements
-            // (the same table the demo literals are checked against); no PREPARE, no user variables.
+            // columns from the frozen model, swaps from BrandSweep
             var plan = BrandSweepPlan.Classify(TargetModel);
             foreach (var sql in BrandSweepPlan.Statements(plan))
             {
@@ -52,7 +48,7 @@ namespace NOOSE_Website.Data.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // nothing to restore: the old wording is only in the pre-deploy dump (and the *_Fib_Sicherung tables for the handbook)
+            // nothing to restore, the old wording is in the pre-deploy dump
         }
 
         private static string InList(IEnumerable<string> keys) => string.Join(", ", keys.Select(k => $"'{k}'"));

@@ -258,8 +258,8 @@ public class DecorationService(
         var decoration = await db.Decorations
             .FirstOrDefaultAsync(d => d.Id == input.DecorationId && d.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("Dieses Ehrenzeichen kann nicht (mehr) verliehen werden.");
-        // follows the recipient division
-        var signatory = await SignatoryAsync(db, DivisionRules.Of(agent).Home, cancellationToken);
+        // follows the recipient division, the Board gets the global one
+        var signatory = await SignatoryAsync(db, DecorationRules.SignatoryDivision(agent), cancellationToken);
 
         var award = new DecorationAward
         {
@@ -556,7 +556,7 @@ public class DecorationService(
             return null;
         }
         // history rows store no signatory
-        var signatory = await SignatoryAsync(db, DivisionRules.Of(agent).Home, cancellationToken);
+        var signatory = await SignatoryAsync(db, DecorationRules.SignatoryDivision(agent), cancellationToken);
         var settings = await ReadSettingsAsync(db, cancellationToken);
         var day = DateTime.SpecifyKind(row.Timestamp, DateTimeKind.Utc).ToLocalTime().Date;
         return new CertificateView(kind, agent.Id, Codename(agent),

@@ -137,22 +137,27 @@ public static class PromotionRules
     public static bool MayDecide(PromotionStanding actor, Agent? target, Rank toRank)
         => actor.MayDecideAny && target is not null && MayAssign(actor, DivisionRules.Of(target).Home, target.Rank, toRank);
 
-    /// <summary>Does the actor's request list show this target? Board and admin all, a Section Chief the own division.</summary>
-    public static bool MaySee(PromotionStanding actor, Agent? target)
+    /// <summary>May the actor turn this rank-holding agent into a partner? That takes the rank away, so it passes the same fine gate.</summary>
+    /// <remarks>Board and admin always; a Section Chief only inside the own division and below Section Chief; nobody else.</remarks>
+    public static bool MayConvertToPartner(PromotionStanding actor, Division? targetDivision, Rank fromRank)
+        => actor.SeesAll
+           || (actor.ActorRank == Rank.SectionChief && actor.Home is { } home && targetDivision == home
+               && fromRank < SectionChiefCeiling);
+
+    /// <summary>The guard of the partner switch, after the write guard.</summary>
+    public static void RequireMayConvertToPartner(PromotionStanding actor, Division? targetDivision, Rank fromRank)
     {
-        if (!actor.MayDecideAny || target is null)
+        if (MayConvertToPartner(actor, targetDivision, fromRank))
         {
-            return false;
+            return;
         }
-        if (actor.SeesAll)
-        {
-            return true;
-        }
-        var unit = DivisionRules.Of(target);
-        return actor.ActorRank == Rank.SectionChief && actor.Home is { } home && !unit.IsBoard && unit.Home == home;
+        var ceiling = RankDisplay.DefaultName(SectionChiefCeiling);
+        throw new UnauthorizedAccessException(actor.ActorRank == Rank.SectionChief && fromRank < SectionChiefCeiling
+            ? $"Als {ceiling} änderst du die Zugehörigkeit nur in deiner eigenen Abteilung."
+            : $"Die Zugehörigkeit von Agenten ab {ceiling} ändern nur das Board oder ein Admin, darunter in der eigenen Abteilung ein {ceiling}.");
     }
 
-    /// <summary>Open requests the actor may see, oldest first; the one source of list, badge and dashboard.</summary>
+    /// <summary>Open requests the actor may decide, oldest first; the one source of list, badge and dashboard.</summary>
     public static async Task<List<AgentPromotionRequest>> OpenRequestsAsync(AppDbContext db, PromotionStanding actor,
         CancellationToken cancellationToken = default)
     {
@@ -171,7 +176,7 @@ public static class PromotionRules
         // few rows, home resolved in memory
         var ids = open.Select(a => a.AgentId).Distinct().ToList();
         var targets = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToListAsync(cancellationToken);
-        return open.Where(r => MaySee(actor, targets.FirstOrDefault(t => t.Id == r.AgentId))).ToList();
+        return open.Where(r => MayDecide(actor, targets.FirstOrDefault(t => t.Id == r.AgentId), r.TargetRank)).ToList();
     }
 
     /// <summary>Number of open requests the actor may see.</summary>

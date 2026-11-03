@@ -180,6 +180,16 @@ public class FirearmUseRulesTests
         }
     }
 
+
+    [Fact]
+    public async Task A_hidden_team_lead_with_the_admin_flag_may_not_report()
+    {
+        var user = ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().AsAdmin().Build();
+
+        Assert.False(user.MayReportFirearmUse());
+        Assert.False(GuardAllows(user));
+        Assert.False(await PolicyAllowsAsync(user));
+    }
     [Fact]
     public async Task Policy_AdmitsInHouseWritersOnly()
     {
