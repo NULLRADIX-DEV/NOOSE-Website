@@ -625,6 +625,10 @@ public static class ChangelogContent
             Besser("3.0.10-handbuch", "Das Handbuch folgt dem neuen Konzept: Dienstgrade, Abteilungen, Dienstregeln, "
                 + "Bewaffnung, Gehalt, Kleidung, Fahrzeuge je Dienstgrad und DEFCON sowie die Sicherheitsfreigaben "
                 + "sind neu geschrieben.", "Handbuch"),
+            Neu("3.0.11-wiedervorlagen-planung", "Neu unter Mein Dienst: Meine Wiedervorlagen ordnet deine "
+                + "Wiedervorlagen nach überfällig, heute, diese Woche und später; verschieben und erledigen geht per "
+                + "Klick. Die Führung sieht im Wiedervorlagen-Rückstand, was liegen bleibt, hängt es um und erfährt, was "
+                + "sieben Tage überfällig ist.", "Bedienung"),
         ]),
     ];
 }

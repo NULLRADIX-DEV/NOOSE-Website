@@ -76,6 +76,7 @@ public static class NotificationMutes
             NotificationType.PartnerInquiry,
             NotificationType.CounterIntelFinding,
             NotificationType.NooseiAnomaly,
+            NotificationType.FollowupEscalated,
             NotificationType.DecorationAwarded,
             NotificationType.FirearmUseReported,
         ]),

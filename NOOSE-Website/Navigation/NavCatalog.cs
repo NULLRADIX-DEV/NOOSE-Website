@@ -26,6 +26,8 @@ public static class NavCatalog
 
         new NavEntry("meine-schicht", "/meine-schicht", Icons.Material.Filled.WorkHistory, "Meine Schicht", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Was heute an dir hängt: Aufgaben, Wiedervorlagen, Erwähnungen, Brett, Taskforces"),
+        new NavEntry("wiedervorlagen", FollowupPlanRules.Route, Icons.Material.Filled.EventRepeat, "Meine Wiedervorlagen", NavSection.MeinDienst, NavArea.MeinDienst,
+            Description: "Deine offenen Wiedervorlagen nach Fälligkeit: verschieben und erledigen mit einem Klick"),
         new NavEntry("profil", "/profil", Icons.Material.Filled.AccountCircle, "Mein Profil", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Eigene Stammdaten, Codename und Kontaktangaben"),
         new NavEntry("watchlist", "/watchlist", Icons.Material.Filled.Star, "Beobachtete Akten", NavSection.MeinDienst, NavArea.MeinDienst,
@@ -136,6 +138,9 @@ public static class NavCatalog
         new NavEntry("schusswaffengebrauch", "/schusswaffengebrauch", Icons.Material.Filled.GpsFixed, "Schusswaffengebrauch",
             NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Gemeldeter Schusswaffengebrauch aller Agenten, filterbar nach Agent, Abteilung und Zeitraum"),
+        new NavEntry("wiedervorlagen.rueckstand", FollowupPlanRules.BacklogRoute, Icons.Material.Filled.PendingActions, "Wiedervorlagen-Rückstand",
+            NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
+            Description: "Alle offenen Wiedervorlagen der Behörde: wer was liegen lässt, und umhängen"),
         new NavEntry("papierkorb", "/papierkorb", Icons.Material.Filled.Delete, "Papierkorb", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Gelöschte Akten aller Typen wiederherstellen"),
     };

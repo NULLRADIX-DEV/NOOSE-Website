@@ -5,7 +5,7 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Infrastructure.Followups;
 
-/// <summary>Background worker that detects due follow-ups and notifies assignees and followers with visibility checks.</summary>
+/// <summary>Notifies assignees and followers of due follow-ups and escalates long-overdue ones to leadership.</summary>
 public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger<FollowupDueWorker> logger)
     : BackgroundService
 {
@@ -37,6 +37,26 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
             {
                 logger.LogError(ex, "Wiedervorlage-Fälligkeitsprüfung fehlgeschlagen.");
             }
+
+            // independent of the due run
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var followups = scope.ServiceProvider.GetRequiredService<IFollowupService>();
+                var escalated = await followups.EscalateOverdueAsync(DateTime.UtcNow, stoppingToken);
+                if (escalated > 0)
+                {
+                    logger.LogInformation("Wiedervorlagen eskaliert: {Count}.", escalated);
+                }
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Wiedervorlage-Eskalation fehlgeschlagen.");
+            }
         }
         while (await SafeWaitAsync(timer, stoppingToken));
     }
@@ -61,25 +81,38 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
         var watchlist = scope.ServiceProvider.GetRequiredService<IWatchlistService>();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var now = DateTime.UtcNow;
+        await NotifyDueAsync(db, notifications, watchlist, DateTime.UtcNow, cancellationToken);
+    }
 
-        var due = await db.Followups
+    /// <summary>Claims each due reminder, then notifies the responsible and followers who may see the record.</summary>
+    public static async Task<int> NotifyDueAsync(AppDbContext db, INotificationService notifications,
+        IWatchlistService watchlist, DateTime now, CancellationToken cancellationToken)
+    {
+        var due = await db.Followups.AsNoTracking()
             .Where(w => !w.Done && w.DueAt <= now && w.NotifiedAt == null)
             .OrderBy(w => w.DueAt)
+            .Select(w => new { w.Id, w.EntityType, w.EntityId, w.ResponsibleAgentId, w.Note })
             .ToListAsync(cancellationToken);
         if (due.Count == 0)
         {
-            return;
+            return 0;
         }
 
         var refs = due.Select(w => (w.EntityType, w.EntityId)).Distinct().ToList();
         var resolved = await RecordsReference.ResolveAsync(db, refs, cancellationToken);
 
+        var notified = 0;
         foreach (var w in due)
         {
+            // rest waits for next run
+            if (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
             if (!resolved.TryGetValue((w.EntityType, w.EntityId), out var record))
             {
-                w.NotifiedAt = now;
+                // trashed parent: stamp silently
+                await ClaimAsync(db, w.Id, now);
                 continue;
             }
 
@@ -93,40 +126,40 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
                 recipientIds.Add(followerId);
             }
 
+            var allowed = new List<string>();
             if (recipientIds.Count > 0)
             {
                 var active = await db.Users
                     .Where(u => recipientIds.Contains(u.Id) && u.Status == AgentStatus.Active)
                     .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency })
                     .ToListAsync(cancellationToken);
-                var allowed = new List<string>();
                 foreach (var u in active)
                 {
-                    var uLeadership = u.IsAdmin || u.Rank is >= Rank.SpecialAgentInCharge;
-                    // the bool shim cannot carry IsInternalAgent, and the types gated on it — a citizen ticket, a
-                    // citizen tip — read it as "not an in-house account" and hide the record from everyone. Same
-                    // flags as the shim otherwise, so no other type changes answer
-                    var viewer = new ViewerScope(uLeadership, uLeadership, u.Id, null, MayAgenda: uLeadership,
-                        IsInternalAgent: u.PartnerAgency is null);
+                    var viewer = FollowupService.ReminderScope(u.Id, u.IsAdmin, u.Rank, u.PartnerAgency);
                     if (await Visibility.IsRecordVisibleAsync(db, w.EntityType, w.EntityId, viewer, cancellationToken))
                     {
                         allowed.Add(u.Id);
                     }
                 }
-
-                if (allowed.Count > 0)
-                {
-                    var title = BuildTitle(record.Display, w.Note);
-                    await notifications.NotifyManyAsync(allowed, NotificationType.Followup, title, record.Href,
-                        triggerId: null, cancellationToken);
-                }
             }
 
-            w.NotifiedAt = now;
+            // claim; a postpone wins
+            if (!await ClaimAsync(db, w.Id, now) || allowed.Count == 0)
+            {
+                continue;
+            }
+            await notifications.NotifyManyAsync(allowed, NotificationType.Followup, BuildTitle(record.Display, w.Note),
+                record.Href, triggerId: null, CancellationToken.None);
+            notified++;
         }
-
-        await db.SaveChangesAsync(cancellationToken);
+        return notified;
     }
+
+    /// <summary>Stamps the reminder only while the row is still open, unstamped and due.</summary>
+    private static async Task<bool> ClaimAsync(AppDbContext db, string id, DateTime now)
+        => await db.Followups
+            .Where(x => x.Id == id && !x.Done && x.NotifiedAt == null && x.DueAt <= now)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.NotifiedAt, now), CancellationToken.None) == 1;
 
     private static string BuildTitle(string display, string? note)
     {

@@ -130,6 +130,7 @@ public class AuditDisplayTests
     [InlineData("DeletedById")]
     [InlineData("IsDeleted")]
     [InlineData("NotifiedAt")]
+    [InlineData("EscalatedAt")]
     [InlineData("MeetingId")]
     [InlineData("AttendanceClosedAt")]
     [InlineData("ReminderSentAt")]

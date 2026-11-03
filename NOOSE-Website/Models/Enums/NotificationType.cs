@@ -177,6 +177,8 @@ public enum NotificationType
     /// <summary>An agent reported a firearm use. Bell only, for the leadership of the agent's division and the Board;
     /// the title names agent and time, never the reason.</summary>
     FirearmUseReported = 51,
+    /// <summary>Follow-ups went long overdue; leadership bell only, naming neither record nor agent.</summary>
+    FollowupEscalated = 52,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -236,6 +238,7 @@ public static class NotificationTypeDisplay
         NotificationType.PresentationLive => "Präsentation live",
         NotificationType.HandoverReceived => "Übernahme",
         NotificationType.FirearmUseReported => "Schusswaffengebrauch",
+        NotificationType.FollowupEscalated => "Wiedervorlagen-Rückstand",
         _ => "Benachrichtigung",
     };
 
@@ -294,6 +297,7 @@ public static class NotificationTypeDisplay
         NotificationType.PresentationLive => Icons.Material.Filled.CoPresent,
         NotificationType.HandoverReceived => Icons.Material.Filled.MoveDown,
         NotificationType.FirearmUseReported => Icons.Material.Filled.GpsFixed,
+        NotificationType.FollowupEscalated => Icons.Material.Filled.PendingActions,
         _ => Icons.Material.Filled.Notifications,
     };
 }

@@ -84,7 +84,8 @@ else
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.EventRepeat" Colour="Color.Info" Label="Fällige Wiedervorlagen"
-                  Value="@(_load ? "…" : _myDue.Count.ToString())" Hint="Deine Wiedervorlagen, die heute oder früher fällig sind" />
+                  Value="@(_load ? "…" : _myDue.Count.ToString())" Href="@FollowupPlanRules.Route"
+                  Hint="Deine Wiedervorlagen, die heute oder früher fällig sind" />
     </MudItem>
 </MudGrid>
 

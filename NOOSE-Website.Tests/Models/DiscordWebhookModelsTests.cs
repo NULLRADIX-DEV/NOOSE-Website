@@ -66,6 +66,8 @@ public class DiscordWebhookModelsTests
         NotificationType.HandoverReceived,
         // who fired and when is for the leadership bell alone; a shared channel would show it was rung
         NotificationType.FirearmUseReported,
+        // who lets work rot is for the leadership bell alone
+        NotificationType.FollowupEscalated,
     };
 
     // ----- IsRoutable: true branch -----
