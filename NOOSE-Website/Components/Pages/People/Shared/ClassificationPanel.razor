@@ -45,7 +45,7 @@
                 </MudAlert>
             }
             <MentionInput @bind-Text="_justification" Lines="2" HelperText="@MentionInput.Hint"
-                          Label="@(_isRequest ? "Begründung (für den Antrag erforderlich)" : "Begründung (optional)")" />
+                          Label="@JustificationLabel" />
             <div>
                 @if (_isRequest)
                 {
@@ -68,11 +68,17 @@
                 else
                 {
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                               OnClick="SetAsync" Disabled="@(_new == Current)">Einstufung speichern</MudButton>
+                               OnClick="SetAsync" Disabled="@(_new == Current || _missingDowngradeReason)">Einstufung speichern</MudButton>
                     @if (_new == Current)
                     {
                         <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
                             Wähle oben eine andere Einstufung, um sie zu speichern.
+                        </MudText>
+                    }
+                    else if (_missingDowngradeReason)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+                            Eine Herabstufung braucht eine Begründung. Sie steht danach im Zeitstrahl und im Änderungsprotokoll.
                         </MudText>
                     }
                 }
@@ -130,6 +136,14 @@
 
     // Request instead of set directly: highest tier chosen, no Senior right, but record context exists.
     private bool _isRequest => _new == Classification.SecuredStateThreatening && !_mayHighest && _canRequest;
+
+    // mirrors the service, which refuses a downgrade without a reason
+    private bool _isDowngrade => CriticalChange.IsDowngrade(Current, _new);
+    private bool _missingDowngradeReason => _isDowngrade && string.IsNullOrWhiteSpace(_justification);
+
+    private string JustificationLabel => _isRequest ? "Begründung (für den Antrag erforderlich)"
+        : _isDowngrade ? "Begründung (für die Herabstufung erforderlich)"
+        : "Begründung (optional)";
 
     protected override async Task OnInitializedAsync()
     {

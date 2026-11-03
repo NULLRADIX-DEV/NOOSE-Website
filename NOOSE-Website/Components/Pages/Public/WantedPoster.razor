@@ -102,10 +102,30 @@ else
             <p><b>@(_entry.Kind == PublicWantedKind.Fahrzeug ? "Modell" : "Fahrzeug"):</b> @_entry.VehicleText</p>
         }
 
+        @if (_link is { } link)
+        {
+            @* scan or type to get back online *@
+            <section class="druck-poster-qr">
+                @if (link.QrSvg is { } svg)
+                {
+                    @* encoder output, no notice text *@
+                    <div class="druck-poster-qr-code">@((MarkupString)svg)</div>
+                }
+                <div>
+                    <div class="druck-poster-qr-titel">@link.Heading</div>
+                    <div class="druck-poster-qr-adresse">@link.ShortText</div>
+                    <div class="druck-poster-qr-hilfe">@link.Caption</div>
+                </div>
+            </section>
+        }
+
         <footer class="druck-fusszeile">
-            Vorsicht ist geboten. Beobachtungen und Ergreifungen der nächsten Dienststelle melden.<br />
-            @* plain text, not a link: a printed sheet cannot be clicked *@
-            fibhq.com/gesucht/@_entry.CaseNumber
+            Vorsicht ist geboten. Beobachtungen und Ergreifungen der nächsten Dienststelle melden.
+            @if (_link is not null)
+            {
+                @* plain text, not a link: a printed sheet cannot be clicked *@
+                <br />@_link.ProfileText
+            }
         </footer>
     </div>
 }
@@ -120,6 +140,7 @@ else
 
     private PublicWantedDetail? _entry;
     private PublicBounty? _bounty;
+    private WantedPosterLink? _link;
     private string? _loadedKey;
 
     protected override async Task OnParametersSetAsync()
@@ -160,6 +181,10 @@ else
             // second copy of that gate could only ever drift from it
             try { _bounty = await Wanted.GetBountyAsync(_entry.CaseNumber); }
             catch { /* best effort */ _bounty = null; }
+
+            // poster stands without it
+            try { _link = await Wanted.GetPosterLinkAsync(_entry.CaseNumber); }
+            catch { /* best effort */ _link = null; }
         }
     }
 }

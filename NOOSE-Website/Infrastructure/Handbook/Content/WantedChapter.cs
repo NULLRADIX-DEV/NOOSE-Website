@@ -34,12 +34,20 @@ internal static class WantedChapter
                 <p>Die öffentliche Ausschreibung legst du direkt an der Personenakte an, im Abschnitt
                 <em>Öffentliche Fahndung</em>. Du füllst Vorwurf, Foto und Hinweise für die Bevölkerung - und
                 bleibst zunächst im <strong>Entwurf</strong>.</p>
+                <p>Das Foto wählst du aus den Fotos der Akte oder lädst im Dialog direkt ein neues hoch; es
+                landet dann ganz normal in der Foto-Galerie der Akte und ist gleich ausgewählt. Eine Fahrzeug-
+                oder Waffen-Ausschreibung trägt kein Foto.</p>
                 <p>Wer den Dienstgrad <strong>Senior Special Agent</strong> oder höher hat, veröffentlicht
                 selbst. Darunter stellst du stattdessen einen <strong>Antrag</strong>; er landet im Posteingang
                 unter <em>Freigaben</em> und wird dort entschieden.</p>
                 <p>Mit der ersten Veröffentlichung bekommt die Ausschreibung ein eigenes Aktenzeichen, das mit
                 <em>FA</em> beginnt. Unter dieser Nummer meldet sich später jeder Bürger, der etwas dazu
                 sagen will.</p>
+                <p>Am öffentlichen Steckbrief liegt ein <strong>Fahndungsposter</strong> zum Drucken. Es trägt einen
+                QR-Code und eine kurze Adresse, die man abtippen kann: aus <em>FIB-FA-2026-0042</em> wird
+                <em>/g/2026-0042</em>. Beides führt direkt zum Steckbrief, wo ein Bürger seinen Hinweis abgibt,
+                solange das Hinweisformular eingeschaltet ist. Die kurze Adresse funktioniert nur, solange die
+                Ausschreibung öffentlich steht.</p>
                 <p>Ist die Person gefasst, setzt du die Ausschreibung auf <strong>gefasst</strong>; war sie
                 falsch, ziehst du sie <strong>zurück</strong>. Beides nimmt sie sofort von der öffentlichen
                 Seite. Zurückgezogen behält sie Aktenzeichen und Inhalt - ein erneutes Veröffentlichen ist ein

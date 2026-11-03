@@ -434,13 +434,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Akte löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Akte löschen?",
             "Die Akte wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await PersonService.DeleteAsync(_person.Id, _user);
+        await PersonService.DeleteAsync(_person.Id, reason, _user);
         Snackbar.Add("Akte in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/personen");
     }

@@ -1,5 +1,6 @@
 @* Manual wanted flag for a person (write-gated); surfaces the person on the Fahndung board. *@
 @inject IPersonService PersonService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <MudPaper Class="pa-3" Elevation="1">
@@ -66,9 +67,15 @@
 
     private async Task SetAsync(bool wanted)
     {
+        // lifting needs its own reason; the wanted reason goes with the flag
+        var reason = wanted ? _reason : await CriticalReasonPrompt.WantedLiftAsync(DialogService);
+        if (!wanted && reason is null)
+        {
+            return;
+        }
         try
         {
-            await PersonService.WantedSetAsync(PersonId, wanted, wanted ? _reason : null, User);
+            await PersonService.WantedSetAsync(PersonId, wanted, reason, User);
             Snackbar.Add(wanted ? "Person zur Fahndung ausgeschrieben." : "Fahndung aufgehoben.", Severity.Success);
             await Changed.InvokeAsync();
         }

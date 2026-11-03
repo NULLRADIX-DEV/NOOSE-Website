@@ -1225,6 +1225,36 @@ public sealed class PublicWantedServiceTests
         Assert.Empty(await db.AuditLogs.Where(a => a.EntityType == nameof(Person)).ToListAsync());
     }
 
+    [Fact]
+    public async Task Retracting_LogsTheReasonUnderItsOwnLabel()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        await host.Service.RetractAsync(id, "Hinweis war falsch", Leader());
+
+        await using var db = ctx.NewContext();
+        var rows = await db.AuditLogs
+            .Where(a => a.EntityType == nameof(OeffentlicheFahndung) && a.Action == AuditAction.Modified)
+            .ToListAsync();
+        var changes = rows.SelectMany(r => AuditDisplay.Parse(r.ChangesJson, entityType: r.EntityType));
+        Assert.Contains(changes, c => c.Field == "Rückzugsgrund" && c.New == "Hinweis war falsch");
+    }
+
+    [Fact]
+    public async Task Retracting_ShowsTheReasonOnThePersonTimeline()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        await host.Service.RetractAsync(id, "Hinweis war falsch", Leader());
+
+        var timeline = await new TimelineService(ctx.Factory).GetTimelineAsync(nameof(Person), PersonId, Leader());
+
+        Assert.Contains(timeline, e => e.Changes is not null
+            && e.Changes.Any(c => c.Field == "Rückzugsgrund" && c.New == "Hinweis war falsch"));
+    }
+
     /// <summary>A host whose person file carries two photos and whose storage substitutes answer.</summary>
     private static async Task<Host> PhotoHostAsync(SqliteTestContext ctx)
     {

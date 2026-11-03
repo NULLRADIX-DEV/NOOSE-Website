@@ -131,6 +131,8 @@ public class CaseService(
 
     public async Task RefreshAsync(string id, CaseInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var @case = await db.Cases.FirstOrDefaultAsync(v => v.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Vorgang '{id}' nicht gefunden.");
@@ -150,6 +152,7 @@ public class CaseService(
         @case.Summary = input.Summary.TrimToNull();
         @case.ClosingNote = input.ClosingNote.TrimToNull();
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
+        CriticalChange.NoteSecrecy(db, nameof(Case), id, @case.SecrecyLevel, input.SecrecyLevel, input.SecrecyReason, actor);
         @case.SecrecyLevel = input.SecrecyLevel;
 
         if (isCompleted && !wasCompleted)
@@ -168,19 +171,23 @@ public class CaseService(
             nameof(Case), @case.Id, actor, cancellationToken);
     }
 
-    public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
+        var note = CriticalChange.RequireDeletionReason(reason);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var @case = await db.Cases.FirstOrDefaultAsync(v => v.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Vorgang '{id}' nicht gefunden.");
         db.Cases.Remove(@case);
+        CriticalChange.NoteDeletion(db, nameof(Case), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -226,6 +233,7 @@ public class CaseService(
 
     public async Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         ClassificationHelper.CheckRankGate(@new, actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -235,6 +243,7 @@ public class CaseService(
         // classified case is writable by leadership or the record's own audience (TRU/HRB), not leadership alone
         Permission.RequireMaySeeClassified(actor, @case.SecrecyLevel);
 
+        CriticalChange.NoteDowngrade(db, nameof(Case), id, @case.Classification, @new, justification, actor);
         @case.Classification = @new;
         db.ClassificationHistory.Add(ClassificationHelper.Entry(nameof(Case), id, @new, justification, actor));
         await db.SaveChangesAsync(cancellationToken);
@@ -243,14 +252,7 @@ public class CaseService(
     public async Task<List<ClassificationHistory>> GetClassificationHistoryAsync(string id, ViewerScope scope, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        if (!await Visibility.IsRecordVisibleAsync(db, nameof(Case), id, scope, cancellationToken))
-        {
-            return new();
-        }
-        return await db.ClassificationHistory
-            .Where(e => e.EntityType == nameof(Case) && e.EntityId == id)
-            .OrderByDescending(e => e.Timestamp)
-            .ToListAsync(cancellationToken);
+        return await ClassificationHelper.HistoryAsync(db, nameof(Case), id, scope, cancellationToken);
     }
 
     private static IQueryable<Case> VisibleCases(AppDbContext db, ViewerScope scope)
