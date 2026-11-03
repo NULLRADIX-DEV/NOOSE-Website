@@ -124,11 +124,11 @@ public class WarrantPermissionTests
     public static TheoryData<string, bool, bool> Matrix => new()
     {
         // who, may request, may sign
-        { "junior", true, false },
+        { "trainee", true, false },
         { "senior", true, false },
-        { "supervisory", true, true },
+        { "in-charge", true, true },
         { "director", true, true },
-        { "admin-junior", true, true },
+        { "admin-trainee", true, true },
         { "reader", false, false },
         { "teamlead-admin", false, false },
         { "demo", false, false },
@@ -139,11 +139,11 @@ public class WarrantPermissionTests
 
     private static ClaimsPrincipal Principal(string who) => who switch
     {
-        "junior" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent),
+        "trainee" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee),
         "senior" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SeniorSpecialAgent),
-        "supervisory" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent),
+        "in-charge" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge),
         "director" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director),
-        "admin-junior" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsAdmin(),
+        "admin-trainee" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsAdmin(),
         "reader" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsTeamLead(),
         "teamlead-admin" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsTeamLead().AsAdmin(),
         "demo" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsHrb().AsDemo(),

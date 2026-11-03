@@ -347,7 +347,7 @@ public static class NooseiRecordTypes
                 + "ein Aktenaufruf hätte nichts hinzuzufügen",
             // open: whether an assistant answer may cite a signed paper is the owner's call, not a default
             ["Warrant"] = "eine Anordnung ist ein unterzeichnetes Papier mit eigener Sicht über Person und Vorgang; "
-                + "ob NOOSEI sie lesen soll, ist noch nicht entschieden",
+                + "ob FIBI sie lesen soll, ist noch nicht entschieden",
         };
 
     /// <summary>The enum values offered where a type must be openable as a record.</summary>

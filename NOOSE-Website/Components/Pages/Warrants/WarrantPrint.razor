@@ -4,7 +4,7 @@
 @layout PrintLayout
 @inject IWarrantService WarrantService
 
-<PageTitle>@(_view is null ? "Druckansicht" : $"Anordnung {_view.Warrant.CaseNumber}") · NOOSE</PageTitle>
+<PageTitle>@(_view is null ? "Druckansicht" : $"Anordnung {_view.Warrant.CaseNumber}") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -26,7 +26,7 @@ else
     var w = _view.Warrant;
     <PrintFrame Title="@WarrantTypeDisplay.Name(w.Type)" BackHref="@($"/anordnungen/{Id}")" BackText="Zurück zur Anordnung"
                 PrintedBy="@_printBy" IsClassified="false"
-                Footer="@($"Amtliches Schriftstück der NOOSE · {w.CaseNumber} · Gilt nur im angegebenen Zeitraum und nur ohne Vermerk der Aufhebung.")">
+                Footer="@($"Amtliches Schriftstück des FIB · {w.CaseNumber} · Gilt nur im angegebenen Zeitraum und nur ohne Vermerk der Aufhebung.")">
         @if (_view.State != WarrantState.Valid)
         {
             <p><span class="druck-poster-warnung">Ungültig – @WarrantStateDisplay.Name(_view.State)</span></p>

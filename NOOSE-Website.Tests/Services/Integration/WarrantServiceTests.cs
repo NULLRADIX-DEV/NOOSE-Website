@@ -32,7 +32,7 @@ public sealed class WarrantServiceTests : IDisposable
     {
         var next = 0;
         _caseNumbers.NextAsync(Arg.Any<AppDbContext>(), WarrantRules.CaseNumberPrefix, Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-AN-2026-{++next:0000}");
+            .Returns(_ => $"FIB-AN-2026-{++next:0000}");
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlite(_ctx.Connection)
             .ConfigureWarnings(w => w.Ignore(RelationalEventId.AmbientTransactionWarning))
@@ -44,7 +44,7 @@ public sealed class WarrantServiceTests : IDisposable
         using var db = _ctx.NewContext();
         db.People.Add(Seed.Person("p-open", "Otto Offen"));
         db.People.Add(Seed.Person("p-vs", "Vera Verschluss", p => p.IsClassified = true));
-        db.People.Add(Seed.Person("p-tru", "Theo Tru", p => { p.IsClassified = true; p.IsTRUClassified = true; }));
+        db.People.Add(Seed.Person("p-hrt", "Theo Hrt", p => { p.IsClassified = true; p.IsTRUClassified = true; }));
         db.Cases.Add(Seed.Case("c-open", "Offener Vorgang"));
         db.Cases.Add(Seed.Case("c-vs", "Geheimer Vorgang", c => c.IsClassified = true));
         db.Laws.Add(new Law { Id = "l1", LawBook = "StGB", Paragraph = "§ 12", Title = "Diebstahl", Text = "<p>a</p>" });
@@ -72,7 +72,7 @@ public sealed class WarrantServiceTests : IDisposable
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgent).WithCodename($"Hawk-{id}").Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SupervisorySpecialAgent).WithCodename($"Falcon-{id}").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename($"Falcon-{id}").Build();
 
     private static ClaimsPrincipal Reader()
         => ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build();
@@ -86,8 +86,8 @@ public sealed class WarrantServiceTests : IDisposable
     private static ClaimsPrincipal Partner()
         => ClaimsPrincipalBuilder.Agent("partner").AsPartner(PartnerAgency.DoJ, PartnerRank.Chief).Build();
 
-    private static ClaimsPrincipal Tru()
-        => ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.SpecialAgent).AsTru().Build();
+    private static ClaimsPrincipal Hrt()
+        => ClaimsPrincipalBuilder.Agent("hrt").WithRank(Rank.SpecialAgent).AsTru().Build();
 
     private static ClaimsPrincipal Applicant()
         => ClaimsPrincipalBuilder.Agent("app").WithStatus(AgentStatus.Applicant).Build();
@@ -132,7 +132,7 @@ public sealed class WarrantServiceTests : IDisposable
         var w = await _svc.CreateAsync(Input("p-open", "c-open", "l2", "l1"), As(Agent()));
 
         var row = Raw(w.Id);
-        Assert.Equal("NOOSE-AN-2026-0001", row.CaseNumber);
+        Assert.Equal("FIB-AN-2026-0001", row.CaseNumber);
         Assert.Equal(WarrantStatus.Requested, row.Status);
         Assert.Equal("agent", row.CreatedById);
         Assert.Equal("Hawk-agent", row.RequesterName);
@@ -204,11 +204,11 @@ public sealed class WarrantServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_tru_agent_may_request_against_a_tru_person()
+    public async Task A_hrt_agent_may_request_against_a_tru_person()
     {
-        var w = await _svc.CreateAsync(Input("p-tru"), As(Tru()));
+        var w = await _svc.CreateAsync(Input("p-hrt"), As(Hrt()));
 
-        Assert.Equal("p-tru", Raw(w.Id).PersonId);
+        Assert.Equal("p-hrt", Raw(w.Id).PersonId);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public sealed class WarrantServiceTests : IDisposable
         Assert.Equal(row.ValidFrom!.Value.AddDays(7), row.ValidUntil);
         Assert.Equal("lead", row.DeciderId);
         Assert.Equal("Falcon-lead", row.DeciderName);
-        Assert.Equal(Rank.SupervisorySpecialAgent, row.DeciderRank);
+        Assert.Equal(Rank.SpecialAgentInCharge, row.DeciderRank);
         Assert.Equal("passt", row.DecisionNote);
         Assert.Equal(WarrantState.Valid, (await _svc.GetAsync(w.Id, Agent()))!.State);
         await _notifications.Received(1).NotifyAsync("agent", NotificationType.RequestDecided,
@@ -287,7 +287,7 @@ public sealed class WarrantServiceTests : IDisposable
     public async Task An_admin_without_a_leadership_rank_counts_as_leadership()
     {
         var w = await _svc.CreateAsync(Input(), As(Agent()));
-        var admin = ClaimsPrincipalBuilder.Agent("adm").WithRank(Rank.JuniorAgent).AsAdmin().Build();
+        var admin = ClaimsPrincipalBuilder.Agent("adm").WithRank(Rank.Trainee).AsAdmin().Build();
 
         await _svc.SignAsync(w.Id, 3, null, As(admin));
 
@@ -347,11 +347,11 @@ public sealed class WarrantServiceTests : IDisposable
     [Fact]
     public async Task A_leader_cannot_sign_what_they_cannot_see()
     {
-        var w = await _svc.CreateAsync(Input("p-tru"), As(Tru()));
-        // a TRU-only record is not hidden from leadership, so hide the warrant through a trashed person instead
+        var w = await _svc.CreateAsync(Input("p-hrt"), As(Hrt()));
+        // an HRT-only record is not hidden from leadership, so hide the warrant through a trashed person instead
         using (var db = _ctx.NewContext())
         {
-            db.People.Single(p => p.Id == "p-tru").IsDeleted = true;
+            db.People.Single(p => p.Id == "p-hrt").IsDeleted = true;
             db.SaveChanges();
         }
 
@@ -454,11 +454,11 @@ public sealed class WarrantServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task A_tru_person_is_seen_by_tru_but_not_by_a_plain_agent()
+    public async Task A_hrt_person_is_seen_by_tru_but_not_by_a_plain_agent()
     {
-        var w = await _svc.CreateAsync(Input("p-tru"), As(Tru()));
+        var w = await _svc.CreateAsync(Input("p-hrt"), As(Hrt()));
 
-        Assert.NotNull(await _svc.GetAsync(w.Id, Tru()));
+        Assert.NotNull(await _svc.GetAsync(w.Id, Hrt()));
         Assert.Null(await _svc.GetAsync(w.Id, Agent()));
     }
 
@@ -548,10 +548,10 @@ public sealed class WarrantServiceTests : IDisposable
     [Fact]
     public async Task The_inbox_leaves_out_requests_the_viewer_cannot_see()
     {
-        await _svc.CreateAsync(Input("p-tru"), As(Tru()));
+        await _svc.CreateAsync(Input("p-hrt"), As(Hrt()));
 
-        // TRU but no leadership: may not sign, and the count says so
-        Assert.Equal(0, await _svc.GetOpenCountAsync(Tru()));
+        // HRT but no leadership: may not sign, and the count says so
+        Assert.Equal(0, await _svc.GetOpenCountAsync(Hrt()));
         Assert.Empty(await _svc.GetPendingAsync(Agent()));
         Assert.Single(await _svc.GetPendingAsync(Leader()));
     }
@@ -650,10 +650,10 @@ public sealed class WarrantServiceTests : IDisposable
                 Viewer = new SearchViewer(user, ViewerScope.From(user), null, DateTime.UtcNow),
             });
 
-        var agentHits = await SearchAs(Agent(), "NOOSE-AN");
+        var agentHits = await SearchAs(Agent(), "FIB-AN");
         Assert.Equal([open.Id], agentHits.Select(h => h.TargetId));
         Assert.Contains("Gültig", agentHits[0].Title);
-        Assert.Equal(2, (await SearchAs(Leader(), "NOOSE-AN")).Count);
+        Assert.Equal(2, (await SearchAs(Leader(), "FIB-AN")).Count);
         // the internal reasoning is not searchable
         Assert.Empty(await SearchAs(Leader(), "Waffenlager"));
         Assert.Single(await SearchAs(Agent(), "Grove Street"));

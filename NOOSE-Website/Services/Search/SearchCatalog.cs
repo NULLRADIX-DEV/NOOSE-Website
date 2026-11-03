@@ -413,7 +413,7 @@ public static class SearchCatalog
             Icons.Material.Filled.CoPresent, SearchHitShape.Record,
             SearchTraits.Quick | SearchTraits.Assistant,
             "/praesentationen/{0}"),
-        // found by case number and subject; deliberately no assistant trait, NOOSEI does not read warrants yet
+        // found by case number and subject; deliberately no assistant trait, FIBI does not read warrants yet
         new(nameof(Warrant), "Anordnung", "Anordnungen", SearchGroup.Records,
             Icons.Material.Filled.Approval, SearchHitShape.Record,
             SearchTraits.None,

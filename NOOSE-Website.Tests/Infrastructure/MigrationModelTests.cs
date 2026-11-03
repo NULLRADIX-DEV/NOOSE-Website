@@ -30,6 +30,8 @@ public sealed class MigrationModelTests : IDisposable
     [Fact]
     public void TheRankRemapCoversEveryColumnThatStoresARank()
     {
+        // created after the cutover, born with the new rank numbers
+        HashSet<(string Table, string Column)> bornNew = [("Anordnungen", "EntscheiderDienstgrad")];
         var stored = new HashSet<(string Table, string Column)>();
         foreach (var entityType in _db.Model.GetEntityTypes())
         {
@@ -49,6 +51,7 @@ public sealed class MigrationModelTests : IDisposable
         var listed = FibCutover.RankColumns.SelectMany(t => t.Columns.Select(c => (t.Table, Column: c))).ToHashSet();
 
         Assert.Equal(11, listed.Count);
+        stored.ExceptWith(bornNew);
         Assert.Equal(listed, stored);
     }
 

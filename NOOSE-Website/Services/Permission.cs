@@ -208,7 +208,7 @@ public static class Permission
         if (!actor.MayWarrantSign())
         {
             throw new UnauthorizedAccessException(
-                "Anordnungen unterzeichnet nur die Führung (ab Supervisory Special Agent) oder ein Admin.");
+                "Anordnungen unterzeichnet nur die Führung (ab Special Agent in Charge) oder ein Admin.");
         }
     }
 

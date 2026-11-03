@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace NOOSE_Website.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Phase107_Anordnungen : Migration
+    public partial class Phase112_Anordnungen : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
