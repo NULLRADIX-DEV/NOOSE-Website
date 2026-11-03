@@ -74,6 +74,8 @@ public static class AuditDisplay
         ["LifeStatus"] = "Lebensstatus", ["DeadUntil"] = "Tot-Fenster",
         ["Classification"] = "Einstufung", ["IsClassified"] = "Verschlusssache",
         ["IsTRUClassified"] = "VS-Stufe HRT", ["IsHRBClassified"] = "VS-Stufe Administration",
+        // written by hand next to a loosened Verschlusssache, see CriticalChange
+        ["SecrecyLevel"] = "VS-Stufe", ["RetractedReason"] = "Rückzugsgrund",
         ["IsWanted"] = "Zur Fahndung", ["WantedReason"] = "Fahndungsgrund",
         ["AgingDisabled"] = "Aktualitäts-Ausnahme",
         ["ThreatScore"] = "Bedrohungs-Score", ["ThreatConfidence"] = "Score-Konfidenz",
@@ -214,6 +216,7 @@ public static class AuditDisplay
     private static string FormatEnum(string field, int n, string? entityType) => field switch
     {
         "Einstufung" or "Classification" => ClassificationDisplay.Name((Classification)n),
+        "SecrecyLevel" => DocumentClassificationDisplay.Label((DocumentClassification)n),
         "Lebensstatus" or "LifeStatus" => LifeStatusDisplay.Name((LifeStatus)n),
         "Ausgang" or "Outcome" => MeasureOutcomeDisplay.Name((MeasureOutcome)n),
         "Abmeldegrund" => AbsenceCategoryDisplay.Name((AbsenceCategory)n),

@@ -428,7 +428,7 @@ public sealed class PersonGroupServiceTests
         }
         var svc = NewService(ctx);
 
-        await svc.DeleteAsync("g1", Leader());
+        await svc.DeleteAsync("g1", "Dublette", Leader());
 
         // interceptor absent => hard delete; row gone from the filtered set
         using var check = ctx.NewContext();
@@ -442,7 +442,7 @@ public sealed class PersonGroupServiceTests
         var svc = NewService(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => svc.DeleteAsync("g1", Junior()));
+            () => svc.DeleteAsync("g1", "Dublette", Junior()));
     }
 
     // ---------- RestoreAsync ----------

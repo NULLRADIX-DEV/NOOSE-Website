@@ -12,6 +12,9 @@ public class PersonInput
     public string? ClassificationJustification { get; set; }
     public DocumentClassification SecrecyLevel { get; set; } = DocumentClassification.None;
 
+    /// <summary>Why the secrecy level is loosened; required by the service when the audience widens.</summary>
+    public string? SecrecyReason { get; set; }
+
     public List<AliasInput> Aliases { get; set; } = new();
     public List<PhoneInput> PhoneNumbers { get; set; } = new();
     public List<VehicleInput> Vehicles { get; set; } = new();

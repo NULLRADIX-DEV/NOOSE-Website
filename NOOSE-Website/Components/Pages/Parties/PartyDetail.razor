@@ -374,13 +374,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Partei löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Partei löschen?",
             "Die Partei wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await PartyService.DeleteAsync(_party.Id, _user);
+        await PartyService.DeleteAsync(_party.Id, reason, _user);
         Snackbar.Add("Partei in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/parteien");
     }
