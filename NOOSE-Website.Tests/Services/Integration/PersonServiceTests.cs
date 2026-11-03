@@ -475,7 +475,7 @@ public sealed class PersonServiceTests
         }
         var (svc, _, _, _, _) = Build(ctx);
 
-        await svc.DeleteAsync("p1", Leader());
+        await svc.DeleteAsync("p1", "Dublette", Leader());
 
         // no soft-delete interceptor in tests => row hard-deleted
         using var db2 = ctx.NewContext();
@@ -488,7 +488,7 @@ public sealed class PersonServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.DeleteAsync("p1", Junior()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.DeleteAsync("p1", "Dublette", Junior()));
     }
 
     [Fact]
@@ -497,7 +497,7 @@ public sealed class PersonServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.DeleteAsync("missing", Leader()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.DeleteAsync("missing", "Dublette", Leader()));
     }
 
     // ---------- RestoreAsync ----------

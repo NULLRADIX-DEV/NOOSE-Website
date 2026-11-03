@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
+using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Models.Enums;
 
@@ -30,4 +32,28 @@ public static class ClassificationHelper
             AgentId = actor.GetAgentId(),
             AgentName = actor.GetCodename(),
         };
+
+    /// <summary>Justification as the viewer may read it; a partner gets none, like the reason row.</summary>
+    public static string? JustificationFor(string? justification, ViewerScope scope)
+        => scope.IsPartner ? null : justification;
+
+    /// <summary>History of a record the viewer may see, newest first, justifications gated per viewer.</summary>
+    public static async Task<List<ClassificationHistory>> HistoryAsync(
+        AppDbContext db, string entityType, string entityId, ViewerScope scope, CancellationToken cancellationToken)
+    {
+        if (!await Visibility.IsRecordVisibleAsync(db, entityType, entityId, scope, cancellationToken))
+        {
+            return new();
+        }
+        // untracked, so the redaction never saves
+        var history = await db.ClassificationHistory.AsNoTracking()
+            .Where(e => e.EntityType == entityType && e.EntityId == entityId)
+            .OrderByDescending(e => e.Timestamp)
+            .ToListAsync(cancellationToken);
+        foreach (var entry in history)
+        {
+            entry.Justification = JustificationFor(entry.Justification, scope);
+        }
+        return history;
+    }
 }

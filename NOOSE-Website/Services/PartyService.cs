@@ -182,6 +182,8 @@ public class PartyService(
 
     public async Task RefreshAsync(string id, PartyInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var party = await db.Parties.FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Partei '{id}' nicht gefunden.");
@@ -195,6 +197,7 @@ public class PartyService(
         party.Targets = input.Targets.TrimToNull();
         party.Remarks = input.Remarks.TrimToNull();
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
+        CriticalChange.NoteSecrecy(db, nameof(Party), id, party.SecrecyLevel, input.SecrecyLevel, input.SecrecyReason, actor);
         party.SecrecyLevel = input.SecrecyLevel;
 
         await db.SaveChangesAsync(cancellationToken);
@@ -203,19 +206,23 @@ public class PartyService(
             nameof(Party), id, actor, cancellationToken);
     }
 
-    public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
+        var note = CriticalChange.RequireDeletionReason(reason);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var party = await db.Parties.FirstOrDefaultAsync(p => p.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Partei '{id}' nicht gefunden.");
         db.Parties.Remove(party);
+        CriticalChange.NoteDeletion(db, nameof(Party), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -261,6 +268,7 @@ public class PartyService(
 
     public async Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         ClassificationHelper.CheckRankGate(@new, actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -270,6 +278,7 @@ public class PartyService(
         // classified record is writable by leadership or the record's own audience (TRU/HRB), not leadership alone
         Permission.RequireMaySeeClassified(actor, party.SecrecyLevel);
 
+        CriticalChange.NoteDowngrade(db, nameof(Party), id, party.Classification, @new, justification, actor);
         party.Classification = @new;
         db.ClassificationHistory.Add(ClassificationHelper.Entry(nameof(Party), id, @new, justification, actor));
         await db.SaveChangesAsync(cancellationToken);
@@ -278,14 +287,7 @@ public class PartyService(
     public async Task<List<ClassificationHistory>> GetClassificationHistoryAsync(string id, ViewerScope scope, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        if (!await Visibility.IsRecordVisibleAsync(db, nameof(Party), id, scope, cancellationToken))
-        {
-            return new();
-        }
-        return await db.ClassificationHistory
-            .Where(e => e.EntityType == nameof(Party) && e.EntityId == id)
-            .OrderByDescending(e => e.Timestamp)
-            .ToListAsync(cancellationToken);
+        return await ClassificationHelper.HistoryAsync(db, nameof(Party), id, scope, cancellationToken);
     }
 
     // scope-filtered party query

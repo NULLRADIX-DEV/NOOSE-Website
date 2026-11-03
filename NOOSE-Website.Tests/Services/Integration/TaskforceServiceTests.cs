@@ -452,7 +452,7 @@ public sealed class TaskforceServiceTests
         }
         var svc = NewService(ctx);
 
-        await svc.DeleteAsync("t1", Leader());
+        await svc.DeleteAsync("t1", "Dublette", Leader());
 
         // no soft-delete interceptor in tests => hard delete: gone even ignoring filters.
         using var check = ctx.NewContext();
@@ -466,7 +466,7 @@ public sealed class TaskforceServiceTests
         var svc = NewService(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => svc.DeleteAsync("any", Member("m1")));
+            () => svc.DeleteAsync("any", "Dublette", Member("m1")));
     }
 
     [Fact]
@@ -476,7 +476,7 @@ public sealed class TaskforceServiceTests
         var svc = NewService(ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.DeleteAsync("missing", Leader()));
+            () => svc.DeleteAsync("missing", "Dublette", Leader()));
     }
 
     // ---- RestoreAsync ----

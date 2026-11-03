@@ -136,6 +136,8 @@ public class TaskforceService(
 
     public async Task RefreshAsync(string id, TaskforceInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var taskforce = await db.Taskforces.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Taskforce '{id}' nicht gefunden.");
@@ -150,6 +152,8 @@ public class TaskforceService(
         taskforce.Purpose = input.Purpose.TrimToNull();
         taskforce.Scope = input.Scope;
         taskforce.Remarks = input.Remarks.TrimToNull();
+        CriticalChange.NoteSecrecy(db, nameof(Taskforce), id, CriticalChange.TaskforceLevel(taskforce.IsClassified),
+            CriticalChange.TaskforceLevel(input.IsClassified), input.SecrecyReason, actor);
         taskforce.IsClassified = input.IsClassified;
 
         await db.SaveChangesAsync(cancellationToken);
@@ -158,19 +162,23 @@ public class TaskforceService(
             nameof(Taskforce), id, actor, cancellationToken);
     }
 
-    public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
+        var note = CriticalChange.RequireDeletionReason(reason);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var taskforce = await db.Taskforces.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Taskforce '{id}' nicht gefunden.");
         db.Taskforces.Remove(taskforce);
+        CriticalChange.NoteDeletion(db, nameof(Taskforce), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);

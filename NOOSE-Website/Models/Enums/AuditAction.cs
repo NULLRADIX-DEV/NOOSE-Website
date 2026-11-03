@@ -11,4 +11,6 @@ public enum AuditAction
     Archived = 4,
     /// <summary>Brought back into the active stock.</summary>
     Unarchived = 5,
+    /// <summary>Written reason for a critical change, logged next to it.</summary>
+    Justified = 6,
 }

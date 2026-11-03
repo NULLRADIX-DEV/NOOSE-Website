@@ -25,6 +25,12 @@ public static class TimelineDisplay
     /// <summary>Category + title for an audit row of the given entity type/action.</summary>
     public static (TimelineCategory Kat, string Title) MapAudit(string entityType, AuditAction action)
     {
+        // the field names in the row say which change the reason belongs to
+        if (action == AuditAction.Justified)
+        {
+            return (TimelineCategory.Change, "Begründung");
+        }
+
         string Verb(string created, string deleted) => action switch
         {
             AuditAction.Created => created,

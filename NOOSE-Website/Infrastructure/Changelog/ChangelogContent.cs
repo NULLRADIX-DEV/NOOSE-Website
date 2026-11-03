@@ -634,6 +634,11 @@ public static class ChangelogContent
                 + "mit NOOSE- im Aktenzeichen führt weiter zur richtigen Ausschreibung.", "Öffentlich"),
             Neu("3.0.13-fahndungsfoto-hochladen", "Das Foto einer Fahndung lässt sich jetzt direkt im Dialog hochladen. "
                 + "Es landet wie jedes andere in der Foto-Galerie der Akte und ist gleich ausgewählt.", "Öffentlich"),
+            Neu("3.0.14-begruendungspflicht", "Wer eine Einstufung herabsetzt, eine Verschlusssache lockert, eine Akte "
+                + "löscht oder eine Fahndung aufhebt, gibt jetzt einen Grund an; er steht danach im Zeitstrahl der Akte "
+                + "und im Änderungsprotokoll.", "Akten"),
+            Besser("3.0.15-organigramm-archiv", "Archivierte Taskforces erscheinen nicht mehr im Organigramm.",
+                "Organigramm"),
         ]),
     ];
 }

@@ -375,6 +375,24 @@ public sealed class OrgChartServiceTests
     }
 
     [Fact]
+    public async Task GetAsync_ExcludesArchivedTaskforces()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Taskforces.Add(Tf("t1", "Active"));
+            var archived = Tf("t2", "Archived");
+            archived.IsArchived = true;
+            db.Taskforces.Add(archived);
+            db.SaveChanges();
+        }
+
+        var data = await NewService(ctx).GetAsync(Leader());
+
+        Assert.Equal(new[] { "t1" }, data.Taskforces.Select(s => s.Taskforce.Id).ToArray());
+    }
+
+    [Fact]
     public async Task GetAsync_NonMember_SeesNoTaskforces()
     {
         using var ctx = new SqliteTestContext();
