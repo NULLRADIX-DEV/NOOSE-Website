@@ -253,6 +253,26 @@ public class DiscordWebhookService(
         }
     }
 
+    // caller-escaped text, no pings
+    public async Task<bool> PushToShareChannelAsync(string webhookUrl, string content, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(webhookUrl) || string.IsNullOrWhiteSpace(content))
+            {
+                return false;
+            }
+            return await SendAsync(webhookUrl, content, MentionSpec.None, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            // URL is secret
+            logger.LogWarning("Discord share post failed ({Error}).", ex.GetType().Name);
+            return false;
+        }
+    }
+
     // one card, no content link
     public async Task<bool> PushWantedCardAsync(NotificationType type, WantedDiscordEmbed card, CancellationToken cancellationToken = default)
     {

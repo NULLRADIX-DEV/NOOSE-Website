@@ -1,0 +1,48 @@
+@inject IChannelShareService Shares
+@inject IDialogService DialogService
+
+@* writers only, once a channel exists *@
+@if (_channels.Count > 0)
+{
+    @if (Restricted)
+    {
+        <MudTooltip Text="Verschlusssachen werden nicht in Discord geteilt.">
+            <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Default" Disabled="true"
+                           aria-label="Teilen gesperrt (Verschlusssache)" />
+        </MudTooltip>
+    }
+    else
+    {
+        <MudTooltip Text="In einen Discord-Kanal teilen">
+            <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Default"
+                           OnClick="OpenAsync" aria-label="In Discord teilen" />
+        </MudTooltip>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public string EntityType { get; set; } = default!;
+    [Parameter, EditorRequired] public string EntityId { get; set; } = default!;
+
+    /// <summary>Record carries a secrecy level: button shown locked.</summary>
+    [Parameter] public bool Restricted { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private IReadOnlyList<ShareChannel> _channels = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _channels = await Shares.GetChannelsAsync((await AuthStateTask).User);
+        }
+        catch
+        {
+            /* best effort */
+            _channels = [];
+        }
+    }
+
+    private Task OpenAsync() => ChannelShareDialog.ShowAsync(DialogService, EntityType, EntityId, _channels);
+}

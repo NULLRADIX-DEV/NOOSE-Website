@@ -1,0 +1,92 @@
+@inject IChannelShareService Shares
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            In den Kanal gehen Art, Name und Aktenzeichen der Akte, dein Hinweis und ein Link, der sich erst nach der
+            Anmeldung öffnet. Niemand wird angepingt, und dein Name steht nicht im Beitrag.
+        </MudText>
+        <MudSelect T="string" @bind-Value="_channelId" Label="Kanal" Variant="Variant.Outlined" Dense="true"
+                   AnchorOrigin="Origin.BottomCenter">
+            @foreach (var channel in Channels)
+            {
+                <MudSelectItem Value="@channel.Id">@channel.Name</MudSelectItem>
+            }
+        </MudSelect>
+        <MudTextField @bind-Value="_note" Label="Hinweis (optional)" Variant="Variant.Outlined" Class="mt-3"
+                      Immediate="true" MaxLength="ChannelShareRules.MaxNoteLength"
+                      Counter="ChannelShareRules.MaxNoteLength"
+                      HelperText="Ein Satz für die Kollegen, etwa worauf sie achten sollen." />
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-3">@_error</MudAlert>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Send"
+                   Disabled="@(_busy || string.IsNullOrEmpty(_channelId))" OnClick="ShareAsync">Teilen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    [Parameter] public string EntityType { get; set; } = default!;
+    [Parameter] public string EntityId { get; set; } = default!;
+    [Parameter] public IReadOnlyList<ShareChannel> Channels { get; set; } = [];
+
+    private string? _channelId;
+    private string? _note;
+    private string? _error;
+    private bool _busy;
+
+    protected override void OnInitialized()
+    {
+        if (Channels.Count == 1)
+        {
+            _channelId = Channels[0].Id;
+        }
+    }
+
+    private async Task ShareAsync()
+    {
+        if (_busy || string.IsNullOrEmpty(_channelId))
+        {
+            return;
+        }
+        _busy = true;
+        _error = null;
+        try
+        {
+            var user = (await AuthStateTask).User;
+            var name = await Shares.ShareAsync(new ChannelShareRequest(EntityType, EntityId, _channelId, _note), user);
+            Snackbar.Add($"In „{name}“ geteilt.", Severity.Success);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public static Task ShowAsync(IDialogService dialog, string entityType, string entityId, IReadOnlyList<ShareChannel> channels)
+    {
+        var parameters = new DialogParameters<ChannelShareDialog>
+        {
+            { x => x.EntityType, entityType },
+            { x => x.EntityId, entityId },
+            { x => x.Channels, channels },
+        };
+        return dialog.ShowAsync<ChannelShareDialog>("In Discord teilen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+    }
+}

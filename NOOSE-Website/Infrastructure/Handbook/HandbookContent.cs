@@ -23,7 +23,7 @@ namespace NOOSE_Website.Infrastructure.Handbook;
 public static class HandbookContent
 {
     /// <summary>Revision of the shipped text. Raise it after rewording an existing article, chapter or term.</summary>
-    public const int Revision = 52;
+    public const int Revision = 53;
 
     public sealed record SeededStep(string Icon, string Title, string Text);
 

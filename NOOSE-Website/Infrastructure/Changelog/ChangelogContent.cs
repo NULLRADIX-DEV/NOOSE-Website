@@ -645,6 +645,9 @@ public static class ChangelogContent
             Neu("3.0.17-anordnungen", "Durchsuchungs-, Beschlagnahme- und Festnahmeanordnungen beantragst du jetzt unter "
                 + "„Anordnungen“ oder an der Personenakte. Hat die Führung unterzeichnet, druckst du das Papier mit "
                 + "Aktenzeichen, Rechtsgrundlage und Gültigkeit aus und zeigst es im Rollenspiel vor.", "Ermittlung"),
+            Neu("3.0.18-akte-teilen", "Mit dem neuen Knopf auf einer Akte teilst du sie in einen Discord-Kanal, den die "
+                + "Führung eingerichtet hat: Name, Aktenzeichen, dein kurzer Hinweis und ein Link, ohne Ping. "
+                + "Verschlusssachen lassen sich nicht teilen.", "Akten"),
         ]),
     ];
 }

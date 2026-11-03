@@ -1,0 +1,122 @@
+@* Share channels; stored webhooks only come back masked. *@
+@inject IChannelShareService Shares
+@inject ISnackbar Snackbar
+
+<MudPaper Class="pa-4 mt-4" Elevation="2">
+    <MudText Typo="Typo.h6" Class="mb-1">Kanäle zum Teilen von Akten</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+        Auf Personen, Fraktionen, Personengruppen, Parteien, Vorgängen und Operationen können Agenten mit Schreibrecht
+        eine Akte in einen dieser Kanäle teilen. Der Beitrag nennt Art, Name und Aktenzeichen der Akte, einen kurzen
+        Hinweis des Agenten und einen login-geschützten Link; er pingt niemanden. <b>Verschlusssachen</b> lassen sich
+        nie teilen. Lege hier nur interne Channels an. Eine gespeicherte Webhook-URL wird nicht mehr angezeigt; lass das
+        Feld leer, um sie zu behalten, oder trag eine neue ein, um sie zu ersetzen. Ohne aktive Discord-Weiterleitung
+        ist Teilen aus.
+    </MudText>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            @if (_rows.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch kein Kanal eingerichtet.</MudText>
+            }
+            @foreach (var row in _rows)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudTextField @bind-Value="row.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  MaxLength="ChannelShareRules.MaxNameLength" ReadOnly="!_mayEdit" Style="max-width:240px;" />
+                    <MudTextField @bind-Value="row.WebhookUrl" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  Label="@(row.Masked is null ? "Webhook-URL" : "Neue Webhook-URL")"
+                                  Placeholder="@(row.Masked is null ? "https://discord.com/api/webhooks/…" : "leer lassen = behalten")"
+                                  HelperText="@(row.Masked is null ? null : $"Gespeichert: {row.Masked}")"
+                                  ReadOnly="!_mayEdit" Class="flex-grow-1" />
+                    @if (_mayEdit)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                       OnClick="@(() => _rows.Remove(row))" aria-label="Kanal entfernen" />
+                    }
+                </MudStack>
+            }
+            @if (_mayEdit)
+            {
+                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                               Disabled="@(_rows.Count >= ChannelShareRules.MaxChannels)" OnClick="Add">Kanal hinzufügen</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                               Disabled="_saving" OnClick="SaveAsync">Kanäle speichern</MudButton>
+                </MudStack>
+            }
+        </MudStack>
+    }
+</MudPaper>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private sealed class Row
+    {
+        public string? Id { get; init; }
+        public string Name { get; set; } = string.Empty;
+        public string? WebhookUrl { get; set; }
+        public string? Masked { get; init; }
+    }
+
+    private ClaimsPrincipal _user = new();
+    private List<Row> _rows = new();
+    private string _version = string.Empty;
+    private bool _mayEdit;
+    private bool _load = true;
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayEdit = _user.MayManageShareChannels();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            var settings = await Shares.GetSettingsAsync(_user);
+            _rows = settings.Channels.Select(s => new Row { Id = s.Id, Name = s.Name, Masked = s.MaskedWebhook }).ToList();
+            _version = settings.Version;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _load = false;
+        }
+    }
+
+    private void Add() => _rows.Add(new Row());
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var input = _rows.Select(r => new ShareChannelInput { Id = r.Id, Name = r.Name, WebhookUrl = r.WebhookUrl }).ToList();
+            await Shares.SaveSettingsAsync(input, _version, _user);
+            Snackbar.Add("Kanäle gespeichert.", Severity.Success);
+            // drops typed URLs
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}
