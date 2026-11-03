@@ -1,0 +1,61 @@
+@* Warrant requests awaiting a signature, for the leadership inbox. *@
+@inject IWarrantService WarrantService
+
+<MudText Typo="Typo.h6" Class="mb-2">Anordnungen</MudText>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+    Beantragte Durchsuchungs-, Beschlagnahme- und Festnahmeanordnungen. Unterzeichnen darf die Führung, aber nie die
+    eigene; mit der Unterschrift gilt das Papier für die gewählte Dauer.
+</MudText>
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_rows.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Keine offenen Anordnungen.</MudAlert>
+}
+else
+{
+    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <HeaderContent>
+            <MudTh>Anordnung</MudTh>
+            <MudTh>Person</MudTh>
+            <MudTh>Gegenstand</MudTh>
+            <MudTh>Beantragt</MudTh>
+            <MudTh Style="text-align:right;">Aktion</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Anordnung">
+                <MudLink Href="@($"/anordnungen/{context.Warrant.Id}")" Typo="Typo.body2">@context.Warrant.CaseNumber</MudLink>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@WarrantTypeDisplay.Name(context.Warrant.Type)</MudText>
+            </MudTd>
+            <MudTd DataLabel="Person"><MudText Typo="Typo.body2">@context.PersonName</MudText></MudTd>
+            <MudTd DataLabel="Gegenstand">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="white-space:pre-line;">@context.Warrant.Subject</MudText>
+            </MudTd>
+            <MudTd DataLabel="Beantragt">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @(context.Warrant.RequesterName ?? "—") · @context.Warrant.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Aktion" Style="text-align:right;">
+                <WarrantDecisionButtons View="context" User="User" Size="Size.Small" Changed="LoadAsync" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private List<WarrantView> _rows = new();
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _rows = await WarrantService.GetPendingAsync(User);
+        _load = false;
+    }
+}

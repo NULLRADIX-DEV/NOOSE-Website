@@ -1,0 +1,53 @@
+@* Signing a warrant: the validity period and an optional note. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body2">
+                Mit deiner Unterschrift gilt die Anordnung ab sofort. Sie trägt deinen Codenamen und Dienstgrad.
+            </MudText>
+            <MudSelect T="int" @bind-Value="_days" Label="Gültig für" Variant="Variant.Outlined">
+                @foreach (var days in WarrantRules.ValidityChoices)
+                {
+                    <MudSelectItem Value="days">@WarrantRules.ValidityLabel(days)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_note" Label="Notiz (optional, nur intern)" Variant="Variant.Outlined" Lines="2"
+                          MaxLength="WarrantRules.NoteMaxLength" Counter="WarrantRules.NoteMaxLength" Immediate="true" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Approval"
+                   OnClick="Confirm">Unterzeichnen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>The validity the requester asked for; preselected.</summary>
+    [Parameter] public int RequestedDays { get; set; } = WarrantRules.DefaultValidityDays;
+
+    private int _days;
+    private string? _note;
+
+    protected override void OnInitialized()
+        => _days = WarrantRules.IsValidityChoice(RequestedDays) ? RequestedDays : WarrantRules.DefaultValidityDays;
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(new WarrantSignature(_days, _note)));
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>The chosen validity and note.</summary>
+    public sealed record WarrantSignature(int Days, string? Note);
+
+    /// <summary>Shows the dialog; null on cancel.</summary>
+    public static async Task<WarrantSignature?> ShowAsync(IDialogService dialog, string caseNumber, int requestedDays)
+    {
+        var parameters = new DialogParameters<WarrantSignDialog> { { x => x.RequestedDays, requestedDays } };
+        var reference = await dialog.ShowAsync<WarrantSignDialog>($"Anordnung {caseNumber} unterzeichnen", parameters);
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: WarrantSignature signature } ? signature : null;
+    }
+}

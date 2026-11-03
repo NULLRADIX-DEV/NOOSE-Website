@@ -26,6 +26,7 @@ using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Presentations;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Public;
 
@@ -67,6 +68,11 @@ public static class Visibility
         if (entityType == nameof(FinancingRequest))
         {
             return await FinancingVisibility.IsVisibleAsync(db, entityId, scope.MayClassifiedRead, scope.MeId, cancellationToken);
+        }
+        // warrants: never further than their person and case; explicit, the tail would answer "visible"
+        if (entityType == nameof(Warrant))
+        {
+            return await WarrantVisibility.IsVisibleAsync(db, entityId, scope, cancellationToken);
         }
         // documents: secrecy level alone is not the gate — the owning taskforce and per-agent revocation count too
         if (entityType == nameof(Document))

@@ -67,6 +67,8 @@ else
         {
             <FollowButton EntityType="@nameof(Case)" EntityId="@_case.Id" User="_user" />
             <JobCreateButton EntityType="@nameof(Case)" EntityId="@_case.Id" />
+            <ChannelShareButton EntityType="@nameof(Case)" EntityId="@_case.Id"
+                                Restricted="@ChannelShareRules.IsRestricted(_case)" />
         }
         <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
             <PartnerShareButton EntityType="@nameof(Case)" EntityId="@_case.Id" />
@@ -157,6 +159,10 @@ else
                 {
                 <RecordSection Group="Struktur" Slug="agents" Label="Beteiligte Agents" Icon="@Icons.Material.Filled.ManageAccounts">
                     <CaseAgentsPanel CaseId="@_case.Id" User="_user" Changed="CaseLeadRefreshAsync" />
+                </RecordSection>
+                @* internal only and outside _tabs/PartnerTabCatalog: a warrant is never released to a partner *@
+                <RecordSection Group="Akte" Slug="anordnungen" Label="Anordnungen" Icon="@Icons.Material.Filled.Approval">
+                    <WarrantsPanel CaseId="@_case.Id" User="_user" />
                 </RecordSection>
                 }
                 @if (TabOn("einstufung"))

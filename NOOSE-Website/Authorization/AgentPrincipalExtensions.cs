@@ -108,6 +108,12 @@ public static class AgentPrincipalExtensions
     /// <summary>May contribute content (post taskforce chat, author documents) = internal writers plus partner contributors, never read-only supervision or demo.</summary>
     public static bool MayContribute(this ClaimsPrincipal user) => user.MayWrite() || user.IsPartner();
 
+    /// <summary>May share a record into a Discord channel = internal writers. Sole source of this rule.</summary>
+    public static bool MayShareToChannel(this ClaimsPrincipal user) => user.MayWrite() && user.IsInternalAgent();
+
+    /// <summary>May set up the share channels = internal leadership with write access.</summary>
+    public static bool MayManageShareChannels(this ClaimsPrincipal user) => user.MayShareToChannel() && user.IsLeadership();
+
     /// <summary>Leadership = rank ≥ Special Agent in Charge or admin.</summary>
     public static bool IsLeadership(this ClaimsPrincipal user)
         => user.IsAdmin() || user.GetRank() is >= Rank.SpecialAgentInCharge;
@@ -159,6 +165,15 @@ public static class AgentPrincipalExtensions
 
     /// <summary>May move an agent between divisions = Board or admin. Sole source of this rule.</summary>
     public static bool MayDivisionSet(this ClaimsPrincipal user) => user.IsAdmin() || user.IsBoard();
+
+    /// <summary>May request a warrant = internal agent with write access, never the team lead. Sole source of this rule.</summary>
+    /// <remarks>The team lead is excluded even as admin: the requester's codename is shown, and supervision stays RP-wide invisible.</remarks>
+    public static bool MayWarrantRequest(this ClaimsPrincipal user)
+        => user.MayWrite() && user.IsInternalAgent() && !user.IsTeamLead();
+
+    /// <summary>May sign, refuse or cancel a warrant = a warrant requester who is also leadership. Sole source of this rule.</summary>
+    public static bool MayWarrantSign(this ClaimsPrincipal user)
+        => user.MayWarrantRequest() && user.IsLeadership();
 
     /// <summary>Public applicant (status Applicant): portal-only access, never an internal agent.</summary>
     public static bool IsApplicant(this ClaimsPrincipal user) => user.GetStatus() == AgentStatus.Applicant;

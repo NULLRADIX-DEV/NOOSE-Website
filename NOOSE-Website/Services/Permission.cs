@@ -190,6 +190,28 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to request a warrant: an internal agent who may write.</summary>
+    public static void RequireWarrantRequest(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayWarrantRequest())
+        {
+            throw new UnauthorizedAccessException(
+                "Anordnungen beantragen nur aktive interne Agenten.");
+        }
+    }
+
+    /// <summary>Require the right to sign, refuse or cancel a warrant; write guard ahead of the rank guard.</summary>
+    public static void RequireWarrantSign(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayWarrantSign())
+        {
+            throw new UnauthorizedAccessException(
+                "Anordnungen unterzeichnet nur die Führung (ab Special Agent in Charge) oder ein Admin.");
+        }
+    }
+
     /// <summary>Require highest classification right.</summary>
     public static void RequireHighestClassification(ClaimsPrincipal actor)
     {
@@ -254,6 +276,25 @@ public static class Permission
         if (!actor.IsInternalAgent() || !actor.MayClassifiedRead())
         {
             throw new UnauthorizedAccessException("Dossiers exportiert nur die Führung.");
+        }
+    }
+
+    /// <summary>Require the right to share a record into a Discord channel: internal writers only.</summary>
+    public static void RequireChannelShare(ClaimsPrincipal actor)
+    {
+        if (!actor.MayShareToChannel())
+        {
+            throw new UnauthorizedAccessException("Akten teilt nur ein interner Agent mit Schreibrecht.");
+        }
+    }
+
+    /// <summary>Require leadership with write access to set up the share channels; written past the write barrier.</summary>
+    public static void RequireShareChannelAdministration(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayManageShareChannels())
+        {
+            throw new UnauthorizedAccessException("Die Kanäle zum Teilen richtet nur die Führung ein.");
         }
     }
 

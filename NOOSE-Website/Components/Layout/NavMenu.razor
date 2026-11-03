@@ -124,6 +124,7 @@
     [Inject] private FinancingBroadcaster FinancingBroadcaster { get; set; } = default!;
     [Inject] private TipsBroadcaster TipsBroadcaster { get; set; } = default!;
     [Inject] private IFinancingService FinancingService { get; set; } = default!;
+    [Inject] private IWarrantService WarrantService { get; set; } = default!;
     [Inject] private NOOSE_Website.Services.Public.ITipService TipService { get; set; } = default!;
     [Inject] private IPartnerVisibilityPolicyService PartnerPolicy { get; set; } = default!;
     [Inject] private IPartnerAgencyProfileService PartnerProfiles { get; set; } = default!;
@@ -475,7 +476,9 @@
                     + (await AgentService.GetPendingNameChangesAsync()).Count
                     + (await AgentService.GetPendingAvatarsAsync()).Count
                     + (await TaskforceService.GetRequestedAsync()).Count
-                    + await PersonnelFileService.CountOpenPromotionRequestsAsync(_user);
+                    + await PersonnelFileService.CountOpenPromotionRequestsAsync(_user)
+                    // zero for anyone who may not sign
+                    + await WarrantService.GetOpenCountAsync(_user);
             }
             _openShares = open;
         }

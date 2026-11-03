@@ -208,6 +208,7 @@ builder.Services.AddScoped<IFinancingConfigService, FinancingConfigService>();
 builder.Services.AddScoped<IFinancingCatalogService, FinancingCatalogService>();
 builder.Services.AddScoped<IFinancingBudgetService, FinancingBudgetService>();
 builder.Services.AddScoped<IFinancingService, FinancingService>();
+builder.Services.AddScoped<IWarrantService, WarrantService>();
 builder.Services.AddScoped<IProfileSuggestionService, ProfileSuggestionService>();
 builder.Services.AddScoped<IValueListLabelService, ValueListLabelService>();
 builder.Services.AddScoped<IDocTemplateService, DocTemplateService>();
@@ -389,9 +390,14 @@ builder.Services.AddScoped<IKasseStatisticsService, KasseStatisticsService>();
 builder.Services.AddScoped<IFinancingStatisticsService, FinancingStatisticsService>();
 builder.Services.AddScoped<ISituationReportService, SituationReportService>();
 builder.Services.AddHostedService<SituationReportWorker>();
-builder.Services.AddHttpClient("discord", client => client.Timeout = TimeSpan.FromSeconds(5));
-builder.Services.AddHttpClient(DiscordWebhookService.BoardClient, client => client.Timeout = TimeSpan.FromSeconds(30));
+// webhook path is the secret
+builder.Services.AddHttpClient("discord", client => client.Timeout = TimeSpan.FromSeconds(5)).RemoveAllLoggers();
+builder.Services.AddHttpClient(DiscordWebhookService.BoardClient, client => client.Timeout = TimeSpan.FromSeconds(30))
+    .RemoveAllLoggers();
 builder.Services.AddScoped<IDiscordWebhookService, DiscordWebhookService>();
+// per-process share quota
+builder.Services.AddSingleton<ChannelShareQuota>();
+builder.Services.AddScoped<IChannelShareService, ChannelShareService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<NotificationBroadcaster>();
 builder.Services.AddSingleton<SharesBroadcaster>();

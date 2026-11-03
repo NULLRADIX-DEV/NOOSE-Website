@@ -22,7 +22,7 @@
 </MudStack>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
     Hochstufungs- und Veröffentlichungs-Anträge sowie – für die Führung – Partner-Freigabe-Anträge, neu registrierte Discord-Konten,
-    beantragte Stammdatenänderungen, Taskforce- und Beförderungsanträge warten hier auf Entscheidung.
+    beantragte Stammdatenänderungen, Taskforce- und Beförderungsanträge sowie Anordnungen warten hier auf Entscheidung.
 </MudText>
 
 @if (_load)
@@ -566,6 +566,10 @@ else
             </RowTemplate>
         </MudTable>
     }
+
+    <MudDivider Class="my-6" />
+
+    <WarrantInboxPanel User="_user" />
     </AuthorizeView>
 }
 

@@ -74,6 +74,8 @@ else
         {
             <FollowButton EntityType="@nameof(Person)" EntityId="@_person.Id" User="_user" />
             <JobCreateButton EntityType="@nameof(Person)" EntityId="@_person.Id" />
+            <ChannelShareButton EntityType="@nameof(Person)" EntityId="@_person.Id"
+                                Restricted="@ChannelShareRules.IsRestricted(_person)" />
         }
         <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
             <PartnerShareButton EntityType="@nameof(Person)" EntityId="@_person.Id" />
@@ -187,6 +189,10 @@ else
                    slug stays out of _tabs and PartnerTabCatalog *@
                 <RecordSection Group="Ermittlung" Slug="hinweisgeber" Label="Hinweisgeber" Icon="@Icons.Material.Filled.TipsAndUpdates">
                     <TipHistoryPanel PersonId="@_person.Id" User="_user" />
+                </RecordSection>
+                @* internal only and outside _tabs/PartnerTabCatalog: a warrant is never released to a partner *@
+                <RecordSection Group="Ermittlung" Slug="anordnungen" Label="Anordnungen" Icon="@Icons.Material.Filled.Approval">
+                    <WarrantsPanel PersonId="@_person.Id" User="_user" />
                 </RecordSection>
                 }
                 @if (TabOn("einstufung"))

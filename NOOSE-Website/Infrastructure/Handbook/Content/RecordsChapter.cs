@@ -288,6 +288,37 @@ internal static class RecordsChapter
                 """,
                 NavKey: "watchlist"),
 
+            new Article("art-akte-teilen", "akte-in-discord-teilen", "Eine Akte in Discord teilen",
+                "Kollegen gezielt auf eine Akte stoßen, ohne die Adresse von Hand zu kopieren.",
+                """
+                <p>Auf Personen, Fraktionen, Personengruppen, Parteien, Vorgängen und Operationen steht oben das
+                Papierflieger-Symbol <em>In Discord teilen</em>. Damit postest du einen kurzen Hinweis auf die Akte
+                in einen Discord-Kanal, den die Führung dafür eingerichtet hat. Auch eine gesuchte Person teilst du
+                so, von ihrer Personenakte aus.</p>
+                <p>Im Beitrag stehen nur Art, Name und Aktenzeichen der Akte, dein <strong>Hinweis</strong> - ein
+                Satz, höchstens 300 Zeichen - und ein Link. Der Link öffnet die Akte erst nach der Anmeldung und
+                zeigt jedem Leser nur, was seine Rechte hergeben. Gepingt wird niemand, und dein Name steht nicht im
+                Beitrag.</p>
+                <p><strong>Verschlusssachen lassen sich nie teilen</strong>, auch nicht von der Führung. Bei einer
+                VS-Akte ist das Symbol gesperrt: in einem Kanal lesen auch Leute mit, die die Akte nicht sehen
+                dürfen, und schon der Name kann zu viel sein.</p>
+                <p>Teilen darf jeder interne Agent mit Schreibrecht, höchstens fünfmal in zehn Minuten. Jedes Teilen
+                steht im Zugriffsprotokoll. Fehlt das Symbol, hat die Führung noch keinen Kanal eingerichtet oder
+                Discord ist ausgeschaltet.</p>
+                <p>Die Kanäle legt die Führung unter <em>Einstellungen → Discord-Benachrichtigungen</em> an, mit
+                einem Namen und der Webhook-URL des Discord-Kanals. Eine gespeicherte URL zeigt die Seite danach
+                nicht mehr an; wer sie ersetzen will, trägt einfach eine neue ein.</p>
+                """,
+                Steps:
+                [
+                    new Step("Send", "Symbol anklicken",
+                        "Oben auf der Akte: In Discord teilen. Bei einer Verschlusssache ist es gesperrt."),
+                    new Step("Forum", "Kanal wählen",
+                        "Zur Wahl stehen nur die Kanäle, die die Führung eingerichtet hat."),
+                    new Step("EditNote", "Hinweis schreiben",
+                        "Ein Satz, worauf die Kollegen achten sollen. Er ist freiwillig."),
+                ]),
+
             new Article("art-neu-seit-besuch", "neu-seit-besuch", "Was ist neu an dieser Akte?",
                 "Was andere eingetragen haben, seit du zuletzt drin warst.",
                 """

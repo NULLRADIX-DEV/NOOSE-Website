@@ -1,0 +1,102 @@
+@* Sign, refuse or cancel a warrant; renders nothing for anyone who may not sign. *@
+@inject IWarrantService WarrantService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject SharesBroadcaster SharesBroadcaster
+
+@if (User.MayWarrantSign())
+{
+    @if (View.State == WarrantState.Requested)
+    {
+        @if (IsOwn)
+        {
+            <MudTooltip Text="Die eigene Anordnung unterzeichnet eine andere Führungskraft.">
+                <MudButton Size="@Size" Variant="Variant.Filled" Color="Color.Success" Disabled="true" Class="mr-2"
+                           StartIcon="@Icons.Material.Filled.Approval">Unterzeichnen</MudButton>
+            </MudTooltip>
+        }
+        else
+        {
+            <MudButton Size="@Size" Variant="Variant.Filled" Color="Color.Success" Disabled="_busy" Class="mr-2"
+                       StartIcon="@Icons.Material.Filled.Approval" OnClick="SignAsync">Unterzeichnen</MudButton>
+        }
+        <MudButton Size="@Size" Variant="Variant.Outlined" Color="Color.Error" Disabled="_busy"
+                   StartIcon="@Icons.Material.Filled.Close" OnClick="RejectAsync">Ablehnen</MudButton>
+    }
+    else if (View.State == WarrantState.Valid)
+    {
+        <MudButton Size="@Size" Variant="Variant.Outlined" Color="Color.Warning" Disabled="_busy"
+                   StartIcon="@Icons.Material.Filled.Block" OnClick="CancelAsync">Aufheben</MudButton>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public WarrantView View { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public Size Size { get; set; } = Size.Medium;
+
+    /// <summary>Raised after a decision went through, so the host reloads.</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool _busy;
+
+    private bool IsOwn => !string.IsNullOrEmpty(View.Warrant.CreatedById) && View.Warrant.CreatedById == User.GetAgentId();
+
+    private async Task SignAsync()
+    {
+        var signature = await WarrantSignDialog.ShowAsync(DialogService, View.Warrant.CaseNumber, View.Warrant.ValidityDays);
+        if (signature is null)
+        {
+            return;
+        }
+        await RunAsync(() => WarrantService.SignAsync(View.Warrant.Id, signature.Days, signature.Note, User),
+            $"Anordnung {View.Warrant.CaseNumber} unterzeichnet.");
+    }
+
+    private async Task RejectAsync()
+    {
+        var note = await ReasonDialog.ShowAsync(DialogService, $"Anordnung {View.Warrant.CaseNumber} ablehnen",
+            "Der Antragsteller erfährt, dass sein Antrag abgelehnt wurde.", confirmText: "Ablehnen",
+            label: "Begründung (optional)", colour: Color.Error, maxLength: WarrantRules.NoteMaxLength);
+        if (note is null)
+        {
+            return;
+        }
+        await RunAsync(() => WarrantService.RejectAsync(View.Warrant.Id, note, User),
+            $"Anordnung {View.Warrant.CaseNumber} abgelehnt.");
+    }
+
+    private async Task CancelAsync()
+    {
+        var reason = await ReasonDialog.ShowAsync(DialogService, $"Anordnung {View.Warrant.CaseNumber} aufheben",
+            "Die Anordnung gilt danach nicht mehr; das Papier trägt den Vermerk „aufgehoben“.", confirmText: "Aufheben",
+            label: "Grund der Aufhebung", mandatoryReason: true, colour: Color.Warning,
+            maxLength: WarrantRules.NoteMaxLength);
+        if (reason is null)
+        {
+            return;
+        }
+        await RunAsync(() => WarrantService.CancelAsync(View.Warrant.Id, reason, User),
+            $"Anordnung {View.Warrant.CaseNumber} aufgehoben.");
+    }
+
+    private async Task RunAsync(Func<Task> action, string done)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+            Snackbar.Add(done, Severity.Success);
+            SharesBroadcaster.Report();
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}
