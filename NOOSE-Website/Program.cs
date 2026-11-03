@@ -426,6 +426,8 @@ builder.Services.AddScoped<ILibraryStorageService, LibraryStorageService>();
 builder.Services.AddScoped<ILibraryService, LibraryService>();
 builder.Services.AddScoped<IPersonMergeService, PersonMergeService>();
 builder.Services.AddScoped<IPartnerShareService, PartnerShareService>();
+builder.Services.AddScoped<IPartnerShareExpiryService, PartnerShareExpiryService>();
+builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Shares.PartnerShareExpiryWorker>();
 
 // ---- recruiting (applications, invites, tests) ----
 builder.Services.AddScoped<IAgentInviteService, AgentInviteService>();

@@ -2497,6 +2497,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(64)")
                         .HasColumnName("PartnerAgentId");
 
+                    b.Property<DateTime?>("ValidUntil")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GueltigBis");
+
                     b.HasKey("Id");
 
                     b.HasIndex("EntityType", "EntityId");
@@ -11277,6 +11281,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<string>("FreigabePartnerAgentId")
                         .HasColumnType("longtext")
                         .HasColumnName("FreigabePartnerAgentId");
+
+                    b.Property<DateTime?>("FreigabeValidUntil")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("FreigabeGueltigBis");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)")

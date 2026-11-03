@@ -86,7 +86,7 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         // released types
-        var shared = await db.PartnerShares
+        var shared = await PartnerVisibility.ActiveShares(db)
             .Where(s => s.Agency == agency && (s.PartnerAgentId == null || s.PartnerAgentId == meId))
             .Select(s => new { s.EntityType, Individual = s.PartnerAgentId != null })
             .Distinct()
@@ -155,7 +155,7 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
         if (meId is not null)
         {
             await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-            var individual = await db.PartnerShares.AnyAsync(
+            var individual = await PartnerVisibility.ActiveShares(db).AnyAsync(
                 s => s.EntityType == typeKey && s.EntityId == recordId && s.PartnerAgentId == meId && s.Agency == agency,
                 cancellationToken);
             if (individual)

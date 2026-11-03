@@ -487,6 +487,7 @@ else
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.TargetDesignation)">Akte</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.FreigabeAgency)">Behörde</MudTableSortLabel></MudTh>
                 <MudTh>Ganze Akte</MudTh>
+                <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.FreigabeValidUntil)">Gültigkeit</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.Justification)">Begründung</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.CreatedAt)">Beantragt</MudTableSortLabel></MudTh>
                 <MudTh Style="text-align:right;">Aktion</MudTh>
@@ -509,6 +510,9 @@ else
                 <MudTd DataLabel="Ganze Akte">
                     <MudIcon Icon="@(context.FreigabeIncludesChildren ? Icons.Material.Filled.Check : Icons.Material.Filled.Close)"
                              Color="@(context.FreigabeIncludesChildren ? Color.Success : Color.Default)" Size="Size.Small" />
+                </MudTd>
+                <MudTd DataLabel="Gültigkeit">
+                    <MudText Typo="Typo.body2">@PartnerShareExpiry.Describe(context.FreigabeValidUntil, DateTime.UtcNow)</MudText>
                 </MudTd>
                 <MudTd DataLabel="Begründung">
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@if (string.IsNullOrWhiteSpace(context.Justification)) { <text>—</text> } else { <MentionDisplay Text="@context.Justification" /> }</MudText>
@@ -983,7 +987,7 @@ else
                 ? $"Freigabe von {request.TargetDesignation} fuer {agencyName} genehmigen?"
                 : $"Freigabe-Antrag fuer {request.TargetDesignation} ablehnen?",
             approved
-                ? "Die Akte wird fuer die Behoerde freigegeben. Eine Notiz ist optional."
+                ? $"Die Akte wird fuer die Behoerde freigegeben, Gueltigkeit: {PartnerShareExpiry.Describe(request.FreigabeValidUntil, DateTime.UtcNow)}. Eine Notiz ist optional."
                 : "Der Antrag wird abgelehnt. Eine Notiz ist optional.",
             confirmText: approved ? "Genehmigen" : "Ablehnen",
             label: "Notiz (optional)",

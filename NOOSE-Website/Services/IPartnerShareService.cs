@@ -5,10 +5,10 @@ using NOOSE_Website.Models.Enums;
 namespace NOOSE_Website.Services;
 
 /// <summary>Per-agency release state of a record or child item for a partner agency.</summary>
-public record PartnerShareState(PartnerAgency Agency, bool Released, bool IncludesChildren);
+public record PartnerShareState(PartnerAgency Agency, bool Released, bool IncludesChildren, DateTime? ValidUntil = null);
 
 /// <summary>Release of a record to a single partner account.</summary>
-public record PartnerIndividualShareState(string AgentId, string Codename, PartnerAgency Agency, PartnerRank? Rank, bool IncludesChildren);
+public record PartnerIndividualShareState(string AgentId, string Codename, PartnerAgency Agency, PartnerRank? Rank, bool IncludesChildren, DateTime? ValidUntil = null);
 
 /// <summary>Selectable partner account for an individual release.</summary>
 public record PartnerAccountOption(string AgentId, string Codename, PartnerAgency Agency, PartnerRank? Rank);
@@ -34,11 +34,20 @@ public interface IPartnerShareService
     /// <summary>Set/clear the parent release for one agency; includesChildren = whole record.</summary>
     Task SetParentAsync(string entityType, string entityId, PartnerAgency agency, bool released, bool includesChildren, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Like <see cref="SetParentAsync(string, string, PartnerAgency, bool, bool, ClaimsPrincipal, CancellationToken)"/> but also sets the end date (null = unlimited); a past date is rejected.</summary>
+    Task SetParentAsync(string entityType, string entityId, PartnerAgency agency, bool released, bool includesChildren, DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     /// <summary>Set/clear the release of a single child item for one agency.</summary>
     Task SetChildAsync(string childType, string childId, PartnerAgency agency, bool released, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Set/clear the parent release for a single partner account; agency is taken from the account.</summary>
     Task SetIndividualParentAsync(string entityType, string entityId, string partnerAgentId, bool released, bool includesChildren, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Like <see cref="SetIndividualParentAsync(string, string, string, bool, bool, ClaimsPrincipal, CancellationToken)"/> but also sets the end date (null = unlimited); a past date is rejected.</summary>
+    Task SetIndividualParentAsync(string entityType, string entityId, string partnerAgentId, bool released, bool includesChildren, DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Extend, shorten or clear (null) the end date of an existing release; partnerAgentId null = the agency-wide one. A past date is rejected.</summary>
+    Task SetValidUntilAsync(string entityType, string entityId, PartnerAgency agency, string? partnerAgentId, DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Release coverage per releasable type for one agency (agency-wide shares only).</summary>
     Task<IReadOnlyList<PartnerTypeShareSummary>> GetTypeSummariesAsync(PartnerAgency agency, CancellationToken cancellationToken = default);
@@ -48,10 +57,10 @@ public interface IPartnerShareService
 
     // ---- Request workflow (agents below leadership submit; leadership decides) ----
 
-    /// <summary>Submit a release request for a record to an agency; any non-partner write-access agent may call this.</summary>
+    /// <summary>Submit a release request for a record to an agency; any non-partner write-access agent may call this. validUntil is the wished end date (null = unlimited).</summary>
     Task RequestPartnerShareAsync(ClaimsPrincipal actor, string entityType, string entityId,
         PartnerAgency agency, string? partnerAgentId, bool includesChildren, string justification,
-        CancellationToken cancellationToken = default);
+        DateTime? validUntil = null, CancellationToken cancellationToken = default);
 
     /// <summary>Pending partner-release requests (leadership inbox).</summary>
     Task<List<Request>> GetPendingPartnerShareRequestsAsync(CancellationToken cancellationToken = default);

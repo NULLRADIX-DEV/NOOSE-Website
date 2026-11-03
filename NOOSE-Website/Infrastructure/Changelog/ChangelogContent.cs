@@ -648,6 +648,9 @@ public static class ChangelogContent
             Neu("3.0.18-akte-teilen", "Mit dem neuen Knopf auf einer Akte teilst du sie in einen Discord-Kanal, den die "
                 + "Führung eingerichtet hat: Name, Aktenzeichen, dein kurzer Hinweis und ein Link, ohne Ping. "
                 + "Verschlusssachen lassen sich nicht teilen.", "Akten"),
+            Neu("3.0.19-partner-freigabe-auf-zeit", "Eine Freigabe an eine Partnerbehörde lässt sich jetzt befristen: "
+                + "1 Tag, 7 Tage, 30 Tage oder bis zu einem Datum. Danach endet der Zugriff von selbst, und der "
+                + "Verlauf der Akte hält fest, dass die Freigabe abgelaufen ist.", "Akten"),
         ]),
     ];
 }

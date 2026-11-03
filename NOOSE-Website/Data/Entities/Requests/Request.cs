@@ -54,6 +54,10 @@ public class Request : IAuditable, ISoftDelete
     [Column("FreigabeInklusiveKinder")]
     public bool FreigabeIncludesChildren { get; set; }
 
+    /// <summary>Wished end of the release (UTC); null = unlimited. Applied to the share on approval.</summary>
+    [Column("FreigabeGueltigBis")]
+    public DateTime? FreigabeValidUntil { get; set; }
+
     // ---- Veroeffentlichung field (only set when Type == Veroeffentlichung) ----
     /// <summary>Snapshot row this request would publish; no FK, mirroring the Freigabe block above.</summary>
     [Column("VeroeffentlichungFahndungId")]

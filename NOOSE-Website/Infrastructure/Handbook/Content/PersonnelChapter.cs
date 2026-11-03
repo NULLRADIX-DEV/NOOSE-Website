@@ -296,6 +296,10 @@ internal static class PersonnelChapter
                 </ul>
                 <p>Die <strong>Typ-Erlaubnis</strong> je Rang schränkt danach nur noch ein; sie gibt nichts
                 frei. Verschlusssachen sieht ein Partner nie.</p>
+                <p>Eine Einzelfreigabe lässt sich <strong>befristen</strong>: beim Freigeben wählst du
+                1 Tag, 7 Tage, 30 Tage, ein Datum oder unbegrenzt. Mit dem Ablauf endet der Zugriff sofort; im
+                Verlauf der Akte steht, dass die Freigabe abgelaufen ist. Die Frist lässt sich später
+                verlängern oder verkürzen. Wer eine Freigabe beantragt, kann ein Ende vorschlagen.</p>
                 <p>Unter <em>Einstellungen → Partnerbehörden</em> steht außerdem, welche Inhalte eine Behörde
                 <strong>nie</strong> sieht - zum Beispiel Doks und Befragungen. Das schlägt jede Freigabe,
                 auch eine Einzelfreigabe mit „Ganze Akte“.</p>
