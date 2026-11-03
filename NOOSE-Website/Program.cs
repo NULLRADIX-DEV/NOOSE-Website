@@ -604,7 +604,11 @@ app.MapNoosePresentationFileEndpoints();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // the text sweep of Phase109 rewrites whole tables with one UPDATE each; the default 30 s per command would
+    // kill it half-way, and an aborted migration blocks the start. Only the migration run gets the long timeout.
+    db.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
     await db.Database.MigrateAsync();
+    db.Database.SetCommandTimeout((int?)null);
 
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     if (!await roleManager.RoleExistsAsync("Admin"))
