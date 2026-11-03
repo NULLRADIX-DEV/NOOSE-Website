@@ -2,7 +2,7 @@
 
 Blazor Web App (.NET 10, Interactive Server only) on EF Core 9 + Pomelo → MariaDB/MySQL.
 Identifiers and comments are English; domain vocabulary, UI text and docs are German.
-Live: https://noose.info
+Live: https://fibhq.com (the FIB, until November 2026 the NOOSE; the old name stays in repo, image and identifiers)
 
 ## Where the rules live
 
@@ -29,7 +29,9 @@ dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj --collect "Code Cover
 
 # Deploy: GitHub Actions → Deploy → Run workflow (.github/workflows/deploy.yml, Kopie des Plattform-Templates)
 # Image baut vorher der Workflow "Container-Image" (ghcr.io/nullradix-dev/noose-website:<sha>) — für den Commit abwarten
-# Input environment = production (Prod, Default) | demo; Commit leer = aktueller master, sonst SHA; Häkchen "rollback" = vorheriges Release
+# Input environment = fib (the FIB at fibhq.com; the workflow default is still production, so pick fib explicitly)
+# production and demo are the frozen NOOSE release on noose.info: never deploy master there, it would rewrite NOOSE data into FIB
+# Commit leer = aktueller master, sonst SHA; Häkchen "rollback" = vorheriges Release
 # Server prüft vor dem Umschalten, behält bei Startfehler das alte Release und dumpt vorher alle DBs. Server-Details: private Betriebsdoku
 ```
 
@@ -79,3 +81,15 @@ can never hit production. Stop the dev server before adding a migration.
 - Culture is de-DE globally; times use `ToLocalTime()` against the server TZ.
 - A user-visible feature needs a line in `Infrastructure/Changelog/ChangelogContent.cs`; a new menu
   entry needs a handbook article — tests enforce both.
+- **The rename NOOSE → FIB is text only.** Namespace `NOOSE_Website`, classes `Noose*`/`Noosei*`, claim types
+  `noose:*`, CSS classes `noose-*`, seed keys and the database name keep their names because they are stored or
+  referenced elsewhere. User-visible text says FIB and FIBI.
+- **`Rank` is persisted as int** (`Trainee=1` … `SpecialAgentInCharge=4`, `SectionChief=5`, `AssistantDirector=6`,
+  `DeputyDirector=7`, `Director=8`); never reorder or insert. The home division is stored (`Agent.Division`), the
+  Board is derived from the rank (`DivisionRules.Of`) and has no enum value. Every write of a rank goes through
+  `DivisionRules.Apply` and `PromotionRules.RequireMayAssign`.
+- **Case numbers** take their prefix from `CaseNumberService.AgencyPrefix`. Any lookup that accepts a typed or
+  printed number goes through `CaseNumbers.Normalize`, so old `NOOSE-…` links and posters still resolve.
+- **NOOSE → FIB wording swaps live in one table**, `Infrastructure/BrandSweep.cs`. The data migration
+  (`Phase109_FibTexte`) builds its SQL from it; a new text column must be swept or listed as excluded in
+  `BrandSweepPlan` — a test checks every string column of the model.
