@@ -188,6 +188,53 @@ public class AgentManagementServiceTests
         Assert.Equal(38, options.Count(x => BadgeNumbers.All.Contains(x, StringComparer.OrdinalIgnoreCase)));
     }
 
+    [Fact]
+    public async Task Terminated_agents_badge_number_is_free_again()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("t", AgentStatus.Active),
+            NewAgent("leaver", AgentStatus.Active, cfg: a => { a.BadgeNumber = "II"; a.PendingBadgeNumber = "III"; }));
+
+        Assert.DoesNotContain("II", await f.Svc.GetAvailableBadgeNumbersAsync("t"));
+        await f.Svc.TerminateAsync("leaver", "weg", createNote: false, postDiscord: false, Admin());
+
+        var options = await f.Svc.GetAvailableBadgeNumbersAsync("t");
+        Assert.Contains("II", options);
+        Assert.Contains("III", options);
+        await f.Svc.MasterDataChangeAsync("t", null, "Neu", "II", Admin());
+        Assert.Equal("II", Reload(f, "t").BadgeNumber);
+        // the file keeps the old number for the record
+        Assert.Equal("II", Reload(f, "leaver").BadgeNumber);
+    }
+
+    [Fact]
+    public async Task TerminationRevokeAsync_DropsBadgeNumberTakenMeanwhile()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("gone", AgentStatus.Terminated, Rank.SpecialAgent, a => a.BadgeNumber = "II"),
+            NewAgent("new", AgentStatus.Active, Rank.SpecialAgent, a => a.BadgeNumber = "II"));
+
+        await f.Svc.TerminationRevokeAsync("gone", Admin());
+
+        Assert.Null(Reload(f, "gone").BadgeNumber);
+        Assert.Equal("II", Reload(f, "new").BadgeNumber);
+        using var db = f.Ctx.NewContext();
+        Assert.True(db.AuditLogs.Any(l => l.EntityId == "gone" && l.ChangesJson!.Contains("Dienstnummer II")));
+    }
+
+    [Fact]
+    public async Task TerminationRevokeAsync_KeepsBadgeNumberStillFree()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("gone", AgentStatus.Terminated, Rank.SpecialAgent, a => a.BadgeNumber = "II"));
+
+        await f.Svc.TerminationRevokeAsync("gone", Admin());
+
+        Assert.Equal("II", Reload(f, "gone").BadgeNumber);
+    }
+
     // ---- release / reject ----
 
     [Fact]
