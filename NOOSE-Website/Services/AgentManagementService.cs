@@ -63,9 +63,7 @@ public class AgentManagementService(
     public async Task<List<string>> GetAvailableBadgeNumbersAsync(string agentId, CancellationToken cancellationToken = default)
     {
         await using var readDb = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var assigned = await readDb.Users.AsNoTracking()
-            .Where(a => a.Id != agentId && (a.BadgeNumber != null || a.PendingBadgeNumber != null))
-            .Select(a => new { a.BadgeNumber, a.PendingBadgeNumber })
+        var assigned = await AssignedBadgeNumbers(readDb, agentId)
             .ToListAsync(cancellationToken);
         var target = await readDb.Users.AsNoTracking()
             .Where(a => a.Id == agentId)
@@ -920,10 +918,39 @@ public class AgentManagementService(
         Permission.RequireLeadership(actor);
         Permission.RequireWriteAccess(actor);
 
+        // the gate keeps a parallel badge pick from taking the number between check and save
+        await BadgeNumberGate.WaitAsync(cancellationToken);
+        try
+        {
+            await TerminationRevokeLockedAsync(agentId, actor, cancellationToken);
+        }
+        finally
+        {
+            BadgeNumberGate.Release();
+        }
+    }
+
+    private async Task TerminationRevokeLockedAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
         var agent = await GetOrThrow(agentId);
         if (agent.Status != AgentStatus.Terminated)
         {
             throw new InvalidOperationException("Dieser Agent ist nicht gekündigt.");
+        }
+
+        // the number was free while terminated; whoever took it since keeps it
+        var lostBadgeNumber = BadgeNumbers.Normalize(agent.BadgeNumber) is { } badge
+            && await IsBadgeNumberTakenAsync(agent.Id, badge, cancellationToken)
+                ? agent.BadgeNumber
+                : null;
+        if (lostBadgeNumber is not null)
+        {
+            agent.BadgeNumber = null;
+        }
+        if (BadgeNumbers.Normalize(agent.PendingBadgeNumber) is { } pending
+            && await IsBadgeNumberTakenAsync(agent.Id, pending, cancellationToken))
+        {
+            agent.PendingBadgeNumber = null;
         }
 
         agent.Status = AgentStatus.Active;
@@ -942,7 +969,9 @@ public class AgentManagementService(
             db.Bewerbungssperren.Remove(entry); // interceptor soft-deletes
         }
 
-        Audit(agent, AuditAction.Modified, actor, "Kündigung zurückgenommen");
+        Audit(agent, AuditAction.Modified, actor, lostBadgeNumber is null
+            ? "Kündigung zurückgenommen"
+            : $"Kündigung zurückgenommen (Dienstnummer {lostBadgeNumber} inzwischen vergeben, entfernt)");
         await Save(agent, newStamp: true);
     }
 
@@ -1232,16 +1261,27 @@ public class AgentManagementService(
             return;
         }
 
-        var assigned = await db.Users.AsNoTracking()
-            .Where(a => a.Id != agent.Id && (a.BadgeNumber != null || a.PendingBadgeNumber != null))
-            .Select(a => new { a.BadgeNumber, a.PendingBadgeNumber })
-            .ToListAsync();
-        if (assigned.Any(a => string.Equals(BadgeNumbers.Normalize(a.BadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(BadgeNumbers.Normalize(a.PendingBadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase)))
+        if (await IsBadgeNumberTakenAsync(agent.Id, badgeNumber))
         {
             throw new InvalidOperationException("Diese Dienstnummer ist bereits vergeben.");
         }
     }
+
+    private async Task<bool> IsBadgeNumberTakenAsync(string agentId, string badgeNumber, CancellationToken cancellationToken = default)
+    {
+        var assigned = await AssignedBadgeNumbers(db, agentId).ToListAsync(cancellationToken);
+        return assigned.Any(a => string.Equals(BadgeNumbers.Normalize(a.BadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(BadgeNumbers.Normalize(a.PendingBadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Badge numbers held by everyone but the agent; a terminated agent's number is free again.</summary>
+    private static IQueryable<AssignedBadgeNumber> AssignedBadgeNumbers(AppDbContext source, string agentId)
+        => source.Users.AsNoTracking()
+            .Where(a => a.Id != agentId && a.Status != AgentStatus.Terminated
+                && (a.BadgeNumber != null || a.PendingBadgeNumber != null))
+            .Select(a => new AssignedBadgeNumber(a.BadgeNumber, a.PendingBadgeNumber));
+
+    private sealed record AssignedBadgeNumber(string? BadgeNumber, string? PendingBadgeNumber);
 
     private void HistoryEntryAdd(string agentId, Rank? alt, Rank @new, ClaimsPrincipal actor, string reason)
         => db.AgentRankHistories.Add(new AgentRankHistory
