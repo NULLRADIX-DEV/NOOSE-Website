@@ -3,7 +3,7 @@
 @inject ILawService LawService
 @inject ILinkService LinkService
 
-<PageTitle>@(_law is null ? "Druckansicht" : $"{_law.Paragraph} {_law.Title}") · NOOSE</PageTitle>
+<PageTitle>@(_law is null ? "Druckansicht" : $"{_law.Paragraph} {_law.Title}") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -17,7 +17,7 @@ else
 {
     <PrintFrame Title="@($"{_law.Paragraph} {_law.Title}")" BackHref="@($"/gesetze/{Id}")"
                  PrintedBy="@_printBy" IsClassified="false"
-                 Footer="NOOSE-Wissensbasis · Rechtsgrundlagen">
+                 Footer="FIB-Wissensbasis · Rechtsgrundlagen">
         <section>
             <h2>Rechtsgrundlage</h2>
             <table class="druck-felder">

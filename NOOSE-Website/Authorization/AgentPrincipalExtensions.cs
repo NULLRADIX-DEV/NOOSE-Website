@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Authorization;
 
@@ -52,6 +53,18 @@ public static class AgentPrincipalExtensions
     public static bool IsHRB(this ClaimsPrincipal user)
         => string.Equals(user.FindFirstValue(AgentClaimTypes.IsHRB), "true", StringComparison.OrdinalIgnoreCase);
 
+    /// <summary>Home division from claim, or null outside the divisions. The Board is no value here, see <see cref="IsBoard"/>.</summary>
+    public static Division? GetDivision(this ClaimsPrincipal user)
+    {
+        var raw = user.FindFirstValue(AgentClaimTypes.Division);
+        return int.TryParse(raw, out var value) && Enum.IsDefined(typeof(Division), value)
+            ? (Division)value
+            : null;
+    }
+
+    /// <summary>Board of Directors = by rank alone; the admin flag does not make a Board member.</summary>
+    public static bool IsBoard(this ClaimsPrincipal user) => DivisionRules.IsBoard(user.GetRank());
+
     /// <summary>TeamLead marker (FiveM supervision); on its own grants nothing, only forms read-only supervision when combined with no admin flag.</summary>
     public static bool IsTeamLead(this ClaimsPrincipal user)
         => string.Equals(user.FindFirstValue(AgentClaimTypes.IsTeamLead), "true", StringComparison.OrdinalIgnoreCase);
@@ -95,9 +108,9 @@ public static class AgentPrincipalExtensions
     /// <summary>May contribute content (post taskforce chat, author documents) = internal writers plus partner contributors, never read-only supervision or demo.</summary>
     public static bool MayContribute(this ClaimsPrincipal user) => user.MayWrite() || user.IsPartner();
 
-    /// <summary>Leadership = rank ≥ Supervisory Special Agent or admin.</summary>
+    /// <summary>Leadership = rank ≥ Special Agent in Charge or admin.</summary>
     public static bool IsLeadership(this ClaimsPrincipal user)
-        => user.IsAdmin() || user.GetRank() is >= Rank.SupervisorySpecialAgent;
+        => user.IsAdmin() || user.GetRank() is >= Rank.SpecialAgentInCharge;
 
     /// <summary>May READ classified content = leadership or read-only supervision. Read gates only, never write/real-name.</summary>
     public static bool MayClassifiedRead(this ClaimsPrincipal user)
@@ -139,9 +152,13 @@ public static class AgentPrincipalExtensions
     public static bool MayMeetingRead(this ClaimsPrincipal user)
         => user.MayHighestClassification() || user.IsOnlyReader();
 
-    /// <summary>May decide promotions = rank ≥ Deputy Director or admin.</summary>
+    /// <summary>Coarse gate for deciding promotions and handing out ranks = rank ≥ Section Chief or admin.</summary>
+    /// <remarks>Which agent and which rank is the fine gate, <see cref="PromotionRules"/>.</remarks>
     public static bool MayPromotionDecide(this ClaimsPrincipal user)
-        => user.IsAdmin() || user.GetRank() is >= Rank.DeputyDirector;
+        => user.IsAdmin() || user.GetRank() is >= PromotionRules.DeciderFloor;
+
+    /// <summary>May move an agent between divisions = Board or admin. Sole source of this rule.</summary>
+    public static bool MayDivisionSet(this ClaimsPrincipal user) => user.IsAdmin() || user.IsBoard();
 
     /// <summary>May request a warrant = internal agent with write access, never the team lead. Sole source of this rule.</summary>
     /// <remarks>The team lead is excluded even as admin: the requester's codename is shown, and supervision stays RP-wide invisible.</remarks>
@@ -192,4 +209,8 @@ public static class AgentPrincipalExtensions
         => user.GetStatus() == AgentStatus.Active
            && !user.IsPartner()
            && !string.IsNullOrEmpty(user.GetAgentId());
+
+    /// <summary>May report a firearm use = an in-house account that may write; never partner, team lead (admin flag or not) or demo. Sole source of this rule.</summary>
+    public static bool MayReportFirearmUse(this ClaimsPrincipal user)
+        => user.IsInternalAgent() && user.MayWrite() && !user.IsTeamLead();
 }

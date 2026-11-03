@@ -20,7 +20,7 @@ public sealed class AgentInviteServiceTests : IDisposable
         => ClaimsPrincipalBuilder.Agent("a1").WithRank(Rank.Director).WithCodename("Falke").Build();
 
     private static ClaimsPrincipal NonLeadership()
-        => ClaimsPrincipalBuilder.Agent("a2").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("a2").WithRank(Rank.Trainee).Build();
 
     private AgentInvite SeedInvite(Action<AgentInvite>? configure = null)
     {

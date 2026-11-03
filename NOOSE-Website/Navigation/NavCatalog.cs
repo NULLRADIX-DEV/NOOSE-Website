@@ -26,6 +26,8 @@ public static class NavCatalog
 
         new NavEntry("meine-schicht", "/meine-schicht", Icons.Material.Filled.WorkHistory, "Meine Schicht", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Was heute an dir hängt: Aufgaben, Wiedervorlagen, Erwähnungen, Brett, Taskforces"),
+        new NavEntry("wiedervorlagen", FollowupPlanRules.Route, Icons.Material.Filled.EventRepeat, "Meine Wiedervorlagen", NavSection.MeinDienst, NavArea.MeinDienst,
+            Description: "Deine offenen Wiedervorlagen nach Fälligkeit: verschieben und erledigen mit einem Klick"),
         new NavEntry("profil", "/profil", Icons.Material.Filled.AccountCircle, "Mein Profil", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Eigene Stammdaten, Codename und Kontaktangaben"),
         new NavEntry("watchlist", "/watchlist", Icons.Material.Filled.Star, "Beobachtete Akten", NavSection.MeinDienst, NavArea.MeinDienst,
@@ -39,7 +41,7 @@ public static class NavCatalog
         new NavEntry("abmeldungen", "/abmeldungen", Icons.Material.Filled.EventBusy, "Abmeldungen", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Eigene Abwesenheiten melden und einsehen"),
         new NavEntry("tests", "/tests", Icons.Material.Filled.Quiz, "Interne Tests", NavSection.MeinDienst, NavArea.MeinDienst,
-            Description: "Zugewiesene Tests ablegen; HRB und Führung vergeben und korrigieren"),
+            Description: "Zugewiesene Tests ablegen; Administration Division und Führung vergeben und korrigieren"),
         new NavEntry("finanzierungen", "/finanzierungen", Icons.Material.Filled.RequestQuote, "Finanzierungen", NavSection.MeinDienst, NavArea.MeinDienst, BadgeKey: "financing",
             Description: "Finanzierungsanträge stellen und das eigene Monatsbudget einsehen"),
         new NavEntry("feedback", "/feedback", Icons.Material.Filled.Feedback, "Feedback", NavSection.MeinDienst, NavArea.MeinDienst, Description: "Feedback zur Website"),
@@ -72,7 +74,7 @@ public static class NavCatalog
         new NavEntry("informanten", "/informanten", Icons.Material.Filled.VisibilityOff, "Informanten", NavSection.Fahndung, NavArea.Ermittlung,
             Description: "Vertrauliche Quellen (V-Personen) mit Treffen-Protokollen"),
         new NavEntry("entfuehrungen", "/entfuehrungen", Icons.Material.Filled.PersonOff, "Entführungen", NavSection.Fahndung, NavArea.Ermittlung,
-            Description: "Entführungen von NOOSE-Agenten: Täter, Informationsabfluss und kompromittierte Akten"),
+            Description: "Entführungen von FIB-Agenten: Täter, Informationsabfluss und kompromittierte Akten"),
         new NavEntry("anordnungen", "/anordnungen", Icons.Material.Filled.Approval, "Anordnungen", NavSection.Fahndung, NavArea.Ermittlung,
             Description: "Durchsuchungs-, Beschlagnahme- und Festnahmeanordnungen beantragen, unterzeichnen und drucken"),
 
@@ -95,12 +97,12 @@ public static class NavCatalog
         new NavEntry("hinweise", "/ermittlungshinweise", Icons.Material.Filled.Lightbulb, "Ermittlungshinweise", NavSection.Analyse, NavArea.Ermittlung,
             Description: "Algorithmische Hinweise: mögliche Verbindungen, Konflikte, veraltete Einstufungen"),
         // key stays "ki": stored favourites and hidden-entry settings reference it
-        new NavEntry("ki", "/ki-assistent", Icons.Material.Filled.SmartToy, "NOOSEI", NavSection.Analyse, NavArea.Ermittlung,
+        new NavEntry("ki", "/ki-assistent", Icons.Material.Filled.SmartToy, "FIBI", NavSection.Analyse, NavArea.Ermittlung,
             Description: "Fragen zur Aktenlage mit Zugriff auf die Aktendatenbank, plus Schreibhilfe"),
         new NavEntry("statistik", "/statistik", Icons.Material.Filled.QueryStats, "Statistik", NavSection.Analyse, NavArea.Ermittlung,
             Description: "Auswertungen, Kennzahlen und Lageberichte"),
         new NavEntry("organigramm", "/organigramm", Icons.Material.Filled.AccountTree, "Organigramm", NavSection.Analyse, NavArea.Dienststelle,
-            Description: "Aufbau der Behörde nach Dienstgrad und Einheit"),
+            Description: "Aufbau der Behörde nach Board, Abteilung und Dienstgrad"),
 
         new NavEntry("brett", "/brett", Icons.Material.Filled.Campaign, "Schwarzes Brett", NavSection.Dienststelle, NavArea.Dienststelle, BadgeKey: "acknowledgments",
             Description: "Behördliche Ankündigungen, teils quittierungspflichtig"),
@@ -124,7 +126,7 @@ public static class NavCatalog
         new NavEntry("admin.agenten", "/admin/agenten", Icons.Material.Filled.ManageAccounts, "Agenten-Verwaltung", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Dienstgrad, Status und Rechte der Agenten setzen"),
         new NavEntry("kasse", "/kasse", Icons.Material.Filled.AccountBalanceWallet, "Kasse", NavSection.Dienststelle, NavArea.Dienststelle,
-            Description: "NOOSE-Kasse: Schwarz- und Grüngeld buchen, Vorlagen und Statistik"),
+            Description: "FIB-Kasse: Schwarz- und Grüngeld buchen, Vorlagen und Statistik"),
         new NavEntry("einstellungen", "/einstellungen", Icons.Material.Filled.SettingsApplications, "Einstellungen", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "System, Vorlagen, Tags, Score, Partner und Protokoll an einer Stelle"),
         new NavEntry("tickets", "/tickets", Icons.Material.Filled.Forum, "Bürger-Tickets",
@@ -135,6 +137,12 @@ public static class NavCatalog
         new NavEntry("tickets.beteiligt", "/tickets?tab=beteiligt", Icons.Material.Filled.Group, "Meine Tickets",
             NavSection.MeinDienst, NavArea.MeinDienst, NavLinkMatch.All,
             Description: "Tickets, an denen du beteiligt bist, und eigene Anliegen an die Führung"),
+        new NavEntry("schusswaffengebrauch", "/schusswaffengebrauch", Icons.Material.Filled.GpsFixed, "Schusswaffengebrauch",
+            NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
+            Description: "Gemeldeter Schusswaffengebrauch aller Agenten, filterbar nach Agent, Abteilung und Zeitraum"),
+        new NavEntry("wiedervorlagen.rueckstand", FollowupPlanRules.BacklogRoute, Icons.Material.Filled.PendingActions, "Wiedervorlagen-Rückstand",
+            NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
+            Description: "Alle offenen Wiedervorlagen der Behörde: wer was liegen lässt, und umhängen"),
         new NavEntry("papierkorb", "/papierkorb", Icons.Material.Filled.Delete, "Papierkorb", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Gelöschte Akten aller Typen wiederherstellen"),
     };
@@ -196,7 +204,7 @@ public static class NavCatalog
 
     private static readonly (PartnerFeature Feature, string Key, string Href, string Icon, string Label)[] PartnerFeaturePages =
     {
-        (PartnerFeature.Noosei, "partner.ki", "/ki-assistent", Icons.Material.Filled.Gavel, "NOOSEI-Rechtsauskunft"),
+        (PartnerFeature.Noosei, "partner.ki", "/ki-assistent", Icons.Material.Filled.Gavel, "FIBI-Rechtsauskunft"),
         (PartnerFeature.Graph, "partner.graph", "/graph", Icons.Material.Filled.Hub, "Beziehungsgraph"),
         (PartnerFeature.Radio, "partner.funk", "/funk", Icons.Material.Filled.SettingsInputAntenna, "Funkplan"),
         (PartnerFeature.SituationReports, "partner.lageberichte", "/lageberichte/archiv", Icons.Material.Filled.Assessment, "Lageberichte"),

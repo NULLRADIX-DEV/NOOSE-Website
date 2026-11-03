@@ -17,7 +17,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class HandbookSideIndexTests
 {
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("verify-agent").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("verify-agent").WithRank(Rank.Trainee).Build();
 
     private const string ArticleSlug = "fahndung-anlegen";
     private const string TermId = "99999999-8888-7777-6666-555555555555";

@@ -127,7 +127,7 @@ public sealed class LlmQuotaServiceTests
     public async Task TheBoost_AlsoLiftsAnIndividualOverride()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent, over: 10_000);
+        await SeedAgentAsync(ctx, Rank.Trainee, over: 10_000);
 
         var status = await Build(ctx, boostPercent: 50).GetStatusAsync(AgentId, Leader());
 
@@ -144,7 +144,7 @@ public sealed class LlmQuotaServiceTests
     public async Task WritingBackTheShownBase_DoesNotApplyTheBoostTwice()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent, over: 10_000);
+        await SeedAgentAsync(ctx, Rank.Trainee, over: 10_000);
 
         var before = await Build(ctx, boostPercent: 400).GetStatusAsync(AgentId, Leader());
         // exactly what LlmQuotaOverrideDialog puts in its field and hands to SetOverrideAsync
@@ -172,7 +172,7 @@ public sealed class LlmQuotaServiceTests
     public async Task Override_BeatsTheRankDefault()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent, over: 123_000);
+        await SeedAgentAsync(ctx, Rank.Trainee, over: 123_000);
 
         var status = await Build(ctx).GetStatusAsync(AgentId, Leader());
 
@@ -218,7 +218,7 @@ public sealed class LlmQuotaServiceTests
     public async Task Remaining_MayGoNegative_AfterAnExpensiveAnswer()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent);
+        await SeedAgentAsync(ctx, Rank.Trainee);
         var (year, week) = Now();
         await ChargeAsync(ctx, year, week, 25_000);
 
@@ -332,13 +332,13 @@ public sealed class LlmQuotaServiceTests
     public async Task EnsureAvailable_PassesAtExactlyOneTokenLeft()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent);
+        await SeedAgentAsync(ctx, Rank.Trainee);
         var (year, week) = Now();
         // earlier in the week, not today: almost a full weekly quota inside one day is what the daily ceiling stops
         await ChargeAsync(ctx, year, week, 19_999, DateTime.UtcNow.AddDays(-2));
 
         var status = await Build(ctx).EnsureAvailableAsync(
-            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.JuniorAgent).Build());
+            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.Trainee).Build());
 
         Assert.Equal(1L, status.Remaining);
     }
@@ -347,13 +347,13 @@ public sealed class LlmQuotaServiceTests
     public async Task EnsureAvailable_StopsAtTheDailyCeiling_WhileTheWeekStillHasTokens()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent);
+        await SeedAgentAsync(ctx, Rank.Trainee);
         var (year, week) = Now();
         // 40 % of a 20.000 base is 8.000 for the day; the week is barely touched
         await ChargeAsync(ctx, year, week, 8_000);
 
         var ex = await Assert.ThrowsAsync<LlmQuotaExceededException>(() => Build(ctx).EnsureAvailableAsync(
-            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.JuniorAgent).Build()));
+            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.Trainee).Build()));
 
         // it must not read as "your week is gone" — 12.000 tokens are still there tomorrow
         Assert.Contains("heute", ex.Message);
@@ -364,12 +364,12 @@ public sealed class LlmQuotaServiceTests
     public async Task DailyCeiling_CountsOnlyToday()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent);
+        await SeedAgentAsync(ctx, Rank.Trainee);
         var (year, week) = Now();
         await ChargeAsync(ctx, year, week, 8_000, DateTime.UtcNow.AddDays(-1));
 
         var status = await Build(ctx).EnsureAvailableAsync(
-            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.JuniorAgent).Build());
+            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.Trainee).Build());
 
         Assert.Equal(0L, status.ConsumedToday);
         Assert.False(status.IsDayBlocked);
@@ -380,14 +380,14 @@ public sealed class LlmQuotaServiceTests
     public async Task DailyCeiling_IsOffAtZeroPercent()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent);
+        await SeedAgentAsync(ctx, Rank.Trainee);
         var (year, week) = Now();
         await ChargeAsync(ctx, year, week, 19_000);
-        var config = Config(Rank.JuniorAgent, 20_000, 0);
-        config.Ranks[LlmQuotaConfig.RankKey(Rank.JuniorAgent)].DailyPercent = 0;
+        var config = Config(Rank.Trainee, 20_000, 0);
+        config.Ranks[LlmQuotaConfig.RankKey(Rank.Trainee)].DailyPercent = 0;
 
         var status = await Build(ctx, config).EnsureAvailableAsync(
-            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.JuniorAgent).Build());
+            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.Trainee).Build());
 
         Assert.Equal(0L, status.DailyLimit);
         Assert.False(status.IsDayBlocked);
@@ -397,12 +397,12 @@ public sealed class LlmQuotaServiceTests
     public async Task ExhaustedWeek_OutranksTheDailyCeiling()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent);
+        await SeedAgentAsync(ctx, Rank.Trainee);
         var (year, week) = Now();
         await ChargeAsync(ctx, year, week, 20_000);
 
         var ex = await Assert.ThrowsAsync<LlmQuotaExceededException>(() => Build(ctx).EnsureAvailableAsync(
-            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.JuniorAgent).Build()));
+            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.Trainee).Build()));
 
         // both ceilings are crossed; "come back tomorrow" would be a lie when the week is gone until Monday
         Assert.Contains("aufgebraucht", ex.Message);
@@ -412,12 +412,12 @@ public sealed class LlmQuotaServiceTests
     public async Task EnsureAvailable_ThrowsWhenExhausted_AndNamesTheResetTime()
     {
         using var ctx = new SqliteTestContext();
-        await SeedAgentAsync(ctx, Rank.JuniorAgent);
+        await SeedAgentAsync(ctx, Rank.Trainee);
         var (year, week) = Now();
         await ChargeAsync(ctx, year, week, 20_000);
 
         var ex = await Assert.ThrowsAsync<LlmQuotaExceededException>(() => Build(ctx).EnsureAvailableAsync(
-            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.JuniorAgent).Build()));
+            ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.Trainee).Build()));
 
         Assert.Contains("aufgebraucht", ex.Message);
         Assert.Contains("KW", ex.Message);
@@ -533,7 +533,7 @@ public sealed class LlmQuotaServiceTests
 
         var charge = await Build(ctx).TryChargeAsync(new LlmChargeInput(
             AgentId, LlmFeature.Chat, LlmUsage.Empty, null, null, 500, 0, false,
-            "NOOSEI antwortete nicht (Fehler 502).", "Frage", null, null));
+            "FIBI antwortete nicht (Fehler 502).", "Frage", null, null));
 
         Assert.Equal(0L, charge.QuotaTokens);
         await using var db = ctx.NewContext();
@@ -715,7 +715,7 @@ public sealed class LlmQuotaServiceTests
     {
         using var ctx = new SqliteTestContext();
         await SeedAgentAsync(ctx);
-        var self = ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.JuniorAgent).Build();
+        var self = ClaimsPrincipalBuilder.Agent(AgentId).WithRank(Rank.Trainee).Build();
 
         var status = await Build(ctx).GetStatusAsync(AgentId, self);
 

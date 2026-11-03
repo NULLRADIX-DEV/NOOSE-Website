@@ -13,8 +13,8 @@
     gap: 2cqw;
     padding: 5cqw 6cqw;
     border-radius: 0.6cqw;
-    background: linear-gradient(160deg, #142033 0%, #0d1522 100%);
-    color: #e8edf3;
+    background: linear-gradient(160deg, #262626 0%, #161616 100%);
+    color: #ECE8E1;
     font-size: 2.3cqw;
     line-height: 1.35;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
@@ -42,14 +42,14 @@
     }
 
     .slide-pdf ::deep .slide-pdf-hinweis {
-        color: #8a97a8;
+        color: #9A9488;
         font-size: 2.3cqw;
     }
 
 .slide--empty {
     align-items: center;
     justify-content: center;
-    color: #8a97a8;
+    color: #9A9488;
 }
 
 .slide-title {
@@ -85,7 +85,7 @@
 }
 
 .slide--section {
-    background: linear-gradient(160deg, #1d2f4a 0%, #101a2a 100%);
+    background: linear-gradient(160deg, #3A3226 0%, #1B1812 100%);
 }
 
 .slide--section .slide-center {
@@ -100,7 +100,7 @@
 .slide--title .slide-body,
 .slide--section .slide-body {
     font-size: 2.8cqw;
-    color: #b9c4d2;
+    color: #CFC9BF;
 }
 
 .slide-text {
@@ -149,16 +149,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0.25cqw dashed #3a4a60;
+    border: 0.25cqw dashed #4A4640;
     border-radius: 0.6cqw;
-    color: #3a4a60;
+    color: #4A4640;
     font-size: 6cqw;
 }
 
 .slide-caption {
     text-align: center;
     font-size: 2.2cqw;
-    color: #b9c4d2;
+    color: #CFC9BF;
 }
 
 .slide-number {
@@ -166,7 +166,7 @@
     right: 2.4cqw;
     bottom: 1.6cqw;
     font-size: 1.6cqw;
-    color: #6f7d90;
+    color: #8A857C;
 }
 
 .slide-body ::deep p {
@@ -206,5 +206,5 @@
 .slide-body ::deep td,
 .slide-body ::deep th {
     padding: 0.5cqw 1cqw;
-    border: 0.15cqw solid #3a4a60;
+    border: 0.15cqw solid #4A4640;
 }

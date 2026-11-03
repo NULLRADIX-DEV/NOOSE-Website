@@ -22,7 +22,7 @@ public sealed class NooseiToolTests
     private const string FactionId = "f1";
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
@@ -153,7 +153,7 @@ public sealed class NooseiToolTests
         {
             db.Taskforces.Add(new Taskforce
             {
-                Id = "tf1", Name = "Operation Nachtfalke", CaseNumber = "NOOSE-TF-2026-0001",
+                Id = "tf1", Name = "Operation Nachtfalke", CaseNumber = "FIB-TF-2026-0001",
                 Scope = TaskforceScope.InternalAgency, Status = TaskforceStatus.Approved,
             });
             db.Links.Add(new Link
@@ -169,7 +169,7 @@ public sealed class NooseiToolTests
             Args($$"""{"typ":"Fraktion","id":"{{FactionId}}"}"""), NooseiToolContext.From(Junior()));
 
         Assert.DoesNotContain("Operation Nachtfalke", outsider.Text);
-        Assert.DoesNotContain("NOOSE-TF-2026-0001", outsider.Text);
+        Assert.DoesNotContain("FIB-TF-2026-0001", outsider.Text);
     }
 
     [Fact]
@@ -273,9 +273,9 @@ public sealed class NooseiToolTests
                 Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
             .Returns(new PathResult(true,
                 [
-                    Node(nameof(Person), "p1", "Max Mustermann", "NOOSE-P-2026-0001"),
-                    Node(nameof(Faction), "f1", "Ballas", "NOOSE-F-2026-0001"),
-                    Node(nameof(Faction), "f2", "Vagos", "NOOSE-F-2026-0002"),
+                    Node(nameof(Person), "p1", "Max Mustermann", "FIB-P-2026-0001"),
+                    Node(nameof(Faction), "f1", "Ballas", "FIB-F-2026-0001"),
+                    Node(nameof(Faction), "f2", "Vagos", "FIB-F-2026-0002"),
                 ],
                 [
                     new GraphEdge("Person:p1", "Faction:f1", "Leitung", LinkKind.Default, true),
@@ -397,7 +397,7 @@ public sealed class NooseiToolTests
         search.SearchAsync(Arg.Any<NOOSE_Website.Models.Common.SearchCriteria>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(Results(
                 new NOOSE_Website.Models.Common.SearchResultGroup("Faction", "Fraktionen",
-                    [new NOOSE_Website.Models.Common.SearchHit("Faction", "f1", "Ballas", "", "NOOSE-F-2026-0001")]),
+                    [new NOOSE_Website.Models.Common.SearchHit("Faction", "f1", "Ballas", "", "FIB-F-2026-0001")]),
                 new NOOSE_Website.Models.Common.SearchResultGroup("Comment", "Kommentare",
                     [new NOOSE_Website.Models.Common.SearchHit("Comment", "c1", "Waffenlager prüfen", "", "")]))));
         var tool = new SearchRecordsTool(search, Substitute.For<ITagService>());

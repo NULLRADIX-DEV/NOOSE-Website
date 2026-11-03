@@ -76,7 +76,7 @@ public sealed class PublicFactionProfileServiceTests
         }
         db.Factions.Add(Seed.Faction(FactionId, "Ballas", f =>
         {
-            f.CaseNumber = "NOOSE-F-2026-0001";
+            f.CaseNumber = "FIB-F-2026-0001";
             f.ThreatScore = 80;
             faction?.Invoke(f);
         }));

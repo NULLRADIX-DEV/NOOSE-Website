@@ -14,13 +14,13 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="OperationService"/> over in-memory SQLite.</summary>
 public sealed class OperationServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) or admin => IsLeadership() and MayHighestClassification (Director).
+    // Rank >= SpecialAgentInCharge(4) or admin => IsLeadership() and MayHighestClassification (Director).
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: neither leadership nor high-classification.
     private static ClaimsPrincipal NonLeader(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ViewerScope LeaderScope() => ViewerScope.From(Leader());
     private static ViewerScope NonLeaderScope() => ViewerScope.From(NonLeader());
@@ -29,7 +29,7 @@ public sealed class OperationServiceTests
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-              .Returns("NOOSE-OP-2026-0001");
+              .Returns("FIB-OP-2026-0001");
         var suggestion = Substitute.For<IProfileSuggestionService>();
         var svc = new OperationService(ctx.Factory, caseNo, suggestion, Substitute.For<INotificationService>());
         return (svc, suggestion);
@@ -42,7 +42,7 @@ public sealed class OperationServiceTests
         var o = new Operation
         {
             Id = id,
-            CaseNumber = $"NOOSE-OP-2026-{id}",
+            CaseNumber = $"FIB-OP-2026-{id}",
             Title = title,
             Classification = cls,
             Status = status,
@@ -207,7 +207,7 @@ public sealed class OperationServiceTests
         var created = await svc.CreateAsync(input, Leader("lead"));
 
         Assert.Equal("Nighthawk", created.Title);
-        Assert.Equal("NOOSE-OP-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-OP-2026-0001", created.CaseNumber);
         Assert.Equal(OperationStatus.Running, created.Status);
 
         using var db = ctx.NewContext();
@@ -336,7 +336,7 @@ public sealed class OperationServiceTests
             db.SaveChanges();
         }
 
-        await svc.DeleteAsync("op1", Leader());
+        await svc.DeleteAsync("op1", "Dublette", Leader());
 
         // no soft-delete interceptor in the test context => the row is hard-deleted.
         using var db2 = ctx.NewContext();
@@ -350,7 +350,7 @@ public sealed class OperationServiceTests
         var (svc, _) = Build(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => svc.DeleteAsync("any", NonLeader()));
+            () => svc.DeleteAsync("any", "Dublette", NonLeader()));
     }
 
     [Fact]
@@ -360,7 +360,7 @@ public sealed class OperationServiceTests
         var (svc, _) = Build(ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.DeleteAsync("missing", Leader()));
+            () => svc.DeleteAsync("missing", "Dublette", Leader()));
     }
 
     // ---------- RestoreAsync ----------

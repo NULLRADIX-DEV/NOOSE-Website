@@ -10,7 +10,7 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 
-<PageTitle>@(IsEdit ? "Eintrag bearbeiten" : "Neuer Eintrag") · NOOSE</PageTitle>
+<PageTitle>@(IsEdit ? "Eintrag bearbeiten" : "Neuer Eintrag") · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.ReceiptLong"
             Title="@(IsEdit ? "Eintrag bearbeiten" : "Neuer Eintrag")"
@@ -61,7 +61,7 @@ else
                 <MudDivider />
                 <MudText Typo="Typo.subtitle2">Besitzer</MudText>
                 <MudRadioGroup T="string" Value="_ownerKind" ValueChanged="OwnerKindChanged">
-                    <MudRadio T="string" Value="@Noose" Color="Color.Primary" Dense="true">NOOSE</MudRadio>
+                    <MudRadio T="string" Value="@Noose" Color="Color.Primary" Dense="true">FIB</MudRadio>
                     <MudRadio T="string" Value="@nameof(Agent)" Color="Color.Primary" Dense="true">Agent</MudRadio>
                     <MudRadio T="string" Value="@nameof(Person)" Color="Color.Primary" Dense="true">Personenakte</MudRadio>
                 </MudRadioGroup>

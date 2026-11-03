@@ -17,13 +17,13 @@ public sealed class FollowupServiceTests
     private static FollowupService Build(SqliteTestContext ctx, INotificationService? notifications = null)
         => new(ctx.Factory, notifications ?? Substitute.For<INotificationService>());
 
-    // Rank >= SupervisorySpecialAgent(4) or admin => IsLeadership() + MayClassifiedRead().
+    // Rank >= SpecialAgentInCharge(4) or admin => IsLeadership() + MayClassifiedRead().
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, may write, cannot read classified records.
     private static ClaimsPrincipal Junior(string id = "me")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static readonly DateTime Past = new(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime Future = new(2999, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -680,7 +680,7 @@ public sealed class FollowupServiceTests
     private static Ticket MakeTicket(string id = "t1") => new()
     {
         Id = id,
-        CaseNumber = "NOOSE-T-2026-0001",
+        CaseNumber = "FIB-T-2026-0001",
         Subject = "Anliegen einer Bürgerin",
         Kind = TicketArt.Intern,
         Status = TicketStatus.Offen,

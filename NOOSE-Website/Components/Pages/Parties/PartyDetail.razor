@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 
-<PageTitle>@(_party?.Name ?? "Partei") · NOOSE</PageTitle>
+<PageTitle>@(_party?.Name ?? "Partei") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -210,7 +210,7 @@ else
                 }
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(Party)" EntityId="@_party.Id" User="_user" />
                 </RecordSection>
                 }
@@ -374,13 +374,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Partei löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Partei löschen?",
             "Die Partei wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await PartyService.DeleteAsync(_party.Id, _user);
+        await PartyService.DeleteAsync(_party.Id, reason, _user);
         Snackbar.Add("Partei in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/parteien");
     }

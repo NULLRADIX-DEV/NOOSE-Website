@@ -13,7 +13,7 @@ namespace NOOSE_Website.Services.Public;
 public static class TicketRules
 {
     /// <summary>What the citizen sees as the sender of every agency line.</summary>
-    public const string AgencySender = "NOOSE – Führungsebene";
+    public const string AgencySender = "FIB – Führungsebene";
 
     public const int SubjectMinLength = 5;
     public const int SubjectMaxLength = 160;

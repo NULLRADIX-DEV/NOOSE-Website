@@ -50,10 +50,10 @@ public class ActivityBandDisplayTests
     }
 
     [Theory]
-    [InlineData("#22D3EE")] // NooseTheme.DefaultPrimary, overridable by an admin at runtime
+    [InlineData("#71614A")] // NooseTheme.DefaultPrimary, overridable by an admin at runtime
     [InlineData("#3FB950")] // DefaultSecondary
-    [InlineData("#7C8CF8")] // DefaultTertiary
-    [InlineData("#E6EDF3")] // PaletteDark.TextPrimary — a near-white bar reads as the total
+    [InlineData("#9A8F80")] // DefaultTertiary
+    [InlineData("#ECE8E1")] // PaletteDark.TextPrimary — a near-white bar reads as the total
     public void Group_colours_avoid_the_theme_accents(string themeColour)
     {
         var colours = Enumerable.Range(0, ActivityBandDisplay.Slots).Select(ActivityBandDisplay.Hex);

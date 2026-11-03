@@ -251,7 +251,7 @@ public sealed class CitizenAssistService(
     {
         if (!noosei.IsConfigured)
         {
-            throw new InvalidOperationException("NOOSEI ist nicht konfiguriert.");
+            throw new InvalidOperationException("FIBI ist nicht konfiguriert.");
         }
     }
 
@@ -289,7 +289,7 @@ public sealed class CitizenAssistService(
         var draft = Scrub(answer.Text, maxLength);
         if (string.IsNullOrWhiteSpace(draft))
         {
-            throw new InvalidOperationException("NOOSEI hat keinen verwertbaren Entwurf geliefert.");
+            throw new InvalidOperationException("FIBI hat keinen verwertbaren Entwurf geliefert.");
         }
         return new CitizenDraftSuggestion(draft, answer.Charge.QuotaTokens, answer.Charge.Status);
     }

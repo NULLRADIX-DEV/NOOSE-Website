@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 
-<PageTitle>@(_group?.Name ?? "Personengruppe") · NOOSE</PageTitle>
+<PageTitle>@(_group?.Name ?? "Personengruppe") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -217,7 +217,7 @@ else
                 @* AI short brief: internal only *@
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(PersonGroup)" EntityId="@_group.Id" User="_user" />
                 </RecordSection>
                 }
@@ -381,13 +381,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Personengruppe löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Personengruppe löschen?",
             "Die Gruppe wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await GroupService.DeleteAsync(_group.Id, _user);
+        await GroupService.DeleteAsync(_group.Id, reason, _user);
         Snackbar.Add("Personengruppe in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/personengruppen");
     }

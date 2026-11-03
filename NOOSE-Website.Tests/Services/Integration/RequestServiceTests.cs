@@ -260,7 +260,7 @@ public sealed class RequestServiceTests
     {
         using var ctx = new SqliteTestContext();
         var service = CreateService(ctx);
-        var actor = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        var actor = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.DecideAsync("any", approved: true, note: null, actor));

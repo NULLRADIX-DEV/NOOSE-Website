@@ -11,7 +11,7 @@
     <div class="d-flex justify-end mb-2">
         <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
                    StartIcon="@Icons.Material.Filled.Forum" Href="@ChatHref">
-            NOOSEI zu dieser Akte fragen
+            FIBI zu dieser Akte fragen
         </MudButton>
     </div>
 }
@@ -31,14 +31,14 @@ else if (!_view.Exists)
     @if (!_view.Configured)
     {
         <EmptyState Icon="@Icons.Material.Filled.AutoAwesome"
-                    Text="NOOSEI ist nicht konfiguriert. Ein Admin muss Endpoint, Modell und Schlüssel hinterlegen." />
+                    Text="FIBI ist nicht konfiguriert. Ein Admin muss Endpoint, Modell und Schlüssel hinterlegen." />
     }
     else
     {
         <MudPaper Class="pa-6 d-flex flex-column align-center" Elevation="0" Style="gap:12px;">
             <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Color="Color.Primary" Size="Size.Large" />
             <MudText Typo="Typo.body2" Class="mud-text-secondary" Align="Align.Center">
-                Für diese Akte wurde noch kein NOOSEI-Kurzbrief erstellt.
+                Für diese Akte wurde noch kein FIBI-Kurzbrief erstellt.
             </MudText>
             @if (_canGenerate)
             {
@@ -171,7 +171,7 @@ else if (_view.Brief is { } brief)
 
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-1">
             <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                NOOSEI · KI-generiert, ungeprüft
+                FIBI · KI-generiert, ungeprüft
                 @if (_view.GeneratedAt is { } g)
                 {
                     <text> · erstellt @g.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</text>

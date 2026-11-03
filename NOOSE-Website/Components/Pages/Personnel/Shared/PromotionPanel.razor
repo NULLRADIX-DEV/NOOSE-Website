@@ -1,4 +1,4 @@
-@* Promotion requests; requesting is leadership, deciding is Deputy Director+/Admin. *@
+@* Promotion requests; deciding follows PromotionRules. *@
 @inject IPersonnelFileService PersonnelFileService
 @inject IAgentManagementService AgentService
 @inject IDialogService DialogService
@@ -48,7 +48,7 @@
                         }
                     </MudText>
 
-                    @if (a.Status == PromotionStatus.Requested)
+                    @if (a.Status == PromotionStatus.Requested && PromotionRules.MayDecide(_standing, Agent, a.TargetRank))
                     {
                         <AuthorizeView Policy="@Policies.PromotionDecideWrite">
                             <MudStack Row="true" Spacing="2" Class="mt-1">
@@ -74,6 +74,7 @@
 
     private bool _load = true;
     private ClaimsPrincipal _user = default!;
+    private PromotionStanding _standing;
     private List<AgentPromotionRequest> _requests = new();
 
     // a NOOSE rank cannot be granted to a partner account or to someone who left
@@ -82,6 +83,7 @@
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
+        _standing = PromotionStanding.Of(_user);
         await LoadAsync();
     }
 
@@ -94,7 +96,7 @@
 
     private async Task RequestAsync()
     {
-        var choice = await PromotionDialog.ShowAsync(DialogService, Agent.Id, Agent.Codename, Agent.Rank ?? Rank.JuniorAgent);
+        var choice = await PromotionDialog.ShowAsync(DialogService, Agent.Id, Agent.Codename, Agent.Rank ?? Rank.Trainee);
         if (choice is null)
         {
             return;
@@ -127,10 +129,13 @@
         }
         try
         {
-            await AgentService.PromotionDecideAsync(a.Id, approved, null, _user);
-            Snackbar.Add(approved ? "Beförderung genehmigt." : "Antrag abgelehnt.", Severity.Success);
-            await LoadAsync();
-            await Changed.InvokeAsync();
+            if (await DivisionLimitConfirm.RunAsync(DialogService,
+                    confirm => AgentService.PromotionDecideAsync(a.Id, approved, null, confirm, _user)))
+            {
+                Snackbar.Add(approved ? "Beförderung genehmigt." : "Antrag abgelehnt.", Severity.Success);
+                await LoadAsync();
+                await Changed.InvokeAsync();
+            }
         }
         catch (Exception ex)
         {

@@ -10,7 +10,7 @@ public class ClassificationHelperTests
     // ---- CheckRankGate: throw cases ----
 
     [Theory]
-    [InlineData(Rank.JuniorAgent)]
+    [InlineData(Rank.Trainee)]
     [InlineData(Rank.SpecialAgent)] // boundary: rank 2, one below SeniorSpecialAgent
     public void CheckRankGate_SecuredStateThreatening_belowSeniorSpecialAgent_throws(Rank rank)
     {
@@ -42,7 +42,9 @@ public class ClassificationHelperTests
 
     [Theory]
     [InlineData(Rank.SeniorSpecialAgent)] // boundary: rank 3, exactly the threshold
-    [InlineData(Rank.SupervisorySpecialAgent)]
+    [InlineData(Rank.SpecialAgentInCharge)]
+    [InlineData(Rank.SectionChief)]
+    [InlineData(Rank.AssistantDirector)]
     [InlineData(Rank.DeputyDirector)]
     [InlineData(Rank.Director)]
     public void CheckRankGate_SecuredStateThreatening_atOrAboveSeniorSpecialAgent_doesNotThrow(Rank rank)
@@ -56,7 +58,7 @@ public class ClassificationHelperTests
     [Fact]
     public void CheckRankGate_SecuredStateThreatening_adminWithLowRank_doesNotThrow()
     {
-        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsAdmin();
+        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsAdmin();
 
         Assert.Null(Record.Exception(
             () => ClassificationHelper.CheckRankGate(Classification.SecuredStateThreatening, actor)));
@@ -90,7 +92,7 @@ public class ClassificationHelperTests
     [InlineData(Classification.SuspicionCase)]
     public void CheckRankGate_belowSecured_neverThrows_forLowRankAgent(Classification value)
     {
-        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent);
+        ClaimsPrincipal actor = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee);
 
         Assert.Null(Record.Exception(() => ClassificationHelper.CheckRankGate(value, actor)));
     }

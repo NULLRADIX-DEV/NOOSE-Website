@@ -1,6 +1,19 @@
 html, body {
     font-family: Roboto, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background-color: #0E1116;
+    background-color: #1C1C1C;
+}
+
+/* Bronze (#71614A) is only 2.85:1 as text on the dark background; text and outline uses take the light tone (7.0:1) */
+.mud-primary-text,
+.mud-button-text.mud-button-text-primary,
+.mud-button-outlined.mud-button-outlined-primary,
+.mud-chip-outlined.mud-chip-color-primary,
+.mud-chip-text.mud-chip-color-primary,
+.mud-navmenu .mud-nav-link.active:not(.mud-nav-link-disabled),
+.mud-navmenu .mud-nav-link.active:not(.mud-nav-link-disabled) .mud-nav-link-icon,
+.mud-tab.mud-tab-active,
+.mud-link.mud-link-primary {
+    color: var(--mud-palette-primary-lighten) !important;
 }
 
 /* FocusOnNavigate parks focus on the new page heading; the UA ring there reads as a stray box */
@@ -109,7 +122,7 @@ html, body {
 
 /* Drag-Visuals (MudDropContainer ApplyDropClassesOnDragStarted) */
 .aufgaben-dropzone-aktiv {
-    background-color: rgba(57, 211, 233, 0.08);
+    background-color: rgba(113, 97, 74, 0.1);
     outline: 2px dashed var(--mud-palette-primary);
     outline-offset: -6px;
 }
@@ -130,7 +143,7 @@ html, body {
 .ql-toolbar.ql-snow {
     border-top-left-radius: 6px;
     border-top-right-radius: 6px;
-    background-color: var(--mud-palette-background-grey);
+    background-color: var(--mud-palette-background-gray);
     position: sticky;
     top: var(--noose-rte-toolbar-top, 64px);
     /* above the editor text, below the mention picker (10) and every MudBlazor overlay */
@@ -302,7 +315,7 @@ html, body {
 .ql-snow.ql-toolbar button.ql-active .ql-stroke-miter,
 .ql-snow.ql-toolbar .ql-picker-label:hover .ql-stroke,
 .ql-snow.ql-toolbar .ql-picker-label.ql-active .ql-stroke {
-    stroke: var(--mud-palette-primary) !important;
+    stroke: var(--mud-palette-primary-lighten) !important;
 }
 
 .ql-snow.ql-toolbar button:hover .ql-fill,
@@ -311,7 +324,7 @@ html, body {
 .ql-snow .ql-toolbar button.ql-active .ql-fill,
 .ql-snow.ql-toolbar button:hover .ql-stroke.ql-fill,
 .ql-snow.ql-toolbar button.ql-active .ql-stroke.ql-fill {
-    fill: var(--mud-palette-primary) !important;
+    fill: var(--mud-palette-primary-lighten) !important;
 }
 
 .ql-snow.ql-toolbar .ql-picker-label:hover,
@@ -322,7 +335,7 @@ html, body {
 .ql-snow .ql-toolbar .ql-picker-item:hover,
 .ql-snow.ql-toolbar .ql-picker-item.ql-selected,
 .ql-snow .ql-toolbar .ql-picker-item.ql-selected {
-    color: var(--mud-palette-primary) !important;
+    color: var(--mud-palette-primary-lighten) !important;
 }
 
 .ql-snow .ql-picker-options {
@@ -405,7 +418,7 @@ html, body {
     padding: .25rem .45rem;
     border: 1px solid var(--mud-palette-lines-default);
     border-radius: 4px;
-    background-color: var(--mud-palette-background-grey);
+    background-color: var(--mud-palette-background-gray);
     color: var(--mud-palette-text-primary);
     font-size: .8125rem;
 }
@@ -426,7 +439,7 @@ html, body {
 
 .noose-suchen button:hover {
     border-color: var(--mud-palette-primary);
-    color: var(--mud-palette-primary);
+    color: var(--mud-palette-primary-lighten);
 }
 
 .noose-suchen-zaehler {
@@ -575,7 +588,7 @@ html, body {
 
 /* ---- NOOSEI-Kurzbrief ---- */
 .ki-brief-tldr {
-    background: rgba(34, 211, 238, .08);
+    background: rgba(113, 97, 74, .1);
     border-left: 3px solid var(--mud-palette-primary);
     border-radius: 8px;
 }
@@ -616,7 +629,7 @@ html, body {
     }
 
     .dokument-html a {
-        color: var(--mud-palette-primary);
+        color: var(--mud-palette-primary-lighten);
     }
 
     /* ---- @-Erwähnungen: Chip im Editor, Link in der Anzeige ---- */
@@ -626,7 +639,7 @@ html, body {
         padding: 0 .3rem;
         border-radius: 4px;
         background-color: rgba(var(--mud-palette-primary-rgb), .14);
-        color: var(--mud-palette-primary);
+        color: var(--mud-palette-primary-lighten);
         text-decoration: none;
         white-space: nowrap;
     }
@@ -637,7 +650,7 @@ html, body {
     }
 
     .dokument-html .erwaehnung-fehlt {
-        background-color: var(--mud-palette-background-grey);
+        background-color: var(--mud-palette-background-gray);
         color: var(--mud-palette-text-secondary);
     }
 
@@ -710,7 +723,7 @@ html, body {
     }
 
     .dokument-html pre {
-        background-color: var(--mud-palette-background-grey);
+        background-color: var(--mud-palette-background-gray);
         padding: .75rem 1rem;
         border-radius: 6px;
         overflow-x: auto;
@@ -890,7 +903,7 @@ html, body {
     }
 
     .dokument-html li[class*="noose-toc-"] a {
-        color: var(--mud-palette-primary);
+        color: var(--mud-palette-primary-lighten);
     }
 
     /* Quill block formats stored in the html: alignment, indentation and checklists. Read views and
@@ -1141,6 +1154,49 @@ html, body {
     letter-spacing: .02em;
 }
 
+/* QR code and short address; kept together on one page */
+.druck-poster-qr {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 22px 0 0;
+    padding: 10px 12px;
+    border: 1.5px solid #111;
+    break-inside: avoid;
+}
+
+.druck-poster-qr-code {
+    flex: none;
+    width: 128px;
+    height: 128px;
+}
+
+    .druck-poster-qr-code svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+
+.druck-poster-qr-titel {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .10em;
+    text-transform: uppercase;
+    color: #444;
+}
+
+.druck-poster-qr-adresse {
+    font-family: monospace;
+    font-size: 22px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.druck-poster-qr-hilfe {
+    font-size: 12px;
+    color: #444;
+}
+
 .druck-dokument {
     font-size: 14px;
     line-height: 1.45;
@@ -1270,11 +1326,11 @@ html, body {
 .noose-graph-flaeche {
     position: relative;
     overflow: hidden;
-    border: 1px solid #222B36;
+    border: 1px solid #333333;
     border-radius: 10px;
     background:
-        radial-gradient(1200px 500px at 50% -10%, rgba(34, 211, 238, 0.06), transparent 60%),
-        linear-gradient(180deg, #0F141A 0%, #0B0E13 100%);
+        radial-gradient(1200px 500px at 50% -10%, rgba(113, 97, 74, 0.08), transparent 60%),
+        linear-gradient(180deg, #181818 0%, #121212 100%);
 }
 
 /* vis-network rendert in einen Canvas; das umgebende div bekommt einen feinen Innenschatten. */
@@ -1289,7 +1345,7 @@ html, body {
     align-items: center;
     justify-content: center;
     pointer-events: none;
-    background: rgba(11, 14, 19, 0.35);
+    background: rgba(21, 21, 21, 0.35);
 }
 
 .noose-graph-punkt {
@@ -1313,7 +1369,7 @@ html, body {
     width: 16px;
     height: 16px;
     background: #4A3708;
-    border: 2px solid #8B98A8;
+    border: 2px solid #9A9488;
     box-shadow: 0 0 8px rgba(255, 200, 87, 0.9);
 }
 
@@ -1321,17 +1377,17 @@ html, body {
 .noose-graph-fokus {
     width: 16px;
     height: 16px;
-    background: #161B22;
+    background: #242424;
     border: 3px solid #F778BA;
     box-shadow: 0 0 8px rgba(247, 120, 186, 0.9);
 }
 
 /* vis-network Tooltip an das dunkle Theme angleichen. */
 div.vis-tooltip {
-    background: #11161D !important;
-    border: 1px solid #2B3744 !important;
+    background: #202020 !important;
+    border: 1px solid #3F3F3F !important;
     border-radius: 8px !important;
-    color: #E6EDF3 !important;
+    color: #ECE8E1 !important;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55) !important;
     padding: 8px 10px !important;
     font-family: Inter, 'Segoe UI', Roboto, sans-serif !important;
@@ -1389,7 +1445,7 @@ div.vis-tooltip {
     left: 0;
     right: 0;
     height: 1px;
-    background: rgba(139, 152, 168, 0.1);
+    background: rgba(168, 162, 154,0.1);
     pointer-events: none;
 }
 
@@ -1426,11 +1482,11 @@ div.vis-tooltip {
 /* zero buckets are gap-filled; without a stub the band looks unfilled */
 .noose-band-null {
     height: 2px;
-    background: #222b36;
+    background: #333333;
 }
 
 .noose-band-spalte:hover {
-    background: rgba(139, 152, 168, 0.1);
+    background: rgba(168, 162, 154,0.1);
 }
 
 .noose-band-spalte:focus-visible {
@@ -1439,7 +1495,7 @@ div.vis-tooltip {
 }
 
 .noose-band-gewaehlt {
-    background: rgba(34, 211, 238, 0.14);
+    background: rgba(113, 97, 74, 0.22);
     box-shadow: inset 0 -2px 0 0 var(--mud-palette-primary);
 }
 
@@ -1454,8 +1510,8 @@ div.vis-tooltip {
     padding: 0.5rem 0.6rem;
     border-radius: 8px;
     /* lighter than the surface it floats over; the vis-network tooltip is darker on purpose */
-    background: #1b222b;
-    border: 1px solid #2b3744;
+    background: #2A2A2A;
+    border: 1px solid #3F3F3F;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
     color: var(--mud-palette-text-primary);
     font-size: 0.72rem;
@@ -1501,7 +1557,7 @@ div.vis-tooltip {
     left: 0;
     right: 0;
     bottom: 0;
-    border-bottom: 1px dashed rgba(139, 152, 168, 0.35);
+    border-bottom: 1px dashed rgba(168, 162, 154,0.35);
 }
 
 .noose-band-leer-text {
@@ -1573,7 +1629,7 @@ div.vis-tooltip {
 }
 
 .noose-band-legende button:hover {
-    background: rgba(139, 152, 168, 0.08);
+    background: rgba(168, 162, 154,0.08);
 }
 
 .noose-band-legende button:disabled {
@@ -1583,7 +1639,7 @@ div.vis-tooltip {
 
 .noose-band-legende .noose-band-legende-aktiv {
     border-color: var(--mud-palette-primary);
-    background: rgba(34, 211, 238, 0.1);
+    background: rgba(113, 97, 74, 0.16);
     color: var(--mud-palette-text-primary);
 }
 
@@ -1632,11 +1688,11 @@ div.vis-tooltip {
 }
 
 .chronik-zeile + .chronik-zeile {
-    border-top: 1px solid rgba(139, 152, 168, 0.1);
+    border-top: 1px solid rgba(168, 162, 154,0.1);
 }
 
 .chronik-zeile:hover {
-    background: rgba(139, 152, 168, 0.06);
+    background: rgba(168, 162, 154,0.06);
 }
 
 .chronik-neu {

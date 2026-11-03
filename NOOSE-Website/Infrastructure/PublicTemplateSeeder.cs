@@ -50,7 +50,7 @@ public static class PublicTemplateSeeder
             Wir melden uns, sobald wir eine Rückfrage haben. Bitte haben Sie Verständnis, dass wir zu laufenden Prüfungen keine Auskunft geben können.
 
             Mit freundlichen Grüßen
-            NOOSE
+            FIB
             """),
         (PublicTemplateKind.HinweisRueckfrage, "Rückfrage zu einem Hinweis",
             """
@@ -63,7 +63,7 @@ public static class PublicTemplateSeeder
             Bitte antworten Sie in diesem Schriftwechsel. Ihre Angaben helfen uns bei der Prüfung.
 
             Mit freundlichen Grüßen
-            NOOSE
+            FIB
             """),
         (PublicTemplateKind.HinweisAblehnung, "Hinweis wird nicht weiter verfolgt",
             """
@@ -74,7 +74,7 @@ public static class PublicTemplateSeeder
             Vielen Dank, dass Sie sich die Zeit genommen haben.
 
             Mit freundlichen Grüßen
-            NOOSE
+            FIB
             """),
     ];
 

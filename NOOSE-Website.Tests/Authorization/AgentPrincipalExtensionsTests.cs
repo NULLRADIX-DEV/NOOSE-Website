@@ -81,6 +81,8 @@ public class AgentPrincipalExtensionsTests
     [InlineData(4)]
     [InlineData(5)]
     [InlineData(6)]
+    [InlineData(7)]
+    [InlineData(8)]
     public void GetRank_definedRankClaim_returnsRank(int rankValue)
     {
         ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Raw(AgentClaimTypes.Rank, rankValue.ToString()).Build();
@@ -95,8 +97,8 @@ public class AgentPrincipalExtensionsTests
     }
 
     [Theory]
-    [InlineData("0")]      // below first defined member (JuniorAgent = 1)
-    [InlineData("7")]      // one above Director (6)
+    [InlineData("0")]      // below first defined member (Trainee = 1)
+    [InlineData("9")]      // one above Director (8)
     [InlineData("99")]     // far out of range
     [InlineData("-1")]     // negative
     [InlineData("abc")]    // non-numeric
@@ -408,7 +410,7 @@ public class AgentPrincipalExtensionsTests
     [Fact]
     public void MayWrite_plainAgent_returnsTrue()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
         Assert.True(user.MayWrite());
     }
 
@@ -470,13 +472,15 @@ public class AgentPrincipalExtensionsTests
         Assert.False(user.MayContribute());
     }
 
-    // ---------- IsLeadership (admin || rank >= SupervisorySpecialAgent(4)) ----------
+    // ---------- IsLeadership (admin || rank >= SpecialAgentInCharge(4)) ----------
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, false)]
+    [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, false)]
-    [InlineData(Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void IsLeadership_byRank(Rank rank, bool expected)
@@ -504,7 +508,7 @@ public class AgentPrincipalExtensionsTests
     [Fact]
     public void MayClassifiedRead_leadership_returnsTrue()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
         Assert.True(user.MayClassifiedRead());
     }
 
@@ -518,7 +522,7 @@ public class AgentPrincipalExtensionsTests
     [Fact]
     public void MayClassifiedRead_juniorAgent_returnsFalse()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
         Assert.False(user.MayClassifiedRead());
     }
 
@@ -550,7 +554,7 @@ public class AgentPrincipalExtensionsTests
     [Fact]
     public void MayRealNameSee_leadershipByRank_returnsTrue()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
         Assert.True(user.MayRealNameSee());
     }
 
@@ -566,14 +570,14 @@ public class AgentPrincipalExtensionsTests
     public void MayRealNameSee_onlyReaderWithLeadershipRank_returnsFalse()
     {
         // team lead (no admin) is an only-reader even at leadership rank => never sees real names.
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsTeamLead().WithRank(Rank.SupervisorySpecialAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsTeamLead().WithRank(Rank.SpecialAgentInCharge).Build();
         Assert.False(user.MayRealNameSee());
     }
 
     [Fact]
     public void MayRealNameSee_juniorAgent_returnsFalse()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
         Assert.False(user.MayRealNameSee());
     }
 
@@ -582,7 +586,7 @@ public class AgentPrincipalExtensionsTests
     [Fact]
     public void MayCounterIntel_leadershipByRank_returnsTrue()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
         Assert.True(user.MayCounterIntel());
     }
 
@@ -597,24 +601,26 @@ public class AgentPrincipalExtensionsTests
     public void MayCounterIntel_onlyReaderWithLeadershipRank_returnsFalse()
     {
         // this is the case Policies.Leadership would have let through while the service throws.
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsTeamLead().WithRank(Rank.SupervisorySpecialAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsTeamLead().WithRank(Rank.SpecialAgentInCharge).Build();
         Assert.False(user.MayCounterIntel());
     }
 
     [Fact]
     public void MayCounterIntel_juniorAgent_returnsFalse()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
         Assert.False(user.MayCounterIntel());
     }
 
     // ---------- MayHighestClassification (admin || rank >= SeniorSpecialAgent(3)) ----------
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, false)]
+    [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
-    [InlineData(Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void MayHighestClassification_byRank(Rank rank, bool expected)
@@ -640,10 +646,12 @@ public class AgentPrincipalExtensionsTests
     // ---------- MayEvidenceWithdraw (admin || rank >= SeniorSpecialAgent(3)) ----------
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, false)]
+    [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
-    [InlineData(Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void MayEvidenceWithdraw_byRank(Rank rank, bool expected)
@@ -669,10 +677,10 @@ public class AgentPrincipalExtensionsTests
     // ---------- MayKassenWithdraw / MayKassenBook ----------
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, false)]
+    [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, true)]
-    [InlineData(Rank.SupervisorySpecialAgent, true)]
+    [InlineData(Rank.SpecialAgentInCharge, true)]
     [InlineData(Rank.Director, true)]
     public void MayKassenWithdraw_byRank(Rank rank, bool expected)
     {
@@ -688,10 +696,10 @@ public class AgentPrincipalExtensionsTests
     }
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, true, false, false)]
+    [InlineData(Rank.Trainee, true, false, false)]
     [InlineData(Rank.SpecialAgent, true, false, false)]
     [InlineData(Rank.SeniorSpecialAgent, true, true, false)]
-    [InlineData(Rank.SupervisorySpecialAgent, true, true, true)]
+    [InlineData(Rank.SpecialAgentInCharge, true, true, true)]
     [InlineData(Rank.Director, true, true, true)]
     public void MayKassenBook_byRankAndKind(Rank rank, bool deposit, bool withdraw, bool correct)
     {
@@ -731,13 +739,15 @@ public class AgentPrincipalExtensionsTests
         Assert.False(user.MayMeetingRead());
     }
 
-    // ---------- MayPromotionDecide (admin || rank >= DeputyDirector(5)) ----------
+    // ---------- MayPromotionDecide (admin || rank >= SectionChief(5)); the coarse gate, PromotionRules is the fine one ----------
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, false)]
+    [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, false)]
-    [InlineData(Rank.SupervisorySpecialAgent, false)]
+    [InlineData(Rank.SpecialAgentInCharge, false)]
+    [InlineData(Rank.SectionChief, true)]
+    [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
     public void MayPromotionDecide_byRank(Rank rank, bool expected)
@@ -889,21 +899,21 @@ public class AgentPrincipalExtensionsTests
     [Fact]
     public void IsHrbOrLeadership_hrbWithoutLeadership_returnsTrue()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsHrb().WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsHrb().WithRank(Rank.Trainee).Build();
         Assert.True(user.IsHrbOrLeadership());
     }
 
     [Fact]
     public void IsHrbOrLeadership_leadershipWithoutHrb_returnsTrue()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
         Assert.True(user.IsHrbOrLeadership());
     }
 
     [Fact]
     public void IsHrbOrLeadership_neither_returnsFalse()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).Build();
         Assert.False(user.IsHrbOrLeadership());
     }
 }

@@ -21,7 +21,7 @@ public static class PublicVisibility
     private const string Protocol = "Protokollzeile; nach außen nie.";
     private const string Finance = "Interne Finanzdaten; öffentlich erscheint höchstens eine Summe aus einer eigenen Tabelle.";
     private const string Recruiting = "Bewerbungsverfahren; vertraulich zwischen Bewerber und Behörde.";
-    private const string Assistant = "NOOSEI-Interna; nach außen nie.";
+    private const string Assistant = "FIBI-Interna; nach außen nie.";
     private const string SearchInternal = "Suchindex des internen Bestands; nach außen nie.";
 
     /// <summary>Entity name → what exactly is published from it.</summary>
@@ -32,9 +32,9 @@ public static class PublicVisibility
             ["Agent"] = "Die Mitarbeiterliste auf /fuehrung, solange das Modul läuft: der Klarname jedes "
                 + "auswählbaren Agenten (aktiv, keine Teamleitung, kein Partner) mit hinterlegtem Klarnamen, der "
                 + "sich selbst eingeschaltet hat (`HiddenFromPublicRoster` ist standardmäßig gesetzt; die Seite "
-                + "verrät nicht, dass jemand fehlt), und nur für die Führung ab Supervisory Special Agent zusätzlich die "
+                + "verrät nicht, dass jemand fehlt), und nur für die Führung ab Special Agent in Charge zusätzlich die "
                 + "Dienstgradbezeichnung. "
-                + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Einheit (TRU/HRB), "
+                + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Abteilung (CID, CTD, HRT), Administration Division, "
                 + "Profilbild, Discord-Daten, Kennungen und Flags verlassen das Haus nie, und ohne laufendes "
                 + "Modul bleibt jeder Agent anonym.",
             ["OeffentlicheTelefonnummer"] = "Telefonnummer und eine KOPIERTE Fotodatei einer Führungskraft auf "
@@ -208,6 +208,8 @@ public static class PublicVisibility
             ["Decoration"] = Personnel,
             ["DecorationAward"] = Personnel,
             ["Absence"] = Personnel,
+            ["FirearmUse"] = "Meldung eines Schusswaffengebrauchs mit Agent, Zeitpunkt und Begründung; Dienstinterna, "
+                + "die einen Agenten enttarnen und nach außen nie gehen.",
             ["AgentActivity"] = Personnel,
             ["AgentActivityLink"] = Assignment,
             ["ActivityTemplate"] = Configuration,

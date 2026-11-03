@@ -10,7 +10,7 @@ public static class AuditActionDisplay
     public static readonly AuditAction[] All =
     [
         AuditAction.Created, AuditAction.Modified, AuditAction.Deleted, AuditAction.Restored,
-        AuditAction.Archived, AuditAction.Unarchived,
+        AuditAction.Archived, AuditAction.Unarchived, AuditAction.Justified,
     ];
 
     /// <summary>German label for an action.</summary>
@@ -22,6 +22,7 @@ public static class AuditActionDisplay
         AuditAction.Restored => "Wiederhergestellt",
         AuditAction.Archived => "Archiviert",
         AuditAction.Unarchived => "Aus dem Archiv geholt",
+        AuditAction.Justified => "Begründung",
         _ => action.ToString(),
     };
 
@@ -34,6 +35,7 @@ public static class AuditActionDisplay
         AuditAction.Restored => Color.Warning,
         AuditAction.Archived => Color.Default,
         AuditAction.Unarchived => Color.Default,
+        AuditAction.Justified => Color.Secondary,
         _ => Color.Default,
     };
 }

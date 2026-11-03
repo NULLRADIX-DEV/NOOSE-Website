@@ -15,7 +15,7 @@
    the PATH, never from a query parameter - parsing an attacker-supplied enum on an [AllowAnonymous] page is an
    HTTP 500 waiting to happen (precedent ?vorschau=1, WarnhinweisColours) *@
 
-<PageTitle>@(_capture ? "Person gestellt melden" : "Hinweis geben") · NOOSE</PageTitle>
+<PageTitle>@(_capture ? "Person gestellt melden" : "Hinweis geben") · FIB</PageTitle>
 
 <LinkPreview Title="@PreviewTitle" Description="@PreviewText" />
 
@@ -35,7 +35,7 @@
                     @* the standing advice is not repeated here: this form is the way in for a handover that has
                        happened, and the caution belongs on the notice, not on the receipt *@
                     <text>
-                        Hier meldest du, dass du eine gesuchte Person gestellt hast. NOOSE übernimmt ab hier —
+                        Hier meldest du, dass du eine gesuchte Person gestellt hast. Das FIB übernimmt ab hier —
                         halte sie nur so lange fest, wie es für dich sicher ist.
                     </text>
                 }
@@ -276,7 +276,7 @@
 
     /// <summary>Sentence of the preview card, in the words the page itself opens with.</summary>
     private string PreviewText => _capture
-        ? "Hier meldest du, dass du eine gesuchte Person gestellt hast. NOOSE übernimmt ab hier."
+        ? "Hier meldest du, dass du eine gesuchte Person gestellt hast. Das FIB übernimmt ab hier."
         : "Jeder Hinweis wird von einem Agenten gelesen und bewertet.";
 
     protected override async Task OnParametersSetAsync()

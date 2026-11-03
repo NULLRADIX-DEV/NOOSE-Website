@@ -12,7 +12,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class CounterIntelTests
 {
     private static ClaimsPrincipal Leader() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("low").WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("low").WithRank(Rank.Trainee).Build();
 
     private static CounterIntelRuleInput Input(Action<CounterIntelRuleDefinition>? configure = null, string name = "Testregel")
     {
@@ -333,7 +333,7 @@ public sealed class CounterIntelTests
             d.Actions = [CounterIntelActionKind.Read, CounterIntelActionKind.Deleted];
             d.EntityTypes = ["Person", "Faction"];
             d.ClassifiedOnly = true;
-            d.ActorRanks = [Rank.JuniorAgent];
+            d.ActorRanks = [Rank.Trainee];
             d.FromHour = 22;
             d.ToHour = 6;
             d.Bucket = CounterIntelBucket.Sliding;
@@ -347,7 +347,7 @@ public sealed class CounterIntelTests
         Assert.Equal([CounterIntelActionKind.Read, CounterIntelActionKind.Deleted], rule.Definition.Actions);
         Assert.Equal(["Person", "Faction"], rule.Definition.EntityTypes);
         Assert.True(rule.Definition.ClassifiedOnly);
-        Assert.Equal([Rank.JuniorAgent], rule.Definition.ActorRanks);
+        Assert.Equal([Rank.Trainee], rule.Definition.ActorRanks);
         Assert.Equal(22, rule.Definition.FromHour);
         Assert.Equal(45, rule.Definition.SlidingMinutes);
         Assert.Equal(7, rule.Definition.Threshold);

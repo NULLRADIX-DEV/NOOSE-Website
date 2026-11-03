@@ -60,7 +60,7 @@ public sealed class PartnerShareServiceTests
         => ClaimsPrincipalBuilder.Agent("leader").AsAdmin().WithRank(Rank.Director).WithCodename("Warden");
 
     private static ClaimsPrincipalBuilder NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent);
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee);
 
     // ---- GetForRecordAsync ----
 

@@ -16,13 +16,13 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="PersonGroupService"/> against in-memory SQLite.</summary>
 public sealed class PersonGroupServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) or admin => IsLeadership() and MayClassifiedRead().
+    // Rank >= SpecialAgentInCharge(4) or admin => IsLeadership() and MayClassifiedRead().
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, not admin, no classified read.
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // Senior Special Agent(3): MayHighestClassification() true, but NOT leadership.
     private static ClaimsPrincipal Senior(string id = "senior")
@@ -48,7 +48,7 @@ public sealed class PersonGroupServiceTests
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-G-2026-0001");
+            .Returns("FIB-G-2026-0001");
         return new PersonGroupService(
             ctx.Factory,
             caseNo,
@@ -64,7 +64,7 @@ public sealed class PersonGroupServiceTests
         {
             Id = id,
             Name = name,
-            CaseNumber = "NOOSE-G-2026-" + System.Guid.NewGuid().ToString("N").Substring(0, 8),
+            CaseNumber = "FIB-G-2026-" + System.Guid.NewGuid().ToString("N").Substring(0, 8),
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         };
         configure?.Invoke(g);
@@ -255,7 +255,7 @@ public sealed class PersonGroupServiceTests
 
         var group = await svc.CreateAsync(input, Leader());
 
-        Assert.Equal("NOOSE-G-2026-0001", group.CaseNumber);
+        Assert.Equal("FIB-G-2026-0001", group.CaseNumber);
         Assert.Equal("Die Bande", group.Name);
         Assert.Equal("ein Text", group.Description);
         Assert.Equal(GroupsKind.Personality, group.Kind);
@@ -428,7 +428,7 @@ public sealed class PersonGroupServiceTests
         }
         var svc = NewService(ctx);
 
-        await svc.DeleteAsync("g1", Leader());
+        await svc.DeleteAsync("g1", "Dublette", Leader());
 
         // interceptor absent => hard delete; row gone from the filtered set
         using var check = ctx.NewContext();
@@ -442,7 +442,7 @@ public sealed class PersonGroupServiceTests
         var svc = NewService(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => svc.DeleteAsync("g1", Junior()));
+            () => svc.DeleteAsync("g1", "Dublette", Junior()));
     }
 
     // ---------- RestoreAsync ----------
@@ -1152,7 +1152,7 @@ public sealed class PersonGroupServiceTests
             db.SaveChanges();
         }
         var svc = NewService(ctx);
-        var tru = ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.JuniorAgent).AsTru().Build();
+        var tru = ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.Trainee).AsTru().Build();
 
         Assert.NotNull(await svc.GetPhotoWithGroupAsync("ph1", ViewerScope.From(tru)));
     }

@@ -1,4 +1,4 @@
-﻿# NOOSE — only the public area may be indexed. Everything else is an internal records database.
+﻿# FIB — only the public area may be indexed. Everything else is an internal records database.
 # Second layer: an X-Robots-Tag: noindex header on every non-public route (PublicIndexingMiddleware).
 # Kept in sync with Services/Public/PublicRoutes.cs by PublicRoutesTests.
 
@@ -39,5 +39,6 @@ Allow: /_content
 Allow: /css
 Allow: /lib
 Allow: /app.css
-Allow: /NooseIcon.png
+Allow: /FibIcon.png
 Allow: /favicon.png
+Allow: /apple-touch-icon.png

@@ -5,7 +5,7 @@ namespace NOOSE_Website.Tests.Services;
 /// <summary>The threat board's pure rules: threshold, order, wording, fingerprint and the message bookkeeping.</summary>
 public class FactionThreatBoardTests
 {
-    private const string Base = "https://noose.info";
+    private const string Base = "https://fibhq.com";
     private static readonly DateTime At = new(2026, 10, 14, 16, 42, 0, DateTimeKind.Utc);
 
     [Theory]
@@ -49,7 +49,7 @@ public class FactionThreatBoardTests
     {
         var embed = FactionThreatBoard.Render([new("f-1", "Los Santos Vagos", 97)], 90, Base + "/", At);
 
-        Assert.Contains("🔴 `97` **[Los Santos Vagos](https://noose.info/fraktionen/f-1)**", embed.Description);
+        Assert.Contains("🔴 `97` **[Los Santos Vagos](https://fibhq.com/fraktionen/f-1)**", embed.Description);
         Assert.Equal(0xE53935, embed.Color);
         Assert.StartsWith("1 Fraktion ·", embed.Footer);
     }
@@ -156,7 +156,7 @@ public class FactionThreatBoardTests
         Assert.NotEqual(fp, FactionThreatBoard.Fingerprint([new("a", "Ballas", 94)], 90, Base));
         Assert.NotEqual(fp, FactionThreatBoard.Fingerprint([new("a", "Ballas MC", 93)], 90, Base));
         Assert.NotEqual(fp, FactionThreatBoard.Fingerprint(list, 85, Base));
-        Assert.NotEqual(fp, FactionThreatBoard.Fingerprint(list, 90, "https://demo.noose.info"));
+        Assert.NotEqual(fp, FactionThreatBoard.Fingerprint(list, 90, "https://demo.fibhq.com"));
         Assert.NotEqual(fp, FactionThreatBoard.Fingerprint([], 90, Base));
         Assert.Matches("^[0-9a-f]{64}$", fp);
     }

@@ -38,9 +38,9 @@ public sealed class FinancingServiceTests
         var fin = 0;
         var kas = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), "FIN", Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-FIN-2026-{++fin:0000}");
+            .Returns(_ => $"FIB-FIN-2026-{++fin:0000}");
         caseNo.NextAsync(Arg.Any<AppDbContext>(), "KAS", Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-KAS-2026-{++kas:0000}");
+            .Returns(_ => $"FIB-KAS-2026-{++kas:0000}");
 
         var configService = Substitute.For<IFinancingConfigService>();
         configService.GetAsync(Arg.Any<CancellationToken>()).Returns(config ?? FinancingBudgetConfig.Default());
@@ -61,7 +61,7 @@ public sealed class FinancingServiceTests
     };
 
     private static FinancingItem Item(string id, decimal price, int percent = 100, int max = 5,
-        Rank min = Rank.JuniorAgent, bool active = true)
+        Rank min = Rank.Trainee, bool active = true)
         => new()
         {
             Id = id,
@@ -110,7 +110,7 @@ public sealed class FinancingServiceTests
 
         var created = await h.Svc.CreateAsync(Cart("Brauche Ausrüstung", ("a", 1), ("b", 3)), Owner());
 
-        Assert.Equal("NOOSE-FIN-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-FIN-2026-0001", created.CaseNumber);
         Assert.Equal(FinancingStatus.Requested, created.Status);
         // 10.000 + 6.000 warenwert
         Assert.Equal(16_000m, created.RequestedGross);

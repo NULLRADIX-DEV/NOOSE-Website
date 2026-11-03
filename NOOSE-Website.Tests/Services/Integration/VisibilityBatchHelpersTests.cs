@@ -18,7 +18,7 @@ public class VisibilityBatchHelpersTests
     // ---- MeetingVisibility.OpenIdsAsync ----
 
     private static Meeting Meeting(string id, DateTime start, DateTime? end = null)
-        => new() { Id = id, Title = "Lagebesprechung " + id, CaseNumber = "NOOSE-B-2026-" + id, Start = start, End = end };
+        => new() { Id = id, Title = "Lagebesprechung " + id, CaseNumber = "FIB-B-2026-" + id, Start = start, End = end };
 
     [Fact]
     public async Task OpenIds_returns_only_meetings_past_the_grace_window_for_a_plain_agent()

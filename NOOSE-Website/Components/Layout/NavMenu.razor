@@ -476,7 +476,7 @@
                     + (await AgentService.GetPendingNameChangesAsync()).Count
                     + (await AgentService.GetPendingAvatarsAsync()).Count
                     + (await TaskforceService.GetRequestedAsync()).Count
-                    + (await PersonnelFileService.GetOpenPromotionRequestsAsync()).Count
+                    + await PersonnelFileService.CountOpenPromotionRequestsAsync(_user)
                     // zero for anyone who may not sign
                     + await WarrantService.GetOpenCountAsync(_user);
             }

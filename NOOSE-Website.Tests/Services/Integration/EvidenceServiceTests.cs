@@ -23,7 +23,7 @@ public sealed class EvidenceServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal OnlyReader()
         => ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.SpecialAgent).AsTeamLead().Build();
@@ -35,7 +35,7 @@ public sealed class EvidenceServiceTests
         var caseNo = Substitute.For<ICaseNumberService>();
         var seq = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), "ASS", Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-ASS-2026-{++seq:0000}");
+            .Returns(_ => $"FIB-ASS-2026-{++seq:0000}");
         caseNumber = caseNo;
         // real suggestion service: category learning is part of what these tests assert
         return new EvidenceService(ctx.Factory, caseNo, Substitute.For<IEvidenceImageStorageService>(),
@@ -48,7 +48,7 @@ public sealed class EvidenceServiceTests
         var caseNo = Substitute.For<ICaseNumberService>();
         var seq = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), "ASS", Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-ASS-2026-{++seq:0000}");
+            .Returns(_ => $"FIB-ASS-2026-{++seq:0000}");
 
         var storage = Substitute.For<IEvidenceImageStorageService>();
         storage.IsAllowedType(Arg.Any<string>()).Returns(true);
@@ -68,7 +68,7 @@ public sealed class EvidenceServiceTests
         caseNo.NextAsync(Arg.Any<AppDbContext>(), "ASS", Arg.Any<CancellationToken>())
             .Returns(ci => ci.Arg<AppDbContext>().Database.CurrentTransaction is null
                 ? throw new InvalidOperationException("Aktenzeichen-Vergabe erfordert eine umschließende Transaktion.")
-                : $"NOOSE-ASS-2026-5{++seq:000}");
+                : $"FIB-ASS-2026-5{++seq:000}");
         caseNumber = caseNo;
         // real suggestion service: category learning is part of what these tests assert
         return new EvidenceService(ctx.Factory, caseNo, Substitute.For<IEvidenceImageStorageService>(),
@@ -82,7 +82,7 @@ public sealed class EvidenceServiceTests
         db.EvidenceEntries.Add(new EvidenceEntry
         {
             Id = entryId,
-            CaseNumber = $"NOOSE-ASS-2026-9{Math.Abs(entryId.GetHashCode()) % 1000:000}",
+            CaseNumber = $"FIB-ASS-2026-9{Math.Abs(entryId.GetHashCode()) % 1000:000}",
             Type = type,
             OwnerType = EvidenceService.NooseOwner,
             HandlerAgentId = "lead",
@@ -126,7 +126,7 @@ public sealed class EvidenceServiceTests
             i.Lines.Add(new EvidenceLineInput { ItemName = "Ripper Roo", Quantity = 367 });
         }), Leader());
 
-        Assert.Equal("NOOSE-ASS-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-ASS-2026-0001", created.CaseNumber);
         using var db = ctx.NewContext();
         Assert.Equal(2, db.EvidenceItems.Count());
         Assert.Equal(2, db.EvidenceEntryLines.Count());
@@ -177,7 +177,7 @@ public sealed class EvidenceServiceTests
         {
             db.EvidenceEntries.Add(new EvidenceEntry
             {
-                Id = "ghost", CaseNumber = "NOOSE-ASS-2026-9001", Type = EvidenceEntryType.Deposit,
+                Id = "ghost", CaseNumber = "FIB-ASS-2026-9001", Type = EvidenceEntryType.Deposit,
                 OwnerType = EvidenceService.NooseOwner, HandlerAgentId = "lead", Timestamp = T0,
                 IsDeleted = true, DeletedAt = T0,
             });
@@ -197,7 +197,7 @@ public sealed class EvidenceServiceTests
             i => i.Lines.Add(new EvidenceLineInput { ItemName = "Food", Quantity = 1 })), Leader());
 
         var display = await svc.GetEntryDisplayAsync(e.Id);
-        Assert.Equal("NOOSE", display!.OwnerDisplay);
+        Assert.Equal("FIB", display!.OwnerDisplay);
     }
 
     [Fact]
@@ -277,13 +277,13 @@ public sealed class EvidenceServiceTests
         {
             db.EvidenceEntries.Add(new EvidenceEntry
             {
-                Id = "del", CaseNumber = "NOOSE-ASS-2026-9001", Type = EvidenceEntryType.Deposit,
+                Id = "del", CaseNumber = "FIB-ASS-2026-9001", Type = EvidenceEntryType.Deposit,
                 OwnerType = EvidenceService.NooseOwner, HandlerAgentId = "lead", Timestamp = T0,
                 IsDeleted = true, DeletedAt = T0,
             });
             db.EvidenceEntries.Add(new EvidenceEntry
             {
-                Id = "live", CaseNumber = "NOOSE-ASS-2026-9002", Type = EvidenceEntryType.Deposit,
+                Id = "live", CaseNumber = "FIB-ASS-2026-9002", Type = EvidenceEntryType.Deposit,
                 OwnerType = EvidenceService.NooseOwner, HandlerAgentId = "lead", Timestamp = T0,
             });
             db.SaveChanges();

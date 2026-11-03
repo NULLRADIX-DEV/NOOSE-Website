@@ -13,13 +13,13 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="RelationService"/> against in-memory SQLite.</summary>
 public sealed class RelationServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) or admin => leadership => MayClassifiedRead.
+    // Rank >= SpecialAgentInCharge(4) or admin => leadership => MayClassifiedRead.
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, cannot read classified.
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     // Read-only supervision (IsTeamLead && !IsAdmin) => fails RequireWriteAccess.
     private static ClaimsPrincipal OnlyReader()

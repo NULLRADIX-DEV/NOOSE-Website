@@ -19,7 +19,7 @@
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">(@a.RealName)</MudText>
                         }
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(a.PartnerAgency is { } ag ? PartnerRankDisplay.Full(ag, a.PartnerRank) : RankDisplay.Name(a.Rank))</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(a.PartnerAgency is { } ag ? PartnerRankDisplay.Full(ag, a.PartnerRank) : DivisionRules.RankName(a))</MudText>
                         @if (ReferenceDay is { } day && AbsenceHint.For(_absent, a.Id, day) is { Length: > 0 } hint)
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">· @hint</MudText>

@@ -25,20 +25,20 @@ public sealed class CalendarServiceTests
 
     private static CalendarService Build(SqliteTestContext ctx) => new(ctx.Factory);
 
-    // rank >= SupervisorySpecialAgent => leadership => MayClassifiedRead true
+    // rank >= SpecialAgentInCharge => leadership => MayClassifiedRead true
     private static ClaimsPrincipal PrivilegedViewer(string id = "me") =>
         ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
-    // JuniorAgent, no admin/teamlead => MayClassifiedRead false
+    // Trainee, no admin/teamlead => MayClassifiedRead false
     private static ClaimsPrincipal PlainViewer(string id = "me") =>
-        ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static Appointment NewAppointment(string id, DateTime start,
         AppointmentVisibilityLevel visibility = AppointmentVisibilityLevel.Public, string? createdBy = null,
         AppointmentStatus status = AppointmentStatus.Planned) => new()
     {
         Id = id,
-        CaseNumber = "NOOSE-TM-" + id,
+        CaseNumber = "FIB-TM-" + id,
         Title = "Termin-" + id,
         Start = start,
         Visibility = visibility,
@@ -49,7 +49,7 @@ public sealed class CalendarServiceTests
     private static Operation NewOperation(string id, DateTime start, bool classified = false) => new()
     {
         Id = id,
-        CaseNumber = "NOOSE-OP-" + id,
+        CaseNumber = "FIB-OP-" + id,
         Title = "Op-" + id,
         Start = start,
         IsClassified = classified,
@@ -59,7 +59,7 @@ public sealed class CalendarServiceTests
     private static Meeting NewMeeting(string id, DateTime start, MeetingStatus status = MeetingStatus.Planned) => new()
     {
         Id = id,
-        CaseNumber = "NOOSE-BS-" + id,
+        CaseNumber = "FIB-BS-" + id,
         Title = "Besprechung-" + id,
         Start = start,
         Status = status,
@@ -68,7 +68,7 @@ public sealed class CalendarServiceTests
     private static Job NewJob(string id, DateTime? due, string? createdBy = null) => new()
     {
         Id = id,
-        CaseNumber = "NOOSE-A-" + id,
+        CaseNumber = "FIB-A-" + id,
         Title = "Aufgabe-" + id,
         DueDate = due,
         CreatedById = createdBy,

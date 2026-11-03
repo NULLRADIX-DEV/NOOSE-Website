@@ -25,7 +25,7 @@ public sealed class MyShiftTests
     private static readonly DateTime T0 = new(2026, 10, 13, 12, 0, 0, DateTimeKind.Utc);
 
     private static ClaimsPrincipal Junior(string id = "me")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).WithCodename("Rookie").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).WithCodename("Rookie").Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).WithCodename("Falcon").Build();
@@ -102,7 +102,7 @@ public sealed class MyShiftTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee));
             db.SaveChanges();
         }
 
@@ -127,7 +127,7 @@ public sealed class MyShiftTests
         {
             Id = id,
             Title = "Aufgabe " + id,
-            CaseNumber = "NOOSE-A-2026-" + id,
+            CaseNumber = "FIB-A-2026-" + id,
             CreatedById = creator,
             CreatedAt = T0,
             Status = status,
@@ -145,8 +145,8 @@ public sealed class MyShiftTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent));
-            db.Users.Add(Seed.Agent("other", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee));
+            db.Users.Add(Seed.Agent("other", Rank.Trainee));
             db.Users.Add(Seed.Agent("boss", Rank.Director));
             db.Jobs.AddRange(
                 Job("open"), Job("working", JobStatus.InProcessing), Job("done", JobStatus.Done),
@@ -170,7 +170,7 @@ public sealed class MyShiftTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee));
             db.Users.Add(Seed.Agent("boss", Rank.Director));
             db.Jobs.AddRange(
                 Job("undated-high", priority: JobPriority.High),
@@ -230,7 +230,7 @@ public sealed class MyShiftTests
         => new()
         {
             Id = id,
-            CaseNumber = "NOOSE-N-2026-" + id,
+            CaseNumber = "FIB-N-2026-" + id,
             Title = "Eintrag " + id,
             Content = string.Empty,
             Audience = AnnouncementAudience.AllActive,
@@ -248,7 +248,7 @@ public sealed class MyShiftTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee));
             db.Announcements.AddRange(
                 Announcement("old", day: 1), Announcement("new", day: 5), Announcement("urgent", important: true, day: 9),
                 Announcement("acked"), Announcement("optional", required: false));
@@ -270,9 +270,9 @@ public sealed class MyShiftTests
 
     private static void SeedAgents(AppDbContext db)
     {
-        db.Users.Add(Seed.Agent("me", Rank.JuniorAgent));
+        db.Users.Add(Seed.Agent("me", Rank.Trainee));
         db.Users.Add(Seed.Agent("lead", Rank.Director));
-        db.Users.Add(Seed.Agent("other", Rank.JuniorAgent));
+        db.Users.Add(Seed.Agent("other", Rank.Trainee));
     }
 
     private static void SeedTaskforce(AppDbContext db, string id, bool member = true, bool archived = false, DateTime? readAt = null)
@@ -281,7 +281,7 @@ public sealed class MyShiftTests
         {
             Id = id,
             Name = "Taskforce " + id,
-            CaseNumber = "NOOSE-TF-2026-" + id,
+            CaseNumber = "FIB-TF-2026-" + id,
             IsArchived = archived,
             CreatedAt = T0.AddDays(-30),
         });

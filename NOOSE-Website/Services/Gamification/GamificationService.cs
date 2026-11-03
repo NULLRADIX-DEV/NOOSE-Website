@@ -30,9 +30,9 @@ public interface IGamificationService
 /// <inheritdoc cref="IGamificationService" />
 public sealed class GamificationService(IDbContextFactory<AppDbContext> dbFactory) : IGamificationService
 {
-    // out of the running from Supervisory Special Agent up; rank only, so an admin with a low rank keeps
+    // out of the running from Special Agent in Charge up; rank only, so an admin with a low rank keeps
     // competing - deliberately narrower than AgentPrincipalExtensions.IsLeadership()
-    private const Rank LeadershipFloor = Rank.SupervisorySpecialAgent;
+    private const Rank LeadershipFloor = Rank.SpecialAgentInCharge;
 
     // one predicate, negated for the other slice: Rank is nullable and a >=/< pair is false on BOTH sides for null
     private static bool OutOfCompetition(Rank? rank) => rank >= LeadershipFloor;

@@ -6,7 +6,7 @@
 @inject ISnackbar Snackbar
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-    Wöchentliches NOOSEI-Kontingent je Dienstgrad.
+    Wöchentliches FIBI-Kontingent je Dienstgrad.
     @if (_maySeeCost)
     {
         @* the exchange rate is a real price too: it turns every token figure on the page into money *@
@@ -87,7 +87,7 @@ else
 
     <MudText Typo="Typo.subtitle2" Class="mt-6 mb-1">Partnerbehörden</MudText>
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
-        Gilt je Konto der Behörde, nur für die Rechtsauskunft und nur, wenn die Behörde NOOSEI freigeschaltet hat.
+        Gilt je Konto der Behörde, nur für die Rechtsauskunft und nur, wenn die Behörde FIBI freigeschaltet hat.
         0 heißt: kein Zugang.
     </MudText>
     <MudSimpleTable Dense="true" Hover="true" Elevation="0">
@@ -200,7 +200,7 @@ else
         </MudItem>
     </MudGrid>
 
-    <MudText Typo="Typo.subtitle2" Class="mt-6 mb-2">Hausregel für NOOSEI</MudText>
+    <MudText Typo="Typo.subtitle2" Class="mt-6 mb-2">Hausregel für FIBI</MudText>
     <MudTextField @bind-Value="_addendum" Label="Zusatzhinweis (optional)" Lines="3" Variant="Variant.Outlined"
                   Disabled="!_mayEdit" Counter="@NooseiPrompts.MaxAddendumChars" MaxLength="@NooseiPrompts.MaxAddendumChars"
                   HelperText="Wird hinter die festen Regeln gehängt, z. B. „Nutze immer Codenamen, nie Klarnamen.“ Kann Regeln ergänzen, aber keine entfernen." />

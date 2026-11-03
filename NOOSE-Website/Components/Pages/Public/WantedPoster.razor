@@ -6,7 +6,7 @@
 @inject IPublicWantedService Wanted
 @inject IPublicModuleService Modules
 
-<PageTitle>@(_entry?.DisplayName ?? "Fahndungsposter") · NOOSE</PageTitle>
+<PageTitle>@(_entry?.DisplayName ?? "Fahndungsposter") · FIB</PageTitle>
 
 @* always, not only on the miss branch: /gesucht/* is indexable, this route answers 200 for any invented case
    number, and a print artefact is a near-duplicate of the profile anyway *@
@@ -25,7 +25,7 @@
 
     <div class="druck-dokument">
         <header class="druck-kopf">
-            <div class="druck-behoerde">N.O.O.S.E. · National Office of Security Enforcement</div>
+            <div class="druck-behoerde">F.I.B. · Federal Investigation Bureau</div>
             <h1>Ausschreibung nicht gefunden</h1>
         </header>
         <p>
@@ -47,7 +47,7 @@ else
 
     <div class="druck-dokument">
         <header class="druck-kopf">
-            <div class="druck-behoerde">N.O.O.S.E. · National Office of Security Enforcement</div>
+            <div class="druck-behoerde">F.I.B. · Federal Investigation Bureau</div>
             <h1>GESUCHT</h1>
             <div class="druck-meta">
                 @PublicWantedKindDisplay.Name(_entry.Kind) · Aktenzeichen @_entry.CaseNumber
@@ -102,10 +102,30 @@ else
             <p><b>@(_entry.Kind == PublicWantedKind.Fahrzeug ? "Modell" : "Fahrzeug"):</b> @_entry.VehicleText</p>
         }
 
+        @if (_link is { } link)
+        {
+            @* scan or type to get back online *@
+            <section class="druck-poster-qr">
+                @if (link.QrSvg is { } svg)
+                {
+                    @* encoder output, no notice text *@
+                    <div class="druck-poster-qr-code">@((MarkupString)svg)</div>
+                }
+                <div>
+                    <div class="druck-poster-qr-titel">@link.Heading</div>
+                    <div class="druck-poster-qr-adresse">@link.ShortText</div>
+                    <div class="druck-poster-qr-hilfe">@link.Caption</div>
+                </div>
+            </section>
+        }
+
         <footer class="druck-fusszeile">
-            Vorsicht ist geboten. Beobachtungen und Ergreifungen der nächsten Dienststelle melden.<br />
-            @* plain text, not a link: a printed sheet cannot be clicked *@
-            noose.info/gesucht/@_entry.CaseNumber
+            Vorsicht ist geboten. Beobachtungen und Ergreifungen der nächsten Dienststelle melden.
+            @if (_link is not null)
+            {
+                @* plain text, not a link: a printed sheet cannot be clicked *@
+                <br />@_link.ProfileText
+            }
         </footer>
     </div>
 }
@@ -120,6 +140,7 @@ else
 
     private PublicWantedDetail? _entry;
     private PublicBounty? _bounty;
+    private WantedPosterLink? _link;
     private string? _loadedKey;
 
     protected override async Task OnParametersSetAsync()
@@ -160,6 +181,10 @@ else
             // second copy of that gate could only ever drift from it
             try { _bounty = await Wanted.GetBountyAsync(_entry.CaseNumber); }
             catch { /* best effort */ _bounty = null; }
+
+            // poster stands without it
+            try { _link = await Wanted.GetPosterLinkAsync(_entry.CaseNumber); }
+            catch { /* best effort */ _link = null; }
         }
     }
 }

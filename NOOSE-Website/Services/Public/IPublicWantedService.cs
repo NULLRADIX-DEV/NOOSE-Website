@@ -18,6 +18,12 @@ public interface IPublicWantedService
     /// <summary>The advertised bounty of one published notice; null when there is none or the module is off.</summary>
     Task<PublicBounty?> GetBountyAsync(string? caseNumber, CancellationToken cancellationToken = default);
 
+    /// <summary>QR code and short address for the poster of a published notice, on the configured site; null for every other state.</summary>
+    Task<WantedPosterLink?> GetPosterLinkAsync(string? caseNumber, CancellationToken cancellationToken = default);
+
+    /// <summary>Profile path a typed short code leads to; null for every miss, so the short route cannot become an existence oracle.</summary>
+    Task<string?> ResolveShortLinkAsync(string? code, CancellationToken cancellationToken = default);
+
     /// <summary>The recently captured notices, cached; empty while the archive module is off.</summary>
     Task<IReadOnlyList<PublicWantedArchiveCard>> GetArchiveAsync(CancellationToken cancellationToken = default);
 
@@ -47,6 +53,9 @@ public interface IPublicWantedService
 
     /// <summary>Photo and area choices the editor may offer for a notice; the component never reads the file itself.</summary>
     Task<PublicWantedOptions> GetOptionsAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Id of the person file a photo may be uploaded to for this notice; refuses item and captured notices.</summary>
+    Task<string> RequirePhotoUploadAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Newest person notice of a file for the file page, whatever its state; null when there is none.</summary>
     /// <remarks>Item notices are excluded: they hang off the same file but say nothing about the person.</remarks>

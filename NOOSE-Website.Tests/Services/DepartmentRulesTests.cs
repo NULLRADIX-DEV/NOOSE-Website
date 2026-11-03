@@ -3,21 +3,23 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Tests.Services;
 
-/// <summary>Unit tests for the TRU/HRB rank threshold from the service regulation.</summary>
+/// <summary>Unit tests for the Administration Division rank threshold from the service regulation.</summary>
 public class DepartmentRulesTests
 {
     [Theory]
     [InlineData(Rank.SpecialAgent)]
     [InlineData(Rank.SeniorSpecialAgent)]
-    [InlineData(Rank.SupervisorySpecialAgent)]
+    [InlineData(Rank.SpecialAgentInCharge)]
+    [InlineData(Rank.SectionChief)]
+    [InlineData(Rank.AssistantDirector)]
     [InlineData(Rank.DeputyDirector)]
     [InlineData(Rank.Director)]
     public void MayHold_FromSpecialAgentUpwards(Rank rank)
         => Assert.True(DepartmentRules.MayHold(rank));
 
     [Fact]
-    public void MayHold_JuniorAgentMayNot()
-        => Assert.False(DepartmentRules.MayHold(Rank.JuniorAgent));
+    public void MayHold_TraineeMayNot()
+        => Assert.False(DepartmentRules.MayHold(Rank.Trainee));
 
     /// <summary>A rankless account is a partner or a pending one; neither belongs to a department.</summary>
     [Fact]
@@ -30,15 +32,35 @@ public class DepartmentRulesTests
 
     [Fact]
     public void RequireMayHold_PassesAtTheThreshold()
-        => DepartmentRules.RequireMayHold(Rank.SpecialAgent, "Die Human Resource Branch");
+        => DepartmentRules.RequireMayHold(Rank.SpecialAgent, "Die Administration Division");
 
     [Fact]
     public void RequireMayHold_NamesTheDepartmentAndTheRank()
     {
         var ex = Assert.Throws<InvalidOperationException>(
-            () => DepartmentRules.RequireMayHold(Rank.JuniorAgent, "Die Human Resource Branch"));
+            () => DepartmentRules.RequireMayHold(Rank.Trainee, "Die Administration Division"));
 
-        Assert.Contains("Human Resource Branch", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Administration Division", ex.Message, StringComparison.Ordinal);
         Assert.Contains("Special Agent", ex.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>Switches and guard share one sentence.</summary>
+    [Fact]
+    public void Hint_IsTheSentenceTheGuardThrows()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(
+            () => DepartmentRules.RequireMayHold(Rank.Trainee, DepartmentRules.Name));
+
+        Assert.Equal(ex.Message, DepartmentRules.Hint);
+        Assert.Equal(
+            "Die Administration Division ist laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.",
+            DepartmentRules.Hint);
+    }
+
+    [Fact]
+    public void ColumnLabel_NamesTheDivisionNotTheOldBranch()
+    {
+        Assert.Equal("Administration", DepartmentRules.ColumnLabel);
+        Assert.DoesNotContain("HRB", DepartmentRules.Hint, StringComparison.Ordinal);
     }
 }

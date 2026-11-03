@@ -31,7 +31,7 @@ public sealed class MeetingMeasureServiceTests
         var caseNo = Substitute.For<ICaseNumberService>();
         var counter = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-A-2026-{++counter:0000}");
+            .Returns(_ => $"FIB-A-2026-{++counter:0000}");
         var notifications = Substitute.For<INotificationService>();
         return new MeetingMeasureService(ctx.Factory, new JobService(ctx.Factory, caseNo, notifications),
             new FollowupService(ctx.Factory, notifications));
@@ -48,7 +48,7 @@ public sealed class MeetingMeasureServiceTests
         db.Meetings.Add(new Meeting
         {
             Id = MeetingId,
-            CaseNumber = "NOOSE-BS-2026-0001",
+            CaseNumber = "FIB-BS-2026-0001",
             Title = "Wochenrunde",
             Start = new DateTime(2026, 10, 20, 18, 0, 0, DateTimeKind.Utc),
             Status = MeetingStatus.Planned,
@@ -194,7 +194,7 @@ public sealed class MeetingMeasureServiceTests
         {
             db.Jobs.Add(new Job
             {
-                Id = "geheim", CaseNumber = "NOOSE-A-2026-0099", Title = "Geheime Aufgabe", IsRestricted = true,
+                Id = "geheim", CaseNumber = "FIB-A-2026-0099", Title = "Geheime Aufgabe", IsRestricted = true,
             });
             db.MeetingMeasures.Add(new MeetingMeasure
             {
@@ -236,7 +236,7 @@ public sealed class MeetingMeasureServiceTests
         await Build(ctx).CreateAsync(ItemId, JobMeasure(), Leader());
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-BS-2026-0002");
+            .Returns("FIB-BS-2026-0002");
         var meetings = new MeetingService(ctx.Factory, caseNo, Substitute.For<INotificationService>(),
             Substitute.For<ILinkService>());
 

@@ -136,7 +136,7 @@ public class LlmQuotaService(
         var agentId = actor.GetAgentId();
         if (string.IsNullOrEmpty(agentId))
         {
-            throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+            throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
         }
 
         var status = await StatusAsync(agentId, cancellationToken, boostPercent);
@@ -144,7 +144,7 @@ public class LlmQuotaService(
         {
             var reset = status.NextResetLocal is { } at ? at.ToString("dd.MM.yyyy HH:mm") : "dem nächsten Wochenwechsel";
             throw new LlmQuotaExceededException(
-                $"Dein NOOSEI-Kontingent für {status.PeriodLabel} ist aufgebraucht. Neues Kontingent ab {reset} Uhr.");
+                $"Dein FIBI-Kontingent für {status.PeriodLabel} ist aufgebraucht. Neues Kontingent ab {reset} Uhr.");
         }
         // the burn-rate rule reports a runaway agent and stops nothing; this is where it is actually stopped
         if (status.IsDayBlocked)
@@ -226,7 +226,7 @@ public class LlmQuotaService(
             {
                 // the call already cost real money; a lost row hides it from quota, anomalies and operations alike
                 logger.LogError(ex,
-                    "NOOSEI-Anfrage von {Agent} nicht protokolliert: {Tokens} Kontingent-Token, Funktion {Feature}",
+                    "FIBI-Anfrage von {Agent} nicht protokolliert: {Tokens} Kontingent-Token, Funktion {Feature}",
                     input.AgentId, quotaTokens, input.Feature);
             }
         }

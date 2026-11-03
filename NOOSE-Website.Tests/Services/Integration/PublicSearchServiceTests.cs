@@ -85,7 +85,7 @@ public sealed class PublicSearchServiceTests
         {
             (await db.OeffentlicheModule.SingleAsync(m => m.Key == key)).IsEnabled = true;
         }
-        db.People.Add(Seed.Person(PersonId, "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+        db.People.Add(Seed.Person(PersonId, "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-0001"));
         await db.SaveChangesAsync();
         return ctx;
     }
@@ -348,7 +348,8 @@ public sealed class PublicSearchServiceTests
         Assert.Contains("Kupferdraht", hit.Snippet, StringComparison.Ordinal);
         Assert.DoesNotContain("<b>", hit.Snippet, StringComparison.Ordinal);
         // never the internal file number
-        Assert.DoesNotContain("NOOSE-P-", hit.Snippet, StringComparison.Ordinal);
+        Assert.DoesNotContain("FIB-P-", hit.Snippet, StringComparison.Ordinal);
+        Assert.DoesNotContain("FIB-P-", hit.Reference!, StringComparison.Ordinal);
         Assert.DoesNotContain("NOOSE-P-", hit.Reference!, StringComparison.Ordinal);
     }
 

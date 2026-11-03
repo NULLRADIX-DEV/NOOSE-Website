@@ -67,7 +67,7 @@ public sealed class CitizenAssistServiceTests
         db.Tickets.Add(new Ticket
         {
             Id = TicketId,
-            CaseNumber = "NOOSE-T-2026-0001",
+            CaseNumber = "FIB-T-2026-0001",
             Subject = "Beschädigtes Fahrzeug",
             Kind = kind,
             Category = TicketKategorie.Anzeige,
@@ -212,7 +212,7 @@ public sealed class CitizenAssistServiceTests
         db.OeffentlicheFahndungen.Add(new OeffentlicheFahndung
         {
             Id = WantedId,
-            CaseNumber = "NOOSE-F-2026-0001",
+            CaseNumber = "FIB-F-2026-0001",
             DisplayName = "Tony Cipriani",
             Status = PublicWantedStatus.Veroeffentlicht,
         });
@@ -228,7 +228,7 @@ public sealed class CitizenAssistServiceTests
         db.Hinweise.Add(new Hinweis
         {
             Id = TipId,
-            CaseNumber = "NOOSE-H-2026-0001",
+            CaseNumber = "FIB-H-2026-0001",
             CitizenProfileId = "profil",
             WantsAnonymity = anonymous,
             WantedId = WantedId,
@@ -345,7 +345,7 @@ public sealed class CitizenAssistServiceTests
         db.FahndungEinsprueche.Add(new FahndungEinspruch
         {
             Id = ObjectionId,
-            CaseNumber = "NOOSE-EIN-2026-0001",
+            CaseNumber = "FIB-EIN-2026-0001",
             WantedId = WantedId,
             CitizenProfileId = "profil",
             Text = "Das bin nicht ich. Ich war zur angegebenen Zeit nachweislich in Paleto Bay.",

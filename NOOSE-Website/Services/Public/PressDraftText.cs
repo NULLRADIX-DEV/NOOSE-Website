@@ -12,7 +12,7 @@ namespace NOOSE_Website.Services.Public;
 /// point either way: the draft is always edited by hand, because nothing here is ever published automatically.
 /// <para>
 /// Takes a PublicWantedCard and nothing else, same argument as the Discord push: that record structurally cannot carry
-/// a PersonId, the internal NOOSE-P case number, a codename or a score, so the draft cannot either.
+/// a PersonId, the internal FIB-P case number, a codename or a score, so the draft cannot either.
 /// </para>
 /// </remarks>
 public static class PressDraftText
@@ -28,7 +28,7 @@ public static class PressDraftText
             + $"{notice.DisplayName} ist abgeschlossen. Der Gegenstand der Ausschreibung wurde "
             + $"{(item ? "sichergestellt" : "gefasst")}.";
         const string closing =
-            "Das National Office of Security Enforcement dankt allen Bürgerinnen und Bürgern, die mit ihren "
+            "Das Federal Investigation Bureau dankt allen Bürgerinnen und Bürgern, die mit ihren "
             + "Hinweisen zum Abschluss beigetragen haben.";
 
         return (title, teaser, Paragraphs(body, closing));

@@ -73,7 +73,7 @@ public sealed class DossierSummaryService(
         Permission.RequireWriteAccess(actor);
         if (!_o.IsConfigured)
         {
-            throw new InvalidOperationException("NOOSEI ist nicht konfiguriert.");
+            throw new InvalidOperationException("FIBI ist nicht konfiguriert.");
         }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -106,7 +106,7 @@ public sealed class DossierSummaryService(
         if (brief is null)
         {
             throw new InvalidOperationException(
-                "NOOSEI konnte keinen strukturierten Kurzbrief erzeugen. Bitte später erneut versuchen.");
+                "FIBI konnte keinen strukturierten Kurzbrief erzeugen. Bitte später erneut versuchen.");
         }
 
         if (existing is null)

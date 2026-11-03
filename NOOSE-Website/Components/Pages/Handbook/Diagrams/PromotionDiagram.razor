@@ -1,7 +1,7 @@
 @* Promotion: who proposes, who decides, and why the account is logged out afterwards. *@
 
 <FlowDiagram Caption="Ablauf einer Beförderung"
-             Description="Antrag aus der Führung, Entscheidung ab Deputy Director, neuer Dienstgrad und erzwungene Neuanmeldung."
+             Description="Antrag aus der Führung, Entscheidung durch das Board oder den Section Chief der Abteilung, neuer Dienstgrad und erzwungene Neuanmeldung."
              Steps="_steps"
              Footnote="Die Rechte stecken in der Anmeldung - deshalb gelten sie erst nach dem nächsten Anmelden." />
 
@@ -10,7 +10,8 @@
     [
         new("Antrag", "Jemand aus der Führung schlägt den nächsten Dienstgrad vor und begründet es.",
             "ab Rang 4"),
-        new("Entscheidung", "Zustimmung oder Ablehnung.", "ab Deputy Director"),
+        new("Entscheidung", "Das Board oder der Section Chief der eigenen Abteilung entscheidet.",
+            "ab Section Chief"),
         new("Dienstgrad gesetzt", "Der neue Rang steht im Verlauf der Personalakte.", null, Accent: true),
         new("Neuanmeldung", "Der Betroffene wird einmal abgemeldet und meldet sich neu an."),
     ];

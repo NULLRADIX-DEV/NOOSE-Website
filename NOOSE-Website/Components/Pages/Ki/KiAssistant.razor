@@ -1,19 +1,19 @@
 @page "/ki-assistent"
 @using NOOSE_Website.Components.Pages.Ki.Shared
 
-<PageTitle>NOOSEI · NOOSE</PageTitle>
+<PageTitle>FIBI · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.SmartToy"
-            Title="@(_isPartner ? "NOOSEI-Rechtsauskunft" : "NOOSEI")"
+            Title="@(_isPartner ? "FIBI-Rechtsauskunft" : "FIBI")"
             Subtitle="@(_isPartner
                 ? "Beantwortet Fragen zu den Gesetzbüchern und zitiert die Paragrafen. Antworten sind KI-generiert und ungeprüft."
                 : "Fragt die Aktendatenbank für dich ab, formuliert und fasst zusammen. Antworten sind KI-generiert und ungeprüft.")" />
 
 <RecordSectionRail>
-    <RecordSection Group="NOOSEI" Slug="chat" Label="Chat" Icon="@Icons.Material.Filled.Forum">
+    <RecordSection Group="FIBI" Slug="chat" Label="Chat" Icon="@Icons.Material.Filled.Forum">
         <NooseiChatPanel Anchor="@(_isPartner ? null : Record)" Draft="@Question" />
     </RecordSection>
-    <RecordSection Group="NOOSEI" Slug="kontingent" Label="Mein Kontingent" Icon="@Icons.Material.Filled.Token">
+    <RecordSection Group="FIBI" Slug="kontingent" Label="Mein Kontingent" Icon="@Icons.Material.Filled.Token">
         <NooseiQuotaPanel />
     </RecordSection>
 </RecordSectionRail>

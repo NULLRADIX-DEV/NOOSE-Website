@@ -141,7 +141,7 @@ public sealed class NooseiGatewayTests
         using var ctx = new SqliteTestContext();
         var (gateway, llm, _) = await BuildAsync(ctx);
         llm.CompleteAsync(Arg.Any<LlmRequest>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
-            .Returns<LlmResult>(_ => throw new InvalidOperationException("NOOSEI antwortete nicht (Fehler 502)."));
+            .Returns<LlmResult>(_ => throw new InvalidOperationException("FIBI antwortete nicht (Fehler 502)."));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => gateway.AskAsync(Call(), Agent()));
 

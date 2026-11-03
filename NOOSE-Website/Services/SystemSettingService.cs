@@ -80,7 +80,7 @@ public partial class SystemSettingService(
         {
             if (!string.IsNullOrWhiteSpace(colour) && !HexColourRegex().IsMatch(colour.Trim()))
             {
-                throw new InvalidOperationException($"„{colour}“ ist keine gültige Farbe – bitte als Hex-Wert angeben (z. B. #22D3EE).");
+                throw new InvalidOperationException($"„{colour}“ ist keine gültige Farbe – bitte als Hex-Wert angeben (z. B. #71614A).");
             }
         }
         if (!BannerLevels.All.Contains(input.BannerLevel))

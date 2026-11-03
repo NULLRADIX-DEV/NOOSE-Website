@@ -17,7 +17,7 @@ public sealed class ThreatTrendServiceTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal LowRank(string id = "low")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static IThreatScoreConfigService Config()
     {

@@ -314,7 +314,7 @@ public sealed class MySqlTranslationTests : IDisposable
         // ExecuteUpdate itself cannot be compiled without a connection; its Where clause is the part that could fail
         var now = new DateTime(2026, 8, 14, 12, 0, 0, DateTimeKind.Utc);
         var sql = _db.OeffentlicheFahndungen
-            .Where(f => f.CaseNumber == "NOOSE-FA-2026-0001"
+            .Where(f => f.CaseNumber == "FIB-FA-2026-0001"
                 && f.Status == PublicWantedStatus.Veroeffentlicht
                 && (f.ExpiresAt == null || f.ExpiresAt > now))
             .ToQueryString();
@@ -481,7 +481,7 @@ public sealed class MySqlTranslationTests : IDisposable
     public void TheReceiptLookup_TranslatesTheWholeChainToTheNotice()
     {
         var sql = _db.HinweisBelohnungen.AsNoTracking()
-            .Where(b => b.ReceiptNumber == "NOOSE-BEL-2026-0001")
+            .Where(b => b.ReceiptNumber == "FIB-BEL-2026-0001")
             .Select(b => new
             {
                 b.Amount,
@@ -1313,6 +1313,32 @@ public sealed class MySqlTranslationTests : IDisposable
             .ToQueryString();
 
         Assert.Contains("COALESCE", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheSignatoryCandidates_TranslateWithTheRankFloor()
+    {
+        // the Board and admins, plus every Section Chief: the home of the chiefs is then resolved in memory
+        var sql = _db.Users.AsNoTracking().OnlySelectable()
+            .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SectionChief))
+            .ToQueryString();
+
+        Assert.Contains("WHERE", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePromotionRequestList_TranslatesBothQueriesItReads()
+    {
+        List<string> ids = ["a1", "a2"];
+
+        var open = _db.AgentPromotionRequests.AsNoTracking()
+            .Where(a => a.Status == PromotionStatus.Requested)
+            .OrderBy(a => a.CreatedAt)
+            .ToQueryString();
+        var targets = _db.Users.AsNoTracking().Where(u => ids.Contains(u.Id)).ToQueryString();
+
+        Assert.Contains("ORDER BY", open, StringComparison.Ordinal);
+        Assert.Contains("IN (", targets, StringComparison.Ordinal);
     }
 
     private static int Occurrences(string text, string needle)

@@ -41,7 +41,7 @@ public partial class CitizenSurfaceScanTests
     private static readonly string[] IdentityMarkers =
     [
         "Codename", "RealName", "Klarname", "Dienstgrad", "BadgeNumber", "Dienstnummer",
-        "IsAdmin", "IsTeamLead", "IsTRU", "IsHRB",
+        "IsAdmin", "IsTeamLead", "IsTRU", "IsHRB", "GetDivision",
     ];
 
     /// <summary>Anything that reaches past the service layer into the record surface.</summary>

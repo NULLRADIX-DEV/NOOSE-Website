@@ -105,10 +105,30 @@ public class PublicWantedService(
     }
 
     public async Task<PublicWantedDetail?> GetByCaseNumberAsync(string? caseNumber, CancellationToken cancellationToken = default)
-        => (await GetBoardAsync(cancellationToken)).Find(caseNumber);
+        => (await GetBoardAsync(cancellationToken)).Find(CaseNumbers.Normalize(caseNumber));
 
     public async Task<PublicBounty?> GetBountyAsync(string? caseNumber, CancellationToken cancellationToken = default)
-        => (await GetBoardAsync(cancellationToken)).BountyFor(caseNumber);
+        => (await GetBoardAsync(cancellationToken)).BountyFor(CaseNumbers.Normalize(caseNumber));
+
+    public async Task<WantedPosterLink?> GetPosterLinkAsync(string? caseNumber, CancellationToken cancellationToken = default)
+    {
+        // gated by the board
+        var entry = await GetByCaseNumberAsync(caseNumber, cancellationToken);
+        if (entry is null)
+        {
+            return null;
+        }
+        var tipsOn = await modules.IsEnabledAsync(PublicModules.Tips, cancellationToken);
+        // configured site only
+        var config = await discord.GetConfigAsync(cancellationToken);
+        return WantedShortLink.Poster(config.SiteBaseUrl, entry.CaseNumber, tipsOn);
+    }
+
+    public async Task<string?> ResolveShortLinkAsync(string? code, CancellationToken cancellationToken = default)
+    {
+        var entry = await GetByCaseNumberAsync(WantedShortLink.CaseNumberFor(code), cancellationToken);
+        return entry is null ? null : WantedShortLink.ProfilePath(entry.CaseNumber);
+    }
 
     public async Task<IReadOnlyList<PublicWantedArchiveCard>> GetArchiveAsync(CancellationToken cancellationToken = default)
     {
@@ -147,6 +167,7 @@ public class PublicWantedService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         // per-entry gate, not "either module is on": with the archive off a captured photo must 404, and with the
         // board off a live one must, or turning a module off would leave its pictures downloadable
@@ -317,6 +338,33 @@ public class PublicWantedService(
             .ToListAsync(cancellationToken);
 
         return new PublicWantedOptions(photos, areas);
+    }
+
+    public async Task<string> RequirePhotoUploadAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        // write right before anything that reads the row
+        Permission.RequirePublicWantedWrite(actor);
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var row = await db.OeffentlicheFahndungen
+            .AsNoTracking()
+            .Where(f => f.Id == id)
+            .Select(f => new { f.PersonId, f.Kind, f.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (row is null || !await IsRecordVisibleAsync(db, row.PersonId, actor, cancellationToken))
+        {
+            throw new InvalidOperationException(NotFound);
+        }
+        if (WantedKinds.IsItem(row.Kind))
+        {
+            throw new InvalidOperationException("Eine Fahrzeug- oder Waffen-Ausschreibung trägt kein Foto.");
+        }
+        if (row.Status == PublicWantedStatus.Gefasst)
+        {
+            throw new InvalidOperationException("Das Foto einer gefassten Ausschreibung lässt sich nicht "
+                + "tauschen — dazu zurückziehen und neu veröffentlichen.");
+        }
+        return row.PersonId;
     }
 
     public async Task<PublicWantedEdit?> GetForPersonAsync(string personId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -1017,6 +1065,7 @@ public class PublicWantedService(
         {
             return;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         var now = DateTime.UtcNow;
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -1075,7 +1124,7 @@ public class PublicWantedService(
             var recipients = await db.Users
                 .AsNoTracking()
                 .OnlySelectable()
-                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SupervisorySpecialAgent))
+                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SpecialAgentInCharge))
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
             if (recipients.Count == 0)
@@ -1269,7 +1318,7 @@ public class PublicWantedService(
     /// <summary>Announces a fresh notice in the public channel as a card.</summary>
     /// <remarks>
     /// Takes a <see cref="PublicWantedCard"/> and nothing else on purpose — that record structurally cannot carry a
-    /// PersonId, the internal NOOSE-P case number, a codename or a score, so the message cannot either. No accusation
+    /// PersonId, the internal FIB-P case number, a codename or a score, so the message cannot either. No accusation
     /// text: after a retraction the post is then a dead link rather than a standing allegation. Chips and money come
     /// from the outward board, and a notice the board does not list is not posted: the link would answer "not found"
     /// and a post cannot be recalled. PushWantedCardAsync swallows its own failures.

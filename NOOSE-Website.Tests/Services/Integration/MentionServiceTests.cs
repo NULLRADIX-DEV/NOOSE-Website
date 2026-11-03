@@ -29,7 +29,7 @@ public sealed class MentionServiceTests
     private static ClaimsPrincipal Viewer(bool mayRealName)
         => mayRealName
             ? ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.Director).Build()
-            : ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.JuniorAgent).Build();
+            : ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.Trainee).Build();
 
     // ---- CandidatesAsync: what may become a token ---------------------------
 
@@ -46,7 +46,7 @@ public sealed class MentionServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _) = NewService(ctx,
         [
-            new QuickHit("Person", PersonId, "Otto Offen", "NOOSE-P-2026-0001"),
+            new QuickHit("Person", PersonId, "Otto Offen", "FIB-P-2026-0001"),
             new QuickHit("HandbookArticle", "fahndung-ausschreiben", "Eine Fahndung ausschreiben", string.Empty),
             new QuickHit("GlossaryTerm", "22222222-2222-2222-2222-222222222222", "Prüffall", string.Empty),
         ]);
@@ -337,7 +337,7 @@ public sealed class MentionServiceTests
     {
         using var ctx = new SqliteTestContext();
         // a real row id, not a placeholder: the picker only offers what the parser can read back
-        var hits = new List<QuickHit> { new("Person", PersonId, "Max Mustermann", "NOOSE-P-2026-0001") };
+        var hits = new List<QuickHit> { new("Person", PersonId, "Max Mustermann", "FIB-P-2026-0001") };
         var (svc, _) = NewService(ctx, hits);
 
         var result = await svc.CandidatesAsync("Max", Viewer(mayRealName: false));
@@ -346,7 +346,7 @@ public sealed class MentionServiceTests
         Assert.Equal("Person", hit.Type);
         Assert.Equal(PersonId, hit.Id);
         Assert.Equal("Max Mustermann", hit.Display);
-        Assert.Equal("NOOSE-P-2026-0001", hit.Sub);
+        Assert.Equal("FIB-P-2026-0001", hit.Sub);
     }
 
     [Fact]

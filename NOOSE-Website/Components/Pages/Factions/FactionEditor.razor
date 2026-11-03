@@ -7,7 +7,7 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<PageTitle>@(IsEdit ? "Fraktion bearbeiten" : "Neue Fraktion") · NOOSE</PageTitle>
+<PageTitle>@(IsEdit ? "Fraktion bearbeiten" : "Neue Fraktion") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -64,6 +64,8 @@ else
     private bool _load = true;
     private bool _saves;
     private string? _loadedId;
+    // level as loaded; loosening it asks for a reason
+    private DocumentClassification _loadedSecrecy;
     private IReadOnlyList<DocumentClassification> _secrecyOptions = Array.Empty<DocumentClassification>();
 
     protected override async Task OnInitializedAsync()
@@ -121,6 +123,7 @@ else
                 DrugRoutes = f.DrugRoutes.Select(d => new StockInput { Designation = d.Designation, Quantity = d.Note }).ToList(),
             };
         }
+        _loadedSecrecy = _input?.SecrecyLevel ?? DocumentClassification.None;
         _load = false;
     }
 
@@ -134,6 +137,16 @@ else
         if (!_form.IsValid)
         {
             return;
+        }
+
+        if (IsEdit)
+        {
+            var secrecyReason = await CriticalReasonPrompt.SecrecyAsync(DialogService, _loadedSecrecy, _input.SecrecyLevel);
+            if (secrecyReason is null)
+            {
+                return;
+            }
+            _input.SecrecyReason = secrecyReason;
         }
 
         _saves = true;

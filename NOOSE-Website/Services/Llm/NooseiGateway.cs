@@ -80,7 +80,7 @@ public class NooseiGateway(
     /// <summary>Shown to the agent under a rescued partial answer. The stored <c>Truncated</c> chip says an answer was
     /// cut off; only this says the clock did it, which is the one case where asking again is cheaper than it looks.</summary>
     private const string RanOutOfTime =
-        "\n\n_Die Zeit für diese Antwort ist abgelaufen, während NOOSEI noch gelesen hat — der Text oben ist "
+        "\n\n_Die Zeit für diese Antwort ist abgelaufen, während FIBI noch gelesen hat — der Text oben ist "
         + "unvollständig. Frag noch einmal nach; das bereits Gelesene liegt dieser Unterhaltung schon vor._";
 
     private const string TurnTimedOut = "Zeitbudget des Turns abgelaufen; Teilantwort ausgeliefert.";
@@ -104,7 +104,7 @@ public class NooseiGateway(
 
     public async Task<NooseiAnswer> AskAsync(NooseiCall call, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        var id = actor.GetAgentId() ?? throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+        var id = actor.GetAgentId() ?? throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
         var turn = TurnFor(id);
         await turn.WaitAsync(cancellationToken);
         try
@@ -125,7 +125,7 @@ public class NooseiGateway(
         var providerState = await providerService.GetStateAsync(cancellationToken);
         var provider = providerState.Active;
         var status = await quota.EnsureAvailableAsync(actor, cancellationToken, providerState.BoostPercent, call.Feature);
-        var agentId = actor.GetAgentId() ?? throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+        var agentId = actor.GetAgentId() ?? throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
 
         // the whole turn gets one budget; HttpClient.Timeout only bounds a single round
         using var turnCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -175,7 +175,7 @@ public class NooseiGateway(
                 catch (LlmCapabilityException ex) when (ex.ToolsRelated && offerTools)
                 {
                     // the endpoint cannot do tools at all — answer without file access rather than failing
-                    logger.LogWarning(ex, "NOOSEI: Endpunkt unterstützt keine Werkzeuge, Anfrage ohne Aktenzugriff wiederholt.");
+                    logger.LogWarning(ex, "FIBI: Endpunkt unterstützt keine Werkzeuge, Anfrage ohne Aktenzugriff wiederholt.");
                     degraded = true;
                     result = await llm.CompleteAsync(
                         Round(call, provider, Flattened(messages), offerTools: false, sendTools: false), actor, turnCts.Token);
@@ -292,7 +292,7 @@ public class NooseiGateway(
             var charge = await ChargeAsync(
                 agentId, call, provider, total, last, refs, rounds, watch, success: true, error: TurnTimedOut, trace);
             logger.LogWarning(
-                "NOOSEI-Turn nach {Elapsed} ms abgelaufen, Teilantwort ausgeliefert (Funktion {Feature}, {Rounds} Runden)",
+                "FIBI-Turn nach {Elapsed} ms abgelaufen, Teilantwort ausgeliefert (Funktion {Feature}, {Rounds} Runden)",
                 watch.ElapsedMilliseconds, call.Feature, rounds);
             return new NooseiAnswer(partial + RanOutOfTime, total, charge, rounds, messages, degraded,
                 true, refs, barren, last?.Model ?? _o.ModelFor(provider, call.Feature));
@@ -304,7 +304,7 @@ public class NooseiGateway(
                 LlmRequestTrace.Classify(ex, cancellationToken.IsCancellationRequested));
             // a failed call still gets a log row: it may have cost real money, and it must show up in the overview
             var charge = await ChargeAsync(agentId, call, provider, total, last, refs, rounds, watch, success: false, error: ex.Message, trace);
-            logger.LogWarning(ex, "NOOSEI-Anfrage fehlgeschlagen (Funktion {Feature}, {Rounds} Runden, Kontingent {Tokens})",
+            logger.LogWarning(ex, "FIBI-Anfrage fehlgeschlagen (Funktion {Feature}, {Rounds} Runden, Kontingent {Tokens})",
                 call.Feature, rounds, charge.QuotaTokens);
             throw;
         }
@@ -417,7 +417,7 @@ public class NooseiGateway(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "NOOSEI-Werkzeug {Tool} fehlgeschlagen", call.Name);
+            logger.LogWarning(ex, "FIBI-Werkzeug {Tool} fehlgeschlagen", call.Name);
             return NooseiToolOutcome.Failed("Werkzeug konnte nicht ausgeführt werden.");
         }
     }

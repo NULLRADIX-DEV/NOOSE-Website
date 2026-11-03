@@ -6,9 +6,9 @@
     <DialogContent>
         @if (_step == Step.Auftrag)
         {
-            <MudTextField @bind-Value="_instruction" Label="Was soll NOOSEI schreiben?" Lines="4"
+            <MudTextField @bind-Value="_instruction" Label="Was soll FIBI schreiben?" Lines="4"
                           Variant="Variant.Outlined" Immediate="true" AutoFocus="true"
-                          HelperText="Beschreibe kurz Inhalt und Zweck. NOOSEI erfindet keine Namen, Daten oder Aktenzeichen." />
+                          HelperText="Beschreibe kurz Inhalt und Zweck. FIBI erfindet keine Namen, Daten oder Aktenzeichen." />
             @if (Request.HasSelection)
             {
                 <MudSwitch T="bool" @bind-Value="_replaceSelection" Color="Color.Primary" Class="mt-2"
@@ -17,7 +17,7 @@
         }
         else if (_step == Step.Laeuft)
         {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">NOOSEI arbeitet …</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">FIBI arbeitet …</MudText>
             <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
         }
         else if (_step == Step.Fehler)
@@ -34,7 +34,7 @@
             @if (result.Unchanged)
             {
                 <MudAlert Severity="Severity.Success" Dense="true" Class="mb-2">
-                    NOOSEI hat nichts zu korrigieren gefunden.
+                    FIBI hat nichts zu korrigieren gefunden.
                 </MudAlert>
             }
 
@@ -58,7 +58,7 @@
 
             @* tokens only: an agent budgets in quota, never in money *@
             <MudText Typo="Typo.caption" Class="mud-text-secondary mt-3">
-                NOOSEI · @result.QuotaTokens.ToString("N0") Token
+                FIBI · @result.QuotaTokens.ToString("N0") Token
                 · Restkontingent: @result.Quota.Remaining.ToString("N0")
             </MudText>
         }
@@ -154,7 +154,7 @@
             CloseOnEscapeKey = true,
             BackdropClick = false,
         };
-        var title = request.Mode == NooseiMode.Correct ? "NOOSEI · Text korrigieren" : "NOOSEI · Text schreiben lassen";
+        var title = request.Mode == NooseiMode.Correct ? "FIBI · Text korrigieren" : "FIBI · Text schreiben lassen";
         var parameters = new DialogParameters<NooseiDialog>
         {
             { x => x.Request, request },

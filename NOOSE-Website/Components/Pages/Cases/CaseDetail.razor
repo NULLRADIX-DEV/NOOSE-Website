@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 
-<PageTitle>@(_case?.Title ?? "Vorgang") · NOOSE</PageTitle>
+<PageTitle>@(_case?.Title ?? "Vorgang") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -205,7 +205,7 @@ else
                 }
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(Case)" EntityId="@_case.Id" User="_user" />
                 </RecordSection>
                 }
@@ -358,13 +358,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Vorgang löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Vorgang löschen?",
             "Der Vorgang wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await CaseService.DeleteAsync(_case.Id, _user);
+        await CaseService.DeleteAsync(_case.Id, reason, _user);
         Snackbar.Add("Vorgang in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/vorgaenge");
     }

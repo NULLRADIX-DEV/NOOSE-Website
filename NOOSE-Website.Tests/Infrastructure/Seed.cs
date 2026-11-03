@@ -13,9 +13,9 @@ public static class Seed
 
     /// <summary>Unique case number per call; the Aktenzeichen column is uniquely indexed.</summary>
     private static string NextCaseNumber(string prefix)
-        => $"NOOSE-{prefix}-2026-{System.Threading.Interlocked.Increment(ref _seq):0000}";
+        => $"FIB-{prefix}-2026-{System.Threading.Interlocked.Increment(ref _seq):0000}";
 
-    public static Agent Agent(string id = "agent-1", Rank rank = Rank.SupervisorySpecialAgent,
+    public static Agent Agent(string id = "agent-1", Rank rank = Rank.SpecialAgentInCharge,
         AgentStatus status = AgentStatus.Active, Action<Agent>? configure = null)
     {
         var a = new Agent

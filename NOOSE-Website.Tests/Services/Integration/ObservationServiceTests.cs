@@ -17,13 +17,13 @@ public sealed class ObservationServiceTests
 {
     private static readonly DateTime T0 = new(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc);
 
-    // Rank >= SupervisorySpecialAgent(4) => leadership => MayClassifiedRead.
+    // Rank >= SpecialAgentInCharge(4) => leadership => MayClassifiedRead.
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, not admin, no classified read.
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ViewerScope LeaderScope()
         => new(MayClassifiedRead: true, MayAllTaskforces: true, MeId: "lead", PartnerAgency: null, IsLeadership: true);

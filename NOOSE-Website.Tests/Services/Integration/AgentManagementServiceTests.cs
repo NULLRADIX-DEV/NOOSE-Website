@@ -83,7 +83,7 @@ public class AgentManagementServiceTests
 
     private static Agent NewAgent(string id, AgentStatus status = AgentStatus.Pending,
         Rank? rank = null, Action<Agent>? cfg = null)
-        => Seed.Agent(id, rank ?? Rank.JuniorAgent, status, a =>
+        => Seed.Agent(id, rank ?? Rank.Trainee, status, a =>
         {
             a.Rank = rank;
             a.SecurityStamp = System.Guid.NewGuid().ToString();
@@ -95,10 +95,10 @@ public class AgentManagementServiceTests
         => ClaimsPrincipalBuilder.Agent(id).AsAdmin().WithRank(Rank.Director).WithCodename("Chief").Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SupervisorySpecialAgent).WithCodename("Lead").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename("Lead").Build();
 
     private static ClaimsPrincipal Junior(string id = "jr")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal OnlyReader(string id = "ro")
         => ClaimsPrincipalBuilder.Agent(id).AsTeamLead().WithRank(Rank.Director).Build();
@@ -188,6 +188,53 @@ public class AgentManagementServiceTests
         Assert.Equal(38, options.Count(x => BadgeNumbers.All.Contains(x, StringComparer.OrdinalIgnoreCase)));
     }
 
+    [Fact]
+    public async Task Terminated_agents_badge_number_is_free_again()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("t", AgentStatus.Active),
+            NewAgent("leaver", AgentStatus.Active, cfg: a => { a.BadgeNumber = "II"; a.PendingBadgeNumber = "III"; }));
+
+        Assert.DoesNotContain("II", await f.Svc.GetAvailableBadgeNumbersAsync("t"));
+        await f.Svc.TerminateAsync("leaver", "weg", createNote: false, postDiscord: false, Admin());
+
+        var options = await f.Svc.GetAvailableBadgeNumbersAsync("t");
+        Assert.Contains("II", options);
+        Assert.Contains("III", options);
+        await f.Svc.MasterDataChangeAsync("t", null, "Neu", "II", Admin());
+        Assert.Equal("II", Reload(f, "t").BadgeNumber);
+        // the file keeps the old number for the record
+        Assert.Equal("II", Reload(f, "leaver").BadgeNumber);
+    }
+
+    [Fact]
+    public async Task TerminationRevokeAsync_DropsBadgeNumberTakenMeanwhile()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("gone", AgentStatus.Terminated, Rank.SpecialAgent, a => a.BadgeNumber = "II"),
+            NewAgent("new", AgentStatus.Active, Rank.SpecialAgent, a => a.BadgeNumber = "II"));
+
+        await f.Svc.TerminationRevokeAsync("gone", Admin());
+
+        Assert.Null(Reload(f, "gone").BadgeNumber);
+        Assert.Equal("II", Reload(f, "new").BadgeNumber);
+        using var db = f.Ctx.NewContext();
+        Assert.True(db.AuditLogs.Any(l => l.EntityId == "gone" && l.ChangesJson!.Contains("Dienstnummer II")));
+    }
+
+    [Fact]
+    public async Task TerminationRevokeAsync_KeepsBadgeNumberStillFree()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("gone", AgentStatus.Terminated, Rank.SpecialAgent, a => a.BadgeNumber = "II"));
+
+        await f.Svc.TerminationRevokeAsync("gone", Admin());
+
+        Assert.Equal("II", Reload(f, "gone").BadgeNumber);
+    }
+
     // ---- release / reject ----
 
     [Fact]
@@ -196,11 +243,12 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
-        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, isTRU: true, isHRB: false, Admin());
+        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Hrt, isHRB: false, confirmOverLimit: false, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(AgentStatus.Active, a.Status);
         Assert.Equal(Rank.SpecialAgent, a.Rank);
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         using var db = f.Ctx.NewContext();
         Assert.True(db.AgentRankHistories.Any(h => h.AgentId == "t"));
@@ -252,7 +300,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, false, Admin()));
+            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, false, false, Admin()));
     }
 
     [Fact]
@@ -261,7 +309,7 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
 
-        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, true, Admin());
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, true, false, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(AgentStatus.Active, a.Status);
@@ -280,7 +328,7 @@ public class AgentManagementServiceTests
         using var db = ctx.NewContext();
         db.Bewerbungen.Add(new NOOSE_Website.Data.Entities.Recruiting.Bewerbung
         {
-            CaseNumber = "NOOSE-B-2026-0001", ApplicantUserId = applicantUserId, Name = "Trevor Ward",
+            CaseNumber = "FIB-B-2026-0001", ApplicantUserId = applicantUserId, Name = "Trevor Ward",
         });
         db.SaveChanges();
     }
@@ -293,7 +341,7 @@ public class AgentManagementServiceTests
         PersistPartner(f.Ctx);
         PersistApplication(f.Ctx, "t");
 
-        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, false, Admin());
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, false, false, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(AgentStatus.Active, a.Status);
@@ -310,7 +358,7 @@ public class AgentManagementServiceTests
         PersistPartner(f.Ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, false, false, Admin()));
+            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Cid, false, false, Admin()));
 
         var a = Reload(f, "t");
         Assert.Equal(PartnerAgency.DoJ, a.PartnerAgency);
@@ -527,16 +575,16 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, Junior()));
+            () => f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, false, Junior()));
     }
 
     [Fact]
     public async Task RankChangeAsync_SetsRank_WritesHistory()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
 
-        await f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, Admin());
+        await f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, false, Admin());
 
         Assert.Equal(Rank.SeniorSpecialAgent, Reload(f, "t").Rank);
     }
@@ -605,7 +653,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, Admin()));
+            () => f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, false, Admin()));
     }
 
     [Fact]
@@ -615,7 +663,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active,
             cfg: a => { a.PartnerAgency = PartnerAgency.LSPD; a.PartnerRank = PartnerRank.Member; }));
 
-        await f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, Admin());
+        await f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, false, Admin());
 
         var a = Reload(f, "t");
         Assert.Null(a.PartnerAgency);
@@ -628,7 +676,7 @@ public class AgentManagementServiceTests
     public async Task PromotionDecideAsync_ApprovesAndSetsRank()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
         using (var db = f.Ctx.NewContext())
         {
             db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
@@ -638,7 +686,7 @@ public class AgentManagementServiceTests
             db.SaveChanges();
         }
 
-        await f.Svc.PromotionDecideAsync("req1", approved: true, note: "ok", Admin());
+        await f.Svc.PromotionDecideAsync("req1", approved: true, note: "ok", false, Admin());
 
         Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
     }
@@ -648,19 +696,20 @@ public class AgentManagementServiceTests
     {
         using var f = Make();
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.PromotionDecideAsync("nope", true, null, Admin()));
+            () => f.Svc.PromotionDecideAsync("nope", true, null, false, Admin()));
     }
 
     [Fact]
-    public async Task TruSet_HrbSet_ToggleFlags()
+    public async Task DivisionSet_HrbSet_WriteDivisionAndFlag()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
 
-        await f.Svc.TruSetAsync("t", true, Admin());
+        await f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Admin());
         await f.Svc.HrbSetAsync("t", true, Admin());
 
         var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         Assert.True(a.IsHRB);
     }
@@ -669,20 +718,22 @@ public class AgentManagementServiceTests
 
     [Theory]
     [InlineData(null)]
-    [InlineData(Rank.JuniorAgent)]
-    public async Task TruSetAsync_BelowSpecialAgent_Throws(Rank? rank)
+    [InlineData(Rank.Trainee)]
+    public async Task DivisionSetAsync_HrtBelowSpecialAgent_Throws(Rank? rank)
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: rank));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.TruSetAsync("t", true, Admin()));
-        Assert.False(Reload(f, "t").IsTRU);
+            () => f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Admin()));
+        var a = Reload(f, "t");
+        Assert.Null(a.Division);
+        Assert.False(a.IsTRU);
     }
 
     [Theory]
     [InlineData(null)]
-    [InlineData(Rank.JuniorAgent)]
+    [InlineData(Rank.Trainee)]
     public async Task HrbSetAsync_BelowSpecialAgent_Throws(Rank? rank)
     {
         using var f = Make();
@@ -698,21 +749,11 @@ public class AgentManagementServiceTests
     public async Task HrbSetAsync_ClearingIsAllowedBelowTheThreshold()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.JuniorAgent, cfg: a => a.IsHRB = true));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee, cfg: a => a.IsHRB = true));
 
         await f.Svc.HrbSetAsync("t", false, Admin());
 
         Assert.False(Reload(f, "t").IsHRB);
-    }
-
-    [Fact]
-    public async Task TruSetAsync_OnlyReaderDenied()
-    {
-        using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
-
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => f.Svc.TruSetAsync("t", true, OnlyReader()));
     }
 
     [Fact]
@@ -726,14 +767,27 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task ReleaseAsync_JuniorAgentWithDepartment_Throws()
+    public async Task ReleaseAsync_TraineeWithDepartment_Throws()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.ReleaseAsync("t", Rank.JuniorAgent, isTRU: false, isHRB: true, Admin()));
+            () => f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, isHRB: true, confirmOverLimit: false, Admin()));
         Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_TraineeIntoTheHrt_Throws()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Hrt, isHRB: false, confirmOverLimit: false, Admin()));
+        var a = Reload(f, "t");
+        Assert.Equal(AgentStatus.Pending, a.Status);
+        Assert.Null(a.Division);
     }
 
     [Fact]
@@ -742,25 +796,27 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
-        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, isTRU: true, isHRB: true, Admin());
+        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Hrt, isHRB: true, confirmOverLimit: false, Admin());
 
         var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         Assert.True(a.IsHRB);
     }
 
-    /// <summary>A demotion has to take the departments with it; otherwise the flag keeps opening every HRB gate.</summary>
+    /// <summary>A demotion has to take the departments with it; otherwise the flag keeps opening every gate of the Administration Division.</summary>
     [Fact]
     public async Task RankChangeAsync_DemotionBelowThreshold_DropsDepartments()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
-            cfg: a => { a.IsTRU = true; a.IsHRB = true; }));
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; a.IsHRB = true; }));
 
-        await f.Svc.RankChangeAsync("t", Rank.JuniorAgent, Admin());
+        await f.Svc.RankChangeAsync("t", Rank.Trainee, false, Admin());
 
         var a = Reload(f, "t");
-        Assert.Equal(Rank.JuniorAgent, a.Rank);
+        Assert.Equal(Rank.Trainee, a.Rank);
+        Assert.Equal(Division.Cid, a.Division);
         Assert.False(a.IsTRU);
         Assert.False(a.IsHRB);
     }
@@ -770,13 +826,888 @@ public class AgentManagementServiceTests
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
-            cfg: a => { a.IsTRU = true; a.IsHRB = true; }));
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; a.IsHRB = true; }));
 
-        await f.Svc.RankChangeAsync("t", Rank.SpecialAgent, Admin());
+        await f.Svc.RankChangeAsync("t", Rank.SpecialAgent, false, Admin());
 
         var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
         Assert.True(a.IsTRU);
         Assert.True(a.IsHRB);
+    }
+
+    /// <summary>A row written before the division column has no division; the TRU flag still says where the agent belongs.</summary>
+    [Fact]
+    public async Task RankChangeAsync_LegacyTruFlagWithoutDivision_BecomesTheHrt()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent, cfg: a => a.IsTRU = true));
+
+        await f.Svc.RankChangeAsync("t", Rank.SpecialAgent, false, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.True(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task RankChangeAsync_DemotionBelowThreshold_KeepsTheCtd()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent, cfg: a => a.Division = Division.Ctd));
+
+        await f.Svc.RankChangeAsync("t", Rank.Trainee, false, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    /// <summary>The Board keeps the home division but never counts as TRU; the way back restores the flag.</summary>
+    [Fact]
+    public async Task RankChangeAsync_IntoAndOutOfTheBoard_KeepsTheHomeAndSwitchesTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.RankChangeAsync("t", Rank.Director, false, Admin());
+        var inBoard = Reload(f, "t");
+        Assert.Equal(Division.Hrt, inBoard.Division);
+        Assert.False(inBoard.IsTRU);
+
+        await f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, false, Admin());
+        var back = Reload(f, "t");
+        Assert.Equal(Division.Hrt, back.Division);
+        Assert.True(back.IsTRU);
+    }
+
+    // ---- division set ----
+
+    private static ClaimsPrincipal Board(string id = "board")
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.DeputyDirector).WithCodename("Board").Build();
+
+    private static ClaimsPrincipal AdminWithoutBoardRank(string id = "adm")
+        => ClaimsPrincipalBuilder.Agent(id).AsAdmin().WithRank(Rank.SpecialAgent).WithCodename("Adm").Build();
+
+    [Fact]
+    public async Task DivisionSetAsync_BoardMemberMovesAnAgent_WritesTruAndRotatesTheStamp()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+        var before = Reload(f, "t").SecurityStamp;
+
+        await f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Board());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.True(a.IsTRU);
+        Assert.NotEqual(before, a.SecurityStamp);
+        using var db = f.Ctx.NewContext();
+        Assert.Contains(db.AuditLogs.Where(l => l.EntityId == "t").AsEnumerable(), l => l.ChangesJson!.Contains("Abteilung"));
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_AdminWithoutABoardRankMayMove()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, AdminWithoutBoardRank());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_LeavingTheHrtClearsTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.DivisionSetAsync("t", Division.Cid, confirmOverLimit: false, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Cid, a.Division);
+        Assert.False(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_BoardMemberIntoTheHrt_KeepsTheTruFlagOff()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Director));
+
+        await f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.False(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_SpecialAgentInChargeIsRefused()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Leader()));
+        Assert.Null(Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_OnlyReaderDenied()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, OnlyReader()));
+        Assert.Null(Reload(f, "t").Division);
+    }
+
+    /// <summary>The write guard comes first: a demo visitor carries Director and would otherwise pass the Board check.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_DemoVisitorDenied()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+        var demo = ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsDemo().Build();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Hrt, confirmOverLimit: false, demo));
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_PartnerAccountThrows()
+    {
+        using var f = Make();
+        PersistPartner(f.Ctx);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Cid, confirmOverLimit: false, Admin()));
+    }
+
+    private static Agent[] Seats(Division division, int count, string prefix, Action<Agent>? cfg = null)
+        => Enumerable.Range(0, count)
+            .Select(i => NewAgent($"{prefix}{i}", AgentStatus.Active, Rank.SpecialAgent, a =>
+            {
+                a.Division = division;
+                a.IsTRU = division == Division.Hrt;
+                cfg?.Invoke(a);
+            }))
+            .ToArray();
+
+    [Fact]
+    public async Task DivisionSetAsync_FullDivisionWithoutConfirmation_IsRefused()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd), "ctd"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        var ex = await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Admin()));
+
+        Assert.Contains("6 von 6", ex.Message, StringComparison.Ordinal);
+        Assert.Null(Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task DivisionSetAsync_FullDivisionWithConfirmation_Succeeds()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd), "ctd"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: true, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    /// <summary>Counted over the selectable roster: a blocked account, a team lead and a partner hold no seat.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_LimitCountsOnlySelectableAgents()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd) - 1, "ctd"));
+        Persist(f.Ctx,
+            NewAgent("blocked", AgentStatus.Blocked, Rank.SpecialAgent, a => a.Division = Division.Ctd),
+            NewAgent("tl", AgentStatus.Active, Rank.SpecialAgent, a => { a.Division = Division.Ctd; a.IsTeamLead = true; }),
+            NewAgent("ex", AgentStatus.Terminated, Rank.SpecialAgent, a => a.Division = Division.Ctd),
+            NewAgent("t", AgentStatus.Active, Rank.SpecialAgent));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    /// <summary>An agent already seated in a full division takes no new seat by being set to it again.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_SameDivisionNeedsNoSeat()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd) + 1, "ctd"));
+
+        await f.Svc.DivisionSetAsync("ctd0", Division.Ctd, confirmOverLimit: false, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "ctd0").Division);
+    }
+
+    /// <summary>The Board is no division seat: a Board member counts against the Board, not against the home division.</summary>
+    [Fact]
+    public async Task DivisionSetAsync_BoardMemberDoesNotCountAgainstTheDivision()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd) - 1, "ctd"));
+        Persist(f.Ctx,
+            NewAgent("director", AgentStatus.Active, Rank.Director, a => a.Division = Division.Ctd),
+            NewAgent("t", AgentStatus.Active, Rank.SpecialAgent));
+
+        await f.Svc.DivisionSetAsync("t", Division.Ctd, confirmOverLimit: false, Admin());
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_FullDivisionNeedsConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd), "ctd"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Ctd, isHRB: false, confirmOverLimit: false, Admin()));
+        Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+
+        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Ctd, isHRB: false, confirmOverLimit: true, Admin());
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task PromoteApplicantToAgentAsync_FullDivisionNeedsConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Hrt, DivisionDisplay.Limit(Division.Hrt), "hrt"));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Hrt, false, confirmOverLimit: false, Admin()));
+        Assert.Equal(AgentStatus.Applicant, Reload(f, "t").Status);
+
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SpecialAgent, Division.Hrt, false, confirmOverLimit: true, Admin());
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.True(a.IsTRU);
+    }
+
+    // ---- who may hand out which rank: the fine gate (PromotionRules) on every path that writes a rank ----
+
+    private static ClaimsPrincipal Holder(string id, Rank rank)
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(rank).WithCodename(id).Build();
+
+    /// <summary>The row of an actor: the guard reads rank and home from here, never from the claims.</summary>
+    private static void PersistHolder(Fixture f, string id, Rank rank, Division? home = null)
+        => Persist(f.Ctx, NewAgent(id, AgentStatus.Active, rank, a =>
+        {
+            a.Division = home;
+            a.IsTRU = home == Division.Hrt && !DivisionRules.IsBoard(rank);
+        }));
+
+    private static void PersistRequest(SqliteTestContext ctx, string agentId, Rank target, string id = "req")
+    {
+        using var db = ctx.NewContext();
+        db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
+        {
+            Id = id, AgentId = agentId, TargetRank = target, Status = PromotionStatus.Requested,
+        });
+        db.SaveChanges();
+    }
+
+    private static PromotionStatus RequestStatus(Fixture f, string id = "req")
+    {
+        using var db = f.Ctx.NewContext();
+        return db.AgentPromotionRequests.Single(r => r.Id == id).Status;
+    }
+
+    // -- ReleaseAsync --
+
+    [Fact]
+    public async Task ReleaseAsync_BoardReleasesAnyRankIntoAnyDivision()
+    {
+        using var f = Make();
+        PersistHolder(f, "board", Rank.AssistantDirector);
+        Persist(f.Ctx, NewAgent("t1", AgentStatus.Pending), NewAgent("t2", AgentStatus.Pending),
+            NewAgent("t3", AgentStatus.Pending));
+
+        await f.Svc.ReleaseAsync("t1", Rank.SpecialAgent, Division.Hrt, false, false, Holder("board", Rank.AssistantDirector));
+        await f.Svc.ReleaseAsync("t2", Rank.SectionChief, Division.Ctd, false, false, Holder("board", Rank.AssistantDirector));
+        await f.Svc.ReleaseAsync("t3", Rank.Director, Division.Cid, false, false, Holder("board", Rank.AssistantDirector));
+
+        Assert.Equal((Rank.SpecialAgent, Division.Hrt), (Reload(f, "t1").Rank!.Value, Reload(f, "t1").Division!.Value));
+        Assert.Equal((Rank.SectionChief, Division.Ctd), (Reload(f, "t2").Rank!.Value, Reload(f, "t2").Division!.Value));
+        Assert.Equal((Rank.Director, Division.Cid), (Reload(f, "t3").Rank!.Value, Reload(f, "t3").Division!.Value));
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee)]
+    [InlineData(Rank.SpecialAgent)]
+    [InlineData(Rank.SpecialAgentInCharge)]
+    public async Task ReleaseAsync_SectionChiefReleasesBelowSectionChiefIntoTheOwnDivision(Rank rank)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await f.Svc.ReleaseAsync("t", rank, Division.Cid, false, false, Holder("sc", Rank.SectionChief));
+
+        var a = Reload(f, "t");
+        Assert.Equal(AgentStatus.Active, a.Status);
+        Assert.Equal(rank, a.Rank);
+        Assert.Equal(Division.Cid, a.Division);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_SectionChiefOfTheHrtReleasesIntoTheHrt()
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Hrt);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await f.Svc.ReleaseAsync("t", Rank.SpecialAgent, Division.Hrt, false, false, Holder("sc", Rank.SectionChief));
+
+        var a = Reload(f, "t");
+        Assert.Equal(Division.Hrt, a.Division);
+        Assert.True(a.IsTRU);
+    }
+
+    [Theory]
+    [InlineData(Rank.SpecialAgent, Division.Ctd)]          // a foreign division
+    [InlineData(Rank.SpecialAgent, Division.Hrt)]
+    [InlineData(Rank.SectionChief, Division.Cid)]          // not up to Section Chief or the Board
+    [InlineData(Rank.AssistantDirector, Division.Cid)]
+    [InlineData(Rank.Director, Division.Cid)]
+    public async Task ReleaseAsync_SectionChiefIsRefusedOutsideTheOwnDivisionAndFromSectionChiefUp(Rank rank, Division division)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.ReleaseAsync("t", rank, division, false, false, Holder("sc", Rank.SectionChief)));
+
+        var a = Reload(f, "t");
+        Assert.Equal(AgentStatus.Pending, a.Status);
+        Assert.Null(a.Rank);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_SpecialAgentInChargeReleasesATraineeIntoTheCid()
+    {
+        using var f = Make();
+        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, false, false, Holder("sac", Rank.SpecialAgentInCharge));
+
+        var a = Reload(f, "t");
+        Assert.Equal(Rank.Trainee, a.Rank);
+        Assert.Equal(Division.Cid, a.Division);
+    }
+
+    [Theory]
+    [InlineData(Rank.SpecialAgent, Division.Cid)]
+    [InlineData(Rank.SpecialAgentInCharge, Division.Cid)]
+    [InlineData(Rank.Director, Division.Cid)]
+    [InlineData(Rank.Trainee, Division.Ctd)]
+    public async Task ReleaseAsync_SpecialAgentInChargeIsRefusedAnythingButATraineeInTheCid(Rank rank, Division division)
+    {
+        using var f = Make();
+        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.ReleaseAsync("t", rank, division, false, false, Holder("sac", Rank.SpecialAgentInCharge)));
+
+        Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_ReadsTheActorFromTheRowAndFailsClosed()
+    {
+        using var f = Make();
+        // the claim says Board; the row says an agent who was demoted, one who left, and one nobody knows
+        Persist(f.Ctx,
+            NewAgent("demoted", AgentStatus.Active, Rank.SeniorSpecialAgent),
+            NewAgent("left", AgentStatus.Terminated, Rank.Director),
+            NewAgent("t", AgentStatus.Pending));
+
+        foreach (var id in new[] { "demoted", "left", "ghost" })
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(
+                () => f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, false, false, Holder(id, Rank.Director)));
+        }
+        Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+    }
+
+    // -- PromoteApplicantToAgentAsync --
+
+    [Fact]
+    public async Task PromoteApplicantToAgentAsync_BoardAssignsAnyRankIntoAnyDivision()
+    {
+        using var f = Make();
+        PersistHolder(f, "board", Rank.DeputyDirector);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.SectionChief, Division.Hrt, false, false, Holder("board", Rank.DeputyDirector));
+
+        var a = Reload(f, "t");
+        Assert.Equal(Rank.SectionChief, a.Rank);
+        Assert.Equal(Division.Hrt, a.Division);
+    }
+
+    [Theory]
+    [InlineData(Rank.SpecialAgent, Division.Cid, true)]
+    [InlineData(Rank.SpecialAgent, Division.Ctd, false)]
+    [InlineData(Rank.SectionChief, Division.Cid, false)]
+    public async Task PromoteApplicantToAgentAsync_SectionChiefOnlyIntoTheOwnDivisionBelowSectionChief(
+        Rank rank, Division division, bool allowed)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        var call = () => f.Svc.PromoteApplicantToAgentAsync("t", rank, division, false, false, Holder("sc", Rank.SectionChief));
+
+        if (allowed)
+        {
+            await call();
+            Assert.Equal(AgentStatus.Active, Reload(f, "t").Status);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(call);
+            Assert.Equal(AgentStatus.Applicant, Reload(f, "t").Status);
+        }
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee, true)]
+    [InlineData(Rank.SpecialAgent, false)]
+    public async Task PromoteApplicantToAgentAsync_SpecialAgentInChargeOnlyAsTraineeIntoTheCid(Rank rank, bool allowed)
+    {
+        using var f = Make();
+        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        var call = () => f.Svc.PromoteApplicantToAgentAsync("t", rank, Division.Cid, false, false, Holder("sac", Rank.SpecialAgentInCharge));
+
+        if (allowed)
+        {
+            await call();
+            Assert.Equal(rank, Reload(f, "t").Rank);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(call);
+            Assert.Equal(AgentStatus.Applicant, Reload(f, "t").Status);
+        }
+    }
+
+    // -- ConvertToInternalAsync --
+
+    [Fact]
+    public async Task ConvertToInternalAsync_BoardAssignsAnyRank()
+    {
+        using var f = Make();
+        PersistHolder(f, "board", Rank.Director);
+        PersistPartner(f.Ctx);
+
+        await f.Svc.ConvertToInternalAsync("t", Rank.SectionChief, false, Holder("board", Rank.Director));
+
+        Assert.Equal(Rank.SectionChief, Reload(f, "t").Rank);
+    }
+
+    [Theory]
+    [InlineData(Division.Cid, Rank.SpecialAgent, true)]
+    [InlineData(Division.Cid, Rank.SectionChief, false)]
+    // the former partner joins the Section Chief's own division
+    [InlineData(Division.Ctd, Rank.SpecialAgent, true)]
+    public async Task ConvertToInternalAsync_SectionChiefOnlyIntoTheirOwnDivisionBelowSectionChief(
+        Division home, Rank rank, bool allowed)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, home);
+        PersistPartner(f.Ctx);
+
+        var call = () => f.Svc.ConvertToInternalAsync("t", rank, false, Holder("sc", Rank.SectionChief));
+
+        if (allowed)
+        {
+            await call();
+            Assert.Equal(rank, Reload(f, "t").Rank);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(call);
+            Assert.NotNull(Reload(f, "t").PartnerAgency);
+            Assert.Null(Reload(f, "t").Rank);
+        }
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee, true)]
+    [InlineData(Rank.SpecialAgent, false)]
+    public async Task ConvertToInternalAsync_SpecialAgentInChargeOnlyAsTrainee(Rank rank, bool allowed)
+    {
+        using var f = Make();
+        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
+        PersistPartner(f.Ctx);
+
+        var call = () => f.Svc.ConvertToInternalAsync("t", rank, false, Holder("sac", Rank.SpecialAgentInCharge));
+
+        if (allowed)
+        {
+            await call();
+            Assert.Equal(rank, Reload(f, "t").Rank);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(call);
+            Assert.NotNull(Reload(f, "t").PartnerAgency);
+        }
+    }
+
+    [Fact]
+    public async Task ConvertToInternalAsync_StopsAtTheWriteGuardForTheDemoVisitor()
+    {
+        using var f = Make();
+        PersistPartner(f.Ctx);
+        var demo = ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsDemo().Build();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.ConvertToInternalAsync("t", Rank.Trainee, false, demo));
+        Assert.NotNull(Reload(f, "t").PartnerAgency);
+    }
+
+    // -- RankChangeAsync --
+
+    private static Agent Member(string id, Rank rank, Division? home) => NewAgent(id, AgentStatus.Active, rank, a => a.Division = home);
+
+    [Theory]
+    [InlineData(Rank.SeniorSpecialAgent)]
+    [InlineData(Rank.SectionChief)]
+    [InlineData(Rank.Director)]
+    public async Task RankChangeAsync_BoardSetsAnyRank(Rank target)
+    {
+        using var f = Make();
+        PersistHolder(f, "board", Rank.AssistantDirector);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Hrt));
+
+        await f.Svc.RankChangeAsync("t", target, false, Holder("board", Rank.AssistantDirector));
+
+        Assert.Equal(target, Reload(f, "t").Rank);
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee)]
+    [InlineData(Rank.SeniorSpecialAgent)]
+    [InlineData(Rank.SpecialAgentInCharge)]
+    public async Task RankChangeAsync_SectionChiefSetsRanksBelowSectionChiefInTheOwnDivision(Rank target)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Cid));
+
+        await f.Svc.RankChangeAsync("t", target, false, Holder("sc", Rank.SectionChief));
+
+        Assert.Equal(target, Reload(f, "t").Rank);
+    }
+
+    [Theory]
+    // an agent of a foreign division, a rank at Section Chief or above, a peer, a Board member
+    [InlineData(Rank.SpecialAgent, Division.Ctd, Rank.SeniorSpecialAgent)]
+    [InlineData(Rank.SpecialAgent, Division.Cid, Rank.SectionChief)]
+    [InlineData(Rank.SpecialAgent, Division.Cid, Rank.Director)]
+    [InlineData(Rank.SectionChief, Division.Cid, Rank.SpecialAgentInCharge)]
+    [InlineData(Rank.AssistantDirector, Division.Cid, Rank.Trainee)]
+    public async Task RankChangeAsync_SectionChiefIsRefusedForeignDivisionsPeersAndTheBoard(Rank current, Division home, Rank target)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", current, home));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.RankChangeAsync("t", target, false, Holder("sc", Rank.SectionChief)));
+
+        Assert.Equal(current, Reload(f, "t").Rank);
+    }
+
+    /// <summary>A Special Agent in Charge is leadership but has lost the direct rank change.</summary>
+    [Theory]
+    [InlineData(Rank.SeniorSpecialAgent)]
+    [InlineData(Rank.Trainee)]
+    public async Task RankChangeAsync_SpecialAgentInChargeIsRefused(Rank target)
+    {
+        using var f = Make();
+        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Cid));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.RankChangeAsync("t", target, false, Holder("sac", Rank.SpecialAgentInCharge)));
+
+        Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
+    }
+
+    [Fact]
+    public async Task RankChangeAsync_ReadsTheSectionChiefsDivisionFromTheRow()
+    {
+        using var f = Make();
+        // the cookie says Section Chief of the HRT, the row says the CID since a Board member moved them
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Hrt));
+        var stale = ClaimsPrincipalBuilder.Agent("sc").WithRank(Rank.SectionChief).AsDivision(Division.Hrt).AsTru().Build();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, false, stale));
+
+        Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
+    }
+
+    // -- PromotionDecideAsync --
+
+    [Fact]
+    public async Task PromotionDecideAsync_SectionChiefDecidesARequestOfTheOwnDivision()
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Cid));
+        PersistRequest(f.Ctx, "t", Rank.SeniorSpecialAgent);
+
+        await f.Svc.PromotionDecideAsync("req", approved: true, note: null, false, Holder("sc", Rank.SectionChief));
+
+        Assert.Equal(Rank.SeniorSpecialAgent, Reload(f, "t").Rank);
+        Assert.Equal(PromotionStatus.Approved, RequestStatus(f));
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_SectionChiefMayAlsoRejectARequestOfTheOwnDivision()
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Cid));
+        PersistRequest(f.Ctx, "t", Rank.SeniorSpecialAgent);
+
+        await f.Svc.PromotionDecideAsync("req", approved: false, note: "noch nicht", false, Holder("sc", Rank.SectionChief));
+
+        Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
+        Assert.Equal(PromotionStatus.Rejected, RequestStatus(f));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PromotionDecideAsync_SectionChiefIsRefusedARequestOfAForeignDivision(bool approved)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Ctd));
+        PersistRequest(f.Ctx, "t", Rank.SeniorSpecialAgent);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.PromotionDecideAsync("req", approved, null, false, Holder("sc", Rank.SectionChief)));
+
+        Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
+        Assert.Equal(PromotionStatus.Requested, RequestStatus(f));
+    }
+
+    [Theory]
+    [InlineData(Rank.SectionChief)]
+    [InlineData(Rank.AssistantDirector)]
+    public async Task PromotionDecideAsync_SectionChiefIsRefusedARequestForSectionChiefOrAbove(Rank target)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgentInCharge, Division.Cid));
+        PersistRequest(f.Ctx, "t", target);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.PromotionDecideAsync("req", true, null, false, Holder("sc", Rank.SectionChief)));
+
+        Assert.Equal(Rank.SpecialAgentInCharge, Reload(f, "t").Rank);
+        Assert.Equal(PromotionStatus.Requested, RequestStatus(f));
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_BoardDecidesEveryRequest()
+    {
+        using var f = Make();
+        PersistHolder(f, "board", Rank.AssistantDirector);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgentInCharge, Division.Ctd));
+        PersistRequest(f.Ctx, "t", Rank.SectionChief);
+
+        await f.Svc.PromotionDecideAsync("req", true, null, false, Holder("board", Rank.AssistantDirector));
+
+        Assert.Equal(Rank.SectionChief, Reload(f, "t").Rank);
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_SpecialAgentInChargeStopsAtTheCoarseGate()
+    {
+        using var f = Make();
+        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
+        Persist(f.Ctx, Member("t", Rank.Trainee, Division.Cid));
+        PersistRequest(f.Ctx, "t", Rank.Trainee);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.PromotionDecideAsync("req", true, null, false, Holder("sac", Rank.SpecialAgentInCharge)));
+
+        Assert.Equal(PromotionStatus.Requested, RequestStatus(f));
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_ReadsTheActorFromTheRow()
+    {
+        using var f = Make();
+        // the cookie says Board, the row says a Special Agent in Charge
+        PersistHolder(f, "demoted", Rank.SpecialAgentInCharge);
+        Persist(f.Ctx, Member("t", Rank.SpecialAgent, Division.Cid));
+        PersistRequest(f.Ctx, "t", Rank.SeniorSpecialAgent);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.PromotionDecideAsync("req", true, null, false, Holder("demoted", Rank.Director)));
+
+        Assert.Equal(PromotionStatus.Requested, RequestStatus(f));
+    }
+
+    // ---- every path that writes a rank leaves division and TRU flag consistent ----
+
+    private static void AssertConsistent(Agent a)
+    {
+        Assert.NotNull(a.Rank);
+        Assert.NotNull(a.Division);
+        var division = a.Division.GetValueOrDefault();
+        Assert.True(DivisionRules.MayHold(division, a.Rank));
+        Assert.Equal(division == Division.Hrt && !DivisionRules.IsBoard(a.Rank), a.IsTRU);
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee, Division.Cid)]
+    [InlineData(Rank.SpecialAgent, Division.Hrt)]
+    [InlineData(Rank.SpecialAgent, Division.Ctd)]
+    [InlineData(Rank.Director, Division.Hrt)]
+    public async Task ReleaseAsync_LeavesDivisionAndTruConsistent(Rank rank, Division division)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
+
+        await f.Svc.ReleaseAsync("t", rank, division, isHRB: false, confirmOverLimit: false, Admin());
+
+        var a = Reload(f, "t");
+        AssertConsistent(a);
+        Assert.Equal(division, a.Division);
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee, Division.Cid)]
+    [InlineData(Rank.SpecialAgent, Division.Hrt)]
+    [InlineData(Rank.Director, Division.Hrt)]
+    public async Task PromoteApplicantToAgentAsync_LeavesDivisionAndTruConsistent(Rank rank, Division division)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        await f.Svc.PromoteApplicantToAgentAsync("t", rank, division, false, confirmOverLimit: false, Admin());
+
+        AssertConsistent(Reload(f, "t"));
+    }
+
+    [Fact]
+    public async Task ConvertToInternalAsync_StartsInTheCid()
+    {
+        using var f = Make();
+        PersistPartner(f.Ctx);
+
+        await f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, false, Admin());
+
+        var a = Reload(f, "t");
+        AssertConsistent(a);
+        Assert.Equal(Division.Cid, a.Division);
+    }
+
+    [Fact]
+    public async Task ConvertToInternalAsync_OnlyReaderDenied()
+    {
+        using var f = Make();
+        PersistPartner(f.Ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, false, OnlyReader()));
+        Assert.NotNull(Reload(f, "t").PartnerAgency);
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee)]
+    [InlineData(Rank.SpecialAgent)]
+    [InlineData(Rank.Director)]
+    public async Task RankChangeAsync_LeavesDivisionAndTruConsistent(Rank target)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.RankChangeAsync("t", target, false, Admin());
+
+        AssertConsistent(Reload(f, "t"));
+    }
+
+    [Theory]
+    [InlineData(Rank.Trainee)]
+    [InlineData(Rank.Director)]
+    public async Task PromotionDecideAsync_LeavesDivisionAndTruConsistent(Rank target)
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+        using (var db = f.Ctx.NewContext())
+        {
+            db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
+            {
+                Id = "req-c", AgentId = "t", TargetRank = target, Status = PromotionStatus.Requested,
+            });
+            db.SaveChanges();
+        }
+
+        await f.Svc.PromotionDecideAsync("req-c", approved: true, note: null, false, Admin());
+
+        var a = Reload(f, "t");
+        AssertConsistent(a);
+        Assert.Equal(target == Rank.Trainee ? Division.Cid : Division.Hrt, a.Division);
+    }
+
+    [Fact]
+    public async Task ReleaseAsPartnerAsync_ClearsDivisionAndTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending, rank: Rank.SpecialAgent,
+            cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
+
+        await f.Svc.ReleaseAsPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Null(a.Division);
+        Assert.False(a.IsTRU);
+    }
+
+    [Fact]
+    public async Task ConvertToPartnerAsync_ClearsDivisionAndTru()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent, cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+
+        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSMD, PartnerRank.Member, Admin("keepadmin"));
+
+        var a = Reload(f, "t");
+        Assert.Null(a.Division);
+        Assert.False(a.IsTRU);
     }
 
     [Fact]
@@ -789,15 +1720,15 @@ public class AgentManagementServiceTests
         {
             db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
             {
-                Id = "req-down", AgentId = "t", TargetRank = Rank.JuniorAgent, Status = PromotionStatus.Requested,
+                Id = "req-down", AgentId = "t", TargetRank = Rank.Trainee, Status = PromotionStatus.Requested,
             });
             db.SaveChanges();
         }
 
-        await f.Svc.PromotionDecideAsync("req-down", approved: true, note: null, Admin());
+        await f.Svc.PromotionDecideAsync("req-down", approved: true, note: null, false, Admin());
 
         var a = Reload(f, "t");
-        Assert.Equal(Rank.JuniorAgent, a.Rank);
+        Assert.Equal(Rank.Trainee, a.Rank);
         Assert.False(a.IsHRB);
     }
 
@@ -893,7 +1824,7 @@ public class AgentManagementServiceTests
 
         await f.Svc.UnblockAsync("blocked", Admin());
         await f.Svc.TerminationRevokeAsync("gone", Admin());
-        await f.Svc.ConvertToInternalAsync("partner", Rank.SpecialAgent, Admin());
+        await f.Svc.ConvertToInternalAsync("partner", Rank.SpecialAgent, false, Admin());
         await f.Svc.TeamLeadSetAsync("tl", false, Admin());
         // becoming oversight is no return to the roster, and clearing a flag that was never set is none either
         await f.Svc.TeamLeadSetAsync("plain", false, Admin());
@@ -1255,7 +2186,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_BelowLeadership_StagesForRelease()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
 
@@ -1271,7 +2202,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Leadership_AppliesInstantly()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("lead", AgentStatus.Active, Rank.SupervisorySpecialAgent));
+        Persist(f.Ctx, NewAgent("lead", AgentStatus.Active, Rank.SpecialAgentInCharge));
 
         await f.Svc.AvatarSetAsync("lead", Image(), "image/jpeg", 32, Leader("lead"));
 
@@ -1286,7 +2217,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_SecondUpload_ReplacesStagedFile()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var first = Reload(f, "jr").PendingAvatarFileName!;
@@ -1305,7 +2236,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_OnDisallowedType(string contentType)
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => f.Svc.AvatarSetAsync("jr", Image(), contentType, 32, Junior("jr")));
@@ -1317,7 +2248,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_WhenTooLarge()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         var tooBig = new FileUploadOptions().AvatarMaxBytes + 1;
 
         await Assert.ThrowsAsync<InvalidOperationException>(
@@ -1330,7 +2261,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_ForForeignAccount_EvenAsLeadership()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         // leadership moderates by removing, it never uploads on someone else's behalf
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -1351,7 +2282,7 @@ public class AgentManagementServiceTests
     public async Task AvatarSetAsync_Throws_ForPartner()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("pa", AgentStatus.Active, Rank.JuniorAgent, a => a.PartnerAgency = PartnerAgency.LSPD));
+        Persist(f.Ctx, NewAgent("pa", AgentStatus.Active, Rank.Trainee, a => a.PartnerAgency = PartnerAgency.LSPD));
         var partner = ClaimsPrincipalBuilder.Agent("pa").AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
@@ -1362,7 +2293,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_MovesStagedToActive_AndNotifies()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var staged = Reload(f, "jr").PendingAvatarFileName!;
 
@@ -1382,7 +2313,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_DeletesThePreviousPicture()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         await f.Svc.AvatarApproveAsync("jr", Leader());
@@ -1401,7 +2332,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_Throws_WithoutStagedPicture()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => f.Svc.AvatarApproveAsync("jr", Leader()));
     }
@@ -1410,7 +2341,7 @@ public class AgentManagementServiceTests
     public async Task AvatarApproveAsync_Throws_ForNonLeadership()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.AvatarApproveAsync("jr", Junior("other")));
@@ -1420,7 +2351,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRejectAsync_DropsStaged_KeepsActive()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent,
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee,
             a => { a.AvatarFileName = "alt.png"; a.AvatarContentType = "image/png"; }));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var staged = Reload(f, "jr").PendingAvatarFileName!;
@@ -1438,7 +2369,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRejectAsync_Throws_ForNonLeadership()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.AvatarRejectAsync("jr", "nein", Junior("other")));
@@ -1448,7 +2379,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRemoveAsync_OwnAccount_ClearsBothAndDeletesFiles()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         await f.Svc.AvatarApproveAsync("jr", Leader());
         var active = Reload(f, "jr").AvatarFileName!;
@@ -1470,7 +2401,7 @@ public class AgentManagementServiceTests
     public async Task AvatarRemoveAsync_ForeignAccount_LeadershipOnly()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent,
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee,
             a => { a.AvatarFileName = "alt.png"; a.AvatarContentType = "image/png"; }));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.AvatarRemoveAsync("jr", Junior("other")));
@@ -1485,9 +2416,9 @@ public class AgentManagementServiceTests
     {
         using var f = Make();
         Persist(f.Ctx,
-            NewAgent("a", AgentStatus.Active, Rank.JuniorAgent),
-            NewAgent("b", AgentStatus.Active, Rank.JuniorAgent),
-            NewAgent("c", AgentStatus.Active, Rank.JuniorAgent,
+            NewAgent("a", AgentStatus.Active, Rank.Trainee),
+            NewAgent("b", AgentStatus.Active, Rank.Trainee),
+            NewAgent("c", AgentStatus.Active, Rank.Trainee,
                 a => { a.AvatarFileName = "aktiv.png"; a.AvatarContentType = "image/png"; }));
         await f.Svc.AvatarSetAsync("b", Image(), "image/png", 32, Junior("b"));
         await f.Svc.AvatarSetAsync("a", Image(), "image/png", 32, Junior("a"));
@@ -1502,9 +2433,9 @@ public class AgentManagementServiceTests
     {
         using var f = Make();
         Persist(f.Ctx,
-            NewAgent("act", AgentStatus.Active, Rank.JuniorAgent,
+            NewAgent("act", AgentStatus.Active, Rank.Trainee,
                 a => { a.AvatarFileName = "aktiv.png"; a.AvatarContentType = "image/png"; }),
-            NewAgent("jr", AgentStatus.Active, Rank.JuniorAgent));
+            NewAgent("jr", AgentStatus.Active, Rank.Trainee));
         await f.Svc.AvatarSetAsync("jr", Image(), "image/png", 32, Junior("jr"));
         var staged = Reload(f, "jr").PendingAvatarFileName!;
 
@@ -1512,5 +2443,179 @@ public class AgentManagementServiceTests
         Assert.Equal("jr", (await f.Svc.FindByAvatarFileAsync(staged))?.Id);
         Assert.Null(await f.Svc.FindByAvatarFileAsync("unbekannt.png"));
         Assert.Null(await f.Svc.FindByAvatarFileAsync(""));
+    }
+
+    // ---- turning an agent into a partner strips the rank: the fine gate ----
+
+    [Theory]
+    [InlineData(Rank.Director)]
+    [InlineData(Rank.SpecialAgent)]
+    public async Task ConvertToPartnerAsync_BoardMayConvertAnybody(Rank target)
+    {
+        using var f = Make();
+        PersistHolder(f, "board", Rank.AssistantDirector);
+        Persist(f.Ctx, Member("t", target, Division.Ctd));
+
+        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Holder("board", Rank.AssistantDirector));
+
+        Assert.Null(Reload(f, "t").Rank);
+    }
+
+    [Fact]
+    public async Task ConvertToPartnerAsync_AdminMayConvertABoardMember()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Member("t", Rank.Director, Division.Cid));
+
+        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Admin());
+
+        Assert.Equal(PartnerAgency.LSPD, Reload(f, "t").PartnerAgency);
+    }
+
+    [Theory]
+    [InlineData(Division.Cid, Rank.SpecialAgent, true)]
+    [InlineData(Division.Ctd, Rank.SpecialAgent, false)]
+    [InlineData(Division.Cid, Rank.SectionChief, false)]
+    [InlineData(Division.Cid, Rank.Director, false)]
+    public async Task ConvertToPartnerAsync_SectionChiefOnlyInTheOwnDivisionBelowSectionChief(Division home, Rank current, bool allowed)
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
+        Persist(f.Ctx, Member("t", current, home));
+
+        var call = () => f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Holder("sc", Rank.SectionChief));
+
+        if (allowed)
+        {
+            await call();
+            Assert.Null(Reload(f, "t").Rank);
+        }
+        else
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(call);
+            Assert.Equal(current, Reload(f, "t").Rank);
+        }
+    }
+
+    [Fact]
+    public async Task ConvertToPartnerAsync_SpecialAgentInChargeIsRefused()
+    {
+        using var f = Make();
+        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
+        Persist(f.Ctx, Member("t", Rank.Director, Division.Cid), Member("u", Rank.Trainee, Division.Cid));
+
+        foreach (var id in new[] { "t", "u" })
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.ConvertToPartnerAsync(
+                id, PartnerAgency.LSPD, PartnerRank.Member, Holder("sac", Rank.SpecialAgentInCharge)));
+            Assert.NotNull(Reload(f, id).Rank);
+        }
+    }
+
+    // ---- soft seat limits on the rank write paths ----
+
+    private static Agent[] BoardSeats(int count)
+        => Enumerable.Range(0, count)
+            .Select(i => NewAgent($"b{i}", AgentStatus.Active, Rank.AssistantDirector, a => a.Division = Division.Cid))
+            .ToArray();
+
+    [Fact]
+    public async Task RankChangeAsync_PromotionIntoAFullBoardNeedsConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, BoardSeats(DivisionDisplay.BoardLimit));
+        Persist(f.Ctx, Member("t", Rank.SectionChief, Division.Cid));
+
+        var ex = await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.RankChangeAsync("t", Rank.AssistantDirector, false, Admin()));
+        Assert.Equal(Rank.SectionChief, Reload(f, "t").Rank);
+
+        await f.Svc.RankChangeAsync("t", Rank.AssistantDirector, true, Admin());
+        Assert.Equal(Rank.AssistantDirector, Reload(f, "t").Rank);
+        Assert.Contains("4 von 4", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RankChangeAsync_DemotionOutOfTheBoardIntoAFullHomeDivisionNeedsConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd), "ctd"));
+        Persist(f.Ctx, Member("t", Rank.AssistantDirector, Division.Ctd));
+
+        await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.RankChangeAsync("t", Rank.SpecialAgent, false, Admin()));
+        Assert.Equal(Rank.AssistantDirector, Reload(f, "t").Rank);
+
+        await f.Svc.RankChangeAsync("t", Rank.SpecialAgent, true, Admin());
+        Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
+    }
+
+    [Fact]
+    public async Task RankChangeAsync_StayingInTheSameUnitNeedsNoSeat()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Ctd, DivisionDisplay.Limit(Division.Ctd) + 1, "ctd"));
+
+        await f.Svc.RankChangeAsync("ctd0", Rank.SeniorSpecialAgent, false, Admin());
+
+        Assert.Equal(Rank.SeniorSpecialAgent, Reload(f, "ctd0").Rank);
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_ApprovalIntoAFullBoardNeedsConfirmationButARejectionDoesNot()
+    {
+        using var f = Make();
+        Persist(f.Ctx, BoardSeats(DivisionDisplay.BoardLimit));
+        Persist(f.Ctx, Member("t", Rank.SectionChief, Division.Cid));
+        PersistRequest(f.Ctx, "t", Rank.AssistantDirector);
+
+        await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.PromotionDecideAsync("req", true, null, false, Admin()));
+        Assert.Equal(PromotionStatus.Requested, RequestStatus(f));
+        Assert.Equal(Rank.SectionChief, Reload(f, "t").Rank);
+
+        await f.Svc.PromotionDecideAsync("req", false, null, false, Admin());
+        Assert.Equal(PromotionStatus.Rejected, RequestStatus(f));
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_ApprovalIntoAFullBoardSucceedsWithConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, BoardSeats(DivisionDisplay.BoardLimit));
+        Persist(f.Ctx, Member("t", Rank.SectionChief, Division.Cid));
+        PersistRequest(f.Ctx, "t", Rank.AssistantDirector);
+
+        await f.Svc.PromotionDecideAsync("req", true, null, true, Admin());
+
+        Assert.Equal(Rank.AssistantDirector, Reload(f, "t").Rank);
+        Assert.Equal(PromotionStatus.Approved, RequestStatus(f));
+    }
+
+    [Fact]
+    public async Task ConvertToInternalAsync_FullDivisionNeedsConfirmation()
+    {
+        using var f = Make();
+        Persist(f.Ctx, Seats(Division.Cid, DivisionDisplay.Limit(Division.Cid), "cid"));
+        PersistPartner(f.Ctx);
+
+        await Assert.ThrowsAsync<DivisionLimitExceededException>(
+            () => f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, false, Admin()));
+        Assert.NotNull(Reload(f, "t").PartnerAgency);
+
+        await f.Svc.ConvertToInternalAsync("t", Rank.SpecialAgent, true, Admin());
+        Assert.Equal(Division.Cid, Reload(f, "t").Division);
+    }
+
+    [Fact]
+    public async Task ConvertToInternalAsync_SectionChiefStartsTheFormerPartnerInTheirDivision()
+    {
+        using var f = Make();
+        PersistHolder(f, "sc", Rank.SectionChief, Division.Ctd);
+        PersistPartner(f.Ctx);
+
+        await f.Svc.ConvertToInternalAsync("t", Rank.Trainee, false, Holder("sc", Rank.SectionChief));
+
+        Assert.Equal(Division.Ctd, Reload(f, "t").Division);
     }
 }

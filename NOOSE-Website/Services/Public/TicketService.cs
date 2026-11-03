@@ -405,6 +405,7 @@ public class TicketService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var row = await db.Tickets.AsNoTracking()
@@ -445,6 +446,7 @@ public class TicketService(
 
         var body = CleanMessage(text);
         RequireNoMentions(body);
+        caseNumber = CaseNumbers.Normalize(caseNumber);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var row = await db.Tickets
             .FirstOrDefaultAsync(t => t.CaseNumber == caseNumber && t.CitizenProfileId == profile.Id, cancellationToken)
@@ -490,6 +492,7 @@ public class TicketService(
             // their unread badge never clears. Only the shared demo principal is out
             return;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // ExecuteUpdate: reading is not a change to the ticket, and a tracked write would stamp GeaendertAm and log
@@ -1233,6 +1236,7 @@ public class TicketService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var ticketId = await db.Tickets.AsNoTracking()
@@ -1488,7 +1492,7 @@ public class TicketService(
     // leadership hears about a ticket; no other agent sees the desk at all
     private static Task<List<string>> DeskRecipientsAsync(AppDbContext db, CancellationToken ct)
         => db.Users.OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
             .Select(u => u.Id)
             .ToListAsync(ct);
 }

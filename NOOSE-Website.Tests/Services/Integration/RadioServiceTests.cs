@@ -19,12 +19,12 @@ public sealed class RadioServiceTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgent).WithStatus(AgentStatus.Active).Build();
 
     private static ClaimsPrincipal Partner(string id = "partner")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).WithStatus(AgentStatus.Active)
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).WithStatus(AgentStatus.Active)
             .AsPartner(PartnerAgency.LSPD, PartnerRank.Member).Build();
 
     /// <summary>Read-only supervision: reads classified material, writes nothing, and is nobody in the roleplay.</summary>
     private static ClaimsPrincipal Supervisor(string id = "aufsicht")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).WithStatus(AgentStatus.Active)
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).WithStatus(AgentStatus.Active)
             .AsTeamLead().Build();
 
     private static void Add(SqliteTestContext ctx, Action<RadioChannel> configure)
@@ -39,7 +39,7 @@ public sealed class RadioServiceTests
     private static void AddTaskforce(SqliteTestContext ctx, string id, params string[] memberIds)
     {
         using var db = ctx.NewContext();
-        db.Taskforces.Add(new Taskforce { Id = id, Name = "Nachtfalke", CaseNumber = "NOOSE-TF-2026-0001" });
+        db.Taskforces.Add(new Taskforce { Id = id, Name = "Nachtfalke", CaseNumber = "FIB-TF-2026-0001" });
         foreach (var member in memberIds)
         {
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = id, AgentId = member });

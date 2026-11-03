@@ -63,9 +63,7 @@ public class AgentManagementService(
     public async Task<List<string>> GetAvailableBadgeNumbersAsync(string agentId, CancellationToken cancellationToken = default)
     {
         await using var readDb = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var assigned = await readDb.Users.AsNoTracking()
-            .Where(a => a.Id != agentId && (a.BadgeNumber != null || a.PendingBadgeNumber != null))
-            .Select(a => new { a.BadgeNumber, a.PendingBadgeNumber })
+        var assigned = await AssignedBadgeNumbers(readDb, agentId)
             .ToListAsync(cancellationToken);
         var target = await readDb.Users.AsNoTracking()
             .Where(a => a.Id == agentId)
@@ -94,19 +92,23 @@ public class AgentManagementService(
         return options;
     }
 
-    public async Task ReleaseAsync(string agentId, Rank rank, bool isTRU, bool isHRB, ClaimsPrincipal actor)
+    public async Task ReleaseAsync(string agentId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor)
     {
         // The page was the only gate. Releasing an account hands out a rank - up to Director - and the socket
         // takes whatever it is sent, so the check has to sit here, where every path through it passes.
         Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
-        RequireDepartmentsFitRank(rank, isTRU, isHRB);
+        RequireDepartmentsFitRank(rank, division, isHRB);
 
         var agent = await GetOrThrow(agentId);
+        await RequireMayAssignAsync(actor, DivisionRules.Normalize(rank, division), agent.Rank, rank);
+        var after = new OrgUnit(DivisionRules.Normalize(rank, division), DivisionRules.IsBoard(rank));
+        await RequireSeatAsync(agent, after, counts: !agent.IsTeamLead && agent.PartnerAgency is null, confirmOverLimit);
+
         var altRank = agent.Rank;
         agent.Status = AgentStatus.Active;
         agent.Rank = rank;
-        agent.IsTRU = isTRU;
+        DivisionRules.Apply(agent, division);
         agent.IsHRB = isHRB;
         agent.ReleasedAt = DateTime.UtcNow;
         agent.ReleasedById = actor.GetAgentId();
@@ -114,7 +116,7 @@ public class AgentManagementService(
 
         HistoryEntryAdd(agent.Id, altRank, rank, actor, "Erstmalige Freigabe");
         Audit(agent, AuditAction.Modified, actor,
-            $"Freigegeben als {rank}{(isTRU ? " (TRU)" : "")}{(isHRB ? " (HRB)" : "")}");
+            $"Freigegeben als {rank} ({DivisionRules.Label(after)}){(isHRB ? " (Administration Division)" : "")}");
         await Save(agent, newStamp: true);
 
         // notify agent
@@ -133,7 +135,7 @@ public class AgentManagementService(
         agent.PartnerRank = partnerRank;
         // partners hold no internal rank/flags
         agent.Rank = null;
-        agent.IsTRU = false;
+        DivisionRules.Clear(agent);
         agent.IsHRB = false;
         agent.IsTeamLead = false;
         agent.IsAdmin = false;
@@ -162,13 +164,14 @@ public class AgentManagementService(
         await Save(agent, newStamp: true);
     }
 
-    public async Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, bool isTRU, bool isHRB, ClaimsPrincipal actor)
+    public async Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor)
     {
         Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
-        RequireDepartmentsFitRank(rank, isTRU, isHRB);
+        RequireDepartmentsFitRank(rank, division, isHRB);
 
         var agent = await GetOrThrow(applicantUserId);
+        await RequireMayAssignAsync(actor, DivisionRules.Normalize(rank, division), agent.Rank, rank);
         // a partner applies without ever leaving status Active, so it arrives here as an Active account with an
         // agency rather than as an Applicant; the partner role ends with the same save that hands out the rank.
         // The application has to exist: status Applicant is the applicant's own proof of having gone through
@@ -179,12 +182,15 @@ public class AgentManagementService(
         {
             throw new InvalidOperationException("Nur Bewerber können hochgestuft werden.");
         }
+        var after = new OrgUnit(DivisionRules.Normalize(rank, division), DivisionRules.IsBoard(rank));
+        await RequireSeatAsync(agent, after, counts: !agent.IsTeamLead, confirmOverLimit);
+
         var altRank = agent.Rank;
         agent.Status = AgentStatus.Active;
         agent.PartnerAgency = null;
         agent.PartnerRank = null;
         agent.Rank = rank;
-        agent.IsTRU = isTRU;
+        DivisionRules.Apply(agent, division);
         agent.IsHRB = isHRB;
         agent.ReleasedAt = DateTime.UtcNow;
         agent.ReleasedById = actor.GetAgentId();
@@ -192,10 +198,10 @@ public class AgentManagementService(
 
         HistoryEntryAdd(agent.Id, altRank, rank, actor, "Aus Bewerbung hochgestuft");
         Audit(agent, AuditAction.Modified, actor,
-            $"Bewerber hochgestuft als {rank}{(isTRU ? " (TRU)" : "")}{(isHRB ? " (HRB)" : "")}");
+            $"Bewerber hochgestuft als {rank} ({DivisionRules.Label(after)}){(isHRB ? " (Administration Division)" : "")}");
         await Save(agent, newStamp: true);
 
-        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Dein NOOSE-Zugang wurde freigeschaltet.", "/"); }
+        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Dein FIB-Zugang wurde freigeschaltet.", "/"); }
         catch { /* best effort */ }
     }
 
@@ -477,15 +483,21 @@ public class AgentManagementService(
             .FirstOrDefaultAsync(a => a.AvatarFileName == fileName || a.PendingAvatarFileName == fileName, cancellationToken);
     }
 
-    public async Task RankChangeAsync(string agentId, Rank rank, ClaimsPrincipal actor)
+    public async Task RankChangeAsync(string agentId, Rank rank, bool confirmOverLimit, ClaimsPrincipal actor)
     {
-        Permission.RequireLeadership(actor);
         Permission.RequireWriteAccess(actor);
+        Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
         var alt = agent.Rank;
+        var before = DivisionRules.Of(agent);
+        var home = before.Home;
+        // fine gate, the socket takes any rank
+        await RequireMayAssignAsync(actor, home, alt, rank);
+        await RequireRankSeatAsync(agent, before, rank, confirmOverLimit);
         agent.Rank = rank;
-        var lost = DropDepartmentsBelowThreshold(agent);
+        DivisionRules.Apply(agent, home);
+        var lost = DepartmentsFollowRank(agent, home);
 
         if (alt != rank)
         {
@@ -512,9 +524,16 @@ public class AgentManagementService(
 
     public async Task ConvertToPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
+        // the switch strips the rank; a partner changing agency holds none
+        if (agent.Rank is { } fromRank)
+        {
+            PromotionRules.RequireMayConvertToPartner(
+                await PromotionStanding.ReadAsync(db.Users, actor), DivisionRules.Of(agent).Home, fromRank);
+        }
         if (agent.Status != AgentStatus.Active)
         {
             throw new InvalidOperationException("Die Zugehörigkeit kann nur für aktive Konten geändert werden.");
@@ -536,7 +555,7 @@ public class AgentManagementService(
         agent.PartnerAgency = agency;
         agent.PartnerRank = partnerRank;
         agent.Rank = null;
-        agent.IsTRU = false;
+        DivisionRules.Clear(agent);
         agent.IsHRB = false;
         agent.IsTeamLead = false;
         agent.IsAdmin = false;
@@ -548,35 +567,45 @@ public class AgentManagementService(
         catch { /* best effort */ }
     }
 
-    public async Task ConvertToInternalAsync(string agentId, Rank rank, ClaimsPrincipal actor)
+    public async Task ConvertToInternalAsync(string agentId, Rank rank, bool confirmOverLimit, ClaimsPrincipal actor)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
+        var standing = await PromotionStanding.ReadAsync(db.Users, actor);
+        // a former partner starts where the actor releases: the own division for a Section Chief, else the CID
+        var division = PromotionRules.ReleaseDivision(standing);
+        DivisionRules.RequireMayHold(division, rank);
+        PromotionRules.RequireMayAssign(standing, DivisionRules.Normalize(rank, division), agent.Rank, rank);
         if (agent.Status != AgentStatus.Active)
         {
             throw new InvalidOperationException("Die Zugehörigkeit kann nur für aktive Konten geändert werden.");
         }
         if (agent.PartnerAgency is null)
         {
-            throw new InvalidOperationException("Dieser Account ist bereits ein interner NOOSE-Agent.");
+            throw new InvalidOperationException("Dieser Account ist bereits ein interner FIB-Agent.");
         }
+        var after = new OrgUnit(DivisionRules.Normalize(rank, division), DivisionRules.IsBoard(rank));
+        await RequireSeatAsync(agent, after, counts: !agent.IsTeamLead, confirmOverLimit);
 
         agent.PartnerAgency = null;
         agent.PartnerRank = null;
         agent.Rank = rank;
+        // moving on from the start division is a division change
+        DivisionRules.Apply(agent, division);
         // the inactivity radar starts counting from here
         agent.ActiveSinceAt = DateTime.UtcNow;
 
         HistoryEntryAdd(agent.Id, null, rank, actor, "Von Partner zu intern");
-        Audit(agent, AuditAction.Modified, actor, $"Zugehörigkeit → intern NOOSE ({rank})");
+        Audit(agent, AuditAction.Modified, actor, $"Zugehörigkeit → intern FIB ({rank}, {DivisionRules.Label(DivisionRules.Of(agent))})");
         await Save(agent, newStamp: true);
 
-        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Deine Zugehörigkeit wurde auf einen internen NOOSE-Zugang umgestellt.", "/"); }
+        try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Deine Zugehörigkeit wurde auf einen internen FIB-Zugang umgestellt.", "/"); }
         catch { /* best effort */ }
     }
 
-    public async Task PromotionDecideAsync(string requestId, bool approved, string? note, ClaimsPrincipal actor)
+    public async Task PromotionDecideAsync(string requestId, bool approved, string? note, bool confirmOverLimit, ClaimsPrincipal actor)
     {
         Permission.RequirePromotionDecide(actor);
 
@@ -587,22 +616,31 @@ public class AgentManagementService(
             throw new InvalidOperationException("Über diesen Antrag wurde bereits entschieden.");
         }
 
+        var agent = await GetOrThrow(request.AgentId);
+        var before = DivisionRules.Of(agent);
+        // fine gate, before any mutation
+        await RequireMayAssignAsync(actor, before.Home, agent.Rank, request.TargetRank);
+        if (approved)
+        {
+            await RequireRankSeatAsync(agent, before, request.TargetRank, confirmOverLimit);
+        }
+
         request.Status = approved ? PromotionStatus.Approved : PromotionStatus.Rejected;
         request.DeciderName = actor.GetCodename();
         request.DecidedAt = DateTime.UtcNow;
         request.DecisionNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
-
-        var agent = await GetOrThrow(request.AgentId);
         if (approved)
         {
             var alt = agent.Rank;
+            var home = DivisionRules.Of(agent).Home;
             agent.Rank = request.TargetRank;
+            DivisionRules.Apply(agent, home);
             if (alt != request.TargetRank)
             {
                 HistoryEntryAdd(agent.Id, alt, request.TargetRank, actor, "Beförderung");
             }
             // a request may also lower the rank; the departments cannot survive below their own threshold
-            var lost = DropDepartmentsBelowThreshold(agent);
+            var lost = DepartmentsFollowRank(agent, home);
             Audit(agent, AuditAction.Modified, actor,
                 $"Beförderung genehmigt: {alt?.ToString() ?? "—"} → {request.TargetRank}{lost}");
             await Save(agent, newStamp: true);
@@ -616,50 +654,79 @@ public class AgentManagementService(
         }
     }
 
-    /// <summary>Reject a release that would hand out a department the rank may not carry.</summary>
-    private static void RequireDepartmentsFitRank(Rank rank, bool isTRU, bool isHRB)
+    /// <summary>Fine rank gate of every rank write; the actor is read from the row, not the claims.</summary>
+    private async Task RequireMayAssignAsync(ClaimsPrincipal actor, Division? targetDivision, Rank? fromRank, Rank toRank)
+        => PromotionRules.RequireMayAssign(await PromotionStanding.ReadAsync(db.Users, actor), targetDivision, fromRank, toRank);
+
+    /// <summary>Seat check of a rank write: the Board by rank, else the home division, which the HRT loses to the CID below Special Agent.</summary>
+    private Task RequireRankSeatAsync(Agent agent, OrgUnit before, Rank rank, bool confirmOverLimit)
+        => RequireSeatAsync(agent, new OrgUnit(DivisionRules.Normalize(rank, before.Home), DivisionRules.IsBoard(rank)),
+            AgentSelection.IsSelectable(agent), confirmOverLimit, before);
+
+    /// <summary>Reject a release that would hand out a division or flag the rank may not carry.</summary>
+    private static void RequireDepartmentsFitRank(Rank rank, Division division, bool isHRB)
     {
-        if (isTRU)
-        {
-            DepartmentRules.RequireMayHold(rank, "Die Tactical Response Unit");
-        }
+        DivisionRules.RequireMayHold(division, rank);
         if (isHRB)
         {
-            DepartmentRules.RequireMayHold(rank, "Die Human Resource Branch");
+            DepartmentRules.RequireMayHold(rank, "Die Administration Division");
         }
     }
 
-    /// <summary>Strip TRU and HRB once a rank change puts the agent below the threshold; returns an audit suffix.</summary>
+    /// <summary>Move the HRT back to the CID and strip the Administration Division once a rank change puts the agent below the threshold; returns an audit suffix.</summary>
     /// <remarks>
-    /// Without this a demotion leaves a Junior Agent carrying HRB - a state the guards refuse to create but would
-    /// happily keep, and the flag still opens every HRB gate.
+    /// Without this a demotion leaves a Trainee carrying the flag - a state the guards refuse to create but would
+    /// happily keep, and the flag still opens every gate of the Administration Division.
     /// </remarks>
-    private static string DropDepartmentsBelowThreshold(Agent agent)
+    private static string DepartmentsFollowRank(Agent agent, Division? homeBefore)
     {
-        if (DepartmentRules.MayHold(agent.Rank) || !(agent.IsTRU || agent.IsHRB))
-        {
-            return string.Empty;
-        }
-
         var lost = new List<string>(2);
-        if (agent.IsTRU) { agent.IsTRU = false; lost.Add("TRU"); }
-        if (agent.IsHRB) { agent.IsHRB = false; lost.Add("HRB"); }
-        return $"; {string.Join(" und ", lost)} entfernt (Dienstgrad unter {RankDisplay.DefaultName(DepartmentRules.MinimumRank)})";
+        if (homeBefore == Division.Hrt && agent.Division != Division.Hrt)
+        {
+            lost.Add("Abteilung HRT → CID");
+        }
+        if (agent.IsHRB && !DepartmentRules.MayHold(agent.Rank))
+        {
+            agent.IsHRB = false;
+            lost.Add("Administration Division entfernt");
+        }
+        return lost.Count == 0
+            ? string.Empty
+            : $"; {string.Join("; ", lost)} (Dienstgrad unter {RankDisplay.DefaultName(DepartmentRules.MinimumRank)})";
     }
 
-    public async Task TruSetAsync(string agentId, bool isTRU, ClaimsPrincipal actor)
+    /// <summary>Count the new seat against the limit of its unit; throws unless confirmed. Runs before the first mutation, so a refusal leaves the tracked row untouched.</summary>
+    private async Task RequireSeatAsync(Agent agent, OrgUnit after, bool counts, bool confirmOverLimit, OrgUnit before = default)
     {
-        Permission.RequireLeadership(actor);
-        Permission.RequireWriteAccess(actor);
+        // no seat for an inactive account or a team lead, and no new one when the unit stays the same
+        if (!counts || after.IsNone || DivisionRules.SameSeat(before, after))
+        {
+            return;
+        }
+        var taken = await DivisionRules.CountAsync(db.Users, after, agent.Id);
+        DivisionRules.RequireSeat(after, taken, confirmOverLimit);
+    }
+
+    public async Task DivisionSetAsync(string agentId, Division division, bool confirmOverLimit, ClaimsPrincipal actor)
+    {
+        Permission.RequireDivisionSet(actor);
 
         var agent = await GetOrThrow(agentId);
-        if (isTRU)
+        if (agent.PartnerAgency is not null)
         {
-            DepartmentRules.RequireMayHold(agent.Rank, "Die Tactical Response Unit");
+            throw new InvalidOperationException("Partner-Konten gehören keiner Abteilung an.");
         }
-        agent.IsTRU = isTRU;
+        DivisionRules.RequireMayHold(division, agent.Rank);
 
-        Audit(agent, AuditAction.Modified, actor, isTRU ? "TRU-Flag gesetzt" : "TRU-Flag entfernt");
+        var before = DivisionRules.Of(agent);
+        // the Board seat does not change with the home division, so only a non-Board move takes a division seat
+        var after = new OrgUnit(division, before.IsBoard);
+        await RequireSeatAsync(agent, after, counts: AgentSelection.IsSelectable(agent), confirmOverLimit, before);
+
+        DivisionRules.Apply(agent, division);
+
+        Audit(agent, AuditAction.Modified, actor,
+            $"Abteilung {DivisionRules.Label(before)} → {DivisionRules.Label(after)}{(confirmOverLimit ? " (Limit bestätigt)" : "")}");
         await Save(agent, newStamp: true);
     }
 
@@ -671,11 +738,11 @@ public class AgentManagementService(
         var agent = await GetOrThrow(agentId);
         if (isHRB)
         {
-            DepartmentRules.RequireMayHold(agent.Rank, "Die Human Resource Branch");
+            DepartmentRules.RequireMayHold(agent.Rank, "Die Administration Division");
         }
         agent.IsHRB = isHRB;
 
-        Audit(agent, AuditAction.Modified, actor, isHRB ? "HRB-Flag gesetzt" : "HRB-Flag entfernt");
+        Audit(agent, AuditAction.Modified, actor, isHRB ? "Administration-Division-Flag gesetzt" : "Administration-Division-Flag entfernt");
         await Save(agent, newStamp: true);
     }
 
@@ -851,10 +918,39 @@ public class AgentManagementService(
         Permission.RequireLeadership(actor);
         Permission.RequireWriteAccess(actor);
 
+        // the gate keeps a parallel badge pick from taking the number between check and save
+        await BadgeNumberGate.WaitAsync(cancellationToken);
+        try
+        {
+            await TerminationRevokeLockedAsync(agentId, actor, cancellationToken);
+        }
+        finally
+        {
+            BadgeNumberGate.Release();
+        }
+    }
+
+    private async Task TerminationRevokeLockedAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
         var agent = await GetOrThrow(agentId);
         if (agent.Status != AgentStatus.Terminated)
         {
             throw new InvalidOperationException("Dieser Agent ist nicht gekündigt.");
+        }
+
+        // the number was free while terminated; whoever took it since keeps it
+        var lostBadgeNumber = BadgeNumbers.Normalize(agent.BadgeNumber) is { } badge
+            && await IsBadgeNumberTakenAsync(agent.Id, badge, cancellationToken)
+                ? agent.BadgeNumber
+                : null;
+        if (lostBadgeNumber is not null)
+        {
+            agent.BadgeNumber = null;
+        }
+        if (BadgeNumbers.Normalize(agent.PendingBadgeNumber) is { } pending
+            && await IsBadgeNumberTakenAsync(agent.Id, pending, cancellationToken))
+        {
+            agent.PendingBadgeNumber = null;
         }
 
         agent.Status = AgentStatus.Active;
@@ -873,7 +969,9 @@ public class AgentManagementService(
             db.Bewerbungssperren.Remove(entry); // interceptor soft-deletes
         }
 
-        Audit(agent, AuditAction.Modified, actor, "Kündigung zurückgenommen");
+        Audit(agent, AuditAction.Modified, actor, lostBadgeNumber is null
+            ? "Kündigung zurückgenommen"
+            : $"Kündigung zurückgenommen (Dienstnummer {lostBadgeNumber} inzwischen vergeben, entfernt)");
         await Save(agent, newStamp: true);
     }
 
@@ -964,6 +1062,8 @@ public class AgentManagementService(
         // the rows go rather than the pointer. Badges, quota and KI logs are derived or per-account bookkeeping;
         // an absence, a meeting attendance and a document access revocation only ever describe this one agent.
         await db.Absences.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        // a firearm-use report is filed about this one agent and means nothing without the account
+        await db.FirearmUses.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.Feedbacks.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentBadges.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.DecorationAwards.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
@@ -1161,16 +1261,27 @@ public class AgentManagementService(
             return;
         }
 
-        var assigned = await db.Users.AsNoTracking()
-            .Where(a => a.Id != agent.Id && (a.BadgeNumber != null || a.PendingBadgeNumber != null))
-            .Select(a => new { a.BadgeNumber, a.PendingBadgeNumber })
-            .ToListAsync();
-        if (assigned.Any(a => string.Equals(BadgeNumbers.Normalize(a.BadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(BadgeNumbers.Normalize(a.PendingBadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase)))
+        if (await IsBadgeNumberTakenAsync(agent.Id, badgeNumber))
         {
             throw new InvalidOperationException("Diese Dienstnummer ist bereits vergeben.");
         }
     }
+
+    private async Task<bool> IsBadgeNumberTakenAsync(string agentId, string badgeNumber, CancellationToken cancellationToken = default)
+    {
+        var assigned = await AssignedBadgeNumbers(db, agentId).ToListAsync(cancellationToken);
+        return assigned.Any(a => string.Equals(BadgeNumbers.Normalize(a.BadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(BadgeNumbers.Normalize(a.PendingBadgeNumber), badgeNumber, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>Badge numbers held by everyone but the agent; a terminated agent's number is free again.</summary>
+    private static IQueryable<AssignedBadgeNumber> AssignedBadgeNumbers(AppDbContext source, string agentId)
+        => source.Users.AsNoTracking()
+            .Where(a => a.Id != agentId && a.Status != AgentStatus.Terminated
+                && (a.BadgeNumber != null || a.PendingBadgeNumber != null))
+            .Select(a => new AssignedBadgeNumber(a.BadgeNumber, a.PendingBadgeNumber));
+
+    private sealed record AssignedBadgeNumber(string? BadgeNumber, string? PendingBadgeNumber);
 
     private void HistoryEntryAdd(string agentId, Rank? alt, Rank @new, ClaimsPrincipal actor, string reason)
         => db.AgentRankHistories.Add(new AgentRankHistory

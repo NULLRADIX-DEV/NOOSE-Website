@@ -129,7 +129,7 @@
             @if (_suggestCost is { } cost)
             {
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                    NOOSEI-Entwurf: @cost.ToString("N0") Token
+                    FIBI-Entwurf: @cost.ToString("N0") Token
                     @if (_suggestQuota is { } quota)
                     {
                         <text> · Restkontingent: @quota.Remaining.ToString("N0")</text>
@@ -146,7 +146,7 @@
                 {
                     <MudButton OnClick="SuggestAsync" Disabled="_busy" Variant="Variant.Outlined"
                                Color="Color.Secondary" Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.AutoAwesome">NOOSEI-Entwurf</MudButton>
+                               StartIcon="@Icons.Material.Filled.AutoAwesome">FIBI-Entwurf</MudButton>
                 }
                 @* the template only fills the field; sending stays a deliberate act *@
                 @if (_templates.Count > 0)
