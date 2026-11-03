@@ -591,9 +591,6 @@ public static class ChangelogContent
             Neu("2.8.02-akten-export", "Die Listen der Personen, Gruppierungen, Vorgänge und Operationen lädst du mit "
                 + "„CSV“ genau so herunter, wie du sie gefiltert und sortiert siehst, und die Führung lädt jede dieser "
                 + "Akten als Dossier herunter; jeder Export steht im Zugriffsprotokoll.", "Akten", "2.7.25-akten-export"),
-            Neu("2.8.03-akte-teilen", "Mit dem neuen Knopf auf einer Akte teilst du sie in einen Discord-Kanal, den die "
-                + "Führung eingerichtet hat: Name, Aktenzeichen, dein kurzer Hinweis und ein Link, ohne Ping. "
-                + "Verschlusssachen lassen sich nicht teilen.", "Akten"),
         ]),
 
         new("3.0.00", new DateTime(2026, 11, 3), "Aus NOOSE wird das FIB",
@@ -645,6 +642,9 @@ public static class ChangelogContent
             Besser("3.0.16-dienstnummer-frei", "Die Dienstnummer eines gekündigten Agenten ist sofort wieder frei. "
                 + "Wird die Kündigung zurückgenommen und hat inzwischen jemand anderes die Nummer, wählt er eine neue.",
                 "Personal"),
+            Neu("3.0.17-akte-teilen", "Mit dem neuen Knopf auf einer Akte teilst du sie in einen Discord-Kanal, den die "
+                + "Führung eingerichtet hat: Name, Aktenzeichen, dein kurzer Hinweis und ein Link, ohne Ping. "
+                + "Verschlusssachen lassen sich nicht teilen.", "Akten"),
         ]),
     ];
 }

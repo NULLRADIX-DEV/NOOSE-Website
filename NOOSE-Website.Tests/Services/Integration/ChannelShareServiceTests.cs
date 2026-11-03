@@ -22,13 +22,13 @@ public sealed class ChannelShareServiceTests : IDisposable
 {
     private const string Hook = "https://discord.com/api/webhooks/111111111111111111/secret-token_A";
     private const string OtherHook = "https://discord.com/api/webhooks/222222222222222222/other-token_B";
-    private const string BaseUrl = "https://noose.test";
+    private const string BaseUrl = "https://fibhq.test";
 
     private static readonly ClaimsPrincipal Agent =
         ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.SpecialAgent).WithCodename("Fox");
 
     private static readonly ClaimsPrincipal Leader =
-        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SupervisorySpecialAgent).AsTru().AsHrb().WithCodename("Hawk");
+        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).AsTru().AsHrb().WithCodename("Hawk");
 
     private static readonly ClaimsPrincipal Supervision =
         ClaimsPrincipalBuilder.Agent("sup").WithRank(Rank.Director).AsTeamLead().WithCodename("Owl");
@@ -129,9 +129,9 @@ public sealed class ChannelShareServiceTests : IDisposable
         {
             var f = Seed.Faction();
             var c = Seed.Case(title: "Kokain");
-            var g = new PersonGroup { Name = "Crew", CaseNumber = "NOOSE-G-2026-9001" };
-            var p = new Party { Name = "Partei", CaseNumber = "NOOSE-PA-2026-9001" };
-            var o = new Operation { Title = "Nachtfalke", CaseNumber = "NOOSE-O-2026-9001" };
+            var g = new PersonGroup { Name = "Crew", CaseNumber = $"{CaseNumberService.AgencyPrefix}-G-2026-9001" };
+            var p = new Party { Name = "Partei", CaseNumber = $"{CaseNumberService.AgencyPrefix}-PA-2026-9001" };
+            var o = new Operation { Title = "Nachtfalke", CaseNumber = $"{CaseNumberService.AgencyPrefix}-O-2026-9001" };
             db.AddRange(f, c, g, p, o);
             db.SaveChanges();
             (faction, @case, group, party, operation) = (f.Id, c.Id, g.Id, p.Id, o.Id);

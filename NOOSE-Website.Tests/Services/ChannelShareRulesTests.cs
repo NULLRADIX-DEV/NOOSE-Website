@@ -10,6 +10,7 @@ public sealed class ChannelShareRulesTests
 {
     private const string Hook = "https://discord.com/api/webhooks/123456789012345678/abcDEF-ghi_jkl";
     private const string Token = "abcDEF-ghi_jkl";
+    private static readonly string Prefix = CaseNumberService.AgencyPrefix;
 
     // ---- webhook URLs ----
 
@@ -76,21 +77,21 @@ public sealed class ChannelShareRulesTests
     [Fact]
     public void The_post_names_type_name_and_case_number_quotes_the_note_and_ends_with_the_link()
     {
-        var post = ChannelShareRules.Compose(nameof(Person), "Max Mustermann", "NOOSE-P-2026-0001", "Bitte prüfen",
-            "https://noose.info/personen/p1");
+        var post = ChannelShareRules.Compose(nameof(Person), "Max Mustermann", $"{Prefix}-P-2026-0001", "Bitte prüfen",
+            "https://fibhq.com/personen/p1");
 
         var lines = post.Split('\n');
         Assert.Equal(3, lines.Length);
         Assert.Contains("Person „Max Mustermann“", lines[0]);
-        Assert.Contains("NOOSE-P-2026-0001", lines[0]);
+        Assert.Contains($"{Prefix}-P-2026-0001", lines[0]);
         Assert.Equal("> Bitte prüfen", lines[1]);
-        Assert.Equal("https://noose.info/personen/p1", lines[2]);
+        Assert.Equal("https://fibhq.com/personen/p1", lines[2]);
     }
 
     [Fact]
     public void Without_a_note_there_is_no_quote()
     {
-        var post = ChannelShareRules.Compose(nameof(Case), "Ermittlung", "NOOSE-V-2026-0001", null, "https://x/vorgaenge/c");
+        var post = ChannelShareRules.Compose(nameof(Case), "Ermittlung", $"{Prefix}-V-2026-0001", null, "https://x/vorgaenge/c");
 
         Assert.Equal(2, post.Split('\n').Length);
         Assert.Contains("Vorgang „Ermittlung“", post);
@@ -100,7 +101,7 @@ public sealed class ChannelShareRulesTests
     public void Free_text_cannot_format_link_or_ping()
     {
         var post = ChannelShareRules.Compose(nameof(Person), "**Max**\n# [Klick](https://evil.example) <@&1>",
-            "NOOSE-P-1", "`code` > zitat <@123> [x](https://evil.example) ||spoiler||", "https://noose.info/personen/p1");
+            $"{Prefix}-P-1", "`code` > zitat <@123> [x](https://evil.example) ||spoiler||", "https://fibhq.com/personen/p1");
 
         // newlines flattened
         Assert.Equal(3, post.Split('\n').Length);
@@ -115,7 +116,7 @@ public sealed class ChannelShareRulesTests
     [Fact]
     public void A_long_name_is_cut()
     {
-        var post = ChannelShareRules.Compose(nameof(Person), new string('x', 500), "NOOSE-P-1", null, "https://x/p");
+        var post = ChannelShareRules.Compose(nameof(Person), new string('x', 500), $"{Prefix}-P-1", null, "https://x/p");
 
         Assert.True(post.Length < 300);
         Assert.Contains("…", post);
@@ -124,8 +125,8 @@ public sealed class ChannelShareRulesTests
     [Fact]
     public void The_link_points_at_the_detail_page_under_the_base_url()
     {
-        Assert.Equal("https://noose.info/personen/p1", ChannelShareRules.Link("https://noose.info/", nameof(Person), "p1"));
-        Assert.Equal("https://noose.info/vorgaenge/c%2F1", ChannelShareRules.Link("https://noose.info", nameof(Case), "c/1"));
+        Assert.Equal("https://fibhq.com/personen/p1", ChannelShareRules.Link("https://fibhq.com/", nameof(Person), "p1"));
+        Assert.Equal("https://fibhq.com/vorgaenge/c%2F1", ChannelShareRules.Link("https://fibhq.com", nameof(Case), "c/1"));
     }
 
     // ---- secrecy ----
