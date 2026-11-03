@@ -1197,6 +1197,93 @@ html, body {
     color: #444;
 }
 
+/* Service ID card: ID-1 proportions, printed at the top of the sheet */
+.druck-ausweis {
+    width: 100%;
+    max-width: 480px;
+    border: 2px solid #111;
+    border-radius: 8px;
+    overflow: hidden;
+    break-inside: avoid;
+}
+
+.druck-ausweis-kopf {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 12px;
+    background: #71614A;
+    color: #fff;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+.druck-ausweis-titel {
+    font-weight: 700;
+}
+
+.druck-ausweis-koerper {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+}
+
+.druck-ausweis-bild {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 120px;
+    border: 1px solid #111;
+    background: #eee;
+    font-size: 28px;
+    font-weight: 700;
+    color: #555;
+    overflow: hidden;
+}
+
+    .druck-ausweis-bild img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+.druck-ausweis-daten {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.druck-ausweis-name {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    overflow-wrap: anywhere;
+}
+
+.druck-ausweis-qr {
+    flex: none;
+    width: 88px;
+    text-align: center;
+}
+
+.druck-ausweis-qr-code svg {
+    display: block;
+    width: 88px;
+    height: 88px;
+}
+
+.druck-ausweis-qr-adresse {
+    font-family: monospace;
+    font-size: 8px;
+    overflow-wrap: anywhere;
+}
+
 .druck-dokument {
     font-size: 14px;
     line-height: 1.45;

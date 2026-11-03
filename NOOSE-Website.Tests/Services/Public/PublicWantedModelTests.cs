@@ -57,6 +57,8 @@ public class PublicWantedModelTests
         typeof(PublicLeadershipTier),
         typeof(PublicLeadershipCard),
         typeof(PublicRosterMember),
+        // the ID check on /ausweis/{Nummer}: validity, the holder's alias and the rank wording, nothing else
+        typeof(PublicServiceIdCheck),
         // the press hub and one release
         typeof(PublicPressCard),
         typeof(PublicPressView),

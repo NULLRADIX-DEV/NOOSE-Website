@@ -22,10 +22,19 @@ else
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/personal" aria-label="Zurück" />
         <MudText Typo="Typo.h5">Personalakte</MudText>
+        @* the card has its own gate: the agent's own, leadership and the Administration Division *@
+        <MudSpacer />
+        @if (ServiceIdRules.IsHolder(_agent) && ServiceIdRules.MayPrint(_user, _agent.Id))
+        {
+            <MudTooltip Text="Dienstausweis drucken">
+                <MudIconButton Icon="@Icons.Material.Filled.Badge" Color="Color.Default"
+                               Href="@($"/personal/{AgentId}/ausweis")" Target="_blank"
+                               aria-label="Dienstausweis öffnen" />
+            </MudTooltip>
+        }
         @* Personnel files count as leadership-only content. *@
         @if (_isLeadership)
         {
-            <MudSpacer />
             <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
             <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
                            Href="@($"/personal/{AgentId}/druck?tage={_supervisionDays}")" Target="_blank"

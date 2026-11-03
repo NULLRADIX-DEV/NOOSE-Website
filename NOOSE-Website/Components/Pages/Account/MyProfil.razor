@@ -125,6 +125,13 @@
                                 }
                             </MudAlert>
 
+                            @if (ServiceIdRules.IsHolder(_agent) && ServiceIdRules.MayPrint(_user, _agent.Id))
+                            {
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.Badge" Href="@($"/personal/{_agent.Id}/ausweis")"
+                                           Target="_blank">Dienstausweis drucken</MudButton>
+                            }
+
                             @if (!_mayWrite)
                             {
                                 <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Lock">

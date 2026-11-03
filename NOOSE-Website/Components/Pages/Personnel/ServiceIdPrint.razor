@@ -1,0 +1,103 @@
+@* Printable service ID card; the agent prints their own, leadership and the Administration Division anyone's. *@
+@page "/personal/{Id}/ausweis"
+@layout PrintLayout
+@inject IServiceIdService ServiceIds
+
+<PageTitle>Dienstausweis · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_card is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        @(_access switch
+        {
+            ServiceIdAccess.Forbidden => "Diesen Dienstausweis darfst du nicht drucken.",
+            ServiceIdAccess.NotIssuable => "Für diesen Agenten gibt es keinen Dienstausweis: er braucht den aktiven Dienst, einen Dienstgrad und eine Dienstnummer von I bis XL.",
+            _ => "Diesen Dienstausweis gibt es nicht.",
+        })
+    </MudAlert>
+}
+else
+{
+    <PrintFrame Title="Dienstausweis" BackHref="@($"/personal/{Id}")" BackText="Zurück" PrintedBy="@_printBy"
+                IsClassified="false" AutomaticPrint="false"
+                Footer="Dienstausweis des FIB · Echtheit über den QR-Code oder die Adresse prüfen.">
+        @if (!_card.CheckOnline)
+        {
+            <div class="no-print">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Die öffentliche Prüfung ist derzeit abgeschaltet. Der QR-Code auf dem Ausweis führt erst nach der
+                    Freischaltung durch die Führung zu einer Antwort.
+                </MudAlert>
+            </div>
+        }
+
+        <div class="druck-ausweis">
+            <div class="druck-ausweis-kopf">
+                <span>F.I.B. · Federal Investigation Bureau</span>
+                <span class="druck-ausweis-titel">DIENSTAUSWEIS</span>
+            </div>
+            <div class="druck-ausweis-koerper">
+                <div class="druck-ausweis-bild">
+                    @if (_card.PhotoUrl is { } photo)
+                    {
+                        <img src="@photo" alt="Lichtbild" />
+                    }
+                    else
+                    {
+                        <span>@_card.Initials</span>
+                    }
+                </div>
+                <div class="druck-ausweis-daten">
+                    <div class="druck-ausweis-name">@_card.DisplayName</div>
+                    <table class="druck-felder">
+                        <tbody>
+                            <tr><th>Dienstgrad</th><td>@_card.RankName</td></tr>
+                            @if (_card.DivisionName is { } division)
+                            {
+                                <tr><th>Abteilung</th><td>@division</td></tr>
+                            }
+                            <tr><th>Dienstnummer</th><td>@_card.Number</td></tr>
+                            @if (_card.ServingSince is { } since)
+                            {
+                                <tr><th>Im Dienst seit</th><td>@since.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
+                            }
+                            <tr><th>Gültigkeit</th><td>solange der Dienst besteht</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                @if (_card.QrSvg is { } svg)
+                {
+                    @* encoder output, no agent text *@
+                    <div class="druck-ausweis-qr">
+                        <div class="druck-ausweis-qr-code">@((MarkupString)svg)</div>
+                        <div class="druck-ausweis-qr-adresse">@_card.VerifyAddress</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </PrintFrame>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private string? _printBy;
+    private ServiceIdCard? _card;
+    private ServiceIdAccess _access = ServiceIdAccess.NotFound;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _printBy = user.GetCodename();
+        var result = await ServiceIds.GetAsync(Id, user);
+        _access = result.Access;
+        _card = result.Card;
+        _load = false;
+    }
+}
