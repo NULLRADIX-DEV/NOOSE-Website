@@ -110,6 +110,26 @@ public class PublicWantedService(
     public async Task<PublicBounty?> GetBountyAsync(string? caseNumber, CancellationToken cancellationToken = default)
         => (await GetBoardAsync(cancellationToken)).BountyFor(CaseNumbers.Normalize(caseNumber));
 
+    public async Task<WantedPosterLink?> GetPosterLinkAsync(string? caseNumber, CancellationToken cancellationToken = default)
+    {
+        // gated by the board
+        var entry = await GetByCaseNumberAsync(caseNumber, cancellationToken);
+        if (entry is null)
+        {
+            return null;
+        }
+        var tipsOn = await modules.IsEnabledAsync(PublicModules.Tips, cancellationToken);
+        // configured site only
+        var config = await discord.GetConfigAsync(cancellationToken);
+        return WantedShortLink.Poster(config.SiteBaseUrl, entry.CaseNumber, tipsOn);
+    }
+
+    public async Task<string?> ResolveShortLinkAsync(string? code, CancellationToken cancellationToken = default)
+    {
+        var entry = await GetByCaseNumberAsync(WantedShortLink.CaseNumberFor(code), cancellationToken);
+        return entry is null ? null : WantedShortLink.ProfilePath(entry.CaseNumber);
+    }
+
     public async Task<IReadOnlyList<PublicWantedArchiveCard>> GetArchiveAsync(CancellationToken cancellationToken = default)
     {
         // its own switch, read outside the content cache for the same reason as the board: the archive has to stay
@@ -318,6 +338,33 @@ public class PublicWantedService(
             .ToListAsync(cancellationToken);
 
         return new PublicWantedOptions(photos, areas);
+    }
+
+    public async Task<string> RequirePhotoUploadAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        // write right before anything that reads the row
+        Permission.RequirePublicWantedWrite(actor);
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var row = await db.OeffentlicheFahndungen
+            .AsNoTracking()
+            .Where(f => f.Id == id)
+            .Select(f => new { f.PersonId, f.Kind, f.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (row is null || !await IsRecordVisibleAsync(db, row.PersonId, actor, cancellationToken))
+        {
+            throw new InvalidOperationException(NotFound);
+        }
+        if (WantedKinds.IsItem(row.Kind))
+        {
+            throw new InvalidOperationException("Eine Fahrzeug- oder Waffen-Ausschreibung trägt kein Foto.");
+        }
+        if (row.Status == PublicWantedStatus.Gefasst)
+        {
+            throw new InvalidOperationException("Das Foto einer gefassten Ausschreibung lässt sich nicht "
+                + "tauschen — dazu zurückziehen und neu veröffentlichen.");
+        }
+        return row.PersonId;
     }
 
     public async Task<PublicWantedEdit?> GetForPersonAsync(string personId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

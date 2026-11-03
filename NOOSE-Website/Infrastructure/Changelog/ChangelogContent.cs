@@ -629,10 +629,15 @@ public static class ChangelogContent
                 + "Wiedervorlagen nach überfällig, heute, diese Woche und später; verschieben und erledigen geht per "
                 + "Klick. Die Führung sieht im Wiedervorlagen-Rückstand, was liegen bleibt, hängt es um und erfährt, was "
                 + "sieben Tage überfällig ist.", "Bedienung"),
-            Neu("3.0.12-begruendungspflicht", "Wer eine Einstufung herabsetzt, eine Verschlusssache lockert, eine Akte "
+            Neu("3.0.12-fahndungsposter-qr", "Das Fahndungsposter trägt jetzt einen QR-Code und eine kurze Adresse zum "
+                + "Abtippen; beide führen direkt zum Steckbrief, wo man gleich einen Hinweis geben kann. Ein altes Poster "
+                + "mit NOOSE- im Aktenzeichen führt weiter zur richtigen Ausschreibung.", "Öffentlich"),
+            Neu("3.0.13-fahndungsfoto-hochladen", "Das Foto einer Fahndung lässt sich jetzt direkt im Dialog hochladen. "
+                + "Es landet wie jedes andere in der Foto-Galerie der Akte und ist gleich ausgewählt.", "Öffentlich"),
+            Neu("3.0.14-begruendungspflicht", "Wer eine Einstufung herabsetzt, eine Verschlusssache lockert, eine Akte "
                 + "löscht oder eine Fahndung aufhebt, gibt jetzt einen Grund an; er steht danach im Zeitstrahl der Akte "
                 + "und im Änderungsprotokoll.", "Akten"),
-            Besser("3.0.13-organigramm-archiv", "Archivierte Taskforces erscheinen nicht mehr im Organigramm.",
+            Besser("3.0.15-organigramm-archiv", "Archivierte Taskforces erscheinen nicht mehr im Organigramm.",
                 "Organigramm"),
         ]),
     ];

@@ -4,6 +4,8 @@
 @using NOOSE_Website.Models.Public
 @using NOOSE_Website.Services.Public
 @inject IPublicWantedService Wanted
+@inject IWantedPhotoUploadService PhotoUpload
+@inject IFileStorageService FileStorage
 @inject IWarnhinweisService Warnings
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -97,6 +99,19 @@ else
                                         <MudSelectItem T="string" Value="@photo.Id">Foto vom @photo.Label</MudSelectItem>
                                     }
                                 </MudSelect>
+                                @* stored as a normal photo of the file, then picked like any other *@
+                                @if (_mayWrite && _draft.Status != PublicWantedStatus.Gefasst)
+                                {
+                                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadPhotoAsync" Accept="image/*"
+                                                   MaximumFileCount="1">
+                                        <CustomContent>
+                                            <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="_busy"
+                                                       OnClick="@context.OpenFilePickerAsync"
+                                                       StartIcon="@Icons.Material.Filled.Upload">Foto hochladen</MudButton>
+                                        </CustomContent>
+                                        <SelectedTemplate />
+                                    </MudFileUpload>
+                                }
                             </MudItem>
                         }
                         <MudItem xs="12" md="6">
@@ -332,6 +347,45 @@ else
         _input.HazardLevel = _hazard;
         await Wanted.UpdateSnapshotAsync(_input, User);
         return true;
+    }
+
+    // no RunAsync: its reload would drop the unsaved fields and the fresh pick
+    private async Task UploadPhotoAsync(IReadOnlyList<IBrowserFile> files)
+    {
+        var file = files.FirstOrDefault();
+        if (file is null)
+        {
+            return;
+        }
+        if (!FileStorage.IsAllowedType(file.ContentType))
+        {
+            Snackbar.Add($"'{file.Name}': Dateityp nicht erlaubt (nur Bilder).", Severity.Warning);
+            return;
+        }
+        if (file.Size > FileStorage.MaxBytes)
+        {
+            Snackbar.Add($"'{file.Name}': zu groß (max. {FileStorage.MaxBytes / (1024 * 1024)} MB).", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            await using var stream = file.OpenReadStream(FileStorage.MaxBytes);
+            var photo = await PhotoUpload.UploadAsync(Id, stream, file.Name, file.ContentType, file.Size, User);
+            // picked now, applied with the next save like any other choice
+            _options = _options with { Photos = [photo, .. _options.Photos] };
+            _input.PhotoSourceId = photo.Id;
+            Snackbar.Add("Foto hochgeladen und ausgewählt. Speichern übernimmt es.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task SaveAsync() => await RunAsync(async () =>

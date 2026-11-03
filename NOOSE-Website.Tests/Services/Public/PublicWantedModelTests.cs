@@ -24,6 +24,8 @@ public class PublicWantedModelTests
         typeof(PublicWantedBoard),
         typeof(PublicWantedPhoto),
         typeof(PublicBounty),
+        // the poster's QR code and addresses: built from the case number and the configured site, nothing else
+        typeof(WantedPosterLink),
         typeof(PublicPageLink),
         typeof(PublicPageView),
         typeof(PublicPageSnapshot),
