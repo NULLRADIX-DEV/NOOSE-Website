@@ -74,7 +74,7 @@ public class NotificationServiceTests
         using var ctx = new SqliteTestContext();
         using (var seed = ctx.NewContext())
         {
-            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.JuniorAgent, status: AgentStatus.Active));
+            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.Trainee, status: AgentStatus.Active));
             seed.People.Add(Seed.Person(PersonGuid, "Ziel", p => p.IsClassified = false));
             seed.SaveChanges();
         }
@@ -153,7 +153,7 @@ public class NotificationServiceTests
         using var ctx = new SqliteTestContext();
         using (var seed = ctx.NewContext())
         {
-            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.JuniorAgent, status: AgentStatus.Active));
+            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.Trainee, status: AgentStatus.Active));
             seed.People.Add(Seed.Person(PersonGuid, "Geheim", p => p.IsClassified = true));
             seed.SaveChanges();
         }
@@ -177,7 +177,7 @@ public class NotificationServiceTests
         using var ctx = new SqliteTestContext();
         using (var seed = ctx.NewContext())
         {
-            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.JuniorAgent, status: AgentStatus.Pending));
+            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.Trainee, status: AgentStatus.Pending));
             seed.People.Add(Seed.Person(PersonGuid, "Ziel", p => p.IsClassified = false));
             seed.SaveChanges();
         }
@@ -214,7 +214,7 @@ public class NotificationServiceTests
     private static void SeedRecipientAndTarget(SqliteTestContext ctx, string recipientId = RecipientGuid)
     {
         using var seed = ctx.NewContext();
-        seed.Users.Add(Seed.Agent(recipientId, rank: Rank.JuniorAgent, status: AgentStatus.Active));
+        seed.Users.Add(Seed.Agent(recipientId, rank: Rank.Trainee, status: AgentStatus.Active));
         seed.People.Add(Seed.Person(PersonGuid, "Ziel", p => p.IsClassified = false));
         seed.SaveChanges();
     }
@@ -294,7 +294,7 @@ public class NotificationServiceTests
         SeedRecipientAndTarget(ctx);
         using (var seed = ctx.NewContext())
         {
-            seed.Users.Add(Seed.Agent(SecondGuid, rank: Rank.JuniorAgent, status: AgentStatus.Active));
+            seed.Users.Add(Seed.Agent(SecondGuid, rank: Rank.Trainee, status: AgentStatus.Active));
             seed.SaveChanges();
         }
         var svc = NewService(ctx, new NotificationBroadcaster(), Substitute.For<IDiscordWebhookService>());
@@ -314,7 +314,7 @@ public class NotificationServiceTests
         using var ctx = new SqliteTestContext();
         using (var seed = ctx.NewContext())
         {
-            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.JuniorAgent, status: AgentStatus.Active));
+            seed.Users.Add(Seed.Agent(RecipientGuid, rank: Rank.Trainee, status: AgentStatus.Active));
             seed.People.Add(Seed.Person(PersonGuid, "Geheim", p => p.IsClassified = true));
             seed.SaveChanges();
         }

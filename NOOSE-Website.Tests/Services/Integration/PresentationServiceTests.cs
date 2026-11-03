@@ -51,9 +51,9 @@ public sealed class PresentationServiceTests
         ["own"] = () => Agent("own"),
         ["tru"] = () => ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.SpecialAgent).WithCodename("Codename-tru").AsTru().Build(),
         ["hrb"] = () => ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.SpecialAgent).WithCodename("Codename-hrb").AsHrb().Build(),
-        ["jr"] = () => Agent("jr", Rank.JuniorAgent),
+        ["jr"] = () => Agent("jr", Rank.Trainee),
         ["tfm"] = () => Agent("tfm"),
-        ["inv"] = () => Agent("inv", Rank.JuniorAgent),
+        ["inv"] = () => Agent("inv", Rank.Trainee),
         ["lead"] = () => Agent("lead", Rank.Director),
         // read-only supervision reads like leadership, but writes nothing
         ["sup"] = () => ClaimsPrincipalBuilder.Agent("sup").WithRank(Rank.Director).AsTeamLead().Build(),
@@ -66,13 +66,13 @@ public sealed class PresentationServiceTests
             Seed.Agent("own", Rank.SpecialAgent),
             Seed.Agent("tru", Rank.SpecialAgent, configure: a => a.IsTRU = true),
             Seed.Agent("hrb", Rank.SpecialAgent, configure: a => a.IsHRB = true),
-            Seed.Agent("jr", Rank.JuniorAgent),
+            Seed.Agent("jr", Rank.Trainee),
             Seed.Agent("tfm", Rank.SpecialAgent),
-            Seed.Agent("inv", Rank.JuniorAgent),
+            Seed.Agent("inv", Rank.Trainee),
             Seed.Agent("lead", Rank.Director),
             Seed.Agent("sup", Rank.Director, configure: a => a.IsTeamLead = true),
             Seed.Agent("gone", Rank.SpecialAgent, AgentStatus.Blocked));
-        db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Kobra", CaseNumber = "NOOSE-TF-2026-0001", CreatedAt = Ts });
+        db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Kobra", CaseNumber = "FIB-TF-2026-0001", CreatedAt = Ts });
         db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf1", AgentId = "tfm" });
         db.SaveChanges();
     }

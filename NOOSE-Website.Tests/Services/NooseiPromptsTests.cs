@@ -12,7 +12,7 @@ public class NooseiPromptsTests
     public void Chat_NamesTheCitationForm_ExactlyAsTheCheckLooksForIt()
     {
         // the machine check in NooseiCitations only works if the prompt demands a form that carries a case number
-        Assert.Contains("NOOSE-P-2026-0001", NooseiPrompts.Chat);
+        Assert.Contains("FIB-P-2026-0001", NooseiPrompts.Chat);
         Assert.Contains("[Person Max Mustermann", NooseiPrompts.Chat);
     }
 
@@ -48,7 +48,7 @@ public class NooseiPromptsTests
         {
             var prompt = NooseiPrompts.Get(feature);
             Assert.False(string.IsNullOrWhiteSpace(prompt));
-            Assert.Contains("NOOSEI", prompt);
+            Assert.Contains("FIBI", prompt);
         }
     }
 

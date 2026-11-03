@@ -13,19 +13,19 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="JobService"/> over in-memory SQLite.</summary>
 public sealed class JobServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership(); MayWrite/MayClassifiedRead true.
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership(); MayWrite/MayClassifiedRead true.
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, MayWrite true, MayClassifiedRead false.
     private static ClaimsPrincipal Member(string id)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static (JobService Svc, INotificationService Notifications) Build(SqliteTestContext ctx)
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<NOOSE_Website.Data.AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-A-2026-0001");
+            .Returns("FIB-A-2026-0001");
         var notifications = Substitute.For<INotificationService>();
         var svc = new JobService(ctx.Factory, caseNo, notifications);
         return (svc, notifications);
@@ -38,7 +38,7 @@ public sealed class JobServiceTests
         {
             Id = id,
             Title = title,
-            CaseNumber = $"NOOSE-A-2026-{id}",
+            CaseNumber = $"FIB-A-2026-{id}",
             CreatedById = createdById,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             Status = JobStatus.Open,
@@ -275,7 +275,7 @@ public sealed class JobServiceTests
 
         var job = await svc.CreateAsync(input, new[] { "active", "inactive" }, Leader("creator"));
 
-        Assert.Equal("NOOSE-A-2026-0001", job.CaseNumber);
+        Assert.Equal("FIB-A-2026-0001", job.CaseNumber);
         Assert.Equal("New Task", job.Title);
         Assert.Equal("do it", job.Description);
         using (var db = ctx.NewContext())
@@ -708,14 +708,14 @@ public sealed class JobServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Jobs.Add(NewJob("j1", "Patrol", "creator", j => j.CaseNumber = "NOOSE-A-2026-0007"));
+            db.Jobs.Add(NewJob("j1", "Patrol", "creator", j => j.CaseNumber = "FIB-A-2026-0007"));
             db.SaveChanges();
         }
         var (svc, _) = Build(ctx);
 
         var display = await svc.ReferenceDisplayAsync(nameof(Job), "j1", Leader());
 
-        Assert.Equal("Patrol (NOOSE-A-2026-0007)", display);
+        Assert.Equal("Patrol (FIB-A-2026-0007)", display);
     }
 
     [Fact]

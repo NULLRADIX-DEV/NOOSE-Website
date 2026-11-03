@@ -18,10 +18,10 @@ public sealed class ValueListLabelServiceTests : IDisposable
     private static ValueListLabelService Build(SqliteTestContext ctx) => new(ctx.Factory);
 
     private static ClaimsPrincipal Leader
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
 
     private static ClaimsPrincipal ReadOnlySupervision
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).AsTeamLead().Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).AsTeamLead().Build();
 
     [Fact]
     public async Task SetAsync_CreatesAndUpdatesOverride_AndRefreshesStore()
@@ -66,6 +66,23 @@ public sealed class ValueListLabelServiceTests : IDisposable
         using var ctx = new SqliteTestContext();
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => Build(ctx).SetAsync("Rank", "Director", "Chefin", ReadOnlySupervision));
+    }
+
+    [Fact]
+    public async Task SetAsync_AppliesToTheNewLevels_ByMemberName()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+
+        await svc.SetAsync("Rank", "SectionChief", "Abteilungsleiter", Leader);
+        await svc.SetAsync("Rank", "AssistantDirector", "Stellvertretender Direktor", Leader);
+
+        Assert.Equal("Abteilungsleiter", RankDisplay.Name(Rank.SectionChief));
+        Assert.Equal("Stellvertretender Direktor", RankDisplay.Name(Rank.AssistantDirector));
+        Assert.Equal("Section Chief", RankDisplay.DefaultName(Rank.SectionChief));
+        // the neighbours keep their code names
+        Assert.Equal("Special Agent in Charge", RankDisplay.Name(Rank.SpecialAgentInCharge));
+        Assert.Equal("Deputy Director", RankDisplay.Name(Rank.DeputyDirector));
     }
 
     [Fact]

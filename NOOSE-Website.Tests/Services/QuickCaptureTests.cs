@@ -19,7 +19,7 @@ public class QuickCaptureTests
     private const string AnyGuid = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
 
     private static QuickHit Hit(string category, string id = "id-1")
-        => new(category, id, "Irgendein Name", "NOOSE-P-2026-0001");
+        => new(category, id, "Irgendein Name", "FIB-P-2026-0001");
 
     // ==================== the note targets ====================
 

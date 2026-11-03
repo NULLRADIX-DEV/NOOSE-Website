@@ -21,7 +21,7 @@ public class SearchVisibilityTests
     private static readonly DateTime Now = DateTime.UtcNow;
 
     private static ClaimsPrincipal Plain(string me = "agent-1")
-        => ClaimsPrincipalBuilder.Agent(me).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(me).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leadership(string me = "lead")
         => ClaimsPrincipalBuilder.Agent(me).WithRank(Rank.Director).Build();
@@ -107,7 +107,7 @@ public class SearchVisibilityTests
     private static Meeting MeetingAt(string id, string title, DateTime start, string minutes)
         => new()
         {
-            Id = id, Title = title, CaseNumber = "NOOSE-B-2026-" + id, Start = start,
+            Id = id, Title = title, CaseNumber = "FIB-B-2026-" + id, Start = start,
             MinutesHtml = $"<p>{minutes}</p>",
         };
 
@@ -257,7 +257,7 @@ public class SearchVisibilityTests
         {
             db.Informants.Add(new Informant
             {
-                Id = "i1", CaseNumber = "NOOSE-VP-2026-0001", RealName = "Zitrone Mueller", HandlerId = "handler",
+                Id = "i1", CaseNumber = "FIB-VP-2026-0001", RealName = "Zitrone Mueller", HandlerId = "handler",
             });
             db.InformantMeetings.Add(new InformantMeeting
             {
@@ -283,7 +283,7 @@ public class SearchVisibilityTests
         using var ctx = new SqliteTestContext();
         await using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "t1", Name = "Einheit Nord", CaseNumber = "NOOSE-TF-2026-0001" });
+            db.Taskforces.Add(new Taskforce { Id = "t1", Name = "Einheit Nord", CaseNumber = "FIB-TF-2026-0001" });
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "t1", AgentId = "member" });
             db.TaskforceMessages.Add(new TaskforceMessage
             {

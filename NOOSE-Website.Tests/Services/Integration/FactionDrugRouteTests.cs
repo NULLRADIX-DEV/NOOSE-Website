@@ -19,12 +19,12 @@ public sealed class FactionDrugRouteTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal LowRank(string id = "low")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static FactionService NewService(SqliteTestContext ctx, IThreatScoreService? threat = null)
     {
         var caseNo = Substitute.For<ICaseNumberService>();
-        caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("NOOSE-F-2026-0099");
+        caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("FIB-F-2026-0099");
         return new FactionService(ctx.Factory, caseNo, Substitute.For<IProfileSuggestionService>(),
             Substitute.For<IPersonService>(), Substitute.For<IFactionPhotoStorageService>(),
             threat ?? Substitute.For<IThreatScoreService>(), Substitute.For<INotificationService>(),

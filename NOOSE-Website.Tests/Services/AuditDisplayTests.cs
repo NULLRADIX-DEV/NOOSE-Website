@@ -130,6 +130,7 @@ public class AuditDisplayTests
     [InlineData("DeletedById")]
     [InlineData("IsDeleted")]
     [InlineData("NotifiedAt")]
+    [InlineData("EscalatedAt")]
     [InlineData("MeetingId")]
     [InlineData("AttendanceClosedAt")]
     [InlineData("ReminderSentAt")]
@@ -336,8 +337,8 @@ public class AuditDisplayTests
     // ---- CLR field names (what the interceptor actually stamps) -------------
 
     [Theory]
-    [InlineData("IsHRBClassified", "VS-Stufe HRB")]
-    [InlineData("IsTRUClassified", "VS-Stufe TRU")]
+    [InlineData("IsHRBClassified", "VS-Stufe Administration")]
+    [InlineData("IsTRUClassified", "VS-Stufe HRT")]
     [InlineData("IsClassified", "Verschlusssache")]
     [InlineData("CaseNumber", "Aktenzeichen")]
     [InlineData("Title", "Titel")]

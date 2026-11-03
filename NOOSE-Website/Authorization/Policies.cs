@@ -6,7 +6,7 @@ public static class Policies
     /// <summary>Signed in with status Active. App-wide default.</summary>
     public const string ActiveAgent = "AktiverAgent";
 
-    /// <summary>Leadership: rank ≥ Supervisory Special Agent or admin.</summary>
+    /// <summary>Leadership: rank ≥ Special Agent in Charge or admin.</summary>
     public const string Leadership = "Fuehrung";
 
     /// <summary>The write half of <see cref="Leadership"/>: the changelog editor on /einstellungen.</summary>
@@ -56,7 +56,7 @@ public static class Policies
     /// <summary>Set "secured state-threatening" directly: rank ≥ Senior Special Agent or admin.</summary>
     public const string HighestClassification = "HoechsteEinstufung";
 
-    /// <summary>Decide promotions: rank ≥ Deputy Director or admin.</summary>
+    /// <summary>Decide promotions: rank ≥ Section Chief or admin. Coarse gate; the fine one is <c>PromotionRules</c>.</summary>
     public const string PromotionDecide = "BefoerderungEntscheiden";
 
     /// <summary>Decide promotions AND be allowed to write.</summary>
@@ -65,6 +65,20 @@ public static class Policies
     /// approve and reject buttons to the read-only supervision and to the demo visitor - both carry Director.
     /// </remarks>
     public const string PromotionDecideWrite = "BefoerderungEntscheidenSchreiben";
+
+    /// <summary>Move agents between divisions AND be allowed to write: Board or admin.</summary>
+    /// <remarks>
+    /// Mirrors <c>Permission.RequireDivisionSet</c>. A rank-only check would show the division picker to the
+    /// read-only supervision and to the demo visitor, who carries Director, and refuse after the dialog.
+    /// </remarks>
+    public const string DivisionSetWrite = "AbteilungSetzenSchreiben";
+
+    /// <summary>Report a firearm use: an in-house account that may write.</summary>
+    /// <remarks>
+    /// Mirrors <c>Permission.RequireFirearmUseReport</c>. <see cref="WriteAccess"/> alone would show the top-bar
+    /// button to a signed-in citizen, who carries no rank and no agent status.
+    /// </remarks>
+    public const string FirearmUseReport = "SchusswaffengebrauchMelden";
 
     /// <summary>Applicant portal access: signed in with status Applicant.</summary>
     public const string ApplicantPortal = "BewerberPortal";

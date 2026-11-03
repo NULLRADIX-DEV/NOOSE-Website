@@ -20,13 +20,13 @@ public sealed class ArchiveWritePathTests
             Substitute.For<NOOSE_Website.Services.Public.IPublicWantedService>());
 
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static async Task<SqliteTestContext> OnePersonAsync(DateTime? modifiedAt = null)
     {
         var ctx = new SqliteTestContext();
         await using var db = ctx.NewContext();
-        db.Users.Add(Seed.Agent("junior", Rank.JuniorAgent));
+        db.Users.Add(Seed.Agent("junior", Rank.Trainee));
         db.People.Add(Seed.Person("p1", "Akte", p => p.ModifiedAt = modifiedAt));
         await db.SaveChangesAsync();
         return ctx;
@@ -107,7 +107,7 @@ public sealed class ArchiveWritePathTests
         ClaimsPrincipal actor = kind switch
         {
             "readonly" => ClaimsPrincipalBuilder.Agent("aufsicht").WithRank(Rank.Director).AsTeamLead().Build(),
-            "partner" => ClaimsPrincipalBuilder.Agent("partner").WithRank(Rank.JuniorAgent)
+            "partner" => ClaimsPrincipalBuilder.Agent("partner").WithRank(Rank.Trainee)
                 .AsPartner(PartnerAgency.DoJ, PartnerRank.Member).Build(),
             _ => ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsDemo().Build(),
         };

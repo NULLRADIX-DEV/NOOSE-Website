@@ -7,7 +7,7 @@
 @using NOOSE_Website.Services.Public
 @inject IRewardService Reward
 
-<PageTitle>@(_receipt is null ? "Beleg" : $"Beleg {_receipt.ReceiptNumber}") · NOOSE</PageTitle>
+<PageTitle>@(_receipt is null ? "Beleg" : $"Beleg {_receipt.ReceiptNumber}") · FIB</PageTitle>
 
 @* a receipt is nobody's search result, and the route answers for any invented number *@
 <HeadContent>
@@ -29,7 +29,7 @@ else
        dialog unasked is the presumption the wanted poster deliberately avoids *@
     <PrintFrame Title="Belohnung für einen Bürgerhinweis" AutomaticPrint="false"
                 BackHref="@($"/buerger/hinweise/{_receipt.TipCaseNumber}")" BackText="Zurück zum Hinweis"
-                Footer="Beleg der NOOSE über eine ausgezahlte Belohnung. Bitte für die eigenen Unterlagen aufbewahren."
+                Footer="Beleg des FIB über eine ausgezahlte Belohnung. Bitte für die eigenen Unterlagen aufbewahren."
                 IsClassified="false">
         <section>
             <h2>Beleg @_receipt.ReceiptNumber</h2>

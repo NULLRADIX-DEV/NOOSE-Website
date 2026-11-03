@@ -64,7 +64,7 @@ public class BewerbungService(
         var ban = await sperren.GetActiveAsync(userId, cancellationToken);
         if (ban is { IsBlacklist: true })
         {
-            throw new InvalidOperationException("Du kannst dich derzeit nicht bei der NOOSE bewerben.");
+            throw new InvalidOperationException("Du kannst dich derzeit nicht beim FIB bewerben.");
         }
         if (ban is { BannedUntil: { } until })
         {
@@ -531,7 +531,7 @@ public class BewerbungService(
 
     private static Task<List<string>> HrbRecipientIdsAsync(AppDbContext db, CancellationToken cancellationToken)
         => db.Users.OnlySelectable()
-            .Where(u => u.IsHRB || u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+            .Where(u => u.IsHRB || u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 

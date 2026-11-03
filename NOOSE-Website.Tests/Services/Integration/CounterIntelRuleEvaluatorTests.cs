@@ -200,9 +200,9 @@ public sealed class CounterIntelRuleEvaluatorTests
     [Fact]
     public void ActorRanks_Filter()
     {
-        var events = Enumerable.Range(0, 3).Select(i => Event(Now.AddMinutes(-i), id: $"p{i}", rank: Rank.JuniorAgent));
+        var events = Enumerable.Range(0, 3).Select(i => Event(Now.AddMinutes(-i), id: $"p{i}", rank: Rank.Trainee));
 
-        Assert.Single(Run(Definition(d => d.ActorRanks = [Rank.JuniorAgent, Rank.SpecialAgent]), events));
+        Assert.Single(Run(Definition(d => d.ActorRanks = [Rank.Trainee, Rank.SpecialAgent]), events));
         Assert.Empty(Run(Definition(d => d.ActorRanks = [Rank.Director]), events));
     }
 
@@ -370,19 +370,19 @@ public sealed class CounterIntelRuleEvaluatorTests
         var events = new[]
         {
             // matches everything
-            Event(Now.Date.AddHours(23), id: "p1", classified: true, rank: Rank.JuniorAgent),
-            Event(Now.Date.AddHours(23).AddMinutes(1), id: "p2", classified: true, rank: Rank.JuniorAgent),
+            Event(Now.Date.AddHours(23), id: "p1", classified: true, rank: Rank.Trainee),
+            Event(Now.Date.AddHours(23).AddMinutes(1), id: "p2", classified: true, rank: Rank.Trainee),
             // right time, wrong classification
-            Event(Now.Date.AddHours(23).AddMinutes(2), id: "p3", classified: false, rank: Rank.JuniorAgent),
+            Event(Now.Date.AddHours(23).AddMinutes(2), id: "p3", classified: false, rank: Rank.Trainee),
             // right classification, wrong hour
-            Event(Now.Date.AddHours(12), id: "p4", classified: true, rank: Rank.JuniorAgent),
+            Event(Now.Date.AddHours(12), id: "p4", classified: true, rank: Rank.Trainee),
             // right everything, wrong rank
             Event(Now.Date.AddHours(23).AddMinutes(3), id: "p5", classified: true, rank: Rank.Director),
         };
         var definition = Definition(d =>
         {
             d.ClassifiedOnly = true;
-            d.ActorRanks = [Rank.JuniorAgent];
+            d.ActorRanks = [Rank.Trainee];
             d.FromHour = 22;
             d.ToHour = 6;
             d.Threshold = 2;

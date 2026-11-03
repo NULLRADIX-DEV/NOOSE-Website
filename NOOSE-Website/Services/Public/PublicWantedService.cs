@@ -105,10 +105,10 @@ public class PublicWantedService(
     }
 
     public async Task<PublicWantedDetail?> GetByCaseNumberAsync(string? caseNumber, CancellationToken cancellationToken = default)
-        => (await GetBoardAsync(cancellationToken)).Find(caseNumber);
+        => (await GetBoardAsync(cancellationToken)).Find(CaseNumbers.Normalize(caseNumber));
 
     public async Task<PublicBounty?> GetBountyAsync(string? caseNumber, CancellationToken cancellationToken = default)
-        => (await GetBoardAsync(cancellationToken)).BountyFor(caseNumber);
+        => (await GetBoardAsync(cancellationToken)).BountyFor(CaseNumbers.Normalize(caseNumber));
 
     public async Task<WantedPosterLink?> GetPosterLinkAsync(string? caseNumber, CancellationToken cancellationToken = default)
     {
@@ -167,6 +167,7 @@ public class PublicWantedService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         // per-entry gate, not "either module is on": with the archive off a captured photo must 404, and with the
         // board off a live one must, or turning a module off would leave its pictures downloadable
@@ -1037,6 +1038,7 @@ public class PublicWantedService(
         {
             return;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         var now = DateTime.UtcNow;
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -1095,7 +1097,7 @@ public class PublicWantedService(
             var recipients = await db.Users
                 .AsNoTracking()
                 .OnlySelectable()
-                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SupervisorySpecialAgent))
+                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SpecialAgentInCharge))
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
             if (recipients.Count == 0)
@@ -1289,7 +1291,7 @@ public class PublicWantedService(
     /// <summary>Announces a fresh notice in the public channel as a card.</summary>
     /// <remarks>
     /// Takes a <see cref="PublicWantedCard"/> and nothing else on purpose — that record structurally cannot carry a
-    /// PersonId, the internal NOOSE-P case number, a codename or a score, so the message cannot either. No accusation
+    /// PersonId, the internal FIB-P case number, a codename or a score, so the message cannot either. No accusation
     /// text: after a retraction the post is then a dead link rather than a standing allegation. Chips and money come
     /// from the outward board, and a notice the board does not list is not posted: the link would answer "not found"
     /// and a post cannot be recalled. PushWantedCardAsync swallows its own failures.

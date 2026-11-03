@@ -16,7 +16,7 @@
         <MudText Typo="Typo.caption" Class="mud-text-secondary">
             @(IsInternal
                 ? "Nur für Agenten sichtbar."
-                : "Der Hinweisgeber sieht diese Zeilen als Nachricht von „NOOSE“ — nie mit Codename.")
+                : "Der Hinweisgeber sieht diese Zeilen als Nachricht von „FIB“ — nie mit Codename.")
         </MudText>
 
         @if (_load)
@@ -88,7 +88,7 @@
             @if (_suggestCost is { } cost)
             {
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                    NOOSEI-Entwurf: @cost.ToString("N0") Token
+                    FIBI-Entwurf: @cost.ToString("N0") Token
                     @if (_suggestQuota is { } quota)
                     {
                         <text> · Restkontingent: @quota.Remaining.ToString("N0")</text>
@@ -105,7 +105,7 @@
                 {
                     <MudButton OnClick="SuggestAsync" Disabled="_busy" Variant="Variant.Outlined"
                                Color="Color.Secondary" Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.AutoAwesome">NOOSEI-Entwurf</MudButton>
+                               StartIcon="@Icons.Material.Filled.AutoAwesome">FIBI-Entwurf</MudButton>
                 }
                 @* the template only fills the field; sending stays a deliberate act *@
                 @if (_templates.Count > 0)
@@ -331,7 +331,7 @@
         {
             return CitizenName ?? "Hinweisgeber";
         }
-        return IsInternal ? message.AuthorCodename ?? "NOOSE" : "NOOSE";
+        return IsInternal ? message.AuthorCodename ?? "FIB" : "FIB";
     }
 
     private void OnModified(string tipId, string caseNumber, TipMessageAudience? audience)

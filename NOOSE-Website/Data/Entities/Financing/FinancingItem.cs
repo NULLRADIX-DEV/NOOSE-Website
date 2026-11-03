@@ -30,7 +30,7 @@ public class FinancingItem : IAuditable, ISoftDelete
 
     /// <summary>Lower ranks never see the position when filing a request.</summary>
     [Column("MindestDienstgrad")]
-    public Rank MinimumRank { get; set; } = Rank.JuniorAgent;
+    public Rank MinimumRank { get; set; } = Rank.Trainee;
 
     /// <summary>Upper bound for the quantity of this position within one request.</summary>
     [Column("MaxMenge")]

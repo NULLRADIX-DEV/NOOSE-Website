@@ -15,7 +15,7 @@ public sealed class BewerbungssperreServiceTests
 
     // Junior agent, no flags: fails RequireHrbOrLeadership.
     private static System.Security.Claims.ClaimsPrincipal Unauthorized()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     // Leadership-by-rank team lead (not admin) = OnlyReader: passes HrbOrLeadership, fails RequireWriteAccess.
     private static System.Security.Claims.ClaimsPrincipal OnlyReader()

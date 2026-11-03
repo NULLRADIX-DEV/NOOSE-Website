@@ -5,6 +5,9 @@ namespace NOOSE_Website.Services;
 
 public class CaseNumberService : ICaseNumberService
 {
+    /// <summary>Agency part in front of every issued case number.</summary>
+    public const string AgencyPrefix = "FIB";
+
     public async Task<string> NextAsync(AppDbContext db, string prefix, CancellationToken cancellationToken = default)
     {
         // Race-safety needs the caller's enclosing transaction: commit releases the counter row-lock.
@@ -22,6 +25,6 @@ public class CaseNumberService : ICaseNumberService
             cancellationToken);
         var number = (await db.CaseNumberCounter.AsNoTracking()
             .FirstAsync(z => z.Prefix == prefix && z.Year == year, cancellationToken)).LastNumber;
-        return $"NOOSE-{prefix}-{year}-{number:0000}";
+        return $"{AgencyPrefix}-{prefix}-{year}-{number:0000}";
     }
 }

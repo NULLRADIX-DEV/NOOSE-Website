@@ -634,7 +634,7 @@ public class EvidenceService(
             string? ownerHref;
             if (e.OwnerType == NooseOwner)
             {
-                ownerDisplay = "NOOSE";
+                ownerDisplay = "FIB";
                 ownerHref = null;
             }
             else

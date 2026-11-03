@@ -16,7 +16,7 @@ public sealed class TaskforceChatReadTests
     private static readonly DateTime Now = DateTime.UtcNow;
 
     private static ClaimsPrincipal Me()
-        => ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.JuniorAgent).WithCodename("Rookie").Build();
+        => ClaimsPrincipalBuilder.Agent("me").WithRank(Rank.Trainee).WithCodename("Rookie").Build();
 
     private static TaskforceChatService Chat(SqliteTestContext ctx)
         => new(ctx.Factory, new TaskforceChatBroadcaster(), Substitute.For<INotificationService>());
@@ -28,7 +28,7 @@ public sealed class TaskforceChatReadTests
         {
             Id = id,
             Name = "Taskforce " + id,
-            CaseNumber = "NOOSE-TF-2026-" + id,
+            CaseNumber = "FIB-TF-2026-" + id,
             IsArchived = archived,
             IsDeleted = deleted,
             CreatedAt = Now.AddDays(-30),
@@ -38,8 +38,8 @@ public sealed class TaskforceChatReadTests
 
     private static void Agents(AppDbContext db)
     {
-        db.Users.Add(Seed.Agent("me", Rank.JuniorAgent));
-        db.Users.Add(Seed.Agent("other", Rank.JuniorAgent));
+        db.Users.Add(Seed.Agent("me", Rank.Trainee));
+        db.Users.Add(Seed.Agent("other", Rank.Trainee));
     }
 
     private static TaskforceMessage Message(string taskforceId, DateTime at, string? by = "other", bool deleted = false)

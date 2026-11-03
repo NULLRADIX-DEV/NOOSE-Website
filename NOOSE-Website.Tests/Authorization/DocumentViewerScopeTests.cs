@@ -80,7 +80,7 @@ public class DocumentViewerScopeTests
     [Fact]
     public void CanSee_plainAgent_seesOnlyNone()
     {
-        var scope = DocumentViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent));
+        var scope = DocumentViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee));
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.False(scope.CanSee(DocumentClassification.Leadership));
@@ -92,7 +92,7 @@ public class DocumentViewerScopeTests
     public void CanSee_leadershipByRank_seesEveryDefinedLevel()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.True(scope.CanSee(DocumentClassification.Leadership));
@@ -104,7 +104,7 @@ public class DocumentViewerScopeTests
     public void CanSee_admin_seesEveryDefinedLevel()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsAdmin());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsAdmin());
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.True(scope.CanSee(DocumentClassification.Leadership));
@@ -117,7 +117,7 @@ public class DocumentViewerScopeTests
     {
         // TeamLead without admin => OnlyReader => MayClassifiedRead true.
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTeamLead());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTeamLead());
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.True(scope.CanSee(DocumentClassification.Leadership));
@@ -129,7 +129,7 @@ public class DocumentViewerScopeTests
     public void CanSee_truOnlyAgent_seesNoneAndTruOnly()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTru());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTru());
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.False(scope.CanSee(DocumentClassification.Leadership));
@@ -141,7 +141,7 @@ public class DocumentViewerScopeTests
     public void CanSee_hrbOnlyAgent_seesNoneAndHrbOnly()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsHrb());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsHrb());
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.False(scope.CanSee(DocumentClassification.Leadership));
@@ -154,7 +154,7 @@ public class DocumentViewerScopeTests
     {
         // Admin cancels OnlyReader but still grants leadership => MayClassified.
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTeamLead().AsAdmin());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTeamLead().AsAdmin());
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.True(scope.CanSee(DocumentClassification.Leadership));
@@ -186,7 +186,7 @@ public class DocumentViewerScopeTests
     public void CanSee_rankExactlyLeadershipThreshold_canSeeLeadership()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
 
         Assert.True(scope.CanSee(DocumentClassification.Leadership));
     }
@@ -197,7 +197,7 @@ public class DocumentViewerScopeTests
     public void From_admin_mapsMayClassifiedLeadershipAndAdmin()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsAdmin());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsAdmin());
 
         Assert.True(scope.MayClassified);
         Assert.False(scope.IsTru);
@@ -210,7 +210,7 @@ public class DocumentViewerScopeTests
     public void From_leadershipByRank_isLeadershipButNotAdmin()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
 
         Assert.True(scope.MayClassified);
         Assert.True(scope.IsLeadership);
@@ -221,7 +221,7 @@ public class DocumentViewerScopeTests
     public void From_truOnly_mapsTruFlagWithoutMayClassified()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTru());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTru());
 
         Assert.False(scope.MayClassified);
         Assert.True(scope.IsTru);
@@ -234,7 +234,7 @@ public class DocumentViewerScopeTests
     public void From_hrbOnly_mapsHrbFlagWithoutMayClassified()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsHrb());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsHrb());
 
         Assert.False(scope.MayClassified);
         Assert.False(scope.IsTru);
@@ -247,7 +247,7 @@ public class DocumentViewerScopeTests
     public void From_onlyReader_hasMayClassifiedButNotLeadershipNorAdmin()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTeamLead());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTeamLead());
 
         Assert.True(scope.MayClassified); // via read-only supervision
         Assert.False(scope.IsLeadership);
@@ -260,7 +260,7 @@ public class DocumentViewerScopeTests
     public void From_plainAgent_allDerivedFlagsFalse()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee));
 
         Assert.False(scope.MayClassified);
         Assert.False(scope.IsTru);
@@ -301,7 +301,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_plainAgent_onlyNone()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee));
 
         Assert.Equal(new[] { DocumentClassification.None }, options);
     }
@@ -310,7 +310,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_leadership_allLevelsInOrder()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
 
         Assert.Equal(
             new[]
@@ -327,7 +327,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_admin_allLevelsInOrder()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsAdmin());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsAdmin());
 
         Assert.Equal(
             new[]
@@ -344,7 +344,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_truOnly_noneAndTru()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTru());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTru());
 
         Assert.Equal(new[] { DocumentClassification.None, DocumentClassification.Tru }, options);
     }
@@ -353,7 +353,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_hrbOnly_noneAndHrb()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsHrb());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsHrb());
 
         Assert.Equal(new[] { DocumentClassification.None, DocumentClassification.Hrb }, options);
     }
@@ -362,7 +362,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_truAndHrb_noneTruHrbNoLeadership()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTru().AsHrb());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTru().AsHrb());
 
         Assert.Equal(
             new[]
@@ -378,7 +378,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_leadershipWithTruFlag_noDuplicateTru()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent).AsTru());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).AsTru());
 
         Assert.Equal(
             new[]
@@ -397,7 +397,7 @@ public class DocumentViewerScopeTests
     {
         // Read-only supervision may read classified but may assign only None.
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTeamLead());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTeamLead());
 
         Assert.Equal(new[] { DocumentClassification.None }, options);
     }
@@ -414,7 +414,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_alwaysStartsWithNone()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
 
         Assert.NotEmpty(options);
         Assert.Equal(DocumentClassification.None, options[0]);

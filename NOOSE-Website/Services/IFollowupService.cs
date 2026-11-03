@@ -28,4 +28,19 @@ public interface IFollowupService
 
     /// <summary>Like <see cref="GetMyDueAsync"/>, but everything due up to the given instant, so upcoming ones show too.</summary>
     Task<List<FollowupDashboardItem>> GetMineUntilAsync(ClaimsPrincipal actor, DateTime untilUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>Caller's open follow-ups as responsible, bucketed; ones on records they may not see are only counted.</summary>
+    Task<FollowupPlan> GetMyPlanAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Moves the due date by a day or a week, counted from today when already overdue.</summary>
+    Task PostponeAsync(string id, int days, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Every open follow-up of the agency for leadership and supervision; unseen records stay unnamed.</summary>
+    Task<FollowupBacklog> GetBacklogAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Hands an open follow-up to another selectable agent who may see its record; leadership only.</summary>
+    Task ReassignAsync(string id, string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Tells leadership once per due date that follow-ups are long overdue; worker only, claims before it notifies.</summary>
+    Task<int> EscalateOverdueAsync(DateTime nowUtc, CancellationToken cancellationToken = default);
 }

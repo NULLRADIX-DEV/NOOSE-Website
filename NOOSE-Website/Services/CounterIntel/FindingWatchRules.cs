@@ -186,7 +186,7 @@ public static class FindingWatchRules
     /// <summary>The bell line: source, count and the first few rule or kind names, never an agent.</summary>
     public static string Title(FindingSource source, int count, IReadOnlyList<string> names)
     {
-        var prefix = source == FindingSource.Noosei ? "NOOSEI" : "Gegenaufklärung";
+        var prefix = source == FindingSource.Noosei ? "FIBI" : "Gegenaufklärung";
         var noun = count == 1 ? "neue Auffälligkeit" : "neue Auffälligkeiten";
         var shown = string.Join(", ", names.Take(TitleNames));
         if (names.Count > TitleNames)

@@ -75,7 +75,7 @@
         </MudPaper>
 
         <MudText Typo="Typo.overline" Class="mud-text-secondary">Antwort</MudText>
-        <MudPaper Elevation="0" Class="pa-3" Style="background:rgba(34,211,238,0.06);border-radius:8px;">
+        <MudPaper Elevation="0" Class="pa-3" Style="background:rgba(113,97,74,0.1);border-radius:8px;">
             <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@(Detail.Answer ?? "—")</MudText>
         </MudPaper>
     </DialogContent>
@@ -108,6 +108,6 @@
             { x => x.Detail, detail },
             { x => x.MaySeeCost, maySeeCost },
         };
-        await dialogs.ShowAsync<LlmRequestDetailDialog>("NOOSEI-Anfrage", parameters, options);
+        await dialogs.ShowAsync<LlmRequestDetailDialog>("FIBI-Anfrage", parameters, options);
     }
 }

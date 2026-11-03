@@ -285,7 +285,7 @@ public static class SearchCatalog
             null, "zusatzfelder"),
 
         // ---- Persönliches: never anybody else's rows ----
-        new(nameof(NooseiConversation), "NOOSEI-Unterhaltung", "NOOSEI-Unterhaltungen", SearchGroup.Personal,
+        new(nameof(NooseiConversation), "FIBI-Unterhaltung", "FIBI-Unterhaltungen", SearchGroup.Personal,
             Icons.Material.Filled.SmartToy, SearchHitShape.Personal,
             SearchTraits.Personal | SearchTraits.Assistant, null),
         new(nameof(Notification), "Benachrichtigung", "Benachrichtigungen", SearchGroup.Personal,
@@ -349,7 +349,7 @@ public static class SearchCatalog
             Icons.Material.Filled.History, SearchHitShape.Log, SearchTraits.Heavy | SearchTraits.Assistant, null),
         new(nameof(AccessLog), "Zugriff", "Zugriffsprotokoll", SearchGroup.Logs,
             Icons.Material.Filled.RemoveRedEye, SearchHitShape.Log, SearchTraits.Assistant, null),
-        new(nameof(LlmRequestLog), "NOOSEI-Anfrage", "NOOSEI-Anfragen", SearchGroup.Logs,
+        new(nameof(LlmRequestLog), "FIBI-Anfrage", "FIBI-Anfragen", SearchGroup.Logs,
             Icons.Material.Filled.QuestionAnswer, SearchHitShape.Log, SearchTraits.Heavy | SearchTraits.Assistant, null),
 
         // ---- Oeffentlicher Bereich ----
@@ -468,6 +468,8 @@ public static class SearchCatalog
             ["ClassificationHistory"] = "Einstufungs-Verlauf; die Akte selbst ist durchsuchbar.",
             ["AgentRankHistory"] = "Dienstgrad-Verlauf; die Personalakte ist durchsuchbar.",
             ["AgentPromotionRequest"] = "Beförderungsantrag; die Personalakte ist durchsuchbar.",
+            ["FirearmUse"] = "Meldung eines Schusswaffengebrauchs; gelesen wird sie auf /schusswaffengebrauch und in der "
+                + "eigenen Personalakte, eine Volltextsuche über Begründungen wäre ein Verzeichnis, wer wann geschossen hat.",
 
             // --- numeric or derived state ---
             ["CaseNumberCounter"] = "Interner Aktenzeichen-Zähler.",

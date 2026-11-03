@@ -21,10 +21,12 @@ public sealed class FinancingBudgetConfig
     {
         Ranks = new Dictionary<string, FinancingRankBudget>
         {
-            [RankKey(Rank.JuniorAgent)] = new() { BaseMonthly = 25_000m, CarryOverPercent = 0 },
+            [RankKey(Rank.Trainee)] = new() { BaseMonthly = 25_000m, CarryOverPercent = 0 },
             [RankKey(Rank.SpecialAgent)] = new() { BaseMonthly = 50_000m, CarryOverPercent = 0 },
             [RankKey(Rank.SeniorSpecialAgent)] = new() { BaseMonthly = 75_000m, CarryOverPercent = 25 },
-            [RankKey(Rank.SupervisorySpecialAgent)] = new() { BaseMonthly = 150_000m, CarryOverPercent = 50 },
+            [RankKey(Rank.SpecialAgentInCharge)] = new() { BaseMonthly = 150_000m, CarryOverPercent = 50 },
+            [RankKey(Rank.SectionChief)] = new() { BaseMonthly = 165_000m, CarryOverPercent = 50 },
+            [RankKey(Rank.AssistantDirector)] = new() { BaseMonthly = 180_000m, CarryOverPercent = 50 },
             [RankKey(Rank.DeputyDirector)] = new() { BaseMonthly = 200_000m, CarryOverPercent = 50 },
             [RankKey(Rank.Director)] = new() { BaseMonthly = 250_000m, CarryOverPercent = 50 },
         },

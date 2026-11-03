@@ -103,7 +103,7 @@ public sealed class RadioSearchTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Nachtfalke", CaseNumber = "NOOSE-TF-2026-0001" });
+            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Nachtfalke", CaseNumber = "FIB-TF-2026-0001" });
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf1", AgentId = "member" });
             db.Funkkanaele.Add(new RadioChannel
             {

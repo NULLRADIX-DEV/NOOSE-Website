@@ -316,7 +316,7 @@ public sealed class DossierSummaryServiceTests
     {
         using var ctx = new SqliteTestContext();
         SeedPerson(ctx, "p2", "Geheim", p => p.IsClassified = true);
-        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.JuniorAgent).Build();
+        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.Trainee).Build();
 
         Assert.Null(await Svc(ctx, Gateway()).GetAsync(nameof(Person), "p2", junior));
     }

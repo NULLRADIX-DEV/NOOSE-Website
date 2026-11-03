@@ -231,7 +231,7 @@
             // last, so it never pushes a real hit out of sight; the chat only pre-fills the question
             if (_mayUseNoosei)
             {
-                result.Add(new PaletteItem($"NOOSEI fragen: {v}", null, Icons.Material.Filled.SmartToy,
+                result.Add(new PaletteItem($"FIBI fragen: {v}", null, Icons.Material.Filled.SmartToy,
                     "/ki-assistent?frage=" + Uri.EscapeDataString(v), PaletteKind.Noosei));
             }
         }
@@ -277,7 +277,7 @@
         PaletteKind.Recent => "Zuletzt",
         PaletteKind.Record => item.TypeName ?? "Akte",
         PaletteKind.Search => "Suche",
-        PaletteKind.Noosei => "NOOSEI",
+        PaletteKind.Noosei => "FIBI",
         _ => "Befehl",
     };
 

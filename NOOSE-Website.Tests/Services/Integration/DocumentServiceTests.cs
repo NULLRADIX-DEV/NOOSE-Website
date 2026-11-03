@@ -20,9 +20,9 @@ public sealed class DocumentServiceTests
     private static ClaimsPrincipal Leader(string id = "dir")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
-    // JuniorAgent: not leadership, not admin, not partner (a plain writer).
+    // Trainee: not leadership, not admin, not partner (a plain writer).
     private static ClaimsPrincipal Junior(string id = "jr")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // TeamLead with leadership rank but no admin => read-only supervisor.
     private static ClaimsPrincipal ReadOnlySupervisor(string id = "ro")

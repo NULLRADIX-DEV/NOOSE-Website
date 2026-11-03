@@ -6,8 +6,8 @@ namespace NOOSE_Website.Services.Handbook;
 /// <summary>The glossary prepared for matching: every term and synonym, longest first, bucketed by first letter.</summary>
 /// <remarks>
 /// Built once and cached, because it is asked the same question by every rich-text block on a page. Longest-first
-/// is not a nicety: the glossary ships "Agent", "Junior Agent" and "Supervisory Special Agent", and matching the
-/// short one first would leave "Supervisory Special <em>Agent</em>".
+/// is not a nicety: the glossary ships "Agent", "Special Agent" and "Special Agent in Charge", and matching the
+/// short one first would leave "<em>Special Agent</em> in Charge" cut in two.
 /// <para>
 /// Bucketing by first letter keeps the scan linear in practice - roughly ten candidates per position instead of
 /// two hundred - which matters because the walk runs over every text node of every document on screen.

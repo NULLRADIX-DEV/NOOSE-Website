@@ -18,13 +18,13 @@ public sealed class TimelineServiceTests
 {
     private static TimelineService Build(SqliteTestContext ctx) => new(ctx.Factory);
 
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership() + MayClassifiedRead().
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership() + MayClassifiedRead().
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename("Falcon").Build();
 
     // Junior agent: not leadership, cannot read classified records.
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     // External partner: read-only, sees only shared, non-classified records.
     private static ClaimsPrincipal Partner()
@@ -412,12 +412,12 @@ public sealed class TimelineServiceTests
             });
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "profil1", WantedId = "f1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "profil1", WantedId = "f1",
                 Text = "Am Hafen gesehen.", CreatedAt = Utc(3),
             });
             db.HinweisBelohnungen.Add(new HinweisBelohnung
             {
-                Id = "b1", ReceiptNumber = "NOOSE-BEL-2026-0001", TipId = "h1", ShareId = "k1",
+                Id = "b1", ReceiptNumber = "FIB-BEL-2026-0001", TipId = "h1", ShareId = "k1",
                 Amount = 50_000m, PaidAt = Utc(4), CreatedAt = Utc(4),
             });
             db.AuditLogs.Add(new AuditLog
@@ -582,13 +582,13 @@ public sealed class TimelineServiceTests
             db.People.Add(Seed.Person("p1", "Max"));
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "profil1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "profil1",
                 Text = "Am Hafen gesehen.", CreatedAt = Utc(1),
             });
             db.Links.Add(new Link
             {
                 SourceType = "Hinweis", SourceId = "h1", TargetType = "Person", TargetId = "p1",
-                Label = "Übernahme aus Bürgerhinweis NOOSE-H-2026-0001", Automatic = false, CreatedAt = Utc(2),
+                Label = "Übernahme aus Bürgerhinweis FIB-H-2026-0001", Automatic = false, CreatedAt = Utc(2),
             });
             db.SaveChanges();
         }
@@ -598,7 +598,7 @@ public sealed class TimelineServiceTests
 
         // RecordsReference resolves the counterpart; without its arm the entry would read "Akte"
         var entry = Assert.Single(result.Where(e => e.Category == TimelineCategory.Link));
-        Assert.Contains("Bürgerhinweis NOOSE-H-2026-0001", entry.Title, StringComparison.Ordinal);
+        Assert.Contains("Bürgerhinweis FIB-H-2026-0001", entry.Title, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -759,7 +759,7 @@ public sealed class TimelineServiceTests
             });
             db.Hinweise.Add(new Hinweis
             {
-                Id = "h1", CaseNumber = "NOOSE-H-2026-0001", CitizenProfileId = "profil1", WantedId = "f1",
+                Id = "h1", CaseNumber = "FIB-H-2026-0001", CitizenProfileId = "profil1", WantedId = "f1",
                 Text = "Am Hafen gesehen.", CreatedAt = Utc(2),
             });
             db.AuditLogs.Add(new AuditLog

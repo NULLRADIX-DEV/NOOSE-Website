@@ -7,7 +7,7 @@
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 
-<PageTitle>Status · NOOSE</PageTitle>
+<PageTitle>Status · FIB</PageTitle>
 
 @if (_ready)
 {
@@ -137,7 +137,7 @@
 
         @* chat takes all remaining viewport height *@
         <MudPaper Elevation="4" Class="pa-4" Style="flex:1 1 auto;min-height:0;display:flex;flex-direction:column;">
-            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="flex:0 0 auto;">Kommunikation mit dem NOOSE</MudText>
+            <MudText Typo="Typo.subtitle1" Class="mb-2" Style="flex:0 0 auto;">Kommunikation mit dem FIB</MudText>
             <div style="flex:1 1 auto;min-height:0;">
                 <BewerbungMessagePanel BewerbungId="@_bewerbung.Id" User="_user"
                                        Audience="BewerbungMessageAudience.Bewerber" IsApplicantView="true"

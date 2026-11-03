@@ -275,8 +275,8 @@ builder.Services.AddHttpClient("llm", (sp, client) =>
     var o = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<NOOSE_Website.Models.Llm.LlmOptions>>().Value;
     // No BaseAddress and no key here: the upstream is a runtime choice, and a pooled client that carried one
     // endpoint's credentials would hand them to the other. LlmService addresses and authorises each request.
-    client.DefaultRequestHeaders.TryAddWithoutValidation("HTTP-Referer", "https://noose.info");
-    client.DefaultRequestHeaders.TryAddWithoutValidation("X-Title", "NOOSE Intelligence");
+    client.DefaultRequestHeaders.TryAddWithoutValidation("HTTP-Referer", "https://fibhq.com");
+    client.DefaultRequestHeaders.TryAddWithoutValidation("X-Title", "FIB Intelligence");
     // Ceiling over all attempts; the per-attempt budget lives in LlmService.
     client.Timeout = TimeSpan.FromSeconds(Math.Max(5, o.TotalTimeoutSeconds));
 });
@@ -326,6 +326,7 @@ builder.Services.AddScoped<IOrgChartService, OrgChartService>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<ICalendarService, CalendarService>();
 builder.Services.AddScoped<IAbsenceService, AbsenceService>();
+builder.Services.AddScoped<IFirearmUseService, FirearmUseService>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IAttendanceStatisticsService, AttendanceStatisticsService>();
 builder.Services.AddScoped<IMeetingService, MeetingService>();
@@ -604,7 +605,10 @@ app.MapNoosePresentationFileEndpoints();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // the text sweep updates whole tables, the default 30 s would abort it
+    db.Database.SetCommandTimeout(TimeSpan.FromMinutes(10));
     await db.Database.MigrateAsync();
+    db.Database.SetCommandTimeout((int?)null);
 
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     if (!await roleManager.RoleExistsAsync("Admin"))

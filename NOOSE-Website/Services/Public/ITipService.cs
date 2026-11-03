@@ -94,7 +94,7 @@ public interface ITipService
 
     Task PostInternalNoteAsync(string id, string text, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Agency message to the citizen; the row carries no agent, so it reads as "NOOSE" outside.</summary>
+    /// <summary>Agency message to the citizen; the row carries no agent, so it reads as "FIB" outside.</summary>
     Task AskCitizenAsync(string id, string text, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Rewrites one line of either thread; its author only, and never a line the citizen wrote.</summary>

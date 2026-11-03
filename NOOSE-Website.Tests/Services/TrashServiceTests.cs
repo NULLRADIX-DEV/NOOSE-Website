@@ -1,7 +1,9 @@
 ﻿using System.Security.Claims;
 using NSubstitute;
+using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.People;
+using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Navigation;
 using NOOSE_Website.Services;
 using NOOSE_Website.Services.Changelog;
@@ -17,6 +19,7 @@ public class TrashServiceTests
     private readonly ICaseService _cases = Substitute.For<ICaseService>();
     private readonly IChangelogService _changelog = Substitute.For<IChangelogService>();
     private readonly IHandbookService _handbook = Substitute.For<IHandbookService>();
+    private readonly IFirearmUseService _firearmUses = Substitute.For<IFirearmUseService>();
 
     private TrashService Build() => new(
         _people,
@@ -51,7 +54,8 @@ public class TrashServiceTests
         _changelog,
         _handbook,
         Substitute.For<ILawService>(),
-        Substitute.For<IPresentationService>());
+        Substitute.For<IPresentationService>(),
+        _firearmUses);
 
     [Fact]
     public void Kind_keys_are_unique()
@@ -135,6 +139,30 @@ public class TrashServiceTests
                     Arg.Any<string>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
                 break;
         }
+    }
+
+    [Fact]
+    public async Task The_firearm_use_kind_loads_and_restores_through_its_own_service()
+    {
+        var actor = new ClaimsPrincipal();
+        _firearmUses.GetTrashAsync(Arg.Any<CancellationToken>()).Returns(
+        [
+            new FirearmUse
+            {
+                Id = "w1", AgentId = "a1", Agent = new Agent { Id = "a1", Codename = "Falke" },
+                Reason = "geheim", Timestamp = new DateTime(2026, 10, 1, 8, 0, 0, DateTimeKind.Utc),
+                DeletedAt = new DateTime(2026, 10, 2, 8, 0, 0, DateTimeKind.Utc),
+            },
+        ]);
+
+        var rows = await Build().GetAsync("schusswaffengebrauch");
+        await Build().RestoreAsync("schusswaffengebrauch", "w1", actor);
+
+        var row = Assert.Single(rows);
+        Assert.Equal("Falke", row.Title);
+        // the reason stays out of the bin: it is a list the whole leadership reads
+        Assert.DoesNotContain("geheim", row.Title + row.Detail, StringComparison.Ordinal);
+        await _firearmUses.Received(1).RestoreAsync("w1", actor, Arg.Any<CancellationToken>());
     }
 
     [Fact]

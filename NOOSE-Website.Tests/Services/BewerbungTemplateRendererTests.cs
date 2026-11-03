@@ -1,3 +1,4 @@
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Tests.Services;
@@ -130,8 +131,35 @@ public class BewerbungTemplateRendererTests
     public void RenderForApplicant_full_template_replaces_all_expected_tokens()
     {
         var html = "Hallo BEWERBER, ich bin NAME (DIENSTGRAD). Termin: DATUM UHRZEIT.";
-        var result = BewerbungTemplateRenderer.RenderForApplicant(html, "Anna", "Junior Agent");
-        Assert.Equal($"Hallo Anna, ich bin {Block} (Junior Agent). Termin: DATUM UHRZEIT.", result);
+        var result = BewerbungTemplateRenderer.RenderForApplicant(html, "Anna", "Trainee");
+        Assert.Equal($"Hallo Anna, ich bin {Block} (Trainee). Termin: DATUM UHRZEIT.", result);
+    }
+
+    // ---------------------------------------------------------------
+    // The sender's rank: neutral, whatever the unit
+    // ---------------------------------------------------------------
+
+    [Fact]
+    public void SenderRank_is_the_neutral_title_of_every_rank_and_never_an_HRT_title()
+    {
+        var hrtTitles = RankDisplay.All.Select(r => RankDisplay.HrtTitle(r)).OfType<string>().ToList();
+
+        foreach (var rank in RankDisplay.All)
+        {
+            var title = BewerbungTemplateRenderer.SenderRank(rank);
+
+            Assert.Equal(RankDisplay.Name(rank), title);
+            Assert.DoesNotContain(title!, hrtTitles);
+            var letter = BewerbungTemplateRenderer.RenderForApplicant("Mit freundlichen Grüßen, DIENSTGRAD", "Anna", title);
+            Assert.All(hrtTitles, hrt => Assert.DoesNotContain(hrt, letter));
+        }
+    }
+
+    [Fact]
+    public void SenderRank_without_a_rank_leaves_the_token_standing()
+    {
+        Assert.Null(BewerbungTemplateRenderer.SenderRank(null));
+        Assert.Equal("DIENSTGRAD", BewerbungTemplateRenderer.RenderForApplicant("DIENSTGRAD", null, BewerbungTemplateRenderer.SenderRank(null)));
     }
 
     // ---------------------------------------------------------------

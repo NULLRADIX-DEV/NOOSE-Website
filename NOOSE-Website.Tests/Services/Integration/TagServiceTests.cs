@@ -10,13 +10,13 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="TagService"/> against in-memory SQLite.</summary>
 public sealed class TagServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) or admin => IsLeadership().
+    // Rank >= SpecialAgentInCharge(4) or admin => IsLeadership().
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, not admin.
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     [Fact]
     public async Task GetAllAsync_ReturnsTags_OrderedByName()

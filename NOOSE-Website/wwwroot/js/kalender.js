@@ -6,12 +6,12 @@ let fcLadenPromise = null;
 const QUELLE_FARBE = {
     0: '#3FB950', // Termin
     1: '#F0883E', // Operation
-    2: '#58A6FF', // Observation
-    3: '#8B98A8', // Aufgabe (faellig)
+    2: '#B27923', // Observation
+    3: '#9A9488', // Aufgabe (faellig)
     4: '#D29922', // Wiedervorlage
-    5: '#7C8CF8', // Fraktions-Aktivitaet
+    5: '#83A412', // Fraktions-Aktivitaet
     6: '#A371F7', // Personen-Dok
-    7: '#22D3EE', // Besprechung
+    7: '#8A7650', // Besprechung
     8: '#DB61A2', // Abmeldung
     9: '#B07C9E', // Team-Abmeldung
 };
@@ -53,10 +53,10 @@ function stilSicherstellen() {
 .fc {
     --fc-border-color: var(--mud-palette-lines-default);
     --fc-page-bg-color: transparent;
-    --fc-neutral-bg-color: var(--mud-palette-background-grey);
-    --fc-today-bg-color: rgba(34, 211, 238, 0.07);
+    --fc-neutral-bg-color: var(--mud-palette-background-gray);
+    --fc-today-bg-color: rgba(113, 97, 74, 0.12);
     --fc-now-indicator-color: var(--mud-palette-error);
-    --fc-highlight-color: rgba(34, 211, 238, 0.12);
+    --fc-highlight-color: rgba(113, 97, 74, 0.2);
     --fc-list-event-hover-bg-color: var(--mud-palette-action-default-hover);
     font-family: inherit;
     color: var(--mud-palette-text-primary);
@@ -71,7 +71,7 @@ function stilSicherstellen() {
 .fc .fc-timegrid-axis-cushion { white-space: normal; line-height: 1.05; }
 .fc-theme-standard .fc-scrollgrid,
 .fc-theme-standard td, .fc-theme-standard th { border-color: var(--mud-palette-lines-default); }
-.fc .fc-day-today .fc-col-header-cell-cushion { color: var(--mud-palette-primary); font-weight: 700; }
+.fc .fc-day-today .fc-col-header-cell-cushion { color: var(--mud-palette-primary-lighten); font-weight: 700; }
 .fc .fc-timegrid-slot-minor { border-top-style: dotted; }
 /* buttons */
 .fc .fc-button-primary {
@@ -121,7 +121,7 @@ function addTage(iso, n) {
 }
 
 function mapEreignis(e) {
-    const farbe = QUELLE_FARBE[e.source] != null ? QUELLE_FARBE[e.source] : '#8B98A8';
+    const farbe = QUELLE_FARBE[e.source] != null ? QUELLE_FARBE[e.source] : '#9A9488';
     const ev = {
         id: e.id,
         title: e.title,

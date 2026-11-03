@@ -77,8 +77,22 @@ public record RecentDecorationView(
     DecorationTier Tier,
     DateTime AwardedOn);
 
-/// <summary>Signatory and place printed on every certificate.</summary>
-public record CertificateSettings(string? SignatoryId, string Place);
+/// <summary>Signatories and place printed on the certificates.</summary>
+/// <param name="SignatoryId">The office head who signs where a division names nobody.</param>
+/// <param name="DivisionSignatoryIds">Optional signatory per division; a missing entry falls back to <paramref name="SignatoryId"/>.</param>
+public record CertificateSettings(
+    string? SignatoryId,
+    string Place,
+    IReadOnlyDictionary<Division, string>? DivisionSignatoryIds = null)
+{
+    /// <summary>The signatory stored for this division alone; null when it falls back.</summary>
+    public string? DivisionSignatoryId(Division division)
+        => DivisionSignatoryIds is not null && DivisionSignatoryIds.TryGetValue(division, out var id) ? id : null;
+
+    /// <summary>Who signs for a recipient of this division: the division's own signatory, else the global one.</summary>
+    public string? SignatoryIdFor(Division? division)
+        => division is { } d ? DivisionSignatoryId(d) ?? SignatoryId : SignatoryId;
+}
 
 /// <summary>An agent offered as signatory; a stored one that no longer qualifies is flagged.</summary>
 public record SignatoryOption(string Id, string Codename, Rank? Rank, bool Eligible);

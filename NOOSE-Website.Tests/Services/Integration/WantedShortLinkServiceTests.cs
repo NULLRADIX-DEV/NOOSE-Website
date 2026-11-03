@@ -14,9 +14,9 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Short address and poster code of a wanted notice: only what is outside anyway may lead anywhere.</summary>
 public sealed class WantedShortLinkServiceTests
 {
-    private const string Live = "NOOSE-FA-2026-0042";
+    private const string Live = "FIB-FA-2026-0042";
     private const string LiveCode = "2026-0042";
-    private const string Vehicle = "NOOSE-FA-2026-0050";
+    private const string Vehicle = "FIB-FA-2026-0050";
     private const string Site = "https://demo.example.org";
 
     private sealed record Host(PublicWantedService Service, IMemoryCache Cache);
@@ -48,31 +48,31 @@ public sealed class WantedShortLinkServiceTests
             row.IsEnabled = row.Key is PublicModules.Wanted or PublicModules.WantedVehicles or PublicModules.WantedArchive;
         }
 
-        db.People.Add(Seed.Person("p1", "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+        db.People.Add(Seed.Person("p1", "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-0001"));
         db.People.Add(Seed.Person("p2", "Vera Verdeckt", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0002";
+            p.CaseNumber = "FIB-P-2026-0002";
             p.IsClassified = true;
         }));
         db.People.Add(Seed.Person("p3", "Gerd Gelöscht", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0003";
+            p.CaseNumber = "FIB-P-2026-0003";
             p.IsDeleted = true;
         }));
 
         db.OeffentlicheFahndungen.AddRange(
             Notice(Live, "p1", PublicWantedStatus.Veroeffentlicht),
             Notice(Vehicle, "p1", PublicWantedStatus.Veroeffentlicht, PublicWantedKind.Fahrzeug),
-            Notice("NOOSE-FA-2026-0001", "p1", PublicWantedStatus.Entwurf),
-            Notice("NOOSE-FA-2026-0002", "p1", PublicWantedStatus.Beantragt),
-            Notice("NOOSE-FA-2026-0003", "p1", PublicWantedStatus.Zurueckgezogen),
-            Notice("NOOSE-FA-2026-0004", "p1", PublicWantedStatus.Gefasst, captured: true),
-            Notice("NOOSE-FA-2026-0005", "p1", PublicWantedStatus.Abgelaufen),
-            Notice("NOOSE-FA-2026-0006", "p1", PublicWantedStatus.Veroeffentlicht, expired: true),
-            Notice("NOOSE-FA-2026-0007", "p1", PublicWantedStatus.Veroeffentlicht, deleted: true),
+            Notice("FIB-FA-2026-0001", "p1", PublicWantedStatus.Entwurf),
+            Notice("FIB-FA-2026-0002", "p1", PublicWantedStatus.Beantragt),
+            Notice("FIB-FA-2026-0003", "p1", PublicWantedStatus.Zurueckgezogen),
+            Notice("FIB-FA-2026-0004", "p1", PublicWantedStatus.Gefasst, captured: true),
+            Notice("FIB-FA-2026-0005", "p1", PublicWantedStatus.Abgelaufen),
+            Notice("FIB-FA-2026-0006", "p1", PublicWantedStatus.Veroeffentlicht, expired: true),
+            Notice("FIB-FA-2026-0007", "p1", PublicWantedStatus.Veroeffentlicht, deleted: true),
             // suppression belt
-            Notice("NOOSE-FA-2026-0008", "p2", PublicWantedStatus.Veroeffentlicht),
-            Notice("NOOSE-FA-2026-0009", "p3", PublicWantedStatus.Veroeffentlicht));
+            Notice("FIB-FA-2026-0008", "p2", PublicWantedStatus.Veroeffentlicht),
+            Notice("FIB-FA-2026-0009", "p3", PublicWantedStatus.Veroeffentlicht));
         await db.SaveChangesAsync();
         return ctx;
     }
@@ -110,12 +110,25 @@ public sealed class WantedShortLinkServiceTests
     [InlineData("2026-42")]
     [InlineData("FA-2026-0042")]
     [InlineData(Live)]
+    // printed before the rename
+    [InlineData("NOOSE-FA-2026-0042")]
+    [InlineData("noose-fa-2026-42")]
     public async Task AShortCodeOfALiveNotice_LeadsToItsProfile(string code)
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
 
         Assert.Equal("/gesucht/" + Live, await host.Service.ResolveShortLinkAsync(code));
+    }
+
+    [Fact]
+    public async Task AnOldPrintedCaseNumber_StillOpensTheProfileAndThePoster()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+
+        Assert.Equal(Live, (await host.Service.GetByCaseNumberAsync("NOOSE-FA-2026-0042"))!.CaseNumber);
+        Assert.Equal("demo.example.org/gesucht/" + Live, (await host.Service.GetPosterLinkAsync("NOOSE-FA-2026-0042"))!.ProfileText);
     }
 
     [Theory]

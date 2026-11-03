@@ -66,7 +66,7 @@ public class ModelMapsTests
     [Fact]
     public void For_hit_usesCategory_whenTargetTypeNull()
     {
-        var hit = new SearchHit("Faction", "f-1", "Title", "Snippet", "NOOSE-F-1", TargetType: null);
+        var hit = new SearchHit("Faction", "f-1", "Title", "Snippet", "FIB-F-1", TargetType: null);
 
         Assert.Equal("/fraktionen/f-1", SearchNavigation.For(hit));
     }
@@ -75,7 +75,7 @@ public class ModelMapsTests
     public void For_hit_prefersTargetType_overCategory_andAppendsTheSection()
     {
         // A comment (Category) that belongs to a Party (TargetType) resolves to the party's Kommentare tab.
-        var hit = new SearchHit("Comment", "p-7", "Title", "Snippet", "NOOSE-PA-7", TargetType: "Party");
+        var hit = new SearchHit("Comment", "p-7", "Title", "Snippet", "FIB-PA-7", TargetType: "Party");
 
         Assert.Equal("/parteien/p-7?tab=kommentare", SearchNavigation.For(hit));
     }
@@ -84,7 +84,7 @@ public class ModelMapsTests
     public void For_hit_emptyTargetType_fallsBackToTheCategory()
     {
         // "" used to be non-null and skipped the ?? fallthrough, routing the hit to "/personen/".
-        var hit = new SearchHit("Faction", "z-3", "Title", "Snippet", "NOOSE-F-3", TargetType: "");
+        var hit = new SearchHit("Faction", "z-3", "Title", "Snippet", "FIB-F-3", TargetType: "");
 
         Assert.Equal("/fraktionen/z-3", SearchNavigation.For(hit));
     }
@@ -202,12 +202,12 @@ public class ModelMapsTests
     [Theory]
     [InlineData(CalendarSource.Appointment, "#3FB950")]
     [InlineData(CalendarSource.Operation, "#F0883E")]
-    [InlineData(CalendarSource.Observation, "#58A6FF")]
-    [InlineData(CalendarSource.Job, "#8B98A8")]
+    [InlineData(CalendarSource.Observation, "#B27923")]
+    [InlineData(CalendarSource.Job, "#9A9488")]
     [InlineData(CalendarSource.Followup, "#D29922")]
-    [InlineData(CalendarSource.FactionActivity, "#7C8CF8")]
+    [InlineData(CalendarSource.FactionActivity, "#83A412")]
     [InlineData(CalendarSource.PersonDoc, "#A371F7")]
-    [InlineData(CalendarSource.Meeting, "#22D3EE")]
+    [InlineData(CalendarSource.Meeting, "#8A7650")]
     [InlineData(CalendarSource.Absence, "#DB61A2")]
     [InlineData(CalendarSource.TeamAbsence, "#B07C9E")]
     public void Colour_knownSource_returnsMappedHex(CalendarSource source, string expected)
@@ -221,7 +221,7 @@ public class ModelMapsTests
     [InlineData(1000)]
     public void Colour_undefinedSource_fallsBackToGrey(int rawValue)
     {
-        Assert.Equal("#8B98A8", CalendarDisplay.Colour((CalendarSource)rawValue));
+        Assert.Equal("#9A9488", CalendarDisplay.Colour((CalendarSource)rawValue));
     }
 
     // ---------------------------------------------------------------

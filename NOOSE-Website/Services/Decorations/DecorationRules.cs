@@ -5,6 +5,7 @@ using System.Text;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Models.Decorations;
+using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services.Decorations;
@@ -22,10 +23,19 @@ public static class DecorationRules
     public const int RecentDays = 30;
     public const int RecentMax = 5;
     public const int TileMax = 5;
-    public const string DefaultPlace = "Los Santos, Observatorium 5020";
+    public const string DefaultPlace = "FIB-Tower, Los Santos";
 
-    /// <summary>Lowest rank that may sign certificates for the office.</summary>
-    public const Rank SignatoryFloor = Rank.DeputyDirector;
+    /// <summary>Lowest rank that signs for every division: the Board.</summary>
+    public const Rank SignatoryFloor = DivisionRules.BoardFloor;
+
+    /// <summary>Settings key of the signatory of a division.</summary>
+    public static string SignatoryKey(Division division) => division switch
+    {
+        Division.Cid => SystemSettingKeys.CertificateSignatoryCid,
+        Division.Ctd => SystemSettingKeys.CertificateSignatoryCtd,
+        Division.Hrt => SystemSettingKeys.CertificateSignatoryHrt,
+        _ => throw new ArgumentOutOfRangeException(nameof(division)),
+    };
 
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
 
@@ -48,8 +58,24 @@ public static class DecorationRules
     public static bool MayChooseRealName(ClaimsPrincipal viewer, string recipientId)
         => viewer.MayRealNameSee() || string.Equals(viewer.GetAgentId(), recipientId, StringComparison.Ordinal);
 
-    /// <summary>An agent who can still sign: current staff from Deputy Director up.</summary>
-    public static bool MaySign(Agent agent) => AgentSelection.IsSelectable(agent) && agent.Rank >= SignatoryFloor;
+    /// <summary>The division whose signatory signs for the recipient; none for the Board, which gets the global one.</summary>
+    public static Division? SignatoryDivision(Agent recipient)
+        => DivisionRules.Of(recipient) is { IsBoard: false, Home: { } home } ? home : null;
+
+    /// <summary>An agent who can still sign for a division: the Board and admins for any, a Section Chief for the own one only.</summary>
+    /// <param name="division">The recipient's division; null asks for the office head who signs where no division names anybody, so Board or admin.</param>
+    public static bool MaySign(Agent agent, Division? division = null)
+    {
+        if (!AgentSelection.IsSelectable(agent))
+        {
+            return false;
+        }
+        if (agent.IsAdmin || agent.Rank >= SignatoryFloor)
+        {
+            return true;
+        }
+        return division is { } own && agent.Rank == Rank.SectionChief && DivisionRules.Of(agent).Home == own;
+    }
 
     /// <summary>The ceremony day; null when it lies after today.</summary>
     public static DateTime? CeremonyDay(DateTime? chosen, DateTime todayLocal)

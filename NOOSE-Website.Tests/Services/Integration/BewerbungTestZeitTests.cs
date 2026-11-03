@@ -87,7 +87,7 @@ public sealed class BewerbungTestZeitTests
         using var db = ctx.NewContext();
         db.Bewerbungen.Add(new Bewerbung
         {
-            Id = id, ApplicantUserId = applicantUserId, Name = "Bewerber " + id, CaseNumber = "NOOSE-B-2026-" + id,
+            Id = id, ApplicantUserId = applicantUserId, Name = "Bewerber " + id, CaseNumber = "FIB-B-2026-" + id,
             Status = status, AssignedAgentId = assignedAgentId, SubmittedAt = Ts, CreatedAt = Ts,
         });
         db.SaveChanges();

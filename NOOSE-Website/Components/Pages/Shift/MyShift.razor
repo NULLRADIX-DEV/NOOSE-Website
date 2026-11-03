@@ -15,7 +15,7 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 
-<PageTitle>Meine Schicht · NOOSE</PageTitle>
+<PageTitle>Meine Schicht · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.WorkHistory" Title="Meine Schicht"
             Subtitle="Was heute an dir hängt – und was seit deinem letzten Besuch passiert ist.">
@@ -41,7 +41,8 @@ else
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.EventRepeat" Colour="Color.Info" Label="Wiedervorlagen"
-                      Value="@_due.Count.ToString()" Hint="Deine Wiedervorlagen, die heute oder früher fällig sind" />
+                      Value="@_due.Count.ToString()" Href="@FollowupPlanRules.Route"
+                      Hint="Deine Wiedervorlagen, die heute oder früher fällig sind" />
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.AlternateEmail" Label="Erwähnungen" Value="@_mentions.Total.ToString()"
@@ -118,7 +119,7 @@ else
                 </MudPaper>
 
                 <MudPaper Class="pa-4" Elevation="2">
-                    @Head(Icons.Material.Filled.EventRepeat, "Wiedervorlagen", null, null)
+                    @Head(Icons.Material.Filled.EventRepeat, "Wiedervorlagen", FollowupPlanRules.Route, "Planen")
                     @if (_due.Count == 0 && _upcoming.Count == 0)
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">

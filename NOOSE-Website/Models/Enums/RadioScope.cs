@@ -13,7 +13,7 @@ public static class RadioScopeDisplay
 {
     public static string Name(RadioScope scope) => scope switch
     {
-        RadioScope.Noose => "NOOSE",
+        RadioScope.Noose => "FIB",
         RadioScope.Partner => "Partnerbehörde",
         RadioScope.Other => "Sonstige",
         _ => "—",

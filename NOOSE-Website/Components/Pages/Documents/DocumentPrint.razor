@@ -4,7 +4,7 @@
 @inject IDocumentService DocumentService
 @inject IAccessLogService AccessLog
 
-<PageTitle>@(_document is null ? "Druckansicht" : _document.Title) · NOOSE</PageTitle>
+<PageTitle>@(_document is null ? "Druckansicht" : _document.Title) · FIB</PageTitle>
 
 @if (_load)
 {
@@ -18,7 +18,7 @@ else
 {
     <PrintFrame Title="@_document.Title" BackHref="@($"/dokumente/{Id}")"
                  PrintedBy="@_printBy" IsClassified="_document.IsRestricted"
-                 Footer="NOOSE-internes Dokument · Weitergabe nur nach Freigabe durch die Führung.">
+                 Footer="FIB-internes Dokument · Weitergabe nur nach Freigabe durch die Führung.">
         <section>
             <h2>Dokumentdaten</h2>
             <table class="druck-felder">

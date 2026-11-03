@@ -130,7 +130,7 @@ public sealed class LlmRequestLogSearchProvider(IDbContextFactory<AppDbContext> 
             .ToListAsync(cancellationToken);
 
         return rows.Select(r => new SearchHit(nameof(LlmRequestLog), r.Id,
-                $"NOOSEI · {LlmFeatureDisplay.Name(r.Feature)}",
+                $"FIBI · {LlmFeatureDisplay.Name(r.Feature)}",
                 r.AgentId == meId ? SearchSnippet.Around(r.Prompt, s) : string.Empty,
                 string.Empty)
             {

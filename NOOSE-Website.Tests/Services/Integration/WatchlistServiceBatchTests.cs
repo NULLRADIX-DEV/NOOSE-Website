@@ -12,13 +12,13 @@ public sealed class WatchlistServiceBatchTests
 {
     private static ClaimsPrincipal Lead(string id = "lead") => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static void SeedBase(SqliteTestContext ctx)
     {
         using var db = ctx.NewContext();
         db.Users.Add(Seed.Agent("lead", Rank.Director));
-        db.Users.Add(Seed.Agent("junior", Rank.JuniorAgent));
+        db.Users.Add(Seed.Agent("junior", Rank.Trainee));
         db.Users.Add(Seed.Agent("colleague", Rank.SpecialAgent));
         db.People.Add(Seed.Person("p1"));
         db.People.Add(Seed.Person("p2"));
@@ -80,7 +80,7 @@ public sealed class WatchlistServiceBatchTests
         SeedBase(ctx);
         using (var db = ctx.NewContext())
         {
-            db.Jobs.Add(new Job { Id = "j1", Title = "Offen", CaseNumber = "NOOSE-A-2026-0001" });
+            db.Jobs.Add(new Job { Id = "j1", Title = "Offen", CaseNumber = "FIB-A-2026-0001" });
             db.Documents.Add(new Document { Id = "doc1", Title = "Bericht" });
             db.Cases.Add(Seed.Case("vs", "Verschlusssache", c => c.IsClassified = true));
             db.SaveChanges();

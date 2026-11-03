@@ -9,7 +9,7 @@ public enum TaskforceRole
     LeadInvestigator = 1,
     /// <summary>CID operational lead.</summary>
     CidLead = 2,
-    /// <summary>TRU tactical lead.</summary>
+    /// <summary>HRT tactical lead (stored as the legacy TRU lead).</summary>
     TruLead = 3,
 }
 
@@ -21,7 +21,7 @@ public static class TaskforceRoleDisplay
         TaskforceRole.Member => "Mitglied",
         TaskforceRole.LeadInvestigator => "Chefermittler",
         TaskforceRole.CidLead => "CID-Lead",
-        TaskforceRole.TruLead => "TRU-Lead",
+        TaskforceRole.TruLead => "HRT-Lead",
         _ => "—",
     };
 

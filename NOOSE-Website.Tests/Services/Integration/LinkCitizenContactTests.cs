@@ -27,17 +27,17 @@ public sealed class LinkCitizenContactTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Partner(string id = "partner")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent)
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee)
             .AsPartner(PartnerAgency.LSPD, PartnerRank.Member).Build();
 
     /// <summary>A person, a tip and a ticket, plus the link from the person to whichever of the two is asked for.</summary>
     private static void SeedRows(SqliteTestContext ctx, string linkTargetType, string linkTargetId)
     {
         using var db = ctx.NewContext();
-        db.Users.Add(Seed.Agent("junior", Rank.JuniorAgent));
+        db.Users.Add(Seed.Agent("junior", Rank.Trainee));
         db.People.Add(Seed.Person("p1", "Max"));
         db.BuergerProfile.Add(new BuergerProfil
         {
@@ -48,7 +48,7 @@ public sealed class LinkCitizenContactTests
         db.Hinweise.Add(new Hinweis
         {
             Id = "h1",
-            CaseNumber = "NOOSE-H-2026-0001",
+            CaseNumber = "FIB-H-2026-0001",
             CitizenProfileId = ProfileId,
             Status = TipStatus.Neu,
             Text = "Der gesuchte Van stand heute Nacht am Hafen.",
@@ -56,7 +56,7 @@ public sealed class LinkCitizenContactTests
         db.Tickets.Add(new Ticket
         {
             Id = "t1",
-            CaseNumber = "NOOSE-T-2026-0001",
+            CaseNumber = "FIB-T-2026-0001",
             CitizenProfileId = ProfileId,
             Status = TicketStatus.Offen,
             Subject = "Beschwerde über eine Streifenkontrolle",
@@ -92,7 +92,7 @@ public sealed class LinkCitizenContactTests
 
         var link = Assert.Single(result);
         Assert.Equal(nameof(Hinweis), link.OtherType);
-        Assert.Equal("Bürgerhinweis NOOSE-H-2026-0001", link.OtherDesignation);
+        Assert.Equal("Bürgerhinweis FIB-H-2026-0001", link.OtherDesignation);
         Assert.Equal("/hinweise/h1", link.Href);
     }
 
@@ -119,7 +119,7 @@ public sealed class LinkCitizenContactTests
         db.Hinweise.Add(new Hinweis
         {
             Id = "h1",
-            CaseNumber = "NOOSE-H-2026-0001",
+            CaseNumber = "FIB-H-2026-0001",
             CitizenProfileId = ProfileId,
             Status = TipStatus.Neu,
             Text = "Der gesuchte Van stand heute Nacht am Hafen.",
@@ -143,7 +143,7 @@ public sealed class LinkCitizenContactTests
 
         var link = Assert.Single(result);
         Assert.Equal(nameof(Ticket), link.OtherType);
-        Assert.Equal("Bürger-Ticket NOOSE-T-2026-0001", link.OtherDesignation);
+        Assert.Equal("Bürger-Ticket FIB-T-2026-0001", link.OtherDesignation);
         Assert.Equal("/tickets/t1", link.Href);
         // the subject is the citizen's own wording and stays on the ticket page
         Assert.DoesNotContain("Streifenkontrolle", link.OtherDesignation, StringComparison.OrdinalIgnoreCase);
@@ -160,7 +160,7 @@ public sealed class LinkCitizenContactTests
             .GetForRecordAsync(nameof(Person), "p1", ViewerScope.From(Junior()));
 
         var link = Assert.Single(result);
-        Assert.Equal("Bürger-Ticket NOOSE-T-2026-0001", link.OtherDesignation);
+        Assert.Equal("Bürger-Ticket FIB-T-2026-0001", link.OtherDesignation);
     }
 
     [Fact]
@@ -253,7 +253,7 @@ public sealed class LinkCitizenContactTests
 
         var ticket = map[(nameof(Ticket), "t1")];
         Assert.True(ticket.Classified);
-        Assert.Equal("Bürger-Ticket NOOSE-T-2026-0001", ticket.Display);
+        Assert.Equal("Bürger-Ticket FIB-T-2026-0001", ticket.Display);
         Assert.DoesNotContain("Streifenkontrolle", ticket.Display, StringComparison.OrdinalIgnoreCase);
 
         // the tip is the deliberate counterexample: every internal agent may read it, so it keeps its case number

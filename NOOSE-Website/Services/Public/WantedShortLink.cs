@@ -5,7 +5,7 @@ using NOOSE_Website.Models.Public;
 
 namespace NOOSE_Website.Services.Public;
 
-/// <summary>Short address of a wanted notice (<c>NOOSE-FA-2026-0042</c> becomes <c>/g/2026-0042</c>) and how a typed one is read back.</summary>
+/// <summary>Short address of a wanted notice (<c>FIB-FA-2026-0042</c> becomes <c>/g/2026-0042</c>) and how a typed one is read back.</summary>
 public static partial class WantedShortLink
 {
     /// <summary>Route prefix of the short address; it only redirects, so it is no public prefix.</summary>
@@ -40,7 +40,7 @@ public static partial class WantedShortLink
         }
         // four-digit counter
         return string.Create(CultureInfo.InvariantCulture,
-            $"NOOSE-{PublicWantedService.CaseNumberPrefix}-{match.Groups["year"].Value}-{number:0000}");
+            $"{CaseNumberService.AgencyPrefix}-{PublicWantedService.CaseNumberPrefix}-{match.Groups["year"].Value}-{number:0000}");
     }
 
     /// <summary>Site-relative path of the public profile.</summary>
@@ -84,11 +84,12 @@ public static partial class WantedShortLink
     }
 
     // ASCII digits only
-    [GeneratedRegex("^NOOSE-" + PublicWantedService.CaseNumberPrefix + @"-(?<year>[0-9]{4})-(?<number>[0-9]{1,9})\z",
+    [GeneratedRegex("^(?:" + CaseNumberService.AgencyPrefix + "|NOOSE)-" + PublicWantedService.CaseNumberPrefix + @"-(?<year>[0-9]{4})-(?<number>[0-9]{1,9})\z",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex CaseNumberShape();
 
-    [GeneratedRegex("^(?:(?:NOOSE-)?" + PublicWantedService.CaseNumberPrefix + @"-)?(?<year>[0-9]{4})-(?<number>[0-9]{1,9})\z",
+    // legacy NOOSE- prefix still typed from old posters
+    [GeneratedRegex("^(?:(?:" + CaseNumberService.AgencyPrefix + "-|NOOSE-)?" + PublicWantedService.CaseNumberPrefix + @"-)?(?<year>[0-9]{4})-(?<number>[0-9]{1,9})\z",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex CodeShape();
 }

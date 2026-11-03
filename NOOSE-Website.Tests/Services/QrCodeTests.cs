@@ -6,6 +6,7 @@ namespace NOOSE_Website.Tests.Services;
 /// <summary>The QR encoder behind the wanted poster: a wrong bit is a code no phone reads, and nothing else would notice.</summary>
 public class QrCodeTests
 {
+    // fixed vector: the reference matrix below belongs to this exact text
     private const string PosterUrl = "https://noose.info/gesucht/NOOSE-FA-2026-0042";
 
     /// <summary>The same address encoded by an independent encoder (QRCoder 1.7.0, level M), quiet zone removed.</summary>

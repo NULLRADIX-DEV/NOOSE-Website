@@ -11,9 +11,9 @@ namespace NOOSE_Website.Services;
 /// <see cref="Llm.Tools.NooseiToolResult" /> enforces for a record the asker may not see.</remarks>
 public static partial class NooseiCitations
 {
-    /// <summary>Shape of a case number, e.g. <c>NOOSE-P-2026-0001</c>; the form
-    /// <see cref="CaseNumberService" /> issues.</summary>
-    public const string CaseNumberPattern = @"NOOSE-[A-Z]+-\d{4}-\d{4}";
+    /// <summary>Shape of a case number, e.g. <c>FIB-P-2026-0001</c>; the form <see cref="CaseNumberService" /> issues.
+    /// The legacy <c>NOOSE-</c> prefix still counts.</summary>
+    public const string CaseNumberPattern = @"(?:FIB|NOOSE)-[A-Z]+-\d{4}-\d{4}";
 
     /// <summary>How many unevidenced numbers are reported. A model that invents twenty has one problem, not twenty.</summary>
     public const int MaxReported = 5;

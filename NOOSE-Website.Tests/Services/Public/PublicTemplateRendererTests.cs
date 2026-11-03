@@ -7,7 +7,7 @@ public class PublicTemplateRendererTests
 {
     private static readonly DateTime Stamp = new(2026, 8, 20, 11, 48, 0, DateTimeKind.Unspecified);
 
-    private static PublicTemplateContext Ctx(string? name = "Max Mustermann", string? caseNumber = "NOOSE-T-2026-0001")
+    private static PublicTemplateContext Ctx(string? name = "Max Mustermann", string? caseNumber = "FIB-T-2026-0001")
         => new(name, caseNumber, Stamp);
 
     [Fact]
@@ -16,7 +16,7 @@ public class PublicTemplateRendererTests
         var text = PublicTemplateRenderer.Render(
             "Sehr geehrte/r BUERGER, Ihr Anliegen AKTENZEICHEN ging am DATUM um UHRZEIT ein.", Ctx());
 
-        Assert.Equal("Sehr geehrte/r Max Mustermann, Ihr Anliegen NOOSE-T-2026-0001 ging am 20.08.2026 um 11:48 ein.",
+        Assert.Equal("Sehr geehrte/r Max Mustermann, Ihr Anliegen FIB-T-2026-0001 ging am 20.08.2026 um 11:48 ein.",
             text);
     }
 
@@ -108,7 +108,7 @@ public class PublicTemplateRendererTests
         var text = PublicTemplateRenderer.Render("BUERGER AKTENZEICHEN DATUM UHRZEIT NAME",
             PublicTemplateRenderer.SampleContext(Stamp));
 
-        Assert.Equal($"Max Mustermann NOOSE-T-2026-0001 20.08.2026 11:48 {PublicTemplateRenderer.Redaction}", text);
+        Assert.Equal($"Max Mustermann FIB-T-2026-0001 20.08.2026 11:48 {PublicTemplateRenderer.Redaction}", text);
     }
 
     [Fact]

@@ -43,7 +43,7 @@ public sealed class AgentTestServiceTests
             Seed.Agent("hrb1", Rank.SpecialAgent, configure: a => a.IsHRB = true),
             Seed.Agent("a1", Rank.SpecialAgent, configure: a => a.IsTRU = true),
             Seed.Agent("a2", Rank.SpecialAgent, configure: a => a.IsTRU = true),
-            Seed.Agent("a3", Rank.JuniorAgent),
+            Seed.Agent("a3", Rank.Trainee),
             // never selectable: read-only supervision and a released-but-blocked account
             Seed.Agent("lead", Rank.Director, configure: a => { a.IsTeamLead = true; a.IsTRU = true; }),
             Seed.Agent("gone", Rank.SpecialAgent, AgentStatus.Blocked, a => a.IsTRU = true));
@@ -152,7 +152,7 @@ public sealed class AgentTestServiceTests
 
         ClaimsPrincipal[] refused =
         [
-            ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.JuniorAgent).Build(),
+            ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.Trainee).Build(),
             // the demo principal carries HRB and Director, the read-only supervision reads everything
             ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsHrb().AsDemo().Build(),
             ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsHrb().AsTeamLead().Build(),
@@ -388,7 +388,7 @@ public sealed class AgentTestServiceTests
         SeedTest(ctx);
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Kobra", CaseNumber = "NOOSE-TF-2026-0001", CreatedAt = Ts });
+            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Kobra", CaseNumber = "FIB-TF-2026-0001", CreatedAt = Ts });
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf1", AgentId = "a3" });
             db.SaveChanges();
         }
@@ -711,7 +711,7 @@ public sealed class AgentTestServiceTests
         {
             db.Bewerbungen.Add(new Bewerbung
             {
-                Id = "b1", ApplicantUserId = "app", Name = "B", CaseNumber = "NOOSE-B-2026-0099", SubmittedAt = Ts, CreatedAt = Ts,
+                Id = "b1", ApplicantUserId = "app", Name = "B", CaseNumber = "FIB-B-2026-0099", SubmittedAt = Ts, CreatedAt = Ts,
             });
             db.SaveChanges();
         }

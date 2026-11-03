@@ -19,13 +19,13 @@ public sealed class CommentServiceTests
         return (new CommentService(ctx.Factory, notifications), notifications);
     }
 
-    // Rank >= SupervisorySpecialAgent(4) or admin => IsLeadership() + MayClassifiedRead().
+    // Rank >= SpecialAgentInCharge(4) or admin => IsLeadership() + MayClassifiedRead().
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename("Falcon").Build();
 
     // Junior agent: not leadership, cannot read classified records.
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).WithCodename("Rookie").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).WithCodename("Rookie").Build();
 
     // External partner: read-only, sees only shared, non-classified records.
     private static ClaimsPrincipal Partner()

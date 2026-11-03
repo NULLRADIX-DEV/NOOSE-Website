@@ -25,7 +25,7 @@ public sealed class SupervisionSheetServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Supervision()
-        => ClaimsPrincipalBuilder.Agent("aufsicht").WithRank(Rank.JuniorAgent).AsTeamLead().Build();
+        => ClaimsPrincipalBuilder.Agent("aufsicht").WithRank(Rank.Trainee).AsTeamLead().Build();
 
     private static SupervisionSheetService Build(SqliteTestContext ctx, ICounterIntelService? counterIntel = null)
     {
@@ -44,7 +44,7 @@ public sealed class SupervisionSheetServiceTests
         db.Users.Add(Seed.Agent(Target, Rank.SpecialAgent));
         db.Users.Add(Seed.Agent("b", Rank.SpecialAgent));
         db.Users.Add(Seed.Agent("gone", Rank.SpecialAgent, AgentStatus.Terminated));
-        db.Users.Add(Seed.Agent("bewerber", Rank.JuniorAgent, AgentStatus.Applicant));
+        db.Users.Add(Seed.Agent("bewerber", Rank.Trainee, AgentStatus.Applicant));
         seed?.Invoke(db);
         await db.SaveChangesAsync();
         return ctx;
@@ -122,7 +122,7 @@ public sealed class SupervisionSheetServiceTests
                 var id = $"m{++serial}";
                 db.Meetings.Add(new Meeting
                 {
-                    Id = id, CaseNumber = $"NOOSE-B-2026-{serial:0000}", Title = id, Start = Now.AddDays(-daysAgo),
+                    Id = id, CaseNumber = $"FIB-B-2026-{serial:0000}", Title = id, Start = Now.AddDays(-daysAgo),
                     AttendanceClosedAt = closed ? Now.AddDays(-daysAgo).AddHours(2) : null,
                 });
                 db.MeetingAttendances.Add(new MeetingAttendance { MeetingId = id, AgentId = Target, Status = status });
