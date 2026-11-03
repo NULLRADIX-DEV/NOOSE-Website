@@ -129,10 +129,13 @@
         }
         try
         {
-            await AgentService.PromotionDecideAsync(a.Id, approved, null, _user);
-            Snackbar.Add(approved ? "Beförderung genehmigt." : "Antrag abgelehnt.", Severity.Success);
-            await LoadAsync();
-            await Changed.InvokeAsync();
+            if (await DivisionLimitConfirm.RunAsync(DialogService,
+                    confirm => AgentService.PromotionDecideAsync(a.Id, approved, null, confirm, _user)))
+            {
+                Snackbar.Add(approved ? "Beförderung genehmigt." : "Antrag abgelehnt.", Severity.Success);
+                await LoadAsync();
+                await Changed.InvokeAsync();
+            }
         }
         catch (Exception ex)
         {

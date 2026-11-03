@@ -58,6 +58,10 @@ public static class DecorationRules
     public static bool MayChooseRealName(ClaimsPrincipal viewer, string recipientId)
         => viewer.MayRealNameSee() || string.Equals(viewer.GetAgentId(), recipientId, StringComparison.Ordinal);
 
+    /// <summary>The division whose signatory signs for the recipient; none for the Board, which gets the global one.</summary>
+    public static Division? SignatoryDivision(Agent recipient)
+        => DivisionRules.Of(recipient) is { IsBoard: false, Home: { } home } ? home : null;
+
     /// <summary>An agent who can still sign for a division: the Board and admins for any, a Section Chief for the own one only.</summary>
     /// <param name="division">The recipient's division; null asks for the office head who signs where no division names anybody, so Board or admin.</param>
     public static bool MaySign(Agent agent, Division? division = null)

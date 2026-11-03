@@ -135,7 +135,7 @@ public class FirearmUseService(
     private static async Task<List<string>> MembersOfAsync(AppDbContext db, Division division,
         CancellationToken cancellationToken)
     {
-        var agents = await db.Users.AsNoTracking().Where(a => a.Rank != null && a.PartnerAgency == null)
+        var agents = await db.Users.AsNoTracking().OnlyListable().Where(a => a.Rank != null)
             .Select(a => new { a.Id, a.Rank, a.Division, a.IsTRU })
             .ToListAsync(cancellationToken);
         return agents

@@ -956,10 +956,13 @@ else
     {
         try
         {
-            await AgentService.PromotionDecideAsync(request.Id, approved, null, _user);
-            Snackbar.Add(approved
-                ? $"Beförderung von {AgentName(request.AgentId)} genehmigt."
-                : $"Beförderungsantrag von {AgentName(request.AgentId)} abgelehnt.", approved ? Severity.Success : Severity.Info);
+            if (await DivisionLimitConfirm.RunAsync(DialogService,
+                    confirm => AgentService.PromotionDecideAsync(request.Id, approved, null, confirm, _user)))
+            {
+                Snackbar.Add(approved
+                    ? $"Beförderung von {AgentName(request.AgentId)} genehmigt."
+                    : $"Beförderungsantrag von {AgentName(request.AgentId)} abgelehnt.", approved ? Severity.Success : Severity.Info);
+            }
         }
         catch (Exception ex)
         {

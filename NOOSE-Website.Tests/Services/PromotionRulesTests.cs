@@ -314,22 +314,50 @@ public class PromotionRulesTests
     }
 
     [Fact]
-    public void The_list_shows_the_board_and_admins_everything_a_section_chief_only_their_own_non_board_division()
+    public void The_list_shows_the_board_and_admins_everything_a_section_chief_only_what_they_may_decide()
     {
         var cid = Target("cid", Rank.SpecialAgent, Division.Cid);
         var ctd = Target("ctd", Rank.SpecialAgent, Division.Ctd);
         var hrt = Target("hrt", Rank.SpecialAgent, Division.Hrt, isTru: true);
-        var board = Target("board", Rank.AssistantDirector, Division.Cid);
-        var all = new[] { cid, ctd, hrt, board };
+        var peer = Target("peer", Rank.SectionChief, Division.Cid);
+        var all = new[] { cid, ctd, hrt, peer };
 
-        Assert.All(all, t => Assert.True(PromotionRules.MaySee(Standing(Rank.Director), t)));
-        Assert.All(all, t => Assert.True(PromotionRules.MaySee(Standing(null, admin: true), t)));
+        Assert.All(all, t => Assert.True(PromotionRules.MayDecide(Standing(Rank.Director), t, Rank.Director)));
+        Assert.All(all, t => Assert.True(PromotionRules.MayDecide(Standing(null, admin: true), t, Rank.SectionChief)));
         var sectionChief = Standing(Rank.SectionChief, Division.Cid);
-        Assert.Equal([cid], all.Where(t => PromotionRules.MaySee(sectionChief, t)).ToList());
-        Assert.Equal([hrt], all.Where(t => PromotionRules.MaySee(Standing(Rank.SectionChief, Division.Hrt), t)).ToList());
-        Assert.All(all, t => Assert.False(PromotionRules.MaySee(Standing(Rank.SpecialAgentInCharge, Division.Cid), t)));
-        Assert.False(PromotionRules.MaySee(Standing(Rank.Director), null));
+        Assert.Equal([cid], all.Where(t => PromotionRules.MayDecide(sectionChief, t, Rank.SeniorSpecialAgent)).ToList());
+        Assert.Empty(all.Where(t => PromotionRules.MayDecide(sectionChief, t, Rank.SectionChief)));
+        Assert.All(all, t => Assert.False(PromotionRules.MayDecide(Standing(Rank.SpecialAgentInCharge, Division.Cid), t, Rank.SeniorSpecialAgent)));
     }
+
+    [Theory]
+    [InlineData(Rank.Director, Division.Ctd, Rank.Trainee, true)]
+    [InlineData(Rank.AssistantDirector, Division.Cid, Rank.Director, true)]
+    [InlineData(Rank.SectionChief, Division.Cid, Rank.SpecialAgent, true)]
+    [InlineData(Rank.SectionChief, Division.Cid, Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SectionChief, Division.Ctd, Rank.SpecialAgent, false)]
+    [InlineData(Rank.SectionChief, Division.Cid, Rank.SectionChief, false)]
+    [InlineData(Rank.SectionChief, Division.Cid, Rank.Director, false)]
+    [InlineData(Rank.SpecialAgentInCharge, Division.Cid, Rank.Trainee, false)]
+    [InlineData(Rank.SeniorSpecialAgent, Division.Cid, Rank.Trainee, false)]
+    public void Turning_an_agent_into_a_partner_is_a_rank_write(Rank actorRank, Division target, Rank from, bool expected)
+    {
+        var actor = Standing(actorRank, Division.Cid);
+
+        Assert.Equal(expected, PromotionRules.MayConvertToPartner(actor, target, from));
+        if (expected)
+        {
+            PromotionRules.RequireMayConvertToPartner(actor, target, from);
+        }
+        else
+        {
+            Assert.Throws<UnauthorizedAccessException>(() => PromotionRules.RequireMayConvertToPartner(actor, target, from));
+        }
+    }
+
+    [Fact]
+    public void An_admin_may_turn_anybody_into_a_partner()
+        => Assert.True(PromotionRules.MayConvertToPartner(Standing(null, admin: true), Division.Hrt, Rank.Director));
 
     // ---- the standing itself ----
 

@@ -336,6 +336,24 @@ public class FirearmUseServiceTests
         Assert.Equal("cid", Assert.Single(cid).AgentId);
     }
 
+
+    [Fact]
+    public async Task GetListAsync_DivisionFilterLeavesOutHiddenTeamLeadsAndPartners()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "cid", Rank.Trainee, Division.Cid);
+        SeedAgent(ctx, "tl", Rank.SpecialAgent, Division.Cid, a => { a.IsTeamLead = true; a.IsAdmin = true; });
+        SeedAgent(ctx, "partner", Rank.SpecialAgent, Division.Cid, a => a.PartnerAgency = PartnerAgency.LSPD);
+        foreach (var id in new[] { "cid", "tl", "partner" })
+        {
+            SeedUse(ctx, id);
+        }
+        var (svc, _) = Build(ctx);
+
+        var cid = await svc.GetListAsync(new FirearmUseFilter(Division: Division.Cid), Leader().Build());
+
+        Assert.Equal("cid", Assert.Single(cid).AgentId);
+    }
     [Fact]
     public async Task GetForAgentAsync_OwnFileForTheAgent_AnyFileForTheLeadershipRead_NobodyElse()
     {

@@ -485,16 +485,18 @@ public class AgentManagementService(
             .FirstOrDefaultAsync(a => a.AvatarFileName == fileName || a.PendingAvatarFileName == fileName, cancellationToken);
     }
 
-    public async Task RankChangeAsync(string agentId, Rank rank, ClaimsPrincipal actor)
+    public async Task RankChangeAsync(string agentId, Rank rank, bool confirmOverLimit, ClaimsPrincipal actor)
     {
         Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
         var alt = agent.Rank;
-        var home = DivisionRules.Of(agent).Home;
+        var before = DivisionRules.Of(agent);
+        var home = before.Home;
         // fine gate, the socket takes any rank
         await RequireMayAssignAsync(actor, home, alt, rank);
+        await RequireRankSeatAsync(agent, before, rank, confirmOverLimit);
         agent.Rank = rank;
         DivisionRules.Apply(agent, home);
         var lost = DepartmentsFollowRank(agent, home);
@@ -524,9 +526,16 @@ public class AgentManagementService(
 
     public async Task ConvertToPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
+        // the switch strips the rank; a partner changing agency holds none
+        if (agent.Rank is { } fromRank)
+        {
+            PromotionRules.RequireMayConvertToPartner(
+                await PromotionStanding.ReadAsync(db.Users, actor), DivisionRules.Of(agent).Home, fromRank);
+        }
         if (agent.Status != AgentStatus.Active)
         {
             throw new InvalidOperationException("Die Zugehörigkeit kann nur für aktive Konten geändert werden.");
@@ -560,14 +569,17 @@ public class AgentManagementService(
         catch { /* best effort */ }
     }
 
-    public async Task ConvertToInternalAsync(string agentId, Rank rank, ClaimsPrincipal actor)
+    public async Task ConvertToInternalAsync(string agentId, Rank rank, bool confirmOverLimit, ClaimsPrincipal actor)
     {
         Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
-        // former partners start in the CID
-        await RequireMayAssignAsync(actor, DivisionRules.Normalize(rank, null), agent.Rank, rank);
+        var standing = await PromotionStanding.ReadAsync(db.Users, actor);
+        // a former partner starts where the actor releases: the own division for a Section Chief, else the CID
+        var division = PromotionRules.ReleaseDivision(standing);
+        DivisionRules.RequireMayHold(division, rank);
+        PromotionRules.RequireMayAssign(standing, DivisionRules.Normalize(rank, division), agent.Rank, rank);
         if (agent.Status != AgentStatus.Active)
         {
             throw new InvalidOperationException("Die Zugehörigkeit kann nur für aktive Konten geändert werden.");
@@ -576,12 +588,14 @@ public class AgentManagementService(
         {
             throw new InvalidOperationException("Dieser Account ist bereits ein interner FIB-Agent.");
         }
+        var after = new OrgUnit(DivisionRules.Normalize(rank, division), DivisionRules.IsBoard(rank));
+        await RequireSeatAsync(agent, after, counts: !agent.IsTeamLead, confirmOverLimit);
 
         agent.PartnerAgency = null;
         agent.PartnerRank = null;
         agent.Rank = rank;
-        // a former partner starts in the CID; moving on is a division change
-        DivisionRules.Apply(agent, null);
+        // moving on from the start division is a division change
+        DivisionRules.Apply(agent, division);
         // the inactivity radar starts counting from here
         agent.ActiveSinceAt = DateTime.UtcNow;
 
@@ -593,7 +607,7 @@ public class AgentManagementService(
         catch { /* best effort */ }
     }
 
-    public async Task PromotionDecideAsync(string requestId, bool approved, string? note, ClaimsPrincipal actor)
+    public async Task PromotionDecideAsync(string requestId, bool approved, string? note, bool confirmOverLimit, ClaimsPrincipal actor)
     {
         Permission.RequirePromotionDecide(actor);
 
@@ -605,8 +619,13 @@ public class AgentManagementService(
         }
 
         var agent = await GetOrThrow(request.AgentId);
+        var before = DivisionRules.Of(agent);
         // fine gate, before any mutation
-        await RequireMayAssignAsync(actor, DivisionRules.Of(agent).Home, agent.Rank, request.TargetRank);
+        await RequireMayAssignAsync(actor, before.Home, agent.Rank, request.TargetRank);
+        if (approved)
+        {
+            await RequireRankSeatAsync(agent, before, request.TargetRank, confirmOverLimit);
+        }
 
         request.Status = approved ? PromotionStatus.Approved : PromotionStatus.Rejected;
         request.DeciderName = actor.GetCodename();
@@ -640,6 +659,11 @@ public class AgentManagementService(
     /// <summary>Fine rank gate of every rank write; the actor is read from the row, not the claims.</summary>
     private async Task RequireMayAssignAsync(ClaimsPrincipal actor, Division? targetDivision, Rank? fromRank, Rank toRank)
         => PromotionRules.RequireMayAssign(await PromotionStanding.ReadAsync(db.Users, actor), targetDivision, fromRank, toRank);
+
+    /// <summary>Seat check of a rank write: the Board by rank, else the home division, which the HRT loses to the CID below Special Agent.</summary>
+    private Task RequireRankSeatAsync(Agent agent, OrgUnit before, Rank rank, bool confirmOverLimit)
+        => RequireSeatAsync(agent, new OrgUnit(DivisionRules.Normalize(rank, before.Home), DivisionRules.IsBoard(rank)),
+            AgentSelection.IsSelectable(agent), confirmOverLimit, before);
 
     /// <summary>Reject a release that would hand out a division or flag the rank may not carry.</summary>
     private static void RequireDepartmentsFitRank(Rank rank, Division division, bool isHRB)

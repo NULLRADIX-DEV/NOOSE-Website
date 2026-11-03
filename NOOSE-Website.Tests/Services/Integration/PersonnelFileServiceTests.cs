@@ -333,6 +333,26 @@ public sealed class PersonnelFileServiceTests
         Assert.Equal(["cid-1", "legacy-1"], await OpenAgentsAsync(ctx, Claims("sc-legacy", Rank.SectionChief)));
     }
 
+    [Fact]
+    public async Task The_open_list_and_counter_hold_back_requests_a_section_chief_may_not_decide()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedOpenRequests(ctx);
+        SeedActor(ctx, "sc-cid", Rank.SectionChief, Division.Cid);
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("peer-1", Rank.SectionChief, configure: a => a.Division = Division.Cid));
+            db.Users.Add(Seed.Agent("up-1", Rank.SpecialAgentInCharge, configure: a => a.Division = Division.Cid));
+            db.AgentPromotionRequests.AddRange(Open("peer-1", Rank.AssistantDirector, 7), Open("up-1", Rank.SectionChief, 8));
+            db.SaveChanges();
+        }
+        var actor = Claims("sc-cid", Rank.SectionChief);
+
+        Assert.Equal(["cid-1", "legacy-1"], await OpenAgentsAsync(ctx, actor));
+        Assert.Equal(2, await NewService(ctx).CountOpenPromotionRequestsAsync(actor));
+        Assert.Equal(7, await NewService(ctx).CountOpenPromotionRequestsAsync(Admin()));
+    }
+
     [Theory]
     [InlineData(Rank.Trainee)]
     [InlineData(Rank.SpecialAgent)]

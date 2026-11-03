@@ -191,7 +191,7 @@ else
                         <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
                                        OnClick="() => Edit(context)" aria-label="Stammdaten bearbeiten" />
                     </MudTooltip>
-                    @if (context.Status == AgentStatus.Active)
+                    @if (context.Status == AgentStatus.Active && MayChangeAffiliation(context))
                     {
                         <MudTooltip Text="Zugehörigkeit ändern (intern FIB ↔ Partnerbehörde)">
                             <MudIconButton Icon="@Icons.Material.Filled.SwapHoriz" Size="Size.Small" Color="Color.Info"
@@ -359,8 +359,11 @@ else
             }
             else
             {
-                await AgentService.ConvertToInternalAsync(agent.Id, result.Rank, user);
-                Snackbar.Add($"{DisplayName(agent)}: Zugehörigkeit auf interner FIB-Agent ({RankDisplay.Name(result.Rank)}) gesetzt.", Severity.Success);
+                if (await DivisionLimitConfirm.RunAsync(DialogService,
+                        confirm => AgentService.ConvertToInternalAsync(agent.Id, result.Rank, confirm, user)))
+                {
+                    Snackbar.Add($"{DisplayName(agent)}: Zugehörigkeit auf interner FIB-Agent ({RankDisplay.Name(result.Rank)}) gesetzt.", Severity.Success);
+                }
             }
         }
         catch (Exception ex)
@@ -379,8 +382,11 @@ else
         var user = (await AuthStateTask).User;
         try
         {
-            await AgentService.RankChangeAsync(agent.Id, degree, user);
-            Snackbar.Add($"{DisplayName(agent)}: Dienstgrad auf {RankDisplay.Name(degree)} gesetzt.", Severity.Success);
+            if (await DivisionLimitConfirm.RunAsync(DialogService,
+                    confirm => AgentService.RankChangeAsync(agent.Id, degree, confirm, user)))
+            {
+                Snackbar.Add($"{DisplayName(agent)}: Dienstgrad auf {RankDisplay.Name(degree)} gesetzt.", Severity.Success);
+            }
         }
         catch (Exception ex)
         {
@@ -418,6 +424,10 @@ else
         }
         return RankDisplay.All.Where(r => r == agent.Rank || allowed.Contains(r)).ToList();
     }
+
+    /// <summary>Mirrors the service: an agent with a rank passes the fine gate, a partner stays with the leadership.</summary>
+    private bool MayChangeAffiliation(Agent agent)
+        => agent.Rank is not { } rank || PromotionRules.MayConvertToPartner(_standing, HomeOf(agent), rank);
 
     /// <summary>Mirrors DepartmentRules.MayHold; a switch the service then refuses is a dialog that fails on save.</summary>
     private static bool DepartmentOpen(Agent agent) => DepartmentRules.MayHold(agent.Rank);

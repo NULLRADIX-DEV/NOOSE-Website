@@ -257,6 +257,25 @@ public sealed class DecorationServiceTests : IDisposable
         Assert.Equal("Codename-sc-hrt", (await _service.GetCertificateAsync(hrt, Leader()))!.SignatoryName);
     }
 
+
+    [Fact]
+    public async Task A_board_recipient_gets_the_global_signatory_never_a_division_one()
+    {
+        using (var db = _ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("board-hrt", Rank.AssistantDirector, configure: a => a.Division = Division.Hrt));
+            db.SaveChanges();
+        }
+        await _service.SaveCertificateSettingsAsync(
+            new CertificateSettings("dd", "", Picks((Division.Hrt, "sc-hrt"))), Leader());
+        SeedHistory("h-board", Rank.SectionChief, Rank.AssistantDirector, "board-hrt");
+
+        var award = await _service.AwardAsync(Input("board-hrt"), Leader());
+        var certificate = await _service.GetRankCertificateAsync("h-board", Leader());
+
+        Assert.Equal("Codename-dd", Award(award).SignatoryName);
+        Assert.Equal("Codename-dd", certificate!.SignatoryName);
+    }
     [Fact]
     public async Task A_division_signatory_who_left_or_changed_division_falls_back_to_the_global_one()
     {
