@@ -340,6 +340,33 @@ public class PublicWantedService(
         return new PublicWantedOptions(photos, areas);
     }
 
+    public async Task<string> RequirePhotoUploadAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        // write right before anything that reads the row
+        Permission.RequirePublicWantedWrite(actor);
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var row = await db.OeffentlicheFahndungen
+            .AsNoTracking()
+            .Where(f => f.Id == id)
+            .Select(f => new { f.PersonId, f.Kind, f.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (row is null || !await IsRecordVisibleAsync(db, row.PersonId, actor, cancellationToken))
+        {
+            throw new InvalidOperationException(NotFound);
+        }
+        if (WantedKinds.IsItem(row.Kind))
+        {
+            throw new InvalidOperationException("Eine Fahrzeug- oder Waffen-Ausschreibung trägt kein Foto.");
+        }
+        if (row.Status == PublicWantedStatus.Gefasst)
+        {
+            throw new InvalidOperationException("Das Foto einer gefassten Ausschreibung lässt sich nicht "
+                + "tauschen — dazu zurückziehen und neu veröffentlichen.");
+        }
+        return row.PersonId;
+    }
+
     public async Task<PublicWantedEdit?> GetForPersonAsync(string personId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequirePublicWantedRecordRead(actor);

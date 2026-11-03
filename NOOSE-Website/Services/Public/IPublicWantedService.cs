@@ -54,6 +54,9 @@ public interface IPublicWantedService
     /// <summary>Photo and area choices the editor may offer for a notice; the component never reads the file itself.</summary>
     Task<PublicWantedOptions> GetOptionsAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Id of the person file a photo may be uploaded to for this notice; refuses item and captured notices.</summary>
+    Task<string> RequirePhotoUploadAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     /// <summary>Newest person notice of a file for the file page, whatever its state; null when there is none.</summary>
     /// <remarks>Item notices are excluded: they hang off the same file but say nothing about the person.</remarks>
     Task<PublicWantedEdit?> GetForPersonAsync(string personId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);

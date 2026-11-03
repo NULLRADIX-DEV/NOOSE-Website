@@ -452,6 +452,7 @@ builder.Services.AddScoped<IPublicSearchService, PublicSearchService>();
 builder.Services.AddScoped<IPublicKpiService, PublicKpiService>();
 builder.Services.AddScoped<IPublicLeadershipService, PublicLeadershipService>();
 builder.Services.AddScoped<IPublicWantedService, PublicWantedService>();
+builder.Services.AddScoped<IWantedPhotoUploadService, WantedPhotoUploadService>();
 builder.Services.AddHostedService<PublicWantedExpiryWorker>();
 builder.Services.AddScoped<IWarnhinweisService, WarnhinweisService>();
 builder.Services.AddScoped<IBountyService, BountyService>();

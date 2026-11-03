@@ -632,6 +632,8 @@ public static class ChangelogContent
             Neu("3.0.12-fahndungsposter-qr", "Das Fahndungsposter trägt jetzt einen QR-Code und eine kurze Adresse zum "
                 + "Abtippen; beide führen direkt zum Steckbrief, wo man gleich einen Hinweis geben kann. Ein altes Poster "
                 + "mit NOOSE- im Aktenzeichen führt weiter zur richtigen Ausschreibung.", "Öffentlich"),
+            Neu("3.0.13-fahndungsfoto-hochladen", "Das Foto einer Fahndung lässt sich jetzt direkt im Dialog hochladen. "
+                + "Es landet wie jedes andere in der Foto-Galerie der Akte und ist gleich ausgewählt.", "Öffentlich"),
         ]),
     ];
 }

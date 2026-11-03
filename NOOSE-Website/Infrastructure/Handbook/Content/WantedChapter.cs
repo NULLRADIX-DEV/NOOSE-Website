@@ -34,6 +34,9 @@ internal static class WantedChapter
                 <p>Die öffentliche Ausschreibung legst du direkt an der Personenakte an, im Abschnitt
                 <em>Öffentliche Fahndung</em>. Du füllst Vorwurf, Foto und Hinweise für die Bevölkerung - und
                 bleibst zunächst im <strong>Entwurf</strong>.</p>
+                <p>Das Foto wählst du aus den Fotos der Akte oder lädst im Dialog direkt ein neues hoch; es
+                landet dann ganz normal in der Foto-Galerie der Akte und ist gleich ausgewählt. Eine Fahrzeug-
+                oder Waffen-Ausschreibung trägt kein Foto.</p>
                 <p>Wer den Dienstgrad <strong>Senior Special Agent</strong> oder höher hat, veröffentlicht
                 selbst. Darunter stellst du stattdessen einen <strong>Antrag</strong>; er landet im Posteingang
                 unter <em>Freigaben</em> und wird dort entschieden.</p>
