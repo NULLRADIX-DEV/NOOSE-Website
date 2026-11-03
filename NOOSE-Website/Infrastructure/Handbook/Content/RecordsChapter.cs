@@ -14,7 +14,7 @@ internal static class RecordsChapter
             new Article("art-personenakte", "personenakte", "Die Personenakte",
                 "Die wichtigste Akte der Behörde - und wie sie aufgebaut ist.",
                 """
-                <p>Zu jeder Person, mit der die NOOSE zu tun hat, gibt es <strong>genau eine Akte</strong>.
+                <p>Zu jeder Person, mit der das FIB zu tun hat, gibt es <strong>genau eine Akte</strong>.
                 Alles, was über sie bekannt ist, läuft dort zusammen: Vernehmungen, Observationen, Fotos,
                 Fraktionszugehörigkeit, Fahndung, Kommentare.</p>
                 <p>Eine neue Akte legst du über <em>Personen → Neu</em> an. Pflicht ist nur der Name; das
@@ -60,7 +60,7 @@ internal static class RecordsChapter
                 "Woher die Nummer kommt und wozu sie gut ist.",
                 """
                 <p>Jede Akte bekommt beim Anlegen ein <strong>Aktenzeichen</strong> - eine feste,
-                menschenlesbare Nummer wie <em>NOOSE-P-2026-0001</em>. Sie besteht aus der Behörde, einem
+                menschenlesbare Nummer wie <em>FIB-P-2026-0001</em>. Sie besteht aus der Behörde, einem
                 Buchstaben für die Aktenart, dem Jahr und einer laufenden Nummer.</p>
                 <p>Das Aktenzeichen vergibt das System selbst und es ändert sich nie. Genau deshalb ist es das
                 Richtige, wenn du im Funk, in einem Bericht oder gegenüber einer Partnerbehörde eine bestimmte
@@ -80,7 +80,9 @@ internal static class RecordsChapter
                 </ul>
                 <p>Eine Einstufung zu setzen ist eine <strong>Entscheidung</strong>, keine Notiz. Jede Änderung
                 wird mit Begründung und Datum festgehalten und ist im Abschnitt <em>Einstufung</em> als
-                Verlauf nachlesbar. Die höchste Stufe darf erst ab Senior Special Agent vergeben werden.</p>
+                Verlauf nachlesbar. Die höchste Stufe darf erst ab Senior Special Agent vergeben werden. Wer
+                eine Einstufung <strong>herabsetzt</strong>, muss das begründen - mehr dazu unter
+                <em>Begründungspflicht</em>.</p>
                 <p>Die Einstufung hebt außerdem den <strong>Bedrohungs-Score</strong> auf einen festen Sockel.
                 Eine leichtfertige Einstufung färbt also die ganze Lageübersicht ein.</p>
                 """,
@@ -93,24 +95,54 @@ internal static class RecordsChapter
                 darf. Es gibt vier Stufen:</p>
                 <ul>
                 <li><strong>Offen</strong> - alle internen Agenten.</li>
-                <li><strong>Führung</strong> - erst ab Supervisory Special Agent.</li>
-                <li><strong>TRU</strong> - Konten mit dem Kennzeichen TRU, dazu die Führung.</li>
-                <li><strong>HRB</strong> - Konten mit dem Kennzeichen HRB, dazu die Führung.</li>
+                <li><strong>Führung</strong> - erst ab Special Agent in Charge.</li>
+                <li><strong>HRT</strong> - Konten der Abteilung HRT, dazu die Führung.</li>
+                <li><strong>Administration</strong> - Konten mit dem Kennzeichen Administration Division, dazu
+                die Führung.</li>
                 </ul>
                 <p>Die beiden Fach-Stufen schließen die Führung also <strong>nicht</strong> aus: wer ohnehin
-                Verschlusssachen lesen darf, sieht auch TRU- und HRB-Material. Sie grenzen nach unten ab, nicht
-                nach oben.</p>
+                Verschlusssachen lesen darf, sieht auch HRT- und Administration-Material. Sie grenzen nach unten
+                ab, nicht nach oben.</p>
                 <p>Die Stufe wirkt <strong>überall</strong>, nicht nur auf der Akte selbst: ein VS-Dokument
-                erscheint auch in der Suche nicht, taucht in keiner Liste auf und wird von NOOSEI nicht
+                erscheint auch in der Suche nicht, taucht in keiner Liste auf und wird von FIBI nicht
                 erwähnt. Für dich sieht es so aus, als gäbe es das Dokument nicht - und das ist Absicht.</p>
                 <p>Stufe hoch heißt nicht „sicherer“. Was niemand findet, hilft auch niemandem. Stufe eine
-                Sache nur ein, wenn es einen Grund gibt, den du benennen kannst.</p>
+                Sache nur ein, wenn es einen Grund gibt, den du benennen kannst. Umgekehrt gilt dasselbe: wer
+                die Verschlusssache einer Akte aufhebt oder sie für mehr Agenten öffnet, gibt einen Grund an.</p>
                 <p>Verwechsle diese vier Stufen nicht mit den <strong>Sicherheitsfreigaben</strong> der
                 Dienstverordnung - Confidential, Secret, Top Secret und das Special Access Program. Das ist eine
                 zweite, rein nach Dienstgrad gestaffelte Leiter; wie beide zusammenhängen, steht unter
                 <em>Dienstvorschrift → Sicherheitsfreigaben</em>.</p>
                 """,
                 DiagramKey: "vs-stufen"),
+
+            new Article("art-begruendungspflicht", "begruendungspflicht", "Begründungspflicht",
+                "Vier Änderungen an einer Akte gehen nur mit einem Grund.",
+                """
+                <p>Manche Änderungen sind nicht nur eine Korrektur, sondern eine <strong>Entscheidung</strong>,
+                die später jemand nachvollziehen muss. Vier davon verlangen deshalb einen Grund:</p>
+                <ul>
+                <li>eine <strong>Einstufung herabsetzen</strong>, etwa vom Verdachtsfall zum Prüffall oder
+                zurück auf <em>Unbekannt</em>,</li>
+                <li>eine <strong>Verschlusssache lockern</strong> - ganz aufheben oder für mehr Agenten öffnen,
+                zum Beispiel von <em>Führung</em> auf <em>HRT</em>,</li>
+                <li>eine <strong>Akte löschen</strong> - Person, Fraktion, Personengruppe, Partei, Vorgang,
+                Operation oder Taskforce,</li>
+                <li>eine <strong>Fahndung aufheben</strong>, die an der Personenakte ausgeschrieben ist.</li>
+                </ul>
+                <p>Die Seite fragt dich dann in einem Fenster nach dem Grund. Ohne Grund wird nichts geändert.
+                Bei der Einstufung schreibst du ihn wie gewohnt in das Feld <em>Begründung</em>.</p>
+                <p>Der Grund steht danach als eigene Zeile <em>Begründung</em> im <strong>Zeitstrahl</strong>
+                der Akte und im Änderungsprotokoll unter <em>Nachweis</em>, direkt neben der Änderung, die er
+                erklärt. Partnerbehörden sehen den Grund nicht, auch nicht im Verlauf der Einstufung.</p>
+                <p>Eine Akte enger stellen, höher einstufen oder zur Fahndung ausschreiben braucht keinen
+                eigenen Grund. Eine öffentliche Ausschreibung zurückzuziehen verlangt ohnehin einen Grund.</p>
+                """,
+                """
+                <p>Die Dienstaufsicht fragt bei einer Herabstufung nicht „was“, sondern „warum“. Schreib den Grund
+                so, dass ihn jemand versteht, der die Akte nicht kennt: „Hinweise haben sich nicht bestätigt,
+                siehe Dok vom 12.10.“ hilft, „erledigt“ hilft niemandem.</p>
+                """),
 
             new Article("art-fraktionen", "fraktionen", "Fraktionen",
                 "Die Akte einer organisierten Gruppe: Mitglieder, Ränge, Bestände, Beziehungen.",
@@ -228,9 +260,20 @@ internal static class RecordsChapter
                 zuständig ist.</p>
                 <p>Wird sie fällig, bekommt der Zuständige eine Benachrichtigung - und die Wiedervorlage steht
                 auf seinem Lagezentrum, bis sie erledigt ist. Sie verschwindet nicht von selbst.</p>
+                <p>Alle Wiedervorlagen, für die du zuständig bist, stehen unter <em>Meine Wiedervorlagen</em> im
+                Bereich <em>Mein Dienst</em>, sortiert nach <strong>überfällig</strong>, <strong>heute</strong>,
+                <strong>diese Woche</strong> (bis Sonntag) und <strong>später</strong>. Dort verschiebst du eine mit
+                einem Klick um <em>+1 Tag</em> oder <em>+1 Woche</em> oder hakst sie mit <em>Erledigt</em> ab, ohne
+                die Akte zu öffnen. Ist sie schon überfällig, zählt das Verschieben ab heute: <em>+1 Tag</em> heißt
+                dann morgen.</p>
+                <p>Hängt eine deiner Wiedervorlagen an einer Akte, die du nicht sehen darfst, zählt die Seite sie
+                nur mit, ohne Akte und ohne Notiz. Die Führung kann sie auf jemand anderen umhängen.</p>
+                <p>Bleibt eine Wiedervorlage sieben Tage überfällig, erfährt die Führung davon, einmal je
+                Fälligkeitsdatum. Verschiebst du sie, beginnt die Frist neu.</p>
                 <p>Nutze sie großzügig. Eine Akte, die auf etwas wartet, ohne dass jemand daran erinnert wird,
                 wartet für immer.</p>
-                """),
+                """,
+                NavKey: "wiedervorlagen"),
 
             new Article("art-watchlist", "beobachtete-akten", "Beobachtete Akten",
                 "Einer Akte folgen und gesagt bekommen, wenn sich etwas ändert.",
@@ -324,7 +367,8 @@ internal static class RecordsChapter
                 """
                 <p>Wenn du eine Akte löschst, wird sie nicht vernichtet. Sie wandert in den
                 <strong>Papierkorb</strong> und verschwindet nur aus Listen, Suche und Verknüpfungen. Der
-                Inhalt bleibt erhalten.</p>
+                Inhalt bleibt erhalten. Beim Löschen fragt die Seite nach einem <strong>Grund</strong>; er
+                steht danach im Zeitstrahl der Akte.</p>
                 <p>Unter <em>Papierkorb</em> liegen die gelöschten Einträge <strong>aller</strong> Aktenarten
                 an einer Stelle, nach Art gruppiert. Ein Klick auf <em>Wiederherstellen</em> holt eine Akte
                 zurück, als wäre nichts gewesen.</p>

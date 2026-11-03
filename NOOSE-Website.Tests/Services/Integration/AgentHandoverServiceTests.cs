@@ -62,8 +62,8 @@ public sealed class AgentHandoverServiceTests
             DueAt = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc), ResponsibleAgentId = Gone,
         });
 
-        db.Jobs.Add(new Job { Id = "j-open", CaseNumber = "NOOSE-A-2026-0001", Title = "Hafen überwachen" });
-        db.Jobs.Add(new Job { Id = "j-done", CaseNumber = "NOOSE-A-2026-0002", Title = "Erledigt", Status = JobStatus.Done });
+        db.Jobs.Add(new Job { Id = "j-open", CaseNumber = "FIB-A-2026-0001", Title = "Hafen überwachen" });
+        db.Jobs.Add(new Job { Id = "j-done", CaseNumber = "FIB-A-2026-0002", Title = "Erledigt", Status = JobStatus.Done });
         db.JobAssignments.Add(new JobAssignment { JobId = "j-open", AgentId = Gone });
         db.JobAssignments.Add(new JobAssignment { JobId = "j-done", AgentId = Gone });
 
@@ -74,33 +74,33 @@ public sealed class AgentHandoverServiceTests
 
         db.Operations.Add(new Operation
         {
-            Id = "o-run", CaseNumber = "NOOSE-O-2026-0001", Title = "Nachtschicht", Status = OperationStatus.Running,
+            Id = "o-run", CaseNumber = "FIB-O-2026-0001", Title = "Nachtschicht", Status = OperationStatus.Running,
         });
         db.Operations.Add(new Operation
         {
-            Id = "o-done", CaseNumber = "NOOSE-O-2026-0002", Title = "Vorbei", Status = OperationStatus.Completed,
+            Id = "o-done", CaseNumber = "FIB-O-2026-0002", Title = "Vorbei", Status = OperationStatus.Completed,
         });
         db.OperationAgents.Add(new OperationAgent { OperationId = "o-run", AgentId = Gone, IsInvestigationLead = true });
         db.OperationAgents.Add(new OperationAgent { OperationId = "o-done", AgentId = Gone });
 
         db.Taskforces.Add(new Taskforce
         {
-            Id = "t-ok", CaseNumber = "NOOSE-T-2026-0001", Name = "TF Hafen", Status = TaskforceStatus.Approved,
+            Id = "t-ok", CaseNumber = "FIB-T-2026-0001", Name = "TF Hafen", Status = TaskforceStatus.Approved,
         });
         db.Taskforces.Add(new Taskforce
         {
-            Id = "t-res", CaseNumber = "NOOSE-T-2026-0002", Name = "TF Alt", Status = TaskforceStatus.Resolved,
+            Id = "t-res", CaseNumber = "FIB-T-2026-0002", Name = "TF Alt", Status = TaskforceStatus.Resolved,
         });
         db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "t-ok", AgentId = Gone, Role = TaskforceRole.CidLead });
         db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "t-res", AgentId = Gone });
 
         db.Informants.Add(new Informant
         {
-            Id = "i-act", CaseNumber = "NOOSE-I-2026-0001", RealName = "Tony Spitzel", HandlerId = Gone,
+            Id = "i-act", CaseNumber = "FIB-I-2026-0001", RealName = "Tony Spitzel", HandlerId = Gone,
         });
         db.Informants.Add(new Informant
         {
-            Id = "i-burn", CaseNumber = "NOOSE-I-2026-0002", RealName = "Verbrannt", HandlerId = Gone,
+            Id = "i-burn", CaseNumber = "FIB-I-2026-0002", RealName = "Verbrannt", HandlerId = Gone,
             Status = InformantStatus.Burned,
         });
 
@@ -108,34 +108,34 @@ public sealed class AgentHandoverServiceTests
         db.Factions.Add(Seed.Faction("fa-arch", "Vagos", f => f.IsArchived = true));
         db.FactionAgents.Add(new FactionAgent { FactionId = "fa", AgentId = Gone });
         db.FactionAgents.Add(new FactionAgent { FactionId = "fa-arch", AgentId = Gone });
-        db.PersonGroups.Add(new PersonGroup { Id = "g", CaseNumber = "NOOSE-G-2026-0001", Name = "Hafenbande" });
+        db.PersonGroups.Add(new PersonGroup { Id = "g", CaseNumber = "FIB-G-2026-0001", Name = "Hafenbande" });
         db.PersonGroupAgents.Add(new PersonGroupAgent { PersonGroupId = "g", AgentId = Gone, IsInvestigationLead = true });
-        db.Parties.Add(new Party { Id = "p", CaseNumber = "NOOSE-PA-2026-0001", Name = "Hafenpartei" });
+        db.Parties.Add(new Party { Id = "p", CaseNumber = "FIB-PA-2026-0001", Name = "Hafenpartei" });
         db.PartyAgents.Add(new PartyAgent { PartyId = "p", AgentId = Gone });
 
         db.FinancingRequests.Add(new FinancingRequest
         {
-            Id = "fr-req", CaseNumber = "NOOSE-FI-2026-0001", AgentId = Gone, Justification = "Funkgerät",
+            Id = "fr-req", CaseNumber = "FIB-FI-2026-0001", AgentId = Gone, Justification = "Funkgerät",
         });
         db.FinancingRequests.Add(new FinancingRequest
         {
-            Id = "fr-app", CaseNumber = "NOOSE-FI-2026-0002", AgentId = Gone, Justification = "Weste",
+            Id = "fr-app", CaseNumber = "FIB-FI-2026-0002", AgentId = Gone, Justification = "Weste",
             Status = FinancingStatus.Approved, ApprovedSubsidy = 500m, BudgetYear = 2026, BudgetMonth = 10,
             Lines = [new FinancingRequestLine { ItemName = "Weste", UnitPrice = 1000m, SubsidyPercent = 50, Quantity = 1, ApprovedQuantity = 1 }],
         });
         db.FinancingRequests.Add(new FinancingRequest
         {
-            Id = "fr-paid", CaseNumber = "NOOSE-FI-2026-0003", AgentId = Gone, Justification = "Alt",
+            Id = "fr-paid", CaseNumber = "FIB-FI-2026-0003", AgentId = Gone, Justification = "Alt",
             Status = FinancingStatus.Paid,
         });
 
         db.Appointments.Add(new Appointment
         {
-            Id = "ap-next", CaseNumber = "NOOSE-T-2026-0101", Title = "Lagebesprechung", Start = DateTime.UtcNow.AddDays(3),
+            Id = "ap-next", CaseNumber = "FIB-T-2026-0101", Title = "Lagebesprechung", Start = DateTime.UtcNow.AddDays(3),
         });
         db.Appointments.Add(new Appointment
         {
-            Id = "ap-past", CaseNumber = "NOOSE-T-2026-0102", Title = "Gestern", Start = DateTime.UtcNow.AddDays(-3),
+            Id = "ap-past", CaseNumber = "FIB-T-2026-0102", Title = "Gestern", Start = DateTime.UtcNow.AddDays(-3),
         });
         db.AppointmentAssignments.Add(new AppointmentAssignment { AppointmentId = "ap-next", AgentId = Gone });
         db.AppointmentAssignments.Add(new AppointmentAssignment { AppointmentId = "ap-past", AgentId = Gone });

@@ -267,7 +267,7 @@ public sealed class NooseiChatService(
         if (!answer.Charge.Persisted)
         {
             // quota was spent but left no row: it is missing from the week, the log and the anomaly rules
-            logger.LogWarning("NOOSEI-Antwort für {Agent} wurde nicht protokolliert ({Tokens} Kontingent-Token)",
+            logger.LogWarning("FIBI-Antwort für {Agent} wurde nicht protokolliert ({Tokens} Kontingent-Token)",
                 agentId, answer.Charge.QuotaTokens);
         }
 
@@ -276,7 +276,7 @@ public sealed class NooseiChatService(
         if (unsupported.Count > 0)
         {
             // measurable rather than merely forbidden: the prompt asks for citations, this counts the ones it invents
-            logger.LogInformation("NOOSEI-Antwort nennt {Count} unbelegte Aktenzeichen ({Numbers})",
+            logger.LogInformation("FIBI-Antwort nennt {Count} unbelegte Aktenzeichen ({Numbers})",
                 unsupported.Count, string.Join(", ", unsupported));
         }
 
@@ -362,7 +362,7 @@ public sealed class NooseiChatService(
         // reported after the call, because only the result knows which record was actually reached
         if (Touched(result.Refs) is { } record)
         {
-            progress?.Report($"NOOSEI hat {record} gelesen.");
+            progress?.Report($"FIBI hat {record} gelesen.");
         }
         if (proposing)
         {
@@ -653,7 +653,7 @@ public sealed class NooseiChatService(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "NOOSEI-Zusatzhinweis konnte nicht gelesen werden.");
+            logger.LogWarning(ex, "FIBI-Zusatzhinweis konnte nicht gelesen werden.");
             return null;
         }
     }
@@ -687,7 +687,7 @@ public sealed class NooseiChatService(
     }
 
     private static string OwnerId(ClaimsPrincipal actor)
-        => actor.GetAgentId() ?? throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+        => actor.GetAgentId() ?? throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
 
     /// <summary>Fingerprint of everything that decides what a tool may return for this agent.</summary>
     private static string ScopeStamp(ViewerScope scope)

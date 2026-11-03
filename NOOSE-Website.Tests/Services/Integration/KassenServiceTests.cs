@@ -18,7 +18,7 @@ public sealed class KassenServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Senior()
         => ClaimsPrincipalBuilder.Agent("senior").WithRank(Rank.SeniorSpecialAgent).Build();
@@ -31,7 +31,7 @@ public sealed class KassenServiceTests
         var caseNo = Substitute.For<ICaseNumberService>();
         var seq = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), "KAS", Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-KAS-2026-{++seq:0000}");
+            .Returns(_ => $"FIB-KAS-2026-{++seq:0000}");
         return new KassenService(ctx.Factory, caseNo);
     }
 
@@ -114,7 +114,7 @@ public sealed class KassenServiceTests
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);
         var created = await svc.BookAsync(Input(KassenKonto.Schwarzgeld, KassenBuchungArt.Einzahlung, 5, T0), Leader());
-        Assert.Equal("NOOSE-KAS-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-KAS-2026-0001", created.CaseNumber);
     }
 
     [Fact]
@@ -139,12 +139,12 @@ public sealed class KassenServiceTests
         {
             db.KassenBuchungen.Add(new KassenBuchung
             {
-                Id = "del", CaseNumber = "NOOSE-KAS-2026-9001", Account = KassenKonto.Schwarzgeld,
+                Id = "del", CaseNumber = "FIB-KAS-2026-9001", Account = KassenKonto.Schwarzgeld,
                 Kind = KassenBuchungArt.Einzahlung, Amount = 100, Timestamp = T0, IsDeleted = true, DeletedAt = T0,
             });
             db.KassenBuchungen.Add(new KassenBuchung
             {
-                Id = "live", CaseNumber = "NOOSE-KAS-2026-9002", Account = KassenKonto.Schwarzgeld,
+                Id = "live", CaseNumber = "FIB-KAS-2026-9002", Account = KassenKonto.Schwarzgeld,
                 Kind = KassenBuchungArt.Einzahlung, Amount = 40, Timestamp = T0,
             });
             db.SaveChanges();

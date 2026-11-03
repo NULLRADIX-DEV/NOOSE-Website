@@ -49,7 +49,7 @@ public sealed class PublicWantedItemNoticeTests
 
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{Guid.NewGuid().ToString()[..4]}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{Guid.NewGuid().ToString()[..4]}");
 
         var discord = Substitute.For<IDiscordWebhookService>();
         var service = new PublicWantedService(factory, modules, caseNumbers,
@@ -72,7 +72,7 @@ public sealed class PublicWantedItemNoticeTests
 
         db.People.Add(Seed.Person(PersonId, "Max Mustermann", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0001";
+            p.CaseNumber = "FIB-P-2026-0001";
             p.WantedReason = "Verdacht auf Waffenhandel";
             p.ThreatScore = 80;
         }));

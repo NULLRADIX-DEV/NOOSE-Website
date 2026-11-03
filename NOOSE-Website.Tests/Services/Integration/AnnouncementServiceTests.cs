@@ -15,7 +15,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="AnnouncementService"/> over in-memory SQLite.</summary>
 public sealed class AnnouncementServiceTests
 {
-    private const string CaseNo = "NOOSE-N-2026-0001";
+    private const string CaseNo = "FIB-N-2026-0001";
     private static readonly DateTime T0 = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
     private static (AnnouncementService Svc, INotificationService Notifications,
@@ -32,19 +32,19 @@ public sealed class AnnouncementServiceTests
         return (svc, notifications, broadcaster, reported);
     }
 
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership().
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership().
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, not admin.
     private static ClaimsPrincipal Junior(string id = "me")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static Announcement Ann(string title = "Titel", Action<Announcement>? configure = null)
     {
         var a = new Announcement
         {
-            CaseNumber = "NOOSE-N-2026-" + System.Guid.NewGuid().ToString("N").Substring(0, 8),
+            CaseNumber = "FIB-N-2026-" + System.Guid.NewGuid().ToString("N").Substring(0, 8),
             Title = title,
             Content = string.Empty,
             Audience = AnnouncementAudience.AllActive,
@@ -140,7 +140,7 @@ public sealed class AnnouncementServiceTests
         using (var db = ctx.NewContext())
         {
             db.Users.Add(Seed.Agent("lead", Rank.Director, AgentStatus.Active));
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee, AgentStatus.Active));
             db.Users.Add(Seed.Agent("a2", Rank.SpecialAgent, AgentStatus.Active));
             db.SaveChanges();
         }
@@ -174,7 +174,7 @@ public sealed class AnnouncementServiceTests
 
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee, AgentStatus.Active));
             db.Users.Add(Seed.Agent("a2", Rank.SpecialAgent, AgentStatus.Active));
             db.SaveChanges();
         }
@@ -390,7 +390,7 @@ public sealed class AnnouncementServiceTests
         var a = Ann("Ack me", x => x.AcknowledgmentRequired = true);
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee, AgentStatus.Active));
             db.Announcements.Add(a);
             db.AnnouncementAcknowledgments.Add(Ack(a.Id, "me"));
             db.SaveChanges();
@@ -414,7 +414,7 @@ public sealed class AnnouncementServiceTests
         var a = Ann("Ack me", x => x.AcknowledgmentRequired = true);
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee, AgentStatus.Active));
             db.Announcements.Add(a);
             db.AnnouncementAcknowledgments.Add(Ack(a.Id, "me", when));
             db.SaveChanges();
@@ -462,7 +462,7 @@ public sealed class AnnouncementServiceTests
         var notRequired = Ann("NotRequired", x => x.AcknowledgmentRequired = false);
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee, AgentStatus.Active));
             db.Announcements.AddRange(required, acked, notRequired);
             db.AnnouncementAcknowledgments.Add(Ack(required.Id, "me"));               // open + required => counts
             db.AnnouncementAcknowledgments.Add(Ack(acked.Id, "me", T0.AddDays(1)));   // already acknowledged => no
@@ -511,6 +511,26 @@ public sealed class AnnouncementServiceTests
     }
 
     [Fact]
+    public async Task GetBoardAsync_NamesTheUnitAudiencesLikeThePickers()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _) = Build(ctx);
+
+        var hrt = Ann("Hrt", x => x.Audience = AnnouncementAudience.TruUnit);
+        var administration = Ann("Administration", x => x.Audience = AnnouncementAudience.HrbUnit);
+        using (var db = ctx.NewContext())
+        {
+            db.Announcements.AddRange(hrt, administration);
+            db.SaveChanges();
+        }
+
+        var rows = await svc.GetBoardAsync(Leader());
+
+        Assert.Equal("HRT", rows.Single(r => r.Id == hrt.Id).TargetDisplay);
+        Assert.Equal("Administration Division", rows.Single(r => r.Id == administration.Id).TargetDisplay);
+    }
+
+    [Fact]
     public async Task GetBoardAsync_Leadership_SeesAll_ImportantThenNewest()
     {
         using var ctx = new SqliteTestContext();
@@ -541,7 +561,7 @@ public sealed class AnnouncementServiceTests
         var a = Ann("Ack board", x => { x.AcknowledgmentRequired = true; x.CreatedById = "lead"; });
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee, AgentStatus.Active));
             db.Users.Add(Seed.Agent("a2", Rank.SpecialAgent, AgentStatus.Active));
             db.Announcements.Add(a);
             db.AnnouncementAcknowledgments.Add(Ack(a.Id, "me"));                  // open
@@ -570,7 +590,7 @@ public sealed class AnnouncementServiceTests
         var a = Ann("Detail", x => { x.AcknowledgmentRequired = true; x.CreatedById = "lead"; });
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("me", Rank.JuniorAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("me", Rank.Trainee, AgentStatus.Active));
             db.Users.Add(Seed.Agent("a2", Rank.SpecialAgent, AgentStatus.Active));
             db.Announcements.Add(a);
             db.AnnouncementAcknowledgments.Add(Ack(a.Id, "me"));                  // open

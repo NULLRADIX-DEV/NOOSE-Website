@@ -5,7 +5,7 @@
 @inject ISystemSettingService SettingService
 @inject IAccessLogService AccessLog
 
-<PageTitle>@(_view is null ? "Urkunde" : $"{(_view.Kind == CertificateKind.Appointment ? "Ernennungsurkunde" : "Beförderungsurkunde")} · {_view.Codename}") · NOOSE</PageTitle>
+<PageTitle>@(_view is null ? "Urkunde" : $"{(_view.Kind == CertificateKind.Appointment ? "Ernennungsurkunde" : "Beförderungsurkunde")} · {_view.Codename}") · FIB</PageTitle>
 
 <CertificatePage View="_view" Loading="_load" LogoSrc="@_logo"
                  BackHref="@(_view is null ? "/personal" : $"/personal/{_view.AgentId}?tab=verlauf")" />
@@ -16,7 +16,7 @@
 
     private bool _load = true;
     private CertificateView? _view;
-    private string _logo = "NooseIcon.png";
+    private string _logo = "FibIcon.png";
     private string? _loadedId;
 
     protected override async Task OnParametersSetAsync()

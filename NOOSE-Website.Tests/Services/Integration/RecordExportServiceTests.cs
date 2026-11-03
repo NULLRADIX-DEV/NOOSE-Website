@@ -13,7 +13,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class RecordExportServiceTests
 {
     private static readonly ClaimsPrincipal Leader =
-        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SupervisorySpecialAgent).WithCodename("Hawk");
+        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).WithCodename("Hawk");
 
     private static readonly ClaimsPrincipal Supervision =
         ClaimsPrincipalBuilder.Agent("sup").WithRank(Rank.SpecialAgent).AsTeamLead().WithCodename("Owl");
@@ -123,9 +123,9 @@ public sealed class RecordExportServiceTests
 
         Assert.NotNull(file);
         Assert.Equal("text/markdown; charset=utf-8", file!.ContentType);
-        Assert.StartsWith("dossier-max-mustermann-noose-p-", file.FileName);
+        Assert.StartsWith("dossier-max-mustermann-fib-p-", file.FileName);
         var text = Encoding.UTF8.GetString(file.Content);
-        Assert.StartsWith("# Max Mustermann (NOOSE-P-", text);
+        Assert.StartsWith("# Max Mustermann (FIB-P-", text);
         Assert.Contains("> Exportiert von Hawk am ", text);
         Assert.Contains("- **Name:** Max Mustermann", text);
     }

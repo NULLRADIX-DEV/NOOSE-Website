@@ -94,8 +94,14 @@ public partial class DemoDataService(
 
     private async Task<int> EnsureDemoAgentAsync()
     {
-        if (await userManager.FindByIdAsync(DemoIdentity.AgentId) is not null)
+        if (await userManager.FindByIdAsync(DemoIdentity.AgentId) is { } existing)
         {
+            // a row from before the divisions: Board by rank, home CID, never TRU
+            if (existing.Division is null || existing.IsTRU)
+            {
+                DivisionRules.Apply(existing, Division.Cid);
+                await userManager.UpdateAsync(existing);
+            }
             return 0;
         }
         var agent = new Agent
@@ -106,7 +112,8 @@ public partial class DemoDataService(
             DiscordId = "demo",
             Status = AgentStatus.Active,
             Rank = Rank.Director,
-            IsTRU = true,
+            Division = Division.Cid,
+            IsTRU = false,
             IsHRB = true,
             RegisteredAt = DateTime.UtcNow,
         };

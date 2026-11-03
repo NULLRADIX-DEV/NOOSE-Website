@@ -83,15 +83,16 @@ else
 
 <MudText Typo="Typo.h6" Class="mt-8 mb-2">Urkunden</MudText>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-    Wer Urkunden für die Behördenleitung unterschreibt und welcher Ort neben dem Datum steht. Eine Ehrungs-Urkunde
-    behält die Unterschrift vom Tag der Verleihung; Ernennungs- und Beförderungsurkunden tragen die heutige.
+    Wer Urkunden unterschreibt und welcher Ort neben dem Datum steht. Jede Abteilung kann einen eigenen Unterzeichner
+    haben; ohne Eintrag unterschreibt die Behördenleitung. Eine Ehrungs-Urkunde behält die Unterschrift vom Tag der
+    Verleihung; Ernennungs- und Beförderungsurkunden tragen die heutige.
 </MudText>
 @if (!_load)
 {
     <MudStack Spacing="2" Style="max-width:560px;">
         <MudSelect T="string" @bind-Value="_signatoryId" Label="Unterschrift der Behördenleitung" Variant="Variant.Outlined"
                    Clearable="true" Disabled="@(!_mayWrite)" Placeholder="Keine – „Die Behördenleitung“"
-                   HelperText="Aktive Agenten ab Deputy Director.">
+                   HelperText="Aktive Agenten ab Assistant Director sowie Admins.">
             @foreach (var s in _signatories)
             {
                 <MudSelectItem T="string" Value="@s.Id">
@@ -99,6 +100,21 @@ else
                 </MudSelectItem>
             }
         </MudSelect>
+        @foreach (var division in DivisionDisplay.All)
+        {
+            var picked = division;
+            <MudSelect T="string" Value="DivisionSignatory(picked)" ValueChanged="@(v => _divisionSignatoryIds[picked] = v)"
+                       Label="@($"Unterschrift {DivisionDisplay.Short(picked)}")" Variant="Variant.Outlined"
+                       Clearable="true" Disabled="@(!_mayWrite)" Placeholder="Wie die Behördenleitung"
+                       HelperText="Ab Assistant Director, Admins und der Section Chief dieser Abteilung.">
+                @foreach (var s in _divisionSignatories.GetValueOrDefault(picked) ?? [])
+                {
+                    <MudSelectItem T="string" Value="@s.Id">
+                        @s.Codename (@RankDisplay.Name(s.Rank))@(s.Eligible ? "" : " – unterschreibt nicht mehr")
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        }
         <MudTextField @bind-Value="_place" Label="Ort" Variant="Variant.Outlined" Disabled="@(!_mayWrite)"
                       MaxLength="@DecorationRules.MaxPlaceLength" Placeholder="@DecorationRules.DefaultPlace" />
         @if (_mayWrite)
@@ -121,6 +137,8 @@ else
     private IReadOnlyList<DecorationView> _catalog = [];
     private IReadOnlyList<SignatoryOption> _signatories = [];
     private string? _signatoryId;
+    private readonly Dictionary<Division, IReadOnlyList<SignatoryOption>> _divisionSignatories = new();
+    private readonly Dictionary<Division, string?> _divisionSignatoryIds = new();
     private string? _place;
 
     protected override async Task OnInitializedAsync()
@@ -139,6 +157,11 @@ else
             _signatories = await Decorations.GetSignatoryOptionsAsync(_user);
             var settings = await Decorations.GetCertificateSettingsAsync();
             _signatoryId = settings.SignatoryId;
+            foreach (var division in DivisionDisplay.All)
+            {
+                _divisionSignatories[division] = await Decorations.GetSignatoryOptionsAsync(_user, division);
+                _divisionSignatoryIds[division] = settings.DivisionSignatoryId(division);
+            }
             _place = settings.Place == DecorationRules.DefaultPlace ? null : settings.Place;
         }
         catch (Exception ex)
@@ -206,13 +229,20 @@ else
         }
     }
 
+    private string? DivisionSignatory(Division division) => _divisionSignatoryIds.GetValueOrDefault(division);
+
+    private Dictionary<Division, string> DivisionPicks()
+        => _divisionSignatoryIds
+            .Where(p => !string.IsNullOrWhiteSpace(p.Value))
+            .ToDictionary(p => p.Key, p => p.Value!);
+
     private async Task SaveSettingsAsync()
     {
         _saving = true;
         try
         {
             await Decorations.SaveCertificateSettingsAsync(
-                new CertificateSettings(_signatoryId, _place ?? string.Empty), _user);
+                new CertificateSettings(_signatoryId, _place ?? string.Empty, DivisionPicks()), _user);
             Snackbar.Add("Urkunden-Einstellungen gespeichert.", Severity.Success);
             await LoadAsync();
         }

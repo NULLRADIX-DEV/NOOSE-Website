@@ -36,7 +36,7 @@ public sealed class LinkPreviewTextTests
     [Fact]
     public void A_text_within_the_budget_is_left_alone()
     {
-        const string plain = "Amtliche Verlautbarungen des National Office of Security Enforcement.";
+        const string plain = "Amtliche Verlautbarungen des Federal Investigation Bureau.";
 
         Assert.Equal(plain, LinkPreviewText.Clip(plain));
     }
@@ -97,10 +97,10 @@ public sealed class LinkPreviewTextTests
     // --- the address ------------------------------------------------------
 
     [Theory]
-    [InlineData("https://noose.info/gesucht", "https://noose.info/gesucht")]
-    [InlineData("https://noose.info/gesucht?art=Person", "https://noose.info/gesucht")]
-    [InlineData("https://noose.info/faq#anker", "https://noose.info/faq")]
-    [InlineData("https://noose.info/info/faq?frage=a#a", "https://noose.info/info/faq")]
+    [InlineData("https://fibhq.com/gesucht", "https://fibhq.com/gesucht")]
+    [InlineData("https://fibhq.com/gesucht?art=Person", "https://fibhq.com/gesucht")]
+    [InlineData("https://fibhq.com/faq#anker", "https://fibhq.com/faq")]
+    [InlineData("https://fibhq.com/info/faq?frage=a#a", "https://fibhq.com/info/faq")]
     public void The_canonical_address_drops_query_and_fragment(string uri, string expected)
         => Assert.Equal(expected, LinkPreviewText.Canonical(uri));
 

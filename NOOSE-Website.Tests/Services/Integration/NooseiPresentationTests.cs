@@ -178,7 +178,7 @@ public sealed class NooseiPresentationTests
         SeedDecks(ctx);
         var expected = new Dictionary<string, string>
         {
-            ["tru"] = "Nur TRU",
+            ["tru"] = "Nur HRT",
             ["tf"] = "Taskforce Kobra",
             ["priv"] = "Privat",
             ["rank"] = $"Ab {RankDisplay.Name(Rank.SpecialAgent)}",

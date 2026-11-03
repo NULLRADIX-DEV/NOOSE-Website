@@ -152,23 +152,26 @@ public class DecorationService(
     }
 
     public async Task<IReadOnlyList<SignatoryOption>> GetSignatoryOptionsAsync(ClaimsPrincipal actor,
-        CancellationToken cancellationToken = default)
+        Division? division = null, CancellationToken cancellationToken = default)
     {
         if (!actor.IsInternalAgent())
         {
             return [];
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var options = (await db.Users.AsNoTracking().OnlySelectable()
-                .Where(u => u.Rank != null && u.Rank >= DecorationRules.SignatoryFloor)
-                .Select(u => new { u.Id, u.Codename, u.Rank })
-                .ToListAsync(cancellationToken))
+        // few rows, home resolved in memory
+        var candidates = await db.Users.AsNoTracking().OnlySelectable()
+            .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SectionChief))
+            .ToListAsync(cancellationToken);
+        var options = candidates
+            .Where(u => DecorationRules.MaySign(u, division))
             .OrderByDescending(u => u.Rank).ThenBy(u => u.Codename, StringComparer.CurrentCulture)
             .Select(u => new SignatoryOption(u.Id, u.Codename, u.Rank, Eligible: true))
             .ToList();
 
         // a stored signatory who no longer qualifies stays visible, or saving would drop them unseen
-        var stored = (await ReadSettingsAsync(db, cancellationToken)).SignatoryId;
+        var settings = await ReadSettingsAsync(db, cancellationToken);
+        var stored = division is { } d ? settings.DivisionSignatoryId(d) : settings.SignatoryId;
         if (stored is not null && options.All(o => o.Id != stored)
             && await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == stored, cancellationToken) is { } gone)
         {
@@ -198,10 +201,29 @@ public class DecorationService(
             var agent = await db.Users.FirstOrDefaultAsync(u => u.Id == signatoryId, cancellationToken);
             if (agent is null || !DecorationRules.MaySign(agent))
             {
-                throw new InvalidOperationException("Unterschreiben kann nur ein aktiver Agent ab Deputy Director.");
+                throw new InvalidOperationException("Unterschreiben kann hier nur ein aktiver Agent ab Assistant Director oder ein Admin.");
+            }
+        }
+        var divisionPicks = new Dictionary<Division, string?>();
+        foreach (var division in DivisionDisplay.All)
+        {
+            var pick = (input.DivisionSignatoryIds is not null && input.DivisionSignatoryIds.TryGetValue(division, out var picked) ? picked : null).TrimToNull();
+            divisionPicks[division] = pick;
+            if (pick is not null && pick != current.DivisionSignatoryId(division))
+            {
+                var agent = await db.Users.FirstOrDefaultAsync(u => u.Id == pick, cancellationToken);
+                if (agent is null || !DecorationRules.MaySign(agent, division))
+                {
+                    throw new InvalidOperationException(
+                        $"Für {DivisionDisplay.WithArticle(division)} unterschreibt nur ein aktiver Agent ab Assistant Director, ein Admin oder ein Section Chief dieser Abteilung.");
+                }
             }
         }
         await SetAsync(db, SystemSettingKeys.CertificateSignatoryId, signatoryId, cancellationToken);
+        foreach (var (division, pick) in divisionPicks)
+        {
+            await SetAsync(db, DecorationRules.SignatoryKey(division), pick, cancellationToken);
+        }
         await SetAsync(db, SystemSettingKeys.CertificatePlace,
             place.Length == 0 || place == DecorationRules.DefaultPlace ? null : place, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
@@ -227,7 +249,7 @@ public class DecorationService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // the picker offers selectable agents only; a raw id off the wire must not get past that
         var agent = await db.Users.OnlySelectable().FirstOrDefaultAsync(u => u.Id == input.AgentId, cancellationToken)
-            ?? throw new InvalidOperationException("Ehrenzeichen gehen nur an aktive Agenten der NOOSE.");
+            ?? throw new InvalidOperationException("Ehrenzeichen gehen nur an aktive Agenten des FIB.");
         // again on the resolved row: MariaDB matches ids case-insensitively
         if (string.Equals(agent.Id, actorId, StringComparison.OrdinalIgnoreCase))
         {
@@ -236,7 +258,8 @@ public class DecorationService(
         var decoration = await db.Decorations
             .FirstOrDefaultAsync(d => d.Id == input.DecorationId && d.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("Dieses Ehrenzeichen kann nicht (mehr) verliehen werden.");
-        var signatory = await SignatoryAsync(db, cancellationToken);
+        // follows the recipient division, the Board gets the global one
+        var signatory = await SignatoryAsync(db, DecorationRules.SignatoryDivision(agent), cancellationToken);
 
         var award = new DecorationAward
         {
@@ -532,8 +555,8 @@ public class DecorationService(
         {
             return null;
         }
-        // nothing was stored with old history rows, so these carry today's office head
-        var signatory = await SignatoryAsync(db, cancellationToken);
+        // history rows store no signatory
+        var signatory = await SignatoryAsync(db, DecorationRules.SignatoryDivision(agent), cancellationToken);
         var settings = await ReadSettingsAsync(db, cancellationToken);
         var day = DateTime.SpecifyKind(row.Timestamp, DateTimeKind.Utc).ToLocalTime().Date;
         return new CertificateView(kind, agent.Id, Codename(agent),
@@ -577,26 +600,51 @@ public class DecorationService(
     private static string Codename(Agent agent)
         => string.IsNullOrWhiteSpace(agent.Codename) ? "Unbenannter Agent" : agent.Codename;
 
-    /// <summary>The configured signatory while still eligible; otherwise none.</summary>
-    private static async Task<Agent?> SignatoryAsync(AppDbContext db, CancellationToken cancellationToken)
+    /// <summary>The signatory of a division while still eligible, else the global one; otherwise none.</summary>
+    private static async Task<Agent?> SignatoryAsync(AppDbContext db, Division? division, CancellationToken cancellationToken)
     {
-        var id = (await ReadSettingsAsync(db, cancellationToken)).SignatoryId;
-        if (id is null)
+        var settings = await ReadSettingsAsync(db, cancellationToken);
+        var ids = new List<string>(2);
+        if (division is { } d && settings.DivisionSignatoryId(d) is { } own)
         {
-            return null;
+            ids.Add(own);
         }
-        var agent = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
-        return agent is not null && DecorationRules.MaySign(agent) ? agent : null;
+        if (settings.SignatoryId is { } global)
+        {
+            ids.Add(global);
+        }
+        foreach (var id in ids)
+        {
+            var agent = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
+            if (agent is not null && DecorationRules.MaySign(agent, division))
+            {
+                return agent;
+            }
+        }
+        return null;
     }
 
     private static async Task<CertificateSettings> ReadSettingsAsync(AppDbContext db, CancellationToken cancellationToken)
     {
-        var keys = new[] { SystemSettingKeys.CertificateSignatoryId, SystemSettingKeys.CertificatePlace };
+        var keys = new[]
+        {
+            SystemSettingKeys.CertificateSignatoryId, SystemSettingKeys.CertificatePlace,
+            SystemSettingKeys.CertificateSignatoryCid, SystemSettingKeys.CertificateSignatoryCtd,
+            SystemSettingKeys.CertificateSignatoryHrt,
+        };
         var values = await db.SystemSettings.AsNoTracking()
             .Where(s => keys.Contains(s.Key))
             .ToDictionaryAsync(s => s.Key, s => s.Value, cancellationToken);
         var place = values.GetValueOrDefault(SystemSettingKeys.CertificatePlace).TrimToNull() ?? DecorationRules.DefaultPlace;
-        return new CertificateSettings(values.GetValueOrDefault(SystemSettingKeys.CertificateSignatoryId).TrimToNull(), place);
+        var perDivision = new Dictionary<Division, string>();
+        foreach (var division in DivisionDisplay.All)
+        {
+            if (values.GetValueOrDefault(DecorationRules.SignatoryKey(division)).TrimToNull() is { } id)
+            {
+                perDivision[division] = id;
+            }
+        }
+        return new CertificateSettings(values.GetValueOrDefault(SystemSettingKeys.CertificateSignatoryId).TrimToNull(), place, perDivision);
     }
 
     private static async Task SetAsync(AppDbContext db, string key, string? value, CancellationToken cancellationToken)

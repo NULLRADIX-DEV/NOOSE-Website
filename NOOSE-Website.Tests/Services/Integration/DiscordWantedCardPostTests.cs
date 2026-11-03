@@ -16,7 +16,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class DiscordWantedCardPostTests
 {
     private const string Webhook = "https://discord.test/api/webhooks/1/token";
-    private const string Case = "NOOSE-FA-2026-0001";
+    private const string Case = "FIB-FA-2026-0001";
     private static readonly DateTime At = new(2026, 11, 2, 14, 3, 0, DateTimeKind.Utc);
 
     private sealed class CapturingHandler : HttpMessageHandler
@@ -90,7 +90,7 @@ public sealed class DiscordWantedCardPostTests
         var body = Sent(handler);
         // a link in the content would make Discord add a second preview card
         Assert.Equal($"<@&{role}>", body.GetProperty("content").GetString());
-        Assert.Equal("NOOSE", body.GetProperty("username").GetString());
+        Assert.Equal("FIB", body.GetProperty("username").GetString());
         var mentions = body.GetProperty("allowed_mentions");
         Assert.Empty(mentions.GetProperty("parse").EnumerateArray());
         Assert.Equal(role, Assert.Single(mentions.GetProperty("roles").EnumerateArray()).GetString());
@@ -105,8 +105,8 @@ public sealed class DiscordWantedCardPostTests
         await service.PushWantedCardAsync(NotificationType.PublicWantedPublished, Published());
 
         var embed = Assert.Single(Sent(handler).GetProperty("embeds").EnumerateArray());
-        Assert.Equal($"https://noose.info/gesucht/{Case}", embed.GetProperty("url").GetString());
-        Assert.Equal($"https://noose.info/gesucht/{Case}/foto", embed.GetProperty("image").GetProperty("url").GetString());
+        Assert.Equal($"https://fibhq.com/gesucht/{Case}", embed.GetProperty("url").GetString());
+        Assert.Equal($"https://fibhq.com/gesucht/{Case}/foto", embed.GetProperty("image").GetProperty("url").GetString());
         Assert.False(embed.TryGetProperty("thumbnail", out _));
     }
 
@@ -133,7 +133,7 @@ public sealed class DiscordWantedCardPostTests
         var embed = Assert.Single(Sent(handler).GetProperty("embeds").EnumerateArray());
         Assert.Equal("🔎 Fahndung: Max Mustermann", embed.GetProperty("title").GetString());
         Assert.Equal(0xE53935, embed.GetProperty("color").GetInt32());
-        Assert.Equal("National Office of Security Enforcement", embed.GetProperty("footer").GetProperty("text").GetString());
+        Assert.Equal("Federal Investigation Bureau", embed.GetProperty("footer").GetProperty("text").GetString());
         var fields = embed.GetProperty("fields").EnumerateArray().ToList();
         Assert.Equal(["Aktenzeichen", "Gefahrenstufe", "Kopfgeld", "Auch bekannt als", "Warnhinweise"],
             fields.Select(f => f.GetProperty("name").GetString()));
@@ -157,7 +157,7 @@ public sealed class DiscordWantedCardPostTests
 
         Assert.True(sent);
         var embed = Assert.Single(Sent(handler).GetProperty("embeds").EnumerateArray());
-        Assert.Equal($"https://noose.info/gesucht/{Case}/foto", embed.GetProperty("thumbnail").GetProperty("url").GetString());
+        Assert.Equal($"https://fibhq.com/gesucht/{Case}/foto", embed.GetProperty("thumbnail").GetProperty("url").GetString());
         Assert.False(embed.TryGetProperty("image", out _));
         Assert.Equal(0xC9A227, embed.GetProperty("color").GetInt32());
     }

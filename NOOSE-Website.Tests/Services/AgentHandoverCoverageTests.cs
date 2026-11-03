@@ -52,6 +52,8 @@ public class AgentHandoverCoverageTests
         ["FahndungKopfgeldAnteil.DonorAgentId"] = History,
         ["Feedback.AgentId"] = Own,
         ["FinancingBudgetPeriod.AgentId"] = Own,
+        ["FirearmUse.AgentId"] = "gehört dem Agenten selbst: die Meldung beschreibt genau diesen einen Schusswaffengebrauch "
+            + "und ist nichts für einen Nachfolger",
         ["Hinweis.HandlerId"] = CitizenContact,
         ["HinweisNachricht.AuthorAgentId"] = History,
         ["IdentityUserClaim`1.UserId"] = Own,

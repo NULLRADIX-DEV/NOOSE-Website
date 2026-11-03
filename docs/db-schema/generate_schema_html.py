@@ -196,18 +196,18 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NOOSE – Datenbankstruktur</title>
+<title>FIB – Datenbankstruktur</title>
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 <style>
 :root {
-  --bg: #121218;
-  --bg2: #1e1e2e;
-  --bg3: #262636;
-  --fg: #e4e4ef;
-  --muted: #9a9ab0;
-  --cyan: #00bcd4;
-  --cyan-dim: rgba(0,188,212,.25);
-  --border: #33334a;
+  --bg: #1c1c1c;
+  --bg2: #242424;
+  --bg3: #2c2c2c;
+  --fg: #ece8e1;
+  --muted: #a8a29a;
+  --bronze: #b5a488;
+  --bronze-dim: rgba(181,164,136,.25);
+  --border: #333333;
 }
 * { box-sizing: border-box; }
 body {
@@ -219,14 +219,14 @@ header {
   background: var(--bg2); position: sticky; top: 0; z-index: 10;
 }
 h1 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
-h1 .accent { color: var(--cyan); }
+h1 .accent { color: var(--bronze); }
 .subtitle { color: var(--muted); font-size: 13px; }
 nav.tabs { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
 nav.tabs button {
   background: var(--bg3); color: var(--fg); border: 1px solid var(--border);
   border-radius: 6px; padding: 6px 14px; cursor: pointer; font-size: 13px;
 }
-nav.tabs button.active { background: var(--cyan-dim); border-color: var(--cyan); color: var(--cyan); }
+nav.tabs button.active { background: var(--bronze-dim); border-color: var(--bronze); color: var(--bronze); }
 main { padding: 20px 28px 40px; }
 section.view { display: none; }
 section.view.active { display: block; }
@@ -235,7 +235,7 @@ section.view.active { display: block; }
   background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
   padding: 14px 20px; min-width: 150px;
 }
-.card .value { font-size: 26px; font-weight: 700; color: var(--cyan); }
+.card .value { font-size: 26px; font-weight: 700; color: var(--bronze); }
 .card .label { font-size: 12px; color: var(--muted); margin-top: 2px; }
 .panel {
   background: var(--bg2); border: 1px solid var(--border);
@@ -245,18 +245,18 @@ section.view.active { display: block; }
 .bar-row { display: grid; grid-template-columns: 180px 1fr 90px; align-items: center; gap: 10px; margin: 5px 0; font-size: 13px; }
 .bar-row .name { color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar-row .count { color: var(--muted); text-align: right; }
-.bar { height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--cyan), #008ba3); min-width: 2px; }
+.bar { height: 14px; border-radius: 4px; background: linear-gradient(90deg, var(--bronze), #71614a); min-width: 2px; }
 input[type="search"] {
   background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
   color: var(--fg); padding: 7px 12px; font-size: 13px; width: 260px;
 }
-input[type="search"]:focus { outline: none; border-color: var(--cyan); }
+input[type="search"]:focus { outline: none; border-color: var(--bronze); }
 table.data { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.data th, table.data td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; }
-table.data th { color: var(--cyan); cursor: pointer; user-select: none; white-space: nowrap; position: sticky; top: 0; background: var(--bg2); }
-table.data tr:hover td { background: rgba(0,188,212,.06); }
+table.data th { color: var(--bronze); cursor: pointer; user-select: none; white-space: nowrap; position: sticky; top: 0; background: var(--bg2); }
+table.data tr:hover td { background: rgba(181,164,136,.06); }
 .badge { display: inline-block; font-size: 10px; font-weight: 700; border-radius: 4px; padding: 1px 5px; margin-right: 4px; }
-.badge.pk { background: rgba(0,188,212,.2); color: var(--cyan); border: 1px solid var(--cyan); }
+.badge.pk { background: rgba(181,164,136,.2); color: var(--bronze); border: 1px solid var(--bronze); }
 .badge.fk { background: rgba(255,183,77,.15); color: #ffb74d; border: 1px solid #ffb74d; }
 .mono { font-family: Consolas, "Courier New", monospace; }
 .muted { color: var(--muted); }
@@ -267,7 +267,7 @@ table.data tr:hover td { background: rgba(0,188,212,.06); }
   background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
   padding: 14px 16px; height: 72vh; overflow-y: auto; font-size: 13px;
 }
-#detail h3 { margin: 0 0 4px; font-size: 15px; color: var(--cyan); }
+#detail h3 { margin: 0 0 4px; font-size: 15px; color: var(--bronze); }
 #detail table { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 10px; }
 #detail td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .graph-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
@@ -279,7 +279,7 @@ table.data tr:hover td { background: rgba(0,188,212,.06); }
 </head>
 <body>
 <header>
-  <h1>NOOSE <span class="accent">Datenbankstruktur</span></h1>
+  <h1>FIB <span class="accent">Datenbankstruktur</span></h1>
   <div class="subtitle">Generiert aus <span class="mono">AppDbContextModelSnapshot.cs</span> (EF Core 9)</div>
   <nav class="tabs">
     <button data-view="graph" class="active">ER-Diagramm</button>
@@ -341,8 +341,8 @@ const SCHEMA = __SCHEMA_JSON__;
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-// domain colours: cyan family + distinguishable hues
-const palette = ["#00bcd4","#ffb74d","#81c784","#ba68c8","#e57373","#64b5f6","#fff176","#4db6ac","#f06292","#a1887f","#90a4ae","#dce775","#9575cd","#4dd0e1","#aed581","#ff8a65","#7986cb","#f48fb1","#a5d6a7","#ce93d8"];
+// domain colours: bronze first, then distinguishable hues
+const palette = ["#b5a488","#ffb74d","#81c784","#ba68c8","#e57373","#64b5f6","#fff176","#4db6ac","#f06292","#a1887f","#90a4ae","#dce775","#9575cd","#4dd0e1","#aed581","#ff8a65","#7986cb","#f48fb1","#a5d6a7","#ce93d8"];
 const domains = [...new Set(SCHEMA.tables.map(t => t.domain))].sort();
 const domainColor = {};
 domains.forEach((d, i) => domainColor[d] = palette[i % palette.length]);
@@ -427,9 +427,9 @@ const nodes = new vis.DataSet(SCHEMA.tables.map(t => ({
   id: t.name,
   label: nodeLabel(t),
   title: `${t.entity} · ${t.domain} · ${t.columnCount} Spalten`,
-  color: { background: "#1e1e2e", border: domainColor[t.domain],
-           highlight: { background: "#262636", border: "#00bcd4" } },
-  font: { color: "#e4e4ef", face: "Consolas, monospace", size: showCols() ? 11 : 14, align: "left" },
+  color: { background: "#242424", border: domainColor[t.domain],
+           highlight: { background: "#2c2c2c", border: "#b5a488" } },
+  font: { color: "#ece8e1", face: "Consolas, monospace", size: showCols() ? 11 : 14, align: "left" },
   shape: "box",
   margin: 8,
   borderWidth: 2,
@@ -438,8 +438,8 @@ const edgeLabel = () => $("#toggle-labels").checked;
 const edges = new vis.DataSet(SCHEMA.relationships.map((r, i) => ({
   id: i, from: r.from, to: r.to,
   label: edgeLabel() ? r.fk : undefined,
-  font: { color: "#9a9ab0", size: 10, strokeWidth: 0 },
-  color: { color: "rgba(0,188,212,.35)", highlight: "#00bcd4" },
+  font: { color: "#a8a29a", size: 10, strokeWidth: 0 },
+  color: { color: "rgba(181,164,136,.35)", highlight: "#b5a488" },
   arrows: { to: { enabled: true, scaleFactor: 0.6 } },
   smooth: { type: "continuous" },
 })));
@@ -470,7 +470,7 @@ $("#toggle-labels").addEventListener("change", () =>
   edges.update(SCHEMA.relationships.map((r, i) => ({ id: i, label: edgeLabel() ? r.fk : undefined }))));
 $("#toggle-columns").addEventListener("change", () =>
   nodes.update(SCHEMA.tables.map(t => ({ id: t.name, label: nodeLabel(t),
-    font: { color: "#e4e4ef", face: "Consolas, monospace", size: showCols() ? 11 : 14, align: "left" } }))));
+    font: { color: "#ece8e1", face: "Consolas, monospace", size: showCols() ? 11 : 14, align: "left" } }))));
 
 // search: select + focus first match
 $("#graph-search").addEventListener("input", (e) => {
@@ -494,14 +494,14 @@ function highlight(table) {
   nodes.update(SCHEMA.tables.map(t => ({
     id: t.name,
     opacity: keep.has(t.name) ? 1 : 0.15,
-    font: { color: keep.has(t.name) ? "#e4e4ef" : "rgba(228,228,239,.15)",
+    font: { color: keep.has(t.name) ? "#ece8e1" : "rgba(236,232,225,.15)",
             face: "Consolas, monospace", size: showCols() ? 11 : 14, align: "left" },
   })));
   edges.update(SCHEMA.relationships.map((r, i) => ({
     id: i,
-    color: { color: (r.from === table || r.to === table) ? "#00bcd4" : "rgba(0,188,212,.06)" },
-    font: { color: "#9a9ab0", size: 10, strokeWidth: 0,
-            background: (r.from === table || r.to === table) ? "#121218" : "none" },
+    color: { color: (r.from === table || r.to === table) ? "#b5a488" : "rgba(181,164,136,.06)" },
+    font: { color: "#a8a29a", size: 10, strokeWidth: 0,
+            background: (r.from === table || r.to === table) ? "#1c1c1c" : "none" },
     hidden: !(r.from === table || r.to === table) ? false : false,
   })));
 }
@@ -540,8 +540,8 @@ network.on("click", (params) => {
     showDetail(params.nodes[0]);
   } else {
     nodes.update(SCHEMA.tables.map(t => ({ id: t.name, opacity: 1,
-      font: { color: "#e4e4ef", face: "Consolas, monospace", size: showCols() ? 11 : 14, align: "left" } })));
-    edges.update(SCHEMA.relationships.map((r, i) => ({ id: i, color: { color: "rgba(0,188,212,.35)" } })));
+      font: { color: "#ece8e1", face: "Consolas, monospace", size: showCols() ? 11 : 14, align: "left" } })));
+    edges.update(SCHEMA.relationships.map((r, i) => ({ id: i, color: { color: "rgba(181,164,136,.35)" } })));
   }
 });
 

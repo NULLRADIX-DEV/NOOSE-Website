@@ -10,7 +10,7 @@
 @if (!o.IsConfigured)
 {
     <MudAlert Severity="Severity.Warning" Dense="true" Class="mb-3">
-        NOOSEI ist nicht einsatzbereit. Endpoint, Modell und Schlüssel kommen aus den User Secrets bzw. den
+        FIBI ist nicht einsatzbereit. Endpoint, Modell und Schlüssel kommen aus den User Secrets bzw. den
         Umgebungsvariablen (<code>Llm__ApiKey</code>, <code>Llm__Model</code>, für DeepSeek
         <code>Llm__DeepSeek__ApiKey</code>) — nicht aus der Datenbank.
     </MudAlert>
@@ -18,7 +18,7 @@
 else
 {
     <MudAlert Severity="Severity.Success" Dense="true" Class="mb-3">
-        NOOSEI ist einsatzbereit — über @LlmProviderDisplay.Name(_active).
+        FIBI ist einsatzbereit — über @LlmProviderDisplay.Name(_active).
     </MudAlert>
 }
 

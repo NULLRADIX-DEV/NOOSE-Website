@@ -31,7 +31,7 @@ public sealed class InactivityRadarTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).WithCodename("Chef").Build();
 
     private static ClaimsPrincipal Junior(string id)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     /// <summary>An active agent whose only trace is a page visit the given number of days ago.</summary>
     private static Agent Silent(string id, int days, Action<Agent>? configure = null)
@@ -64,7 +64,7 @@ public sealed class InactivityRadarTests
             Silent(DemoIdentity.AgentId, 40),
             Silent("recent", 5),
             // released three days ago and never seen since: new, not inactive
-            Seed.Agent("new", Rank.JuniorAgent, configure: a => a.ReleasedAt = Now.AddDays(-3)));
+            Seed.Agent("new", Rank.Trainee, configure: a => a.ReleasedAt = Now.AddDays(-3)));
         var (svc, _) = Build(ctx);
 
         var radar = await svc.GetAsync(Leader());
@@ -197,8 +197,8 @@ public sealed class InactivityRadarTests
             Seed.Agent("active", Rank.SpecialAgent, configure: a => a.LastSeenAt = Now));
         var (svc, notifications) = Build(ctx);
         // below leadership AND read-only: only the write guard running first names the read-only mode
-        var oversight = ClaimsPrincipalBuilder.Agent("tl2").WithRank(Rank.JuniorAgent).AsTeamLead().Build();
-        var demo = ClaimsPrincipalBuilder.Agent("d").WithRank(Rank.JuniorAgent).AsDemo().Build();
+        var oversight = ClaimsPrincipalBuilder.Agent("tl2").WithRank(Rank.Trainee).AsTeamLead().Build();
+        var demo = ClaimsPrincipalBuilder.Agent("d").WithRank(Rank.Trainee).AsDemo().Build();
 
         Assert.Contains("Nur-Lese",
             (await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.NudgeAsync("a", oversight))).Message);
@@ -274,7 +274,7 @@ public sealed class InactivityRadarTests
         using var ctx = new SqliteTestContext();
         Add(ctx, Silent("a", 10));
         var (svc, _) = Build(ctx);
-        var oversight = ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.JuniorAgent).AsTeamLead().Build();
+        var oversight = ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Trainee).AsTeamLead().Build();
 
         Assert.Contains("Nur-Lese", (await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             svc.SaveThresholdsAsync(new InactivityThresholds(7, 14, 30), oversight))).Message);

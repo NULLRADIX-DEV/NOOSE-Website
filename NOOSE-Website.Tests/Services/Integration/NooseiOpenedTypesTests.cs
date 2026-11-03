@@ -24,13 +24,13 @@ public sealed class NooseiOpenedTypesTests
     private const string Owner = "owner";
 
     private static ClaimsPrincipal Junior(string id = Stranger)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Hrb()
-        => ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.JuniorAgent).AsHrb().Build();
+        => ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.Trainee).AsHrb().Build();
 
     private static JsonElement Args(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
@@ -56,7 +56,7 @@ public sealed class NooseiOpenedTypesTests
         {
             db.Jobs.Add(new Job
             {
-                Id = "j1", CaseNumber = "NOOSE-A-2026-0001", Title = "Waffenlager prüfen",
+                Id = "j1", CaseNumber = "FIB-A-2026-0001", Title = "Waffenlager prüfen",
                 IsRestricted = true, CreatedById = Owner,
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             });
@@ -77,7 +77,7 @@ public sealed class NooseiOpenedTypesTests
         {
             db.Jobs.Add(new Job
             {
-                Id = "j1", CaseNumber = "NOOSE-A-2026-0001", Title = "Waffenlager prüfen",
+                Id = "j1", CaseNumber = "FIB-A-2026-0001", Title = "Waffenlager prüfen",
                 IsRestricted = true, CreatedById = Owner,
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             });
@@ -99,7 +99,7 @@ public sealed class NooseiOpenedTypesTests
         {
             db.Appointments.Add(new Appointment
             {
-                Id = "t1", CaseNumber = "NOOSE-T-2026-0001", Title = "Treffen mit Quelle",
+                Id = "t1", CaseNumber = "FIB-T-2026-0001", Title = "Treffen mit Quelle",
                 Visibility = AppointmentVisibilityLevel.Private, CreatedById = Owner,
                 Start = new DateTime(2026, 2, 1, 20, 0, 0, DateTimeKind.Utc),
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
@@ -121,7 +121,7 @@ public sealed class NooseiOpenedTypesTests
         {
             db.Informants.Add(new Informant
             {
-                Id = "i1", CaseNumber = "NOOSE-VP-2026-0001", RealName = "Klara Klarname",
+                Id = "i1", CaseNumber = "FIB-VP-2026-0001", RealName = "Klara Klarname",
                 HandlerId = Owner, Reliability = InformantReliability.B, Status = InformantStatus.Active,
                 CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             });
@@ -147,7 +147,7 @@ public sealed class NooseiOpenedTypesTests
         {
             db.Bewerbungen.Add(new Bewerbung
             {
-                Id = "b1", CaseNumber = "NOOSE-B-2026-0001", Name = "Bea Bewerberin",
+                Id = "b1", CaseNumber = "FIB-B-2026-0001", Name = "Bea Bewerberin",
                 ApplicantUserId = "applicant", Status = BewerbungStatus.ImTest,
                 SubmittedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
                 CreatedAt = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
@@ -171,7 +171,7 @@ public sealed class NooseiOpenedTypesTests
         {
             db.Announcements.Add(new Announcement
             {
-                Id = "a1", CaseNumber = "NOOSE-AK-2026-0001", Title = "Lagebesprechung der Leitung",
+                Id = "a1", CaseNumber = "FIB-AK-2026-0001", Title = "Lagebesprechung der Leitung",
                 Content = "<p>Nur für die Führung.</p>",
                 Audience = AnnouncementAudience.FromRank, MinRank = Rank.DeputyDirector,
                 CreatedById = Owner,
@@ -240,6 +240,32 @@ public sealed class NooseiOpenedTypesTests
         Assert.Contains("Falke", watched.Text);
         Assert.DoesNotContain("Fabian Falkenstein", watched.Text);
         Assert.Contains("Fabian Falkenstein", leader.Text);
+    }
+
+    [Fact]
+    public async Task AnAgentFile_NamesTheDivisionAndTheAdministrationFlag_NotTheOldUnits()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent(id: Owner, Rank.SpecialAgent, configure: a =>
+            {
+                a.Codename = "Falke";
+                a.Division = Division.Hrt;
+                a.IsTRU = true;
+                a.IsHRB = true;
+            }));
+            db.SaveChanges();
+        }
+
+        var result = await Tool(ctx).InvokeAsync(
+            Args($$"""{"typ":"Personalakte","id":"{{Owner}}"}"""), NooseiToolContext.From(Leader()));
+
+        Assert.Contains("Abteilung: HRT", result.Text);
+        Assert.Contains("Administration Division: Ja", result.Text);
+        Assert.Contains("Dienstgrad: Operator", result.Text);
+        Assert.DoesNotContain("TRU", result.Text);
+        Assert.DoesNotContain("HRB", result.Text);
     }
 
     [Fact]

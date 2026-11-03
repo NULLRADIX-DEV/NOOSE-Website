@@ -44,6 +44,9 @@ public sealed record PublicWantedHint(string Label, string Colour);
 /// </remarks>
 public sealed record PublicBounty(decimal Total, bool IsCap);
 
+/// <summary>Short address, full address and QR code the poster prints; the caption names the tip only while tips are on.</summary>
+public sealed record WantedPosterLink(string ShortText, string ProfileText, string? QrSvg, string Heading, string Caption);
+
 /// <summary>One row of the anonymous archive: the fact that someone was caught, not a profile.</summary>
 /// <remarks>
 /// Its own type rather than nullable fields on <see cref="PublicWantedCard"/>. The archive must carry no hazard level,

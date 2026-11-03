@@ -291,6 +291,7 @@ public class TipService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var row = await db.Hinweise.AsNoTracking()
@@ -346,6 +347,7 @@ public class TipService(
         Permission.RequireCitizenSubmission(actor);
 
         var body = CleanMessage(text);
+        caseNumber = CaseNumbers.Normalize(caseNumber);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var row = await db.Hinweise
             .FirstOrDefaultAsync(h => h.CaseNumber == caseNumber && h.CitizenProfileId == profile.Id, cancellationToken)
@@ -378,6 +380,7 @@ public class TipService(
             // unread badge never clears. Only the shared demo principal is out
             return;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // ExecuteUpdate: a read mark is not a change to the tip, and a tracked write would stamp GeaendertAm and
@@ -986,6 +989,7 @@ public class TipService(
         {
             return null;
         }
+        caseNumber = CaseNumbers.Normalize(caseNumber);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var row = await db.Hinweise.AsNoTracking()
@@ -1013,7 +1017,7 @@ public class TipService(
         row.Status = TipStatus.FuehrteZurErgreifung;
         row.HandlerId ??= actor.GetAgentId();
         // written here rather than through AskCitizenAsync: that one refuses a closed tip and would switch the
-        // status to Rueckfrage. No author, so the line reads as "NOOSE" outside.
+        // status to Rueckfrage. No author, so the line reads as "FIB" outside.
         db.HinweisNachrichten.Add(new HinweisNachricht
         {
             HinweisId = row.Id,
@@ -1349,7 +1353,7 @@ public class TipService(
 
     private static Task<List<string>> DeskRecipientsAsync(AppDbContext db, CancellationToken ct)
         => db.Users.OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SupervisorySpecialAgent)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
             .Select(u => u.Id)
             .ToListAsync(ct);
 }

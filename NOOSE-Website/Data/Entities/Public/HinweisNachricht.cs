@@ -29,7 +29,7 @@ public class HinweisNachricht : IAuditable, ISoftDelete
     [Column("VonBuerger")]
     public bool AuthorIsCitizen { get; set; }
 
-    /// <summary>Internal thread only; a citizen-facing row leaves this null and reads as "NOOSE" outside.</summary>
+    /// <summary>Internal thread only; a citizen-facing row leaves this null and reads as "FIB" outside.</summary>
     [Column("AutorAgentId")]
     public string? AuthorAgentId { get; set; }
     public Agent? AuthorAgent { get; set; }

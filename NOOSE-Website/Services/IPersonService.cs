@@ -25,7 +25,8 @@ public interface IPersonService
 
     Task<Person> CreateAsync(PersonInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RefreshAsync(string id, PersonInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-    Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Moves the record to the trash; the reason is required and lands on its timeline.</summary>
+    Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Files the record away: out of listings, pickers and the default search, still fully readable.</summary>
@@ -34,10 +35,10 @@ public interface IPersonService
     /// <summary>Brings the record back into the active stock.</summary>
     Task UnarchiveAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Set classification. "Secured state-threatening" requires Senior Special Agent+ or Admin.</summary>
+    /// <summary>Set classification. "Secured state-threatening" requires Senior Special Agent+ or Admin; a downgrade requires a justification.</summary>
     Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Manually flag/unflag the person for the wanted board (write access + classified visibility required).</summary>
+    /// <summary>Flag/unflag the person for the wanted board; <paramref name="reason"/> is the wanted reason, or the required lift reason when unflagging.</summary>
     Task WantedSetAsync(string id, bool wanted, string? reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Append-only classification history of the person, newest first; visibility-filtered.</summary>

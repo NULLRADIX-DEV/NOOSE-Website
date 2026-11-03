@@ -26,7 +26,7 @@ public sealed class BewerbungRejectionBanTests
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-B-2026-0002");
+            .Returns("FIB-B-2026-0002");
         return new BewerbungService(
             ctx.Factory,
             caseNo,
@@ -39,7 +39,7 @@ public sealed class BewerbungRejectionBanTests
     }
 
     private static ClaimsPrincipal Hrb()
-        => ClaimsPrincipalBuilder.Agent("hrb").AsHrb().WithRank(Rank.JuniorAgent).WithCodename("Falcon").Build();
+        => ClaimsPrincipalBuilder.Agent("hrb").AsHrb().WithRank(Rank.Trainee).WithCodename("Falcon").Build();
 
     // Leadership by rank but read-only supervision: passes the rank check, may not write.
     private static ClaimsPrincipal OnlyReader()
@@ -56,7 +56,7 @@ public sealed class BewerbungRejectionBanTests
         db.Bewerbungen.Add(new Bewerbung
         {
             Id = "b1",
-            CaseNumber = "NOOSE-B-2026-0001",
+            CaseNumber = "FIB-B-2026-0001",
             ApplicantUserId = "u1",
             Name = "Max Mustermann",
             Status = status,

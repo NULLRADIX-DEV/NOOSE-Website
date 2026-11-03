@@ -9,7 +9,7 @@ public class DossierMarkdownTests
     private static readonly DateTime ExportedAt = new(2026, 10, 29, 12, 0, 0, DateTimeKind.Utc);
 
     private static string Markdown(string text, bool classified = false)
-        => DossierMarkdown.Render(new DossierContext("Max Mustermann (NOOSE-P-2026-0001)", text, classified),
+        => DossierMarkdown.Render(new DossierContext("Max Mustermann (FIB-P-2026-0001)", text, classified),
             "Hawk", ExportedAt);
 
     private static string[] Render(string text, bool classified = false)
@@ -29,7 +29,7 @@ public class DossierMarkdownTests
     {
         var lines = Render("Personenakte\nName: Max");
 
-        Assert.Equal("# Max Mustermann (NOOSE-P-2026-0001)", lines[0]);
+        Assert.Equal("# Max Mustermann (FIB-P-2026-0001)", lines[0]);
         Assert.Contains("> Personenakte", lines);
         // Berlin wall clock, not UTC
         Assert.Contains("> Exportiert von Hawk am 29.10.2026 13:00", lines);
@@ -45,9 +45,9 @@ public class DossierMarkdownTests
     [Fact]
     public void Fields_BecomeBoldListItems()
     {
-        var lines = Render("Personenakte\nAktenzeichen: NOOSE-P-2026-0001\nBedrohungs-Score: 80 (Konfidenz 70%)");
+        var lines = Render("Personenakte\nAktenzeichen: FIB-P-2026-0001\nBedrohungs-Score: 80 (Konfidenz 70%)");
 
-        Assert.Contains("- **Aktenzeichen:** NOOSE-P-2026-0001", lines);
+        Assert.Contains("- **Aktenzeichen:** FIB-P-2026-0001", lines);
         Assert.Contains("- **Bedrohungs-Score:** 80 (Konfidenz 70%)", lines);
     }
 
@@ -85,7 +85,7 @@ public class DossierMarkdownTests
     {
         var lines = Render("Personenakte");
 
-        Assert.Equal("*NOOSE-interne Akte · Weitergabe nur nach Freigabe durch die Führung.*", lines[^1]);
+        Assert.Equal("*FIB-interne Akte · Weitergabe nur nach Freigabe durch die Führung.*", lines[^1]);
         Assert.Equal("---", lines[^3]);
     }
 
@@ -98,8 +98,8 @@ public class DossierMarkdownTests
     }
 
     [Theory]
-    [InlineData("Max Mustermann (NOOSE-P-2026-0001)", "dossier-max-mustermann-noose-p-2026-0001.md")]
-    [InlineData("Müller & Söhne (NOOSE-F-2026-0002)", "dossier-mueller-soehne-noose-f-2026-0002.md")]
+    [InlineData("Max Mustermann (FIB-P-2026-0001)", "dossier-max-mustermann-fib-p-2026-0001.md")]
+    [InlineData("Müller & Söhne (FIB-F-2026-0002)", "dossier-mueller-soehne-fib-f-2026-0002.md")]
     [InlineData("Straße ÄÖÜ", "dossier-strasse-aeoeue.md")]
     [InlineData("   ", "dossier.md")]
     [InlineData("★★★", "dossier.md")]

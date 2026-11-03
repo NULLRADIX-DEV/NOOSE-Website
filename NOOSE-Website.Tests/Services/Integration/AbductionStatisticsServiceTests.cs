@@ -31,8 +31,8 @@ public sealed class AbductionStatisticsServiceTests
         using (var db = ctx.NewContext())
         {
             db.Factions.Add(Seed.Faction("fac", "Ballas"));
-            db.AgentAbductions.Add(Abduction("a1", "NOOSE-ENT-2026-0001", true, AbductionOutcome.Killed, LeakSeverity.High, "fac"));
-            db.AgentAbductions.Add(Abduction("a2", "NOOSE-ENT-2026-0002", false, AbductionOutcome.Escaped, LeakSeverity.None, "fac"));
+            db.AgentAbductions.Add(Abduction("a1", "FIB-ENT-2026-0001", true, AbductionOutcome.Killed, LeakSeverity.High, "fac"));
+            db.AgentAbductions.Add(Abduction("a2", "FIB-ENT-2026-0002", false, AbductionOutcome.Escaped, LeakSeverity.None, "fac"));
             db.AbductionCompromises.Add(new AbductionCompromise
             {
                 AbductionId = "a1", TargetType = nameof(Faction), TargetId = "op1", Status = CompromiseStatus.Compromised,

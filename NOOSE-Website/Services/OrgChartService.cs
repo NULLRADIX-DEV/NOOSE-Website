@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.OrgChart;
@@ -21,21 +22,26 @@ public class OrgChartService(IDbContextFactory<AppDbContext> dbFactory) : IOrgCh
             .OrderBy(a => a.Codename)
             .ToListAsync(cancellationToken);
 
-        var ranks = roster
-            .GroupBy(a => a.Rank!.Value)
-            .OrderByDescending(g => g.Key)
-            .Select(g => new RankGroup(g.Key, g.ToList()))
+        // unit derived per row
+        var seated = roster.Select(a => (Agent: a, Unit: DivisionRules.Of(a))).Where(s => !s.Unit.IsNone).ToList();
+        var board = Column(seated.Where(s => s.Unit.IsBoard).Select(s => s.Agent), null);
+        var divisions = DivisionDisplay.All
+            .Select(d => Column(seated.Where(s => !s.Unit.IsBoard && s.Unit.Home == d).Select(s => s.Agent), d))
             .ToList();
 
-        var tru = roster.Where(a => a.IsTRU).ToList();
-        var hrb = roster.Where(a => a.IsHRB).ToList();
+        // flag crosses units
+        var administration = roster
+            .Where(a => a.IsHRB)
+            .OrderByDescending(a => a.Rank)
+            .ThenBy(a => a.Codename)
+            .ToList();
 
-        // visible and approved taskforces only
+        // visible, approved and not archived taskforces only
         var mayAllTf = viewer.MayAllTaskforcesSee();
         var meId = viewer.GetAgentId();
         var taskforces = await db.Taskforces.AsNoTracking()
             .OnlyVisible(db, mayAllTf, meId)
-            .Where(t => t.Status == TaskforceStatus.Approved)
+            .Where(t => t.Status == TaskforceStatus.Approved && !t.IsArchived)
             .OrderBy(t => t.Name)
             .ToListAsync(cancellationToken);
 
@@ -59,6 +65,19 @@ public class OrgChartService(IDbContextFactory<AppDbContext> dbFactory) : IOrgCh
                     .ToList()))
             .ToList();
 
-        return new OrgChartData(ranks, tru, hrb, staffings);
+        return new OrgChartData(board, divisions, administration, staffings);
+    }
+
+    /// <summary>One column from its members, rank tiers highest first.</summary>
+    private static OrgChartColumn Column(IEnumerable<Agent> members, Division? division)
+    {
+        var list = members.ToList();
+        var tiers = list
+            .GroupBy(a => a.Rank!.Value)
+            .OrderByDescending(g => g.Key)
+            .Select(g => new RankGroup(g.Key, g.ToList()))
+            .ToList();
+        var limit = division is { } d ? DivisionDisplay.Limit(d) : DivisionDisplay.BoardLimit;
+        return new OrgChartColumn(division, list.Count, limit, tiers);
     }
 }

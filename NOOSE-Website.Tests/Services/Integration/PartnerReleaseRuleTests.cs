@@ -134,9 +134,9 @@ public sealed class PartnerReleaseRuleTests : IDisposable
         Rule(nameof(PersonGroup), PartnerRuleScope.All);
         Rule(nameof(Party), PartnerRuleScope.All);
         Rule(nameof(Law), PartnerRuleScope.All);
-        Add(new PersonGroup { Id = "g1", Name = "G", CaseNumber = "NOOSE-G-2026-9001" },
-            new PersonGroup { Id = "g-vs", Name = "G2", CaseNumber = "NOOSE-G-2026-9002", IsClassified = true },
-            new Party { Id = "pa1", Name = "P", CaseNumber = "NOOSE-PA-2026-9001" },
+        Add(new PersonGroup { Id = "g1", Name = "G", CaseNumber = "FIB-G-2026-9001" },
+            new PersonGroup { Id = "g-vs", Name = "G2", CaseNumber = "FIB-G-2026-9002", IsClassified = true },
+            new Party { Id = "pa1", Name = "P", CaseNumber = "FIB-PA-2026-9001" },
             new Law { Id = "l1", LawBook = "StGB", Paragraph = "§ 1", Title = "Mord" });
 
         Assert.True(await VisibleAsync(nameof(PersonGroup), "g1"));

@@ -1,18 +1,11 @@
-/* Organigramm – klassisches CSS-Org-Chart: Wurzel oben, Dienstgrad-Ebenen darunter,
-   verbunden durch Bus-/Stichleitungen. Statisch, theme-/druckfreundlich. */
-
-.org-scroll {
-    overflow-x: auto;
-    padding: 0.5rem 0 1rem;
-}
+/* Organigramm – Wurzel, darunter das Board, darunter CID, CTD und HRT als Spalten mit Dienstgrad-Ebenen.
+   Statisch, theme-/druckfreundlich. */
 
 .org {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: max-content;
-    min-width: 100%;
-    margin: 0 auto;
+    width: 100%;
     --org-line: var(--mud-palette-lines-default);
 }
 
@@ -23,12 +16,12 @@
     background: var(--mud-palette-surface);
     padding: 0.4rem 1rem;
     text-align: center;
-    white-space: nowrap;
 }
 
 .org-root {
     font-weight: 700;
     letter-spacing: 0.06em;
+    white-space: nowrap;
     border-color: var(--mud-palette-primary);
     background: var(--mud-palette-primary);
     color: var(--mud-palette-primary-text);
@@ -48,94 +41,95 @@
     color: var(--mud-palette-text-secondary);
     font-size: 0.75em;
     font-weight: 600;
+    white-space: nowrap;
 }
 
-/* Senkrechter Verbinder zwischen den Ebenen */
+/* Besetzung über dem weichen Limit */
+.org-count--over {
+    color: var(--mud-palette-warning);
+    box-shadow: inset 0 0 0 1px var(--mud-palette-warning);
+}
+
+/* Senkrechter Verbinder zwischen Wurzel, Board und Abteilungen */
 .org-link {
     width: 0;
     height: 22px;
     border-left: 2px solid var(--org-line);
 }
 
-.org-tier {
+/* Board oder Abteilung: eine Spalte mit Kopf und Dienstgrad-Ebenen */
+.org-unit {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 10px;
+    background: var(--mud-palette-surface);
+    padding: 0.75rem 0.85rem 1rem;
+    min-width: 0;
+    width: 100%;
+}
+
+.org-unit--board {
+    border-color: var(--mud-palette-primary);
+}
+
+.org-unit-head {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
+    gap: 0.5rem;
 }
 
-/* Kinder-Reihe einer Ebene: Bus + Stichleitungen zu jeder Kachel */
-.org-leaves {
+.org-unit-title {
+    font-weight: 700;
+}
+
+.org-unit-head .org-count {
+    margin-left: auto;
+}
+
+.org-unit-empty {
+    margin: 0.75rem 0 0;
+    font-size: 0.85rem;
+    color: var(--mud-palette-text-secondary);
+}
+
+/* Drei Abteilungs-Spalten nebeneinander, auf schmalen Schirmen untereinander */
+.org-columns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    width: 100%;
+    align-items: start;
+}
+
+.org-tier {
+    margin-top: 0.85rem;
+}
+
+.org-tier > .org-rank {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+/* Kacheln einer Ebene: umbrechende Reihe statt Bus, damit schmale Spalten lesbar bleiben */
+.org-cards {
     display: flex;
-    flex-wrap: nowrap;
-    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     list-style: none;
-    margin: 0;
-    padding: 22px 0 0;
-    position: relative;
+    margin: 0.5rem 0 0;
+    padding: 0;
 }
 
-/* Stichleitung von der Rang-Pille hinab zum Bus */
-.org-leaves::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 50%;
-    width: 0;
-    height: 22px;
-    border-left: 2px solid var(--org-line);
+.org-unit--board .org-cards {
+    justify-content: center;
 }
 
-.org-leaves > li {
-    position: relative;
-    padding: 22px 10px 0;
+.org-unit--board .org-tier {
+    text-align: center;
 }
 
-.org-leaves > li::before,
-.org-leaves > li::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    width: 50%;
-    height: 22px;
-    border-top: 2px solid var(--org-line);
-}
-
-.org-leaves > li::before {
-    right: 50%;
-}
-
-.org-leaves > li::after {
-    left: 50%;
-    border-left: 2px solid var(--org-line);
-}
-
-/* Außenkanten des Busses kappen */
-.org-leaves > li:first-child::before {
-    border: 0;
-}
-
-.org-leaves > li:last-child::after {
-    border: 0;
-}
-
-.org-leaves > li:last-child::before {
-    border-right: 2px solid var(--org-line);
-}
-
-/* Einzelkind: kein Bus, nur eine durchgehende mittige Stichleitung */
-.org-leaves > li:only-child::before {
-    left: 50%;
-    right: auto;
-    width: 0;
-    border-top: 0;
-    border-left: 2px solid var(--org-line);
-}
-
-.org-leaves > li:only-child::after {
-    display: none;
-}
-
-/* Agenten-Kachel im Baum (kompakt, einheitliche Breite) */
+/* Agenten-Kachel (kompakt, einheitliche Breite) */
 .org-card {
     display: flex;
     flex-direction: column;
@@ -184,6 +178,7 @@
     line-height: 1.2;
 }
 
+/* Kennzeichen der Administration Division */
 .org-card-badge {
     margin-top: 0.1rem;
     font-size: 0.65rem;
@@ -191,18 +186,19 @@
     letter-spacing: 0.05em;
     padding: 0.05rem 0.4rem;
     border-radius: 999px;
-    border: 1px solid var(--mud-palette-warning);
-    color: var(--mud-palette-warning);
-}
-
-.org-card-badge--hrb {
-    border-color: var(--mud-palette-info);
+    border: 1px solid var(--mud-palette-info);
     color: var(--mud-palette-info);
 }
 
+@media (max-width: 1199.98px) {
+    .org-columns {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
 @media print {
-    .org-scroll {
-        overflow: visible;
+    .org-columns {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .org-card:hover {

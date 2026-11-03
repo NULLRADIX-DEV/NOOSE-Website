@@ -27,6 +27,8 @@ public static class AuditDisplay
         "CreatedAt", "CreatedById", "ModifiedAt", "ModifiedById",
         "DeletedAt", "DeletedById", "IsDeleted",
         "MeetingId", "AttendanceClosedAt", "ReminderSentAt", "NotifiedAt",
+        // leadership's escalation stamp
+        "EscalatedAt",
         "PreviousMeetingId", "CarriedFromItemId", "AcknowledgedById", "DoneById", "MarkedById",
         // the follow-up worker's own stamp, exactly like NotifiedAt above: it says a reminder went out, which
         // the bell already did, and every waiting ticket would otherwise write a row into the protocol hourly
@@ -71,7 +73,9 @@ public static class AuditDisplay
         ["CaseNumber"] = "Aktenzeichen", ["Description"] = "Beschreibung", ["Title"] = "Titel",
         ["LifeStatus"] = "Lebensstatus", ["DeadUntil"] = "Tot-Fenster",
         ["Classification"] = "Einstufung", ["IsClassified"] = "Verschlusssache",
-        ["IsTRUClassified"] = "VS-Stufe TRU", ["IsHRBClassified"] = "VS-Stufe HRB",
+        ["IsTRUClassified"] = "VS-Stufe HRT", ["IsHRBClassified"] = "VS-Stufe Administration",
+        // written by hand next to a loosened Verschlusssache, see CriticalChange
+        ["SecrecyLevel"] = "VS-Stufe", ["RetractedReason"] = "Rückzugsgrund",
         ["IsWanted"] = "Zur Fahndung", ["WantedReason"] = "Fahndungsgrund",
         ["AgingDisabled"] = "Aktualitäts-Ausnahme",
         ["ThreatScore"] = "Bedrohungs-Score", ["ThreatConfidence"] = "Score-Konfidenz",
@@ -212,6 +216,7 @@ public static class AuditDisplay
     private static string FormatEnum(string field, int n, string? entityType) => field switch
     {
         "Einstufung" or "Classification" => ClassificationDisplay.Name((Classification)n),
+        "SecrecyLevel" => DocumentClassificationDisplay.Label((DocumentClassification)n),
         "Lebensstatus" or "LifeStatus" => LifeStatusDisplay.Name((LifeStatus)n),
         "Ausgang" or "Outcome" => MeasureOutcomeDisplay.Name((MeasureOutcome)n),
         "Abmeldegrund" => AbsenceCategoryDisplay.Name((AbsenceCategory)n),

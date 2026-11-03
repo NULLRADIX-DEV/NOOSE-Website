@@ -53,11 +53,11 @@ public sealed class RichTextFigureTests
     public void ToStored_LeavesALinkedImageAlone()
     {
         var stored = RichTextFigure.ToStored(
-            "<p><a href=\"https://noose.info\"><img src=\"/dateien/textbilder/a\"></a></p>"
+            "<p><a href=\"https://fibhq.com\"><img src=\"/dateien/textbilder/a\"></a></p>"
             + "<p class=\"noose-bildtext\">Quelle</p>");
 
         Assert.DoesNotContain("<figure", stored);
-        Assert.Contains("href=\"https://noose.info\"", stored);
+        Assert.Contains("href=\"https://fibhq.com\"", stored);
     }
 
     [Fact]

@@ -27,7 +27,7 @@ public sealed class AcknowledgmentReminderTests
         var caseNo = Substitute.For<ICaseNumberService>();
         var next = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-N-2026-{++next:0000}");
+            .Returns(_ => $"FIB-N-2026-{++next:0000}");
         var notifications = Substitute.For<INotificationService>();
         var sent = new List<Reminder>();
         notifications
@@ -49,7 +49,7 @@ public sealed class AcknowledgmentReminderTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior(string id)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static Announcement Board(string id, DateTime? due, string createdBy = "lead",
         AnnouncementAudience audience = AnnouncementAudience.AllActive, Action<Announcement>? configure = null)
@@ -57,7 +57,7 @@ public sealed class AcknowledgmentReminderTests
         var a = new Announcement
         {
             Id = id,
-            CaseNumber = "NOOSE-N-2026-" + id,
+            CaseNumber = "FIB-N-2026-" + id,
             Title = "Dienstanweisung " + id,
             Content = string.Empty,
             Audience = audience,
@@ -156,7 +156,7 @@ public sealed class AcknowledgmentReminderTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee));
             db.Announcements.Add(Board("soon", Now.AddMinutes(1)));
             db.AnnouncementAcknowledgments.Add(Ack("soon", "a1"));
             db.SaveChanges();
@@ -176,11 +176,11 @@ public sealed class AcknowledgmentReminderTests
         using (var db = ctx.NewContext())
         {
             db.Users.AddRange(
-                Seed.Agent("a1", Rank.JuniorAgent),
-                Seed.Agent("done", Rank.JuniorAgent),
-                Seed.Agent("gone", Rank.JuniorAgent, AgentStatus.Terminated),
+                Seed.Agent("a1", Rank.Trainee),
+                Seed.Agent("done", Rank.Trainee),
+                Seed.Agent("gone", Rank.Trainee, AgentStatus.Terminated),
                 Seed.Agent("sup", Rank.Director, configure: a => a.IsTeamLead = true),
-                Seed.Agent("lspd", Rank.JuniorAgent, configure: a => a.PartnerAgency = PartnerAgency.LSPD));
+                Seed.Agent("lspd", Rank.Trainee, configure: a => a.PartnerAgency = PartnerAgency.LSPD));
             db.Announcements.Add(Board("due", Now));
             db.AnnouncementAcknowledgments.AddRange(
                 Ack("due", "a1"), Ack("due", "done", Now.AddDays(-1)), Ack("due", "gone"), Ack("due", "sup"),
@@ -205,7 +205,7 @@ public sealed class AcknowledgmentReminderTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee));
             db.Announcements.Add(Board("done", Now.AddHours(-1)));
             db.AnnouncementAcknowledgments.Add(Ack("done", "a1", Now.AddHours(-2)));
             db.SaveChanges();
@@ -224,7 +224,7 @@ public sealed class AcknowledgmentReminderTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee));
             db.Announcements.AddRange(
                 Board("open-ended", due: null),
                 Board("trashed", Now.AddDays(-1), configure: a => a.IsDeleted = true));
@@ -248,7 +248,7 @@ public sealed class AcknowledgmentReminderTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee));
             db.Announcements.AddRange(Board("first", Now.AddHours(-2)), Board("second", Now.AddHours(-1)));
             db.AnnouncementAcknowledgments.AddRange(Ack("first", "a1"), Ack("second", "a1"));
             db.SaveChanges();
@@ -271,7 +271,7 @@ public sealed class AcknowledgmentReminderTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("a1", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("a1", Rank.Trainee));
             db.Announcements.AddRange(Board("first", Now.AddHours(-2)), Board("second", Now.AddHours(-1)));
             db.AnnouncementAcknowledgments.AddRange(Ack("first", "a1"), Ack("second", "a1"));
             db.SaveChanges();
@@ -318,7 +318,7 @@ public sealed class AcknowledgmentReminderTests
                 a.IsTRU = true;
                 a.IsHRB = true;
             }));
-            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Taskforce", CaseNumber = "NOOSE-TF-2026-0001", CreatedAt = Now.AddDays(-30) });
+            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Taskforce", CaseNumber = "FIB-TF-2026-0001", CreatedAt = Now.AddDays(-30) });
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf", AgentId = "a1", CreatedAt = Now.AddDays(-30) });
             db.Announcements.Add(Board("due", Now.AddHours(-1), audience: audience, configure: a =>
             {
@@ -358,8 +358,8 @@ public sealed class AcknowledgmentReminderTests
             db.Users.AddRange(
                 Seed.Agent("lead", Rank.Director),
                 Seed.Agent("stays", Rank.SpecialAgent, configure: inside),
-                Seed.Agent("left", Rank.JuniorAgent));
-            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Taskforce", CaseNumber = "NOOSE-TF-2026-0001", CreatedAt = Now.AddDays(-30) });
+                Seed.Agent("left", Rank.Trainee));
+            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Taskforce", CaseNumber = "FIB-TF-2026-0001", CreatedAt = Now.AddDays(-30) });
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf", AgentId = "stays", CreatedAt = Now.AddDays(-30) });
             db.Announcements.Add(Board("due", Now.AddHours(-1), audience: audience, configure: a =>
             {
@@ -394,7 +394,7 @@ public sealed class AcknowledgmentReminderTests
         using (var db = ctx.NewContext())
         {
             db.Users.AddRange(Seed.Agent("lead", Rank.Director), Seed.Agent("boss", Rank.DeputyDirector));
-            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Taskforce", CaseNumber = "NOOSE-TF-2026-0001", CreatedAt = Now.AddDays(-30) });
+            db.Taskforces.Add(new Taskforce { Id = "tf", Name = "Taskforce", CaseNumber = "FIB-TF-2026-0001", CreatedAt = Now.AddDays(-30) });
             db.Announcements.Add(Board("due", Now.AddHours(-1), audience: AnnouncementAudience.Taskforce,
                 configure: a => a.TargetId = "tf"));
             db.AnnouncementAcknowledgments.Add(Ack("due", "boss"));
@@ -421,10 +421,10 @@ public sealed class AcknowledgmentReminderTests
         {
             db.Users.AddRange(
                 Seed.Agent("lead", Rank.Director),
-                Seed.Agent("demoted", Rank.JuniorAgent),
-                Seed.Agent("zulu", Rank.JuniorAgent, configure: a => a.Codename = "Zulu"),
-                Seed.Agent("alpha", Rank.JuniorAgent, configure: a => a.Codename = "Alpha"),
-                Seed.Agent("done", Rank.JuniorAgent));
+                Seed.Agent("demoted", Rank.Trainee),
+                Seed.Agent("zulu", Rank.Trainee, configure: a => a.Codename = "Zulu"),
+                Seed.Agent("alpha", Rank.Trainee, configure: a => a.Codename = "Alpha"),
+                Seed.Agent("done", Rank.Trainee));
             db.Announcements.AddRange(
                 Board("older", Now.AddDays(-2)),
                 Board("newer", Now.AddHours(-2)),

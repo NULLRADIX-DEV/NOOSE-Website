@@ -63,7 +63,7 @@ public sealed class PartnerInquiryTests : IDisposable
         using (var db = _ctx.NewContext())
         {
             db.Users.Add(Seed.Agent("lead", Rank.Director));
-            db.Users.Add(Seed.Agent("junior", Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("junior", Rank.Trainee));
             db.SaveChanges();
         }
 
@@ -129,7 +129,7 @@ public sealed class PartnerInquiryTests : IDisposable
     {
         Grant(PartnerFeature.ShareRequests);
         var id = await SubmitAsync();
-        var junior = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        var junior = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             NewService().ApprovePartnerInquiryAsync(junior, id, nameof(Person), "p1", false, false, null));
@@ -224,6 +224,6 @@ public sealed class PartnerInquiryTests : IDisposable
         await using var db = _ctx.NewContext();
         Assert.True(await Visibility.IsRecordVisibleAsync(db, "Request", id, ViewerScope.From(Leader())));
         Assert.False(await Visibility.IsRecordVisibleAsync(db, "Request", id,
-            ViewerScope.From(ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build())));
+            ViewerScope.From(ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build())));
     }
 }

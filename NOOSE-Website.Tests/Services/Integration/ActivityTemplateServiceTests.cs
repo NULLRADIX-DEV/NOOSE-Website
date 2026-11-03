@@ -16,9 +16,9 @@ public sealed class ActivityTemplateServiceTests
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // JuniorAgent: not leadership, not admin.
+    // Trainee: not leadership, not admin.
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ActivityTemplate NewTemplate(string id, string name, bool active = true, int sorting = 0)
         => new() { Id = id, Name = name, IsActive = active, Sorting = sorting };

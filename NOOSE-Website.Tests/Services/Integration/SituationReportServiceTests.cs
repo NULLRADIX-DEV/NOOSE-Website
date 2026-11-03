@@ -91,7 +91,7 @@ public sealed class SituationReportServiceTests
 
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("lead1", Rank.SupervisorySpecialAgent, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("lead1", Rank.SpecialAgentInCharge, AgentStatus.Active));
             db.Users.Add(Seed.Agent("lead2", Rank.Director, AgentStatus.Active));
             db.Users.Add(Seed.Agent("junior", Rank.SpecialAgent, AgentStatus.Active));      // below leadership
             db.Users.Add(Seed.Agent("inactive", Rank.Director, AgentStatus.Blocked));       // not active
@@ -330,7 +330,7 @@ public sealed class SituationReportServiceTests
         var (svc, _, _) = Build(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            svc.DeleteAsync("any", ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build()));
+            svc.DeleteAsync("any", ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build()));
     }
 
     // ---------- partner view ----------
@@ -341,11 +341,11 @@ public sealed class SituationReportServiceTests
     private static StatisticsReport RichReport() => SampleReport() with
     {
         MeasureOutcomes = [new DistributionSegment("Spritze", 3)],
-        TopPeople = [new StatisticsTopEntry("Max", "NOOSE-P-1", "/personen/p1", 80, HazardLevel.High)],
+        TopPeople = [new StatisticsTopEntry("Max", "FIB-P-1", "/personen/p1", 80, HazardLevel.High)],
         TopFactions =
         [
-            new StatisticsTopEntry("Ballas", "NOOSE-F-1", "/fraktionen/f-open", 70, HazardLevel.High),
-            new StatisticsTopEntry("Geheim", "NOOSE-F-2", "/fraktionen/f-hidden", 60, HazardLevel.Medium),
+            new StatisticsTopEntry("Ballas", "FIB-F-1", "/fraktionen/f-open", 70, HazardLevel.High),
+            new StatisticsTopEntry("Geheim", "FIB-F-2", "/fraktionen/f-hidden", 60, HazardLevel.Medium),
         ],
         TimeSeries = [new StatisticsMonth(2026, 1, "Jan", 5, 2)],
     };
@@ -454,6 +454,6 @@ public sealed class SituationReportServiceTests
         var (svc, _, _) = Build(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
-            svc.GetDisplayForAsync("any", ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build()));
+            svc.GetDisplayForAsync("any", ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build()));
     }
 }

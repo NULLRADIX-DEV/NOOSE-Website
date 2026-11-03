@@ -15,9 +15,9 @@ public class PersonMergeService(
 {
     public async Task MergeAsync(string sourceId, string targetId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLeadership(actor);
         // ExecuteUpdate bypasses the SaveChanges interceptor → gate read-only here explicitly
         Permission.RequireWriteAccess(actor);
+        Permission.RequireLeadership(actor);
 
         if (string.IsNullOrWhiteSpace(sourceId) || string.IsNullOrWhiteSpace(targetId) || sourceId == targetId)
         {
@@ -283,6 +283,15 @@ public class PersonMergeService(
         // classified status carries over to the merged record
         var targetBecomesRestricted = !target.IsRestricted && source.IsClassified;
         target.IsClassified = target.IsClassified || source.IsClassified;
+        // wanted flag survives, else the merge lifts it with no reason
+        if (source.IsWanted)
+        {
+            target.IsWanted = true;
+            if (string.IsNullOrWhiteSpace(target.WantedReason))
+            {
+                target.WantedReason = source.WantedReason;
+            }
+        }
         // target's classification/life status left untouched (rank-gated)
 
         // leave a trail on the target record beyond the audit log
@@ -307,6 +316,8 @@ public class PersonMergeService(
 
         // ---- send source record to the trash (interceptor soft-deletes) ----
         db.People.Remove(source);
+        // merge is the reason
+        CriticalChange.NoteDeletion(db, nameof(Person), sourceId, MergeReason(target), actor);
 
         await db.SaveChangesAsync(cancellationToken);
 
@@ -318,4 +329,10 @@ public class PersonMergeService(
             await publicWanted.RetractForRecordAsync(targetId, "Akte als Verschlusssache eingestuft.", actor, cancellationToken);
         }
     }
+
+    /// <summary>Deletion reason on the source; names the target only when every agent may read it.</summary>
+    private static string MergeReason(Person target)
+        => target.IsRestricted
+            ? "Zusammengeführt in eine andere Akte (Duplikat)."
+            : $"Zusammengeführt in „{target.Name}“ ({target.CaseNumber}).";
 }

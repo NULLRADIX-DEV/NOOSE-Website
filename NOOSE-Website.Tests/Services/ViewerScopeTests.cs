@@ -142,7 +142,7 @@ public sealed class ViewerScopeTests
     [Fact]
     public void From_ActiveAgentWithoutRank_SetsOnlyMeId()
     {
-        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent("agent-7").WithRank(Rank.JuniorAgent));
+        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent("agent-7").WithRank(Rank.Trainee));
 
         Assert.Equal("agent-7", scope.MeId);
         Assert.False(scope.MayClassifiedRead);
@@ -164,7 +164,7 @@ public sealed class ViewerScopeTests
     [Fact]
     public void From_LeadershipRank_SetsClassifiedTaskforcesLeadershipAndAgenda()
     {
-        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent));
+        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
 
         Assert.True(scope.MayClassifiedRead);
         Assert.True(scope.MayAllTaskforces);
@@ -215,7 +215,7 @@ public sealed class ViewerScopeTests
     [Fact]
     public void From_Tru_SetsIsTruAndSeesTruDocs()
     {
-        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsTru());
+        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsTru());
 
         Assert.True(scope.IsTru);
         Assert.False(scope.IsHrb);
@@ -228,7 +228,7 @@ public sealed class ViewerScopeTests
     [Fact]
     public void From_Hrb_SetsIsHrbAndRecruiting()
     {
-        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent).AsHrb());
+        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsHrb());
 
         Assert.True(scope.IsHrb);
         Assert.False(scope.IsTru);

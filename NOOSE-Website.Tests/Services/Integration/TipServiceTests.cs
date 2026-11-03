@@ -77,7 +77,7 @@ public sealed class TipServiceTests
         var seq = 0;
         var caseNumbers = Substitute.For<ICaseNumberService>();
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++seq:0000}");
 
         var tipPriority = new TipPriorityService(factory);
         var wanted = new PublicWantedService(factory, modules, caseNumbers,
@@ -118,7 +118,7 @@ public sealed class TipServiceTests
 
         db.People.Add(Seed.Person(PersonId, "Max Mustermann", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0001";
+            p.CaseNumber = "FIB-P-2026-0001";
             p.WantedReason = "Verdacht auf Waffenhandel";
         }));
 
@@ -182,7 +182,7 @@ public sealed class TipServiceTests
         {
             db.People.Add(Seed.Person(personId, $"Gesuchter {index}", p =>
             {
-                p.CaseNumber = $"NOOSE-P-2026-90{index:00}";
+                p.CaseNumber = $"FIB-P-2026-90{index:00}";
                 p.WantedReason = "Verdacht auf Raub";
             }));
             await db.SaveChangesAsync();
@@ -327,12 +327,30 @@ public sealed class TipServiceTests
 
         var caseNumber = await SubmitAsync(host);
 
-        Assert.StartsWith("NOOSE-H-", caseNumber, StringComparison.Ordinal);
+        Assert.StartsWith("FIB-H-", caseNumber, StringComparison.Ordinal);
         await using var db = ctx.NewContext();
         var row = await db.Hinweise.SingleAsync();
         Assert.Equal(ProfileId, row.CitizenProfileId);
         Assert.Equal(TipStatus.Neu, row.Status);
         Assert.Null(row.WantedId);
+    }
+
+    [Fact]
+    public async Task A_legacy_NOOSE_number_still_opens_the_own_tip_and_the_notice_it_names()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var notice = await PublishedNoticeAsync(host);
+
+        // a poster from before the rename names the notice, a saved link names the tip
+        var caseNumber = await SubmitAsync(host, reference: notice.Replace("FIB-", "NOOSE-", StringComparison.Ordinal));
+        var legacy = caseNumber.Replace("FIB-", "NOOSE-", StringComparison.Ordinal);
+
+        var detail = await host.Service.GetOwnDetailAsync(legacy, Citizen());
+
+        Assert.Equal(caseNumber, detail!.CaseNumber);
+        Assert.Equal(notice, detail.WantedCaseNumber);
+        Assert.Null(await host.Service.GetOwnDetailAsync("NOOSE-H-2026-9999", Citizen()));
     }
 
     [Fact]
@@ -544,7 +562,7 @@ public sealed class TipServiceTests
         await host.Wanted.CreateDraftFromPersonAsync(PersonId, Leader());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => SubmitAsync(host, reference: "NOOSE-FA-2026-0001"));
+            () => SubmitAsync(host, reference: "FIB-FA-2026-0001"));
     }
 
     // ---- anonymity ----

@@ -296,7 +296,7 @@ public sealed class FindingWatchTests : IDisposable
         var notice = Notices("lead1").Single();
         Assert.Equal(NotificationType.NooseiAnomaly, notice.Type);
         Assert.Equal("/einstellungen?tab=ki-kontingente", notice.Href);
-        Assert.Equal($"NOOSEI: 1 neue Auffälligkeit ({LlmAnomalyKindDisplay.Name(LlmAnomalyKind.BurnRate)})",
+        Assert.Equal($"FIBI: 1 neue Auffälligkeit ({LlmAnomalyKindDisplay.Name(LlmAnomalyKind.BurnRate)})",
             notice.Title);
 
         _snapshot = new LlmAnomalySnapshot(Week, [Flag("a1", LlmAnomalyKind.BurnRate, CounterIntelSeverity.High)]);
@@ -368,7 +368,7 @@ public sealed class FindingWatchTests : IDisposable
         SeedRule("Massen");
         Reads("a1", 3);
         await _watch.RunAsync(DateTime.UtcNow);
-        var junior = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        var junior = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
         var supervision = ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build();
 
         Assert.Empty((await _watch.GetUnseenAsync(junior, FindingSource.Rule)).Slots);
@@ -410,14 +410,14 @@ public sealed class FindingWatchTests : IDisposable
         using var db = _ctx.NewContext();
         db.Users.AddRange(
             Seed.Agent("lead1", Rank.Director),
-            Seed.Agent("lead2", Rank.SupervisorySpecialAgent),
-            Seed.Agent("admin", Rank.JuniorAgent, configure: a => a.IsAdmin = true),
-            Seed.Agent("junior", Rank.JuniorAgent),
+            Seed.Agent("lead2", Rank.SpecialAgentInCharge),
+            Seed.Agent("admin", Rank.Trainee, configure: a => a.IsAdmin = true),
+            Seed.Agent("junior", Rank.Trainee),
             Seed.Agent("tl", Rank.Director, configure: a => a.IsTeamLead = true),
             Seed.Agent("partner", Rank.Director, configure: a => a.PartnerAgency = PartnerAgency.LSPD),
             Seed.Agent(DemoIdentity.AgentId, Rank.Director),
-            Seed.Agent("a1", Rank.JuniorAgent),
-            Seed.Agent("a2", Rank.JuniorAgent));
+            Seed.Agent("a1", Rank.Trainee),
+            Seed.Agent("a2", Rank.Trainee));
         db.SaveChanges();
     }
 

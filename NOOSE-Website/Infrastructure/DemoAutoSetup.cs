@@ -61,6 +61,8 @@ public static class DemoAutoSetup
         identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, DemoIdentity.AgentId));
         identity.AddClaim(new Claim(AgentClaimTypes.Status, Models.Enums.AgentStatus.Active.ToString()));
         identity.AddClaim(new Claim(AgentClaimTypes.Rank, ((int)Models.Enums.Rank.Director).ToString()));
+        identity.AddClaim(new Claim(AgentClaimTypes.Division, ((int)Models.Enums.Division.Cid).ToString()));
+        identity.AddClaim(new Claim(AgentClaimTypes.IsTRU, "false"));
         return new ClaimsPrincipal(identity);
     }
 }

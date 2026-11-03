@@ -27,6 +27,7 @@ public class AuditEntityDisplayTests
     [InlineData("MeetingAttendance", "Anwesenheit")]
     [InlineData("MeetingSignOff", "Abmeldung (Besprechung)")]
     [InlineData("Absence", "Abmeldung")]
+    [InlineData("FirearmUse", "Schusswaffengebrauch")]
     [InlineData("SystemSetting", "Systemeinstellung")]
     [InlineData("BuergerProfil", "Bürgerkonto")]
     [InlineData("OeffentlichesModul", "Öffentliches Modul")]
@@ -94,6 +95,13 @@ public class AuditEntityDisplayTests
     {
         Assert.Equal("/abmeldungen/uebersicht", AuditEntityDisplay.Route("Absence", "any-id"));
         Assert.Equal("/abmeldungen/uebersicht", AuditEntityDisplay.Route("Absence", string.Empty));
+    }
+
+    [Fact]
+    public void Route_FirearmUse_ReturnsTheOverviewIgnoringId()
+    {
+        Assert.Equal("/schusswaffengebrauch", AuditEntityDisplay.Route("FirearmUse", "any-id"));
+        Assert.Equal("/schusswaffengebrauch", AuditEntityDisplay.Route("FirearmUse", string.Empty));
     }
 
     [Theory]

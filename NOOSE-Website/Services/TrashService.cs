@@ -41,7 +41,8 @@ public sealed class TrashService(
     IChangelogService changelog,
     IHandbookService handbook,
     ILawService laws,
-    IPresentationService presentations) : ITrashService
+    IPresentationService presentations,
+    IFirearmUseService firearmUses) : ITrashService
 {
     /// <summary>Loading and restoring for one record type; Restore stays a domain-service call.</summary>
     private sealed record TrashSource(
@@ -86,6 +87,9 @@ public sealed class TrashService(
             absences.GetTrashAsync, TrashProjection.Absence, absences.RestoreAsync),
         Source(new TrashKind("entfuehrungen", "Entführungen", Icons.Material.Filled.PersonOff, "/entfuehrungen"),
             abductions.GetTrashAsync, TrashProjection.Abduction, abductions.RestoreAsync),
+        Source(new TrashKind("schusswaffengebrauch", "Schusswaffengebrauch", Icons.Material.Filled.GpsFixed,
+                "/schusswaffengebrauch"),
+            firearmUses.GetTrashAsync, TrashProjection.FirearmUse, firearmUses.RestoreAsync),
         Source(new TrashKind("praesentationen", "Präsentationen", Icons.Material.Filled.CoPresent, "/praesentationen"),
             presentations.GetTrashAsync, TrashProjection.Presentation, presentations.RestoreAsync),
         Source(new TrashKind("informanten", "Informanten", Icons.Material.Filled.VisibilityOff, "/informanten"),

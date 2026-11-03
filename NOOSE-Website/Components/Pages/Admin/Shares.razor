@@ -14,7 +14,7 @@
 @using NOOSE_Website.Models.Enums
 @using NOOSE_Website.Models.Public
 
-<PageTitle>Freigaben · NOOSE</PageTitle>
+<PageTitle>Freigaben · FIB</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
     <MudIcon Icon="@Icons.Material.Filled.HowToReg" Color="Color.Primary" Size="Size.Large" />
@@ -189,8 +189,8 @@ else
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.DiscordUsername ?? x.DiscordId)">Discord</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.RegisteredAt)">Registriert</MudTableSortLabel></MudTh>
                 <MudTh Style="min-width:220px;"><MudTableSortLabel T="Agent" SortBy="@(x => (int)Selection(x.Id).Degree)">Dienstgrad</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Tru)">TRU</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Hrb)">HRB</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => (int)Selection(x.Id).Home)">Abteilung</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Hrb)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
                 <MudTh Style="min-width:170px;">Partner</MudTh>
                 <MudTh Style="text-align:right;">Aktion</MudTh>
             </HeaderContent>
@@ -207,20 +207,34 @@ else
                 <MudTd DataLabel="Dienstgrad">
                     <MudSelect T="Rank" @bind-Value="Selection(context.Id).Degree" Dense="true" Margin="Margin.Dense"
                                Variant="Variant.Outlined">
-                        @foreach (var dg in RankDisplay.All)
+                        @foreach (var dg in RankOptions(Selection(context.Id)))
                         {
-                            <MudSelectItem Value="dg">@RankDisplay.Name(dg)</MudSelectItem>
+                            <MudSelectItem Value="dg">@RankDisplay.Name(dg, Selection(context.Id).Partner is null ? Selection(context.Id).Home : null)</MudSelectItem>
                         }
                     </MudSelect>
                 </MudTd>
-                <MudTd DataLabel="TRU">
-                    <MudTooltip Text="@DepartmentHint" Disabled="Selection(context.Id).DepartmentsOpen">
-                        <MudCheckBox T="bool" @bind-Value="Selection(context.Id).Tru" Color="Color.Primary"
-                                     Disabled="@(!Selection(context.Id).DepartmentsOpen)" />
-                    </MudTooltip>
+                <MudTd DataLabel="Abteilung">
+                    <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
+                        <Authorized>
+                            <MudTooltip Text="@DivisionRules.PickerHint(Selection(context.Id).Degree)"
+                                        Disabled="@(DivisionRules.PickerHint(Selection(context.Id).Degree) is null)">
+                                <MudSelect T="Division" @bind-Value="Selection(context.Id).Home" Dense="true" Margin="Margin.Dense"
+                                           Variant="Variant.Outlined" Style="min-width:110px;">
+                                    @foreach (var d in DivisionDisplay.All)
+                                    {
+                                        <MudSelectItem Value="d" Disabled="@(!DivisionRules.MayHold(d, Selection(context.Id).Degree))">@DivisionDisplay.Short(d)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudTooltip>
+                        </Authorized>
+                        <NotAuthorized>
+                            @* fixed division *@
+                            <MudText Typo="Typo.body2">@DivisionDisplay.Short(Selection(context.Id).Home)</MudText>
+                        </NotAuthorized>
+                    </AuthorizeView>
                 </MudTd>
-                <MudTd DataLabel="HRB">
-                    <MudTooltip Text="@DepartmentHint" Disabled="Selection(context.Id).DepartmentsOpen">
+                <MudTd DataLabel="@DepartmentRules.ColumnLabel">
+                    <MudTooltip Text="@DepartmentRules.Hint" Disabled="Selection(context.Id).DepartmentsOpen">
                         <MudCheckBox T="bool" @bind-Value="Selection(context.Id).Hrb" Color="Color.Info"
                                      Disabled="@(!Selection(context.Id).DepartmentsOpen)" />
                     </MudTooltip>
@@ -260,7 +274,7 @@ else
 
     <MudText Typo="Typo.h6" Class="mb-2">Namensänderungen</MudText>
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
-        Selbst beantragte Stammdatenänderungen von Agenten unterhalb Supervisory. Beim Genehmigen werden die
+        Selbst beantragte Stammdatenänderungen von Agenten unterhalb Special Agent in Charge. Beim Genehmigen werden die
         Werte übernommen; der Agent sieht den neuen Namen beim nächsten Login.
     </MudText>
     @if (_nameChanges.Count == 0)
@@ -309,7 +323,7 @@ else
 
     <MudText Typo="Typo.h6" Class="mb-2">Profilbilder</MudText>
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
-        Selbst eingereichte Profilbilder von Agenten unterhalb Supervisory. Beim Genehmigen wird das Bild
+        Selbst eingereichte Profilbilder von Agenten unterhalb Special Agent in Charge. Beim Genehmigen wird das Bild
         sofort überall sichtbar; beim Ablehnen wird es verworfen.
     </MudText>
     @if (_avatars.Count == 0)
@@ -403,8 +417,9 @@ else
 
     <MudText Typo="Typo.h6" Class="mb-2">Beförderungsanträge</MudText>
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
-        Beantragte Beförderungen. Die Entscheidung trifft Deputy Director aufwärts bzw. ein Admin; bei Genehmigung
-        wird der Rang gesetzt und der betroffene Agent muss sich neu anmelden.
+        Beantragte Beförderungen. Entscheiden dürfen ab Assistant Director alle Anträge, ein Section Chief die Anträge
+        der eigenen Abteilung bis unter Section Chief (und Admins); bei Genehmigung wird der Rang gesetzt und der
+        betroffene Agent muss sich neu anmelden.
     </MudText>
     @if (_openPromotions.Count == 0)
     {
@@ -432,15 +447,22 @@ else
                 <MudTd DataLabel="Aktion" Style="text-align:right;">
                     <AuthorizeView Policy="@Policies.PromotionDecideWrite" Context="auth">
                         <Authorized>
-                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                                       StartIcon="@Icons.Material.Filled.Check" Class="mr-2"
-                                       OnClick="() => PromotionDecide(context, true)">Genehmigen</MudButton>
-                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
-                                       StartIcon="@Icons.Material.Filled.Close"
-                                       OnClick="() => PromotionDecide(context, false)">Ablehnen</MudButton>
+                            @if (MayDecide(context))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                           StartIcon="@Icons.Material.Filled.Check" Class="mr-2"
+                                           OnClick="() => PromotionDecide(context, true)">Genehmigen</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.Close"
+                                           OnClick="() => PromotionDecide(context, false)">Ablehnen</MudButton>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">Entscheidung: ab Assistant Director</MudText>
+                            }
                         </Authorized>
                         <NotAuthorized>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Entscheidung: Deputy Director+/Admin</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Entscheidung: ab Section Chief / Admin</MudText>
                         </NotAuthorized>
                     </AuthorizeView>
                 </MudTd>
@@ -451,7 +473,7 @@ else
 
     <MudText Typo="Typo.h6" Class="mb-2">Partner-Freigabe-Anträge</MudText>
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
-        Agenten unterhalb Supervisory können beantragen, dass eine Akte für eine Partnerbehörde oder einen einzelnen
+        Agenten unterhalb Special Agent in Charge können beantragen, dass eine Akte für eine Partnerbehörde oder einen einzelnen
         Partner freigegeben wird. Bei Genehmigung wird die Freigabe automatisch gesetzt.
     </MudText>
     @if (_openPartnerRequests.Count == 0)
@@ -564,17 +586,23 @@ else
     private List<Taskforce> _requestedTaskforces = new();
     private List<AgentPromotionRequest> _openPromotions = new();
     private Dictionary<string, string> _agentNames = new();
+    private Dictionary<string, Agent> _agents = new();
     private ClaimsPrincipal _user = default!;
+    private PromotionStanding _standing;
+    private bool _mayPickDivision;
     private readonly Dictionary<string, SelectionState> _selection = new();
-
-    private const string DepartmentHint =
-        "TRU und HRB sind laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
 
     private sealed class SelectionState
     {
-        private Rank _degree = Rank.JuniorAgent;
+        private Rank _degree;
 
-        /// <summary>Picking a rank below the threshold drops the departments with it, so the release cannot fail on save.</summary>
+        public SelectionState(Division home, Rank degree)
+        {
+            Home = home;
+            _degree = degree;
+        }
+
+        /// <summary>Picking a rank below the threshold drops the HRT and the flag with it, so the release cannot fail on save.</summary>
         public Rank Degree
         {
             get => _degree;
@@ -583,16 +611,19 @@ else
                 _degree = value;
                 if (!DepartmentRules.MayHold(_degree))
                 {
-                    Tru = false;
                     Hrb = false;
+                }
+                if (!DivisionRules.MayHold(Home, _degree))
+                {
+                    Home = Division.Cid;
                 }
             }
         }
 
-        /// <summary>Mirrors DepartmentRules.MayHold for the two checkboxes.</summary>
+        /// <summary>Mirrors DepartmentRules.MayHold for the flag checkbox.</summary>
         public bool DepartmentsOpen => DepartmentRules.MayHold(_degree);
 
-        public bool Tru { get; set; }
+        public Division Home { get; set; }
         public bool Hrb { get; set; }
         // non-null = release as partner
         public PartnerAgency? Partner { get; set; }
@@ -603,7 +634,11 @@ else
     {
         if (!_selection.TryGetValue(agentId, out var state))
         {
-            state = new SelectionState();
+            // no picker: own division or CID
+            var home = _mayPickDivision ? Division.Cid : PromotionRules.ReleaseDivision(_standing);
+            var first = PromotionRules.AssignableRanks(_standing, home, null)
+                .Cast<Rank?>().FirstOrDefault(r => DivisionRules.MayHold(home, r)) ?? Rank.Trainee;
+            state = new SelectionState(home, first);
             _selection[agentId] = state;
         }
         return state;
@@ -612,8 +647,19 @@ else
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
+        _standing = PromotionStanding.Of(_user);
+        _mayPickDivision = _user.MayWrite() && _user.MayDivisionSet();
         await LoadAsync();
     }
+
+    /// <summary>Ranks the actor may release this account as.</summary>
+    private IEnumerable<Rank> RankOptions(SelectionState state)
+        => PromotionRules.AssignableRanks(_standing, state.Home, null)
+            .Where(r => _mayPickDivision || DivisionRules.MayHold(state.Home, r));
+
+    /// <summary>Row buttons follow the service predicate.</summary>
+    private bool MayDecide(AgentPromotionRequest request)
+        => PromotionRules.MayDecide(_standing, _agents.GetValueOrDefault(request.AgentId), request.TargetRank);
 
     private async Task LoadAsync()
     {
@@ -634,8 +680,10 @@ else
             _nameChanges = await AgentService.GetPendingNameChangesAsync();
             _avatars = await AgentService.GetPendingAvatarsAsync();
             _requestedTaskforces = await TaskforceService.GetRequestedAsync();
-            _openPromotions = await PersonnelFileService.GetOpenPromotionRequestsAsync();
-            _agentNames = (await AgentService.GetAllAsync())
+            _openPromotions = await PersonnelFileService.GetOpenPromotionRequestsAsync(_user);
+            var everyone = await AgentService.GetAllAsync();
+            _agents = everyone.ToDictionary(a => a.Id);
+            _agentNames = everyone
                 .ToDictionary(a => a.Id, a => string.IsNullOrWhiteSpace(a.Codename) ? "Unbenannter Agent" : a.Codename);
             foreach (var agent in _pending)
             {
@@ -757,7 +805,11 @@ else
             }
             else
             {
-                await AgentService.ReleaseAsync(agent.Id, selection.Degree, selection.Tru, selection.Hrb, _user);
+                if (!await DivisionLimitConfirm.RunAsync(DialogService, confirm =>
+                        AgentService.ReleaseAsync(agent.Id, selection.Degree, selection.Home, selection.Hrb, confirm, _user)))
+                {
+                    return;
+                }
                 Snackbar.Add($"{DisplayName(agent)} als {RankDisplay.Name(selection.Degree)} freigegeben.", Severity.Success);
             }
         }
@@ -904,10 +956,13 @@ else
     {
         try
         {
-            await AgentService.PromotionDecideAsync(request.Id, approved, null, _user);
-            Snackbar.Add(approved
-                ? $"Beförderung von {AgentName(request.AgentId)} genehmigt."
-                : $"Beförderungsantrag von {AgentName(request.AgentId)} abgelehnt.", approved ? Severity.Success : Severity.Info);
+            if (await DivisionLimitConfirm.RunAsync(DialogService,
+                    confirm => AgentService.PromotionDecideAsync(request.Id, approved, null, confirm, _user)))
+            {
+                Snackbar.Add(approved
+                    ? $"Beförderung von {AgentName(request.AgentId)} genehmigt."
+                    : $"Beförderungsantrag von {AgentName(request.AgentId)} abgelehnt.", approved ? Severity.Success : Severity.Info);
+            }
         }
         catch (Exception ex)
         {

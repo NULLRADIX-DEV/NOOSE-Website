@@ -9,17 +9,17 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="TrainingModuleService"/> against in-memory SQLite.</summary>
 public sealed class TrainingModuleServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) OR admin => IsLeadership() => passes RequireLeadership.
+    // Rank >= SpecialAgentInCharge(4) OR admin => IsLeadership() => passes RequireLeadership.
     private static ClaimsPrincipal Leader(string id = "lead", string codename = "Falcon")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).WithCodename(codename).Build();
 
     // Junior agent: not leadership, not admin => fails RequireLeadership.
     private static ClaimsPrincipal NonLeader(string id = "plain")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // HRB is rank-independent: this account may tick a module off but may not administer the catalogue.
     private static ClaimsPrincipal JuniorHrb(string id = "hrb")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).WithCodename("Sparrow").AsHrb().Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).WithCodename("Sparrow").AsHrb().Build();
 
     // Read-only supervision: reads everything, writes nothing. Leadership by rank, refused by the write check.
     private static ClaimsPrincipal OnlyReader(string id = "aufsicht")

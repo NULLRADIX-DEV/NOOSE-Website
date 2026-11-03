@@ -8,7 +8,7 @@ namespace NOOSE_Website.Tests.Services.Public;
 public class PressDraftTextTests
 {
     private static PublicWantedCard Card(string name, PublicWantedKind kind = PublicWantedKind.Fahndung)
-        => new("NOOSE-FA-2026-0001", kind, name, null, false, HazardLevel.Medium, DateTime.UtcNow, []);
+        => new("FIB-FA-2026-0001", kind, name, null, false, HazardLevel.Medium, DateTime.UtcNow, []);
 
     [Fact]
     public void ForCapture_NamesTheSubjectAndThePublicCaseNumber()
@@ -16,8 +16,8 @@ public class PressDraftTextTests
         var (title, teaser, html) = PressDraftText.ForCapture(Card("Frank Miller"));
 
         Assert.Contains("Frank Miller", title, StringComparison.Ordinal);
-        Assert.Contains("NOOSE-FA-2026-0001", teaser, StringComparison.Ordinal);
-        Assert.Contains("NOOSE-FA-2026-0001", html, StringComparison.Ordinal);
+        Assert.Contains("FIB-FA-2026-0001", teaser, StringComparison.Ordinal);
+        Assert.Contains("FIB-FA-2026-0001", html, StringComparison.Ordinal);
     }
 
     [Fact]

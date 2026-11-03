@@ -1,4 +1,4 @@
-@* Picks several agents for one ticket at once, singly or by direction (TRU/HRB). *@
+@* Picks several agents for one ticket at once, singly or by direction (CID, CTD, HRT, Administration Division). *@
 @inject IAgentManagementService AgentService
 
 <MudDialog>
@@ -20,7 +20,7 @@
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">(@a.RealName)</MudText>
                         }
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(a.PartnerAgency is { } ag ? PartnerRankDisplay.Full(ag, a.PartnerRank) : RankDisplay.Name(a.Rank))</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(a.PartnerAgency is { } ag ? PartnerRankDisplay.Full(ag, a.PartnerRank) : DivisionRules.RankName(a))</MudText>
                         @if (Direction(a) is { } unit)
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary">@unit</MudChip>
@@ -32,12 +32,15 @@
             <MudStack Spacing="1">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">Ganze Direktion übernehmen</MudText>
                 <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    @foreach (var division in DivisionDisplay.All)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Groups" Disabled="@(DivisionOpen(division).Count == 0)"
+                                   OnClick="@(() => PickMany(DivisionOpen(division)))">@DivisionDisplay.Short(division) (@DivisionOpen(division).Count)</MudButton>
+                    }
                     <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
-                               StartIcon="@Icons.Material.Filled.Groups" Disabled="@(TruOpen.Count == 0)"
-                               OnClick="@(() => PickMany(TruOpen))">TRU (@TruOpen.Count)</MudButton>
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary"
-                               StartIcon="@Icons.Material.Filled.Groups" Disabled="@(HrbOpen.Count == 0)"
-                               OnClick="@(() => PickMany(HrbOpen))">HRB (@HrbOpen.Count)</MudButton>
+                               StartIcon="@Icons.Material.Filled.Groups" Disabled="@(AdministrationOpen.Count == 0)"
+                               OnClick="@(() => PickMany(AdministrationOpen))">@DepartmentRules.ColumnLabel (@AdministrationOpen.Count)</MudButton>
                 </MudStack>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     Die Zahl ist der Stand von jetzt: beteiligt werden die Agents, die gerade in der Direktion sind.
@@ -84,9 +87,10 @@
     private List<Agent> _all = [];
     private Agent? _selected;
 
-    private List<Agent> TruOpen => Open(a => a.IsTRU);
+    /// <summary>Agents seated in the division (the Board is a seat of its own) and not yet picked.</summary>
+    private List<Agent> DivisionOpen(Division division) => Open(a => DivisionRules.IsMember(a, division));
 
-    private List<Agent> HrbOpen => Open(a => a.IsHRB);
+    private List<Agent> AdministrationOpen => Open(a => a.IsHRB);
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,14 +102,21 @@
     private List<Agent> Open(Func<Agent, bool> unit)
         => _all.Where(unit).Where(a => _picked.All(p => p.Id != a.Id)).ToList();
 
+    /// <summary>Division (or Board) and the Administration flag, as the buttons above group them.</summary>
     private static string? Direction(Agent a)
-        => (a.IsTRU, a.IsHRB) switch
+    {
+        var unit = DivisionRules.Of(a);
+        var parts = new List<string>();
+        if (!unit.IsNone)
         {
-            (true, true) => "TRU · HRB",
-            (true, false) => "TRU",
-            (false, true) => "HRB",
-            _ => null,
-        };
+            parts.Add(DivisionRules.Label(unit));
+        }
+        if (a.IsHRB)
+        {
+            parts.Add(DepartmentRules.ColumnLabel);
+        }
+        return parts.Count == 0 ? null : string.Join(" · ", parts);
+    }
 
     private Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
     {

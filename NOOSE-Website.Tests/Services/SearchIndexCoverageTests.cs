@@ -98,7 +98,7 @@ public class SearchIndexCoverageTests
     public void The_backfill_version_is_bumped_whenever_the_projection_changes()
     {
         const int sideIndexedAtLastBump = 13;
-        const int versionAtLastBump = 4;
+        const int versionAtLastBump = 5;
 
         var sideIndexed = SearchCatalog.Categories.Count(c => c.Has(SearchTraits.SideIndexed));
 

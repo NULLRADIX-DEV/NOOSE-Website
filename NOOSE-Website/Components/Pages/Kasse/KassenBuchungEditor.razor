@@ -6,11 +6,11 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 
-<PageTitle>@(IsEdit ? "Buchung bearbeiten" : "Neue Buchung") · NOOSE</PageTitle>
+<PageTitle>@(IsEdit ? "Buchung bearbeiten" : "Neue Buchung") · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.ReceiptLong"
             Title="@(IsEdit ? "Buchung bearbeiten" : "Neue Buchung")"
-            Subtitle="Ein- oder Auszahlung bzw. Korrektur einer NOOSE-Kasse."
+            Subtitle="Ein- oder Auszahlung bzw. Korrektur einer FIB-Kasse."
             BackHref="@(IsEdit ? $"/kasse/buchung/{Id}" : "/kasse")" />
 
 @if (_load)
@@ -83,7 +83,7 @@ else
                                  Adornment="Adornment.End" AdornmentText="$" HideSpinButtons="true" />
 
                 <MudTextField T="string" @bind-Value="_input.Reason" Label="Verwendungszweck (Grund)" Variant="Variant.Outlined"
-                              MaxLength="500" Placeholder="z. B. NOOSE-Ankündigung, Beschlagnahme TV" />
+                              MaxLength="500" Placeholder="z. B. FIB-Ankündigung, Beschlagnahme TV" />
 
                 <MudGrid>
                     <MudItem xs="12" md="6">

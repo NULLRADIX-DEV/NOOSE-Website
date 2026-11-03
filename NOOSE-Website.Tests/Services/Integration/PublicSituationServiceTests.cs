@@ -287,17 +287,59 @@ public sealed class PublicSituationServiceTests
 
     // --- storage shape and bookkeeping ---------------------------------------------------------------------------
 
-    [Fact]
-    public async Task TheLevel_IsStoredByItsKeyAndNotByItsGermanLabel()
+    [Theory]
+    [InlineData(PublicSituationLevel.Niedrig, "Niedrig")]
+    [InlineData(PublicSituationLevel.Erhoeht, "Erhoeht")]
+    [InlineData(PublicSituationLevel.Hoch, "Hoch")]
+    [InlineData(PublicSituationLevel.Schwer, "Schwer")]
+    [InlineData(PublicSituationLevel.Kritisch, "Kritisch")]
+    public async Task TheLevel_IsStoredByItsKeyAndNotByItsDefconLabel(PublicSituationLevel level, string key)
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
 
-        // Erhoeht on purpose: it is the level whose stored key and German label differ, so this is the only value
-        // that can tell the two apart. A bare "1" would say nothing to whoever reads the settings table.
-        await host.Service.SetAsync(new PublicSituationInput { Level = PublicSituationLevel.Erhoeht }, Leader());
+        // a bare number would say nothing to whoever reads the settings table
+        await host.Service.SetAsync(new PublicSituationInput { Level = level }, Leader());
 
-        Assert.Equal("Erhoeht", await ReadAsync(ctx, SystemSettingKeys.PublicSituationLevel));
+        Assert.Equal(key, await ReadAsync(ctx, SystemSettingKeys.PublicSituationLevel));
+        Assert.NotEqual(PublicSituationLevelDisplay.Name(level),
+            await ReadAsync(ctx, SystemSettingKeys.PublicSituationLevel));
+    }
+
+    [Fact]
+    public async Task TheFifthLevel_RoundTripsAsLevelAndAsPredecessor()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        await host.Service.SetAsync(new PublicSituationInput { Level = PublicSituationLevel.Hoch }, Leader());
+
+        await host.Service.SetAsync(new PublicSituationInput { Level = PublicSituationLevel.Schwer }, Leader());
+
+        var state = await host.Service.GetPublishedAsync();
+        Assert.Equal(PublicSituationLevel.Schwer, state!.Level);
+        Assert.Equal(PublicSituationLevel.Hoch, state.Previous);
+
+        await host.Service.SetAsync(new PublicSituationInput { Level = PublicSituationLevel.Kritisch }, Leader());
+
+        state = await host.Service.GetPublishedAsync();
+        Assert.Equal(PublicSituationLevel.Kritisch, state!.Level);
+        Assert.Equal(PublicSituationLevel.Schwer, state.Previous);
+        Assert.Equal("Schwer", await ReadAsync(ctx, SystemSettingKeys.PublicSituationPrevious));
+    }
+
+    [Fact]
+    public async Task AFourLevelRowStoredBeforeTheFifth_StillReadsTheSame()
+    {
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        // rows written before DEFCON 2 existed: the four old keys and nothing else
+        await PutAsync(ctx, SystemSettingKeys.PublicSituationLevel, "Kritisch");
+        await PutAsync(ctx, SystemSettingKeys.PublicSituationPrevious, "Hoch");
+
+        var state = await host.Service.GetPublishedAsync();
+
+        Assert.Equal(PublicSituationLevel.Kritisch, state!.Level);
+        Assert.Equal(PublicSituationLevel.Hoch, state.Previous);
     }
 
     [Fact]

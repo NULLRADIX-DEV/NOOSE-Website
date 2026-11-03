@@ -12,11 +12,11 @@ public sealed class DecorationRulesTests
 
     [Fact]
     public void A_first_rank_is_an_appointment()
-        => Assert.Equal(CertificateKind.Appointment, DecorationRules.RankCertificateKind(null, Rank.JuniorAgent));
+        => Assert.Equal(CertificateKind.Appointment, DecorationRules.RankCertificateKind(null, Rank.Trainee));
 
     [Fact]
     public void A_higher_rank_is_a_promotion()
-        => Assert.Equal(CertificateKind.Promotion, DecorationRules.RankCertificateKind(Rank.JuniorAgent, Rank.SpecialAgent));
+        => Assert.Equal(CertificateKind.Promotion, DecorationRules.RankCertificateKind(Rank.Trainee, Rank.SpecialAgent));
 
     [Theory]
     [InlineData(Rank.SeniorSpecialAgent, Rank.SpecialAgent)]
@@ -29,8 +29,8 @@ public sealed class DecorationRulesTests
     [Fact]
     public void Leadership_and_the_recipient_may_print_nobody_else()
     {
-        var leader = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SupervisorySpecialAgent).Build();
-        var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.JuniorAgent).Build();
+        var leader = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).Build();
+        var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.Trainee).Build();
         var colleague = ClaimsPrincipalBuilder.Agent("other").WithRank(Rank.SeniorSpecialAgent).Build();
         var partner = ClaimsPrincipalBuilder.Agent("lspd").WithRank(Rank.Director)
             .AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build();
@@ -45,7 +45,7 @@ public sealed class DecorationRulesTests
     public void A_revoked_award_prints_for_nobody()
     {
         var leader = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
-        var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.JuniorAgent).Build();
+        var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.Trainee).Build();
 
         Assert.False(DecorationRules.MayPrint(leader, "held", revoked: true));
         Assert.False(DecorationRules.MayPrint(recipient, "held", revoked: true));
@@ -56,8 +56,8 @@ public sealed class DecorationRulesTests
     {
         var leader = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
         var supervision = ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build();
-        var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.JuniorAgent).Build();
-        var colleague = ClaimsPrincipalBuilder.Agent("other").WithRank(Rank.JuniorAgent).Build();
+        var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.Trainee).Build();
+        var colleague = ClaimsPrincipalBuilder.Agent("other").WithRank(Rank.Trainee).Build();
 
         Assert.True(DecorationRules.MayChooseRealName(leader, "held"));
         Assert.False(DecorationRules.MayChooseRealName(supervision, "held"));
@@ -66,15 +66,94 @@ public sealed class DecorationRulesTests
     }
 
     [Fact]
-    public void Only_current_staff_from_deputy_director_up_may_sign()
+    public void Only_current_staff_from_assistant_director_up_may_sign_for_any_division()
     {
+        Assert.Equal(Rank.AssistantDirector, DecorationRules.SignatoryFloor);
         Assert.True(DecorationRules.MaySign(Seed.Agent("d", Rank.Director)));
         Assert.True(DecorationRules.MaySign(Seed.Agent("dd", Rank.DeputyDirector)));
-        Assert.False(DecorationRules.MaySign(Seed.Agent("ssa", Rank.SupervisorySpecialAgent)));
+        Assert.True(DecorationRules.MaySign(Seed.Agent("ad", Rank.AssistantDirector)));
+        Assert.False(DecorationRules.MaySign(Seed.Agent("ssa", Rank.SpecialAgentInCharge)));
         Assert.False(DecorationRules.MaySign(Seed.Agent("gone", Rank.Director, AgentStatus.Terminated)));
         Assert.False(DecorationRules.MaySign(Seed.Agent("tl", Rank.Director, configure: a => a.IsTeamLead = true)));
         Assert.False(DecorationRules.MaySign(
             Seed.Agent("p", Rank.Director, configure: a => a.PartnerAgency = PartnerAgency.LSPD)));
+        foreach (var division in DivisionDisplay.All)
+        {
+            Assert.True(DecorationRules.MaySign(Seed.Agent("ad", Rank.AssistantDirector), division));
+            Assert.True(DecorationRules.MaySign(Seed.Agent("d", Rank.Director), division));
+        }
+    }
+
+    [Fact]
+    public void An_admin_signs_for_every_division_whatever_the_rank()
+    {
+        var admin = Seed.Agent("adm", Rank.Trainee, configure: a => a.IsAdmin = true);
+
+        Assert.True(DecorationRules.MaySign(admin));
+        Assert.All(DivisionDisplay.All, division => Assert.True(DecorationRules.MaySign(admin, division)));
+        Assert.False(DecorationRules.MaySign(Seed.Agent("gone", Rank.Trainee, AgentStatus.Terminated, a => a.IsAdmin = true)));
+    }
+
+    [Theory]
+    [InlineData(Division.Cid, Division.Cid, true)]
+    [InlineData(Division.Ctd, Division.Ctd, true)]
+    [InlineData(Division.Hrt, Division.Hrt, true)]
+    [InlineData(Division.Cid, Division.Ctd, false)]
+    [InlineData(Division.Hrt, Division.Cid, false)]
+    [InlineData(Division.Ctd, Division.Hrt, false)]
+    public void A_section_chief_signs_only_for_the_own_division(Division home, Division recipient, bool expected)
+    {
+        var sectionChief = Seed.Agent("sc", Rank.SectionChief, configure: a => a.Division = home);
+
+        Assert.Equal(expected, DecorationRules.MaySign(sectionChief, recipient));
+        // without a division in question there is no division to sign for: the office head is Board or admin
+        Assert.False(DecorationRules.MaySign(sectionChief));
+    }
+
+    [Fact]
+    public void A_section_chief_without_a_stored_home_signs_for_the_cid_and_the_legacy_tru_flag_for_the_hrt()
+    {
+        Assert.True(DecorationRules.MaySign(Seed.Agent("sc", Rank.SectionChief), Division.Cid));
+        Assert.False(DecorationRules.MaySign(Seed.Agent("sc", Rank.SectionChief), Division.Hrt));
+        var tru = Seed.Agent("sc", Rank.SectionChief, configure: a => a.IsTRU = true);
+        Assert.True(DecorationRules.MaySign(tru, Division.Hrt));
+        Assert.False(DecorationRules.MaySign(tru, Division.Cid));
+    }
+
+    [Fact]
+    public void Below_section_chief_nobody_signs_and_a_section_chief_who_is_not_selectable_neither()
+    {
+        Assert.False(DecorationRules.MaySign(
+            Seed.Agent("sac", Rank.SpecialAgentInCharge, configure: a => a.Division = Division.Cid), Division.Cid));
+        Assert.False(DecorationRules.MaySign(
+            Seed.Agent("gone", Rank.SectionChief, AgentStatus.Terminated, a => a.Division = Division.Cid), Division.Cid));
+        Assert.False(DecorationRules.MaySign(
+            Seed.Agent("tl", Rank.SectionChief, configure: a => { a.Division = Division.Cid; a.IsTeamLead = true; }), Division.Cid));
+        Assert.False(DecorationRules.MaySign(
+            Seed.Agent("p", Rank.SectionChief, configure: a => a.PartnerAgency = PartnerAgency.LSPD), Division.Cid));
+    }
+
+    [Fact]
+    public void Each_division_has_its_own_settings_key()
+    {
+        var keys = DivisionDisplay.All.Select(DecorationRules.SignatoryKey).ToList();
+
+        Assert.Equal(DivisionDisplay.All.Count, keys.Distinct().Count());
+        Assert.DoesNotContain(NOOSE_Website.Models.Common.SystemSettingKeys.CertificateSignatoryId, keys);
+    }
+
+    [Fact]
+    public void The_settings_pick_the_division_signatory_and_fall_back_to_the_global_one()
+    {
+        var settings = new CertificateSettings("office", "Los Santos",
+            new Dictionary<Division, string> { [Division.Hrt] = "hrt-chief" });
+
+        Assert.Equal("hrt-chief", settings.SignatoryIdFor(Division.Hrt));
+        Assert.Equal("office", settings.SignatoryIdFor(Division.Cid));
+        Assert.Equal("office", settings.SignatoryIdFor(null));
+        Assert.Equal("hrt-chief", settings.DivisionSignatoryId(Division.Hrt));
+        Assert.Null(settings.DivisionSignatoryId(Division.Ctd));
+        Assert.Equal("office", new CertificateSettings("office", "Los Santos").SignatoryIdFor(Division.Ctd));
     }
 
     // ---- ceremony day and text ----

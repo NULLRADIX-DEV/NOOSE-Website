@@ -8,7 +8,7 @@
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 @inject ITaskforceChatService ChatService
 
-<PageTitle>@(_taskforce?.Name ?? "Taskforce") · NOOSE</PageTitle>
+<PageTitle>@(_taskforce?.Name ?? "Taskforce") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -188,7 +188,7 @@ else
                 }
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(Taskforce)" EntityId="@_taskforce.Id" User="_user" />
                 </RecordSection>
                 }
@@ -344,13 +344,13 @@ else
         {
             return;
         }
-        var ok = await ConfirmDialog.ShowAsync(DialogService, "Taskforce löschen?",
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Taskforce löschen?",
             "Die Taskforce wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
-        if (!ok)
+        if (reason is null)
         {
             return;
         }
-        await TaskforceService.DeleteAsync(_taskforce.Id, _user);
+        await TaskforceService.DeleteAsync(_taskforce.Id, reason, _user);
         Snackbar.Add("Taskforce in den Papierkorb verschoben.", Severity.Success);
         Nav.NavigateTo("/taskforces");
     }

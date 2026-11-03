@@ -3,7 +3,7 @@
 @layout PrintLayout
 @inject ISituationReportService SituationReports
 
-<PageTitle>@(_display?.Title ?? "Lagebericht") · NOOSE</PageTitle>
+<PageTitle>@(_display?.Title ?? "Lagebericht") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -23,8 +23,8 @@ else
     <PrintFrame Title="@_display.Title" BackHref="@BackHref" BackText="Zurück zum Archiv"
                  IsClassified="false" AutomaticPrint="false"
                  Footer="@(_isPartner
-                     ? "Freigegebene Auswertung der NOOSE · automatisch erzeugter Lagebericht · Weitergabe nur nach Freigabe durch die NOOSE."
-                     : "NOOSE-interne Auswertung · automatisch erzeugter Lagebericht · Weitergabe nur nach Freigabe durch die Führung.")">
+                     ? "Freigegebene Auswertung des FIB · automatisch erzeugter Lagebericht · Weitergabe nur nach Freigabe durch das FIB."
+                     : "FIB-interne Auswertung · automatisch erzeugter Lagebericht · Weitergabe nur nach Freigabe durch die Führung.")">
         <p class="druck-meta">
             Automatisch erzeugter Lagebericht · Berichtsstand @_display.GeneratedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
             @if (!_isPartner)

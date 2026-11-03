@@ -35,12 +35,12 @@ public sealed class LlmQuotaConfigServiceTests
 
         var config = await Build(ctx).GetAsync();
 
-        Assert.Equal(20_000L, config.For(Rank.JuniorAgent).BaseWeekly);
-        Assert.Equal(0, config.For(Rank.JuniorAgent).CarryOverPercent);
+        Assert.Equal(20_000L, config.For(Rank.Trainee).BaseWeekly);
+        Assert.Equal(0, config.For(Rank.Trainee).CarryOverPercent);
         Assert.Equal(35_000L, config.For(Rank.SpecialAgent).BaseWeekly);
         Assert.Equal(50_000L, config.For(Rank.SeniorSpecialAgent).BaseWeekly);
         Assert.Equal(25, config.For(Rank.SeniorSpecialAgent).CarryOverPercent);
-        Assert.Equal(80_000L, config.For(Rank.SupervisorySpecialAgent).BaseWeekly);
+        Assert.Equal(80_000L, config.For(Rank.SpecialAgentInCharge).BaseWeekly);
         Assert.Equal(120_000L, config.For(Rank.DeputyDirector).BaseWeekly);
         Assert.Equal(200_000L, config.For(Rank.Director).BaseWeekly);
         Assert.Equal(50, config.For(Rank.Director).CarryOverPercent);
@@ -55,6 +55,29 @@ public sealed class LlmQuotaConfigServiceTests
 
         Assert.All(RankDisplay.All, rank => Assert.True(config.For(rank).BaseWeekly > 0));
     }
+
+    /// <summary>The numbers the data migration writes for the two new levels: the same ones, or code and database diverge.</summary>
+    [Fact]
+    public async Task DefaultsPutTheNewLevelsBetweenTheOldOnesAndRiseWithTheLadder()
+    {
+        using var ctx = new SqliteTestContext();
+
+        var config = await Build(ctx).GetAsync();
+
+        Assert.Equal(80_000L, config.For(Rank.SpecialAgentInCharge).BaseWeekly);
+        Assert.Equal(95_000L, config.For(Rank.SectionChief).BaseWeekly);
+        Assert.Equal(105_000L, config.For(Rank.AssistantDirector).BaseWeekly);
+        Assert.Equal(120_000L, config.For(Rank.DeputyDirector).BaseWeekly);
+        Assert.Equal(50, config.For(Rank.SectionChief).CarryOverPercent);
+        Assert.Equal(50, config.For(Rank.AssistantDirector).CarryOverPercent);
+        Assert.Equal(RankDisplay.All.Count, LlmQuotaConfig.Default().Ranks.Count);
+        var weekly = RankDisplay.All.Select(r => config.For(r).BaseWeekly).ToList();
+        Assert.Equal(weekly.OrderBy(w => w).ToList(), weekly);
+    }
+
+    [Fact]
+    public void TheDefaultConfigPassesItsOwnValidation()
+        => Assert.Null(Record.Exception(() => LlmQuotaConfigService.Validate(LlmQuotaConfig.Default())));
 
     [Fact]
     public async Task UnrankedAgent_GetsNothing()
@@ -103,7 +126,7 @@ public sealed class LlmQuotaConfigServiceTests
     {
         using var ctx = new SqliteTestContext();
         var config = LlmQuotaConfig.Default();
-        config.Ranks[LlmQuotaConfig.RankKey(Rank.JuniorAgent)] = new() { BaseWeekly = 1_234, CarryOverPercent = 10 };
+        config.Ranks[LlmQuotaConfig.RankKey(Rank.Trainee)] = new() { BaseWeekly = 1_234, CarryOverPercent = 10 };
 
         await Build(ctx).SaveAsync(config, Owner());
 
@@ -123,10 +146,10 @@ public sealed class LlmQuotaConfigServiceTests
         await svc.GetAsync();
 
         var config = LlmQuotaConfig.Default();
-        config.Ranks[LlmQuotaConfig.RankKey(Rank.JuniorAgent)] = new() { BaseWeekly = 4_242, CarryOverPercent = 0 };
+        config.Ranks[LlmQuotaConfig.RankKey(Rank.Trainee)] = new() { BaseWeekly = 4_242, CarryOverPercent = 0 };
         await svc.SaveAsync(config, Owner());
 
-        Assert.Equal(4_242L, (await svc.GetAsync()).For(Rank.JuniorAgent).BaseWeekly);
+        Assert.Equal(4_242L, (await svc.GetAsync()).For(Rank.Trainee).BaseWeekly);
     }
 
     [Fact]
@@ -138,10 +161,10 @@ public sealed class LlmQuotaConfigServiceTests
         await svc.GetAsync();
 
         var stored = LlmQuotaConfig.Default();
-        stored.Ranks[LlmQuotaConfig.RankKey(Rank.JuniorAgent)] = new() { BaseWeekly = 777, CarryOverPercent = 0 };
+        stored.Ranks[LlmQuotaConfig.RankKey(Rank.Trainee)] = new() { BaseWeekly = 777, CarryOverPercent = 0 };
         await StoreAsync(ctx, JsonSerializer.Serialize(stored));
 
-        Assert.Equal(777L, (await svc.GetEditableAsync()).For(Rank.JuniorAgent).BaseWeekly);
+        Assert.Equal(777L, (await svc.GetEditableAsync()).For(Rank.Trainee).BaseWeekly);
     }
 
     [Fact]

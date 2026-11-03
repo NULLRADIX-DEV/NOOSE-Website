@@ -14,7 +14,7 @@ public sealed class KassenTemplateServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static KassenTemplateService Build(SqliteTestContext ctx) => new(ctx.Factory);
 
@@ -26,11 +26,11 @@ public sealed class KassenTemplateServiceTests
     {
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);
-        await svc.CreateAsync(Input("NOOSE-Ankündigung"), Leader());
+        await svc.CreateAsync(Input("FIB-Ankündigung"), Leader());
 
         var active = await svc.GetActiveAsync();
         Assert.Single(active);
-        Assert.Equal("NOOSE-Ankündigung", active[0].Name);
+        Assert.Equal("FIB-Ankündigung", active[0].Name);
     }
 
     [Fact]

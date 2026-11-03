@@ -69,6 +69,15 @@ public static class SystemSettingKeys
     /// <summary>Agent id of the office head who signs certificates; empty prints the plain office line.</summary>
     public const string CertificateSignatoryId = "UrkundeUnterzeichnerId";
 
+    /// <summary>Agent id who signs the certificates of the CID; empty falls back to <see cref="CertificateSignatoryId"/>.</summary>
+    public const string CertificateSignatoryCid = "UrkundeUnterzeichnerCid";
+
+    /// <summary>Agent id who signs the certificates of the CTD; empty falls back to <see cref="CertificateSignatoryId"/>.</summary>
+    public const string CertificateSignatoryCtd = "UrkundeUnterzeichnerCtd";
+
+    /// <summary>Agent id who signs the certificates of the HRT; empty falls back to <see cref="CertificateSignatoryId"/>.</summary>
+    public const string CertificateSignatoryHrt = "UrkundeUnterzeichnerHrt";
+
     /// <summary>Place line printed next to the date on every certificate.</summary>
     public const string CertificatePlace = "UrkundeOrt";
 

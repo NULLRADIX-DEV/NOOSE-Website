@@ -6,7 +6,7 @@ namespace NOOSE_Website.Models.Public;
 /// <remarks>
 /// Outward. Structurally carries no record id, no internal case number, no codename, no hazard level and no amount:
 /// what is not on the type cannot be rendered by accident. <c>Reference</c> is the PUBLIC designation only — an
-/// <c>FA-</c>/<c>PM-</c> number, a book and paragraph, a report period — never a <c>NOOSE-P-</c> file number.
+/// <c>FA-</c>/<c>PM-</c> number, a book and paragraph, a report period — never a <c>FIB-P-</c> file number.
 /// <para>
 /// Relevance is a sort order, not a field. A score property would publish the matcher's weighting and read as a
 /// ranking; the two surfaces that do rank published rows are the hazard lists, which say so and name their cap.

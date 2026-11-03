@@ -26,7 +26,7 @@ public static class Permission
         if (!actor.IsLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist der Führung (ab Supervisory Special Agent) oder Admins vorbehalten.");
+                "Diese Aktion ist der Führung (ab Special Agent in Charge) oder Admins vorbehalten.");
         }
     }
 
@@ -61,7 +61,7 @@ public static class Permission
     {
         if (actor.IsPartner() || actor.IsDemo() || actor.IsOnlyReader())
         {
-            throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+            throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
         }
     }
 
@@ -71,7 +71,7 @@ public static class Permission
     {
         if (actor.IsDemo() || actor.IsOnlyReader() || actor.IsPartner() != (feature == LlmFeature.LegalChat))
         {
-            throw new UnauthorizedAccessException("NOOSEI steht in dieser Rolle nicht zur Verfügung.");
+            throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
         }
     }
 
@@ -105,7 +105,7 @@ public static class Permission
         }
         if (!actor.MayClassifiedRead())
         {
-            throw new UnauthorizedAccessException("Kein Zugriff auf dieses NOOSEI-Kontingent.");
+            throw new UnauthorizedAccessException("Kein Zugriff auf dieses FIBI-Kontingent.");
         }
     }
 
@@ -159,12 +159,11 @@ public static class Permission
         if (!DocumentViewerScope.From(actor).CanSee(level))
         {
             throw new UnauthorizedAccessException(
-                "Diese Akte ist als Verschlusssache nur für die zuständige Stelle (Führung, TRU oder HRB) zugänglich.");
+                "Diese Akte ist als Verschlusssache nur für die zuständige Stelle (Führung, HRT oder Administration Division) zugänglich.");
         }
     }
 
-    /// <summary>Require promotion authority.</summary>
-    /// <summary>Write guard ahead of the rank guard: the decision changes a rank and writes an audit row.</summary>
+    /// <summary>Require the coarse promotion gate (Section Chief or admin), write guard first: the decision changes a rank and writes an audit row.</summary>
     /// <remarks>
     /// MayWrite() as well, because the rank alone lets the read-only supervision and the demo visitor - who carry
     /// Director - through to the save, where the write barrier refuses. By then the rank is already set in memory
@@ -176,7 +175,18 @@ public static class Permission
         if (!actor.MayPromotionDecide())
         {
             throw new UnauthorizedAccessException(
-                "Über Beförderungen entscheidet nur Deputy Director aufwärts oder ein Admin.");
+                "Über Beförderungen entscheidet nur, wer ab Section Chief dient (der Section Chief in der eigenen Abteilung, ab Assistant Director für alle), oder ein Admin.");
+        }
+    }
+
+    /// <summary>Require the right to move agents between divisions: write access first, then Board or admin.</summary>
+    public static void RequireDivisionSet(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayDivisionSet())
+        {
+            throw new UnauthorizedAccessException(
+                "Die Abteilung vergeben nur das Board oder ein Admin.");
         }
     }
 
@@ -433,7 +443,7 @@ public static class Permission
     /// get as far as validating a slug before the ReadOnlyBarrierInterceptor refuses the save.
     /// <para>
     /// One predicate for the handbook and for ticking off a training module, because it is one question: who looks
-    /// after new agents. HRB is rank-independent, so this admits a Junior Agent carrying the flag, on purpose.
+    /// after new agents. HRB is rank-independent, so this admits a Trainee carrying the flag, on purpose.
     /// </para>
     /// </remarks>
     public static void RequireHrbOrLeadershipWrite(ClaimsPrincipal actor)
@@ -441,7 +451,7 @@ public static class Permission
         if (!actor.MayWrite() || !actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 
@@ -578,6 +588,38 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to report a firearm use: an in-house account that may write.</summary>
+    /// <remarks>Internal first, as in <see cref="RequirePressWrite"/>: a signed-in citizen carries no rank claim at all.</remarks>
+    public static void RequireFirearmUseReport(ClaimsPrincipal actor)
+    {
+        if (!actor.MayReportFirearmUse())
+        {
+            throw new UnauthorizedAccessException(
+                "Einen Schusswaffengebrauch melden nur aktive interne Agenten mit Schreibrecht.");
+        }
+    }
+
+    /// <summary>Require the right to read every firearm-use report: the leadership and the read-only supervision.</summary>
+    public static void RequireFirearmUseOverview(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayClassifiedRead())
+        {
+            throw new UnauthorizedAccessException(
+                "Den Schusswaffengebrauch aller Agenten sehen nur die Führung und die Aufsicht.");
+        }
+    }
+
+    /// <summary>Require the right to delete or restore a firearm-use report: write access first, then leadership.</summary>
+    /// <remarks>Whose report it is, is the service's check - nobody deletes their own.</remarks>
+    public static void RequireFirearmUseDelete(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayWrite() || !actor.IsLeadership())
+        {
+            throw new UnauthorizedAccessException(
+                "Einträge zum Schusswaffengebrauch löscht und stellt nur die Führung wieder her.");
+        }
+    }
+
     /// <summary>Require the right to pay a reward out to a tipster.</summary>
     /// <remarks>
     /// Its own axis, and not RequireKassenBookingWrite: that one only fires on the booking branch, so a reward paid
@@ -671,7 +713,7 @@ public static class Permission
         if (!actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 
@@ -687,7 +729,7 @@ public static class Permission
         if (!actor.MayWrite() || !actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 
@@ -702,7 +744,7 @@ public static class Permission
         if (!actor.MayWrite() || !actor.IsHrbOrLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist dem HRB und der Führung vorbehalten.");
+                "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
         }
     }
 

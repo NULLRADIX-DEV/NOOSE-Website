@@ -14,7 +14,7 @@ public sealed class LinkServiceBatchTests
 {
     private static ClaimsPrincipal Lead() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static (LinkService Svc, IThreatScoreService Threat, CountingDbContextFactory Factory) NewService(SqliteTestContext ctx)
     {
@@ -27,7 +27,7 @@ public sealed class LinkServiceBatchTests
     {
         using var db = ctx.NewContext();
         db.Users.Add(Seed.Agent("lead", Rank.Director));
-        db.Users.Add(Seed.Agent("junior", Rank.JuniorAgent));
+        db.Users.Add(Seed.Agent("junior", Rank.Trainee));
         db.Cases.Add(Seed.Case("c1"));
         foreach (var p in people)
         {
@@ -122,8 +122,8 @@ public sealed class LinkServiceBatchTests
         using (var db = ctx.NewContext())
         {
             db.People.Add(Seed.Person("secret", "Geheim", p => p.IsClassified = true));
-            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Fremd", CaseNumber = "NOOSE-TF-2026-0001" });
-            db.Jobs.Add(new Job { Id = "j1", Title = "Intern", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = true, CreatedById = "someone" });
+            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Fremd", CaseNumber = "FIB-TF-2026-0001" });
+            db.Jobs.Add(new Job { Id = "j1", Title = "Intern", CaseNumber = "FIB-A-2026-0001", IsRestricted = true, CreatedById = "someone" });
             db.SaveChanges();
         }
         var (svc, _, _) = NewService(ctx);
@@ -143,7 +143,7 @@ public sealed class LinkServiceBatchTests
         SeedCaseAndPeople(ctx, "p1");
         using (var db = ctx.NewContext())
         {
-            db.Operations.Add(new Operation { Id = "o1", Title = "Nachtfalke", CaseNumber = "NOOSE-OP-2026-0001" });
+            db.Operations.Add(new Operation { Id = "o1", Title = "Nachtfalke", CaseNumber = "FIB-OP-2026-0001" });
             db.SaveChanges();
         }
         var (svc, _, _) = NewService(ctx);

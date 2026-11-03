@@ -25,7 +25,7 @@ public sealed class PublicKpiServiceTests
         => ClaimsPrincipalBuilder.Agent("ro").WithRank(Rank.Director).AsTeamLead().Build();
 
     private static ClaimsPrincipal Plain()
-        => ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.Trainee).Build();
 
     private static PublicKpiService NewService(SqliteTestContext ctx)
     {
@@ -37,7 +37,7 @@ public sealed class PublicKpiServiceTests
     {
         var ctx = new SqliteTestContext();
         await using var db = ctx.NewContext();
-        db.People.Add(Seed.Person(PersonId, "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+        db.People.Add(Seed.Person(PersonId, "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-0001"));
         db.BuergerProfile.Add(new BuergerProfil
         {
             Id = ProfileId, UserId = "u1", FirstName = "Erika", LastName = "Mustermann",
@@ -50,7 +50,7 @@ public sealed class PublicKpiServiceTests
         => new()
         {
             Id = Guid.NewGuid().ToString(),
-            CaseNumber = "NOOSE-H-" + Guid.NewGuid().ToString()[..6],
+            CaseNumber = "FIB-H-" + Guid.NewGuid().ToString()[..6],
             CitizenProfileId = ProfileId,
             Text = "Ich habe etwas gesehen.",
             Status = status,
@@ -235,7 +235,7 @@ public sealed class PublicKpiServiceTests
         await AddAsync(ctx,
             new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-1", CitizenProfileId = ProfileId, Subject = "Anliegen",
+                Id = "t1", CaseNumber = "FIB-T-1", CitizenProfileId = ProfileId, Subject = "Anliegen",
                 Status = TicketStatus.Offen, CreatedAt = opened, LastActivityAt = opened,
             },
             new TicketNachricht
@@ -261,7 +261,7 @@ public sealed class PublicKpiServiceTests
         await AddAsync(ctx,
             new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-1", CitizenProfileId = ProfileId, Subject = "Anliegen",
+                Id = "t1", CaseNumber = "FIB-T-1", CitizenProfileId = ProfileId, Subject = "Anliegen",
                 Status = TicketStatus.WartetAufBuerger, CreatedAt = opened, LastActivityAt = Now,
             },
             new TicketNachricht
@@ -299,7 +299,7 @@ public sealed class PublicKpiServiceTests
         await AddAsync(ctx,
             new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-1", CitizenProfileId = ProfileId, Subject = "Sehr altes Anliegen",
+                Id = "t1", CaseNumber = "FIB-T-1", CitizenProfileId = ProfileId, Subject = "Sehr altes Anliegen",
                 Status = TicketStatus.Offen, CreatedAt = opened, LastActivityAt = opened,
             });
 
@@ -320,7 +320,7 @@ public sealed class PublicKpiServiceTests
         await AddAsync(ctx,
             new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-1", CitizenProfileId = ProfileId, Subject = "Beantwortetes Anliegen",
+                Id = "t1", CaseNumber = "FIB-T-1", CitizenProfileId = ProfileId, Subject = "Beantwortetes Anliegen",
                 Status = TicketStatus.WartetAufBuerger, CreatedAt = opened, LastActivityAt = Now,
             },
             new TicketNachricht
@@ -344,7 +344,7 @@ public sealed class PublicKpiServiceTests
         await AddAsync(ctx,
             new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-1", CitizenProfileId = ProfileId, Subject = "Erledigt",
+                Id = "t1", CaseNumber = "FIB-T-1", CitizenProfileId = ProfileId, Subject = "Erledigt",
                 Status = TicketStatus.Geschlossen, CreatedAt = opened, LastActivityAt = Now,
             });
 
@@ -365,7 +365,7 @@ public sealed class PublicKpiServiceTests
         await AddAsync(ctx,
             new Ticket
             {
-                Id = "t1", CaseNumber = "NOOSE-T-1", Kind = TicketArt.Intern, CitizenProfileId = null,
+                Id = "t1", CaseNumber = "FIB-T-1", Kind = TicketArt.Intern, CitizenProfileId = null,
                 Subject = "Internes Anliegen", Status = TicketStatus.Offen,
                 CreatedAt = opened, LastActivityAt = opened,
             });
@@ -529,7 +529,7 @@ public sealed class PublicKpiServiceTests
             var opened = Now.AddHours(-20);
             rows.Add(new Ticket
             {
-                Id = "t" + i, CaseNumber = "NOOSE-T-" + i, CitizenProfileId = ProfileId, Subject = "Anliegen",
+                Id = "t" + i, CaseNumber = "FIB-T-" + i, CitizenProfileId = ProfileId, Subject = "Anliegen",
                 Status = TicketStatus.WartetAufBuerger, CreatedAt = opened, LastActivityAt = Now,
             });
             rows.Add(new TicketNachricht

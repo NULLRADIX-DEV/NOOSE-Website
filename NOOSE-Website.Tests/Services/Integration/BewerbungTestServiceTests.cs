@@ -26,7 +26,7 @@ public sealed class BewerbungTestServiceTests
 
     // Active junior agent: not HRB, not leadership, not admin => fails RequireHrbOrLeadership.
     private static ClaimsPrincipal NonHrb(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // Public applicant: passes RequireApplicant.
     private static ClaimsPrincipal Applicant(string id = "app1")
@@ -71,7 +71,7 @@ public sealed class BewerbungTestServiceTests
     }
 
     private static Bewerbung AddBewerbung(SqliteTestContext ctx, string id, string applicantUserId,
-        BewerbungStatus status = BewerbungStatus.Eingereicht, string? assignedAgentId = null, string caseNumber = "NOOSE-B-2026-0001")
+        BewerbungStatus status = BewerbungStatus.Eingereicht, string? assignedAgentId = null, string caseNumber = "FIB-B-2026-0001")
     {
         using var db = ctx.NewContext();
         var b = new Bewerbung
@@ -1099,8 +1099,8 @@ public sealed class BewerbungTestServiceTests
         // older + newer application for the same applicant; newest (by SubmittedAt) wins
         using (var db = ctx.NewContext())
         {
-            db.Bewerbungen.Add(new Bewerbung { Id = "bOld", ApplicantUserId = "app1", Name = "Alt", CaseNumber = "NOOSE-B-2026-0001", SubmittedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), CreatedAt = Ts });
-            db.Bewerbungen.Add(new Bewerbung { Id = "bNew", ApplicantUserId = "app1", Name = "Neu", CaseNumber = "NOOSE-B-2026-0002", SubmittedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), CreatedAt = Ts });
+            db.Bewerbungen.Add(new Bewerbung { Id = "bOld", ApplicantUserId = "app1", Name = "Alt", CaseNumber = "FIB-B-2026-0001", SubmittedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), CreatedAt = Ts });
+            db.Bewerbungen.Add(new Bewerbung { Id = "bNew", ApplicantUserId = "app1", Name = "Neu", CaseNumber = "FIB-B-2026-0002", SubmittedAt = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), CreatedAt = Ts });
             db.SaveChanges();
         }
         AddAssignment(ctx, "as1", "bNew", "t1");
@@ -1143,13 +1143,13 @@ public sealed class BewerbungTestServiceTests
     {
         using var ctx = new SqliteTestContext();
         AddTest(ctx, "t1", "Test", sorting: 1);
-        AddBewerbung(ctx, "b1", "app1", caseNumber: "NOOSE-B-2026-0042");
+        AddBewerbung(ctx, "b1", "app1", caseNumber: "FIB-B-2026-0042");
         AddAssignment(ctx, "as1", "b1", "t1");
         var (svc, _, _) = Build(ctx);
 
         var view = await svc.GetAssignedForApplicantAsync(Applicant("app1"));
 
-        Assert.Equal("NOOSE-B-2026-0042", view!.CaseNumber);
+        Assert.Equal("FIB-B-2026-0042", view!.CaseNumber);
     }
 
     [Fact]

@@ -19,6 +19,9 @@ public class FactionInput
     public string? ClassificationJustification { get; set; }
     public DocumentClassification SecrecyLevel { get; set; } = DocumentClassification.None;
 
+    /// <summary>Why the secrecy level is loosened; required by the service when the audience widens.</summary>
+    public string? SecrecyReason { get; set; }
+
     /// <summary>State faction; never goes stale (recency stays "current").</summary>
     public bool IsStateFaction { get; set; }
 
