@@ -629,6 +629,9 @@ public static class ChangelogContent
                 + "Wiedervorlagen nach überfällig, heute, diese Woche und später; verschieben und erledigen geht per "
                 + "Klick. Die Führung sieht im Wiedervorlagen-Rückstand, was liegen bleibt, hängt es um und erfährt, was "
                 + "sieben Tage überfällig ist.", "Bedienung"),
+            Besser("3.0.12-dienstnummer-frei", "Die Dienstnummer eines gekündigten Agenten ist sofort wieder frei. "
+                + "Wird die Kündigung zurückgenommen und hat inzwischen jemand anderes die Nummer, wählt er eine neue.",
+                "Personal"),
         ]),
     ];
 }
