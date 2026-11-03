@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 
-<PageTitle>@(_operation?.Title ?? "Operation") · NOOSE</PageTitle>
+<PageTitle>@(_operation?.Title ?? "Operation") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -193,7 +193,7 @@ else
                 @* KI brief: internal only *@
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(Operation)" EntityId="@_operation.Id" User="_user" />
                 </RecordSection>
                 }

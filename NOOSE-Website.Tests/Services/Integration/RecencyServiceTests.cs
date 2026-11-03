@@ -293,7 +293,7 @@ public sealed class RecencyServiceTests : IDisposable
     public async Task SaveAsync_ThrowsUnauthorized_WhenActorNotLeadership()
     {
         var svc = NewService();
-        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.JuniorAgent).Build();
+        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.Trainee).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.SaveAsync(nameof(Person), 10, 20, agingDisabled: false, junior));
@@ -338,7 +338,7 @@ public sealed class RecencyServiceTests : IDisposable
             db.SaveChanges();
         }
         var svc = NewService();
-        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.JuniorAgent).Build();
+        var junior = ClaimsPrincipalBuilder.Agent("j").WithRank(Rank.Trainee).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.SetRecordExemptionAsync(nameof(Person), id, disabled: true, junior));

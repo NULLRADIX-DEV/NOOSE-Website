@@ -67,7 +67,7 @@ public sealed class ObjectionServiceTests
         var caseNumbers = Substitute.For<ICaseNumberService>();
         var counter = 0;
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
 
         var wanted = new PublicWantedService(factory, modules, caseNumbers,
             Substitute.For<NOOSE_Website.Infrastructure.Storage.IFileStorageService>(),
@@ -95,7 +95,7 @@ public sealed class ObjectionServiceTests
 
         db.People.Add(Seed.Person(PersonId, "Max Mustermann", p =>
         {
-            p.CaseNumber = "NOOSE-P-2026-0001";
+            p.CaseNumber = "FIB-P-2026-0001";
             p.WantedReason = "Verdacht auf Waffenhandel";
             p.ThreatScore = 60;
         }));
@@ -225,7 +225,7 @@ public sealed class ObjectionServiceTests
 
         // resolved through the public read path, which sits behind the suppression belt: a draft does not exist
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => host.Service.SubmitAsync(Input("NOOSE-FA-2026-0001"), Citizen()));
+            () => host.Service.SubmitAsync(Input("FIB-FA-2026-0001"), Citizen()));
     }
 
     [Fact]
@@ -370,7 +370,7 @@ public sealed class ObjectionServiceTests
     // ---- the desk ----
 
     [Fact]
-    public async Task AJuniorAgentAndACitizen_SeeNothingOfTheDesk()
+    public async Task ATraineeAndACitizen_SeeNothingOfTheDesk()
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);

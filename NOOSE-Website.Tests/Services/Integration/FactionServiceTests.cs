@@ -24,14 +24,14 @@ public sealed class FactionServiceTests
 
     // Junior agent: not leadership, not highest-classification, may not read classified.
     private static ClaimsPrincipal LowRank(string id = "low")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // TeamLead without admin => read-only supervisor (fails RequireWriteAccess).
     private static ClaimsPrincipal ReadOnly(string id = "ro")
         => ClaimsPrincipalBuilder.Agent(id).AsTeamLead().Build();
 
     // --- collaborator factories ---
-    private static ICaseNumberService CaseNo(string value = "NOOSE-F-2026-0001")
+    private static ICaseNumberService CaseNo(string value = "FIB-F-2026-0001")
     {
         var c = Substitute.For<ICaseNumberService>();
         c.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(value);
@@ -220,7 +220,7 @@ public sealed class FactionServiceTests
 
         var faction = await svc.CreateAsync(input, Leader("lead"));
 
-        Assert.Equal("NOOSE-F-2026-0001", faction.CaseNumber);
+        Assert.Equal("FIB-F-2026-0001", faction.CaseNumber);
         Assert.Equal("Ballas", faction.Name);
 
         using var db = ctx.NewContext();
@@ -815,7 +815,7 @@ public sealed class FactionServiceTests
             db.SaveChanges();
         }
         var svc = NewService(ctx);
-        var hrb = ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.JuniorAgent).AsHrb().Build();
+        var hrb = ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.Trainee).AsHrb().Build();
 
         var ended = await svc.MemberAddAsync("f1",
             new MemberInput { PersonId = "p1", RemoveFromOtherFactions = true }, hrb);

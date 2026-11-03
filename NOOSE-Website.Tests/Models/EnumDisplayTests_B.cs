@@ -382,7 +382,7 @@ public class EnumDisplayTests_B
     [InlineData(TaskforceRole.Member, "Mitglied")]
     [InlineData(TaskforceRole.LeadInvestigator, "Chefermittler")]
     [InlineData(TaskforceRole.CidLead, "CID-Lead")]
-    [InlineData(TaskforceRole.TruLead, "TRU-Lead")]
+    [InlineData(TaskforceRole.TruLead, "HRT-Lead")]
     public void TaskforceRoleName_definedValue_mapsToLabel(TaskforceRole role, string expected)
         => Assert.Equal(expected, TaskforceRoleDisplay.Name(role));
 
@@ -541,10 +541,12 @@ public class EnumDisplayTests_B
     // ---------------------------------------------------------------------
 
     [Theory]
-    [InlineData(Rank.JuniorAgent, "Junior Agent")]
+    [InlineData(Rank.Trainee, "Trainee")]
     [InlineData(Rank.SpecialAgent, "Special Agent")]
     [InlineData(Rank.SeniorSpecialAgent, "Senior Special Agent")]
-    [InlineData(Rank.SupervisorySpecialAgent, "Supervisory Special Agent")]
+    [InlineData(Rank.SpecialAgentInCharge, "Special Agent in Charge")]
+    [InlineData(Rank.SectionChief, "Section Chief")]
+    [InlineData(Rank.AssistantDirector, "Assistant Director")]
     [InlineData(Rank.DeputyDirector, "Deputy Director")]
     [InlineData(Rank.Director, "Director")]
     public void RankName_definedValue_mapsToLabel(Rank rank, string expected)
@@ -563,10 +565,18 @@ public class EnumDisplayTests_B
         => Assert.Equal(
             new[]
             {
-                Rank.JuniorAgent, Rank.SpecialAgent, Rank.SeniorSpecialAgent,
-                Rank.SupervisorySpecialAgent, Rank.DeputyDirector, Rank.Director,
+                Rank.Trainee, Rank.SpecialAgent, Rank.SeniorSpecialAgent,
+                Rank.SpecialAgentInCharge, Rank.SectionChief, Rank.AssistantDirector,
+                Rank.DeputyDirector, Rank.Director,
             },
             RankDisplay.All);
+
+    [Fact]
+    public void RankAll_isEveryDefinedMember_andTheIntsNeverMove()
+    {
+        Assert.Equal(Enum.GetValues<Rank>().OrderBy(r => (int)r), RankDisplay.All);
+        Assert.Equal(Enumerable.Range(1, 8), RankDisplay.All.Select(r => (int)r));
+    }
 
     // ---------------------------------------------------------------------
     // AgentStatusDisplay

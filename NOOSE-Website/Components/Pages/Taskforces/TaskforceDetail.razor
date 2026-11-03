@@ -8,7 +8,7 @@
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 @inject ITaskforceChatService ChatService
 
-<PageTitle>@(_taskforce?.Name ?? "Taskforce") · NOOSE</PageTitle>
+<PageTitle>@(_taskforce?.Name ?? "Taskforce") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -188,7 +188,7 @@ else
                 }
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(Taskforce)" EntityId="@_taskforce.Id" User="_user" />
                 </RecordSection>
                 }

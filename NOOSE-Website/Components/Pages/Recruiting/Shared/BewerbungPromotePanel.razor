@@ -7,22 +7,30 @@
     <MudPaper Elevation="2" Class="pa-4">
         <MudText Typo="Typo.h6" Class="mb-2">Zum Agent hochstufen</MudText>
         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-            Stuft den Bewerber direkt zu einem aktiven NOOSE-Agent hoch. Der Bewerber-Zugang endet, der interne
+            Stuft den Bewerber direkt zu einem aktiven FIB-Agent hoch. Der Bewerber-Zugang endet, der interne
             Zugang beginnt. Nur die Führung kann diese Aktion ausführen.
         </MudText>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
             <MudSelect T="Rank" Value="_rank" ValueChanged="RankChanged" Label="Dienstgrad" Variant="Variant.Outlined"
                        Margin="Margin.Dense" Style="min-width:220px;">
-                @foreach (var r in Ranks)
+                @foreach (var r in RankOptions)
                 {
-                    <MudSelectItem T="Rank" Value="@r">@RankDisplay.Name(r)</MudSelectItem>
+                    <MudSelectItem T="Rank" Value="@r">@RankDisplay.Name(r, _division)</MudSelectItem>
                 }
             </MudSelect>
-            <MudTooltip Text="@DepartmentHint" Disabled="DepartmentsOpen">
-                <MudCheckBox T="bool" @bind-Value="_tru" Label="TRU" Disabled="@(!DepartmentsOpen)" />
-            </MudTooltip>
-            <MudTooltip Text="@DepartmentHint" Disabled="DepartmentsOpen">
-                <MudCheckBox T="bool" @bind-Value="_hrb" Label="HRB" Disabled="@(!DepartmentsOpen)" />
+            <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
+                <MudTooltip Text="@DivisionRules.PickerHint(_rank)" Disabled="@(DivisionRules.PickerHint(_rank) is null)">
+                    <MudSelect T="Division" @bind-Value="_division" Label="Abteilung" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Style="min-width:120px;">
+                        @foreach (var d in DivisionDisplay.All)
+                        {
+                            <MudSelectItem T="Division" Value="@d" Disabled="@(!DivisionRules.MayHold(d, _rank))">@DivisionDisplay.Short(d)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTooltip>
+            </AuthorizeView>
+            <MudTooltip Text="@DepartmentRules.Hint" Disabled="DepartmentsOpen">
+                <MudCheckBox T="bool" @bind-Value="_hrb" Label="@DepartmentRules.ColumnLabel" Disabled="@(!DepartmentsOpen)" />
             </MudTooltip>
             <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.MilitaryTech"
                        OnClick="PromoteAsync" Disabled="_busy">Hochstufen</MudButton>
@@ -36,32 +44,47 @@
     [Parameter] public string? ApplicantName { get; set; }
     [Parameter] public EventCallback OnPromoted { get; set; }
 
-    private static readonly Rank[] Ranks = Enum.GetValues<Rank>();
-    private Rank _rank = Rank.JuniorAgent;
-    private bool _tru;
+    private PromotionStanding _standing;
+    private bool _mayPickDivision;
+    private Rank _rank = Rank.Trainee;
+    private Division _division = Division.Cid;
     private bool _hrb;
     private bool _busy;
 
+    protected override void OnInitialized()
+    {
+        _standing = PromotionStanding.Of(User);
+        _mayPickDivision = User.MayWrite() && User.MayDivisionSet();
+        // no picker: own division or CID
+        _division = _mayPickDivision ? Division.Cid : PromotionRules.ReleaseDivision(_standing);
+        _rank = RankOptions.FirstOrDefault(Rank.Trainee);
+    }
+
+    /// <summary>Ranks the viewer may hand out as a first release.</summary>
+    private IEnumerable<Rank> RankOptions
+        => PromotionRules.AssignableRanks(_standing, _division, null)
+            .Where(r => _mayPickDivision || DivisionRules.MayHold(_division, r));
+
     /// <summary>Mirrors DepartmentRules.MayHold; ticking a box the service refuses fails only on save.</summary>
     private bool DepartmentsOpen => DepartmentRules.MayHold(_rank);
-
-    private const string DepartmentHint =
-        "TRU und HRB sind laut Dienstverordnung erst ab dem Dienstgrad Special Agent möglich.";
 
     private void RankChanged(Rank rank)
     {
         _rank = rank;
         if (!DepartmentsOpen)
         {
-            _tru = false;
             _hrb = false;
+        }
+        if (!DivisionRules.MayHold(_division, _rank))
+        {
+            _division = Division.Cid;
         }
     }
 
     private async Task PromoteAsync()
     {
         var ok = await ConfirmDialog.ShowAsync(DialogService, "Bewerber hochstufen?",
-            $"{ApplicantName ?? "Der Bewerber"} wird als {RankDisplay.Name(_rank)} freigeschaltet und wird ein aktiver NOOSE-Agent.",
+            $"{ApplicantName ?? "Der Bewerber"} wird als {RankDisplay.Name(_rank, _division)} freigeschaltet und wird ein aktiver FIB-Agent.",
             "Hochstufen");
         if (!ok)
         {
@@ -70,9 +93,12 @@
         _busy = true;
         try
         {
-            await AgentService.PromoteApplicantToAgentAsync(ApplicantUserId, _rank, _tru, _hrb, User);
-            Snackbar.Add("Bewerber wurde zum Agent hochgestuft.", Severity.Success);
-            await OnPromoted.InvokeAsync();
+            if (await DivisionLimitConfirm.RunAsync(DialogService, confirm =>
+                    AgentService.PromoteApplicantToAgentAsync(ApplicantUserId, _rank, _division, _hrb, confirm, User)))
+            {
+                Snackbar.Add("Bewerber wurde zum Agent hochgestuft.", Severity.Success);
+                await OnPromoted.InvokeAsync();
+            }
         }
         catch (Exception ex)
         {

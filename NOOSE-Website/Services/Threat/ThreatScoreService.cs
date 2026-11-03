@@ -610,7 +610,7 @@ public class ThreatScoreService(
 
         // leadership sees classified records, so no per-record visibility gate needed here
         var leadershipIds = await db.Users.OnlySelectable()
-            .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SupervisorySpecialAgent))
+            .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SpecialAgentInCharge))
             .Select(u => u.Id)
             .ToListAsync(ct);
 

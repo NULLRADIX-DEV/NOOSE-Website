@@ -10,7 +10,7 @@
 @using NOOSE_Website.Models.Public
 @using NOOSE_Website.Services.Public
 
-<PageTitle>Mein Einspruch · NOOSE</PageTitle>
+<PageTitle>Mein Einspruch · FIB</PageTitle>
 
 @if (_anonymous)
 {
@@ -47,7 +47,7 @@ else if (_ready)
                    confirmation line below would otherwise never catch up *@
                 <MudTextField @bind-Value="_input.WantedCaseNumber" @bind-Value:after="ResolveAsync"
                               Label="Aktenzeichen der Ausschreibung" Variant="Variant.Outlined"
-                              HelperText="Steht auf dem Steckbrief, zum Beispiel NOOSE-FA-2026-0001." />
+                              HelperText="Steht auf dem Steckbrief, zum Beispiel FIB-FA-2026-0001." />
                 @if (_notice is not null)
                 {
                     <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true">

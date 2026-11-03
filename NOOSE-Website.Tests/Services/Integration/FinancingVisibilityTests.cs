@@ -14,11 +14,11 @@ public sealed class FinancingVisibilityTests
         await using var db = ctx.NewContext();
         var mine = new FinancingRequest
         {
-            CaseNumber = "NOOSE-FIN-2026-0001", AgentId = "me", Justification = "Meiner",
+            CaseNumber = "FIB-FIN-2026-0001", AgentId = "me", Justification = "Meiner",
         };
         var foreign = new FinancingRequest
         {
-            CaseNumber = "NOOSE-FIN-2026-0002", AgentId = "someone-else", Justification = "Fremder",
+            CaseNumber = "FIB-FIN-2026-0002", AgentId = "someone-else", Justification = "Fremder",
         };
         db.FinancingRequests.AddRange(mine, foreign);
         await db.SaveChangesAsync();

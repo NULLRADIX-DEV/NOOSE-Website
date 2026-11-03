@@ -36,6 +36,10 @@ public sealed class ClaimsPrincipalBuilder
     public ClaimsPrincipalBuilder AsAiOwner(bool value = true) => Flag(AgentClaimTypes.IsAiOwner, value);
     public ClaimsPrincipalBuilder AsTru(bool value = true) => Flag(AgentClaimTypes.IsTRU, value);
     public ClaimsPrincipalBuilder AsHrb(bool value = true) => Flag(AgentClaimTypes.IsHRB, value);
+
+    /// <summary>Home division claim; does not touch the TRU claim, so pair it with <see cref="AsTru"/> for an HRT member.</summary>
+    public ClaimsPrincipalBuilder AsDivision(Division division)
+        => Set(AgentClaimTypes.Division, ((int)division).ToString(CultureInfo.InvariantCulture));
     public ClaimsPrincipalBuilder AsTeamLead(bool value = true) => Flag(AgentClaimTypes.IsTeamLead, value);
     public ClaimsPrincipalBuilder AsDemo(bool value = true) => Flag(AgentClaimTypes.IsDemo, value);
 

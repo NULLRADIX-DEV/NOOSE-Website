@@ -11,7 +11,7 @@ namespace NOOSE_Website.Services;
 public class DocumentAccessService(IDbContextFactory<AppDbContext> dbFactory, DocumentAccessBroadcaster broadcaster)
     : IDocumentAccessService
 {
-    private const Rank LeadershipFloor = Rank.SupervisorySpecialAgent;
+    private const Rank LeadershipFloor = Rank.SpecialAgentInCharge;
 
     public async Task<bool> CanManageAccessAsync(string documentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {

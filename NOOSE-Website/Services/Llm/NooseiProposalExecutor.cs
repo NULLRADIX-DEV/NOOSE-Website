@@ -70,7 +70,7 @@ public sealed class NooseiProposalExecutor(
         catch (Exception ex)
         {
             // may have written
-            logger.LogError(ex, "NOOSEI-Vorschlag {Proposal} brach beim Schreiben ab.", proposalId);
+            logger.LogError(ex, "FIBI-Vorschlag {Proposal} brach beim Schreiben ab.", proposalId);
             await SettleAsync(messageId, proposalId, claimedAt, p => p with { Warning = Unclear });
             throw new InvalidOperationException(Unclear);
         }
@@ -215,7 +215,7 @@ public sealed class NooseiProposalExecutor(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Bezug der NOOSEI-Aufgabe {Job} konnte nicht verknüpft werden.", jobId);
+            logger.LogWarning(ex, "Bezug der FIBI-Aufgabe {Job} konnte nicht verknüpft werden.", jobId);
             return ReferenceMissing;
         }
     }
@@ -241,7 +241,7 @@ public sealed class NooseiProposalExecutor(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Stand des NOOSEI-Vorschlags {Proposal} ließ sich nicht speichern.", proposalId);
+            logger.LogWarning(ex, "Stand des FIBI-Vorschlags {Proposal} ließ sich nicht speichern.", proposalId);
             return null;
         }
     }

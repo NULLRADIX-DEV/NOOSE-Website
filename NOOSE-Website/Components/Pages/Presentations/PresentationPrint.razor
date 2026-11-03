@@ -7,7 +7,7 @@
 @inject PresentationScript Script
 @inject IJSRuntime JS
 
-<PageTitle>@(_view is null ? "Druckansicht" : _view.Presentation.Title) · NOOSE</PageTitle>
+<PageTitle>@(_view is null ? "Druckansicht" : _view.Presentation.Title) · FIB</PageTitle>
 
 @if (_loading)
 {
@@ -21,7 +21,7 @@ else
 {
     @* Google slides are drawn in the browser first; with any of them the dialog opens only once they are there *@
     <PrintFrame Title="@_view.Presentation.Title" BackHref="@($"/praesentationen/{Id}")" BackText="Zurück zur Präsentation"
-                PrintedBy="@_printedBy" Footer="NOOSE-interne Präsentation · Weitergabe nur nach Freigabe durch die Führung."
+                PrintedBy="@_printedBy" Footer="FIB-interne Präsentation · Weitergabe nur nach Freigabe durch die Führung."
                 AutomaticPrint="@(GoogleSlides == 0)">
         <section>
             <table class="druck-felder">

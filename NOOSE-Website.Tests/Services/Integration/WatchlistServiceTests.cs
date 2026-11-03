@@ -120,13 +120,13 @@ public sealed class WatchlistServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("agent-1", rank: Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("agent-1", rank: Rank.Trainee));
             db.People.Add(Seed.Person("person-x", configure: p => p.IsClassified = true));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
-        // classified record + non-leadership caller (JuniorAgent, no admin) -> visibility gate rejects
-        var actor = ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.JuniorAgent).Build();
+        // classified record + non-leadership caller (Trainee, no admin) -> visibility gate rejects
+        var actor = ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.Trainee).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.FollowAsync(PersonType, "person-x", actor));
@@ -249,13 +249,13 @@ public sealed class WatchlistServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("agent-1", rank: Rank.SupervisorySpecialAgent));
+            db.Users.Add(Seed.Agent("agent-1", rank: Rank.SpecialAgentInCharge));
             db.People.Add(Seed.Person("person-1", name: "Max Mustermann"));
             db.Watchlists.Add(Entry("agent-1", PersonType, "person-1", new DateTime(2026, 1, 1)));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
-        var actor = ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.SupervisorySpecialAgent).Build();
+        var actor = ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.SpecialAgentInCharge).Build();
 
         var result = await svc.GetFollowedResolvedAsync(actor);
 
@@ -273,13 +273,13 @@ public sealed class WatchlistServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("agent-1", rank: Rank.JuniorAgent));
+            db.Users.Add(Seed.Agent("agent-1", rank: Rank.Trainee));
             db.People.Add(Seed.Person("person-c", configure: p => p.IsClassified = true));
             db.Watchlists.Add(Entry("agent-1", PersonType, "person-c", new DateTime(2026, 1, 1)));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
-        var actor = ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.JuniorAgent).Build();
+        var actor = ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.Trainee).Build();
 
         var result = await svc.GetFollowedResolvedAsync(actor);
 

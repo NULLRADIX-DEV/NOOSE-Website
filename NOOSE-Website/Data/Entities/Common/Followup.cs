@@ -37,6 +37,10 @@ public class Followup : IAuditable, ISoftDelete
     [Column("BenachrichtigtAm")]
     public DateTime? NotifiedAt { get; set; }
 
+    /// <summary>Set once leadership was told it is long overdue; a new due date clears it.</summary>
+    [Column("EskaliertAm")]
+    public DateTime? EscalatedAt { get; set; }
+
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }
     [Column("ErstelltVonId")]

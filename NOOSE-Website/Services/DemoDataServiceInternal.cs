@@ -100,7 +100,7 @@ public partial class DemoDataService
         [
             ("Combat Pistol", "Waffen", "Bei der Razzia im Rancho-Lagerhaus sichergestellt.", 14, 2),
             ("Pump Shotgun", "Waffen", "Aus einem Fahrzeugversteck an der Route 68.", 6, 0),
-            ("Kevlarweste (NOOSE-Ausgabe)", "Schutzausrüstung", "Aus einer Lieferung entwendet und wieder aufgefunden.", 9, 3),
+            ("Kevlarweste (FIB-Ausgabe)", "Schutzausrüstung", "Aus einer Lieferung entwendet und wieder aufgefunden.", 9, 3),
             ("Bargeld, gebündelt", "Wertsachen", "Sicherstellung Containerhafen, Bündel zu je 10.000 $.", 32, 0),
             ("Mobiltelefon, entsperrt", "Kommunikation", "Auswertung durch die Technik läuft.", 5, 1),
             ("Amnestie-Spritze", "Medizinisch", "Bestand der Behörde.", 25, 8),
@@ -188,9 +188,9 @@ public partial class DemoDataService
     {
         (string Name, string Category, decimal Price, int Subsidy, Rank MinRank, int Max, int Sort)[] catalogue =
         [
-            ("Dienstwaffe Combat Pistol", "Bewaffnung", 4_500m, 80, Rank.JuniorAgent, 1, 10),
-            ("Schutzweste, verstärkt", "Schutzausrüstung", 6_200m, 90, Rank.JuniorAgent, 1, 20),
-            ("Funkgerät, verschlüsselt", "Kommunikation", 2_800m, 100, Rank.JuniorAgent, 2, 30),
+            ("Dienstwaffe Combat Pistol", "Bewaffnung", 4_500m, 80, Rank.Trainee, 1, 10),
+            ("Schutzweste, verstärkt", "Schutzausrüstung", 6_200m, 90, Rank.Trainee, 1, 20),
+            ("Funkgerät, verschlüsselt", "Kommunikation", 2_800m, 100, Rank.Trainee, 2, 30),
             ("Dienstfahrzeug, ziviler Aufbau", "Fahrzeuge", 68_000m, 60, Rank.SeniorSpecialAgent, 1, 40),
             ("Nachtsichtgerät", "Technik", 9_400m, 70, Rank.SpecialAgent, 1, 50),
         ];
@@ -338,7 +338,7 @@ public partial class DemoDataService
             LeakCategories = LeakCategory.Safehouses | LeakCategory.Operations,
             LeakSeverity = LeakSeverity.High,
             Outcome = AbductionOutcome.Rescued,
-            Notes = "Befreiung durch die TRU nach sechs Stunden. Der Agent wurde unter Wahrheitsserum befragt; "
+            Notes = "Befreiung durch das HRT nach sechs Stunden. Der Agent wurde unter Wahrheitsserum befragt; "
                 + "nach eigener Aussage wurden zwei Deckadressen und eine laufende Maßnahme preisgegeben.",
         };
         db.AgentAbductions.Add(abduction);
@@ -515,7 +515,7 @@ public partial class DemoDataService
             ("Wochenbesprechung Lagebild (KW 34)", -14, MeetingStatus.Held,
                 ["Lagebild Süden der Stadt", "Stand Hafenobservation", "Personalien und Abmeldungen", "Verschiedenes"],
                 "Lagebild besprochen. Die Observation im Hafen wird um zwei Wochen verlängert; Zuständigkeit bleibt "
-                + "bei der Ermittlungsführung. Für die Gefahrenlage wurde eine Anhebung auf „Erhöht\" beschlossen."),
+                + "bei der Ermittlungsführung. Für die Gefahrenlage wurde eine Anhebung auf „DEFCON 4\" beschlossen."),
             ("Wochenbesprechung Lagebild (KW 35)", -7, MeetingStatus.Held,
                 ["Rückblick Zugriff Hafenviertel", "Auswertung Bürgerhinweise", "Kopfgeld-Budget", "Verschiedenes"],
                 "Der Zugriff im Hafenviertel verlief ohne Zwischenfälle. Die Auswertung der Bürgerhinweise ergab eine "
@@ -539,7 +539,7 @@ public partial class DemoDataService
                 Title = title,
                 Start = start,
                 End = start.AddHours(1),
-                Location = "Lagezentrum, NOOSE HQ",
+                Location = "Lagezentrum, FIB HQ",
                 Status = status,
                 MinutesHtml = minutes is null ? null : Paragraph(minutes),
                 AttendanceClosedAt = status == MeetingStatus.Held ? start.AddHours(2) : null,

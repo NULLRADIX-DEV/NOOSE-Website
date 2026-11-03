@@ -29,10 +29,10 @@ public static class AttendanceAnomalyLevelDisplay
     public static string Colour(AttendanceAnomalyLevel level) => level switch
     {
         AttendanceAnomalyLevel.None => "#3FB950",
-        AttendanceAnomalyLevel.Insufficient => "#8B98A8",
+        AttendanceAnomalyLevel.Insufficient => "#9A9488",
         AttendanceAnomalyLevel.Yellow => "#D29922",
         AttendanceAnomalyLevel.Red => "#F85149",
-        _ => "#8B98A8",
+        _ => "#9A9488",
     };
 
     public static readonly IReadOnlyList<AttendanceAnomalyLevel> All = new[]

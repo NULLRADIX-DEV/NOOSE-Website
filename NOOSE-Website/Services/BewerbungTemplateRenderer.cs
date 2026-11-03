@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.RegularExpressions;
+using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services;
 
@@ -13,6 +14,10 @@ public static partial class BewerbungTemplateRenderer
 
     /// <summary>Fallback salutation when no applicant name is known.</summary>
     private const string ApplicantFallback = "Bewerber/in";
+
+    /// <summary>The sender's rank as the applicant reads it: always the neutral title.</summary>
+    /// <remarks>The division never leaves the house, so a letter carries no HRT title, whatever the sender's unit.</remarks>
+    public static string? SenderRank(Rank? rank) => rank is { } r ? RankDisplay.Name(r) : null;
 
     /// <summary>Prepare a template body for insertion into an applicant letter: redact the sender NAME, address
     /// the recipient BEWERBER by name, fill DIENSTGRAD (the sender's rank); DATUM/UHRZEIT stay as tokens.</summary>

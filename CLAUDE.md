@@ -1,6 +1,6 @@
 # CLAUDE.md — NOOSE-Website
 
-Zentrale Akten- und Intelligence-Datenbank für die NOOSE (National Office of Security Enforcement), eine fiktive Behörde auf einem FiveM-/GTA-RP-Server. Live: https://noose.info
+Zentrale Akten- und Intelligence-Datenbank für das FIB (Federal Investigation Bureau, bis November 2026 NOOSE), eine fiktive Behörde auf einem FiveM-/GTA-RP-Server. Live: https://fibhq.com. Der Name NOOSE bleibt in Repo, Image, Namespace und Bezeichnern, sichtbare Texte sagen FIB.
 
 Dieses Repo ist öffentlich. Die Regeln für die Arbeit daran beschreiben Rollen, Sichtbarkeit und Abwehr der App, deshalb liegen sie im privaten Nachbar-Repo `NULLRADIX-DEV/NOOSE-Doc`. Es muss neben diesem Repo geklont sein (`../NOOSE-Doc`), ebenso `../Nullradix-Doc` mit den gemeinsamen Regeln aller Nullradix-Projekte, die `CLAUDE-intern.md` einbindet. Neue Regeln und Erkenntnisse kommen dorthin, nie in dieses Repo.
 

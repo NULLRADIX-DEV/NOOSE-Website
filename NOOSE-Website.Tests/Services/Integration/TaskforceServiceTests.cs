@@ -14,19 +14,19 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="TaskforceService"/> against in-memory SQLite.</summary>
 public sealed class TaskforceServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) or admin => IsLeadership().
+    // Rank >= SpecialAgentInCharge(4) or admin => IsLeadership().
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, not admin.
     private static ClaimsPrincipal Member(string id)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static TaskforceService NewService(SqliteTestContext ctx)
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-TF-2026-0001");
+            .Returns("FIB-TF-2026-0001");
         return new TaskforceService(ctx.Factory, caseNo, Substitute.For<INotificationService>());
     }
 
@@ -35,7 +35,7 @@ public sealed class TaskforceServiceTests
         var t = new Taskforce
         {
             Id = id,
-            CaseNumber = $"NOOSE-TF-2026-{id}",
+            CaseNumber = $"FIB-TF-2026-{id}",
             Name = name,
             Status = TaskforceStatus.Approved,
             Scope = TaskforceScope.InternalAgency,
@@ -261,8 +261,8 @@ public sealed class TaskforceServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(Tf("t1", cfg: t => t.CaseNumber = "NOOSE-TF-SPECIAL"));
-            db.Taskforces.Add(Tf("t2", cfg: t => t.CaseNumber = "NOOSE-TF-OTHER"));
+            db.Taskforces.Add(Tf("t1", cfg: t => t.CaseNumber = "FIB-TF-SPECIAL"));
+            db.Taskforces.Add(Tf("t2", cfg: t => t.CaseNumber = "FIB-TF-OTHER"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -338,7 +338,7 @@ public sealed class TaskforceServiceTests
 
         var created = await svc.CreateAsync(input, Leader("creator"));
 
-        Assert.Equal("NOOSE-TF-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-TF-2026-0001", created.CaseNumber);
         Assert.Equal("Task Alpha", created.Name);
         Assert.Equal(TaskforceStatus.Requested, created.Status);
         Assert.True(created.IsClassified);

@@ -18,9 +18,9 @@ public partial class DemoDataService
 
     private static readonly PageSpec[] PageSpecs =
     [
-        new("auftrag", "Auftrag der NOOSE", "Auftrag", "Shield", 10,
+        new("auftrag", "Auftrag des FIB", "Auftrag", "Shield", 10,
         [
-            "Das National Office of Security Enforcement ist die Bundesbehörde für die Abwehr schwerer und "
+            "Das Federal Investigation Bureau ist die Bundesbehörde für die Abwehr schwerer und "
             + "organisierter Kriminalität im Bundesstaat San Andreas.",
             "Wir führen Akten über Personen und Organisationen, gegen die ein Anfangsverdacht besteht, koordinieren "
             + "behördenübergreifende Einsätze und unterstützen die örtlichen Polizeibehörden bei Lagen, die deren "
@@ -30,7 +30,7 @@ public partial class DemoDataService
         ]),
         new("befugnisse", "Befugnisse", "Befugnisse", "Gavel", 20,
         [
-            "Die NOOSE handelt auf gesetzlicher Grundlage. Maßnahmen, die in Grundrechte eingreifen, stehen unter "
+            "Das FIB handelt auf gesetzlicher Grundlage. Maßnahmen, die in Grundrechte eingreifen, stehen unter "
             + "Richtervorbehalt und werden dokumentiert.",
             "Zu unseren Befugnissen gehören die Identitätsfeststellung, die Durchsuchung von Personen und Sachen bei "
             + "Gefahr im Verzug, die vorläufige Festnahme sowie die Sicherstellung von Beweismitteln.",
@@ -201,7 +201,7 @@ public partial class DemoDataService
             "Bei einer abgestimmten Maßnahme im Hafenviertel wurden drei Personen gestellt. Die zugehörige "
             + "Ausschreibung ist beendet.", 5,
         [
-            "Einsatzkräfte der NOOSE haben gestern Abend gemeinsam mit dem LSPD ein Lagergebäude auf Elysian Island "
+            "Einsatzkräfte des FIB haben gestern Abend gemeinsam mit dem LSPD ein Lagergebäude auf Elysian Island "
             + "durchsucht. Drei Personen wurden vorläufig festgenommen.",
             "Sichergestellt wurden mehrere Schusswaffen sowie Unterlagen, die im Zusammenhang mit einem laufenden "
             + "Verfahren ausgewertet werden.",
@@ -227,7 +227,7 @@ public partial class DemoDataService
             "Nach mehreren Auseinandersetzungen gilt für Davis und Rancho bis auf Weiteres eine erhöhte Gefahrenlage.", 11,
         [
             "Nach wiederholten Auseinandersetzungen zwischen rivalisierenden Gruppierungen hat die Behörde die "
-            + "Gefahrenlage für den Süden der Stadt auf „Erhöht\" gesetzt.",
+            + "Gefahrenlage für den Süden der Stadt auf „DEFCON 4\" gesetzt.",
             "Die Einstufung wird laufend überprüft. Über Änderungen informieren wir auf dieser Seite.",
         ]),
     ];
@@ -560,18 +560,18 @@ public partial class DemoDataService
         new(PublicTemplateKind.TicketAntwort, "Zwischenstand zu einem Anliegen",
             "Guten Tag BUERGER,\n\nzu Ihrem Anliegen AKTENZEICHEN können wir Ihnen einen Zwischenstand geben: "
             + "die Prüfung läuft. Sobald uns Neues vorliegt, melden wir uns in diesem Ticket.\n\n"
-            + "Mit freundlichen Grüßen\nNOOSE – Führungsebene", 20),
+            + "Mit freundlichen Grüßen\nFIB – Führungsebene", 20),
         new(PublicTemplateKind.TicketAntwort, "Abschluss eines Anliegens",
             "Guten Tag BUERGER,\n\nwir betrachten Ihr Anliegen AKTENZEICHEN als abgeschlossen. "
             + "Sollten Sie Rückfragen haben, können Sie hier weiter schreiben.\n\n"
-            + "Mit freundlichen Grüßen\nNOOSE – Führungsebene", 30),
+            + "Mit freundlichen Grüßen\nFIB – Führungsebene", 30),
         new(PublicTemplateKind.HinweisRueckfrage, "Rückfrage zu Ort und Zeit",
             "Guten Tag BUERGER,\n\nvielen Dank für Ihren Hinweis AKTENZEICHEN. Können Sie Ort und Uhrzeit Ihrer "
-            + "Beobachtung noch genauer eingrenzen? Auch Kleinigkeiten helfen uns weiter.\n\nNOOSE", 20),
+            + "Beobachtung noch genauer eingrenzen? Auch Kleinigkeiten helfen uns weiter.\n\nFIB", 20),
         new(PublicTemplateKind.HinweisAblehnung, "Kein Anfangsverdacht",
             "Guten Tag BUERGER,\n\nwir haben Ihren Hinweis AKTENZEICHEN vom DATUM geprüft. "
             + "Für eine Maßnahme reichen die Angaben nicht aus; wir schließen den Vorgang daher ab. "
-            + "Bitte melden Sie sich erneut, wenn Ihnen Neues auffällt.\n\nNOOSE", 20),
+            + "Bitte melden Sie sich erneut, wenn Ihnen Neues auffällt.\n\nFIB", 20),
     ];
 
     private static async Task<int> SeedPublicTemplatesAsync(AppDbContext db, CancellationToken ct)

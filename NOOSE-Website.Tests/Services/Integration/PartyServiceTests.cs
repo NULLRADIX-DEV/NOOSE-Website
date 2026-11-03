@@ -15,13 +15,13 @@ namespace NOOSE_Website.Tests.Services.Integration;
 /// <summary>Integration tests for <see cref="PartyService"/> against in-memory SQLite.</summary>
 public sealed class PartyServiceTests
 {
-    // Rank >= SupervisorySpecialAgent(4) or admin => leadership.
+    // Rank >= SpecialAgentInCharge(4) or admin => leadership.
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, not admin, cannot read classified.
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ViewerScope LeaderScope() => ViewerScope.From(Leader());
     private static ViewerScope PlainScope() => ViewerScope.From(Junior());
@@ -42,7 +42,7 @@ public sealed class PartyServiceTests
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-PT-2026-0001");
+            .Returns("FIB-PT-2026-0001");
         return new PartyService(
             ctx.Factory,
             caseNo,
@@ -59,7 +59,7 @@ public sealed class PartyServiceTests
         {
             Id = id,
             Name = name,
-            CaseNumber = $"NOOSE-PT-2026-{id}",
+            CaseNumber = $"FIB-PT-2026-{id}",
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         };
         configure?.Invoke(p);
@@ -184,7 +184,7 @@ public sealed class PartyServiceTests
         var svc = NewService(ctx);
 
         var byName = await svc.SearchAsync("Grove", isLeadership: true);
-        var byCase = await svc.SearchAsync("NOOSE-PT-2026-b", isLeadership: true);
+        var byCase = await svc.SearchAsync("FIB-PT-2026-b", isLeadership: true);
 
         Assert.Equal(new[] { "a" }, byName.Select(p => p.Id).ToArray());
         Assert.Equal(new[] { "b" }, byCase.Select(p => p.Id).ToArray());
@@ -230,7 +230,7 @@ public sealed class PartyServiceTests
 
         var created = await svc.CreateAsync(input, Leader());
 
-        Assert.Equal("NOOSE-PT-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-PT-2026-0001", created.CaseNumber);
         Assert.Equal("Grove Street", created.Name);
 
         using var check = ctx.NewContext();
@@ -939,7 +939,7 @@ public sealed class PartyServiceTests
             db.SaveChanges();
         }
         var svc = NewService(ctx);
-        var tru = ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.JuniorAgent).AsTru().Build();
+        var tru = ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.Trainee).AsTru().Build();
 
         Assert.NotNull(await svc.GetPhotoWithPartyAsync("ph1", ViewerScope.From(tru)));
     }

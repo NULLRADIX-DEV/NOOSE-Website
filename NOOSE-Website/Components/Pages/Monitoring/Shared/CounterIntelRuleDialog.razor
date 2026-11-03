@@ -160,8 +160,8 @@
                             </MudSelect>
 
                             <MudGrid>
-                                <MudItem xs="12" sm="4">@Flag("TRU", _definition.RequireTru, v => _definition.RequireTru = v)</MudItem>
-                                <MudItem xs="12" sm="4">@Flag("HRB", _definition.RequireHrb, v => _definition.RequireHrb = v)</MudItem>
+                                <MudItem xs="12" sm="4">@Flag("HRT", _definition.RequireTru, v => _definition.RequireTru = v)</MudItem>
+                                <MudItem xs="12" sm="4">@Flag("Administration", _definition.RequireHrb, v => _definition.RequireHrb = v)</MudItem>
                                 <MudItem xs="12" sm="4">@Flag("Admin", _definition.RequireAdmin, v => _definition.RequireAdmin = v)</MudItem>
                             </MudGrid>
 
@@ -449,8 +449,8 @@
             if (_definition.ActorRanks.Count > 0) parts.Add($"{_definition.ActorRanks.Count} Rang/Ränge");
             if (_definition.ActorIds.Count > 0) parts.Add($"{_definition.ActorIds.Count} Agent(en)");
             if (_definition.ExcludedActorIds.Count > 0) parts.Add($"{_definition.ExcludedActorIds.Count} ausgenommen");
-            if (_definition.RequireTru is not null) parts.Add("TRU");
-            if (_definition.RequireHrb is not null) parts.Add("HRB");
+            if (_definition.RequireTru is not null) parts.Add("HRT");
+            if (_definition.RequireHrb is not null) parts.Add("Administration");
             if (_definition.RequireAdmin is not null) parts.Add("Admin");
             if (_definition.ActorSharesOrgWithTarget is not null) parts.Add("Organisation");
             if (_definition.PartnerScope != CounterIntelPartnerScope.Any)

@@ -7,7 +7,7 @@
 @inject IInventoryStatisticsService Inventory
 @inject IThroughputStatisticsService Throughput
 
-<PageTitle>Statistik – Druckansicht · NOOSE</PageTitle>
+<PageTitle>Statistik – Druckansicht · FIB</PageTitle>
 
 @if (_load)
 {
@@ -17,7 +17,7 @@ else if (_report is { } r)
 {
     <PrintFrame Title="Statistik &amp; Auswertungen" BackHref="/statistik" BackText="Zurück zur Statistik"
                  PrintedBy="@_printBy" IsClassified="false"
-                 Footer="NOOSE-interne Auswertung · Stand der Erzeugung · Weitergabe nur nach Freigabe durch die Führung.">
+                 Footer="FIB-interne Auswertung · Stand der Erzeugung · Weitergabe nur nach Freigabe durch die Führung.">
         <StatisticsReportTables Report="r" />
         <StatisticsChartTables Classification="@_classification" Hazard="@_hazard" CaseFunnel="@_caseFunnel"
                                CycleTime="@_cycleTime" Recency="@_recency" />

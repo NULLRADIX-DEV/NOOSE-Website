@@ -5,17 +5,17 @@
 @using NOOSE_Website.Models.Public
 @inject IPublicPageService Pages
 
-<PageTitle>Information · NOOSE</PageTitle>
+<PageTitle>Information · FIB</PageTitle>
 
 <LinkPreview Title="Information"
-             Description="Auftrag, Befugnisse und Zuständigkeiten des National Office of Security Enforcement." />
+             Description="Auftrag, Befugnisse und Zuständigkeiten des Federal Investigation Bureau." />
 
 <PublicModuleGate Module="@PublicModules.InfoPages" Title="Information">
 <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
     <MudStack Spacing="4">
         <MudText Typo="Typo.h4">Information</MudText>
         <MudText Typo="Typo.body1" Class="mud-text-secondary">
-            Auftrag, Befugnisse und Zuständigkeiten des National Office of Security Enforcement.
+            Auftrag, Befugnisse und Zuständigkeiten des Federal Investigation Bureau.
         </MudText>
 
         @if (_links.Count == 0)

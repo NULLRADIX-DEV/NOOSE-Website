@@ -30,7 +30,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class CriticalChangeTests
 {
     private const string Id = "r1";
-    private const string Reason = "Dublette von NOOSE-P-2026-0007";
+    private const string Reason = "Dublette von FIB-P-2026-0007";
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename("Falcon").Build();
@@ -212,7 +212,7 @@ public sealed class CriticalChangeTests
         using (var db = ctx.NewContext())
         {
             db.People.Add(Seed.Person("src", "Max Muster"));
-            db.People.Add(Seed.Person("dst", "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-0042"));
+            db.People.Add(Seed.Person("dst", "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-0042"));
             db.SaveChanges();
         }
 
@@ -223,7 +223,7 @@ public sealed class CriticalChangeTests
         var row = Assert.Single(read.AuditLogs.Where(a => a.EntityId == "src" && a.Action == AuditAction.Justified));
         var change = Assert.Single(AuditDisplay.Parse(row.ChangesJson));
         Assert.Equal(CriticalChange.DeletionField, change.Field);
-        Assert.Contains("NOOSE-P-2026-0042", change.New);
+        Assert.Contains("FIB-P-2026-0042", change.New);
     }
 
     [Theory]
@@ -238,7 +238,7 @@ public sealed class CriticalChangeTests
             db.People.Add(Seed.Person("src", "Max Muster"));
             db.People.Add(Seed.Person("dst", "Geheimer Kopf", p =>
             {
-                p.CaseNumber = "NOOSE-P-2026-0042";
+                p.CaseNumber = "FIB-P-2026-0042";
                 p.SecrecyLevel = level;
             }));
             db.SaveChanges();
@@ -252,7 +252,7 @@ public sealed class CriticalChangeTests
         var reason = Assert.Single(check.AuditLogs.Where(a => a.EntityId == "src" && a.Action == AuditAction.Justified));
         Assert.Contains("Duplikat", reason.ChangesJson);
         Assert.DoesNotContain("Geheimer Kopf", reason.ChangesJson);
-        Assert.DoesNotContain("NOOSE-P-2026-0042", reason.ChangesJson);
+        Assert.DoesNotContain("FIB-P-2026-0042", reason.ChangesJson);
     }
 
     [Theory]
@@ -683,7 +683,7 @@ public sealed class CriticalChangeTests
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-X-2026-0001");
+            .Returns("FIB-X-2026-0001");
         return caseNo;
     }
 
@@ -692,7 +692,7 @@ public sealed class CriticalChangeTests
         DocumentClassification secrecy = DocumentClassification.None, bool deleted = false)
     {
         using var db = ctx.NewContext();
-        var number = $"NOOSE-X-2026-{type}";
+        var number = $"FIB-X-2026-{type}";
         switch (type)
         {
             case nameof(Person):

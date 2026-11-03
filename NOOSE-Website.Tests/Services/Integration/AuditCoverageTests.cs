@@ -73,7 +73,7 @@ public sealed class AuditCoverageTests
         Assert.DoesNotContain(changes, c => c.Field is "ModifiedAt" or "ModifiedById");
 
         var flag = Assert.Single(changes);
-        Assert.Equal("VS-Stufe HRB", flag.Field);
+        Assert.Equal("VS-Stufe Administration", flag.Field);
         Assert.Equal("Nein", flag.Alt);
         Assert.Equal("Ja", flag.New);
     }

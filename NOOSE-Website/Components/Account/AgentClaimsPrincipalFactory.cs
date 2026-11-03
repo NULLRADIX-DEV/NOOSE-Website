@@ -25,9 +25,16 @@ public class AgentClaimsPrincipalFactory(
         identity.AddClaim(new Claim(AgentClaimTypes.IsAdmin, user.IsAdmin ? "true" : "false"));
         identity.AddClaim(new Claim(AgentClaimTypes.IsBootstrap, BootstrapAdmins.Contains(configuration, user.DiscordId) ? "true" : "false"));
         identity.AddClaim(new Claim(AgentClaimTypes.IsAiOwner, AiOwners.Contains(configuration, user.DiscordId) ? "true" : "false"));
-        identity.AddClaim(new Claim(AgentClaimTypes.IsTRU, user.IsTRU ? "true" : "false"));
+        // TRU follows the division, so a row from before the division column reads the same
+        var unit = DivisionRules.Of(user);
+        identity.AddClaim(new Claim(AgentClaimTypes.IsTRU, DivisionRules.IsTru(unit) ? "true" : "false"));
         identity.AddClaim(new Claim(AgentClaimTypes.IsHRB, user.IsHRB ? "true" : "false"));
         identity.AddClaim(new Claim(AgentClaimTypes.IsTeamLead, user.IsTeamLead ? "true" : "false"));
+
+        if (unit.Home is { } home)
+        {
+            identity.AddClaim(new Claim(AgentClaimTypes.Division, ((int)home).ToString()));
+        }
 
         if (user.Rank is not null)
         {

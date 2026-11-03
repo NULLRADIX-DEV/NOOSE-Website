@@ -126,7 +126,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
 
                 if (agent is null)
                 {
-                    return RedirectToLoginPage("Das NOOSE-Konto konnte nicht angelegt werden.");
+                    return RedirectToLoginPage("Das FIB-Konto konnte nicht angelegt werden.");
                 }
             }
             else
@@ -251,6 +251,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
             RegisteredAt = DateTime.UtcNow,
             Status = isBootstrapAdmin ? AgentStatus.Active : intendedStatus,
             Rank = isBootstrapAdmin ? Rank.Director : null,
+            Division = isBootstrapAdmin ? Division.Cid : null,
             IsAdmin = isBootstrapAdmin,
             ReleasedAt = isBootstrapAdmin ? DateTime.UtcNow : null,
         };
@@ -307,6 +308,7 @@ public static class IdentityComponentsEndpointRouteBuilderExtensions
         agent.Status = AgentStatus.Active;
         agent.ReleasedAt ??= DateTime.UtcNow;
         agent.Rank ??= Rank.Director;
+        DivisionRules.Apply(agent, DivisionRules.Of(agent).Home);
 
         var update = await userManager.UpdateAsync(agent);
         if (update.Succeeded)

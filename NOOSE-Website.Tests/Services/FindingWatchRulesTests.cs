@@ -382,7 +382,7 @@ public sealed class FindingWatchRulesTests
     {
         Assert.Equal("Gegenaufklärung: 1 neue Auffälligkeit (Massen-Zugriff)",
             FindingWatchRules.Title(FindingSource.Rule, 1, ["Massen-Zugriff"]));
-        Assert.Equal("NOOSEI: 2 neue Auffälligkeiten (Burst, Verbrauchsrate)",
+        Assert.Equal("FIBI: 2 neue Auffälligkeiten (Burst, Verbrauchsrate)",
             FindingWatchRules.Title(FindingSource.Noosei, 2, ["Burst", "Verbrauchsrate"]));
     }
 

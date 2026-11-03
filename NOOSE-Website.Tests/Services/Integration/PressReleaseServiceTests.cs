@@ -64,7 +64,7 @@ public sealed class PressReleaseServiceTests
         var caseNumbers = Substitute.For<ICaseNumberService>();
         var counter = 0;
         caseNumbers.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(ci => $"NOOSE-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
+            .Returns(ci => $"FIB-{ci.ArgAt<string>(1)}-2026-{++counter:0000}");
 
         var discord = Substitute.For<IDiscordWebhookService>();
         var service = new PressReleaseService(factory, modules, caseNumbers, discord, cache);
@@ -171,6 +171,22 @@ public sealed class PressReleaseServiceTests
     }
 
     [Fact]
+    public async Task ALegacyNooseNumber_StillOpensThePublishedRelease()
+    {
+        // the permanent address of a release was posted to Discord before the rename
+        using var ctx = await SeededAsync();
+        var host = NewHost(ctx);
+        var id = await PublishedAsync(host);
+        var number = (await host.Service.GetAllAsync(Leader())).Single(r => r.Id == id).CaseNumber!;
+        var legacy = number.Replace("FIB-", "NOOSE-", StringComparison.Ordinal);
+
+        var view = await host.Service.GetByCaseNumberAsync($" {legacy.ToLowerInvariant()} ");
+
+        Assert.Equal(number, view!.CaseNumber);
+        Assert.Null(await host.Service.GetByCaseNumberAsync("NOOSE-PM-2026-9999"));
+    }
+
+    [Fact]
     public async Task AChangedHeadline_ShowsAsADivergingDraft()
     {
         // the chip has to notice a title-only change, otherwise the panel calls a stale headline up to date
@@ -249,7 +265,7 @@ public sealed class PressReleaseServiceTests
         var id = await PublishedAsync(host);
 
         var row = (await host.Service.GetAllAsync(Leader())).Single(r => r.Id == id);
-        Assert.StartsWith($"NOOSE-{PressReleaseService.CaseNumberPrefix}-", row.CaseNumber, StringComparison.Ordinal);
+        Assert.StartsWith($"FIB-{PressReleaseService.CaseNumberPrefix}-", row.CaseNumber, StringComparison.Ordinal);
         Assert.Equal(PressReleaseStatus.Veroeffentlicht, row.Status);
         Assert.Single((await host.Service.GetPublishedAsync()).Cards);
         Assert.Equal("Falcon", row.PublishedByName);
@@ -467,7 +483,7 @@ public sealed class PressReleaseServiceTests
     // ---- the automatic draft after a capture ----
 
     private static PublicWantedCard Card()
-        => new("NOOSE-FA-2026-0001", PublicWantedKind.Fahndung, "Frank Miller", null, false,
+        => new("FIB-FA-2026-0001", PublicWantedKind.Fahndung, "Frank Miller", null, false,
             HazardLevel.High, DateTime.UtcNow, []);
 
     [Fact]

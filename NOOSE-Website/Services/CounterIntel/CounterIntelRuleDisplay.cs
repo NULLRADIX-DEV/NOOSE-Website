@@ -53,7 +53,7 @@ public static class CounterIntelRuleDisplay
         }
         foreach (var (flag, label) in new (bool?, string)[]
         {
-            (definition.RequireTru, "TRU"), (definition.RequireHrb, "HRB"), (definition.RequireAdmin, "Admin"),
+            (definition.RequireTru, "HRT"), (definition.RequireHrb, "Administration"), (definition.RequireAdmin, "Admin"),
         })
         {
             if (flag is { } value)

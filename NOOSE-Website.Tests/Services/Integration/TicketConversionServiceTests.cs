@@ -31,7 +31,7 @@ public sealed class TicketConversionServiceTests
         db.Tickets.Add(new Ticket
         {
             Id = TicketId,
-            CaseNumber = "NOOSE-T-2026-0001",
+            CaseNumber = "FIB-T-2026-0001",
             Subject = "Beschädigtes Fahrzeug",
             Category = TicketKategorie.Anzeige,
             Status = TicketStatus.Offen,
@@ -68,7 +68,7 @@ public sealed class TicketConversionServiceTests
             .Returns(ci => Task.FromResult(new Case
             {
                 Id = "c1",
-                CaseNumber = "NOOSE-V-2026-0007",
+                CaseNumber = "FIB-V-2026-0007",
                 Title = ci.Arg<CaseInput>().Title,
                 Description = ci.Arg<CaseInput>().Description,
             }));
@@ -84,11 +84,11 @@ public sealed class TicketConversionServiceTests
 
         var created = await service.ToCaseAsync(TicketId, Leader());
 
-        Assert.Equal("NOOSE-V-2026-0007", created.CaseNumber);
+        Assert.Equal("FIB-V-2026-0007", created.CaseNumber);
         await cases.Received(1).CreateAsync(
             Arg.Is<CaseInput>(i =>
                 i.Title == "Beschädigtes Fahrzeug"
-                && i.Description!.Contains("NOOSE-T-2026-0001")
+                && i.Description!.Contains("FIB-T-2026-0001")
                 && i.Description!.Contains("Mein Fahrzeug wurde beschädigt")
                 // the internal thread is the desk's own and does not travel into a record stock
                 && !i.Description!.Contains("Interne Einschätzung")

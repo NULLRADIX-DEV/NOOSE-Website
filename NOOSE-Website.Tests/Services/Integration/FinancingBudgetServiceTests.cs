@@ -18,7 +18,7 @@ public sealed class FinancingBudgetServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static FinancingBudgetService Build(SqliteTestContext ctx, FinancingBudgetConfig? config = null)
     {
@@ -53,7 +53,7 @@ public sealed class FinancingBudgetServiceTests
         await using var db = ctx.NewContext();
         db.FinancingRequests.Add(new FinancingRequest
         {
-            CaseNumber = $"NOOSE-FIN-{year}-{Guid.NewGuid().ToString()[..4]}",
+            CaseNumber = $"FIB-FIN-{year}-{Guid.NewGuid().ToString()[..4]}",
             AgentId = AgentId,
             Status = status,
             Justification = "Test",

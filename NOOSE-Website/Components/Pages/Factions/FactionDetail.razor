@@ -8,7 +8,7 @@
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 @inject NOOSE_Website.Services.Public.IPublicFactionProfileService PublicProfiles
 
-<PageTitle>@(_faction?.Name ?? "Fraktion") · NOOSE</PageTitle>
+<PageTitle>@(_faction?.Name ?? "Fraktion") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -283,7 +283,7 @@ else
                 @* NOOSEI-Kurzbrief: internal only *@
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(Faction)" EntityId="@_faction.Id" User="_user" />
                 </RecordSection>
                 }

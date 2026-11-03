@@ -81,6 +81,11 @@ public static class TrashProjection
         => new("entfuehrungen", x.Id, x.CaseNumber, x.VictimAgent?.Codename ?? x.VictimAgentId ?? "(gelöschter Agent)",
             AbductionOutcomeDisplay.Name(x.Outcome), x.DeletedAt);
 
+    // never the reason: the trash list is read by every handler of the leadership, and the reason belongs to the
+    // agent and the overview; who and when identify the row
+    public static TrashItem FirearmUse(Data.Entities.Personnel.FirearmUse x)
+        => new("schusswaffengebrauch", x.Id, null, x.Agent?.Codename ?? x.AgentId, Moment(x.Timestamp), x.DeletedAt);
+
     public static TrashItem Informant(InformantTrashItem x)
         => new("informanten", x.Id, x.CaseNumber, x.Name, x.Detail, x.DeletedAt);
 

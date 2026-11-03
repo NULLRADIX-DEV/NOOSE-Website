@@ -17,7 +17,7 @@
 {
     <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-2">
         Der Editor konnte nicht geladen werden. Bitte die Seite mit Strg+F5 neu laden –
-        besteht das Problem weiter, wende dich an die NOOSE-Administration.
+        besteht das Problem weiter, wende dich an die FIB-Administration.
     </MudAlert>
 }
 @* relative: the mention picker is placed at the caret, in coordinates JS measures against this wrapper *@
@@ -76,7 +76,7 @@
 else if (_lastCost is { } cost)
 {
     <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
-        NOOSEI · letzte Aktion: @cost.ToString("N0") Token
+        FIBI · letzte Aktion: @cost.ToString("N0") Token
         @if (_lastDiscarded)
         {
             @* discarding does not refund, so say why the counter moved without the text changing *@
@@ -170,7 +170,7 @@ else if (_lastCost is { } cost)
         try
         {
             // ?v= cache-buster: bump it on every richtext.js change (dynamic imports bypass asset fingerprinting)
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/richtext.js?v=21");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/richtext.js?v=22");
             _ref = DotNetObjectReference.Create(this);
             // the editor types a caption line; the stored row carries figure/figcaption
             Value = RichTextFigure.ToEditor(Value);
@@ -370,7 +370,7 @@ else if (_lastCost is { } cost)
         }
         try
         {
-            await using var module = await js.InvokeAsync<IJSObjectReference>("import", "./js/richtext.js?v=21");
+            await using var module = await js.InvokeAsync<IJSObjectReference>("import", "./js/richtext.js?v=22");
             await module.InvokeVoidAsync("entwurfVerwerfenNachSchluessel", agentId + ":" + draftKey);
         }
         catch (JSDisconnectedException)
@@ -599,7 +599,7 @@ else if (_lastCost is { } cost)
     [JSInvokable]
     public Task OnAiTooLarge()
     {
-        Snackbar.Add("Der Text ist zu groß für NOOSEI. Markiere den Abschnitt, den NOOSEI bearbeiten soll.", Severity.Warning);
+        Snackbar.Add("Der Text ist zu groß für FIBI. Markiere den Abschnitt, den FIBI bearbeiten soll.", Severity.Warning);
         return ClearBusyAsync();
     }
 
@@ -640,7 +640,7 @@ else if (_lastCost is { } cost)
                 "applyAiResult", _element, target, replace, choice.Html, docLength);
             if (fresh is null)
             {
-                Snackbar.Add("Der Text wurde zwischenzeitlich geändert – NOOSEI-Ergebnis nicht übernommen.", Severity.Warning);
+                Snackbar.Add("Der Text wurde zwischenzeitlich geändert – FIBI-Ergebnis nicht übernommen.", Severity.Warning);
                 return;
             }
             // only here is the text really in the document; accepting it and losing it to a concurrent edit
@@ -656,7 +656,7 @@ else if (_lastCost is { } cost)
         catch (ObjectDisposedException) { /* ignore */ }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "NOOSEI: Aktion im Editor fehlgeschlagen.");
+            Logger.LogWarning(ex, "FIBI: Aktion im Editor fehlgeschlagen.");
             Snackbar.Add(NooseiErrors.Describe(ex), Severity.Error);
         }
         finally

@@ -50,7 +50,7 @@ public sealed class DecorationServiceTests : IDisposable
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename("Adler").Build();
 
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).WithCodename("Falke").Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).WithCodename("Falke").Build();
 
     private static ClaimsPrincipal Colleague()
         => ClaimsPrincipalBuilder.Agent("other").WithRank(Rank.SeniorSpecialAgent).Build();
@@ -131,7 +131,7 @@ public sealed class DecorationServiceTests : IDisposable
         Assert.Equal(id, award.Id);
         Assert.Equal("ann-1", award.AnnouncementId);
         Assert.Equal(new DateTime(2026, 10, 1), award.AwardedOn);
-        Assert.Equal(Rank.JuniorAgent, award.RecipientRank);
+        Assert.Equal(Rank.Trainee, award.RecipientRank);
         Assert.Equal("Adler", award.AwardedByName);
 
         var bell = Assert.Single(Notices());
@@ -218,7 +218,7 @@ public sealed class DecorationServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task Only_staff_from_deputy_director_up_can_be_made_signatory_but_a_stored_one_may_stay()
+    public async Task Only_staff_from_assistant_director_up_can_be_made_signatory_but_a_stored_one_may_stay()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => _service.SaveCertificateSettingsAsync(new CertificateSettings("lead2", ""), Leader()));
@@ -233,6 +233,150 @@ public sealed class DecorationServiceTests : IDisposable
         var options = await _service.GetSignatoryOptionsAsync(Leader());
         Assert.False(options.Single(o => o.Id == "dd").Eligible);
         Assert.DoesNotContain(options, o => o.Id == "lead2");
+    }
+
+    private static Dictionary<Division, string> Picks(params (Division Division, string Id)[] picks)
+        => picks.ToDictionary(p => p.Division, p => p.Id);
+
+    [Fact]
+    public async Task The_signatory_follows_the_division_of_the_recipient_and_is_frozen_on_the_award()
+    {
+        await _service.SaveCertificateSettingsAsync(
+            new CertificateSettings("dd", "", Picks((Division.Hrt, "sc-hrt"))), Leader());
+
+        var hrt = await _service.AwardAsync(Input("hrt-agent"), Leader());
+        var cid = await _service.AwardAsync(Input("junior"), Leader());
+        Terminate("sc-hrt");
+
+        Assert.Equal("Codename-sc-hrt", Award(hrt).SignatoryName);
+        Assert.Equal(Rank.SectionChief, Award(hrt).SignatoryRank);
+        // the CID names nobody of its own, so the global signatory signs
+        Assert.Equal("Codename-dd", Award(cid).SignatoryName);
+        Assert.Equal(Rank.DeputyDirector, Award(cid).SignatoryRank);
+        // the snapshot outlives the Section Chief
+        Assert.Equal("Codename-sc-hrt", (await _service.GetCertificateAsync(hrt, Leader()))!.SignatoryName);
+    }
+
+
+    [Fact]
+    public async Task A_board_recipient_gets_the_global_signatory_never_a_division_one()
+    {
+        using (var db = _ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("board-hrt", Rank.AssistantDirector, configure: a => a.Division = Division.Hrt));
+            db.SaveChanges();
+        }
+        await _service.SaveCertificateSettingsAsync(
+            new CertificateSettings("dd", "", Picks((Division.Hrt, "sc-hrt"))), Leader());
+        SeedHistory("h-board", Rank.SectionChief, Rank.AssistantDirector, "board-hrt");
+
+        var award = await _service.AwardAsync(Input("board-hrt"), Leader());
+        var certificate = await _service.GetRankCertificateAsync("h-board", Leader());
+
+        Assert.Equal("Codename-dd", Award(award).SignatoryName);
+        Assert.Equal("Codename-dd", certificate!.SignatoryName);
+    }
+    [Fact]
+    public async Task A_division_signatory_who_left_or_changed_division_falls_back_to_the_global_one()
+    {
+        await _service.SaveCertificateSettingsAsync(
+            new CertificateSettings("dd", "", Picks((Division.Hrt, "sc-hrt"))), Leader());
+        Terminate("sc-hrt");
+        var left = await _service.AwardAsync(Input("hrt-agent"), Leader());
+
+        Assert.Equal("Codename-dd", Award(left).SignatoryName);
+
+        Unterminate("sc-hrt");
+        MoveTo("sc-hrt", Division.Cid);
+        var moved = await _service.AwardAsync(Input("hrt-agent"), Leader());
+
+        Assert.Equal("Codename-dd", Award(moved).SignatoryName);
+    }
+
+    [Fact]
+    public async Task Without_any_signatory_the_award_names_nobody()
+    {
+        var id = await _service.AwardAsync(Input("hrt-agent"), Leader());
+
+        Assert.Null(Award(id).SignatoryName);
+        Assert.Null(Award(id).SignatoryRank);
+    }
+
+    [Fact]
+    public async Task The_rank_certificate_carries_the_signatory_of_the_recipient_division()
+    {
+        await _service.SaveCertificateSettingsAsync(
+            new CertificateSettings("dd", "", Picks((Division.Hrt, "sc-hrt"))), Leader());
+        SeedHistory("h-hrt", Rank.Trainee, Rank.SpecialAgent, "hrt-agent");
+        SeedHistory("h-cid", Rank.Trainee, Rank.SpecialAgent);
+
+        var hrt = await _service.GetRankCertificateAsync("h-hrt", Leader());
+        var cid = await _service.GetRankCertificateAsync("h-cid", Leader());
+
+        Assert.Equal("Codename-sc-hrt", hrt!.SignatoryName);
+        Assert.Equal(Rank.SectionChief, hrt.SignatoryRank);
+        Assert.Equal("Codename-dd", cid!.SignatoryName);
+        Assert.Equal(Rank.DeputyDirector, cid.SignatoryRank);
+    }
+
+    [Fact]
+    public async Task A_section_chief_can_be_picked_for_the_own_division_only_and_never_as_the_global_signatory()
+    {
+        // the global one is the office head: Board or admin
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _service.SaveCertificateSettingsAsync(new CertificateSettings("sc-cid", ""), Leader()));
+        // the Section Chief of another division, a Special Agent in Charge and a stranger sign for no division
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.SaveCertificateSettingsAsync(
+            new CertificateSettings(null, "", Picks((Division.Hrt, "sc-cid"))), Leader()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.SaveCertificateSettingsAsync(
+            new CertificateSettings(null, "", Picks((Division.Cid, "lead2"))), Leader()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _service.SaveCertificateSettingsAsync(
+            new CertificateSettings(null, "", Picks((Division.Cid, "nobody"))), Leader()));
+        Assert.Null((await _service.GetCertificateSettingsAsync()).DivisionSignatoryId(Division.Hrt));
+
+        await _service.SaveCertificateSettingsAsync(new CertificateSettings(null, "",
+            Picks((Division.Cid, "sc-cid"), (Division.Hrt, "sc-hrt"), (Division.Ctd, "dd"))), Leader());
+
+        var settings = await _service.GetCertificateSettingsAsync();
+        Assert.Equal("sc-cid", settings.DivisionSignatoryId(Division.Cid));
+        Assert.Equal("sc-hrt", settings.DivisionSignatoryId(Division.Hrt));
+        Assert.Equal("dd", settings.DivisionSignatoryId(Division.Ctd));
+        Assert.Null(settings.SignatoryId);
+    }
+
+    [Fact]
+    public async Task Saving_without_a_division_pick_clears_it_and_a_kept_one_that_dropped_out_may_stay()
+    {
+        await _service.SaveCertificateSettingsAsync(
+            new CertificateSettings("dd", "", Picks((Division.Hrt, "sc-hrt"))), Leader());
+        MoveTo("sc-hrt", Division.Cid);
+
+        // unchanged, although the Section Chief no longer qualifies: the form must not lock
+        await _service.SaveCertificateSettingsAsync(
+            new CertificateSettings("dd", "Sandy Shores", Picks((Division.Hrt, "sc-hrt"))), Leader());
+        Assert.Equal("sc-hrt", (await _service.GetCertificateSettingsAsync()).DivisionSignatoryId(Division.Hrt));
+        var options = await _service.GetSignatoryOptionsAsync(Leader(), Division.Hrt);
+        Assert.False(options.Single(o => o.Id == "sc-hrt").Eligible);
+
+        await _service.SaveCertificateSettingsAsync(new CertificateSettings("dd", "Sandy Shores"), Leader());
+        Assert.Null((await _service.GetCertificateSettingsAsync()).DivisionSignatoryId(Division.Hrt));
+    }
+
+    [Fact]
+    public async Task The_signatory_options_of_a_division_are_the_board_and_the_section_chiefs_of_that_division()
+    {
+        var hrt = (await _service.GetSignatoryOptionsAsync(Leader(), Division.Hrt)).Select(o => o.Id).ToList();
+        var global = (await _service.GetSignatoryOptionsAsync(Leader())).Select(o => o.Id).ToList();
+
+        Assert.Contains("lead", hrt);
+        Assert.Contains("dd", hrt);
+        Assert.Contains("sc-hrt", hrt);
+        Assert.DoesNotContain("sc-cid", hrt);
+        Assert.DoesNotContain("lead2", hrt);
+        Assert.Contains("lead", global);
+        Assert.DoesNotContain("sc-hrt", global);
+        Assert.DoesNotContain("sc-cid", global);
+        Assert.Empty(await _service.GetSignatoryOptionsAsync(Partner(), Division.Hrt));
     }
 
     [Fact]
@@ -344,7 +488,7 @@ public sealed class DecorationServiceTests : IDisposable
     public async Task Nobody_corrects_or_revokes_his_own_decoration()
     {
         var id = await _service.AwardAsync(Input("lead2"), Leader());
-        var lead2 = ClaimsPrincipalBuilder.Agent("lead2").WithRank(Rank.SupervisorySpecialAgent).Build();
+        var lead2 = ClaimsPrincipalBuilder.Agent("lead2").WithRank(Rank.SpecialAgentInCharge).Build();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.UpdateAsync(id, Input("lead2"), lead2));
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.RevokeAsync(id, "weg damit", lead2));
@@ -434,22 +578,22 @@ public sealed class DecorationServiceTests : IDisposable
         Assert.Null(await _service.GetCertificateAsync(id, Colleague()));
         Assert.Equal(CertificateKind.Decoration, forLeader.Kind);
         Assert.Equal("Verdienstmedaille", forLeader.DecorationName);
-        Assert.Equal(Rank.JuniorAgent, forLeader.Rank);
+        Assert.Equal(Rank.Trainee, forLeader.Rank);
     }
 
     [Fact]
     public async Task The_rank_history_prints_appointments_and_promotions_never_demotions()
     {
-        SeedHistory("h-start", null, Rank.JuniorAgent);
-        SeedHistory("h-up", Rank.JuniorAgent, Rank.SpecialAgent);
-        SeedHistory("h-down", Rank.SpecialAgent, Rank.JuniorAgent);
+        SeedHistory("h-start", null, Rank.Trainee);
+        SeedHistory("h-up", Rank.Trainee, Rank.SpecialAgent);
+        SeedHistory("h-down", Rank.SpecialAgent, Rank.Trainee);
         await _service.SaveCertificateSettingsAsync(new CertificateSettings("dd", ""), Leader());
 
         var appointment = await _service.GetRankCertificateAsync("h-start", Junior());
         var promotion = await _service.GetRankCertificateAsync("h-up", Leader());
 
         Assert.Equal(CertificateKind.Appointment, appointment!.Kind);
-        Assert.Equal(Rank.JuniorAgent, appointment.Rank);
+        Assert.Equal(Rank.Trainee, appointment.Rank);
         Assert.Equal(CertificateKind.Promotion, promotion!.Kind);
         Assert.Equal(Rank.SpecialAgent, promotion.Rank);
         Assert.Equal("Codename-dd", promotion.SignatoryName);
@@ -493,9 +637,12 @@ public sealed class DecorationServiceTests : IDisposable
         using var db = _ctx.NewContext();
         db.Users.AddRange(
             Seed.Agent("lead", Rank.Director, configure: a => a.Codename = "Adler"),
-            Seed.Agent("lead2", Rank.SupervisorySpecialAgent),
+            Seed.Agent("lead2", Rank.SpecialAgentInCharge),
             Seed.Agent("dd", Rank.DeputyDirector),
-            Seed.Agent("junior", Rank.JuniorAgent, configure: a =>
+            Seed.Agent("sc-cid", Rank.SectionChief, configure: a => a.Division = Division.Cid),
+            Seed.Agent("sc-hrt", Rank.SectionChief, configure: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+            Seed.Agent("hrt-agent", Rank.SpecialAgent, configure: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
+            Seed.Agent("junior", Rank.Trainee, configure: a =>
             {
                 a.Codename = "Falke";
                 a.RealName = "Max Falk";
@@ -512,13 +659,13 @@ public sealed class DecorationServiceTests : IDisposable
         db.SaveChanges();
     }
 
-    private void SeedHistory(string id, Rank? previous, Rank conferred)
+    private void SeedHistory(string id, Rank? previous, Rank conferred, string agentId = "junior")
     {
         using var db = _ctx.NewContext();
         db.AgentRankHistories.Add(new AgentRankHistory
         {
             Id = id,
-            AgentId = "junior",
+            AgentId = agentId,
             Alt = previous,
             New = conferred,
             Timestamp = new DateTime(2026, 9, 1, 12, 0, 0, DateTimeKind.Utc),
@@ -531,6 +678,22 @@ public sealed class DecorationServiceTests : IDisposable
     {
         using var db = _ctx.NewContext();
         db.Users.Single(u => u.Id == agentId).Status = AgentStatus.Terminated;
+        db.SaveChanges();
+    }
+
+    private void Unterminate(string agentId)
+    {
+        using var db = _ctx.NewContext();
+        db.Users.Single(u => u.Id == agentId).Status = AgentStatus.Active;
+        db.SaveChanges();
+    }
+
+    private void MoveTo(string agentId, Division division)
+    {
+        using var db = _ctx.NewContext();
+        var agent = db.Users.Single(u => u.Id == agentId);
+        agent.Division = division;
+        agent.IsTRU = division == Division.Hrt;
         db.SaveChanges();
     }
 

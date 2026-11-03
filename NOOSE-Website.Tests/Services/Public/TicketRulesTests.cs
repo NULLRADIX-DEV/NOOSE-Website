@@ -16,7 +16,7 @@ public class TicketRulesTests
     [Fact]
     public void The_agency_sender_is_a_constant_and_names_no_agent()
     {
-        Assert.Equal("NOOSE – Führungsebene", TicketRules.AgencySender);
+        Assert.Equal("FIB – Führungsebene", TicketRules.AgencySender);
     }
 
     [Theory]

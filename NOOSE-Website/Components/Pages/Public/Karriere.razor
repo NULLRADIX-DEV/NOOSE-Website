@@ -5,17 +5,17 @@
 @using NOOSE_Website.Models.Recruiting
 @inject ICareerRequirementsService Requirements
 
-<PageTitle>Karriere · NOOSE</PageTitle>
+<PageTitle>Karriere · FIB</PageTitle>
 
-<LinkPreview Title="Bewerbung beim National Office of Security Enforcement"
-             Description="Das NOOSE rekrutiert ausgewählte Bewerber für den Dienst in der Criminal Investigation Division." />
+<LinkPreview Title="Bewerbung beim Federal Investigation Bureau"
+             Description="Das FIB rekrutiert ausgewählte Bewerber für den Dienst in der Criminal Investigation Division." />
 
 <PublicModuleGate Module="@PublicModules.Careers" Title="Karriere">
 <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
     <MudStack Spacing="4">
-        <MudText Typo="Typo.h4">Bewerbung beim National Office of Security Enforcement</MudText>
+        <MudText Typo="Typo.h4">Bewerbung beim Federal Investigation Bureau</MudText>
         <MudText Typo="Typo.body1" Class="mud-text-secondary">
-            Das NOOSE rekrutiert ausgewählte Bewerber für den Dienst in der Criminal Investigation Division.
+            Das FIB rekrutiert ausgewählte Bewerber für den Dienst in der Criminal Investigation Division.
             Das Auswahlverfahren umfasst eine Sicherheitsüberprüfung, ggf. einen Eignungstest und ein
             persönliches Vorstellungsgespräch. Der gesamte Ablauf wird vertraulich über dieses Portal abgewickelt.
         </MudText>
@@ -73,7 +73,7 @@
                 @if (authCtx.User.IsApplicant())
                 {
                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                        Du bist angemeldet. Verwalte deine Bewerbung und die Kommunikation mit dem HRB im Bewerber-Portal.
+                        Du bist angemeldet. Verwalte deine Bewerbung und die Kommunikation mit der Administration Division im Bewerber-Portal.
                     </MudAlert>
                     <div>
                         <MudButton Href="/portal" Variant="Variant.Filled" Color="Color.Primary"
@@ -128,7 +128,7 @@
                 else
                 {
                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                        Du bist als NOOSE-Agent angemeldet.
+                        Du bist als FIB-Agent angemeldet.
                     </MudAlert>
                     <div>
                         <MudButton Href="/dashboard" Variant="Variant.Filled" Color="Color.Primary"
@@ -141,7 +141,7 @@
         </AuthorizeView>
 
         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-            Das National Office of Security Enforcement entspricht hohen Standards und der höchsten Stufe der
+            Das Federal Investigation Bureau entspricht hohen Standards und der höchsten Stufe der
             Geheimhaltung. Sprich mit niemandem über dein Interesse oder den Stand des Auswahlverfahrens.
         </MudText>
     </MudStack>

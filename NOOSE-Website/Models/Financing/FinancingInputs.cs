@@ -13,7 +13,7 @@ public class FinancingItemInput
     /// <summary>Share NOOSE covers (1-100).</summary>
     public int SubsidyPercent { get; set; } = 100;
 
-    public Rank MinimumRank { get; set; } = Rank.JuniorAgent;
+    public Rank MinimumRank { get; set; } = Rank.Trainee;
     public int MaxQuantity { get; set; } = 1;
     public bool IsActive { get; set; } = true;
     public int Sorting { get; set; }

@@ -28,11 +28,11 @@ public static partial class FactionThreatBoard
     private const int MaxDescriptionChars = 3900;
 
     // bump when the wording changes, so the next pass rewrites the message
-    private const int Layout = 1;
+    private const int Layout = 2;
 
     private const int Red = 0xE53935;
     private const int Green = 0x43A047;
-    private const string Office = "National Office of Security Enforcement";
+    private const string Office = "Federal Investigation Bureau";
 
     /// <summary>Stored threshold, or the default when missing or out of range.</summary>
     public static int ParseThreshold(string? raw)

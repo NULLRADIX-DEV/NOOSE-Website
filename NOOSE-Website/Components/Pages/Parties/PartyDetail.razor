@@ -7,7 +7,7 @@
 @inject IJSRuntime JS
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 
-<PageTitle>@(_party?.Name ?? "Partei") · NOOSE</PageTitle>
+<PageTitle>@(_party?.Name ?? "Partei") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -210,7 +210,7 @@ else
                 }
                 @if (!_isPartner)
                 {
-                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="NOOSEI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
+                <RecordSection Group="Analyse" Slug="ki-kurzbrief" Label="FIBI-Kurzbrief" Icon="@Icons.Material.Filled.AutoAwesome">
                     <KiBriefPanel EntityType="@nameof(Party)" EntityId="@_party.Id" User="_user" />
                 </RecordSection>
                 }

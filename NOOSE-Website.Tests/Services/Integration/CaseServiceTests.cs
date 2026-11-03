@@ -20,7 +20,7 @@ public sealed class CaseServiceTests
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-V-2026-0001");
+            .Returns("FIB-V-2026-0001");
         var suggestion = Substitute.For<IProfileSuggestionService>();
         return new CaseService(ctx.Factory, caseNo, suggestion,
             notifications ?? Substitute.For<INotificationService>());
@@ -30,9 +30,9 @@ public sealed class CaseServiceTests
     private static ClaimsPrincipal Director(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
-    // JuniorAgent => neither leadership nor highest-classification.
+    // Trainee => neither leadership nor highest-classification.
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static CaseInput Input(
         string title = "Ermittlung",
@@ -60,7 +60,7 @@ public sealed class CaseServiceTests
         Action<Case>? configure = null)
         => Seed.Case(id, title, c =>
         {
-            c.CaseNumber = $"NOOSE-V-2026-{id}";
+            c.CaseNumber = $"FIB-V-2026-{id}";
             c.SecrecyLevel = secrecy;
             c.Classification = classification;
             c.Status = status;
@@ -83,7 +83,7 @@ public sealed class CaseServiceTests
         var created = await svc.CreateAsync(
             Input(title: "  Fall X  ", type: "Betrug"), Director("lead"));
 
-        Assert.Equal("NOOSE-V-2026-0001", created.CaseNumber);
+        Assert.Equal("FIB-V-2026-0001", created.CaseNumber);
         Assert.Equal("Fall X", created.Title);
         Assert.Equal("Betrug", created.Type);
 
@@ -542,7 +542,7 @@ public sealed class CaseServiceTests
         var svc = Build(ctx);
 
         var truScope = ViewerScope.From(
-            ClaimsPrincipalBuilder.Agent("t").WithRank(Rank.JuniorAgent).AsTru().Build());
+            ClaimsPrincipalBuilder.Agent("t").WithRank(Rank.Trainee).AsTru().Build());
         var result = await svc.SearchAsync("Sache", truScope);
 
         Assert.Single(result);

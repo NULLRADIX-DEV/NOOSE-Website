@@ -37,7 +37,7 @@ public static class PartnerProfileDisplay
 {
     public static string Name(PartnerFeature feature) => feature switch
     {
-        PartnerFeature.Noosei => "NOOSEI-Rechtsauskunft",
+        PartnerFeature.Noosei => "FIBI-Rechtsauskunft",
         PartnerFeature.Graph => "Beziehungsgraph",
         PartnerFeature.Radio => "Funkplan",
         PartnerFeature.SituationReports => "Lageberichte",

@@ -53,7 +53,7 @@ public class NooseiToolRegistrationTests
 
         // the fallbacks are deliberate — "NOOSEI arbeitet …" and the raw identifier — but they are a last resort,
         // not the wording a new tool should ship with
-        Assert.All(names, name => Assert.NotEqual("NOOSEI arbeitet …", NooseiToolLabels.Progress(name)));
+        Assert.All(names, name => Assert.NotEqual("FIBI arbeitet …", NooseiToolLabels.Progress(name)));
         Assert.All(names, name => Assert.NotEqual(name, NooseiToolLabels.Label(name)));
     }
 

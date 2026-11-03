@@ -2179,8 +2179,8 @@ export async function initRichText(element, dotnetRef, initialHtml, minHeight, k
         // Quill puts no title on toolbar buttons
         const leiste = editor.getModule('toolbar').container;
         for (const [klasse, titel] of [
-            [KI_KORREKTUR, 'NOOSEI: Rechtschreibung und Grammatik korrigieren'],
-            [KI_SCHREIBEN, 'NOOSEI: Text schreiben lassen'],
+            [KI_KORREKTUR, 'FIBI: Rechtschreibung und Grammatik korrigieren'],
+            [KI_SCHREIBEN, 'FIBI: Text schreiben lassen'],
         ]) {
             const knopf = leiste.querySelector('.ql-' + klasse);
             if (knopf) {

@@ -160,6 +160,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<AgentRankHistory> AgentRankHistories => Set<AgentRankHistory>();
     public DbSet<AgentNote> AgentNotes => Set<AgentNote>();
     public DbSet<AgentPromotionRequest> AgentPromotionRequests => Set<AgentPromotionRequest>();
+    public DbSet<FirearmUse> FirearmUses => Set<FirearmUse>();
 
     // training modules + per-agent completion
     public DbSet<TrainingModule> TrainingModules => Set<TrainingModule>();
@@ -1612,6 +1613,18 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(v => new { v.AgentId, v.Kind });
             b.HasOne<Agent>().WithMany()
                 .HasForeignKey(v => v.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FirearmUse>(b =>
+        {
+            b.Property(f => f.AgentId).HasMaxLength(64).IsRequired();
+            b.Property(f => f.Reason).HasMaxLength(1000).IsRequired();
+            // the agent's own list and the overview's period filter
+            b.HasIndex(f => new { f.AgentId, f.Timestamp });
+            b.HasIndex(f => f.Timestamp);
+            // Restrict FK to identity Agent (no cascade from the user table)
+            b.HasOne(f => f.Agent).WithMany()
+                .HasForeignKey(f => f.AgentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<AgentPromotionRequest>(b =>

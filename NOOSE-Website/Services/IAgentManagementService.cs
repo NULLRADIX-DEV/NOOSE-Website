@@ -19,8 +19,9 @@ public interface IAgentManagementService
     /// <summary>Free badge numbers, including the target's already assigned legacy value.</summary>
     Task<List<string>> GetAvailableBadgeNumbersAsync(string agentId, CancellationToken cancellationToken = default);
 
-    /// <summary>Release a pending account and assign rank/TRU/HRB; status becomes Active.</summary>
-    Task ReleaseAsync(string agentId, Rank rank, bool isTRU, bool isHRB, ClaimsPrincipal actor);
+    /// <summary>Release a pending account and assign rank, division and the Administration Division flag; status becomes Active.</summary>
+    /// <remarks>A full division needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
+    Task ReleaseAsync(string agentId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor);
 
     /// <summary>Release a pending account as an external partner; no rank or internal flags, read-only on released records.</summary>
     Task ReleaseAsPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor);
@@ -28,8 +29,8 @@ public interface IAgentManagementService
     /// <summary>Reject a registration; status becomes Blocked with a reason.</summary>
     Task RejectAsync(string agentId, string reason, ClaimsPrincipal actor);
 
-    /// <summary>Promote an applicant (status Applicant) directly to an active agent with rank/flags; leadership only. Rotates the SecurityStamp.</summary>
-    Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, bool isTRU, bool isHRB, ClaimsPrincipal actor);
+    /// <summary>Promote an applicant (status Applicant) directly to an active agent with rank, division and flag; leadership only. Rotates the SecurityStamp.</summary>
+    Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor);
 
     /// <summary>Turn a citizen account into an applicant so it can use the applicant portal; the citizen area stays open.</summary>
     Task<Agent> StartApplicationAsync(string userId, CancellationToken cancellationToken = default);
@@ -37,7 +38,7 @@ public interface IAgentManagementService
     /// <summary>Set an agent's master data; codename is required.</summary>
     Task MasterDataChangeAsync(string agentId, string? realName, string codename, string? badgeNumber, ClaimsPrincipal actor);
 
-    /// <summary>Request a self master-data change (below Supervisory): staged until leadership approves; codename required. A repeat call overwrites a pending request.</summary>
+    /// <summary>Request a self master-data change (below Special Agent in Charge): staged until leadership approves; codename required. A repeat call overwrites a pending request.</summary>
     Task NameChangeRequestAsync(string agentId, string? realName, string codename, string? badgeNumber, ClaimsPrincipal actor);
 
     /// <summary>Pending name-change requests for the release inbox.</summary>
@@ -67,22 +68,31 @@ public interface IAgentManagementService
     /// <summary>Resolve the owner of a stored picture file; the serving endpoint's only way into the data.</summary>
     Task<Agent?> FindByAvatarFileAsync(string fileName, CancellationToken cancellationToken = default);
 
-    Task RankChangeAsync(string agentId, Rank rank, ClaimsPrincipal actor);
+    /// <summary>Set the rank of an agent; which rank for whom is the fine gate of <see cref="PromotionRules"/>. Rotates the SecurityStamp.</summary>
+    /// <remarks>A rank that moves the agent into a full unit needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
+    Task RankChangeAsync(string agentId, Rank rank, bool confirmOverLimit, ClaimsPrincipal actor);
 
     /// <summary>Change a partner account's partner rank; refreshes the claims.</summary>
     Task SetPartnerRankAsync(string agentId, PartnerRank partnerRank, ClaimsPrincipal actor);
 
     /// <summary>Switch an active account to a partner agency (also used to change the agency of an existing
-    /// partner). Clears the internal rank and TRU/HRB/team-lead/admin flags; forces re-login.</summary>
+    /// partner). Clears the internal rank, division and Administration Division/team-lead/admin flags; forces re-login.</summary>
+    /// <remarks>An agent with a rank passes <see cref="PromotionRules.MayConvertToPartner"/> first.</remarks>
     Task ConvertToPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor);
 
-    /// <summary>Switch an active partner account back to an internal NOOSE agent with the given rank; forces re-login.</summary>
-    Task ConvertToInternalAsync(string agentId, Rank rank, ClaimsPrincipal actor);
+    /// <summary>Switch an active partner account back to an internal FIB agent with the given rank; forces re-login.</summary>
+    /// <remarks>Passes the fine rank gate like a first release and starts in the CID, or in their division for a Section Chief. A full unit needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
+    Task ConvertToInternalAsync(string agentId, Rank rank, bool confirmOverLimit, ClaimsPrincipal actor);
 
-    /// <summary>Decide a promotion request (Deputy Director+/Admin); on approval sets the rank, logs it, and rotates the SecurityStamp.</summary>
-    Task PromotionDecideAsync(string requestId, bool approved, string? note, ClaimsPrincipal actor);
+    /// <summary>Decide a promotion request (Section Chief for the own division, Board or Admin for all; see <see cref="PromotionRules"/>); on approval sets the rank, logs it, and rotates the SecurityStamp.</summary>
+    /// <remarks>An approval into a full unit needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
+    Task PromotionDecideAsync(string requestId, bool approved, string? note, bool confirmOverLimit, ClaimsPrincipal actor);
 
-    Task TruSetAsync(string agentId, bool isTRU, ClaimsPrincipal actor);
+    /// <summary>Move an agent to a division; Board or admin only. Writes the TRU flag with it and ends the agent's sessions.</summary>
+    /// <remarks>A full division needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
+    Task DivisionSetAsync(string agentId, Division division, bool confirmOverLimit, ClaimsPrincipal actor);
+
+    /// <summary>Set the Administration Division flag.</summary>
     Task HrbSetAsync(string agentId, bool isHRB, ClaimsPrincipal actor);
     Task AdminSetAsync(string agentId, bool isAdmin, ClaimsPrincipal actor);
 
