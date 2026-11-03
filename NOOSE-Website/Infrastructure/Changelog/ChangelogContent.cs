@@ -639,6 +639,9 @@ public static class ChangelogContent
                 + "und im Änderungsprotokoll.", "Akten"),
             Besser("3.0.15-organigramm-archiv", "Archivierte Taskforces erscheinen nicht mehr im Organigramm.",
                 "Organigramm"),
+            Besser("3.0.16-dienstnummer-frei", "Die Dienstnummer eines gekündigten Agenten ist sofort wieder frei. "
+                + "Wird die Kündigung zurückgenommen und hat inzwischen jemand anderes die Nummer, wählt er eine neue.",
+                "Personal"),
         ]),
     ];
 }
