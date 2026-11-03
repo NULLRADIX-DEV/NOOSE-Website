@@ -2,7 +2,7 @@
 
 `demo.noose.info` ist die zweite NOOSE-Instanz, die jeder ohne Login ansehen kann und in der niemand etwas ändern kann. Seit der Umstellung auf das FIB läuft sie unverändert mit der NOOSE-Fassung und bekommt keine neuen Stände mehr. Eine Demo mit dem FIB-Stand gibt es nicht, `demo.fibhq.com` ist bewusst nicht eingerichtet. Dieses Dokument hält fest, wie die Demo aufgebaut ist und was der Demo-Modus im Code tut, falls später wieder eine entsteht.
 
-Alle drei Instanzen laufen mit demselben Image-Aufbau, aber als eigene Apps der Plattform, jede mit eigener MariaDB 10.11, eigener Umgebung und eigenem Speicherlimit.
+Jede Instanz ist eine eigene App der Plattform, mit eigener MariaDB 10.11, eigener Umgebung und eigenem Speicherlimit.
 
 | | Prod | Demo | FIB |
 |--|------|------|-----|

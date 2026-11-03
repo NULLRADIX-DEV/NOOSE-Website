@@ -112,7 +112,7 @@ Rechte ergeben sich aus drei Achsen, die unabhängig voneinander sind: dem Diens
 | 7 | Deputy Director | |
 | 8 | Director | |
 
-Die Zahl steht in der Datenbank, ein Wert wandert also nie von allein. Section Chief und Assistant Director kamen bei der Umstellung in die Mitte der Leiter, deshalb hat die Migration `Phase110_FibRaenge` die gespeicherten Werte 5 und 6 auf 7 und 8 gesetzt. Seitdem sind alle acht Werte fest.
+Die Zahl steht in der Datenbank. Section Chief und Assistant Director kamen bei der Umstellung in die Mitte der Leiter, deshalb hat die Migration `Phase110_FibRaenge` die gespeicherten Werte 5 und 6 auf 7 und 8 gesetzt. Seitdem sind alle acht Werte fest.
 
 Zur Führung gehört, wer mindestens Special Agent in Charge ist oder `IsAdmin` trägt. Im Code fragt das `IsLeadership()` aus `Authorization/AgentPrincipalExtensions.cs` ab.
 
