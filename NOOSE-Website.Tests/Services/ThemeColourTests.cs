@@ -18,7 +18,8 @@ public class ThemeColourTests
 
     private static string Hex(MudBlazor.Utilities.MudColor colour) => colour.ToString(MudBlazor.Utilities.MudColorOutputFormats.Hex).ToUpperInvariant();
 
-    private static string Hex(string colour) => colour.ToUpperInvariant();
+    // MudBlazor keeps the derived tones (Lighten/Darken) as text in its own format, so both sides go through MudColor
+    private static string Hex(string colour) => Hex(new MudBlazor.Utilities.MudColor(colour));
 
     private static (double R, double G, double B) Rgb(string hex)
         => (int.Parse(hex[1..3], NumberStyles.HexNumber) / 255.0,

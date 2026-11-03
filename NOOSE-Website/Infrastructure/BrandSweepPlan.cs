@@ -63,6 +63,8 @@ public static class BrandSweepPlan
         ["Token"] = "secret token",
         ["ProviderKey"] = "login provider key",
         ["LoginProvider"] = "login provider name",
+        // the suffix rule below skips a bare name, and a column called just Schluessel is a lookup key (value list, signal, module)
+        ["Schluessel"] = "key that code or seeders look rows up by",
         ["Slug"] = "address of a page, referenced by links",
         ["ContentType"] = "media type",
         ["DateinameGespeichert"] = "file name on disk, assigned by the server",
