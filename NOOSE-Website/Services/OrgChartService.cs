@@ -36,12 +36,12 @@ public class OrgChartService(IDbContextFactory<AppDbContext> dbFactory) : IOrgCh
             .ThenBy(a => a.Codename)
             .ToList();
 
-        // visible and approved taskforces only
+        // visible, approved and not archived taskforces only
         var mayAllTf = viewer.MayAllTaskforcesSee();
         var meId = viewer.GetAgentId();
         var taskforces = await db.Taskforces.AsNoTracking()
             .OnlyVisible(db, mayAllTf, meId)
-            .Where(t => t.Status == TaskforceStatus.Approved)
+            .Where(t => t.Status == TaskforceStatus.Approved && !t.IsArchived)
             .OrderBy(t => t.Name)
             .ToListAsync(cancellationToken);
 

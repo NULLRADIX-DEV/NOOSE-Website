@@ -632,6 +632,8 @@ public static class ChangelogContent
             Neu("3.0.12-begruendungspflicht", "Wer eine Einstufung herabsetzt, eine Verschlusssache lockert, eine Akte "
                 + "löscht oder eine Fahndung aufhebt, gibt jetzt einen Grund an; er steht danach im Zeitstrahl der Akte "
                 + "und im Änderungsprotokoll.", "Akten"),
+            Besser("3.0.13-organigramm-archiv", "Archivierte Taskforces erscheinen nicht mehr im Organigramm.",
+                "Organigramm"),
         ]),
     ];
 }
