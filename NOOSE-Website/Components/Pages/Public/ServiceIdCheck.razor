@@ -1,0 +1,82 @@
+@page "/ausweis/{Number}"
+@layout PublicSiteLayout
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@inject IPublicServiceIdService ServiceIds
+@inject NavigationManager Nav
+
+<PageTitle>Dienstausweis · FIB</PageTitle>
+
+@* always noindex and no card: a check of one person's card is nothing to index or unfurl *@
+<LinkPreview Title="Dienstausweis" NoIndex="true" />
+
+@if (_check is { } check)
+{
+    <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
+        <MudStack Spacing="4">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.overline" Color="Color.Primary">Federal Investigation Bureau</MudText>
+                <MudText Typo="Typo.h4">Prüfung eines Dienstausweises</MudText>
+            </MudStack>
+
+            @if (check.Valid)
+            {
+                <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified">
+                    Dieser Ausweis ist gültig.
+                </MudAlert>
+                <MudSimpleTable Dense="true" Style="max-width:520px;">
+                    <tbody>
+                        <tr><th>Ausweis</th><td>@Number.Trim().ToUpperInvariant()</td></tr>
+                        <tr><th>Name</th><td>@check.Alias</td></tr>
+                        <tr><th>Rang</th><td>@check.Title</td></tr>
+                    </tbody>
+                </MudSimpleTable>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="max-width:620px;">
+                    Vergleiche Name und Rang mit dem vorgezeigten Ausweis. Stimmen sie nicht überein, ist der Ausweis
+                    nicht echt.
+                </MudText>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.GppBad">
+                    Dieser Ausweis ist nicht mehr gültig.
+                </MudAlert>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="max-width:620px;">
+                    Die Person gehört dem FIB nicht mehr an. Bitte nimm den Ausweis nicht als Nachweis an.
+                </MudText>
+            }
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public string Number { get; set; } = string.Empty;
+
+    private PublicServiceIdCheck? _check;
+    private string? _loadedKey;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedKey == Number)
+        {
+            return;
+        }
+        _loadedKey = Number;
+        try
+        {
+            _check = await ServiceIds.CheckAsync(Number);
+        }
+        catch
+        {
+            /* best effort */
+            _check = null;
+        }
+
+        // one answer for every miss: module off, kill switch, unknown or malformed number
+        if (_check is null)
+        {
+            Nav.NotFound();
+        }
+    }
+}

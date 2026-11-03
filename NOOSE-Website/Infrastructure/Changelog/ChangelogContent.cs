@@ -651,6 +651,9 @@ public static class ChangelogContent
             Neu("3.0.19-partner-freigabe-auf-zeit", "Eine Freigabe an eine Partnerbehörde lässt sich jetzt befristen: "
                 + "1 Tag, 7 Tage, 30 Tage oder bis zu einem Datum. Danach endet der Zugriff von selbst, und der "
                 + "Verlauf der Akte hält fest, dass die Freigabe abgelaufen ist.", "Akten"),
+            Neu("3.0.20-dienstausweis", "In deinem Profil und in der Personalakte druckst du jetzt deinen Dienstausweis "
+                + "mit Foto, Dienstgrad, Dienstnummer und QR-Code. Die Führung druckt ihn für jeden Agenten. Ist die "
+                + "Prüfseite freigeschaltet, sieht jeder, der den Code scannt, ob der Ausweis noch gilt.", "Personal"),
         ]),
     ];
 }
