@@ -19,7 +19,7 @@ public sealed class LawBookServiceTests
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename("Falcon").Build();
 
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     // Director rank, but read-only: the write check must come first
     private static ClaimsPrincipal OnlyReader()

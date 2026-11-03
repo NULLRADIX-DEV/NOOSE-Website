@@ -11,11 +11,11 @@
 }
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-    Über welchen Anbieter NOOSEI fragt — und wie viel Kontingent das den Agenten wert ist. Der Aufschlag gilt
+    Über welchen Anbieter FIBI fragt — und wie viel Kontingent das den Agenten wert ist. Der Aufschlag gilt
     nur, solange der zugehörige Anbieter aktiv ist: Er hebt das Wochenkontingent jedes Dienstgrades um diesen
     Anteil, und Übertrag wie Tagesgrenze wachsen automatisch mit. Ein günstigerer Anbieter wird damit zu mehr
     Fragen je Agent statt zu einer kleineren Rechnung.
-    Schlüssel und Modell je Anbieter bleiben Deploy-Konfiguration und stehen unter <i>NOOSEI-Betrieb</i>.
+    Schlüssel und Modell je Anbieter bleiben Deploy-Konfiguration und stehen unter <i>FIBI-Betrieb</i>.
 </MudText>
 
 @if (!_mayEdit)
@@ -84,7 +84,7 @@ else
     @if (!o.IsConfigured)
     {
         <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">
-            Für keinen Anbieter sind Schlüssel und Modell hinterlegt — NOOSEI antwortet derzeit gar nicht.
+            Für keinen Anbieter sind Schlüssel und Modell hinterlegt — FIBI antwortet derzeit gar nicht.
         </MudAlert>
     }
 

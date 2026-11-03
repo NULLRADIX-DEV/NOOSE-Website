@@ -18,11 +18,11 @@ public sealed class DocumentTemplateServiceTests
 
     // Admin flag short-circuits the leadership guard even at a low rank.
     private static ClaimsPrincipal AdminActor()
-        => ClaimsPrincipalBuilder.Agent("admin").WithRank(Rank.JuniorAgent).AsAdmin().Build();
+        => ClaimsPrincipalBuilder.Agent("admin").WithRank(Rank.Trainee).AsAdmin().Build();
 
-    // JuniorAgent: not leadership, not admin.
+    // Trainee: not leadership, not admin.
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static DocumentTemplate NewTemplate(
         string id, string name, bool active = true, int sorting = 0, string? category = null)

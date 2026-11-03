@@ -18,9 +18,9 @@ public sealed class LawServiceTests
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // JuniorAgent: not leadership, not admin.
+    // Trainee: not leadership, not admin.
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static Law NewLaw(string id, string book, string paragraph, string title, string text = "Text", string? sentence = null)
         => new() { Id = id, LawBook = book, Paragraph = paragraph, Title = title, Text = text, Sentence = sentence };

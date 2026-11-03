@@ -21,7 +21,7 @@ public sealed class AgentActivityServiceTests
 
     // Junior agent: not leadership, may write.
     private static ClaimsPrincipal LowRank(string id = "low")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // TeamLead without admin => read-only supervisor (fails RequireWriteAccess).
     private static ClaimsPrincipal ReadOnly(string id = "ro")
@@ -59,7 +59,7 @@ public sealed class AgentActivityServiceTests
         {
             Id = id,
             Name = name,
-            CaseNumber = "NOOSE-G-2026-0001",
+            CaseNumber = "FIB-G-2026-0001",
             IsClassified = classified,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
         };

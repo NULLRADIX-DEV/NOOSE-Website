@@ -27,7 +27,7 @@ public sealed class SearchServiceTests
 
     // internal viewer without classified read; sees only own/assigned restricted records.
     private static ClaimsPrincipal Plain(string meId = "agent-1")
-        => ClaimsPrincipalBuilder.Agent(meId).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(meId).WithRank(Rank.Trainee).Build();
 
     // external partner viewer: only released, non-classified records.
     private static ClaimsPrincipal Partner(PartnerAgency agency = PartnerAgency.DoJ, string partnerAgentId = "pa1")
@@ -70,8 +70,8 @@ public sealed class SearchServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("p1", "Anton", p => p.CaseNumber = "NOOSE-P-2026-9001"));
-            db.People.Add(Seed.Person("p2", "Bruno", p => p.CaseNumber = "NOOSE-P-2026-9002"));
+            db.People.Add(Seed.Person("p1", "Anton", p => p.CaseNumber = "FIB-P-2026-9001"));
+            db.People.Add(Seed.Person("p2", "Bruno", p => p.CaseNumber = "FIB-P-2026-9002"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -182,8 +182,8 @@ public sealed class SearchServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Jobs.Add(new Job { Id = "open", Title = "Open Job", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = false, CreatedById = "someone" });
-            db.Jobs.Add(new Job { Id = "restr", Title = "Restricted Job", CaseNumber = "NOOSE-A-2026-0002", IsRestricted = true, CreatedById = "someone" });
+            db.Jobs.Add(new Job { Id = "open", Title = "Open Job", CaseNumber = "FIB-A-2026-0001", IsRestricted = false, CreatedById = "someone" });
+            db.Jobs.Add(new Job { Id = "restr", Title = "Restricted Job", CaseNumber = "FIB-A-2026-0002", IsRestricted = true, CreatedById = "someone" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -201,7 +201,7 @@ public sealed class SearchServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Alpha Taskforce", CaseNumber = "NOOSE-TF-2026-0001" });
+            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Alpha Taskforce", CaseNumber = "FIB-TF-2026-0001" });
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf1", AgentId = "agent-1" });
             db.SaveChanges();
         }
@@ -220,7 +220,7 @@ public sealed class SearchServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Kartell Nord", CaseNumber = "NOOSE-G-2026-0001" });
+            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Kartell Nord", CaseNumber = "FIB-G-2026-0001" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -236,7 +236,7 @@ public sealed class SearchServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Parties.Add(new Party { Id = "pt1", Name = "Buergerpartei", CaseNumber = "NOOSE-PT-2026-0001" });
+            db.Parties.Add(new Party { Id = "pt1", Name = "Buergerpartei", CaseNumber = "FIB-PT-2026-0001" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -252,7 +252,7 @@ public sealed class SearchServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Operations.Add(new Operation { Id = "op1", Title = "Operation Donnerschlag", CaseNumber = "NOOSE-OP-2026-0001" });
+            db.Operations.Add(new Operation { Id = "op1", Title = "Operation Donnerschlag", CaseNumber = "FIB-OP-2026-0001" });
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -536,7 +536,7 @@ public sealed class SearchServiceTests
         {
             for (var i = 0; i < 5; i++)
             {
-                db.People.Add(Seed.Person($"p{i}", $"Kandidat {i}", p => p.CaseNumber = $"NOOSE-P-2026-90{i}"));
+                db.People.Add(Seed.Person($"p{i}", $"Kandidat {i}", p => p.CaseNumber = $"FIB-P-2026-90{i}"));
             }
             db.SaveChanges();
         }

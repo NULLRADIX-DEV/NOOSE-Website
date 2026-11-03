@@ -19,10 +19,10 @@ public class AgentAvatarTests
         };
 
     private static ClaimsPrincipal Junior(string id)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SupervisorySpecialAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).Build();
 
     // ---- Url ----
 

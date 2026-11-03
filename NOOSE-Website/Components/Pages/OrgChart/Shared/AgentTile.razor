@@ -22,15 +22,15 @@
                 @if (ShowRank)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
-                             Icon="@Icons.Material.Filled.MilitaryTech">@RankDisplay.Name(Agent.Rank)</MudChip>
+                             Icon="@Icons.Material.Filled.MilitaryTech">@DivisionRules.RankName(Agent)</MudChip>
                 }
-                @if (Agent.IsTRU)
+                @if (!Unit.IsNone)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">TRU</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="@DivisionRules.Colour(Unit)" Variant="Variant.Outlined">@DivisionRules.Label(Unit)</MudChip>
                 }
                 @if (Agent.IsHRB)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">HRB</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@DepartmentRules.ColumnLabel</MudChip>
                 }
                 @if (!string.IsNullOrWhiteSpace(RoleText))
                 {
@@ -51,4 +51,6 @@
     [Parameter] public string? RoleText { get; set; }
     [Parameter] public bool IsLead { get; set; }
     [Parameter] public IReadOnlyList<DecorationPlaqueView>? Plaques { get; set; }
+
+    private OrgUnit Unit => DivisionRules.Of(Agent);
 }

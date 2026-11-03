@@ -11,7 +11,7 @@
 
 <div class="druck-dokument">
     <header class="druck-kopf">
-        <div class="druck-behoerde">N.O.O.S.E. · National Office of Security Enforcement</div>
+        <div class="druck-behoerde">F.I.B. · Federal Investigation Bureau</div>
         <h1>@Title</h1>
         <div class="druck-meta">
             Gedruckt am @DateTime.Now.ToString("dd.MM.yyyy HH:mm")
@@ -37,7 +37,7 @@
     [Parameter] public string BackText { get; set; } = "Zurück zur Akte";
     [Parameter] public string? PrintedBy { get; set; }
     [Parameter] public bool IsClassified { get; set; }
-    [Parameter] public string Footer { get; set; } = "NOOSE-interne Akte · Weitergabe nur nach Freigabe durch die Führung.";
+    [Parameter] public string Footer { get; set; } = "FIB-interne Akte · Weitergabe nur nach Freigabe durch die Führung.";
     /// <summary>Open the print dialog automatically on first render.</summary>
     [Parameter] public bool AutomaticPrint { get; set; } = true;
     [Parameter] public RenderFragment? ChildContent { get; set; }

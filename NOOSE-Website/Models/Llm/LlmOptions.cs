@@ -195,7 +195,7 @@ public sealed class LlmOptions
     public bool ExposeUpstreamDetail { get; set; }
 
     /// <summary>True when enabled and at least one upstream carries a key and a model. Which one a request takes
-    /// is a runtime choice, so the sync surfaces that ask this can only answer "NOOSEI is operable"; the active
+    /// is a runtime choice, so the sync surfaces that ask this can only answer "FIBI is operable"; the active
     /// upstream is guaranteed to be a configured one by <see cref="Resolve" />.</summary>
     public bool IsConfigured => LlmProviderDisplay.All.Any(IsConfiguredFor);
 }

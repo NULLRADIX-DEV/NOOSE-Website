@@ -4,9 +4,9 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2" Wrap="Wrap.Wrap" Class="mb-2">
     <MudLink Href="@HomeHref" Underline="Underline.None" Color="Color.Inherit">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-            <MudImage Src="NooseIcon.png" Alt="NOOSE Wappen" Height="40" />
+            <MudImage Src="FibIcon.png" Alt="Wappen des FIB" Height="40" />
             <MudStack Spacing="0">
-                <MudText Typo="Typo.h6" Style="font-weight:700;letter-spacing:.12em;line-height:1.1;">N.O.O.S.E.</MudText>
+                <MudText Typo="Typo.h6" Style="font-weight:700;letter-spacing:.12em;line-height:1.1;">F.I.B.</MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@Subtitle</MudText>
             </MudStack>
         </MudStack>
@@ -52,7 +52,7 @@
     /// <summary>Where the wordmark leads; each shell keeps its own home.</summary>
     [Parameter] public string HomeHref { get; set; } = "/";
 
-    [Parameter] public string Subtitle { get; set; } = "National Office of Security Enforcement";
+    [Parameter] public string Subtitle { get; set; } = "Federal Investigation Bureau";
 
     /// <summary>Name of the signed-in visitor as the shell knows it; the header resolves none itself.</summary>
     [Parameter] public string? DisplayName { get; set; }

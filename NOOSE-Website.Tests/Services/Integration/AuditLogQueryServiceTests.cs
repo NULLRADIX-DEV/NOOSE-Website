@@ -20,9 +20,9 @@ public sealed class AuditLogQueryServiceTests
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // JuniorAgent: not leadership, not admin => fails RequireLeadership.
+    // Trainee: not leadership, not admin => fails RequireLeadership.
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static AuditLog Change(DateTime ts, string type = "Person", string entityId = "p1",
         AuditAction action = AuditAction.Modified, string? agentId = null, string? agentName = null,

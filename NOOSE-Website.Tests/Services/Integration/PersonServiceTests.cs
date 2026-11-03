@@ -27,25 +27,25 @@ public sealed class PersonServiceTests
         var caseNo = Substitute.For<ICaseNumberService>();
         // real ICaseNumberService uses MySQL-only raw SQL; stub it
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns("NOOSE-P-2026-0001");
+            .Returns("FIB-P-2026-0001");
         var threat = Substitute.For<IThreatScoreService>();
         var svc = new PersonService(ctx.Factory, fileStorage, suggestion, caseNo, threat,
             Substitute.For<INotificationService>(), Substitute.For<IPublicWantedService>());
         return (svc, fileStorage, suggestion, caseNo, threat);
     }
 
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership() => MayClassifiedRead.
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership() => MayClassifiedRead.
     private static ClaimsPrincipal Leader() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
-    // JuniorAgent: writable, but not leadership and cannot see classified.
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+    // Trainee: writable, but not leadership and cannot see classified.
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
     // TeamLead without admin => IsOnlyReader() => RequireWriteAccess denies.
-    private static ClaimsPrincipal OnlyReader() => ClaimsPrincipalBuilder.Agent("reader").AsTeamLead().WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal OnlyReader() => ClaimsPrincipalBuilder.Agent("reader").AsTeamLead().WithRank(Rank.Trainee).Build();
 
     private static ViewerScope LeaderScope() => ViewerScope.From(Leader());
     private static ViewerScope MemberScope() => ViewerScope.From(Junior());
     // TRU agent without leadership: may see TRU-classified records.
     private static ViewerScope TruScope() => ViewerScope.From(
-        ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.JuniorAgent).AsTru().Build());
+        ClaimsPrincipalBuilder.Agent("tru").WithRank(Rank.Trainee).AsTru().Build());
 
     private static PersonInput Input(string name = "Neu Person",
         Classification classification = Classification.Unknown,
@@ -73,9 +73,9 @@ public sealed class PersonServiceTests
         var t0 = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("a", "Alpha", p => { p.CreatedAt = t0; p.CaseNumber = "NOOSE-P-2026-0001"; }));            // older
-            db.People.Add(Seed.Person("b", "Bravo", p => { p.CreatedAt = t0.AddHours(1); p.CaseNumber = "NOOSE-P-2026-0002"; })); // newer
-            db.People.Add(Seed.Person("c", "Charlie", p => { p.CreatedAt = t0; p.IsClassified = true; p.CaseNumber = "NOOSE-P-2026-0003"; }));
+            db.People.Add(Seed.Person("a", "Alpha", p => { p.CreatedAt = t0; p.CaseNumber = "FIB-P-2026-0001"; }));            // older
+            db.People.Add(Seed.Person("b", "Bravo", p => { p.CreatedAt = t0.AddHours(1); p.CaseNumber = "FIB-P-2026-0002"; })); // newer
+            db.People.Add(Seed.Person("c", "Charlie", p => { p.CreatedAt = t0; p.IsClassified = true; p.CaseNumber = "FIB-P-2026-0003"; }));
             db.SaveChanges();
         }
         var (svc, _, _, _, _) = Build(ctx);
@@ -143,10 +143,10 @@ public sealed class PersonServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("live", "Lebt", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+            db.People.Add(Seed.Person("live", "Lebt", p => p.CaseNumber = "FIB-P-2026-0001"));
             db.People.Add(Seed.Person("gone", "Weg", p =>
             {
-                p.CaseNumber = "NOOSE-P-2026-0002";
+                p.CaseNumber = "FIB-P-2026-0002";
                 p.IsDeleted = true;
                 p.DeletedAt = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc);
             }));
@@ -168,8 +168,8 @@ public sealed class PersonServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("p1", "Anton Meier", p => p.CaseNumber = "NOOSE-P-2026-0001"));
-            db.People.Add(Seed.Person("p2", "Berta Klein", p => p.CaseNumber = "NOOSE-P-2026-0002"));
+            db.People.Add(Seed.Person("p1", "Anton Meier", p => p.CaseNumber = "FIB-P-2026-0001"));
+            db.People.Add(Seed.Person("p2", "Berta Klein", p => p.CaseNumber = "FIB-P-2026-0002"));
             db.SaveChanges();
         }
         var (svc, _, _, _, _) = Build(ctx);
@@ -206,13 +206,13 @@ public sealed class PersonServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("byname", "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+            db.People.Add(Seed.Person("byname", "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-0001"));
             db.People.Add(Seed.Person("byphone", "Wer Anders", p =>
             {
-                p.CaseNumber = "NOOSE-P-2026-0002";
+                p.CaseNumber = "FIB-P-2026-0002";
                 p.PhoneNumbers.Add(new PersonPhone { Number = "555-123" });
             }));
-            db.People.Add(Seed.Person("nomatch", "Niemand", p => p.CaseNumber = "NOOSE-P-2026-0003"));
+            db.People.Add(Seed.Person("nomatch", "Niemand", p => p.CaseNumber = "FIB-P-2026-0003"));
             db.SaveChanges();
         }
         var (svc, _, _, _, _) = Build(ctx);
@@ -321,8 +321,8 @@ public sealed class PersonServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("p1", "Anton Meier", p => p.CaseNumber = "NOOSE-P-2026-0001"));
-            db.People.Add(Seed.Person("p2", "Berta Klein", p => p.CaseNumber = "NOOSE-P-2026-0002"));
+            db.People.Add(Seed.Person("p1", "Anton Meier", p => p.CaseNumber = "FIB-P-2026-0001"));
+            db.People.Add(Seed.Person("p2", "Berta Klein", p => p.CaseNumber = "FIB-P-2026-0002"));
             db.SaveChanges();
         }
         var (svc, _, _, _, _) = Build(ctx);
@@ -360,7 +360,7 @@ public sealed class PersonServiceTests
 
         var person = await svc.CreateAsync(input, Leader());
 
-        Assert.Equal("NOOSE-P-2026-0001", person.CaseNumber);
+        Assert.Equal("FIB-P-2026-0001", person.CaseNumber);
         Assert.Equal("Neue Zielperson", person.Name);
 
         using var db = ctx.NewContext();
@@ -798,10 +798,10 @@ public sealed class PersonServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(Seed.Person("me", "Ich", p => p.CaseNumber = "NOOSE-P-2026-0001"));
-            db.People.Add(Seed.Person("ally", "Verbündeter", p => p.CaseNumber = "NOOSE-P-2026-0002"));
-            db.Factions.Add(Seed.Faction("fA", "Alpha", f => f.CaseNumber = "NOOSE-F-2026-0001"));
-            db.Factions.Add(Seed.Faction("fB", "Bravo", f => f.CaseNumber = "NOOSE-F-2026-0002"));
+            db.People.Add(Seed.Person("me", "Ich", p => p.CaseNumber = "FIB-P-2026-0001"));
+            db.People.Add(Seed.Person("ally", "Verbündeter", p => p.CaseNumber = "FIB-P-2026-0002"));
+            db.Factions.Add(Seed.Faction("fA", "Alpha", f => f.CaseNumber = "FIB-F-2026-0001"));
+            db.Factions.Add(Seed.Faction("fB", "Bravo", f => f.CaseNumber = "FIB-F-2026-0002"));
             db.FactionMembers.Add(new FactionMember { PersonId = "me", FactionId = "fA" });
             db.FactionMembers.Add(new FactionMember { PersonId = "ally", FactionId = "fB" });
             db.Links.Add(new Link

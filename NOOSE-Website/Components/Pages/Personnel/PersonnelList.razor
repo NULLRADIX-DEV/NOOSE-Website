@@ -4,14 +4,14 @@
 @inject IInactivityRadarService RadarService
 @inject NavigationManager Nav
 
-<PageTitle>Personal · NOOSE</PageTitle>
+<PageTitle>Personal · FIB</PageTitle>
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
     <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
     <MudText Typo="Typo.h4">Personal</MudText>
 </MudStack>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Personalakten aller NOOSE-Agenten: Dienstgrad-Verlauf, Belobigungen, Disziplinarisches und Beförderungen.
+    Personalakten aller FIB-Agenten: Dienstgrad-Verlauf, Belobigungen, Disziplinarisches und Beförderungen.
 </MudText>
 
 @if (_load)
@@ -23,7 +23,7 @@ else
     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="false"
              @bind-ActivePanelIndex="_tab" Class="mb-3">
         <MudTabPanel Icon="@Icons.Material.Filled.Badge" IconColor="Color.Primary"
-                     Text="@($"NOOSE ({CountInternal})")" />
+                     Text="@($"FIB ({CountInternal})")" />
         <MudTabPanel Icon="@Icons.Material.Filled.Handshake" IconColor="Color.Info"
                      Text="@($"Partner ({CountPartner})")" />
         @if (_isLeadership)
@@ -101,8 +101,8 @@ else
                 {
                     <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
                     <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTRU)">TRU</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">HRB</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => UnitLabel(x))">Abteilung</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
                 }
             </HeaderContent>
             <RowTemplate>
@@ -118,7 +118,7 @@ else
                 }
                 @if (_tab == TabTerminated)
                 {
-                    <MudTd DataLabel="Letzter Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
+                    <MudTd DataLabel="Letzter Dienstgrad">@DivisionRules.RankName(context)</MudTd>
                     <MudTd DataLabel="Gekündigt am">@(context.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</MudTd>
                     <MudTd DataLabel="Gekündigt von">@(context.TerminatedByName ?? "—")</MudTd>
                     <MudTd DataLabel="Grund">
@@ -135,10 +135,10 @@ else
                 }
                 else
                 {
-                    <MudTd DataLabel="Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
+                    <MudTd DataLabel="Dienstgrad">@DivisionRules.RankName(context)</MudTd>
                     <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
-                    <MudTd DataLabel="TRU">@(context.IsTRU ? "TRU" : "")</MudTd>
-                    <MudTd DataLabel="HRB">@(context.IsHRB ? "HRB" : "")</MudTd>
+                    <MudTd DataLabel="Abteilung">@UnitLabel(context)</MudTd>
+                    <MudTd DataLabel="@DepartmentRules.ColumnLabel">@(context.IsHRB ? "Ja" : "")</MudTd>
                 }
             </RowTemplate>
             <NoRecordsContent>
@@ -247,6 +247,10 @@ else
             Nav.NavigateTo($"/personal/{a.Id}");
         }
     }
+
+    /// <summary>Board or division; empty for an account without a rank.</summary>
+    private static string UnitLabel(Agent agent)
+        => DivisionRules.Of(agent) is { IsNone: false } unit ? DivisionRules.Label(unit) : string.Empty;
 
     private static string Shorten(string? text)
         => string.IsNullOrWhiteSpace(text) ? "—"

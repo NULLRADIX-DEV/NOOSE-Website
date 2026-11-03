@@ -22,7 +22,7 @@ public sealed class PersonMergeServiceTests
     private static PersonMergeService NewService(SqliteTestContext ctx)
         => new(ctx.Factory, Substitute.For<IPublicWantedService>());
 
-    // Rank >= SupervisorySpecialAgent AND not a read-only team lead -> passes both guards.
+    // Rank >= SpecialAgentInCharge AND not a read-only team lead -> passes both guards.
     private static ClaimsPrincipal Boss()
         => ClaimsPrincipalBuilder.Agent("boss").WithRank(Rank.Director).WithCodename("Falcon").Build();
 
@@ -40,7 +40,7 @@ public sealed class PersonMergeServiceTests
     {
         using var ctx = new SqliteTestContext();
         var svc = NewService(ctx);
-        var actor = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        var actor = ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.MergeAsync("src", "dst", actor));
@@ -84,7 +84,7 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -99,7 +99,7 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -116,8 +116,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             db.PersonDocs.Add(new PersonDoc { PersonId = "src", Timestamp = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc) });
             db.Observations.Add(new Observation { PersonId = "src", Start = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc) });
             db.PersonPhotos.Add(new PersonPhoto { PersonId = "src", FileNameSaved = "f.jpg", OriginalName = "o.jpg", ContentType = "image/jpeg" });
@@ -142,8 +142,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001", p => p.Name = "Quelle Q"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001", p => p.Name = "Quelle Q"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);
@@ -166,12 +166,12 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001", p =>
+            db.People.Add(P("src", "FIB-P-2026-0001", p =>
             {
                 p.Name = "Source Name";
                 p.Aliases = new() { new PersonAlias { AliasName = "shared" }, new PersonAlias { AliasName = "Unique" } };
             }));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002", p =>
+            db.People.Add(P("dst", "FIB-P-2026-0002", p =>
             {
                 p.Name = "Target Name";
                 p.Aliases = new() { new PersonAlias { AliasName = "Shared" } };
@@ -198,14 +198,14 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001", p =>
+            db.People.Add(P("src", "FIB-P-2026-0001", p =>
             {
                 p.PhoneNumbers = new() { new PersonPhone { Number = "111" }, new PersonPhone { Number = "222" } };
                 p.Vehicles = new() { new PersonVehicle { Designation = "Sultan", LicensePlate = "ABC" }, new PersonVehicle { Designation = "Kuruma", LicensePlate = "XYZ" } };
                 p.Locations = new() { new PersonLocation { Text = "Downtown" }, new PersonLocation { Text = "Sandy" } };
                 p.Weapons = new() { new PersonWeapon { Text = "Pistol" }, new PersonWeapon { Text = "Rifle" } };
             }));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002", p =>
+            db.People.Add(P("dst", "FIB-P-2026-0002", p =>
             {
                 p.PhoneNumbers = new() { new PersonPhone { Number = "111" } };
                 p.Vehicles = new() { new PersonVehicle { Designation = "Sultan", LicensePlate = "ABC" } };
@@ -239,9 +239,9 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
-            db.People.Add(P("third", "NOOSE-P-2026-0003"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
+            db.People.Add(P("third", "FIB-P-2026-0003"));
             // src<->dst collapses to a self-reference once src becomes dst -> dropped
             db.PersonRelations.Add(new PersonRelation { Id = "r-self", PersonAId = "src", PersonBId = "dst" });
             // src<->third is reassigned to dst<->third
@@ -267,10 +267,10 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
-            db.Factions.Add(Seed.Faction("f1", configure: f => f.CaseNumber = "NOOSE-F-2026-0001"));
-            db.Factions.Add(Seed.Faction("f2", configure: f => f.CaseNumber = "NOOSE-F-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
+            db.Factions.Add(Seed.Faction("f1", configure: f => f.CaseNumber = "FIB-F-2026-0001"));
+            db.Factions.Add(Seed.Faction("f2", configure: f => f.CaseNumber = "FIB-F-2026-0002"));
             // both belong to f1 (duplicate) ; only src belongs to f2 (unique)
             db.FactionMembers.Add(new FactionMember { Id = "m-dup", FactionId = "f1", PersonId = "src" });
             db.FactionMembers.Add(new FactionMember { Id = "m-uniq", FactionId = "f2", PersonId = "src" });
@@ -294,10 +294,10 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
-            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Gruppe", CaseNumber = "NOOSE-G-2026-0001" });
-            db.Parties.Add(new Party { Id = "pt1", Name = "Partei", CaseNumber = "NOOSE-PT-2026-0001" });
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
+            db.PersonGroups.Add(new PersonGroup { Id = "g1", Name = "Gruppe", CaseNumber = "FIB-G-2026-0001" });
+            db.Parties.Add(new Party { Id = "pt1", Name = "Partei", CaseNumber = "FIB-PT-2026-0001" });
             db.PersonGroupMembers.Add(new PersonGroupMember { Id = "gm", PersonGroupId = "g1", PersonId = "src" });
             db.PartyMembers.Add(new PartyMember { Id = "pm", PartyId = "pt1", PersonId = "src" });
             db.SaveChanges();
@@ -319,8 +319,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             db.Comments.Add(new Comment { Id = "c1", EntityType = PersonType, EntityId = "src", Text = "note" });
             db.Sources.Add(new Source { Id = "s-ent", EntityType = PersonType, EntityId = "src", Title = "quelle" });
             db.Sources.Add(new Source { Id = "s-tgt", EntityType = "Case", EntityId = "case-1", TargetType = PersonType, TargetId = "src", Title = "ref" });
@@ -348,8 +348,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             db.Tags.Add(new Tag { Id = "t1", Name = "Alpha" });
             db.Tags.Add(new Tag { Id = "t2", Name = "Beta" });
             db.TagMappings.Add(new TagMapping { Id = "map-tgt", TagId = "t1", EntityType = PersonType, EntityId = "dst" });
@@ -374,8 +374,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             db.CustomFieldValues.Add(new CustomFieldValue { Id = "cf-tgt", CustomFieldDefinitionId = "d1", EntityType = PersonType, EntityId = "dst", Value = "keep" });
             db.CustomFieldValues.Add(new CustomFieldValue { Id = "cf-dup", CustomFieldDefinitionId = "d1", EntityType = PersonType, EntityId = "src", Value = "drop" });
             db.CustomFieldValues.Add(new CustomFieldValue { Id = "cf-uniq", CustomFieldDefinitionId = "d2", EntityType = PersonType, EntityId = "src", Value = "moved" });
@@ -399,8 +399,8 @@ public sealed class PersonMergeServiceTests
         {
             db.Users.Add(Seed.Agent("w1"));
             db.Users.Add(Seed.Agent("w2", configure: a => a.DiscordId = "discord-w2"));
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             db.Watchlists.Add(new WatchlistEntry { Id = "wl-tgt", AgentId = "w1", EntityType = PersonType, EntityId = "dst", CreatedAt = new DateTime(2026, 1, 1) });
             db.Watchlists.Add(new WatchlistEntry { Id = "wl-dup", AgentId = "w1", EntityType = PersonType, EntityId = "src", CreatedAt = new DateTime(2026, 1, 2) });
             db.Watchlists.Add(new WatchlistEntry { Id = "wl-uniq", AgentId = "w2", EntityType = PersonType, EntityId = "src", CreatedAt = new DateTime(2026, 1, 3) });
@@ -421,8 +421,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002"));
             // src -> dst collapses into a self-link once src becomes dst -> dropped
             db.Links.Add(new Link { Id = "l-self", SourceType = PersonType, SourceId = "src", TargetType = PersonType, TargetId = "dst" });
             // src -> case is reassigned on the source side
@@ -446,8 +446,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002", p => p.Name = "Ziel Person"));
+            db.People.Add(P("src", "FIB-P-2026-0001"));
+            db.People.Add(P("dst", "FIB-P-2026-0002", p => p.Name = "Ziel Person"));
             db.Requests.Add(new Request { Id = "req1", TargetType = PersonType, TargetId = "src", TargetDesignation = "alt" });
             db.SaveChanges();
         }
@@ -458,7 +458,7 @@ public sealed class PersonMergeServiceTests
         using var read = ctx.NewContext();
         var req = read.Requests.Single(r => r.Id == "req1");
         Assert.Equal("dst", req.TargetId);
-        Assert.Equal("Ziel Person (NOOSE-P-2026-0002)", req.TargetDesignation);
+        Assert.Equal("Ziel Person (FIB-P-2026-0002)", req.TargetDesignation);
     }
 
     // ---- profile fill + classification carry-over -----------------------
@@ -469,12 +469,12 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001", p =>
+            db.People.Add(P("src", "FIB-P-2026-0001", p =>
             {
                 p.Description = "Wichtige Notiz";
                 p.IsClassified = true;
             }));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002", p =>
+            db.People.Add(P("dst", "FIB-P-2026-0002", p =>
             {
                 p.Description = null;      // empty -> gets filled from source
                 p.IsClassified = false;    // OR'd with source -> true
@@ -497,8 +497,8 @@ public sealed class PersonMergeServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.People.Add(P("src", "NOOSE-P-2026-0001", p => p.Description = "Quelle Text"));
-            db.People.Add(P("dst", "NOOSE-P-2026-0002", p => p.Description = "Ziel Text"));
+            db.People.Add(P("src", "FIB-P-2026-0001", p => p.Description = "Quelle Text"));
+            db.People.Add(P("dst", "FIB-P-2026-0002", p => p.Description = "Ziel Text"));
             db.SaveChanges();
         }
         var svc = NewService(ctx);

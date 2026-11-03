@@ -120,7 +120,7 @@
                                     @if (Assist.IsAvailable)
                                     {
                                         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
-                                            <MudMenu Label="NOOSEI-Entwurf" Variant="Variant.Outlined" Size="Size.Small"
+                                            <MudMenu Label="FIBI-Entwurf" Variant="Variant.Outlined" Size="Size.Small"
                                                      Color="Color.Secondary" Disabled="_busy"
                                                      StartIcon="@Icons.Material.Filled.AutoAwesome"
                                                      EndIcon="@Icons.Material.Filled.ArrowDropDown">
@@ -134,7 +134,7 @@
                                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                                 @if (_suggestCost is { } cost)
                                                 {
-                                                    <text>NOOSEI-Entwurf: @cost.ToString("N0") Token</text>
+                                                    <text>FIBI-Entwurf: @cost.ToString("N0") Token</text>
                                                     @if (_suggestQuota is { } quota)
                                                     {
                                                         <text> · Restkontingent: @quota.Remaining.ToString("N0")</text>
@@ -142,7 +142,7 @@
                                                 }
                                                 else
                                                 {
-                                                    <text>Schreib erst deine Stichpunkte ins Feld, NOOSEI formuliert sie aus.</text>
+                                                    <text>Schreib erst deine Stichpunkte ins Feld, FIBI formuliert sie aus.</text>
                                                 }
                                             </MudText>
                                         </MudStack>

@@ -21,7 +21,7 @@ public class Pressemitteilung : IAuditable, ISoftDelete
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
-    /// <summary>Public file number (NOOSE-PM-…); null until the first publication.</summary>
+    /// <summary>Public file number (FIB-PM-…); null until the first publication.</summary>
     [Column("Aktenzeichen")]
     public string? CaseNumber { get; set; }
 

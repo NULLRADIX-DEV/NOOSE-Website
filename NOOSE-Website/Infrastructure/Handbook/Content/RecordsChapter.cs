@@ -14,7 +14,7 @@ internal static class RecordsChapter
             new Article("art-personenakte", "personenakte", "Die Personenakte",
                 "Die wichtigste Akte der Behörde - und wie sie aufgebaut ist.",
                 """
-                <p>Zu jeder Person, mit der die NOOSE zu tun hat, gibt es <strong>genau eine Akte</strong>.
+                <p>Zu jeder Person, mit der das FIB zu tun hat, gibt es <strong>genau eine Akte</strong>.
                 Alles, was über sie bekannt ist, läuft dort zusammen: Vernehmungen, Observationen, Fotos,
                 Fraktionszugehörigkeit, Fahndung, Kommentare.</p>
                 <p>Eine neue Akte legst du über <em>Personen → Neu</em> an. Pflicht ist nur der Name; das
@@ -60,7 +60,7 @@ internal static class RecordsChapter
                 "Woher die Nummer kommt und wozu sie gut ist.",
                 """
                 <p>Jede Akte bekommt beim Anlegen ein <strong>Aktenzeichen</strong> - eine feste,
-                menschenlesbare Nummer wie <em>NOOSE-P-2026-0001</em>. Sie besteht aus der Behörde, einem
+                menschenlesbare Nummer wie <em>FIB-P-2026-0001</em>. Sie besteht aus der Behörde, einem
                 Buchstaben für die Aktenart, dem Jahr und einer laufenden Nummer.</p>
                 <p>Das Aktenzeichen vergibt das System selbst und es ändert sich nie. Genau deshalb ist es das
                 Richtige, wenn du im Funk, in einem Bericht oder gegenüber einer Partnerbehörde eine bestimmte
@@ -93,15 +93,16 @@ internal static class RecordsChapter
                 darf. Es gibt vier Stufen:</p>
                 <ul>
                 <li><strong>Offen</strong> - alle internen Agenten.</li>
-                <li><strong>Führung</strong> - erst ab Supervisory Special Agent.</li>
-                <li><strong>TRU</strong> - Konten mit dem Kennzeichen TRU, dazu die Führung.</li>
-                <li><strong>HRB</strong> - Konten mit dem Kennzeichen HRB, dazu die Führung.</li>
+                <li><strong>Führung</strong> - erst ab Special Agent in Charge.</li>
+                <li><strong>HRT</strong> - Konten der Abteilung HRT, dazu die Führung.</li>
+                <li><strong>Administration</strong> - Konten mit dem Kennzeichen Administration Division, dazu
+                die Führung.</li>
                 </ul>
                 <p>Die beiden Fach-Stufen schließen die Führung also <strong>nicht</strong> aus: wer ohnehin
-                Verschlusssachen lesen darf, sieht auch TRU- und HRB-Material. Sie grenzen nach unten ab, nicht
-                nach oben.</p>
+                Verschlusssachen lesen darf, sieht auch HRT- und Administration-Material. Sie grenzen nach unten
+                ab, nicht nach oben.</p>
                 <p>Die Stufe wirkt <strong>überall</strong>, nicht nur auf der Akte selbst: ein VS-Dokument
-                erscheint auch in der Suche nicht, taucht in keiner Liste auf und wird von NOOSEI nicht
+                erscheint auch in der Suche nicht, taucht in keiner Liste auf und wird von FIBI nicht
                 erwähnt. Für dich sieht es so aus, als gäbe es das Dokument nicht - und das ist Absicht.</p>
                 <p>Stufe hoch heißt nicht „sicherer“. Was niemand findet, hilft auch niemandem. Stufe eine
                 Sache nur ein, wenn es einen Grund gibt, den du benennen kannst.</p>

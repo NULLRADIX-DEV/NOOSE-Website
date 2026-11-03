@@ -64,6 +64,8 @@ public class DiscordWebhookModelsTests
         NotificationType.PresentationLive,
         // who leaves with what is personnel business
         NotificationType.HandoverReceived,
+        // who fired and when is for the leadership bell alone; a shared channel would show it was rung
+        NotificationType.FirearmUseReported,
     };
 
     // ----- IsRoutable: true branch -----
@@ -404,7 +406,7 @@ public class DiscordWebhookModelsTests
     [Fact]
     public void DiscordWebhookConfig_DefaultBaseUrl_isNooseInfo()
     {
-        Assert.Equal("https://noose.info", DiscordWebhookConfig.DefaultBaseUrl);
+        Assert.Equal("https://fibhq.com", DiscordWebhookConfig.DefaultBaseUrl);
     }
 
     [Fact]

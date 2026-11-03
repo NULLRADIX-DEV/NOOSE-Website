@@ -13,7 +13,7 @@
 @inject IJSRuntime JS
 @using NOOSE_Website.Models.Informants
 
-<PageTitle>@(_person is null ? "Druckansicht" : $"Personenakte {_person.CaseNumber}") · NOOSE</PageTitle>
+<PageTitle>@(_person is null ? "Druckansicht" : $"Personenakte {_person.CaseNumber}") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -36,7 +36,7 @@ else
     <div class="druck-dokument">
         @* Document header *@
         <header class="druck-kopf">
-            <div class="druck-behoerde">N.O.O.S.E. · National Office of Security Enforcement</div>
+            <div class="druck-behoerde">F.I.B. · Federal Investigation Bureau</div>
             <h1>Personenakte @_person.CaseNumber</h1>
             <div class="druck-meta">
                 Gedruckt am @DateTime.Now.ToString("dd.MM.yyyy HH:mm")
@@ -319,7 +319,7 @@ else
         }
 
         <footer class="druck-fusszeile">
-            NOOSE-interne Akte · @_person.CaseNumber · Weitergabe nur nach Freigabe durch die Führung.
+            FIB-interne Akte · @_person.CaseNumber · Weitergabe nur nach Freigabe durch die Führung.
         </footer>
     </div>
 }

@@ -36,7 +36,7 @@ public class DashboardService(IDbContextFactory<AppDbContext> dbFactory, IReques
             + await db.Users.CountAsync(a => a.Status == AgentStatus.Pending, cancellationToken)
             + await db.Users.CountAsync(a => a.NameChangeRequestedAt != null, cancellationToken)
             + await db.Taskforces.OnlyVisible(db, isLeadership, meId).OnlyActive().CountAsync(t => t.Status == TaskforceStatus.Requested, cancellationToken)
-            + await db.AgentPromotionRequests.CountAsync(a => a.Status == PromotionStatus.Requested, cancellationToken);
+            + await PromotionRules.CountOpenAsync(db, await StandingAsync(db, meId, cancellationToken), cancellationToken);
 
         // The classified count is itself classified, so leadership-only.
         var classified = 0;
@@ -249,6 +249,12 @@ public class DashboardService(IDbContextFactory<AppDbContext> dbFactory, IReques
             p.Id, p.Name, p.CaseNumber, $"/personen/{p.Id}", HazardLevelLogic.From(p.ThreatScore))).ToList();
     }
 
+    // same list the inbox shows
+    private static async Task<PromotionStanding> StandingAsync(AppDbContext db, string? meId, CancellationToken cancellationToken)
+        => PromotionStanding.Of(meId is null
+            ? null
+            : await db.Users.AsNoTracking().FirstOrDefaultAsync(a => a.Id == meId, cancellationToken));
+
     public async Task<DashboardDistributions> GetDistributionsAsync(bool isLeadership, string? meId, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -296,7 +302,7 @@ public class DashboardService(IDbContextFactory<AppDbContext> dbFactory, IReques
             new("Registrierung", await db.Users.CountAsync(a => a.Status == AgentStatus.Pending, cancellationToken)),
             new("Namensänderung", await db.Users.CountAsync(a => a.NameChangeRequestedAt != null, cancellationToken)),
             new("Taskforce", await db.Taskforces.OnlyVisible(db, isLeadership, meId).OnlyActive().CountAsync(t => t.Status == TaskforceStatus.Requested, cancellationToken)),
-            new("Beförderung", await db.AgentPromotionRequests.CountAsync(a => a.Status == PromotionStatus.Requested, cancellationToken)),
+            new("Beförderung", await PromotionRules.CountOpenAsync(db, await StandingAsync(db, meId, cancellationToken), cancellationToken)),
         };
 
         return new DashboardDistributions(casesByClassification, measureOutcomes, factionsByHazard, openRequestsByKind);

@@ -18,9 +18,9 @@ public static class WarnhinweisColours
     [
         new("Error", "Rot", Color.Error, "🔴"),
         new("Warning", "Orange", Color.Warning, "🟠"),
-        new("Info", "Blau", Color.Info, "🔵"),
+        new("Info", "Bronze", Color.Info, "🟤"),
         new("Success", "Grün", Color.Success, "🟢"),
-        new("Secondary", "Violett", Color.Secondary, "🟣"),
+        new("Secondary", "Grün (alternativ)", Color.Secondary, "🟩"),
         new("Default", "Grau", Color.Default, "⚪"),
     ];
 

@@ -12,7 +12,7 @@ public sealed class TagServiceBatchTests
 {
     private static ClaimsPrincipal Lead() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+    private static ClaimsPrincipal Junior() => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static void SeedBase(SqliteTestContext ctx)
     {

@@ -22,7 +22,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class FilterRecordsToolTests
 {
     private static ClaimsPrincipal Junior()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
@@ -316,7 +316,7 @@ public sealed class FilterRecordsToolTests
             {
                 new(new AgentAbduction
                 {
-                    Id = "a1", CaseNumber = "NOOSE-E-2026-0001", Outcome = AbductionOutcome.Killed,
+                    Id = "a1", CaseNumber = "FIB-E-2026-0001", Outcome = AbductionOutcome.Killed,
                     Timestamp = new DateTime(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc),
                 }, "Falke", "Ganoven-Gerd", null, 0),
             }));

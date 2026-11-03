@@ -52,7 +52,7 @@ else
                     {
                         @* production: demo mode would show the real data to every visitor, demo data would mix into it *@
                         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
-                            Diese Instanz ist keine Demo. Demo-Modus und Demo-Daten gibt es nur auf demo.noose.info.
+                            Diese Instanz ist keine Demo. Demo-Modus und Demo-Daten gibt es nur auf demo.fibhq.com.
                         </MudAlert>
                     }
                 </Authorized>
@@ -171,7 +171,7 @@ else
                 Ersetzt das Standard-Wappen in der Topbar. Nur Bilddateien (JPG, PNG, WebP, GIF).
             </MudText>
             <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Class="flex-wrap">
-                <MudImage Src="@(_configuration!.HasLogo ? "/system/logo" : "NooseIcon.png")" Alt="Aktuelles Logo" Height="48" />
+                <MudImage Src="@(_configuration!.HasLogo ? "/system/logo" : "FibIcon.png")" Alt="Aktuelles Logo" Height="48" />
                 <AuthorizeView Policy="@Policies.Admin" Context="admin">
                     <MudFileUpload T="IBrowserFile" FilesChanged="LogoUploadAsync" Accept="image/*">
                         <CustomContent>

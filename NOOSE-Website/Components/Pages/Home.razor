@@ -11,7 +11,7 @@
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 @inject IPartnerAgencyProfileService PartnerProfiles
 
-<PageTitle>Dashboard · NOOSE</PageTitle>
+<PageTitle>Dashboard · FIB</PageTitle>
 
 <div class="dashboard-seite">
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
@@ -287,9 +287,9 @@ else if (_distributions is { } v)
     private IReadOnlyDictionary<string, IReadOnlyList<int>> _peopleTrends = new Dictionary<string, IReadOnlyList<int>>();
 
     // Colour order must match the segment order in DashboardService
-    private static readonly string[] _coloursClassification = { "#9BA8B8", "#22D3EE", "#D29922", "#F85149" };
-    private static readonly string[] _coloursOutcome = { "#22D3EE", "#3FB950", "#D29922", "#F85149" };
-    private static readonly string[] _coloursRequests = { "#22D3EE", "#3FB950", "#7C8CF8", "#D29922", "#F85149" };
+    private static readonly string[] _coloursClassification = { "#A8A29A", "#8C7757", "#D29922", "#F85149" };
+    private static readonly string[] _coloursOutcome = { "#8C7757", "#3FB950", "#D29922", "#F85149" };
+    private static readonly string[] _coloursRequests = { "#8C7757", "#3FB950", "#9A59CF", "#D29922", "#F85149" };
 
     protected override async Task OnInitializedAsync()
     {

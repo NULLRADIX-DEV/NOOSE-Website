@@ -10,7 +10,7 @@ public class Operation : IAuditable, ISoftDelete, IClassifiableRecord, IArchivab
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
-    /// <summary>Human-readable unique case number (e.g. NOOSE-OP-2026-0001).</summary>
+    /// <summary>Human-readable unique case number (e.g. FIB-OP-2026-0001).</summary>
     [Column("Aktenzeichen")]
     public string CaseNumber { get; set; } = string.Empty;
 

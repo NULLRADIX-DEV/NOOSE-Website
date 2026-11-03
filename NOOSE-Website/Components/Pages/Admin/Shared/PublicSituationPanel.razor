@@ -83,14 +83,14 @@ else
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
                         Es ist noch keine Stufe gesetzt. Bis dahin sagt <code>/lage</code> nichts — bewusst keine
-                        Vorgabe, denn „Niedrig" wäre eine Aussage.
+                        Vorgabe, denn „DEFCON 5" wäre eine Aussage.
                     </MudText>
                 }
                 else
                 {
                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
-                                 Color="@PublicSituationLevelDisplay.Colour(_state.Level)">
+                                 Style="@PublicSituationLevelDisplay.FilledStyle(_state.Level)">
                             @PublicSituationLevelDisplay.Name(_state.Level)
                         </MudChip>
                         @if (_state.Since is { } since)
@@ -102,7 +102,7 @@ else
                         @if (_state.Previous is { } previous)
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                     Color="@PublicSituationLevelDisplay.Colour(previous)">
+                                     Style="@PublicSituationLevelDisplay.OutlineStyle(previous)">
                                 zuvor: @PublicSituationLevelDisplay.Name(previous)
                             </MudChip>
                         }

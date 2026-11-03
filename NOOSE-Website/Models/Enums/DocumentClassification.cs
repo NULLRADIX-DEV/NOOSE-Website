@@ -9,10 +9,10 @@ public enum DocumentClassification
     /// <summary>Leadership only.</summary>
     Leadership = 1,
 
-    /// <summary>TRU unit only.</summary>
+    /// <summary>HRT only (stored as the legacy TRU unit).</summary>
     Tru = 2,
 
-    /// <summary>HRB unit only.</summary>
+    /// <summary>Administration Division only (stored as the legacy HRB unit).</summary>
     Hrb = 3,
 }
 
@@ -23,8 +23,8 @@ public static class DocumentClassificationDisplay
     public static string Label(DocumentClassification classification) => classification switch
     {
         DocumentClassification.Leadership => "Verschlusssache nur für Führung",
-        DocumentClassification.Tru => "Verschlusssache nur für TRU",
-        DocumentClassification.Hrb => "Verschlusssache nur für HRB",
+        DocumentClassification.Tru => "Verschlusssache nur für HRT",
+        DocumentClassification.Hrb => "Verschlusssache nur für die Administration Division",
         _ => "Keine Verschlusssache",
     };
 
@@ -32,8 +32,8 @@ public static class DocumentClassificationDisplay
     public static string ChipLabel(DocumentClassification classification) => classification switch
     {
         DocumentClassification.Leadership => "Verschlusssache",
-        DocumentClassification.Tru => "VS – TRU",
-        DocumentClassification.Hrb => "VS – HRB",
+        DocumentClassification.Tru => "VS – HRT",
+        DocumentClassification.Hrb => "VS – Administration",
         _ => string.Empty,
     };
 }

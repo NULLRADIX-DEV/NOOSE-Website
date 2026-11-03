@@ -39,7 +39,7 @@ public class MeetingVisibilityTests
     [InlineData(3600, false)]  // meeting is in the future
     public void Junior_sees_agenda_only_once_two_hours_past_start(int startOffsetSeconds, bool expected)
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent);
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee);
         var start = Now.AddSeconds(startOffsetSeconds);
 
         Assert.Equal(expected, MeetingVisibility.MayReadAgenda(user, start, null, Now));
@@ -82,7 +82,7 @@ public class MeetingVisibilityTests
     [Fact]
     public void Leadership_sees_agenda_before_the_meeting()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SupervisorySpecialAgent);
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge);
 
         Assert.True(MeetingVisibility.MayReadAgenda(user, Now.AddHours(5), null, Now));
     }
@@ -119,7 +119,7 @@ public class MeetingVisibilityTests
     [Fact]
     public void With_end_set_the_window_is_measured_from_end_not_start()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent);
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee);
         // started 5h ago (start+2h long passed) but ended only 1h ago (end+2h not yet reached)
         var start = Now.AddHours(-5);
         var end = Now.AddHours(-1);
@@ -130,7 +130,7 @@ public class MeetingVisibilityTests
     [Fact]
     public void With_end_set_access_opens_two_hours_after_end()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.JuniorAgent);
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee);
         var start = Now.AddHours(-5);
         var end = Now.AddHours(-3); // end+2h passed 1h ago
 

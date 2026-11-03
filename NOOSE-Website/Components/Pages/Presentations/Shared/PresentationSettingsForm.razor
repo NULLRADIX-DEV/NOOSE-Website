@@ -67,7 +67,7 @@
                        HelperText="Du selbst und die Führung sehen sie immer.">
                 @foreach (var a in _agents)
                 {
-                    <MudSelectItem T="string" Value="@a.Id">@a.Codename (@RankDisplay.Name(a.Rank))@(_gone.Contains(a.Id) ? " · nicht mehr auswählbar" : "")</MudSelectItem>
+                    <MudSelectItem T="string" Value="@a.Id">@a.Codename (@DivisionRules.RankName(a))@(_gone.Contains(a.Id) ? " · nicht mehr auswählbar" : "")</MudSelectItem>
                 }
             </MudSelect>
         </MudItem>

@@ -21,7 +21,7 @@ public sealed class HandbookTests
 
     /// <summary>The point of the guard: HRB is rank-independent, so a Junior Agent carrying it may write.</summary>
     private static ClaimsPrincipal JuniorHrb()
-        => ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.JuniorAgent).WithCodename("Sparrow").AsHrb().Build();
+        => ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.Trainee).WithCodename("Sparrow").AsHrb().Build();
 
     private static ClaimsPrincipal Agent()
         => ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.SpecialAgent).WithCodename("Wren").Build();

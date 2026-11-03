@@ -300,7 +300,7 @@ public class LlmServiceTests
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CompleteAsync(Req(), Agent()));
 
         Assert.Contains("502", ex.Message);
-        Assert.Contains("NOOSEI", ex.Message);
+        Assert.Contains("FIBI", ex.Message);
         Assert.DoesNotContain("upstream kaputt", ex.Message);
         Assert.DoesNotContain("vendor/model", ex.Message);
         Assert.Equal(2, handler.Calls);

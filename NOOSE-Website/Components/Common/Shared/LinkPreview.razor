@@ -8,7 +8,7 @@
     }
     else
     {
-        <meta property="og:site_name" content="NOOSE" />
+        <meta property="og:site_name" content="FIB" />
         <meta property="og:locale" content="de_DE" />
         <meta property="og:type" content="@_type" />
         <meta property="og:title" content="@Title" />
@@ -32,7 +32,7 @@
     // why noindex is a parameter of the preview rather than a block of its own, and why
     // PublicPageScanTests.TheHeadOfAPublicPageIsWrittenInOnePlace holds it that way.
 
-    /// <summary>Headline of the card. Without the "· NOOSE" suffix — og:site_name already says that.</summary>
+    /// <summary>Headline of the card. Without the "· FIB" suffix — og:site_name already says that.</summary>
     [Parameter, EditorRequired]
     public string Title { get; set; } = string.Empty;
 
@@ -60,7 +60,7 @@
     [Parameter]
     public bool NoIndex { get; set; }
 
-    private const string Mark = "NooseIcon.png";
+    private const string Mark = "FibIcon.png";
 
     private string _text = string.Empty;
     private string _url = string.Empty;

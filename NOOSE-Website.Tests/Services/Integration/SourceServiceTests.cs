@@ -23,17 +23,17 @@ public sealed class SourceServiceTests
         return (new SourceService(ctx.Factory, storage, Substitute.For<INotificationService>()), storage);
     }
 
-    // Rank >= SupervisorySpecialAgent(4) or admin => IsLeadership() + MayAllTaskforcesSee().
+    // Rank >= SpecialAgentInCharge(4) or admin => IsLeadership() + MayAllTaskforcesSee().
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     // Junior agent: not leadership, cannot read classified, but may write.
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // Read-only supervision: IsTeamLead && !IsAdmin => IsOnlyReader() (blocked by RequireWriteAccess).
     private static ClaimsPrincipal OnlyReader(string id = "reader")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).AsTeamLead().Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).AsTeamLead().Build();
 
     // External partner: read-only, may only add documents.
     private static ClaimsPrincipal Partner(string id = "partner1")
@@ -104,7 +104,7 @@ public sealed class SourceServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Alpha", CaseNumber = "NOOSE-TF-2026-0001", CreatedAt = Jan });
+            db.Taskforces.Add(new Taskforce { Id = "tf1", Name = "Alpha", CaseNumber = "FIB-TF-2026-0001", CreatedAt = Jan });
             db.TaskforceAgents.Add(new TaskforceAgent { TaskforceId = "tf1", AgentId = "junior", CreatedAt = Jan });
             db.Sources.Add(MakeSource("Taskforce", "tf1", SourceType.FreeText, "public", Jan));
             db.Sources.Add(MakeSource("Taskforce", "tf1", SourceType.FreeText, "internal", Feb, internalOnly: true));
@@ -125,7 +125,7 @@ public sealed class SourceServiceTests
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())
         {
-            db.Taskforces.Add(new Taskforce { Id = "tf2", Name = "Bravo", CaseNumber = "NOOSE-TF-2026-0002", CreatedAt = Jan });
+            db.Taskforces.Add(new Taskforce { Id = "tf2", Name = "Bravo", CaseNumber = "FIB-TF-2026-0002", CreatedAt = Jan });
             db.Sources.Add(MakeSource("Taskforce", "tf2", SourceType.FreeText, "public", Jan));
             db.Sources.Add(MakeSource("Taskforce", "tf2", SourceType.FreeText, "internal", Feb, internalOnly: true));
             db.SaveChanges();

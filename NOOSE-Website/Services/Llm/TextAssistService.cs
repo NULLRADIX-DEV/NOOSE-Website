@@ -53,7 +53,7 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         Permission.RequireWriteAccess(actor);
         if (!noosei.IsConfigured)
         {
-            throw new InvalidOperationException("NOOSEI ist nicht konfiguriert.");
+            throw new InvalidOperationException("FIBI ist nicht konfiguriert.");
         }
 
         // keeps the editor's image placeholder alive; the plain Clean() drops it and the picture with it
@@ -68,8 +68,8 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         if (blocks.Count > MaxBlocks || document.TotalChars > MaxCorrectChars)
         {
             throw new InvalidOperationException(
-                $"Der Text ist zu lang für NOOSEI (max. rund {MaxCorrectChars:N0} Zeichen Fließtext). "
-                + "Markiere den Abschnitt, den NOOSEI korrigieren soll.");
+                $"Der Text ist zu lang für FIBI (max. rund {MaxCorrectChars:N0} Zeichen Fließtext). "
+                + "Markiere den Abschnitt, den FIBI korrigieren soll.");
         }
 
         var answer = await noosei.AskAsync(
@@ -92,12 +92,12 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         if (answer.Truncated)
         {
             throw new InvalidOperationException(
-                "NOOSEI hat die Antwort abgeschnitten. Bitte einen kürzeren Abschnitt markieren "
+                "FIBI hat die Antwort abgeschnitten. Bitte einen kürzeren Abschnitt markieren "
                 + "und erneut korrigieren lassen.");
         }
 
         var corrections = TextBlocks.ParseAnswer(answer.Text, blocks.Count)
-            ?? throw new InvalidOperationException("NOOSEI hat unbrauchbar geantwortet. Bitte erneut versuchen.");
+            ?? throw new InvalidOperationException("FIBI hat unbrauchbar geantwortet. Bitte erneut versuchen.");
 
         for (var i = 0; i < blocks.Count; i++)
         {
@@ -111,11 +111,11 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         var warnings = new List<string>();
         if (diff.StructureChanged)
         {
-            warnings.Add("NOOSEI hat die Gliederung verändert. Bitte genau prüfen.");
+            warnings.Add("FIBI hat die Gliederung verändert. Bitte genau prüfen.");
         }
         if (diff.ChangedRatio > RewriteRatio)
         {
-            warnings.Add("NOOSEI hat den Text stark verändert. Das sieht nach einer Umformulierung aus, "
+            warnings.Add("FIBI hat den Text stark verändert. Das sieht nach einer Umformulierung aus, "
                 + "nicht nach einer Korrektur. Bitte Zeile für Zeile prüfen.");
         }
         if (diff.Degraded)
@@ -136,11 +136,11 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         Permission.RequireWriteAccess(actor);
         if (!noosei.IsConfigured)
         {
-            throw new InvalidOperationException("NOOSEI ist nicht konfiguriert.");
+            throw new InvalidOperationException("FIBI ist nicht konfiguriert.");
         }
         if (string.IsNullOrWhiteSpace(instruction))
         {
-            throw new InvalidOperationException("Bitte beschreiben, was NOOSEI schreiben soll.");
+            throw new InvalidOperationException("Bitte beschreiben, was FIBI schreiben soll.");
         }
 
         var task = instruction.Trim();
@@ -179,7 +179,7 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         var html = MarkdownRenderer.ToEditorHtml(answer.Text);
         if (string.IsNullOrWhiteSpace(html))
         {
-            throw new InvalidOperationException("NOOSEI hat keinen Text geliefert. Bitte erneut versuchen.");
+            throw new InvalidOperationException("FIBI hat keinen Text geliefert. Bitte erneut versuchen.");
         }
         GuardTemplateTokens(context, string.Empty, html, composing: true);
 
@@ -198,12 +198,12 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         if (!SameMultiset(FactRegex(), before, after))
         {
             throw new InvalidOperationException(
-                "NOOSEI hat Zahlen oder Aktenzeichen verändert. Die Korrektur wurde verworfen.");
+                "FIBI hat Zahlen oder Aktenzeichen verändert. Die Korrektur wurde verworfen.");
         }
         if (!SameMultiset(MentionRegex(), before, after))
         {
             throw new InvalidOperationException(
-                "NOOSEI hat Erwähnungen verändert. Die Korrektur wurde verworfen.");
+                "FIBI hat Erwähnungen verändert. Die Korrektur wurde verworfen.");
         }
     }
 
@@ -215,7 +215,7 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
             if (!composing && !SameMultiset(PlaceholderRegex(), before, after))
             {
                 throw new InvalidOperationException(
-                    "NOOSEI hat Platzhalter verändert. Die Korrektur wurde verworfen.");
+                    "FIBI hat Platzhalter verändert. Die Korrektur wurde verworfen.");
             }
         }
 
@@ -234,7 +234,7 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
         if (!SameMultiset(RecruitingTokenRegex(), before, after))
         {
             throw new InvalidOperationException(
-                "NOOSEI hat die Anonymisierungs-Platzhalter (NAME, BEWERBER, …) verändert. "
+                "FIBI hat die Anonymisierungs-Platzhalter (NAME, BEWERBER, …) verändert. "
                 + "Die Korrektur wurde verworfen, weil sonst die Schwärzung ausfällt.");
         }
     }
@@ -271,7 +271,7 @@ public sealed partial class TextAssistService(INooseiGateway noosei, INooseiSett
 
     private static string ContextLine(TextAssistContext context) => context switch
     {
-        TextAssistContext.Document => "Der Text ist ein Dokument der NOOSE-Aktenbibliothek.",
+        TextAssistContext.Document => "Der Text ist ein Dokument der FIB-Aktenbibliothek.",
         TextAssistContext.Announcement => "Der Text ist eine interne Bekanntmachung am schwarzen Brett der Behörde.",
         TextAssistContext.Activity => "Der Text ist ein Dienstbericht (Aktivitätsnachweis) eines Agenten.",
         TextAssistContext.MeetingMinutes => "Der Text ist das Protokoll einer Besprechung.",

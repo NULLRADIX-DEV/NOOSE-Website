@@ -19,7 +19,7 @@ public sealed class RecordArchiveTests
     }
 
     private static System.Security.Claims.ClaimsPrincipal Actor
-        => ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("agent-1").WithRank(Rank.Trainee).Build();
 
     [Fact]
     public async Task OnlyActive_drops_archived_rows()

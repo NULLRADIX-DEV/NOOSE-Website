@@ -473,7 +473,7 @@ public class HtmlCleanupTests
     [Fact]
     public void Clean_MailtoLink_KeepsHref()
     {
-        var result = HtmlCleanup.Clean("<a href=\"mailto:agent@noose.info\">mail</a>");
+        var result = HtmlCleanup.Clean("<a href=\"mailto:agent@fibhq.com\">mail</a>");
 
         Assert.Contains("mailto:", result);
     }

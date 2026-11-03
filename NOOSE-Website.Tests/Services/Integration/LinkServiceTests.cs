@@ -22,15 +22,15 @@ public sealed class LinkServiceTests
     private static ViewerScope LeaderScope(string meId = "me")
         => ViewerScope.From(ClaimsPrincipalBuilder.Agent(meId).WithRank(Rank.Director).Build());
 
-    // JuniorAgent: not leadership, cannot read classified.
+    // Trainee: not leadership, cannot read classified.
     private static ViewerScope JuniorScope(string meId = "me")
-        => ViewerScope.From(ClaimsPrincipalBuilder.Agent(meId).WithRank(Rank.JuniorAgent).Build());
+        => ViewerScope.From(ClaimsPrincipalBuilder.Agent(meId).WithRank(Rank.Trainee).Build());
 
     private static ClaimsPrincipal Leader()
         => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal NonLeader()
-        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("junior").WithRank(Rank.Trainee).Build();
 
     // ---- GetForRecordAsync (scope overload) --------------------------------
 
@@ -252,7 +252,7 @@ public sealed class LinkServiceTests
         db.Users.Add(Seed.Agent("assignee"));
         db.Users.Add(Seed.Agent("outsider"));
         db.People.Add(Seed.Person("p1", "Max"));
-        db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
+        db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "FIB-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
         db.JobAssignments.Add(new JobAssignment { JobId = "j1", AgentId = "assignee" });
         db.Links.Add(new Link { SourceType = "Person", SourceId = "p1", TargetType = "Job", TargetId = "j1" });
         db.SaveChanges();
@@ -281,7 +281,7 @@ public sealed class LinkServiceTests
 
         var link = Assert.Single(result);
         Assert.Equal("j1", link.OtherId);
-        Assert.Equal("Zugriff Lager (NOOSE-A-2026-0001)", link.OtherDesignation);
+        Assert.Equal("Zugriff Lager (FIB-A-2026-0001)", link.OtherDesignation);
         Assert.Equal("/aufgaben/j1", link.Href);
     }
 
@@ -420,7 +420,7 @@ public sealed class LinkServiceTests
         {
             db.Users.Add(Seed.Agent("creator"));
             db.People.Add(Seed.Person("p1", "Max"));
-            db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
+            db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "FIB-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
             db.SaveChanges();
         }
         var (svc, _) = NewService(ctx);
@@ -442,12 +442,12 @@ public sealed class LinkServiceTests
             db.Users.Add(Seed.Agent("creator"));
             db.Users.Add(Seed.Agent("assignee"));
             db.People.Add(Seed.Person("p1", "Max"));
-            db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "NOOSE-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
+            db.Jobs.Add(new Job { Id = "j1", Title = "Zugriff Lager", CaseNumber = "FIB-A-2026-0001", IsRestricted = true, CreatedById = "creator" });
             db.JobAssignments.Add(new JobAssignment { JobId = "j1", AgentId = "assignee" });
             db.SaveChanges();
         }
         var (svc, _) = NewService(ctx);
-        var assignee = ClaimsPrincipalBuilder.Agent("assignee").WithRank(Rank.JuniorAgent).Build();
+        var assignee = ClaimsPrincipalBuilder.Agent("assignee").WithRank(Rank.Trainee).Build();
 
         await svc.CreateAsync("Person", "p1", "Job", "j1", null, assignee);
 

@@ -1,12 +1,14 @@
 namespace NOOSE_Website.Models.Enums;
 
-/// <summary>NOOSE service ranks.</summary>
+/// <summary>FIB service ranks; persisted as int, so a value never moves.</summary>
 public enum Rank
 {
-    JuniorAgent = 1,
+    Trainee = 1,
     SpecialAgent = 2,
     SeniorSpecialAgent = 3,
-    SupervisorySpecialAgent = 4, // leadership starts here
-    DeputyDirector = 5,
-    Director = 6,
+    SpecialAgentInCharge = 4, // leadership starts here
+    SectionChief = 5,
+    AssistantDirector = 6, // Board starts here
+    DeputyDirector = 7,
+    Director = 8,
 }

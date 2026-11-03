@@ -15,11 +15,7 @@ public class WorkforceStatisticsService(
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(5);
 
     /// <summary>Highest rank first, so the pyramid reads top-down.</summary>
-    private static readonly Rank[] RanksTopDown =
-    [
-        Rank.Director, Rank.DeputyDirector, Rank.SupervisorySpecialAgent,
-        Rank.SeniorSpecialAgent, Rank.SpecialAgent, Rank.JuniorAgent,
-    ];
+    private static readonly Rank[] RanksTopDown = RankDisplay.All.Reverse().ToArray();
 
     /// <summary>Recruiting stages in funnel order; the terminal outcomes come last.</summary>
     /// <remarks>Kept here rather than on the display class, because the order is this chart's intent.</remarks>

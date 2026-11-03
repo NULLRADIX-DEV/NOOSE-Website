@@ -55,7 +55,7 @@ public sealed class PublicStatisticsServiceTests
             (await db.OeffentlicheModule.SingleAsync(m => m.Key == key)).IsEnabled = true;
         }
 
-        db.People.Add(Seed.Person(PersonId, "Max Mustermann", p => p.CaseNumber = "NOOSE-P-2026-0001"));
+        db.People.Add(Seed.Person(PersonId, "Max Mustermann", p => p.CaseNumber = "FIB-P-2026-0001"));
         db.BuergerProfile.Add(new BuergerProfil
         {
             Id = ProfileId, UserId = "u1", FirstName = "Erika", LastName = "Musterfrau",
@@ -89,7 +89,7 @@ public sealed class PublicStatisticsServiceTests
         var row = new Hinweis
         {
             Id = Guid.NewGuid().ToString(),
-            CaseNumber = "NOOSE-H-2026-" + Guid.NewGuid().ToString()[..4],
+            CaseNumber = "FIB-H-2026-" + Guid.NewGuid().ToString()[..4],
             CitizenProfileId = ProfileId,
             Text = "Ich habe die gesuchte Person am Hafen gesehen.",
             Status = status,
@@ -311,7 +311,7 @@ public sealed class PublicStatisticsServiceTests
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
         var tip = Tip(TipStatus.FuehrteZurErgreifung);
-        await AddAsync(ctx, tip, Notice("NOOSE-FA-2026-0002", PublicWantedStatus.Gefasst,
+        await AddAsync(ctx, tip, Notice("FIB-FA-2026-0002", PublicWantedStatus.Gefasst,
             n => n.PublicPaidOut = 500_000m));
         await AddAsync(ctx,
             new HinweisBelohnung { ReceiptNumber = "BEL-1", TipId = tip.Id, ShareId = "s1", Amount = 4000m });
@@ -325,7 +325,7 @@ public sealed class PublicStatisticsServiceTests
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
-        await AddAsync(ctx, Notice("NOOSE-FA-2026-0002", PublicWantedStatus.Gefasst,
+        await AddAsync(ctx, Notice("FIB-FA-2026-0002", PublicWantedStatus.Gefasst,
             n => n.PublicPaidOut = 500_000m));
         await ModuleAsync(ctx, host, PublicModules.Reward, false);
 
@@ -338,7 +338,7 @@ public sealed class PublicStatisticsServiceTests
     {
         using var ctx = await SeededAsync();
         var host = NewHost(ctx);
-        var notice = Notice("NOOSE-FA-2026-0002", PublicWantedStatus.Gefasst, n => n.PublicPaidOut = 500_000m);
+        var notice = Notice("FIB-FA-2026-0002", PublicWantedStatus.Gefasst, n => n.PublicPaidOut = 500_000m);
         await AddAsync(ctx, notice);
         await using (var db = ctx.NewContext())
         {

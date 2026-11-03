@@ -23,8 +23,8 @@ public sealed class CareerRequirementsConfig
         [
             new CareerRequirement
             {
-                Text = "Mindestens 3 Monate durchgängige Zugehörigkeit beim Los Santos Police Department, "
-                       + "ehemals Federal Investigation Bureau oder beim Department of Justice mit Erfahrung "
+                Text = "Mindestens 3 Monate durchgängige Zugehörigkeit beim Los Santos Police Department "
+                       + "oder beim Department of Justice mit Erfahrung "
                        + "in einer Position mit Führungsverantwortung",
                 Alternatives =
                 [

@@ -26,7 +26,7 @@ public sealed class LibraryServiceTests
         return (new LibraryService(ctx.Factory, storage), storage);
     }
 
-    // Rank >= SupervisorySpecialAgent(4) => IsLeadership(): may assign any level, may delete.
+    // Rank >= SpecialAgentInCharge(4) => IsLeadership(): may assign any level, may delete.
     private static ClaimsPrincipal Leader(string id = "lead")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
@@ -40,11 +40,11 @@ public sealed class LibraryServiceTests
 
     // Non-leadership junior; not leadership, not read-only.
     private static ClaimsPrincipal Junior(string id = "junior")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     // Read-only supervision: TeamLead without admin => RequireWriteAccess rejects.
     private static ClaimsPrincipal OnlyReader(string id = "reader")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).AsTeamLead().Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).AsTeamLead().Build();
 
     private static LibraryFile AddFile(SqliteTestContext ctx, string id,
         DocumentClassification classification = DocumentClassification.None, Action<LibraryFile>? configure = null)

@@ -24,7 +24,7 @@ public sealed class NooseiProposalServiceTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Director).Build();
 
     private static ClaimsPrincipal Junior(string id = Owner)
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.JuniorAgent).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static NooseiProposalService Build(SqliteTestContext ctx) => new(ctx.Factory);
 
@@ -34,7 +34,7 @@ public sealed class NooseiProposalServiceTests
         var caseNo = Substitute.For<ICaseNumberService>();
         var counter = 0;
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .Returns(_ => $"NOOSE-A-2026-{++counter:0000}");
+            .Returns(_ => $"FIB-A-2026-{++counter:0000}");
         var notifications = Substitute.For<INotificationService>();
         return new NooseiProposalExecutor(ctx.Factory,
             new FollowupService(ctx.Factory, notifications),

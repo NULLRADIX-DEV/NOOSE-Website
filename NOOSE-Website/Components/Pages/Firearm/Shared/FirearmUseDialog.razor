@@ -1,0 +1,51 @@
+@* Quick report of a firearm use: one short reason; agent and time are stamped by the service. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="min-width:340px;">
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                In der CID und der CTD muss jeder Agent unterhalb von @RankDisplay.DefaultName(Rank.SpecialAgentInCharge)
+                einen Schusswaffengebrauch melden. Die Führung deiner Abteilung und das Board werden benachrichtigt;
+                die Begründung lesen nur du und die Führung.
+            </MudAlert>
+            <TextDraft DraftKey='@DraftKeys.In(DraftScope, "begruendung")' OnRestore="@(t => _reason = t)">
+                <MudTextField @bind-Value="_reason" Label="Kurze Begründung" Variant="Variant.Outlined" Lines="4"
+                              Immediate="true" AutoFocus="true" MaxLength="@FirearmUseRules.MaxReasonLength"
+                              HelperText="Was war der Anlass, und wie ging es aus? Der Zeitpunkt wird beim Melden gesetzt." />
+            </TextDraft>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.GpsFixed"
+                   OnClick="Submit" Disabled="@string.IsNullOrWhiteSpace(_reason)">Melden</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    /// <summary>Draft scope of the report; the caller drops it once the report is stored, not before.</summary>
+    public const string DraftScope = "schusswaffengebrauch:melden";
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private string? _reason;
+
+    private void Submit()
+    {
+        if (!string.IsNullOrWhiteSpace(_reason))
+        {
+            MudDialog.Close(DialogResult.Ok(_reason.Trim()));
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Shows the dialog; the reason, or null on cancel.</summary>
+    public static async Task<string?> ShowAsync(IDialogService dialog)
+    {
+        var reference = await dialog.ShowAsync<FirearmUseDialog>("Schusswaffengebrauch melden",
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: string reason } ? reason : null;
+    }
+}

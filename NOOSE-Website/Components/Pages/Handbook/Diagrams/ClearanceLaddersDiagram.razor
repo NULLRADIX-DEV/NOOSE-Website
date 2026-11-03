@@ -8,7 +8,7 @@
     <desc id="clearanceDesc">
         Links die vier Sicherheitsfreigaben der Dienstverordnung, gestaffelt nach Dienstgrad:
         Confidential, Secret, Top Secret und das Special Access Program als Zusatzstufe. Rechts die
-        vier VS-Stufen dieser Seite: Offen, Führung, TRU und HRB. Die beiden Leitern entsprechen
+        vier VS-Stufen dieser Seite: Offen, Führung, HRT und Administration. Die beiden Leitern entsprechen
         einander nicht Zeile für Zeile.
     </desc>
 
@@ -16,16 +16,16 @@
         var freigaben = new[]
         {
             ("Special Access Program", "Stufe 6 - Zusatzstufe, abgeschirmt", true),
-            ("Top Secret", "Stufe 5 - Director, Deputy Director", false),
-            ("Secret", "Supervisory Special Agent", false),
-            ("Confidential", "sämtliche Special Agenten", false),
+            ("Top Secret", "Stufe 5 - Board of Directors", false),
+            ("Secret", "ab Special Agent in Charge", false),
+            ("Confidential", "alle Agenten, vom Trainee an", false),
         };
         var stufen = new[]
         {
             ("Offen", "jeder interne Agent"),
-            ("Führung", "ab Supervisory Special Agent"),
-            ("TRU", "Kennzeichen TRU, dazu die Führung"),
-            ("HRB", "Kennzeichen HRB, dazu die Führung"),
+            ("Führung", "ab Special Agent in Charge"),
+            ("HRT", "Abteilung HRT, dazu die Führung"),
+            ("Administration", "Administration Division, dazu die Führung"),
         };
     }
 
@@ -76,7 +76,7 @@
         Die Dienstverordnung staffelt allein nach Dienstgrad. Die Seite staffelt nach Dienstgrad und Abteilung.
     </text>
     <text x="32" y="330" font-size="10" fill="var(--mud-palette-text-secondary)">
-        TRU und HRB sind das Fachprinzip: ein Kennzeichen öffnet, was ein höherer Rang allein nicht öffnet.
+        HRT und Administration sind das Fachprinzip: Abteilung oder Kennzeichen öffnet, was ein höherer Rang nicht öffnet.
     </text>
     <text x="32" y="346" font-size="10" fill="var(--mud-palette-text-secondary)">
         Für das Special Access Program gibt es auf der Seite bewusst keine Entsprechung.

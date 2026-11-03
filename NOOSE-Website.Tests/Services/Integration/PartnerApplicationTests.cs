@@ -105,7 +105,7 @@ public sealed class PartnerApplicationTests
         });
         db.Bewerbungen.Add(new NOOSE_Website.Data.Entities.Recruiting.Bewerbung
         {
-            CaseNumber = "NOOSE-B-2026-0001", ApplicantUserId = "partner-1", Name = "Trevor Ward",
+            CaseNumber = "FIB-B-2026-0001", ApplicantUserId = "partner-1", Name = "Trevor Ward",
         });
         await db.SaveChangesAsync();
 

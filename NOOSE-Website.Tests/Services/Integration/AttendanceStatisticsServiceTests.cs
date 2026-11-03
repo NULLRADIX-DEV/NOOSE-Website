@@ -42,13 +42,13 @@ public sealed class AttendanceStatisticsServiceTests
 
     /// <summary>Passes RequireClassifiedRead via minimum leadership rank.</summary>
     private static ClaimsPrincipal Lead()
-        => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SupervisorySpecialAgent).Build();
+        => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).Build();
 
     private static Meeting Meeting(string id, DateTime startUtc, bool closed) => new()
     {
         Id = id,
         Title = id,
-        CaseNumber = $"NOOSE-BS-2026-{id}",
+        CaseNumber = $"FIB-BS-2026-{id}",
         Start = startUtc,
         AttendanceClosedAt = closed ? startUtc : null,
         CreatedAt = startUtc,
