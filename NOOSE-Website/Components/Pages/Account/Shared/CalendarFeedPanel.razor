@@ -1,0 +1,190 @@
+@* The agent's own calendar feed link: create, replace, revoke; the address is shown once. *@
+@inject ICalendarFeedService Feed
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+@inject ILogger<CalendarFeedPanel> Log
+
+<MudText Typo="Typo.h6" Class="mb-1">Kalender-Abo</MudText>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+    Abonniere deinen FIB-Kalender in Google, Apple oder Outlook, dann stehen deine Termine, Besprechungen,
+    fälligen Aufgaben und Wiedervorlagen auch auf dem Handy. Der Link ist dein persönlicher Schlüssel: wer ihn kennt,
+    sieht den Kalender, ohne sich anzumelden. Gib ihn nie weiter.
+</MudText>
+
+<MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    Ein Kalender-Abo verlässt die Seite. Die Kalender-App holt die Einträge ab und speichert sie bei ihrem Anbieter
+    (zum Beispiel Google oder Apple). Observationen, Personen-Doks, Fraktions-Aktivitäten und die Abmeldungen anderer
+    stehen nie darin, Operationen und Wiedervorlagen nur als „Operation“ und „Wiedervorlage“. Termine, Besprechungen
+    und Aufgaben tragen ihren Titel, außer du hältst ihn unten neutral.
+</MudAlert>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    @if (_freshUrl is not null)
+    {
+        <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-3">
+            Dein Link steht nur jetzt hier. Kopiere ihn in deine Kalender-App (Kalender per Link oder URL hinzufügen);
+            wenn du die Seite verlässt, ist er nicht mehr zu sehen.
+        </MudAlert>
+        <MudTextField T="string" Value="@_freshUrl" ReadOnly="true" Variant="Variant.Outlined" Class="mb-3"
+                      Label="Dein Kalender-Link" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                      OnAdornmentClick="CopyAsync" AdornmentAriaLabel="Link kopieren" />
+    }
+
+    @if (_status.Active)
+    {
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Dein Link ist aktiv@(_status.CreatedAtUtc is { } at ? $" (erstellt am {at.ToLocalTime():dd.MM.yyyy HH:mm})" : string.Empty).
+        </MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Class="mb-2">Du hast noch keinen Link.</MudText>
+    }
+
+    <MudSwitch T="bool" Value="_status.NeutralTitles" ValueChanged="NeutralChangedAsync" Color="Color.Primary"
+               Disabled="@(!_mayWrite || _busy)" Label="Titel im Abo neutral halten (nur „Termin“, „Besprechung“ …)" />
+
+    @if (_mayWrite)
+    {
+        <MudStack Row="true" Spacing="2" Class="flex-wrap mt-2">
+            @if (_status.Active)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Disabled="_busy"
+                           StartIcon="@Icons.Material.Filled.Refresh" OnClick="RotateAsync">Neuen Link erzeugen</MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Disabled="_busy"
+                           StartIcon="@Icons.Material.Filled.LinkOff" OnClick="RevokeAsync">Widerrufen</MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="_busy"
+                           StartIcon="@Icons.Material.Filled.Link" OnClick="CreateAsync">Link erstellen</MudButton>
+            }
+        </MudStack>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _busy;
+    private bool _mayWrite;
+    private CalendarFeedStatus _status = new(false, null, false);
+    // the one readable copy of the address; never stored, gone when the panel is
+    private string? _freshUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mayWrite = User.MayWrite();
+        try
+        {
+            _status = await Feed.GetStatusAsync(User);
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Calendar feed state failed to load");
+        }
+        _load = false;
+    }
+
+    private Task CreateAsync() => IssueAsync();
+
+    private async Task RotateAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Neuen Link erzeugen?",
+            "Der bisherige Link hört sofort auf zu funktionieren. Du musst den neuen in deiner Kalender-App eintragen.",
+            "Neu erzeugen");
+        if (ok)
+        {
+            await IssueAsync();
+        }
+    }
+
+    private async Task IssueAsync()
+    {
+        _busy = true;
+        try
+        {
+            var link = await Feed.CreateAsync(User);
+            _freshUrl = link.Url;
+            _status = await Feed.GetStatusAsync(User);
+            Snackbar.Add("Kalender-Link erzeugt.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RevokeAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Link widerrufen?",
+            "Der Link hört sofort auf zu funktionieren. Deine Kalender-App zeigt die Einträge nicht mehr an.",
+            "Widerrufen");
+        if (!ok)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Feed.RevokeAsync(User);
+            _freshUrl = null;
+            _status = await Feed.GetStatusAsync(User);
+            Snackbar.Add("Kalender-Link widerrufen.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task NeutralChangedAsync(bool neutral)
+    {
+        _busy = true;
+        try
+        {
+            await Feed.SetNeutralTitlesAsync(neutral, User);
+            _status = await Feed.GetStatusAsync(User);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task CopyAsync()
+    {
+        if (_freshUrl is null)
+        {
+            return;
+        }
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", _freshUrl);
+            Snackbar.Add("Link kopiert.", Severity.Success);
+        }
+        catch
+        {
+            /* clipboard unavailable */
+        }
+    }
+}

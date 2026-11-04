@@ -1197,6 +1197,16 @@ html, body {
     color: #444;
 }
 
+/* warrant paper: the check address is a long id, so smaller than on a poster */
+.druck-anordnung-qr .druck-poster-qr-code {
+    width: 104px;
+    height: 104px;
+}
+
+.druck-anordnung-qr .druck-poster-qr-adresse {
+    font-size: 13px;
+}
+
 /* Service ID card: ID-1 proportions, printed at the top of the sheet */
 .druck-ausweis {
     width: 100%;

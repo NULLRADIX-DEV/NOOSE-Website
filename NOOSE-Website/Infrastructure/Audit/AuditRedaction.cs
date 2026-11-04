@@ -1,3 +1,4 @@
+using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.Personnel;
@@ -50,6 +51,8 @@ public static class AuditRedaction
         $"{nameof(AgentTestAnswer)}.{nameof(AgentTestAnswer.SelectedOptionIds)}",
         // the full Google original would land twice in the protocol on every refresh; ContentHtml keeps the text
         $"{nameof(Document)}.{nameof(Document.ImportedHtml)}",
+        // a credential: even the hash of the calendar feed link stays out of a house-wide protocol
+        $"{nameof(Agent)}.{nameof(Agent.CalendarFeedTokenHash)}",
     };
 
     /// <summary>Whether this field's before/after pair stays out of the audit row.</summary>

@@ -1,0 +1,98 @@
+@page "/anordnung/{Id}"
+@layout PublicSiteLayout
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@inject IPublicWarrantCheckService Warrants
+@inject NavigationManager Nav
+
+<PageTitle>Anordnung · FIB</PageTitle>
+
+@* always noindex and no card: a check of one paper is nothing to index or unfurl *@
+<LinkPreview Title="Anordnung" NoIndex="true" />
+
+@if (_check is { } check)
+{
+    <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
+        <MudStack Spacing="4">
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.overline" Color="Color.Primary">Federal Investigation Bureau</MudText>
+                <MudText Typo="Typo.h4">Prüfung einer Anordnung</MudText>
+            </MudStack>
+
+            @switch (check.State)
+            {
+                case WarrantState.Valid:
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.Verified">
+                        Diese Anordnung ist echt und gültig.
+                    </MudAlert>
+                    break;
+                case WarrantState.Cancelled:
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.GppBad">
+                        Diese Anordnung wurde aufgehoben und gilt nicht mehr.
+                    </MudAlert>
+                    break;
+                default:
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Icon="@Icons.Material.Filled.GppBad">
+                        Diese Anordnung ist abgelaufen und gilt nicht mehr.
+                    </MudAlert>
+                    break;
+            }
+
+            <MudSimpleTable Dense="true" Style="max-width:560px;">
+                <tbody>
+                    <tr><th>Art</th><td>@WarrantTypeDisplay.Name(check.Type)</td></tr>
+                    <tr><th>Aktenzeichen</th><td>@check.CaseNumber</td></tr>
+                    <tr><th>Gültig ab</th><td>@Format(check.ValidFrom)</td></tr>
+                    <tr><th>Gültig bis</th><td>@Format(check.ValidUntil)</td></tr>
+                    @if (check.CancelledAt is { } cancelled)
+                    {
+                        <tr><th>Aufgehoben am</th><td>@Format(cancelled)</td></tr>
+                    }
+                    <tr>
+                        <th>Unterzeichnet</th>
+                        <td>@(check.SignerName ?? "—")@(check.SignerTitle is { } rank ? $", {rank}" : string.Empty)</td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+
+            <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="max-width:620px;">
+                Vergleiche Art, Aktenzeichen, Gültigkeit und Unterschrift mit dem vorgezeigten Papier. Weicht etwas ab,
+                ist das Papier nicht echt. Wen die Anordnung betrifft und was sie umfasst, steht nur auf dem Papier.
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public string Id { get; set; } = string.Empty;
+
+    private PublicWarrantCheck? _check;
+    private string? _loadedKey;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedKey == Id)
+        {
+            return;
+        }
+        _loadedKey = Id;
+        try
+        {
+            _check = await Warrants.CheckAsync(Id);
+        }
+        catch
+        {
+            /* best effort */
+            _check = null;
+        }
+
+        // one answer for every miss: module off, kill switch, unknown, unsigned or malformed id
+        if (_check is null)
+        {
+            Nav.NotFound();
+        }
+    }
+
+    private static string Format(DateTime? utc) => utc?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
+}
