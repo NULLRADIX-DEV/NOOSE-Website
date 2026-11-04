@@ -206,6 +206,15 @@
                 </MudPaper>
             </MudItem>
 
+            @if (CalendarFeedRules.MayHold(_user))
+            {
+                <MudItem xs="12">
+                    <MudPaper Class="pa-6" Elevation="2">
+                        <CalendarFeedPanel User="_user" />
+                    </MudPaper>
+                </MudItem>
+            }
+
             @* only accounts the roster can name at all: no partner, no supervision *@
             @if (!_isPartner && !_user.IsTeamLead())
             {

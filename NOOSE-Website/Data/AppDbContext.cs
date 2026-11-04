@@ -329,6 +329,14 @@ public class AppDbContext : IdentityDbContext<Agent>
                 b.Property(stamp).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
             }
             b.HasIndex(a => a.DiscordId).IsUnique();
+            b.Property(a => a.CalendarFeedTokenHash).HasMaxLength(64);
+            // ExecuteUpdate only, so a stale UserManager copy can never resurrect a revoked or rotated link
+            foreach (var feed in new[] { nameof(Agent.CalendarFeedTokenHash), nameof(Agent.CalendarFeedCreatedAt),
+                         nameof(Agent.CalendarFeedNeutralTitles) })
+            {
+                b.Property(feed).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+            }
+            b.HasIndex(a => a.CalendarFeedTokenHash).IsUnique();
         });
 
         modelBuilder.Entity<AuditLog>(b =>

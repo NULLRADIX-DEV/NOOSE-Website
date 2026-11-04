@@ -40,6 +40,38 @@ internal static class DutyChapter
                 """,
                 NavKey: "kalender"),
 
+            new Article("art-kalender-abo", "kalender-abo", "Kalender-Abo für das Handy",
+                "Dein Kalender als privater Link für Google, Apple oder Outlook - und was dabei die Seite verlässt.",
+                """
+                <p>Mit dem <strong>Kalender-Abo</strong> stehen deine Termine auch auf dem Handy. Du legst den Link
+                in deinem <em>Profil</em> unter <em>Kalender-Abo</em> mit <em>Link erstellen</em> an und trägst ihn in
+                deiner Kalender-App als Kalender per Link ein (bei Google <em>Per URL</em>, bei Apple
+                <em>Abonnierten Kalender hinzufügen</em>). Die App holt die Einträge dann selbst ab, meist einmal die
+                Stunde.</p>
+                <p>Im Abo stehen deine Termine, die Besprechungen, deine fälligen Aufgaben, deine Wiedervorlagen,
+                deine Abmeldungen und die Operationen, soweit du sie auch im <em>Kalender</em> siehst, von 30 Tagen
+                zurück bis 180 Tage voraus. Abgesagte oder erledigte Einträge fehlen. Observationen, Personen-Doks,
+                Fraktions-Aktivitäten und die Abmeldungen anderer stehen nie darin.</p>
+                <p><strong>Der Link ist ein Schlüssel.</strong> Wer ihn kennt, sieht deinen Kalender, ohne sich
+                anzumelden. Er steht nur im Moment des Erstellens auf der Seite; gespeichert wird er nicht, nur ein
+                Fingerabdruck davon. Ist er verloren oder weitergegeben, erzeugst du mit <em>Neuen Link erzeugen</em>
+                einen neuen, der alte hört sofort auf zu gelten. <em>Widerrufen</em> beendet das Abo ganz. Wirst du
+                gesperrt oder verlässt du die Behörde, hört der Link von selbst auf zu gelten. Jeder Abruf landet,
+                höchstens einmal je halbe Stunde, im Zugriffsprotokoll.</p>
+                <p><strong>Das Abo verlässt die Seite.</strong> Deine Kalender-App speichert die Einträge bei ihrem
+                Anbieter, zum Beispiel Google oder Apple, und das FIB kann sie dort nicht mehr zurückholen. Deshalb
+                heißen Operationen und Wiedervorlagen im Abo nur <em>Operation</em> und <em>Wiedervorlage</em>, ohne
+                Namen und ohne Akte. Termine, Besprechungen und Aufgaben tragen ihren Titel: schreibe dort nichts
+                hinein, was nicht auf ein Handy gehört, oder schalte <em>Titel im Abo neutral halten</em> ein, dann
+                steht nur <em>Termin</em>, <em>Besprechung</em> und <em>Aufgabe fällig</em> in der App. Teamleitungen
+                und Partnerbehörden haben kein Abo.</p>
+                """,
+                RoleplayHtml: """
+                <p>Im Rollenspiel ist das dein Diensthandy: es erinnert dich an die Besprechung, auch wenn du gerade
+                nicht auf der Seite bist. Was auf dem Handy steht, kann auch jemand lesen, der es in die Hand
+                bekommt, also keine Klarnamen oder Ziele in Titel schreiben.</p>
+                """),
+
             new Article("art-besprechungen", "besprechungen", "Besprechungen",
                 "Tagesordnung vorher, Protokoll nachher - und wer was wann sieht.",
                 """

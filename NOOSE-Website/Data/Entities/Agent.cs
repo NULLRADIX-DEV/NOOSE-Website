@@ -131,6 +131,17 @@ public class Agent : IdentityUser
     [Column("InaktivNachgefasstVonName")]
     public string? InactivityNudgedByName { get; set; }
 
+    /// <summary>SHA-256 (hex) of the secret calendar feed link; the link itself is never stored. Null = no feed.</summary>
+    [Column("KalenderAboHash")]
+    public string? CalendarFeedTokenHash { get; set; }
+
+    [Column("KalenderAboErstelltAm")]
+    public DateTime? CalendarFeedCreatedAt { get; set; }
+
+    /// <summary>Feed titles reduced to neutral labels; null = readable titles.</summary>
+    [Column("KalenderAboNeutral")]
+    public bool? CalendarFeedNeutralTitles { get; set; }
+
     /// <summary>Off the public roster on /fuehrung until the agent opts in; the page never says anyone is missing.</summary>
     /// <remarks>
     /// Initialised in C#, not as a database default: EF would skip a false that equals the CLR default and let the

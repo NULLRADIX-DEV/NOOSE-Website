@@ -461,6 +461,7 @@ builder.Services.AddScoped<IPublicKpiService, PublicKpiService>();
 builder.Services.AddScoped<IPublicLeadershipService, PublicLeadershipService>();
 builder.Services.AddScoped<IPublicServiceIdService, PublicServiceIdService>();
 builder.Services.AddScoped<IServiceIdService, ServiceIdService>();
+builder.Services.AddScoped<ICalendarFeedService, CalendarFeedService>();
 builder.Services.AddScoped<IPublicWantedService, PublicWantedService>();
 builder.Services.AddScoped<IWantedPhotoUploadService, WantedPhotoUploadService>();
 builder.Services.AddHostedService<PublicWantedExpiryWorker>();
@@ -533,7 +534,9 @@ builder.Services.AddRateLimiter(options =>
     // SignalR and framework paths - stays unlimited.
     // The ID check is a Razor route too: forty possible numbers, so a tight bucket per caller keeps it from being
     // walked as a directory.
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    // The calendar feed is a minimal-API route that is anonymous by design, so its buckets are chained on here: one per
+    // secret and one per caller, each a no-op for every other path.
+    var pageLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
         context.Request.Path.StartsWithSegments("/suche-oeffentlich", StringComparison.OrdinalIgnoreCase)
             ? RateLimitPartition.GetFixedWindowLimiter(
                 "suche:" + CallerKey(context),
@@ -553,6 +556,10 @@ builder.Services.AddRateLimiter(options =>
                         QueueLimit = 0,
                     })
                 : RateLimitPartition.GetNoLimiter<string>("unbegrenzt"));
+    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+        pageLimiter,
+        PartitionedRateLimiter.Create<HttpContext, string>(CalendarFeedRateLimits.PerSecret),
+        PartitionedRateLimiter.Create<HttpContext, string>(CalendarFeedRateLimits.PerCaller));
 
     static string CallerKey(HttpContext context)
         => context.Connection.RemoteIpAddress?.ToString() ?? "unbekannt";
@@ -614,6 +621,7 @@ app.MapNooseEvidenceFileEndpoints();
 app.MapNooseLibraryFileEndpoints();
 app.MapNooseSystemEndpoints();
 app.MapNooseStatisticsExportEndpoints();
+app.MapNooseCalendarFeedEndpoints();
 app.MapNooseRecruitingFileEndpoints();
 app.MapNoosePublicWantedFileEndpoints();
 app.MapNooseWantedShortLinkEndpoints();

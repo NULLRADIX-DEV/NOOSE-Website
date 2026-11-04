@@ -657,6 +657,9 @@ public static class ChangelogContent
             Neu("3.0.21-finanzierung-abteilungen", "Der Finanzierungskatalog kennt jetzt eigene Freigaben je Abteilung: "
                 + "das HRT darf manche Waffe und manches Fahrzeug früher beantragen als CID und CTD. Auch das Monatsbudget "
                 + "stellt die Führung jetzt für jede Abteilung und jeden Dienstgrad getrennt ein.", "Finanzierung"),
+            Neu("3.0.22-kalender-abo", "In deinem Profil legst du jetzt einen privaten Kalender-Link an, mit dem du deine "
+                + "Termine, Besprechungen und Fristen in Google, Apple oder Outlook auf dem Handy abonnierst. Du kannst "
+                + "den Link jederzeit erneuern oder widerrufen.", "Kalender"),
         ]),
     ];
 }
