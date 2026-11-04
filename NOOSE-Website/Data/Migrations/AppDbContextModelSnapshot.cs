@@ -548,6 +548,19 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(512)")
                         .HasColumnName("GesperrtGrund");
 
+                    b.Property<DateTime?>("CalendarFeedCreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("KalenderAboErstelltAm");
+
+                    b.Property<bool?>("CalendarFeedNeutralTitles")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("KalenderAboNeutral");
+
+                    b.Property<string>("CalendarFeedTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("KalenderAboHash");
+
                     b.Property<string>("Codename")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -738,6 +751,9 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("varchar(256)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CalendarFeedTokenHash")
+                        .IsUnique();
 
                     b.HasIndex("DiscordId")
                         .IsUnique();
