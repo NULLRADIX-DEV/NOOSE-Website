@@ -183,6 +183,28 @@
     margin-bottom: 0.6cqw;
 }
 
+/* Quill keeps nested items flat */
+.slide-body ::deep li.ql-indent-1 {
+    margin-left: 3.4cqw;
+}
+
+.slide-body ::deep li.ql-indent-2 {
+    margin-left: 6.8cqw;
+}
+
+.slide-body ::deep li.ql-indent-3 {
+    margin-left: 10.2cqw;
+}
+
+.slide-body ::deep ul > li.ql-indent-1,
+.slide-body ::deep ul > li.ql-indent-3 {
+    list-style-type: circle;
+}
+
+.slide-body ::deep ul > li.ql-indent-2 {
+    list-style-type: square;
+}
+
 .slide-body ::deep h1,
 .slide-body ::deep h2,
 .slide-body ::deep h3 {
