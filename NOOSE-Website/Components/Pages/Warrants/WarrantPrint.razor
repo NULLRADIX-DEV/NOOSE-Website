@@ -3,6 +3,7 @@
 @attribute [Authorize(Policy = Policies.InternalAgent)]
 @layout PrintLayout
 @inject IWarrantService WarrantService
+@inject IPublicWarrantCheckService WarrantCheck
 
 <PageTitle>@(_view is null ? "Druckansicht" : $"Anordnung {_view.Warrant.CaseNumber}") · FIB</PageTitle>
 
@@ -27,6 +28,16 @@ else
     <PrintFrame Title="@WarrantTypeDisplay.Name(w.Type)" BackHref="@($"/anordnungen/{Id}")" BackText="Zurück zur Anordnung"
                 PrintedBy="@_printBy" IsClassified="false"
                 Footer="@($"Amtliches Schriftstück des FIB · {w.CaseNumber} · Gilt nur im angegebenen Zeitraum und nur ohne Vermerk der Aufhebung.")">
+        @if (_link is { CheckOnline: false })
+        {
+            <div class="no-print">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Die öffentliche Prüfung ist derzeit abgeschaltet. Der QR-Code auf dem Papier führt erst nach der
+                    Freischaltung durch die Führung zu einer Antwort.
+                </MudAlert>
+            </div>
+        }
+
         @if (_view.State != WarrantState.Valid)
         {
             <p><span class="druck-poster-warnung">Ungültig – @WarrantStateDisplay.Name(_view.State)</span></p>
@@ -65,9 +76,26 @@ else
             <h2>Unterschrift</h2>
             <p>
                 gez. @(w.DeciderName ?? "—")@(w.DeciderRank is { } rank ? $", {RankDisplay.Name(rank)}" : string.Empty)<br />
-                National Office of Security Enforcement, @(w.DecidedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"))
+                Federal Investigation Bureau, @(w.DecidedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"))
             </p>
         </section>
+
+        @if (_link is { } link)
+        {
+            @* scan or type to check the paper online *@
+            <section class="druck-poster-qr druck-anordnung-qr">
+                @if (link.QrSvg is { } svg)
+                {
+                    @* encoder output, no warrant text *@
+                    <div class="druck-poster-qr-code">@((MarkupString)svg)</div>
+                }
+                <div>
+                    <div class="druck-poster-qr-titel">Echtheit prüfen</div>
+                    <div class="druck-poster-qr-adresse">@link.Address</div>
+                    <div class="druck-poster-qr-hilfe">QR-Code scannen oder Adresse eingeben. Die Seite zeigt, ob die Anordnung gilt.</div>
+                </div>
+            </section>
+        }
     </PrintFrame>
 }
 
@@ -78,12 +106,24 @@ else
     private bool _load = true;
     private string? _printBy;
     private WarrantView? _view;
+    private WarrantCheckLink? _link;
 
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
         _printBy = user.GetCodename();
         _view = await WarrantService.GetAsync(Id, user);
+        if (_view is not null && WarrantRules.WasSigned(_view.Warrant))
+        {
+            try
+            {
+                _link = await WarrantCheck.GetLinkAsync(_view.Warrant.Id);
+            }
+            catch
+            {
+                /* best effort */
+            }
+        }
         _load = false;
     }
 }

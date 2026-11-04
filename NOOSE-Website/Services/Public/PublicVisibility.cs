@@ -37,6 +37,12 @@ public static class PublicVisibility
                 + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Abteilung (CID, CTD, HRT), Administration Division, "
                 + "Profilbild, Discord-Daten, Kennungen und Flags verlassen das Haus nie, und ohne laufendes "
                 + "Modul bleibt jeder Agent anonym.",
+            ["Warrant"] = "Die Echtheitsprüfung auf /anordnung/{Id}, solange das Modul läuft, und nur für eine "
+                + "unterzeichnete Anordnung: Art, Aktenzeichen, gültig, abgelaufen oder aufgehoben, Gültigkeit, "
+                + "Datum der Aufhebung und die Unterschrift (Codename und Dienstgrad), also nur, was das Papier "
+                + "ohnehin trägt. Betroffene Person, Gegenstand, Rechtsgrundlage, Begründung, Notizen, Antragsteller, "
+                + "Aufhebungsgrund und Vorgang verlassen das Haus nie; ein Antrag, eine Ablehnung und eine "
+                + "gelöschte Anordnung antworten wie eine erfundene Adresse.",
             ["OeffentlicheTelefonnummer"] = "Telefonnummer und eine KOPIERTE Fotodatei einer Führungskraft auf "
                 + "ihrer Karte im Organigramm der Mitarbeiterliste, nur solange der Agent zur Führung zählt; das "
                 + "Foto wird nur dann über /fuehrung/foto ausgeliefert. Das eigene Profilbild des Agenten und wer "
@@ -159,8 +165,6 @@ public static class PublicVisibility
             ["Observation"] = Operational,
             ["AgentAbduction"] = Operational,
             ["AbductionCompromise"] = Operational,
-            ["Warrant"] = "Anordnung an einer Person; sie wird im Rollenspiel ausgedruckt vorgezeigt, nie über die "
-                + "Seite veröffentlicht.",
             ["EvidenceItem"] = Operational,
             ["EvidenceEntry"] = Operational,
             ["EvidenceEntryLine"] = Operational,
