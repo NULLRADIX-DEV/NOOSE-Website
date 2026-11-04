@@ -657,10 +657,12 @@ public static class ChangelogContent
             Neu("3.0.21-finanzierung-abteilungen", "Der Finanzierungskatalog kennt jetzt eigene Freigaben je Abteilung: "
                 + "das HRT darf manche Waffe und manches Fahrzeug früher beantragen als CID und CTD. Auch das Monatsbudget "
                 + "stellt die Führung jetzt für jede Abteilung und jeden Dienstgrad getrennt ein.", "Finanzierung"),
-            Neu("3.0.22-kalender-abo", "In deinem Profil legst du jetzt einen privaten Kalender-Link an, mit dem du deine "
+            Besser("3.0.23-kurzbrief", "Der FIBI-Kurzbrief einer Akte kommt schneller und scheitert deutlich seltener.",
+                "FIBI"),
+            Neu("3.0.24-kalender-abo", "In deinem Profil legst du jetzt einen privaten Kalender-Link an, mit dem du deine "
                 + "Termine, Besprechungen und Fristen in Google, Apple oder Outlook auf dem Handy abonnierst. Du kannst "
                 + "den Link jederzeit erneuern oder widerrufen.", "Kalender"),
-            Neu("3.0.23-anordnung-pruefung", "Auf dem Ausdruck einer unterzeichneten Anordnung steht jetzt ein QR-Code. "
+            Neu("3.0.25-anordnung-pruefung", "Auf dem Ausdruck einer unterzeichneten Anordnung steht jetzt ein QR-Code. "
                 + "Ist die Prüfseite freigeschaltet, sieht jeder, der ihn scannt, ob die Anordnung echt ist und noch gilt: "
                 + "Art, Aktenzeichen, Gültigkeit und Unterschrift, nie die Person oder der Gegenstand.", "Ermittlung"),
         ]),
