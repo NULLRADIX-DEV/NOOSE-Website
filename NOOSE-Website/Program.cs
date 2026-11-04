@@ -460,6 +460,7 @@ builder.Services.AddScoped<IPublicSearchService, PublicSearchService>();
 builder.Services.AddScoped<IPublicKpiService, PublicKpiService>();
 builder.Services.AddScoped<IPublicLeadershipService, PublicLeadershipService>();
 builder.Services.AddScoped<IPublicServiceIdService, PublicServiceIdService>();
+builder.Services.AddScoped<IPublicWarrantCheckService, PublicWarrantCheckService>();
 builder.Services.AddScoped<IServiceIdService, ServiceIdService>();
 builder.Services.AddScoped<ICalendarFeedService, CalendarFeedService>();
 builder.Services.AddScoped<IPublicWantedService, PublicWantedService>();

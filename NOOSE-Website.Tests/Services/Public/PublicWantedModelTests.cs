@@ -59,6 +59,8 @@ public class PublicWantedModelTests
         typeof(PublicRosterMember),
         // the ID check on /ausweis/{Nummer}: validity, the holder's alias and the rank wording, nothing else
         typeof(PublicServiceIdCheck),
+        // the warrant check on /anordnung/{Id}: kind, case number, validity and signature, never the person
+        typeof(PublicWarrantCheck),
         // the press hub and one release
         typeof(PublicPressCard),
         typeof(PublicPressView),

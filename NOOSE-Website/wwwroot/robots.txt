@@ -8,6 +8,7 @@ Disallow: /
 Allow: /$
 Allow: /karriere
 Allow: /ausweis
+Allow: /anordnung
 Allow: /datenschutz
 Allow: /nutzungsbedingungen
 Allow: /info
@@ -30,6 +31,7 @@ Allow: /suche-oeffentlich
 # informant records. The longest matching rule wins (RFC 9309), so these three beat the Allow lines above.
 # PublicRoutes.Matches stops at the segment boundary, so the noindex header was already right — this is what
 # keeps the crawler file from saying the opposite. Derived and checked by PublicRoutesTests.
+Disallow: /anordnungen
 Disallow: /hinweise
 Disallow: /informanten
 Disallow: /lageberichte

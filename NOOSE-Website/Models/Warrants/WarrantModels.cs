@@ -31,3 +31,9 @@ public sealed record WarrantLaw(string Id, string Label);
 
 /// <summary>Name and case number of a record a new warrant can concern, resolved under the reader's rights.</summary>
 public sealed record WarrantTarget(string Id, string Name, string CaseNumber);
+
+/// <summary>The check address printed on a signed paper.</summary>
+/// <param name="Address">Public check address without scheme, as printed under the QR code.</param>
+/// <param name="QrSvg">Encoder output for the check address; null when it does not fit.</param>
+/// <param name="CheckOnline">False while the public check module is off: the QR code then leads nowhere yet.</param>
+public sealed record WarrantCheckLink(string Address, string? QrSvg, bool CheckOnline);

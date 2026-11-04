@@ -23,6 +23,8 @@ public static class PublicRoutes
         // consulting Available - so listing it here was the very repetition the remark above forbids
         // the ID check has no tab, only the QR code on a card leads there; it carries noindex itself
         "/ausweis",
+        // the warrant check, likewise reached only from the QR code on a signed paper
+        "/anordnung",
         "/datenschutz",
         "/nutzungsbedingungen",
         "/gefahr",

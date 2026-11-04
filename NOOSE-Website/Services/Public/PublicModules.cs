@@ -35,6 +35,7 @@ public static class PublicModules
     public const string Statistics = "Statistik";
     public const string Leadership = "Fuehrung";
     public const string ServiceId = "Dienstausweis";
+    public const string WarrantCheck = "AnordnungPruefung";
 
     // --- service ---
     public const string Tips = "Hinweise";
@@ -91,6 +92,10 @@ public static class PublicModules
         // so it answers only for agents who are on the public roster, and it is off by default like everything else
         new(ServiceId, "Dienstausweis-Prüfung", "Prüfseite /ausweis/{Nummer}: Codename, Rang und gültig ja oder nein.",
             Icons.Material.Filled.Badge, null, PublicModuleGroup.Behoerde, 127, false, true, OffGeneric),
+        // no nav route either: the QR code on a signed paper leads there. It never names the person or the subject,
+        // only what makes a forged paper stand out: kind, case number, validity and signature
+        new(WarrantCheck, "Anordnungs-Prüfung", "Prüfseite /anordnung/{Id}: Art, Aktenzeichen, Gültigkeit und Unterschrift einer Anordnung.",
+            Icons.Material.Filled.Gavel, null, PublicModuleGroup.Behoerde, 128, false, true, OffGeneric),
         // /berichte, not /lageberichte: that route is internal (the legacy redirect and the leadership-only print page
         // with the classified aggregates). Because Prefixes collects the nav routes without asking Available, naming it
         // here declared an internal page indexable
