@@ -334,7 +334,9 @@ public sealed class NooseiPresentationTests
     }
 
     private static DossierSummaryService Briefs(SqliteTestContext ctx, INooseiGateway gateway, bool allowClassifiedEgress)
-        => new(ctx.Factory, gateway, NooseiProviderStub.Returning(), Options.Create(new LlmOptions
+        => new(ctx.Factory, gateway, NooseiProviderStub.Returning(),
+            new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()),
+            Options.Create(new LlmOptions
         {
             Enabled = true,
             ApiKey = "k",

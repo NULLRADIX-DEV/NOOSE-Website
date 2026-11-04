@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
@@ -38,6 +39,7 @@ public sealed class DossierSummaryService(
     IDbContextFactory<AppDbContext> dbFactory,
     INooseiGateway noosei,
     INooseiProviderService providerService,
+    IMemoryCache cache,
     IOptions<LlmOptions> options) : IDossierSummaryService
 {
     private readonly LlmOptions _o = options.Value;
@@ -139,8 +141,12 @@ public sealed class DossierSummaryService(
     private async Task<(DossierBrief? Brief, string? Model)> RequestBriefAsync(
         string entityType, string entityId, string title, string userPrompt, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
-        var rungs = Rungs().ToList();
-        for (var i = 0; i < rungs.Count; i++)
+        var provider = (await providerService.GetStateAsync(cancellationToken)).Active;
+        var rungs = Rungs(provider).ToList();
+        var memoryKey = LadderKey(provider, rungs.Count);
+        // a refused rung is refused again: start where this upstream last answered
+        var start = cache.TryGetValue(memoryKey, out int remembered) && remembered < rungs.Count ? remembered : 0;
+        for (var i = start; i < rungs.Count; i++)
         {
             var (prompt, format, requireCapable, _) = rungs[i];
             try
@@ -160,6 +166,7 @@ public sealed class DossierSummaryService(
 
                 if (Parse(answer.Text) is { } brief)
                 {
+                    cache.Set(memoryKey, i, LadderMemory);
                     // the model comes back with the answer: the rung that succeeded decides it, and resolving
                     // the upstream a second time afterwards can name a different one
                     return (brief, answer.Model);
@@ -178,7 +185,14 @@ public sealed class DossierSummaryService(
         return (null, null);
     }
 
-    private IEnumerable<(string Prompt, LlmResponseFormat Format, bool RequireCapable, bool WidensProvidersOnly)> Rungs()
+    /// <summary>How long the rung an upstream answered on is trusted before the schema is offered again.</summary>
+    internal static readonly TimeSpan LadderMemory = TimeSpan.FromHours(12);
+
+    // the rung list depends on these, so a config change never reuses a stale index
+    private string LadderKey(LlmProvider provider, int rungCount)
+        => $"kurzbrief-stufe:{provider}:{_o.ModelFor(provider, LlmFeature.Brief)}:{_o.StructuredOutput}:{rungCount}";
+
+    private IEnumerable<(string Prompt, LlmResponseFormat Format, bool RequireCapable, bool WidensProvidersOnly)> Rungs(LlmProvider provider)
     {
         var strict = LlmResponseFormat.ForSchema(NooseiSchemas.KurzbriefName, NooseiSchemas.Kurzbrief);
         var jsonMode = NooseiPrompts.WithSchema(NooseiPrompts.Brief, NooseiSchemas.KurzbriefText);
@@ -194,8 +208,10 @@ public sealed class DossierSummaryService(
             _o.RequireCapableProviders && _o.StructuredOutput == StructuredOutputMode.Strict, false);
 
         // rung 1: same schema, wider provider pool — many honour a schema without advertising it.
-        // Only worth paying for after a capability rejection, hence the flag.
-        if (_o.RequireCapableProviders && _o.StructuredOutput == StructuredOutputMode.Strict)
+        // Only worth paying for after a capability rejection, hence the flag. A direct endpoint has no pool to
+        // widen: there the rung is the refused request a second time.
+        if (provider == LlmProvider.OpenRouter
+            && _o.RequireCapableProviders && _o.StructuredOutput == StructuredOutputMode.Strict)
         {
             yield return (NooseiPrompts.Brief, strict, false, true);
         }

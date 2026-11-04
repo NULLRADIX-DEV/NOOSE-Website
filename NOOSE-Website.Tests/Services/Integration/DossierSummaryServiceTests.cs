@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Models.Enums;
@@ -35,14 +36,34 @@ public sealed class DossierSummaryServiceTests
         return gateway;
     }
 
-    private static DossierSummaryService Svc(SqliteTestContext ctx, INooseiGateway gateway, bool allowClassifiedEgress = false)
-        => new(ctx.Factory, gateway, NooseiProviderStub.Returning(), Options.Create(new LlmOptions
-        {
-            Enabled = true,
-            ApiKey = "k",
-            Model = "test-model",
-            AllowClassifiedEgress = allowClassifiedEgress,
-        }));
+    private static DossierSummaryService Svc(SqliteTestContext ctx, INooseiGateway gateway, bool allowClassifiedEgress = false,
+        LlmProvider provider = LlmProvider.OpenRouter, IMemoryCache? cache = null)
+        => new(ctx.Factory, gateway, NooseiProviderStub.Returning(provider), cache ?? new MemoryCache(new MemoryCacheOptions()),
+            Options.Create(new LlmOptions
+            {
+                Enabled = true,
+                ApiKey = "k",
+                Model = "test-model",
+                DeepSeek = new LlmDeepSeekOptions { ApiKey = "d" },
+                AllowClassifiedEgress = allowClassifiedEgress,
+            }));
+
+    /// <summary>Gateway that refuses every enforced schema, like an endpoint without structured output.</summary>
+    private static INooseiGateway SchemaRefusingGateway(List<LlmResponseFormatKind?> seenFormats)
+    {
+        var gateway = Substitute.For<INooseiGateway>();
+        gateway.IsConfigured.Returns(true);
+        gateway.AskAsync(Arg.Any<NooseiCall>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var format = call.Arg<NooseiCall>().ResponseFormat;
+                seenFormats.Add(format?.Kind);
+                return format?.Kind == LlmResponseFormatKind.JsonSchema
+                    ? throw new LlmCapabilityException(schemaRelated: true, toolsRelated: false)
+                    : Answer();
+            });
+        return gateway;
+    }
 
     private static ClaimsPrincipal Leader() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
@@ -307,6 +328,57 @@ public sealed class DossierSummaryServiceTests
         await Svc(ctx, gateway).GenerateAsync(nameof(Person), "p1", Leader(), force: false);
 
         Assert.Equal([true, false], required);
+    }
+
+    [Fact]
+    public async Task Generate_DirectEndpoint_DoesNotRepeatTheRefusedSchema()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPerson(ctx, "p1", "Max Mustermann");
+        var seenFormats = new List<LlmResponseFormatKind?>();
+        var gateway = SchemaRefusingGateway(seenFormats);
+
+        var view = await Svc(ctx, gateway, provider: LlmProvider.DeepSeek).GenerateAsync(nameof(Person), "p1", Leader(), force: false);
+
+        Assert.True(view.Exists);
+        Assert.Equal([LlmResponseFormatKind.JsonSchema, LlmResponseFormatKind.JsonObject], seenFormats);
+    }
+
+    [Fact]
+    public async Task Generate_RemembersTheRungThatAnswered()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPerson(ctx, "p1", "Max Mustermann");
+        SeedPerson(ctx, "p2", "Erika Musterfrau");
+        var seenFormats = new List<LlmResponseFormatKind?>();
+        var gateway = SchemaRefusingGateway(seenFormats);
+        var cache = new MemoryCache(new MemoryCacheOptions());
+
+        await Svc(ctx, gateway, cache: cache).GenerateAsync(nameof(Person), "p1", Leader(), force: false);
+        seenFormats.Clear();
+        var view = await Svc(ctx, gateway, cache: cache).GenerateAsync(nameof(Person), "p2", Leader(), force: false);
+
+        // the second brief goes straight to the rung that worked, without a refused call first
+        Assert.True(view.Exists);
+        Assert.Equal([LlmResponseFormatKind.JsonObject], seenFormats);
+    }
+
+    [Fact]
+    public async Task Generate_RememberedRung_IsPerUpstream()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPerson(ctx, "p1", "Max Mustermann");
+        var cache = new MemoryCache(new MemoryCacheOptions());
+
+        await Svc(ctx, SchemaRefusingGateway([]), provider: LlmProvider.DeepSeek, cache: cache)
+            .GenerateAsync(nameof(Person), "p1", Leader(), force: false);
+
+        // what DeepSeek refused says nothing about OpenRouter
+        var openRouter = Gateway();
+        await Svc(ctx, openRouter, cache: cache).GenerateAsync(nameof(Person), "p1", Leader(), force: true);
+        await openRouter.Received(1).AskAsync(
+            Arg.Is<NooseiCall>(c => c.ResponseFormat != null && c.ResponseFormat.Kind == LlmResponseFormatKind.JsonSchema),
+            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
     }
 
     // ---- visibility and egress gates ----
