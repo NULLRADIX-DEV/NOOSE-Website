@@ -28,9 +28,17 @@ public class FinancingItem : IAuditable, ISoftDelete
     [Column("Zuschussanteil")]
     public int SubsidyPercent { get; set; } = 100;
 
-    /// <summary>Lower ranks never see the position when filing a request.</summary>
+    /// <summary>CID threshold and fallback for the other divisions; lower ranks never see the position.</summary>
     [Column("MindestDienstgrad")]
     public Rank MinimumRank { get; set; } = Rank.Trainee;
+
+    /// <summary>CTD threshold; null follows <see cref="MinimumRank"/>.</summary>
+    [Column("MindestDienstgradCtd")]
+    public Rank? MinimumRankCtd { get; set; }
+
+    /// <summary>HRT threshold; null follows <see cref="MinimumRank"/>.</summary>
+    [Column("MindestDienstgradHrt")]
+    public Rank? MinimumRankHrt { get; set; }
 
     /// <summary>Upper bound for the quantity of this position within one request.</summary>
     [Column("MaxMenge")]

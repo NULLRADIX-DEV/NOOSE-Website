@@ -89,29 +89,44 @@ public class FinancingConfigService(IDbContextFactory<AppDbContext> dbFactory, I
     /// <summary>Validate config invariants.</summary>
     public static void Validate(FinancingBudgetConfig config)
     {
+        ValidateTable(config.Ranks, null);
+        foreach (var (key, table) in config.Divisions)
+        {
+            var division = DivisionDisplay.All.FirstOrDefault(d => FinancingBudgetConfig.DivisionKey(d) == key);
+            if (division == default)
+            {
+                throw new InvalidOperationException($"Unbekannte Abteilung „{key}“ in den Finanzierungs-Budgets.");
+            }
+            ValidateTable(table, division);
+        }
+    }
+
+    private static void ValidateTable(Dictionary<string, FinancingRankBudget> table, Division? division)
+    {
         foreach (var rank in RankDisplay.All)
         {
-            if (!config.Ranks.TryGetValue(FinancingBudgetConfig.RankKey(rank), out var budget))
+            if (!table.TryGetValue(FinancingBudgetConfig.RankKey(rank), out var budget))
             {
                 continue;
             }
+            var name = RankDisplay.Name(rank, division)
+                + (division is { } d ? $" ({DivisionDisplay.Short(d)})" : string.Empty);
             if (budget.BaseMonthly < 0)
             {
-                throw new InvalidOperationException(
-                    $"Das Monatsbudget für {RankDisplay.Name(rank)} darf nicht negativ sein.");
+                throw new InvalidOperationException($"Das Monatsbudget für {name} darf nicht negativ sein.");
             }
             if (budget.CarryOverPercent is < 0 or > 100)
             {
-                throw new InvalidOperationException(
-                    $"Der Übertrag für {RankDisplay.Name(rank)} muss zwischen 0 und 100 % liegen.");
+                throw new InvalidOperationException($"Der Übertrag für {name} muss zwischen 0 und 100 % liegen.");
             }
         }
     }
 
     private static string Summarise(FinancingBudgetConfig config)
-        => string.Join(" · ", RankDisplay.All.Select(r =>
-        {
-            var budget = config.For(r);
-            return $"{RankDisplay.Name(r)}: {Money.Format(budget.BaseMonthly)} / {budget.CarryOverPercent} %";
-        }));
+        => string.Join(" | ", DivisionDisplay.All.Select(d => DivisionDisplay.Short(d) + " " + string.Join(" · ",
+            RankDisplay.All.Where(r => DivisionRules.MayHold(d, r)).Select(r =>
+            {
+                var budget = config.For(r, d);
+                return $"{RankDisplay.Name(r, d)}: {Money.Format(budget.BaseMonthly)} / {budget.CarryOverPercent} %";
+            }))));
 }

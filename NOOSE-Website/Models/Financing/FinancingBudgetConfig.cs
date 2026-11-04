@@ -3,18 +3,32 @@ using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Models.Financing;
 
-/// <summary>Per-rank monthly funding budget and carry-over share. Stored as JSON in a SystemSetting row.</summary>
+/// <summary>Monthly funding budget and carry-over share per division and rank. Stored as JSON in a SystemSetting row.</summary>
 public sealed class FinancingBudgetConfig
 {
-    /// <summary>Keyed by <see cref="RankKey"/>; a missing key means no budget for that rank.</summary>
+    /// <summary>Base table keyed by <see cref="RankKey"/>; a missing key means no budget for that rank.</summary>
     public Dictionary<string, FinancingRankBudget> Ranks { get; set; } = new();
+
+    /// <summary>Own tables keyed by <see cref="DivisionKey"/>, then <see cref="RankKey"/>; a missing entry falls back to <see cref="Ranks"/>.</summary>
+    public Dictionary<string, Dictionary<string, FinancingRankBudget>> Divisions { get; set; } = new();
 
     /// <summary>Stable key for a rank (the int, so JSON round-trips cleanly).</summary>
     public static string RankKey(Rank rank) => ((int)rank).ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>Budget of a rank; an unranked or unconfigured agent gets nothing.</summary>
+    /// <summary>Stable key for a division (the int).</summary>
+    public static string DivisionKey(Division division) => ((int)division).ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>Budget of a rank in the base table; an unranked or unconfigured agent gets nothing.</summary>
     public FinancingRankBudget For(Rank? rank)
         => rank is { } r && Ranks.TryGetValue(RankKey(r), out var budget) ? budget : new FinancingRankBudget();
+
+    /// <summary>Budget of a rank in its home division, else the base table.</summary>
+    public FinancingRankBudget For(Rank? rank, Division? division)
+        => rank is { } r && division is { } d
+            && Divisions.TryGetValue(DivisionKey(d), out var table)
+            && table.TryGetValue(RankKey(r), out var budget)
+                ? budget
+                : For(rank);
 
     /// <summary>Starting values; leadership tunes them at runtime.</summary>
     public static FinancingBudgetConfig Default() => new()

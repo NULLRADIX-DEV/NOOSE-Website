@@ -100,6 +100,73 @@ public sealed class FinancingConfigServiceTests
         Assert.Equal(0m, config.For(Rank.Trainee).BaseMonthly);
     }
 
+    [Fact]
+    public void DivisionTable_BeatsTheBaseTable_AndFallsBackPerRank()
+    {
+        var config = new FinancingBudgetConfig
+        {
+            Ranks = new Dictionary<string, FinancingRankBudget>
+            {
+                [FinancingBudgetConfig.RankKey(Rank.SpecialAgent)] = new() { BaseMonthly = 50_000m, CarryOverPercent = 0 },
+                [FinancingBudgetConfig.RankKey(Rank.SeniorSpecialAgent)] = new() { BaseMonthly = 75_000m, CarryOverPercent = 25 },
+            },
+            Divisions = new Dictionary<string, Dictionary<string, FinancingRankBudget>>
+            {
+                [FinancingBudgetConfig.DivisionKey(Division.Hrt)] = new()
+                {
+                    [FinancingBudgetConfig.RankKey(Rank.SpecialAgent)] = new() { BaseMonthly = 80_000m, CarryOverPercent = 10 },
+                },
+            },
+        };
+
+        Assert.Equal(80_000m, config.For(Rank.SpecialAgent, Division.Hrt).BaseMonthly);
+        Assert.Equal(10, config.For(Rank.SpecialAgent, Division.Hrt).CarryOverPercent);
+        Assert.Equal(75_000m, config.For(Rank.SeniorSpecialAgent, Division.Hrt).BaseMonthly);
+        Assert.Equal(50_000m, config.For(Rank.SpecialAgent, Division.Cid).BaseMonthly);
+        Assert.Equal(50_000m, config.For(Rank.SpecialAgent, null).BaseMonthly);
+        Assert.Equal(0m, config.For(null, Division.Hrt).BaseMonthly);
+    }
+
+    [Fact]
+    public void Validate_ChecksTheDivisionTablesToo()
+    {
+        var negative = new FinancingBudgetConfig
+        {
+            Divisions = new Dictionary<string, Dictionary<string, FinancingRankBudget>>
+            {
+                [FinancingBudgetConfig.DivisionKey(Division.Ctd)] = new()
+                {
+                    [FinancingBudgetConfig.RankKey(Rank.Trainee)] = new() { BaseMonthly = -1m },
+                },
+            },
+        };
+        var unknown = new FinancingBudgetConfig
+        {
+            Divisions = new Dictionary<string, Dictionary<string, FinancingRankBudget>> { ["99"] = new() },
+        };
+
+        Assert.Throws<InvalidOperationException>(() => FinancingConfigService.Validate(negative));
+        Assert.Throws<InvalidOperationException>(() => FinancingConfigService.Validate(unknown));
+    }
+
+    [Fact]
+    public async Task Save_RoundTripsTheDivisionTables()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+        var config = FinancingBudgetConfig.Default();
+        config.Divisions[FinancingBudgetConfig.DivisionKey(Division.Hrt)] = new()
+        {
+            [FinancingBudgetConfig.RankKey(Rank.SpecialAgent)] = new() { BaseMonthly = 90_000m, CarryOverPercent = 30 },
+        };
+
+        await svc.SaveAsync(config, Leader());
+        var stored = await svc.GetEditableAsync();
+
+        Assert.Equal(90_000m, stored.For(Rank.SpecialAgent, Division.Hrt).BaseMonthly);
+        Assert.Equal(50_000m, stored.For(Rank.SpecialAgent, Division.Cid).BaseMonthly);
+    }
+
     [Theory]
     [InlineData("not json at all")]
     [InlineData("")]

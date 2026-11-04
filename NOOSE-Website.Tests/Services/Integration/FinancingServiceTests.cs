@@ -182,6 +182,39 @@ public sealed class FinancingServiceTests
     }
 
     [Fact]
+    public async Task Create_UsesTheThresholdOfTheHomeDivision()
+    {
+        using var ctx = new SqliteTestContext();
+        await using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent(OwnerId, Rank.SpecialAgent, configure: a =>
+            {
+                a.Codename = "Owner";
+                a.Division = Division.Hrt;
+            }));
+            db.Users.Add(Seed.Agent(OtherId, Rank.SpecialAgent, configure: a => a.Division = Division.Cid));
+            db.FinancingItems.Add(new FinancingItem
+            {
+                Id = "a",
+                Name = "Kampfschrotflinte",
+                UnitPrice = 100m,
+                MaxQuantity = 1,
+                MinimumRank = Rank.AssistantDirector,
+                MinimumRankHrt = Rank.SpecialAgent,
+            });
+            await db.SaveChangesAsync();
+        }
+        var h = Build(ctx);
+
+        var created = await h.Svc.CreateAsync(Cart("Einsatz", ("a", 1)), Owner());
+        Assert.Single(created.Lines);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => h.Svc.CreateAsync(Cart("Einsatz", ("a", 1)), Other()));
+        Assert.Contains("Assistant Director", refused.Message);
+    }
+
+    [Fact]
     public async Task Create_RejectsEmptyCartAndMissingJustificationAndDuplicates()
     {
         using var ctx = new SqliteTestContext();

@@ -102,6 +102,27 @@ public sealed class FinancingBudgetServiceTests
     }
 
     [Fact]
+    public async Task BaseBudget_ComesFromTheHomeDivision()
+    {
+        using var ctx = new SqliteTestContext();
+        await using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent(AgentId, Rank.SpecialAgent, configure: a => a.Division = Division.Hrt));
+            await db.SaveChangesAsync();
+        }
+        var config = Config(Rank.SpecialAgent, 42_000m, 25);
+        config.Divisions[FinancingBudgetConfig.DivisionKey(Division.Hrt)] = new()
+        {
+            [FinancingBudgetConfig.RankKey(Rank.SpecialAgent)] = new() { BaseMonthly = 60_000m, CarryOverPercent = 10 },
+        };
+
+        var status = await Build(ctx, config).GetStatusAsync(AgentId);
+
+        Assert.Equal(60_000m, status.BaseBudget);
+        Assert.Equal(10, status.CarryPercent);
+    }
+
+    [Fact]
     public async Task UnrankedAgent_GetsNothing()
     {
         using var ctx = new SqliteTestContext();

@@ -111,28 +111,61 @@ public sealed class FinancingCatalogServiceTests
     }
 
     [Fact]
-    public async Task GetActiveForRank_FiltersByMinimumRank()
+    public async Task GetActiveFor_FiltersByMinimumRank()
     {
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);
         await svc.CreateAsync(Input("Für alle", min: Rank.Trainee), Leader());
         await svc.CreateAsync(Input("Nur Führung", min: Rank.SpecialAgentInCharge), Leader());
 
-        var forSpecial = await svc.GetActiveForRankAsync(Rank.SpecialAgent);
+        var forSpecial = await svc.GetActiveForAsync(Rank.SpecialAgent, Division.Cid);
         Assert.Equal(new[] { "Für alle" }, forSpecial.Select(i => i.Name).ToArray());
 
-        var forDirector = await svc.GetActiveForRankAsync(Rank.Director);
+        var forDirector = await svc.GetActiveForAsync(Rank.Director, Division.Cid);
         Assert.Equal(2, forDirector.Count);
     }
 
     [Fact]
-    public async Task GetActiveForRank_UnrankedAgentSeesNothing()
+    public async Task GetActiveFor_UsesTheThresholdOfTheHomeDivision()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+        var input = Input("Kampfschrotflinte", min: Rank.AssistantDirector);
+        input.MinimumRankHrt = Rank.SpecialAgent;
+        await svc.CreateAsync(input, Leader());
+
+        Assert.Single(await svc.GetActiveForAsync(Rank.SpecialAgent, Division.Hrt));
+        Assert.Empty(await svc.GetActiveForAsync(Rank.SpecialAgent, Division.Cid));
+        // empty CTD follows CID
+        Assert.Empty(await svc.GetActiveForAsync(Rank.SectionChief, Division.Ctd));
+        Assert.Single(await svc.GetActiveForAsync(Rank.AssistantDirector, Division.Ctd));
+        // no division: base value
+        Assert.Empty(await svc.GetActiveForAsync(Rank.SpecialAgent, null));
+    }
+
+    [Fact]
+    public async Task Create_StoresADivisionEqualToTheBaseAsEmpty()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+        var input = Input("Messer", min: Rank.SpecialAgent);
+        input.MinimumRankCtd = Rank.SpecialAgent;
+        input.MinimumRankHrt = Rank.SeniorSpecialAgent;
+
+        var created = await svc.CreateAsync(input, Leader());
+
+        Assert.Null(created.MinimumRankCtd);
+        Assert.Equal(Rank.SeniorSpecialAgent, created.MinimumRankHrt);
+    }
+
+    [Fact]
+    public async Task GetActiveFor_UnrankedAgentSeesNothing()
     {
         using var ctx = new SqliteTestContext();
         var svc = Build(ctx);
         await svc.CreateAsync(Input("Für alle"), Leader());
 
-        Assert.Empty(await svc.GetActiveForRankAsync(null));
+        Assert.Empty(await svc.GetActiveForAsync(null, Division.Cid));
     }
 
     [Fact]

@@ -205,7 +205,7 @@ else
         _isTeamLead = _user.IsTeamLead();
         if (!_isTeamLead)
         {
-            _items = await Catalog.GetActiveForRankAsync(_user.GetRank());
+            _items = await Catalog.GetActiveForAsync(_user.GetRank(), _user.GetDivision());
             var agentId = _user.GetAgentId();
             if (!string.IsNullOrEmpty(agentId))
             {

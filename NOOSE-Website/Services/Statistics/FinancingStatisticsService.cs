@@ -140,7 +140,7 @@ public class FinancingStatisticsService(
         // team leads never count towards a rank's budget or consumption; rankless agents have no budget
         var agents = await db.Users.AsNoTracking().OnlySelectable()
             .Where(a => a.Rank != null)
-            .Select(a => new { a.Id, a.Rank, a.FinancingBudgetOverride })
+            .Select(a => new { a.Id, a.Rank, a.Division, a.IsTRU, a.PartnerAgency, a.FinancingBudgetOverride })
             .ToListAsync(cancellationToken);
         if (agents.Count == 0)
         {
@@ -159,7 +159,8 @@ public class FinancingStatisticsService(
             .Select(rank =>
             {
                 var members = agents.Where(a => a.Rank == rank).ToList();
-                var budget = members.Sum(a => a.FinancingBudgetOverride ?? config.For(rank).BaseMonthly);
+                var budget = members.Sum(a => a.FinancingBudgetOverride
+                    ?? config.For(rank, DivisionRules.Of(a.Rank, a.Division, a.IsTRU, a.PartnerAgency == null).Home).BaseMonthly);
                 var used = members.Sum(a => consumed.GetValueOrDefault(a.Id, 0m));
                 return new FinancingRankUtilisation(RankDisplay.Name(rank), budget, used);
             })

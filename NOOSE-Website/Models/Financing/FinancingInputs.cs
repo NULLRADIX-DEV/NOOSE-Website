@@ -13,7 +13,10 @@ public class FinancingItemInput
     /// <summary>Share NOOSE covers (1-100).</summary>
     public int SubsidyPercent { get; set; } = 100;
 
+    /// <summary>CID threshold, also the fallback for a division left empty.</summary>
     public Rank MinimumRank { get; set; } = Rank.Trainee;
+    public Rank? MinimumRankCtd { get; set; }
+    public Rank? MinimumRankHrt { get; set; }
     public int MaxQuantity { get; set; } = 1;
     public bool IsActive { get; set; } = true;
     public int Sorting { get; set; }

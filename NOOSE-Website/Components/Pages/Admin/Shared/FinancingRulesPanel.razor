@@ -1,13 +1,14 @@
-@* Per-rank funding budget and carry-over share; the rules behind every budget figure. *@
+@* Monthly funding budget and carry-over share per division and rank; the rules behind every budget figure. *@
 @inject IFinancingConfigService Config
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudText Typo="Typo.h6">Monatsbudget je Dienstgrad</MudText>
+    <MudText Typo="Typo.h6">Monatsbudget je Abteilung und Dienstgrad</MudText>
     <MudText Typo="Typo.body2" Class="mud-text-secondary">
-        Das Grundbudget steht jedem Agenten des Dienstgrades pro Kalendermonat zur Verfügung. Vom nicht
-        genutzten Rest wandert der eingestellte Anteil in den Folgemonat — und nur dorthin, nicht weiter.
-        Ein individuell gesetztes Budget in der Personalakte schlägt den Wert hier.
+        Das Grundbudget steht jedem Agenten pro Kalendermonat zur Verfügung, je nach Abteilung und Dienstgrad.
+        Das Board gilt dabei für seine Heimatabteilung. Vom nicht genutzten Rest wandert der eingestellte Anteil
+        in den Folgemonat — und nur dorthin, nicht weiter. Ein individuell gesetztes Budget in der Personalakte
+        schlägt den Wert hier.
     </MudText>
 
     @if (_load)
@@ -16,38 +17,45 @@
     }
     else
     {
-        <MudSimpleTable Dense="true" Striped="true">
-            <thead>
-                <tr>
-                    <th>Dienstgrad</th>
-                    <th style="width:220px">Grundbudget ($)</th>
-                    <th style="width:180px">Übertrag (%)</th>
-                    <th style="text-align:right">Maximal im Monat</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var rank in RankDisplay.All)
-                {
-                    var budget = _rows[rank];
-                    <tr>
-                        <td>@RankDisplay.Name(rank)</td>
-                        <td>
-                            <MudNumericField T="decimal" @bind-Value="budget.BaseMonthly" Min="0" Variant="Variant.Outlined"
-                                             Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="$"
-                                             HideSpinButtons="true" />
-                        </td>
-                        <td>
-                            <MudNumericField T="int" @bind-Value="budget.CarryOverPercent" Min="0" Max="100"
-                                             Variant="Variant.Outlined" Margin="Margin.Dense"
-                                             Adornment="Adornment.End" AdornmentText="%" />
-                        </td>
-                        <td style="text-align:right">
-                            @Money.Format(budget.BaseMonthly + FinancingMath.CarryOut(budget.BaseMonthly, budget.CarryOverPercent))
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </MudSimpleTable>
+        <MudTabs Elevation="0" Rounded="true" TabPanelsClass="pt-3" @bind-ActivePanelIndex="_tab">
+            @foreach (var division in DivisionDisplay.All)
+            {
+                var rows = _rows[division];
+                <MudTabPanel Text="@DivisionDisplay.Short(division)" Icon="@DivisionDisplay.Icon(division)">
+                    <MudSimpleTable Dense="true" Striped="true">
+                        <thead>
+                            <tr>
+                                <th>Dienstgrad</th>
+                                <th style="width:220px">Grundbudget ($)</th>
+                                <th style="width:180px">Übertrag (%)</th>
+                                <th style="text-align:right">Maximal im Monat</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var (rank, budget) in rows)
+                            {
+                                <tr>
+                                    <td>@RankDisplay.Name(rank, division)</td>
+                                    <td>
+                                        <MudNumericField T="decimal" @bind-Value="budget.BaseMonthly" Min="0" Variant="Variant.Outlined"
+                                                         Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="$"
+                                                         HideSpinButtons="true" />
+                                    </td>
+                                    <td>
+                                        <MudNumericField T="int" @bind-Value="budget.CarryOverPercent" Min="0" Max="100"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                         Adornment="Adornment.End" AdornmentText="%" />
+                                    </td>
+                                    <td style="text-align:right">
+                                        @Money.Format(budget.BaseMonthly + FinancingMath.CarryOut(budget.BaseMonthly, budget.CarryOverPercent))
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                </MudTabPanel>
+            }
+        </MudTabs>
 
         <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
             <MudButton OnClick="ResetAsync" StartIcon="@Icons.Material.Filled.RestartAlt">Auf Standard zurücksetzen</MudButton>
@@ -65,7 +73,9 @@
     private bool _load = true;
     private bool _saving;
     private ClaimsPrincipal _user = default!;
-    private Dictionary<Rank, FinancingRankBudget> _rows = new();
+    private int _tab;
+    // holdable ranks per division
+    private Dictionary<Division, List<(Rank Rank, FinancingRankBudget Budget)>> _rows = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -83,11 +93,14 @@
     }
 
     private void Fill(FinancingBudgetConfig config)
-        => _rows = RankDisplay.All.ToDictionary(rank => rank, rank =>
-        {
-            var stored = config.For(rank);
-            return new FinancingRankBudget { BaseMonthly = stored.BaseMonthly, CarryOverPercent = stored.CarryOverPercent };
-        });
+        => _rows = DivisionDisplay.All.ToDictionary(division => division, division => RankDisplay.All
+            .Where(rank => DivisionRules.MayHold(division, rank))
+            .Select(rank =>
+            {
+                var stored = config.For(rank, division);
+                return (rank, new FinancingRankBudget { BaseMonthly = stored.BaseMonthly, CarryOverPercent = stored.CarryOverPercent });
+            })
+            .ToList());
 
     private void ResetAsync()
     {
@@ -102,7 +115,11 @@
         {
             var config = new FinancingBudgetConfig
             {
-                Ranks = _rows.ToDictionary(entry => FinancingBudgetConfig.RankKey(entry.Key), entry => entry.Value),
+                // CID doubles as fallback
+                Ranks = _rows[Division.Cid].ToDictionary(row => FinancingBudgetConfig.RankKey(row.Rank), row => row.Budget),
+                Divisions = _rows.ToDictionary(
+                    entry => FinancingBudgetConfig.DivisionKey(entry.Key),
+                    entry => entry.Value.ToDictionary(row => FinancingBudgetConfig.RankKey(row.Rank), row => row.Budget)),
             };
             await Config.SaveAsync(config, _user);
             Snackbar.Add("Finanzierungs-Budgets gespeichert.", Severity.Success);
