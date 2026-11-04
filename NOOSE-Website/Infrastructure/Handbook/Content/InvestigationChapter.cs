@@ -166,12 +166,21 @@ internal static class InvestigationChapter
                 Rechtsgrundlage, Gültigkeit und die Unterschrift. Die Begründung bleibt intern und steht nie auf dem
                 Papier. Ist die Anordnung abgelaufen oder aufgehoben, trägt der Ausdruck den Vermerk
                 <strong>ungültig</strong>.</p>
+                <p>Unten auf dem Papier steht ein <strong>QR-Code</strong> mit der Adresse darunter. Wer ihn scannt,
+                landet auf der öffentlichen Prüfseite <em>/anordnung/…</em>. Sie sagt, ob die Anordnung
+                <strong>gültig</strong>, abgelaufen oder aufgehoben ist, und zeigt Art, Aktenzeichen, Gültigkeit und
+                die Unterschrift, also nur, was ohnehin auf dem Papier steht. Person, Gegenstand, Rechtsgrundlage und
+                Begründung zeigt sie nie. Ein Antrag, eine abgelehnte oder gelöschte Anordnung und eine erfundene
+                Adresse bekommen dieselbe Antwort: gibt es nicht. Die Adresse lässt sich nicht erraten, sie steht nur
+                auf dem Papier. Die Prüfseite ist <strong>standardmäßig abgeschaltet</strong>; die Führung schaltet das
+                Modul <em>Anordnungs-Prüfung</em> bei den Einstellungen des öffentlichen Bereichs ein.</p>
                 <p>Wer eine Anordnung sieht, entscheidet die Personenakte: Sie ist nie weiter sichtbar als die Person
                 und, falls angegeben, der Vorgang, um die es geht. Partnerbehörden sehen Anordnungen nicht.</p>
                 """,
                 RoleplayHtml: """
                 <p>Vorzeigen darfst du nur eine <strong>gültige</strong> Anordnung. Ein abgelaufenes oder aufgehobenes
-                Papier ist wertlos, und ein Anwalt darf das bemerken.</p>
+                Papier ist wertlos, und ein Anwalt darf das bemerken. Wer dir nicht glaubt, scannt den Code in der
+                Spielwelt auf dem Handy und sieht selbst, ob das Papier gilt.</p>
                 """,
                 NavKey: "anordnungen",
                 Steps:
