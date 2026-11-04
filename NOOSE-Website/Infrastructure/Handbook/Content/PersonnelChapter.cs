@@ -392,7 +392,9 @@ internal static class PersonnelChapter
                 <p>Eine <strong>Finanzierung</strong> ist ein Antrag auf Geld aus der Kasse - für Ausrüstung,
                 Fahrzeuge, einen Einsatz. Du stellst ihn selbst; die Führung entscheidet.</p>
                 <p>Jeder Agent hat ein <strong>Monatsbudget</strong>. Ein genehmigter Antrag reserviert davon,
-                die Auszahlung bucht es ab. Deinen Stand siehst du auf derselben Seite.</p>
+                die Auszahlung bucht es ab. Deinen Stand siehst du auf derselben Seite. Wie hoch das Budget ist
+                und welche Positionen du beantragen kannst, hängt an deiner Abteilung und deinem Dienstgrad; das
+                Board richtet sich nach seiner Heimatabteilung.</p>
                 <p>Was die Fraktionskasse in der Regel übernimmt, legt §8.0 der Dienstverordnung fest - vom
                 Jailbreak-Handy über Dienstwaffen bis zu den chemischen Produkten, jeweils mit Höchstmengen. Die
                 vollständige Liste steht unter

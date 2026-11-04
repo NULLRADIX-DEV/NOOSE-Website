@@ -82,7 +82,7 @@ public class FinancingBudgetService(
         AppDbContext db, Agent agent, FinancingBudgetConfig config, CancellationToken cancellationToken)
     {
         var (year, month) = FinancingPeriod.Current();
-        var rules = config.For(agent.Rank);
+        var rules = config.For(agent.Rank, DivisionRules.Of(agent).Home);
         var baseBudget = agent.FinancingBudgetOverride ?? rules.BaseMonthly;
         var carryIn = await CloseElapsedAsync(db, agent, baseBudget, rules.CarryOverPercent, year, month, cancellationToken);
         var consumed = await ConsumedAsync(db, agent.Id, year, month, cancellationToken);

@@ -31,7 +31,12 @@ public sealed class MigrationModelTests : IDisposable
     public void TheRankRemapCoversEveryColumnThatStoresARank()
     {
         // created after the cutover, born with the new rank numbers
-        HashSet<(string Table, string Column)> bornNew = [("Anordnungen", "EntscheiderDienstgrad")];
+        HashSet<(string Table, string Column)> bornNew =
+        [
+            ("Anordnungen", "EntscheiderDienstgrad"),
+            ("Finanzierungspositionen", "MindestDienstgradCtd"),
+            ("Finanzierungspositionen", "MindestDienstgradHrt"),
+        ];
         var stored = new HashSet<(string Table, string Column)>();
         foreach (var entityType in _db.Model.GetEntityTypes())
         {

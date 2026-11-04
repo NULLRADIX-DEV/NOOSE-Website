@@ -24,17 +24,17 @@ public class FinancingCatalogService(
         return await Ordered(db.FinancingItems.AsNoTracking().Where(i => i.IsActive)).ToListAsync(cancellationToken);
     }
 
-    public async Task<List<FinancingItem>> GetActiveForRankAsync(Rank? rank, CancellationToken cancellationToken = default)
+    public async Task<List<FinancingItem>> GetActiveForAsync(Rank? rank, Division? division, CancellationToken cancellationToken = default)
     {
         if (rank is null)
         {
             // no rank, no entitlement
             return new();
         }
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return await Ordered(db.FinancingItems.AsNoTracking()
-                .Where(i => i.IsActive && i.MinimumRank <= rank))
-            .ToListAsync(cancellationToken);
+        // small catalog, filtered in memory
+        return (await GetActiveAsync(cancellationToken))
+            .Where(i => FinancingItemRanks.MayRequest(i, rank, division))
+            .ToList();
     }
 
     public async Task<FinancingItem?> GetAsync(string id, CancellationToken cancellationToken = default)
@@ -100,6 +100,9 @@ public class FinancingCatalogService(
         item.UnitPrice = input.UnitPrice;
         item.SubsidyPercent = input.SubsidyPercent;
         item.MinimumRank = input.MinimumRank;
+        // same as base: stored empty
+        item.MinimumRankCtd = input.MinimumRankCtd == input.MinimumRank ? null : input.MinimumRankCtd;
+        item.MinimumRankHrt = input.MinimumRankHrt == input.MinimumRank ? null : input.MinimumRankHrt;
         item.MaxQuantity = input.MaxQuantity;
         item.IsActive = input.IsActive;
         item.Sorting = input.Sorting;

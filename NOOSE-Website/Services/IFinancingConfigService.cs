@@ -3,7 +3,7 @@ using NOOSE_Website.Models.Financing;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Per-rank funding budget rules, stored as JSON in a single system-setting row.</summary>
+/// <summary>Funding budget rules per division and rank, stored as JSON in a single system-setting row.</summary>
 public interface IFinancingConfigService
 {
     /// <summary>Cached rules for the hot read paths.</summary>

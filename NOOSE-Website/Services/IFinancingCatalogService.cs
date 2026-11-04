@@ -13,8 +13,8 @@ public interface IFinancingCatalogService
     /// <summary>Active positions only, in display order.</summary>
     Task<List<FinancingItem>> GetActiveAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Active positions a given rank may request; an unranked agent sees nothing.</summary>
-    Task<List<FinancingItem>> GetActiveForRankAsync(Rank? rank, CancellationToken cancellationToken = default);
+    /// <summary>Active positions a rank may request in its home division; an unranked agent sees nothing.</summary>
+    Task<List<FinancingItem>> GetActiveForAsync(Rank? rank, Division? division, CancellationToken cancellationToken = default);
 
     Task<FinancingItem?> GetAsync(string id, CancellationToken cancellationToken = default);
 

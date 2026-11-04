@@ -25,18 +25,32 @@
                 <MudStack Spacing="3">
                     <MudTextField T="string" @bind-Value="_editing.Name" Label="Bezeichnung" Variant="Variant.Outlined"
                                   Required="true" RequiredError="Bezeichnung ist erforderlich" MaxLength="200" />
+                    <MudAutocomplete T="string" @bind-Value="_editing.Category" Label="Kategorie"
+                                     Variant="Variant.Outlined" SearchFunc="SearchCategoriesAsync"
+                                     CoerceValue="true" Clearable="true" MaxLength="300"
+                                     HelperText="Freie Eingabe legt eine neue Kategorie an" />
                     <MudGrid>
-                        <MudItem xs="12" md="6">
-                            <MudAutocomplete T="string" @bind-Value="_editing.Category" Label="Kategorie"
-                                             Variant="Variant.Outlined" SearchFunc="SearchCategoriesAsync"
-                                             CoerceValue="true" Clearable="true" MaxLength="300"
-                                             HelperText="Freie Eingabe legt eine neue Kategorie an" />
-                        </MudItem>
-                        <MudItem xs="12" md="6">
-                            <MudSelect T="Rank" @bind-Value="_editing.MinimumRank" Label="Mindest-Dienstgrad" Variant="Variant.Outlined">
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="Rank" @bind-Value="_editing.MinimumRank" Label="Ab Dienstgrad – CID" Variant="Variant.Outlined">
                                 @foreach (var rank in RankDisplay.All)
                                 {
                                     <MudSelectItem T="Rank" Value="@rank">@RankDisplay.Name(rank)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="Rank" @bind-Value="CtdRank" Label="Ab Dienstgrad – CTD" Variant="Variant.Outlined">
+                                @foreach (var rank in RankDisplay.All)
+                                {
+                                    <MudSelectItem T="Rank" Value="@rank">@RankDisplay.Name(rank, Division.Ctd)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="Rank" @bind-Value="HrtRank" Label="Ab Dienstgrad – HRT" Variant="Variant.Outlined">
+                                @foreach (var rank in RankDisplay.All.Where(r => DivisionRules.MayHold(Division.Hrt, r)))
+                                {
+                                    <MudSelectItem T="Rank" Value="@rank">@RankDisplay.Name(rank, Division.Hrt)</MudSelectItem>
                                 }
                             </MudSelect>
                         </MudItem>
@@ -122,7 +136,7 @@
                             <td style="text-align:right">@Money.Format(item.UnitPrice)</td>
                             <td style="text-align:right">@item.SubsidyPercent %</td>
                             <td style="text-align:right">@item.MaxQuantity</td>
-                            <td>@RankDisplay.Name(item.MinimumRank)</td>
+                            <td>@FinancingItemRanks.Label(item)</td>
                             <td>@(item.IsActive ? "Ja" : "Nein")</td>
                             <td style="text-align:right; white-space:nowrap">
                                 @if (_mayManage)
@@ -161,6 +175,23 @@
     private IJSObjectReference? _module;
     private ElementReference _editorAnchor;
     private bool _scrollToEditor;
+
+    // empty shows the CID value
+    private Rank CtdRank
+    {
+        get => _editing?.MinimumRankCtd ?? _editing?.MinimumRank ?? Rank.Trainee;
+        set { if (_editing is not null) { _editing.MinimumRankCtd = value; } }
+    }
+
+    private Rank HrtRank
+    {
+        get
+        {
+            var rank = _editing?.MinimumRankHrt ?? _editing?.MinimumRank ?? Rank.Trainee;
+            return rank < DivisionRules.HrtMinimumRank ? DivisionRules.HrtMinimumRank : rank;
+        }
+        set { if (_editing is not null) { _editing.MinimumRankHrt = value; } }
+    }
 
     private decimal PreviewSubsidy => _editing is null
         ? 0m
@@ -236,6 +267,8 @@
                 UnitPrice = item.UnitPrice,
                 SubsidyPercent = item.SubsidyPercent,
                 MinimumRank = item.MinimumRank,
+                MinimumRankCtd = FinancingItemRanks.For(item, Division.Ctd),
+                MinimumRankHrt = FinancingItemRanks.For(item, Division.Hrt),
                 MaxQuantity = item.MaxQuantity,
                 IsActive = item.IsActive,
                 Sorting = item.Sorting,

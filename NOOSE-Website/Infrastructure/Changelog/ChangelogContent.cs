@@ -654,6 +654,9 @@ public static class ChangelogContent
             Neu("3.0.20-dienstausweis", "In deinem Profil und in der Personalakte druckst du jetzt deinen Dienstausweis "
                 + "mit Foto, Dienstgrad, Dienstnummer und QR-Code. Die Führung druckt ihn für jeden Agenten. Ist die "
                 + "Prüfseite freigeschaltet, sieht jeder, der den Code scannt, ob der Ausweis noch gilt.", "Personal"),
+            Neu("3.0.21-finanzierung-abteilungen", "Der Finanzierungskatalog kennt jetzt eigene Freigaben je Abteilung: "
+                + "das HRT darf manche Waffe und manches Fahrzeug früher beantragen als CID und CTD. Auch das Monatsbudget "
+                + "stellt die Führung jetzt für jede Abteilung und jeden Dienstgrad getrennt ein.", "Finanzierung"),
         ]),
     ];
 }

@@ -4267,6 +4267,14 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("int")
                         .HasColumnName("MindestDienstgrad");
 
+                    b.Property<int?>("MinimumRankCtd")
+                        .HasColumnType("int")
+                        .HasColumnName("MindestDienstgradCtd");
+
+                    b.Property<int?>("MinimumRankHrt")
+                        .HasColumnType("int")
+                        .HasColumnName("MindestDienstgradHrt");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("GeaendertAm");

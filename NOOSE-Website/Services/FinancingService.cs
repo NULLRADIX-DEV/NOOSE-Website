@@ -118,6 +118,8 @@ public class FinancingService(
             throw new InvalidOperationException("Die Team-Leitung stellt keine Finanzierungsanträge.");
         }
 
+        // Board: home thresholds
+        var home = DivisionRules.Of(agent).Home;
         var wanted = input.Lines.Select(l => l.ItemId).ToList();
         var items = await db.FinancingItems.AsNoTracking()
             .Where(i => wanted.Contains(i.Id))
@@ -141,10 +143,11 @@ public class FinancingService(
             {
                 throw new InvalidOperationException($"Die Position „{item.Name}“ ist derzeit nicht finanzierbar.");
             }
-            if (agent.Rank is null || item.MinimumRank > agent.Rank)
+            if (!FinancingItemRanks.MayRequest(item, agent.Rank, home))
             {
+                var minimum = FinancingItemRanks.For(item, home);
                 throw new InvalidOperationException(
-                    $"Die Position „{item.Name}“ ist erst ab {RankDisplay.Name(item.MinimumRank)} verfügbar.");
+                    $"Die Position „{item.Name}“ ist erst ab {RankDisplay.Name(minimum, home)} verfügbar.");
             }
             if (line.Quantity < 1)
             {
