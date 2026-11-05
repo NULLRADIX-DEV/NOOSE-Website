@@ -10,29 +10,19 @@ namespace NOOSE_Website.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "BeteiligteBehoerden",
-                table: "Operationen",
-                type: "varchar(1000)",
-                maxLength: 1000,
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Beweismittel",
-                table: "Operationen",
-                type: "varchar(4000)",
-                maxLength: 4000,
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.AddColumn<string>(
-                name: "Legitimation",
-                table: "Operationen",
-                type: "varchar(2000)",
-                maxLength: 2000,
-                nullable: true)
-                .Annotation("MySql:CharSet", "utf8mb4");
+            // As varchar the row broke the 65,535-byte limit and the first fib deploy stopped halfway, after two of
+            // the three columns. IF NOT EXISTS picks up from there, MODIFY moves anything already there to longtext.
+            migrationBuilder.Sql("""
+                ALTER TABLE `Operationen`
+                    ADD COLUMN IF NOT EXISTS `BeteiligteBehoerden` varchar(1000) CHARACTER SET utf8mb4 NULL,
+                    ADD COLUMN IF NOT EXISTS `Beweismittel` longtext CHARACTER SET utf8mb4 NULL,
+                    ADD COLUMN IF NOT EXISTS `Legitimation` longtext CHARACTER SET utf8mb4 NULL;
+                """);
+            migrationBuilder.Sql("""
+                ALTER TABLE `Operationen`
+                    MODIFY COLUMN `Beweismittel` longtext CHARACTER SET utf8mb4 NULL,
+                    MODIFY COLUMN `Legitimation` longtext CHARACTER SET utf8mb4 NULL;
+                """);
         }
 
         /// <inheritdoc />
