@@ -34,6 +34,9 @@ internal static class ToolsChapter
                 <p>An Akten findest du außerdem den <strong>FIBI-Kurzbrief</strong>: eine kurze
                 Zusammenfassung der Akte auf Knopfdruck - praktisch, wenn du eine fremde Akte zum ersten Mal
                 öffnest.</p>
+                <p>Im <strong>Text-Editor</strong> von Dokumenten, Ankündigungen, Protokollen und Vermerken hat FIBI
+                zwei eigene Knöpfe: Rechtschreibung korrigieren und einen Text nach deiner Beschreibung schreiben. Das
+                Ergebnis siehst du vorher und übernimmst es selbst - mehr dazu unter <em>Der Text-Editor</em>.</p>
                 <p>Partnerbehörden, für die FIBI freigeschaltet ist, bekommen eine eigene
                 <strong>Rechtsauskunft</strong>. Sie beantwortet nur Fragen zu den Gesetzbüchern, zitiert die
                 Paragrafen und kann keine Akte lesen - auch keine freigegebene.</p>
