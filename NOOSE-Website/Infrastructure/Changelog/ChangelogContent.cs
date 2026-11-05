@@ -682,7 +682,7 @@ public static class ChangelogContent
                 + "und in einen beliebigen Schritt zurückstellen. In der Bewerbungsübersicht suchst du nach Name, "
                 + "Aktenzeichen, Bearbeiter oder Arbeitgeber.", "Bewerbungen"),
             Neu("3.0.29-discord-rollen", "Dienstgrad, Abteilung und Kennzeichen landen jetzt von selbst als Rollen im "
-                + "Discord, auch nach einer Kündigung.", "Personal"),
+                + "Discord, und nach einer Kündigung verschwinden die FIB-Rollen dort wieder.", "Personal"),
         ]),
     ];
 }
