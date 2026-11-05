@@ -180,6 +180,20 @@ internal static class ToolsChapter
                 einen Hinweis), der <strong>Not-Aus</strong> für den öffentlichen Bereich und die
                 <strong>Schwellen des Bedrohungs-Scores</strong>, die jede Zahl im ganzen Bestand
                 verschieben.</p>
+                <p>Im Abschnitt <em>Discord-Rollen</em> legt ein Admin fest, welche Discord-Rollen zu welchem
+                Dienstgrad, zu welcher Abteilung und zu welchem Kennzeichen gehören. Danach landen die Rollen eines
+                Agenten von selbst im Discord: bei der Freigabe, bei jeder Beförderung und Versetzung, und nach einer
+                Kündigung nimmt der <strong>Bot</strong> - das Konto, mit dem die Seite im Discord Rollen vergibt - sie
+                wieder weg. Maßgeblich ist immer die Seite. Der Bot überträgt nur von hier nach Discord, nie zurück,
+                und fasst nur Rollen an, die hier zugeordnet sind. Alles andere im Discord bleibt, wie es ist.</p>
+                <p>Damit das klappt, braucht der Bot auf dem Discord-Server das Recht <strong>Rollen verwalten</strong>,
+                und seine eigene Rolle muss in der Rollenliste <strong>über</strong> allen zugeordneten Rollen stehen.
+                Sonst lehnt Discord ab, und der Agent steht mit einem Fehler in der Liste. Schalte den Abgleich nie
+                gleich ein: Mach erst einen <em>Probelauf</em>. Er zeigt für jeden Agenten, welche Rollen dazukämen
+                und welche wegfielen, und schreibt nichts nach Discord. Erst wenn die Liste stimmt, schaltest du
+                <em>Rollenabgleich aktiv</em> ein. Ab dann läuft einmal am Tag ein Abgleich über alle Agenten, und
+                <em>Jetzt abgleichen</em> startet ihn von Hand. Die Zuordnung ändert nur ein Admin, die Führung sieht
+                Stand und Fehler.</p>
                 <p>Die Einstellungen sind der Führung vorbehalten.</p>
                 """,
                 NavKey: "einstellungen"),

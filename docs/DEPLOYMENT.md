@@ -45,6 +45,7 @@ Secrets und Umgebung liegen nur auf dem Server, nie im Repo. Die Schlüssel schr
 - optional `GoogleDrive__ClientId`, `GoogleDrive__ApiKey` und `GoogleDrive__AppId` für den Import über die Google-Anmeldung (siehe unten). Fehlt einer der drei Werte, blendet die App den Weg aus.
 - `Bootstrap__AdminDiscordId`
 - `Llm__ApiKey` für OpenRouter und `Llm__DeepSeek__ApiKey` für DeepSeek direkt. Welchen Anbieter die App nutzt, wählt der KI-Eigner unter `/einstellungen?tab=ki-anbieter`. Wer das ist, bestimmt `Ki__OwnerDiscordId`.
+- optional `Discord__BotToken` für den Discord-Bot, der Dienstgrad, Abteilung und Kennzeichen als Rollen im Discord abgleicht. Fehlt er, bleibt der Abgleich aus. Ein Admin richtet ihn unter `/einstellungen?tab=discord-rollen` ein und schaltet ihn erst nach einem Probelauf an.
 - `TZ=Europe/Berlin`. Ohne diese Zeile läuft der Container in UTC. Weil `.ToLocalTime()` in Blazor Server die Zeitzone des Servers nimmt, sind dann alle Zeiten 2 Stunden zu früh, kurz nach Mitternacht sogar am falschen Tag.
 
 Prod und die FIB-Instanz setzen `Demo__AutoSetup=false` fest in ihrer Compose-Datei.
