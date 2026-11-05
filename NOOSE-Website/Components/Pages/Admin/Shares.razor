@@ -192,6 +192,7 @@ else
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => (int)Selection(x.Id).Home)">Abteilung</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => Selection(x.Id).Hrb)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
                 <MudTh Style="min-width:170px;">Partner</MudTh>
+                <MudTh Style="min-width:170px;">Pate</MudTh>
                 <MudTh Style="text-align:right;">Aktion</MudTh>
             </HeaderContent>
             <RowTemplate>
@@ -254,6 +255,18 @@ else
                             @foreach (var pr in PartnerRankDisplay.All)
                             {
                                 <MudSelectItem Value="pr">@(PartnerRankDisplay.Suffix(pr) is { Length: > 0 } s ? s : "Standard")</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Pate">
+                    @if (Selection(context.Id).Partner is null)
+                    {
+                        <MudSelect T="string" @bind-Value="Selection(context.Id).MentorId" Dense="true" Margin="Margin.Dense"
+                                   Variant="Variant.Outlined" Clearable="true" Placeholder="— (später)">
+                            @foreach (var mentor in _mentors.Where(m => m.Id != context.Id))
+                            {
+                                <MudSelectItem T="string" Value="@mentor.Id">@mentor.Codename</MudSelectItem>
                             }
                         </MudSelect>
                     }
@@ -599,6 +612,7 @@ else
     private PromotionStanding _standing;
     private bool _mayPickDivision;
     private readonly Dictionary<string, SelectionState> _selection = new();
+    private List<Agent> _mentors = new();
 
     private sealed class SelectionState
     {
@@ -636,6 +650,7 @@ else
         // non-null = release as partner
         public PartnerAgency? Partner { get; set; }
         public PartnerRank PartnerDegree { get; set; } = PartnerRank.Member;
+        public string? MentorId { get; set; }
     }
 
     private SelectionState Selection(string agentId)
@@ -691,6 +706,7 @@ else
             _openPromotions = await PersonnelFileService.GetOpenPromotionRequestsAsync(_user);
             var everyone = await AgentService.GetAllAsync();
             _agents = everyone.ToDictionary(a => a.Id);
+            _mentors = everyone.Where(AgentSelection.IsSelectable).OrderBy(a => a.Codename).ToList();
             _agentNames = everyone
                 .ToDictionary(a => a.Id, a => string.IsNullOrWhiteSpace(a.Codename) ? "Unbenannter Agent" : a.Codename);
             foreach (var agent in _pending)
@@ -814,7 +830,7 @@ else
             else
             {
                 if (!await DivisionLimitConfirm.RunAsync(DialogService, confirm =>
-                        AgentService.ReleaseAsync(agent.Id, selection.Degree, selection.Home, selection.Hrb, confirm, _user)))
+                        AgentService.ReleaseAsync(agent.Id, selection.Degree, selection.Home, selection.Hrb, confirm, _user, selection.MentorId)))
                 {
                     return;
                 }

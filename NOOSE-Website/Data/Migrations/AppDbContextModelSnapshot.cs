@@ -7910,6 +7910,71 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("AgentVermerke");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentProbation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AbgeschlossenAm");
+
+                    b.Property<string>("ClosedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AbgeschlossenVonName");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime>("EndsAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("EndetAm");
+
+                    b.Property<string>("MentorAgentId")
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("PateId");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int?>("Outcome")
+                        .HasColumnType("int")
+                        .HasColumnName("Ergebnis");
+
+                    b.Property<int>("ReminderStage")
+                        .HasColumnType("int")
+                        .HasColumnName("ErinnerungsStufe");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("BeginntAm");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("MentorAgentId");
+
+                    b.HasIndex("ClosedAt", "EndsAt");
+
+                    b.ToTable("AgentEinarbeitungen");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest", b =>
                 {
                     b.Property<string>("Id")
@@ -8321,6 +8386,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IstGeloescht");
+
+                    b.Property<bool>("IsMandatory")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstPflicht");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime(6)")
@@ -12933,6 +13002,20 @@ namespace NOOSE_Website.Data.Migrations
                         .HasForeignKey("AgentId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentProbation", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
+                        .WithMany()
+                        .HasForeignKey("MentorAgentId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest", b =>

@@ -459,6 +459,7 @@ public static class SearchCatalog
             ["MeetingAttendance"] = "Kein Freitext; wäre ein Anwesenheits-Orakel über Agenten.",
             ["MeetingMeasure"] = "Zeiger ohne Text; Aufgabe und Wiedervorlage dahinter sind selbst durchsuchbar.",
             ["AgentModuleCompletion"] = "Kein eigener Text; das Modul trägt ihn.",
+            ["AgentProbation"] = "Einarbeitung ohne Freitext; der Abschluss steht als Vermerk in der Personalakte.",
             ["AgentBadge"] = "Auszeichnung ohne Freitext.",
             ["Decoration"] = "Katalog der Ehrenzeichen; Konfiguration, keine Akte.",
             ["DecorationAward"] = "Ehrung eines Agenten; gefunden wird sie über seine Personalakte, nicht über ihren Text.",

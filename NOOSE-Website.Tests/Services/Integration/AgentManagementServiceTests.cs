@@ -256,6 +256,48 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
+    public async Task ReleaseAsync_OpensTheOnboardingPlanAndNotifiesTheMentor()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending), NewAgent("m", AgentStatus.Active, Rank.SeniorSpecialAgent));
+
+        await f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, isHRB: false, confirmOverLimit: false, Admin(), mentorId: "m");
+
+        using var db = f.Ctx.NewContext();
+        var plan = db.AgentProbations.Single(p => p.AgentId == "t");
+        Assert.Equal("m", plan.MentorAgentId);
+        Assert.Null(plan.ClosedAt);
+        Assert.Equal(ProbationRules.DefaultDays, (plan.EndsAt - plan.StartedAt).TotalDays, precision: 3);
+        await f.Notifications.Received().NotifyAsync("m", NotificationType.Account, Arg.Any<string>(), ProbationRules.Route("t"));
+    }
+
+    [Fact]
+    public async Task ReleaseAsync_WithAnInactiveMentor_IsRefusedBeforeAnythingChanges()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending), NewAgent("gone", AgentStatus.Terminated, Rank.SpecialAgent));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, false, false, Admin(), mentorId: "gone"));
+
+        Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+        using var db = f.Ctx.NewContext();
+        Assert.False(db.AgentProbations.Any());
+    }
+
+    [Fact]
+    public async Task PromoteApplicantToAgentAsync_OpensTheOnboardingPlan()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Applicant));
+
+        await f.Svc.PromoteApplicantToAgentAsync("t", Rank.Trainee, Division.Cid, false, false, Admin());
+
+        using var db = f.Ctx.NewContext();
+        Assert.True(db.AgentProbations.Any(p => p.AgentId == "t" && p.MentorAgentId == null));
+    }
+
+    [Fact]
     public async Task ReleaseAsPartnerAsync_RequiresLeadership()
     {
         using var f = Make();

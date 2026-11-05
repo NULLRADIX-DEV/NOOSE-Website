@@ -12,6 +12,7 @@
                 <MudNumericField @bind-Value="_sorting" Label="Sortierung" Variant="Variant.Outlined"
                                  Min="0" HelperText="Kleinere Werte erscheinen zuerst." />
                 <MudSwitch @bind-Value="_isActive" Color="Color.Primary" Label="Aktiv (in Personalakten abschließbar)" />
+                <MudSwitch @bind-Value="_isMandatory" Color="Color.Primary" Label="Pflichtmodul (Teil jeder Einarbeitung)" />
             </MudStack>
         </MudForm>
     </DialogContent>
@@ -31,6 +32,7 @@
     private string? _description;
     private int _sorting;
     private bool _isActive = true;
+    private bool _isMandatory;
 
     protected override void OnInitialized()
     {
@@ -40,6 +42,7 @@
             _description = Value.Description;
             _sorting = Value.Sorting;
             _isActive = Value.IsActive;
+            _isMandatory = Value.IsMandatory;
         }
     }
 
@@ -56,6 +59,7 @@
             Description = string.IsNullOrWhiteSpace(_description) ? null : _description.Trim(),
             Sorting = _sorting,
             IsActive = _isActive,
+            IsMandatory = _isMandatory,
         }));
     }
 

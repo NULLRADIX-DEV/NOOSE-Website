@@ -35,6 +35,8 @@ public class AgentHandoverCoverageTests
         ["AgentBadge.AgentId"] = Own,
         ["AgentInvite.UsedByUserId"] = History,
         ["AgentModuleCompletion.AgentId"] = Own,
+        ["AgentProbation.AgentId"] = Own,
+        ["AgentProbation.MentorAgentId"] = "die Patenschaft vergibt die Führung neu, ein Nachfolger erbt sie nicht ungefragt",
         ["AgentNote.AgentId"] = Own,
         ["AgentPromotionRequest.AgentId"] = Own,
         ["AgentRankHistory.AgentId"] = Own,

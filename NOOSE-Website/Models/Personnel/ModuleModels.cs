@@ -1,4 +1,5 @@
 using NOOSE_Website.Data.Entities.Personnel;
+using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Models.Personnel;
 
@@ -11,7 +12,27 @@ public class ModuleInput
 
     public bool IsActive { get; set; } = true;
 
+    public bool IsMandatory { get; set; }
+
     public int Sorting { get; set; }
+}
+
+/// <summary>An agent's onboarding plan as the personnel file shows it.</summary>
+public record ProbationView(
+    string Id,
+    string? MentorAgentId,
+    string? MentorCodename,
+    DateTime StartedAt,
+    DateTime EndsAt,
+    DateTime? ClosedAt,
+    ProbationOutcome? Outcome,
+    string? ClosedByName,
+    int MandatoryDone,
+    int MandatoryTotal,
+    IReadOnlyList<string> OpenModules,
+    ProbationLight Light)
+{
+    public bool IsOpen => ClosedAt is null;
 }
 
 /// <summary>A training module plus the viewed agent's completion status.</summary>

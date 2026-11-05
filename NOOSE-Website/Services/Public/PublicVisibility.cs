@@ -203,6 +203,7 @@ public static class PublicVisibility
             ["AgentPromotionRequest"] = Personnel,
             ["TrainingModule"] = Personnel,
             ["AgentModuleCompletion"] = Personnel,
+            ["AgentProbation"] = Personnel,
             ["AgentTestAssignment"] = Personnel,
             ["AgentTestAnswer"] = Personnel,
             ["Presentation"] = "Interne Präsentation; nach außen nie.",
