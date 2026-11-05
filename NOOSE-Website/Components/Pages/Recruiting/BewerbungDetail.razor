@@ -161,6 +161,13 @@ else
                                 <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
                                            OnClick="@(() => SetStatus(BewerbungStatus.Angenommen))">Doch annehmen</MudButton>
                             }
+                            <MudMenu Label="Wieder öffnen" StartIcon="@Icons.Material.Filled.Undo" Variant="Variant.Outlined"
+                                     Size="Size.Small" Dense="true" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+                                @foreach (var stage in ReopenStages)
+                                {
+                                    <MudMenuItem OnClick="@(() => Reopen(stage))">@BewerbungStatusDisplay.Name(stage)</MudMenuItem>
+                                }
+                            </MudMenu>
                         </MudStack>
                     }
                 }
@@ -258,6 +265,26 @@ else
             await BewerbungService.SetStatusAsync(Id, target, _note, _user);
             _note = null;
             await LoadAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private static readonly BewerbungStatus[] ReopenStages =
+    [
+        BewerbungStatus.Eingereicht,
+        BewerbungStatus.InSicherheitspruefung,
+        BewerbungStatus.ImTest,
+        BewerbungStatus.ImVorstellungsgespraech,
+    ];
+
+    private async Task Reopen(BewerbungStatus target)
+    {
+        try
+        {
+            await BewerbungService.ReopenAsync(Id, target, _note, _user);
+            _note = null;
+            await LoadAsync();
+            Snackbar.Add($"Bewerbung wieder offen: {BewerbungStatusDisplay.Name(target)}.", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
     }

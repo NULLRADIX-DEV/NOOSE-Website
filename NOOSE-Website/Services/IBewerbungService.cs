@@ -31,6 +31,9 @@ public interface IBewerbungService
     /// <summary>Move the application to a new status (validated transition). HRB/leadership only.</summary>
     Task SetStatusAsync(string id, BewerbungStatus target, string? note, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Put an accepted or rejected application back into an open stage. HRB/leadership with write access only.</summary>
+    Task ReopenAsync(string id, BewerbungStatus target, string? note, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     /// <summary>Record the security-check result; a failed check rejects the application. HRB/leadership only.</summary>
     Task SetSecurityResultAsync(string id, bool passed, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
