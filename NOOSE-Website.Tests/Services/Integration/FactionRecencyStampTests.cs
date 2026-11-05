@@ -231,27 +231,6 @@ public sealed class FactionRecencyStampTests
     // ==================== activities ====================
 
     [Fact]
-    public async Task ActivityCreateAsync_StampsActivities_OnLinkedFaction()
-    {
-        using var ctx = new SqliteTestContext();
-        Seeded(ctx);
-        var svc = new AgentActivityService(ctx.Factory, Substitute.For<IThreatScoreService>());
-
-        await svc.CreateAsync(new AgentActivityInput
-        {
-            Title = "Observation",
-            ActivityDate = DateTime.UtcNow,
-            OrgLinks = { new AgentActivityOrgRef { TargetType = nameof(Faction), TargetId = "f1" } },
-        }, Leader());
-
-        var faction = await ReloadAsync(ctx);
-        Assert.NotNull(faction.ActivitiesRefreshedAt);
-        Assert.Null(faction.MembersRefreshedAt);
-        Assert.Null(faction.StockRefreshedAt);
-        Assert.Null(faction.DocsRefreshedAt);
-    }
-
-    [Fact]
     public async Task ActivityDeleteAsync_StampsActivities_OnFormerlyLinkedFaction()
     {
         using var ctx = new SqliteTestContext();

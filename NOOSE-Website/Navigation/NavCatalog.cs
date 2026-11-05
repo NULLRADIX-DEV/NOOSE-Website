@@ -36,7 +36,7 @@ public static class NavCatalog
             Description: "Alle eigenen Benachrichtigungen — filtern, blättern, wieder als ungelesen markieren"),
         new NavEntry("aufgaben", "/aufgaben", Icons.Material.Filled.AssignmentTurnedIn, "Aufgaben-Board", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "To-dos des Teams als Board — für alle Agenten sichtbar"),
-        new NavEntry("aktivitaeten", "/aktivitaeten", Icons.Material.Filled.Bolt, "Dienst-Aktivitäten", NavSection.MeinDienst, NavArea.MeinDienst,
+        new NavEntry("aktivitaeten", "/aktivitaeten", Icons.Material.Filled.Bolt, "Aktivitäten (Archiv)", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Diensteinträge, die Agenten über sich selbst führen — für alle sichtbar"),
         new NavEntry("abmeldungen", "/abmeldungen", Icons.Material.Filled.EventBusy, "Abmeldungen", NavSection.MeinDienst, NavArea.MeinDienst,
             Description: "Eigene Abwesenheiten melden und einsehen"),

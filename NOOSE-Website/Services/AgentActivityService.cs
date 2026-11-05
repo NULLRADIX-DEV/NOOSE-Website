@@ -115,32 +115,12 @@ public class AgentActivityService(IDbContextFactory<AppDbContext> dbFactory, ITh
             .ToListAsync(cancellationToken);
     }
 
-    public async Task<AgentActivity> CreateAsync(AgentActivityInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    /// <inheritdoc />
+    /// <remarks>Closed since deployments became operations; the old reports stay readable and editable.</remarks>
+    public Task<AgentActivity> CreateAsync(AgentActivityInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireWriteAccess(actor);
-        var title = (input.Title ?? string.Empty).Trim();
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            throw new InvalidOperationException("Der Titel darf nicht leer sein.");
-        }
-
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var activity = new AgentActivity
-        {
-            Title = title,
-            Kind = input.Kind.TrimToNull(),
-            ActivityDate = input.ActivityDate.ToUniversalTime(),
-            ContentHtml = HtmlCleanup.Clean(input.ContentHtml),
-        };
-        foreach (var link in DistinctOrgLinks(input.OrgLinks))
-        {
-            activity.Links.Add(new AgentActivityLink { TargetType = link.TargetType, TargetId = link.TargetId });
-        }
-
-        db.AgentActivities.Add(activity);
-        await db.SaveChangesAsync(cancellationToken);
-        await FactionsTouchedAsync(db, FactionLinkIds(activity.Links), cancellationToken);
-        return activity;
+        throw new InvalidOperationException("Neue Aktivitäten gibt es nicht mehr: einen Einsatz legst du als Operation an.");
     }
 
     public async Task UpdateAsync(string id, AgentActivityInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

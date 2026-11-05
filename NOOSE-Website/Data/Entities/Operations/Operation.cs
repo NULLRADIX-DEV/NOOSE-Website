@@ -40,6 +40,18 @@ public class Operation : IAuditable, ISoftDelete, IClassifiableRecord, IArchivab
     [Column("Bemerkungen")]
     public string? Remarks { get; set; }
 
+    /// <summary>Why the bureau took part, as the duty regulation asks for a foreign incident.</summary>
+    [Column("Legitimation")]
+    public string? Legitimation { get; set; }
+
+    /// <summary>Other agencies on scene; text with mention tokens.</summary>
+    [Column("BeteiligteBehoerden")]
+    public string? InvolvedAgencies { get; set; }
+
+    /// <summary>Evidence secured, as free text.</summary>
+    [Column("Beweismittel")]
+    public string? Evidence { get; set; }
+
     [Column("Einstufung")]
     public Classification Classification { get; set; } = Classification.Unknown;
 

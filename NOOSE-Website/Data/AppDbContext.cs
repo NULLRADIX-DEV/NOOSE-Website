@@ -1021,6 +1021,9 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(o => o.Expiry).HasMaxLength(4000);
             b.Property(o => o.Result).HasMaxLength(4000);
             b.Property(o => o.Remarks).HasMaxLength(2000);
+            b.Property(o => o.Legitimation).HasMaxLength(2000);
+            b.Property(o => o.InvolvedAgencies).HasMaxLength(1000);
+            b.Property(o => o.Evidence).HasMaxLength(4000);
             b.Property(o => o.ArchiveReason).HasMaxLength(300);
             b.HasIndex(o => o.CaseNumber).IsUnique();
             // the stock listings ask for this on every page load

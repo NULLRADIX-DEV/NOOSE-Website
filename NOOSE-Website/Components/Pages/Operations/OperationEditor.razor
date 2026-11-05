@@ -1,6 +1,9 @@
 @page "/operationen/neu"
 @page "/operationen/{Id}/bearbeiten"
 @inject IOperationService OperationService
+@inject ILinkService LinkService
+@inject IFactionService FactionService
+@inject IPersonGroupService GroupService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
@@ -26,6 +29,12 @@ else
         <MudText Typo="Typo.h4">@(IsEdit ? "Operation bearbeiten" : "Neue Operation anlegen")</MudText>
     </MudStack>
 
+    @if (!IsEdit && _prelinkName is not null)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+            Wird nach dem Anlegen mit „@_prelinkName“ verknüpft.
+        </MudAlert>
+    }
     <MudForm @ref="_form">
         <OperationForm DraftScope="@DraftScope" @key="_loadedId" Input="_input" ShowClassification="@(!IsEdit)" MayHighest="_mayHighest"
                        IsLeadership="_isLeadership" SecrecyOptions="_secrecyOptions" />
@@ -47,6 +56,12 @@ else
 @code {
     [Parameter] public string? Id { get; set; }
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+    /// <summary>Faction to link on create, e.g. from the deployments tab of a faction.</summary>
+    [SupplyParameterFromQuery(Name = "fraktion")] public string? FactionId { get; set; }
+    /// <summary>Person group to link on create.</summary>
+    [SupplyParameterFromQuery(Name = "personengruppe")] public string? GroupId { get; set; }
+
+    private string? _prelinkName;
 
     // RouteView only supplies the matched template's route values, so a stale Id survives bearbeiten -> neu
     private bool IsEdit { get; set; }
@@ -92,6 +107,7 @@ else
         if (!IsEdit)
         {
             _input = new OperationInput();
+            _prelinkName = await PrelinkNameAsync();
             _load = false;
             return;
         }
@@ -105,17 +121,64 @@ else
                 Type = o.Type,
                 Status = o.Status,
                 Location = o.Location,
-                Start = o.Start,
-                End = o.End,
+                Start = o.Start?.ToLocalTime(),
+                End = o.End?.ToLocalTime(),
                 Expiry = o.Expiry,
                 Result = o.Result,
                 Remarks = o.Remarks,
+                Legitimation = o.Legitimation,
+                InvolvedAgencies = o.InvolvedAgencies,
+                Evidence = o.Evidence,
                 Classification = o.Classification,
                 SecrecyLevel = o.SecrecyLevel,
             };
         }
         _loadedSecrecy = _input?.SecrecyLevel ?? DocumentClassification.None;
         _load = false;
+    }
+
+    private (string Type, string Id)? Prelink => (FactionId, GroupId) switch
+    {
+        ({ Length: > 0 } f, _) => (nameof(Faction), f),
+        (_, { Length: > 0 } g) => (nameof(PersonGroup), g),
+        _ => null,
+    };
+
+    // shown before saving, so the agent sees what the record will hang on
+    private async Task<string?> PrelinkNameAsync()
+    {
+        if (Prelink is not { } p)
+        {
+            return null;
+        }
+        try
+        {
+            var scope = ViewerScope.From(_user);
+            return p.Type == nameof(Faction)
+                ? (await FactionService.GetDetailAsync(p.Id, scope))?.Name
+                : (await GroupService.GetDetailAsync(p.Id, scope))?.Name;
+        }
+        catch
+        {
+            return null; /* best effort */
+        }
+    }
+
+    private async Task PrelinkAsync(string operationId)
+    {
+        if (Prelink is not { } p || _prelinkName is null)
+        {
+            return;
+        }
+        try
+        {
+            await LinkService.CreateAsync(nameof(Operation), operationId, p.Type, p.Id, null, _user,
+                allowedTargetTypes: NOOSE_Website.Services.LinkService.InvolvedTypes);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Verknüpfung nicht gespeichert: {ex.Message}", Severity.Warning);
+        }
     }
 
     private async Task SaveAsync()
@@ -154,6 +217,7 @@ else
             {
                 var operation = await OperationService.CreateAsync(_input, _user);
                 await TextDraft.DiscardScopeAsync(JS, _user.GetAgentId(), DraftScope);
+                await PrelinkAsync(operation.Id);
                 Snackbar.Add($"Operation {operation.CaseNumber} angelegt.", Severity.Success);
                 Nav.NavigateTo($"/operationen/{operation.Id}");
             }

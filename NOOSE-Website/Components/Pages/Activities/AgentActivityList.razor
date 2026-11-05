@@ -13,11 +13,15 @@
         <MudButton Href="/papierkorb?tab=aktivitaeten" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
     </AuthorizeView>
     <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
-        <MudButton Href="/aktivitaeten/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Aktivität</MudButton>
+        <MudButton Href="/operationen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Radar">Neuer Einsatz</MudButton>
     </AuthorizeView>
 </MudStack>
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+    Einsätze erfasst du jetzt als <MudLink Href="/operationen">Operation</MudLink> mit Einsatztagebuch und Einsatzbericht.
+    Die Aktivitäten hier bleiben lesbar und zählen weiter für die Fraktionen; neue kommen nicht mehr dazu.
+</MudAlert>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Dokumentiere deine eigenen Aktivitäten. Jeder sieht alle Aktivitäten; bearbeiten darf nur der Ersteller oder die Führung.
+    Archiv der bisherigen Dienst-Aktivitäten. Jeder sieht alle; bearbeiten darf nur der Ersteller oder die Führung.
 </MudText>
 
 @if (_load)
@@ -79,10 +83,7 @@ else
         <NoRecordsContent>
             <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
                 <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Default" Size="Size.Large" />
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Aktivitäten – lege die erste an.</MudText>
-                <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
-                    <MudButton Href="/aktivitaeten/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Aktivität</MudButton>
-                </AuthorizeView>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Aktivitäten im Archiv.</MudText>
             </MudStack>
         </NoRecordsContent>
         <PagerContent>

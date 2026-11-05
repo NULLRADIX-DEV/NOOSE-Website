@@ -1,15 +1,16 @@
-@* Activities linked to a faction / person group, shown on its detail tab; add opens the pre-linked editor. *@
+@* Deployments (operations) and archived activities linked to a faction / person group; add opens a pre-linked operation. *@
 @using System.Security.Claims
 @inject IAgentActivityService ActivityService
+@inject IOperationService OperationService
 @inject NavigationManager Nav
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-    <MudText Typo="Typo.subtitle1">Aktivitäten@(_rows.Count > 0 ? $" ({_rows.Count})" : "")</MudText>
+    <MudText Typo="Typo.subtitle1">Einsätze@(_operations.Count > 0 ? $" ({_operations.Count})" : "")</MudText>
     <MudSpacer />
     @if (_mayWrite)
     {
         <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add" OnClick="Add">Aktivität hinzufügen</MudButton>
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="Add">Einsatz anlegen</MudButton>
     }
 </MudStack>
 
@@ -17,29 +18,55 @@
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-else if (_rows.Count == 0)
-{
-    <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine verknüpften Aktivitäten.</MudText>
-}
 else
 {
-    <MudList T="AgentActivityListItem" Dense="true">
-        @foreach (var a in _rows)
-        {
-            <MudListItem T="AgentActivityListItem" Icon="@Icons.Material.Filled.Bolt"
-                         OnClick="@(() => Open(a))" Style="cursor:pointer;">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-                    <MudText Typo="Typo.body1">@a.Title</MudText>
-                    @if (!string.IsNullOrWhiteSpace(a.Kind))
-                    {
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@a.Kind</MudChip>
-                    }
-                    <MudSpacer />
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@a.OwnerName · @a.ActivityDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
-                </MudStack>
-            </MudListItem>
-        }
-    </MudList>
+    @if (_operations.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine verknüpften Einsätze.</MudText>
+    }
+    else
+    {
+        <MudList T="Operation" Dense="true">
+            @foreach (var o in _operations)
+            {
+                <MudListItem T="Operation" Icon="@Icons.Material.Filled.Radar"
+                             OnClick="@(() => Nav.NavigateTo($"/operationen/{o.Id}"))" Style="cursor:pointer;">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                        <MudText Typo="Typo.body1">@o.Title</MudText>
+                        @if (!string.IsNullOrWhiteSpace(o.Type))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@o.Type</MudChip>
+                        }
+                        <OperationStatusChip Status="o.Status" />
+                        <MudSpacer />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@o.CaseNumber · @OperationLinks.When(o).ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    }
+
+    @if (_activities.Count > 0)
+    {
+        <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Ältere Aktivitäten (@_activities.Count)</MudText>
+        <MudList T="AgentActivityListItem" Dense="true">
+            @foreach (var a in _activities)
+            {
+                <MudListItem T="AgentActivityListItem" Icon="@Icons.Material.Filled.Bolt"
+                             OnClick="@(() => Nav.NavigateTo($"/aktivitaeten/{a.Id}"))" Style="cursor:pointer;">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                        <MudText Typo="Typo.body1">@a.Title</MudText>
+                        @if (!string.IsNullOrWhiteSpace(a.Kind))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@a.Kind</MudChip>
+                        }
+                        <MudSpacer />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@a.OwnerName · @a.ActivityDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                    </MudStack>
+                </MudListItem>
+            }
+        </MudList>
+    }
 }
 
 @code {
@@ -49,18 +76,19 @@ else
 
     private bool _load = true;
     private bool _mayWrite;
-    private List<AgentActivityListItem> _rows = new();
+    private List<Operation> _operations = new();
+    private List<AgentActivityListItem> _activities = new();
 
     protected override async Task OnInitializedAsync()
     {
         _mayWrite = User.MayWrite();
-        _rows = await ActivityService.GetLinkedAsync(EntityType, EntityId, ViewerScope.From(User));
+        var scope = ViewerScope.From(User);
+        _operations = await OperationService.GetLinkedAsync(EntityType, EntityId, scope);
+        _activities = await ActivityService.GetLinkedAsync(EntityType, EntityId, scope);
         _load = false;
     }
 
-    private void Open(AgentActivityListItem a) => Nav.NavigateTo($"/aktivitaeten/{a.Id}");
-
-    // open the activities editor with this record pre-linked
+    // a new deployment, already linked to this record
     private void Add()
     {
         var query = EntityType switch
@@ -69,6 +97,6 @@ else
             nameof(PersonGroup) => $"?personengruppe={EntityId}",
             _ => string.Empty,
         };
-        Nav.NavigateTo($"/aktivitaeten/neu{query}");
+        Nav.NavigateTo($"/operationen/neu{query}");
     }
 }

@@ -141,6 +141,15 @@ else
     {
         _user = (await AuthStateTask).User;
         _edit = !string.IsNullOrEmpty(Id);
+        // new deployments are operations now; the old reports stay editable
+        if (!_edit)
+        {
+            var query = PreFactionId is { Length: > 0 } f ? $"?fraktion={Uri.EscapeDataString(f)}"
+                : PreGroupId is { Length: > 0 } g ? $"?personengruppe={Uri.EscapeDataString(g)}"
+                : string.Empty;
+            Nav.NavigateTo($"/operationen/neu{query}", replace: true);
+            return;
+        }
         _kinds = await ActivityService.GetKindsAsync();
 
         if (_edit)

@@ -1,4 +1,4 @@
-@* Quick capture from the top bar: a new record, a note on an existing one, or an activity of your own. *@
+@* Quick capture from the top bar: a new record, a note on an existing one, or a deployment. *@
 @using NOOSE_Website.Services.Search
 @inject IPersonService PersonService
 @inject IFactionService FactionService
@@ -9,7 +9,8 @@
 @inject ITaskforceService TaskforceService
 @inject IJobService JobService
 @inject ICommentService CommentService
-@inject IAgentActivityService ActivityService
+@inject IProfileSuggestionService SuggestionService
+@inject ILinkService LinkService
 @inject IDialogService DialogService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -47,24 +48,25 @@
                 </MudStack>
             </MudTabPanel>
 
-            <MudTabPanel Text="Aktivität" Icon="@Icons.Material.Filled.Bolt">
+            <MudTabPanel Text="Einsatz" Icon="@Icons.Material.Filled.Radar">
                 <MudStack Spacing="3">
                     <MudTextField @bind-Value="_activityTitle" Label="Titel" Variant="Variant.Outlined"
-                                  Immediate="true" MaxLength="200" />
+                                  Immediate="true" MaxLength="200" Placeholder="z. B. Bankraub – Bloc13" />
                     <MudStack Row="true" Spacing="2">
-                        <MudAutocomplete T="string" @bind-Value="_activityKind" Label="Art" Variant="Variant.Outlined"
+                        <MudAutocomplete T="string" @bind-Value="_activityKind" Label="Typ" Variant="Variant.Outlined"
                                          SearchFunc="SearchKinds" CoerceValue="true" Clearable="true"
                                          MinCharacters="0" Immediate="true" Class="flex-grow-1" />
                         <MudDatePicker @bind-Date="_activityDate" Label="Datum" Variant="Variant.Outlined" />
                         <MudTimePicker @bind-Time="_activityTime" Label="Uhrzeit" Variant="Variant.Outlined" AmPm="false" />
                     </MudStack>
-                    <MentionInput @ref="_activityInput" @bind-Text="_activityText" Lines="3" Placeholder="@ActivityPlaceholder"
-                                  DraftKey="schnellerfassung:aktivitaet" />
                     <QuickRecordPicker Allowed="QuickCapture.ActivityTargets" @bind-Value="_activityOrg"
                                        Label="Fraktion oder Gruppe (optional)" Placeholder="Suchen …"
-                                       HelperText="Verknüpft die Aktivität mit der Akte; bei einer Fraktion frischt das ihre Aktualität auf." />
+                                       HelperText="Verknüpft den Einsatz als Beteiligte; bei einer Fraktion zählt er für Score und Aktualität." />
+                    <MudSwitch T="bool" @bind-Value="_running" Color="Color.Primary" Label="@RunningLabel" />
+                    <MentionInput @ref="_activityInput" @bind-Text="_activityText" Lines="3" Placeholder="@ActivityPlaceholder"
+                                  DraftKey="schnellerfassung:einsatz" />
                     <MudLink Typo="Typo.caption" OnClick="LongFormAsync">
-                        Ausführlich erfassen – mit Vorlage und formatiertem Text
+                        Ausführlich erfassen – mit Beteiligten, Legitimation und Beweismitteln
                     </MudLink>
                 </MudStack>
             </MudTabPanel>
@@ -101,7 +103,7 @@
     private const int ActivityTab = 2;
 
     private const string NotePlaceholder = "Was ist festzuhalten? (Verlinken per @, Strg+Enter speichert)";
-    private const string ActivityPlaceholder = "Ein paar Sätze (optional, Verlinken per @)";
+    private const string ActivityPlaceholder = "Sachverhalt in ein paar Sätzen (optional, Verlinken per @)";
 
     private int _tab;
     private bool _busy;
@@ -124,6 +126,11 @@
     private QuickHit? _activityOrg;
     private List<string> _kinds = new();
     private bool _kindsLoaded;
+    private bool _running;
+
+    private string RunningLabel => _running
+        ? "Läuft noch – danach das Einsatztagebuch öffnen"
+        : "Ist vorbei – als abgeschlossen festhalten";
 
     private string DesignationLabel => _type is nameof(Operation) or nameof(Case) or nameof(Job) ? "Titel" : "Name";
 
@@ -144,7 +151,7 @@
     private string SubmitLabel => _tab switch
     {
         NoteTab => _busy ? "Wird gespeichert…" : "Vermerk speichern",
-        ActivityTab => _busy ? "Wird gespeichert…" : "Aktivität festhalten",
+        ActivityTab => _busy ? "Wird gespeichert…" : _running ? "Einsatz starten" : "Einsatz festhalten",
         _ => _busy ? "Wird angelegt…" : "Anlegen",
     };
 
@@ -159,13 +166,15 @@
     private async Task TabChangedAsync(int index)
     {
         _tab = index;
-        // the kinds cost a query, so the two other tabs never pay for them
+        // the types cost a query, so the two other tabs never pay for them
         if (index == ActivityTab && !_kindsLoaded)
         {
             _kindsLoaded = true;
             try
             {
-                _kinds = await ActivityService.GetKindsAsync();
+                var types = await SuggestionService.GetAsync(SuggestionType.OperationType);
+                var kinds = await SuggestionService.GetActivityKindsAsync();
+                _kinds = OperationTypeSuggestions.Merge(types, kinds.Select(k => k.Value));
             }
             catch (Exception)
             {
@@ -243,27 +252,42 @@
         var user = (await AuthStateTask).User;
         try
         {
-            var input = new AgentActivityInput
+            var input = new OperationInput
             {
                 Title = title,
-                Kind = string.IsNullOrWhiteSpace(_activityKind) ? null : _activityKind.Trim(),
+                Type = string.IsNullOrWhiteSpace(_activityKind) ? null : _activityKind.Trim(),
+                Status = _running ? OperationStatus.Running : OperationStatus.Completed,
                 // combine date+time as local; the service converts to UTC
-                ActivityDate = _activityDate.Value.Date + (_activityTime ?? TimeSpan.Zero),
-                ContentHtml = HtmlCleanup.FromPlain(_activityText),
-                OrgLinks = _activityOrg is { } org
-                    ? new List<AgentActivityOrgRef>
-                    {
-                        new() { TargetType = org.Category, TargetId = org.TargetId, DisplayName = org.Name },
-                    }
-                    : new List<AgentActivityOrgRef>(),
+                Start = _activityDate.Value.Date + (_activityTime ?? TimeSpan.Zero),
+                Expiry = string.IsNullOrWhiteSpace(_activityText) ? null : _activityText,
             };
-            await ActivityService.CreateAsync(input, user);
+            var operation = await OperationService.CreateAsync(input, user);
+            if (_activityOrg is { } org)
+            {
+                try
+                {
+                    await LinkService.CreateAsync(nameof(Operation), operation.Id, org.Category, org.TargetId, null, user,
+                        allowedTargetTypes: NOOSE_Website.Services.LinkService.InvolvedTypes);
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"Verknüpfung mit „{org.Name}“ nicht gespeichert: {ex.Message}", Severity.Warning);
+                }
+            }
             if (_activityInput is not null)
             {
                 await _activityInput.MarkSavedAsync();
             }
-            Snackbar.Add("Aktivität festgehalten.", Severity.Success);
             MudDialog.Close(DialogResult.Ok(true));
+            if (_running)
+            {
+                Snackbar.Add($"Einsatz {operation.CaseNumber} läuft – führe jetzt das Einsatztagebuch.", Severity.Success);
+                Nav.NavigateTo($"/operationen/{operation.Id}?tab=einsatztagebuch");
+            }
+            else
+            {
+                Snackbar.Add($"Einsatz {operation.CaseNumber} festgehalten.", Severity.Success);
+            }
         }
         catch (Exception ex)
         {
@@ -283,7 +307,7 @@
             || !string.IsNullOrWhiteSpace(_activityKind))
         {
             var ok = await ConfirmDialog.ShowAsync(DialogService, "Ausführlich erfassen?",
-                "Titel, Art und Text nimmt das ausführliche Formular nicht mit – nur die gewählte Organisation.",
+                "Titel, Typ und Text nimmt das ausführliche Formular nicht mit – nur die gewählte Organisation.",
                 "Zum Formular", Color.Warning);
             if (!ok)
             {
@@ -293,9 +317,9 @@
 
         var target = _activityOrg switch
         {
-            { Category: nameof(Faction) } f => $"/aktivitaeten/neu?fraktion={f.TargetId}",
-            { Category: nameof(PersonGroup) } g => $"/aktivitaeten/neu?personengruppe={g.TargetId}",
-            _ => "/aktivitaeten/neu",
+            { Category: nameof(Faction) } f => $"/operationen/neu?fraktion={f.TargetId}",
+            { Category: nameof(PersonGroup) } g => $"/operationen/neu?personengruppe={g.TargetId}",
+            _ => "/operationen/neu",
         };
         MudDialog.Close(DialogResult.Ok(true));
         Nav.NavigateTo(target);

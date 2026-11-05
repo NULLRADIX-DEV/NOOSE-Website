@@ -483,7 +483,10 @@ public static partial class DossierContextBuilder
         Line(sb, "Ort", o.Location);
         Line(sb, "Beginn", Fmt(o.Start));
         Line(sb, "Ende", Fmt(o.End));
+        Line(sb, "Beteiligte Behörden", o.InvolvedAgencies);
+        Line(sb, "Legitimation", o.Legitimation);
         Line(sb, "Ablauf", o.Expiry);
+        Line(sb, "Beweismittel", o.Evidence);
         Line(sb, "Ergebnis", o.Result);
         Line(sb, "Bemerkungen", o.Remarks);
 
