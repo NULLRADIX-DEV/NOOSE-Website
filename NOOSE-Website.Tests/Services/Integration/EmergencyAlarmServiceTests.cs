@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Infrastructure.Chat;
@@ -19,7 +20,43 @@ public sealed class EmergencyAlarmServiceTests
         var broadcaster = new EmergencyAlarmBroadcaster();
         var reports = new List<string>();
         broadcaster.Modified += reports.Add;
-        return (new EmergencyAlarmService(ctx.Factory, broadcaster, notifications), notifications, reports);
+        return (new EmergencyAlarmService(ctx.Factory, broadcaster, notifications, Operations(ctx)), notifications, reports);
+    }
+
+    // real service, so allocation and its rights run along
+    private static OperationService Operations(SqliteTestContext ctx)
+    {
+        var caseNo = Substitute.For<ICaseNumberService>();
+        // unique across service instances
+        caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ => $"FIB-OP-{Guid.NewGuid():N}");
+        return new OperationService(ctx.Factory, caseNo, Substitute.For<IProfileSuggestionService>(),
+            Substitute.For<INotificationService>());
+    }
+
+    private static Operation StoredOperation(SqliteTestContext ctx, string operationId)
+    {
+        using var db = ctx.NewContext();
+        return db.Operations.AsNoTracking().Include(o => o.Agents).Single(o => o.Id == operationId);
+    }
+
+    private static int OperationCount(SqliteTestContext ctx)
+    {
+        using var db = ctx.NewContext();
+        return db.Operations.Count();
+    }
+
+    // trigger, answer, end: the state convert and attach need
+    private static async Task<string> EndedAlarmAsync(EmergencyAlarmService svc, ClaimsPrincipal triggerer,
+        EmergencyAlarmInput input, params (string Id, EmergencyAlarmAnswer Answer)[] answers)
+    {
+        var id = await svc.TriggerAsync(input, triggerer);
+        foreach (var (agentId, answer) in answers)
+        {
+            await svc.RespondAsync(id, answer, Junior(agentId));
+        }
+        await svc.EndAsync(id, triggerer);
+        return id;
     }
 
     private static ClaimsPrincipal As(string id, Rank rank)
@@ -483,5 +520,228 @@ public sealed class EmergencyAlarmServiceTests
         Assert.Equal(EmergencyAlarmAnswer.Coming, detail.MyAnswer);
         Assert.Equal(detail.Summary.TriggeredAt + EmergencyAlarmRules.Duration, detail.Expiry);
         Assert.Null(await svc.GetDetailAsync("missing", Leader()));
+    }
+
+    [Fact]
+    public async Task GetDetail_RowsComingThenNotComingThenOpen()
+    {
+        using var ctx = new SqliteTestContext();
+        // names sort against the wanted order
+        Agents(ctx, Agent("zz", Rank.SectionChief), Agent("aa"), Agent("bb"), Agent("cc"));
+        var (svc, _, _) = Build(ctx);
+        var id = await svc.TriggerAsync(Input(), Leader("zz"));
+        await svc.RespondAsync(id, EmergencyAlarmAnswer.NotComing, Junior("aa"));
+        await svc.RespondAsync(id, EmergencyAlarmAnswer.Coming, Junior("cc"));
+
+        var rows = (await svc.GetDetailAsync(id, Leader("zz")))!.Rows;
+
+        Assert.Equal(new[] { "cc", "zz", "aa", "bb" }, rows.Select(r => r.AgentId).ToArray());
+        Assert.Equal(new EmergencyAlarmAnswer?[]
+        {
+            EmergencyAlarmAnswer.Coming, EmergencyAlarmAnswer.Coming, EmergencyAlarmAnswer.NotComing, null,
+        }, rows.Select(r => r.Answer).ToArray());
+    }
+
+    // ---------- best effort and once ----------
+
+    [Fact]
+    public async Task Trigger_RecipientNotificationFails_LeadershipStillAlerted()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("junior"), Agent("a1"), Agent("sc", Rank.SectionChief));
+        var (svc, notifications, _) = Build(ctx);
+        notifications.NotifyManyAsync(Arg.Any<IReadOnlyCollection<string>>(), NotificationType.EmergencyAlarm,
+                Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("down")));
+
+        var id = await svc.TriggerAsync(Input(reason: "Eile"), Junior());
+
+        await notifications.Received(1).NotifyManyAsync(
+            Arg.Is<IReadOnlyCollection<string>>(ids => Same(ids, "sc")), NotificationType.EmergencyAlarmByAgent,
+            Arg.Any<string>(), $"/einsatzalarme/{id}", "junior", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reping_WritesAuditRow()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, _, _) = Build(ctx);
+        var id = await svc.TriggerAsync(Input(), Leader());
+
+        await svc.RepingAsync(id, Leader());
+
+        using var db = ctx.NewContext();
+        var row = Assert.Single(db.AuditLogs.AsNoTracking().Where(l => l.EntityType == nameof(EmergencyAlarm)));
+        Assert.Equal(id, row.EntityId);
+        Assert.Equal(AuditAction.Modified, row.Action);
+        Assert.Equal("lead", row.AgentId);
+        Assert.Contains("Nachgepingt", row.ChangesJson);
+    }
+
+    // ---------- convert / attach ----------
+
+    [Fact]
+    public async Task Convert_CreatesRunningOperationWithComingAgents()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"), Agent("a2"), Agent("a3"));
+        var (svc, _, reports) = Build(ctx);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(),
+            ("a1", EmergencyAlarmAnswer.Coming), ("a2", EmergencyAlarmAnswer.NotComing));
+        reports.Clear();
+
+        var operationId = await svc.ConvertToOperationAsync(id, Leader());
+
+        var operation = StoredOperation(ctx, operationId);
+        var alarm = Stored(ctx, id);
+        Assert.Equal(OperationStatus.Running, operation.Status);
+        Assert.Equal("Geiselnahme", operation.Title);
+        Assert.Equal("Maze Bank", operation.Location);
+        Assert.Equal(alarm.TriggeredAt, operation.Start);
+        Assert.True(Same(operation.Agents.Select(a => a.AgentId).ToList(), "lead", "a1"));
+        Assert.True(operation.Agents.Single(a => a.AgentId == "lead").IsInvestigationLead);
+        Assert.False(operation.Agents.Single(a => a.AgentId == "a1").IsInvestigationLead);
+        Assert.Equal(operationId, alarm.OperationId);
+        Assert.Equal(new[] { id }, reports);
+        var detail = (await svc.GetDetailAsync(id, Leader()))!;
+        Assert.False(detail.MayConvert);
+        Assert.Equal(operationId, detail.Summary.OperationId);
+    }
+
+    [Fact]
+    public async Task Convert_WhileOpen_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, _, _) = Build(ctx);
+        var id = await svc.TriggerAsync(Input(), Leader());
+        var existing = (await Operations(ctx).CreateAsync(new OperationInput { Title = "Bestand" }, Leader())).Id;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ConvertToOperationAsync(id, Leader()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AttachToOperationAsync(id, existing, Leader()));
+
+        Assert.Equal(1, OperationCount(ctx));
+        Assert.Null(Stored(ctx, id).OperationId);
+    }
+
+    [Fact]
+    public async Task Convert_Twice_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, _, _) = Build(ctx);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(), ("a1", EmergencyAlarmAnswer.Coming));
+        var first = await svc.ConvertToOperationAsync(id, Leader());
+        var existing = (await Operations(ctx).CreateAsync(new OperationInput { Title = "Bestand" }, Leader())).Id;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ConvertToOperationAsync(id, Leader()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AttachToOperationAsync(id, existing, Leader()));
+
+        Assert.Equal(2, OperationCount(ctx));
+        Assert.Equal(first, Stored(ctx, id).OperationId);
+        Assert.Single(StoredOperation(ctx, existing).Agents);
+    }
+
+    [Fact]
+    public async Task Convert_SkipsAgentsNoLongerSelectable()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"), Agent("gone"), Agent("partner"));
+        var (svc, _, _) = Build(ctx);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(), ("a1", EmergencyAlarmAnswer.Coming),
+            ("gone", EmergencyAlarmAnswer.Coming), ("partner", EmergencyAlarmAnswer.Coming));
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Single(u => u.Id == "gone").Status = AgentStatus.Terminated;
+            db.Users.Single(u => u.Id == "partner").PartnerAgency = PartnerAgency.LSPD;
+            db.SaveChanges();
+        }
+
+        var operationId = await svc.ConvertToOperationAsync(id, Leader());
+
+        Assert.True(Same(StoredOperation(ctx, operationId).Agents.Select(a => a.AgentId).ToList(), "lead", "a1"));
+        Assert.Equal(operationId, Stored(ctx, id).OperationId);
+    }
+
+    [Fact]
+    public async Task Convert_NoComing_StillCreates()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, _, _) = Build(ctx);
+        var situation = new string('x', EmergencyAlarmRules.MaxSituation);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(situation: situation, location: null),
+            ("a1", EmergencyAlarmAnswer.NotComing));
+
+        var operationId = await svc.ConvertToOperationAsync(id, Leader());
+
+        var operation = StoredOperation(ctx, operationId);
+        Assert.Equal("lead", Assert.Single(operation.Agents).AgentId);
+        Assert.Equal(EmergencyAlarmService.MaxOperationTitle, operation.Title.Length);
+        Assert.Null(operation.Location);
+    }
+
+    [Fact]
+    public async Task Convert_NotTriggererOrLeadership_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("junior"), Agent("a1"));
+        var (svc, _, _) = Build(ctx);
+        var id = await EndedAlarmAsync(svc, Junior(), Input(reason: "Eile"), ("a1", EmergencyAlarmAnswer.Coming));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ConvertToOperationAsync(id, Junior("a1")));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ConvertToOperationAsync(id, Supervision()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ConvertToOperationAsync(id, Partner()));
+
+        Assert.Equal(0, OperationCount(ctx));
+        // the triggerer may, even below leadership
+        var operationId = await svc.ConvertToOperationAsync(id, Junior());
+        Assert.True(Same(StoredOperation(ctx, operationId).Agents.Select(a => a.AgentId).ToList(), "junior", "a1"));
+    }
+
+    [Fact]
+    public async Task Attach_SkipsAlreadyAllocated()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"), Agent("a2"), Agent("a3"));
+        var (svc, _, reports) = Build(ctx);
+        var operations = Operations(ctx);
+        var existing = (await operations.CreateAsync(new OperationInput { Title = "Bestand" }, Leader())).Id;
+        await operations.AgentAllocateAsync(existing, "a1", false, Leader());
+        var id = await EndedAlarmAsync(svc, Leader(), Input(), ("a1", EmergencyAlarmAnswer.Coming),
+            ("a2", EmergencyAlarmAnswer.Coming), ("a3", EmergencyAlarmAnswer.NotComing));
+        reports.Clear();
+
+        await svc.AttachToOperationAsync(id, existing, Leader());
+
+        var operation = StoredOperation(ctx, existing);
+        Assert.True(Same(operation.Agents.Select(a => a.AgentId).ToList(), "lead", "a1", "a2"));
+        Assert.True(operation.Agents.Single(a => a.AgentId == "lead").IsInvestigationLead);
+        Assert.Equal(existing, Stored(ctx, id).OperationId);
+        Assert.Equal(new[] { id }, reports);
+    }
+
+    [Fact]
+    public async Task Attach_NotLeadOrLeadership_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("junior"), Agent("a1"), Agent("sc", Rank.SectionChief));
+        var (svc, _, _) = Build(ctx);
+        var operations = Operations(ctx);
+        var foreign = (await operations.CreateAsync(new OperationInput { Title = "Fremd" }, Leader("sc"))).Id;
+        var own = (await operations.CreateAsync(new OperationInput { Title = "Eigen" }, Junior())).Id;
+        var id = await EndedAlarmAsync(svc, Junior(), Input(reason: "Eile"), ("a1", EmergencyAlarmAnswer.Coming));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.AttachToOperationAsync(id, foreign, Junior()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.AttachToOperationAsync(id, own, Junior("a1")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AttachToOperationAsync(id, "missing", Junior()));
+
+        Assert.Equal("sc", Assert.Single(StoredOperation(ctx, foreign).Agents).AgentId);
+        Assert.Null(Stored(ctx, id).OperationId);
+        // as investigation lead of the target it works
+        await svc.AttachToOperationAsync(id, own, Junior());
+        Assert.True(Same(StoredOperation(ctx, own).Agents.Select(a => a.AgentId).ToList(), "junior", "a1"));
+        Assert.Equal(own, Stored(ctx, id).OperationId);
     }
 }

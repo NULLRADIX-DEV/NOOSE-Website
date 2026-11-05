@@ -20,6 +20,13 @@ public interface IEmergencyAlarmService
     /// <summary>Ends a running alarm by hand; ending a closed one is a no-op.</summary>
     Task EndAsync(string alarmId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Opens a running operation from an ended alarm, allocates everyone coming and returns its id.</summary>
+    Task<string> ConvertToOperationAsync(string alarmId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Links an ended alarm to an existing operation and allocates those coming who are not on it yet.</summary>
+    Task AttachToOperationAsync(string alarmId, string operationId, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default);
+
     /// <summary>The latest 100 alarms, newest first; empty for partners.</summary>
     Task<List<EmergencyAlarmSummary>> GetListAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
