@@ -23,13 +23,21 @@
         </MudSelect>
     </MudItem>
 
-    <MudItem xs="12" md="6">
-        <MudDatePicker @bind-Date="Input.Start" Label="Beginn (optional)" Variant="Variant.Outlined"
+    <MudItem xs="7" md="3">
+        <MudDatePicker @bind-Date="StartDate" Label="Beginn" Variant="Variant.Outlined"
                        Clearable="true" Editable="true" DateFormat="dd.MM.yyyy" />
     </MudItem>
-    <MudItem xs="12" md="6">
-        <MudDatePicker @bind-Date="Input.End" Label="Ende (optional)" Variant="Variant.Outlined"
+    <MudItem xs="5" md="3">
+        <MudTimePicker @bind-Time="StartTime" Label="Uhrzeit" Variant="Variant.Outlined" AmPm="false"
+                       Disabled="@(Input.Start is null)" />
+    </MudItem>
+    <MudItem xs="7" md="3">
+        <MudDatePicker @bind-Date="EndDate" Label="Ende (optional)" Variant="Variant.Outlined"
                        Clearable="true" Editable="true" DateFormat="dd.MM.yyyy" />
+    </MudItem>
+    <MudItem xs="5" md="3">
+        <MudTimePicker @bind-Time="EndTime" Label="Uhrzeit" Variant="Variant.Outlined" AmPm="false"
+                       Disabled="@(Input.End is null)" />
     </MudItem>
 
     <MudItem xs="12" md="6">
@@ -65,21 +73,39 @@
     }
 
     <MudItem xs="12">
+        <MentionInput Text="@(Input.InvolvedAgencies ?? string.Empty)" TextChanged="@(v => Input.InvolvedAgencies = v)"
+                      DraftKey='@DraftKeys.In(DraftScope, "agencies")'
+                      Label="Beteiligte Behörden (optional)" Lines="1" MaxLength="1000"
+                      HelperText="@($"z. B. LSPD, National Guard. {MentionInput.Hint}")" />
+    </MudItem>
+    <MudItem xs="12">
+        <MentionInput Text="@(Input.Legitimation ?? string.Empty)" TextChanged="@(v => Input.Legitimation = v)"
+                      DraftKey='@DraftKeys.In(DraftScope, "legitimation")'
+                      Label="Legitimation" Lines="2" MaxLength="2000"
+                      HelperText="Begründung zur Teilnahme. Pflicht nach §4.6.2, wenn das FIB an der Einsatzlage einer anderen Behörde teilnimmt." />
+    </MudItem>
+    <MudItem xs="12">
         <MentionInput Text="@(Input.Expiry ?? string.Empty)" TextChanged="@(v => Input.Expiry = v)"
                       DraftKey='@DraftKeys.In(DraftScope, "expiry")'
-                      Label="Ablauf" Lines="4"
-                      HelperText="@($"Verlauf des Einsatzes. {MentionInput.Hint}")" />
+                      Label="Ablauf / Sachverhalt" Lines="4"
+                      HelperText="@($"Was ist passiert? Läuft ein Einsatztagebuch, übernimmst du es in der Akte per Knopf. {MentionInput.Hint}")" />
+    </MudItem>
+    <MudItem xs="12">
+        <MentionInput Text="@(Input.Evidence ?? string.Empty)" TextChanged="@(v => Input.Evidence = v)"
+                      DraftKey='@DraftKeys.In(DraftScope, "evidence")'
+                      Label="Beweismittel (optional)" Lines="3" MaxLength="4000"
+                      HelperText="Sichergestellte Waffen, Munition, Gegenstände, am besten je Person." />
     </MudItem>
     <MudItem xs="12">
         <MentionInput Text="@(Input.Result ?? string.Empty)" TextChanged="@(v => Input.Result = v)"
                       DraftKey='@DraftKeys.In(DraftScope, "result")'
-                      Label="Ergebnis" Lines="3" HelperText="Ausgang/Resultat des Einsatzes." />
+                      Label="Ergebnis / Abschlussvermerk" Lines="3" HelperText="Wie ist der Einsatz ausgegangen?" />
     </MudItem>
     <MudItem xs="12">
         <MentionInput Text="@(Input.Remarks ?? string.Empty)" TextChanged="@(v => Input.Remarks = v)"
                       DraftKey='@DraftKeys.In(DraftScope, "remarks")'
                       Label="Bemerkungen" Lines="3"
-                      HelperText="Interne Vermerke (getrennt von Ablauf/Ergebnis)." />
+                      HelperText="Fahrzeuge, Forderungen und alles, was sonst nirgends hingehört." />
     </MudItem>
 </MudGrid>
 
@@ -99,7 +125,35 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _typeSuggestions = await SuggestionService.GetAsync(SuggestionType.OperationType);
+        var types = await SuggestionService.GetAsync(SuggestionType.OperationType);
+        // the kinds the activity reports used, so a deployment keeps its familiar name
+        var kinds = await SuggestionService.GetActivityKindsAsync();
+        _typeSuggestions = OperationTypeSuggestions.Merge(types, kinds.Select(k => k.Value));
+    }
+
+    // date and time edit one value; picking a date keeps the time, clearing it clears both
+    private DateTime? StartDate
+    {
+        get => Input.Start?.Date;
+        set => Input.Start = value is { } d ? d.Date + (Input.Start?.TimeOfDay ?? TimeSpan.Zero) : null;
+    }
+
+    private TimeSpan? StartTime
+    {
+        get => Input.Start?.TimeOfDay;
+        set => Input.Start = Input.Start is { } d ? d.Date + (value ?? TimeSpan.Zero) : null;
+    }
+
+    private DateTime? EndDate
+    {
+        get => Input.End?.Date;
+        set => Input.End = value is { } d ? d.Date + (Input.End?.TimeOfDay ?? TimeSpan.Zero) : null;
+    }
+
+    private TimeSpan? EndTime
+    {
+        get => Input.End?.TimeOfDay;
+        set => Input.End = Input.End is { } d ? d.Date + (value ?? TimeSpan.Zero) : null;
     }
 
     private Task<IEnumerable<string>> TypeSearch(string value, CancellationToken token)

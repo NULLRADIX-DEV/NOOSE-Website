@@ -14,9 +14,13 @@ namespace NOOSE_Website.Services;
 /// <inheritdoc cref="IOperationService" />
 public class OperationService(
     IDbContextFactory<AppDbContext> dbFactory, ICaseNumberService caseNumber, IProfileSuggestionService suggestion,
-    INotificationService notifications) : IOperationService
+    INotificationService notifications, IThreatScoreService? threat = null) : IOperationService
 {
-    private static string MentionScope(Operation o) => MentionNotify.Scope(o.Expiry, o.Result, o.Remarks);
+    private static string MentionScope(Operation o)
+        => MentionNotify.Scope(o.Expiry, o.Result, o.Remarks, o.Legitimation, o.InvolvedAgencies, o.Evidence);
+
+    // the form speaks local time, the column UTC
+    private static DateTime? ToUtc(DateTime? local) => local?.ToUniversalTime();
 
     public async Task<List<Operation>> GetListAsync(ViewerScope scope, ArchiveFilter filter = ArchiveFilter.Active,
         CancellationToken cancellationToken = default)
@@ -81,11 +85,14 @@ public class OperationService(
             Type = input.Type.TrimToNull(),
             Status = input.Status,
             Location = input.Location.TrimToNull(),
-            Start = input.Start,
-            End = input.End,
+            Start = ToUtc(input.Start),
+            End = ToUtc(input.End),
             Expiry = input.Expiry.TrimToNull(),
             Result = input.Result.TrimToNull(),
             Remarks = input.Remarks.TrimToNull(),
+            Legitimation = input.Legitimation.TrimToNull(),
+            InvolvedAgencies = input.InvolvedAgencies.TrimToNull(),
+            Evidence = input.Evidence.TrimToNull(),
             Classification = input.Classification,
             SecrecyLevel = input.SecrecyLevel,
         };
@@ -132,21 +139,30 @@ public class OperationService(
         Permission.RequireMaySeeClassified(actor, operation.SecrecyLevel);
 
         var oldMentions = MentionScope(operation);
+        var oldHeat = (operation.Status, operation.Type, operation.Start);
         operation.Title = input.Title.Trim();
         operation.Type = input.Type.TrimToNull();
         operation.Status = input.Status;
         operation.Location = input.Location.TrimToNull();
-        operation.Start = input.Start;
-        operation.End = input.End;
+        operation.Start = ToUtc(input.Start);
+        operation.End = ToUtc(input.End);
         operation.Expiry = input.Expiry.TrimToNull();
         operation.Result = input.Result.TrimToNull();
         operation.Remarks = input.Remarks.TrimToNull();
+        operation.Legitimation = input.Legitimation.TrimToNull();
+        operation.InvolvedAgencies = input.InvolvedAgencies.TrimToNull();
+        operation.Evidence = input.Evidence.TrimToNull();
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
         CriticalChange.NoteSecrecy(db, nameof(Operation), id, operation.SecrecyLevel, input.SecrecyLevel, input.SecrecyReason, actor);
         operation.SecrecyLevel = input.SecrecyLevel;
 
         await SuggestionsStageAsync(db, operation.IsRestricted, input.Type, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
+
+        if (oldHeat != (operation.Status, operation.Type, operation.Start))
+        {
+            await FactionsTouchedAsync(db, operation, cancellationToken);
+        }
 
         await MentionNotify.DeltaAsync(notifications, oldMentions, MentionScope(operation), "einer Operation",
             nameof(Operation), operation.Id, actor, cancellationToken);
@@ -164,6 +180,7 @@ public class OperationService(
         db.Operations.Remove(operation);
         CriticalChange.NoteDeletion(db, nameof(Operation), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);
+        await FactionsTouchedAsync(db, operation, cancellationToken, stamp: false);
     }
 
     public async Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -180,6 +197,53 @@ public class OperationService(
         operation.DeletedAt = null;
         operation.DeletedById = null;
         await db.SaveChangesAsync(cancellationToken);
+        await FactionsTouchedAsync(db, operation, cancellationToken, stamp: false);
+    }
+
+    public async Task<List<Operation>> GetLinkedAsync(string type, string id, ViewerScope scope,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var ids = await OperationLinks.OperationIdsFor(db, type, id).Distinct().ToListAsync(cancellationToken);
+        if (ids.Count == 0)
+        {
+            return new();
+        }
+        var rows = await VisibleOperations(db, scope)
+            .Where(o => ids.Contains(o.Id))
+            .ToListAsync(cancellationToken);
+        return rows.OrderByDescending(OperationLinks.When).ToList();
+    }
+
+    /// <summary>A deployment is part of its factions' heat and activity freshness; a change there touches both.</summary>
+    private async Task FactionsTouchedAsync(AppDbContext db, Operation operation, CancellationToken cancellationToken,
+        bool stamp = true)
+    {
+        var factionIds = await OperationLinks.FactionIdsAsync(db, operation.Id, cancellationToken);
+        if (factionIds.Count == 0)
+        {
+            return;
+        }
+        if (stamp && OperationLinks.Counts(operation.Status))
+        {
+            await FactionRecency.StampAsync(db, factionIds, FactionRecencyFacet.Activities, cancellationToken);
+        }
+        if (threat is null)
+        {
+            return;
+        }
+        foreach (var factionId in factionIds)
+        {
+            try
+            {
+                await threat.NewCalculateAsync(factionId, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch { /* best effort: the record change stands */ }
+        }
     }
 
     public async Task ArchiveAsync(string id, string? reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

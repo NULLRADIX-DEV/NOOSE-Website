@@ -256,49 +256,7 @@ public sealed class AgentActivityServiceTests
 
     // ==================== CreateAsync ====================
 
-    [Fact]
-    public async Task CreateAsync_PersistsActivity_TrimsFields_WithLinks_AndRecomputesFactions()
-    {
-        using var ctx = new SqliteTestContext();
-        var threat = Substitute.For<IThreatScoreService>();
-        var svc = NewService(ctx, threat);
-        var input = new AgentActivityInput
-        {
-            Title = "  Einsatz  ",
-            Kind = "  Streife  ",
-            ActivityDate = new DateTime(2026, 5, 1, 12, 0, 0, DateTimeKind.Local),
-            ContentHtml = "<p>hi</p>",
-            OrgLinks =
-            {
-                new AgentActivityOrgRef { TargetType = nameof(Faction), TargetId = "f1" },
-                new AgentActivityOrgRef { TargetType = nameof(Faction), TargetId = "f1" }, // duplicate collapsed
-                new AgentActivityOrgRef { TargetType = "Bogus", TargetId = "x" },           // dropped (unsupported type)
-            },
-        };
-
-        var created = await svc.CreateAsync(input, LowRank());
-
-        Assert.Equal("Einsatz", created.Title);
-        Assert.Equal("Streife", created.Kind);
-
-        using var check = ctx.NewContext();
-        var stored = await check.AgentActivities.Include(a => a.Links).SingleAsync(a => a.Id == created.Id);
-        Assert.Equal("Einsatz", stored.Title);
-        var link = Assert.Single(stored.Links);
-        Assert.Equal(nameof(Faction), link.TargetType);
-        Assert.Equal("f1", link.TargetId);
-        await threat.Received(1).NewCalculateAsync("f1", Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task CreateAsync_Throws_WhenEmptyTitle()
-    {
-        using var ctx = new SqliteTestContext();
-        var svc = NewService(ctx);
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.CreateAsync(new AgentActivityInput { Title = "   " }, LowRank()));
-    }
+    // creating is closed since deployments became operations; see DeploymentReportTests.ActivityCreate_IsClosed
 
     [Fact]
     public async Task CreateAsync_Throws_ForReadOnlyActor()

@@ -343,7 +343,7 @@
 
             @if (RoleContext)
             {
-                <MudAutocomplete T="string" @bind-Value="_label" Label="Rolle im Vorgang (optional)"
+                <MudAutocomplete T="string" @bind-Value="_label" Label="@RoleCaption"
                                  SearchFunc="@RoleSearch" Variant="Variant.Outlined"
                                  CoerceText="false" CoerceValue="true" ResetValueOnEmptyText="false"
                                  MinCharacters="0" Immediate="true" MaxItems="20" Clearable="true"
@@ -469,14 +469,17 @@
     private string _targetType = nameof(Person);
     private string? _label;
 
-    // case -> person: the label becomes a role picker (free text allowed)
-    private bool RoleContext => SourceType == nameof(Case) && _targetType == nameof(Person);
+    // case/operation -> person: the label becomes a role picker (free text allowed)
+    private IReadOnlyList<string>? Roles => _targetType == nameof(Person) ? OperationInvolvedRoles.For(SourceType) : null;
+    private bool RoleContext => Roles is not null;
+    private string RoleCaption => SourceType == nameof(Operation) ? "Rolle im Einsatz (optional)" : "Rolle im Vorgang (optional)";
 
-    private static Task<IEnumerable<string>> RoleSearch(string value, CancellationToken token)
+    private Task<IEnumerable<string>> RoleSearch(string value, CancellationToken token)
     {
+        var roles = Roles ?? Array.Empty<string>();
         IEnumerable<string> hit = string.IsNullOrWhiteSpace(value)
-            ? CasePersonRoles.Suggestions
-            : CasePersonRoles.Suggestions.Where(v => v.Contains(value.Trim(), StringComparison.OrdinalIgnoreCase));
+            ? roles
+            : roles.Where(v => v.Contains(value.Trim(), StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(hit);
     }
 

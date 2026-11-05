@@ -111,11 +111,33 @@ else
                 {
                 <RecordSection Group="Akte" Slug="stammdaten" Label="Stammdaten" Icon="@Icons.Material.Filled.Info">
                     <MudStack Spacing="3">
+                        @if (!string.IsNullOrWhiteSpace(_operation.InvolvedAgencies))
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Beteiligte Behörden</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;"><MentionDisplay Text="@_operation.InvolvedAgencies" /></MudText>
+                            </div>
+                        }
+                        @* the bureau's own justification under the duty regulation: internal *@
+                        @if (!_isPartner && !string.IsNullOrWhiteSpace(_operation.Legitimation))
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Legitimation</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;"><MentionDisplay Text="@_operation.Legitimation" /></MudText>
+                            </div>
+                        }
                         @if (!string.IsNullOrWhiteSpace(_operation.Expiry))
                         {
                             <div>
                                 <MudText Typo="Typo.subtitle2">Ablauf</MudText>
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;"><MentionDisplay Text="@_operation.Expiry" /></MudText>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_operation.Evidence))
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Beweismittel</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;"><MentionDisplay Text="@_operation.Evidence" /></MudText>
                             </div>
                         }
                         @if (!string.IsNullOrWhiteSpace(_operation.Result))
@@ -132,7 +154,9 @@ else
                                 <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;"><MentionDisplay Text="@_operation.Remarks" /></MudText>
                             </div>
                         }
-                        @if (string.IsNullOrWhiteSpace(_operation.Expiry) && string.IsNullOrWhiteSpace(_operation.Result) && string.IsNullOrWhiteSpace(_operation.Remarks))
+                        @if (string.IsNullOrWhiteSpace(_operation.Expiry) && string.IsNullOrWhiteSpace(_operation.Result) && string.IsNullOrWhiteSpace(_operation.Remarks)
+                             && string.IsNullOrWhiteSpace(_operation.Evidence) && string.IsNullOrWhiteSpace(_operation.InvolvedAgencies)
+                             && (_isPartner || string.IsNullOrWhiteSpace(_operation.Legitimation)))
                         {
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine weiteren Stammdaten erfasst.</MudText>
                         }

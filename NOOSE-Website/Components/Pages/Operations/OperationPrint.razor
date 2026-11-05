@@ -1,4 +1,4 @@
-﻿@* Print view of an operation file. *@
+﻿@* Print view of an operation, laid out as the deployment report the duty regulation asks for. *@
 @page "/operationen/{Id}/druck"
 @layout PrintLayout
 @inject IOperationService OperationService
@@ -7,7 +7,7 @@
 @inject ICommentService CommentService
 @inject IAccessLogService AccessLog
 
-<PageTitle>@(_operation is null ? "Druckansicht" : $"Operationsakte {_operation.CaseNumber}") · FIB</PageTitle>
+<PageTitle>@(_operation is null ? "Druckansicht" : $"Einsatzbericht {_operation.CaseNumber}") · FIB</PageTitle>
 
 @if (_load)
 {
@@ -19,85 +19,133 @@ else if (_operation is null)
 }
 else
 {
-    <PrintFrame Title="@($"Operationsakte {_operation.CaseNumber}")" BackHref="@($"/operationen/{Id}")"
-                 PrintedBy="@_printBy" IsClassified="_operation.IsClassified">
+    <PrintFrame Title="@($"Einsatzbericht {_operation.CaseNumber}")" BackHref="@($"/operationen/{Id}")"
+                 PrintedBy="@_printBy" IsClassified="_operation.IsRestricted">
         <section>
-            <h2>Stammdaten</h2>
+            <h2>@_operation.Title</h2>
             <table class="druck-felder">
                 <tbody>
-                    <tr><th>Titel</th><td>@_operation.Title</td></tr>
                     <tr><th>Aktenzeichen</th><td>@_operation.CaseNumber</td></tr>
-                    <tr><th>Status</th><td>@OperationStatusDisplay.Name(_operation.Status)</td></tr>
                     @if (!string.IsNullOrWhiteSpace(_operation.Type))
                     {
-                        <tr><th>Typ</th><td>@_operation.Type</td></tr>
+                        <tr><th>Art</th><td>@_operation.Type</td></tr>
+                    }
+                    <tr><th>Status</th><td>@OperationStatusDisplay.Name(_operation.Status)</td></tr>
+                    @if (_operation.IsRestricted)
+                    {
+                        <tr><th>Verschluss</th><td>@DocumentClassificationDisplay.Label(_operation.SecrecyLevel)</td></tr>
                     }
                     @if (TabOn("einstufung"))
                     {
                         <tr><th>Einstufung</th><td>@ClassificationDisplay.Name(_operation.Classification)</td></tr>
                     }
+                    @if (_operation.Start is { } start)
+                    {
+                        <tr><th>Beginn</th><td>@start.ToLocalTime().ToString("dd.MM.yyyy, HH:mm") Uhr</td></tr>
+                    }
+                    @if (_operation.End is { } end)
+                    {
+                        <tr><th>Ende</th><td>@end.ToLocalTime().ToString("dd.MM.yyyy, HH:mm") Uhr</td></tr>
+                    }
                     @if (!string.IsNullOrWhiteSpace(_operation.Location))
                     {
                         <tr><th>Einsatzort</th><td>@_operation.Location</td></tr>
                     }
-                    @if (_operation.Start is { } start)
+                    @if (_leads.Count > 0)
                     {
-                        <tr><th>Beginn</th><td>@start.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
+                        <tr><th>Leitung</th><td>@string.Join(", ", _leads)</td></tr>
                     }
-                    @if (_operation.End is { } end)
+                    @if (_forces.Count > 0)
                     {
-                        <tr><th>Ende</th><td>@end.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
+                        <tr><th>Beteiligte Agents</th><td>@string.Join(", ", _forces)</td></tr>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_operation.InvolvedAgencies))
+                    {
+                        <tr><th>Beteiligte Behörden</th><td><MentionDisplay Text="@_operation.InvolvedAgencies" Plain="true" /></td></tr>
+                    }
+                    @if (_organisations.Count > 0)
+                    {
+                        <tr><th>Gruppierung</th><td>@string.Join(", ", _organisations.Select(Name))</td></tr>
+                    }
+                    @if (!_isPartner && !string.IsNullOrWhiteSpace(_operation.Legitimation))
+                    {
+                        <tr><th>Legitimation</th><td class="druck-mehrzeilig"><MentionDisplay Text="@_operation.Legitimation" Plain="true" /></td></tr>
                     }
                     <tr><th>Zuletzt aktualisiert</th><td>@((_operation.ModifiedAt ?? _operation.CreatedAt).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))</td></tr>
                 </tbody>
             </table>
         </section>
 
-        @if (!string.IsNullOrWhiteSpace(_operation.Expiry))
-        {
-            <section>
-                <h2>Ablauf</h2>
+        <section>
+            <h2>1 | Allgemeines</h2>
+            <h3>Sachverhalt</h3>
+            @if (!string.IsNullOrWhiteSpace(_operation.Expiry))
+            {
                 <div class="druck-mehrzeilig"><MentionDisplay Text="@_operation.Expiry" Plain="true" /></div>
-            </section>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(_operation.Result))
-        {
-            <section>
-                <h2>Ergebnis</h2>
-                <div class="druck-mehrzeilig"><MentionDisplay Text="@_operation.Result" Plain="true" /></div>
-            </section>
-        }
-
-        @if (!string.IsNullOrWhiteSpace(_operation.Remarks))
-        {
-            <section>
-                <h2>Bemerkungen</h2>
+            }
+            else
+            {
+                <p>—</p>
+            }
+            @if (_accused.Count > 0)
+            {
+                <h3>Beschuldigte</h3>
+                <ul>
+                    @foreach (var p in _accused)
+                    {
+                        <li>@Name(p)</li>
+                    }
+                </ul>
+            }
+            @if (_victims.Count > 0)
+            {
+                <h3>Geiseln und Opfer</h3>
+                <ul>
+                    @foreach (var p in _victims)
+                    {
+                        <li>@Name(p)</li>
+                    }
+                </ul>
+            }
+            @if (_otherPersons.Count > 0)
+            {
+                <h3>Weitere Personen</h3>
+                <ul>
+                    @foreach (var p in _otherPersons)
+                    {
+                        <li>@Name(p)</li>
+                    }
+                </ul>
+            }
+            @if (!string.IsNullOrWhiteSpace(_operation.Remarks))
+            {
+                <h3>Bemerkungen</h3>
                 <div class="druck-mehrzeilig"><MentionDisplay Text="@_operation.Remarks" Plain="true" /></div>
+            }
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(_operation.Evidence))
+        {
+            <section>
+                <h2>2 | Beweismittel</h2>
+                <div class="druck-mehrzeilig"><MentionDisplay Text="@_operation.Evidence" Plain="true" /></div>
             </section>
         }
 
-        @if (_operation.Agents.Count > 0)
-        {
-            <section>
-                <h2>Eingesetzte Agenten</h2>
-                <table class="druck-tabelle">
-                    <thead><tr><th>Agent</th><th>Funktion</th></tr></thead>
-                    <tbody>
-                        @foreach (var a in _operation.Agents)
-                        {
-                            <tr>
-                                <td>@(a.Agent?.Codename ?? "—")</td>
-                                <td>@(a.IsInvestigationLead ? "Ermittlungsleiter" : "Einsatzkraft")</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </section>
-        }
+        <section>
+            <h2>@(string.IsNullOrWhiteSpace(_operation.Evidence) ? "2" : "3") | Abschlussvermerk</h2>
+            @if (!string.IsNullOrWhiteSpace(_operation.Result))
+            {
+                <div class="druck-mehrzeilig"><MentionDisplay Text="@_operation.Result" Plain="true" /></div>
+            }
+            else
+            {
+                <p>—</p>
+            }
+        </section>
 
         <PrintClassificationHistory Entries="_classificationHistory" />
-        <PrintLinks Entries="_links" Heading="Beteiligte / verknüpfte Akten" />
+        <PrintLinks Entries="_links" Heading="Alle verknüpften Akten" />
         <PrintComments Entries="_comments" />
     </PrintFrame>
 }
@@ -107,28 +155,39 @@ else
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _load = true;
+    private bool _isPartner;
     private string? _printBy;
     private Operation? _operation;
     private List<ClassificationHistory> _classificationHistory = new();
     private List<LinkDisplay> _links = new();
     private List<Comment> _comments = new();
+    private List<string> _leads = new();
+    private List<string> _forces = new();
+    private List<LinkDisplay> _organisations = new();
+    private List<LinkDisplay> _accused = new();
+    private List<LinkDisplay> _victims = new();
+    private List<LinkDisplay> _otherPersons = new();
 
     private IReadOnlySet<string>? _visibleTabs;
 
     /// <summary>False only when a partner's rank restricts this record type to other tabs.</summary>
     private bool TabOn(string slug) => _visibleTabs is null || _visibleTabs.Contains(slug);
 
+    private static string Name(LinkDisplay v)
+        => string.IsNullOrWhiteSpace(v.Label) ? v.OtherDesignation : $"{v.OtherDesignation} ({v.Label})";
+
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
         var isLeadership = user.IsLeadership();
+        _isPartner = user.IsPartner();
         _printBy = user.GetCodename();
 
         var scope = ViewerScope.From(user);
         _operation = await OperationService.GetDetailAsync(Id, scope);
         if (_operation is not null)
         {
-            _visibleTabs = user.IsPartner()
+            _visibleTabs = _isPartner
                 ? await PartnerPolicy.GetVisibleTabsAsync(user, nameof(Operation), Id)
                 : null;
             // the per-rank TAB restriction, which the detail page honours and this route did not: the coarse
@@ -138,9 +197,23 @@ else
                 _classificationHistory = await OperationService.GetClassificationHistoryAsync(Id, scope);
             }
             // partners: core only
-            if (!user.IsPartner())
+            if (!_isPartner)
             {
+                var agents = await OperationService.GetAgentsAsync(Id);
+                _leads = agents.Where(a => a.IsInvestigationLead).Select(a => a.Agent?.Codename ?? "—").ToList();
+                _forces = agents.Where(a => !a.IsInvestigationLead).Select(a => a.Agent?.Codename ?? "—").ToList();
+
                 _links = await LinkService.GetForRecordAsync(nameof(Operation), Id, scope);
+                var involved = (await LinkService.GetForRecordAsync(nameof(Operation), Id, scope, LinkKind.Default))
+                    .Where(v => !v.Automatic && NOOSE_Website.Services.LinkService.InvolvedTypes.Contains(v.OtherType))
+                    .OrderBy(v => v.OtherDesignation)
+                    .ToList();
+                _organisations = involved.Where(v => v.OtherType != nameof(Person)).ToList();
+                var persons = involved.Where(v => v.OtherType == nameof(Person)).ToList();
+                _accused = persons.Where(v => OperationInvolvedRoles.Group(v.Label) == OperationRoleGroup.Accused).ToList();
+                _victims = persons.Where(v => OperationInvolvedRoles.Group(v.Label) == OperationRoleGroup.Victim).ToList();
+                _otherPersons = persons.Where(v => OperationInvolvedRoles.Group(v.Label) == OperationRoleGroup.Other).ToList();
+
                 _comments = await CommentService.GetForRecordAsync(nameof(Operation), Id, isLeadership);
             }
             await AccessLog.LogViewAsync(nameof(Operation), Id);

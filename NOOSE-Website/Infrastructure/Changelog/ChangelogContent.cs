@@ -671,6 +671,10 @@ public static class ChangelogContent
             Neu("3.0.25-einsatztagebuch", "Läuft eine Operation, führen die Beteiligten, das HRT und die Führung jetzt "
                 + "ein Einsatztagebuch an der Akte: Lagemeldungen, Anforderungen und Ergebnisse mit Uhrzeit und Ort, die "
                 + "alle sofort sehen. Nach dem Einsatz übernimmst du das Protokoll per Knopf in den Ablauf.", "Akten"),
+            Neu("3.0.26-einsatzbericht", "Einsätze hältst du jetzt als Operation fest, nicht mehr als Aktivität: mit "
+                + "Legitimation, beteiligten Behörden, Beschuldigten und Geiseln samt Rolle, Beweismitteln und einem "
+                + "Einsatzbericht zum Drucken. Eine verknüpfte Fraktion zählt den Einsatz für ihren Score. Die alten "
+                + "Aktivitäten bleiben lesbar.", "Akten"),
         ]),
     ];
 }

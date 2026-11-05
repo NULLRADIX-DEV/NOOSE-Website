@@ -248,7 +248,7 @@ public class ThreatScoreService(
         if (e.Activities.Count > 0)
         {
             var days = (int)Math.Max(0, (nowUtc - e.Activities.Max(a => a.Timestamp)).TotalDays);
-            t.Add($"{e.Activities.Count} Aktivität(en), jüngste vor {days} Tagen");
+            t.Add($"{e.Activities.Count} Aktivität(en) und Einsätze, jüngste vor {days} Tagen");
         }
         if (docCount > 0)
         {
@@ -645,6 +645,14 @@ public class ThreatScoreService(
             .ToListAsync(ct);
         var activities = activitiesRows.Select(a => new ThreatActivity(a.Kind, a.Timestamp)).ToList();
 
+        // deployments linked as involved count like activities, weighted by their type
+        var operationIds = await OperationLinks.OperationIdsFor(db, nameof(Faction), factionId).Distinct().ToListAsync(ct);
+        var operationRows = await db.Operations
+            .Where(o => operationIds.Contains(o.Id) && o.Status != OperationStatus.Planned)
+            .Select(o => new { o.Type, o.Start, o.CreatedAt, o.ModifiedAt })
+            .ToListAsync(ct);
+        activities.AddRange(operationRows.Select(o => new ThreatActivity(o.Type, o.Start ?? o.CreatedAt)));
+
         // Membership periods incl. former.
         var periods = await db.FactionMembers.IgnoreQueryFilters()
             .Where(m => m.FactionId == factionId && m.PersonId != "")
@@ -699,6 +707,10 @@ public class ThreatScoreService(
         foreach (var a in activitiesRows)
         {
             latest = Later(latest, a.ModifiedAt ?? a.CreatedAt);
+        }
+        foreach (var o in operationRows)
+        {
+            latest = Later(latest, o.ModifiedAt ?? o.CreatedAt);
         }
         foreach (var m in activeMembers)
         {

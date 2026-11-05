@@ -180,16 +180,18 @@ internal static class DutyChapter
                 """,
                 NavKey: "brett"),
 
-            new Article("art-aktivitaeten", "dienst-aktivitaeten", "Dienst-Aktivitäten",
-                "Was du selbst über deinen Dienst festhältst.",
+            new Article("art-aktivitaeten", "dienst-aktivitaeten", "Dienst-Aktivitäten (Archiv)",
+                "Die früheren Einsatzvermerke - neue Einsätze sind Operationen.",
                 """
-                <p>Eine <strong>Dienst-Aktivität</strong> ist ein kurzer Eintrag, den du über dich selbst
-                führst: Streife gefahren, Vernehmung geführt, Akte aufgearbeitet. Datum, Art, ein paar
-                Sätze.</p>
-                <p>Diese Einträge sind <strong>für alle sichtbar</strong>. Sie sind das, woran die Dienststelle
-                ablesen kann, wer woran gearbeitet hat.</p>
-                <p>Schreib sie zeitnah. Eine Woche später weiß niemand mehr, was am Dienstag war. Für den
-                schnellen Eintrag zwischendurch gibt es den Plus-Knopf in der Kopfzeile.</p>
+                <p>Bis November 2026 hielten wir Einsätze als <strong>Dienst-Aktivität</strong> fest: Titel,
+                Art, Datum und ein Aktivitätsvermerk nach Vorlage. Neue Aktivitäten gibt es nicht mehr. Ein
+                Einsatz ist jetzt eine <em>Operation</em> mit Einsatztagebuch, Beteiligten und Einsatzbericht
+                (siehe <em>Operationen</em>).</p>
+                <p>Die alten Einträge bleiben unter <em>Aktivitäten (Archiv)</em> für alle lesbar, an der
+                Fraktion sichtbar und zählen weiter für ihren Bedrohungs-Score. Bearbeiten darf sie wie bisher
+                nur, wer sie geschrieben hat, oder die Führung.</p>
+                <p>Für den schnellen Eintrag zwischendurch nimmst du den Plus-Knopf in der Kopfzeile, Reiter
+                <em>Einsatz</em>.</p>
                 """,
                 NavKey: "aktivitaeten"),
 

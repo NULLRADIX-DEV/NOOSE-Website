@@ -456,6 +456,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
     /// <summary>Recomputes the threat score of each faction involved in the link (no-op for non-factions).</summary>
     private async Task ThreatNewCalculateAsync(string sourceType, string sourceId, string targetType, string targetId, CancellationToken cancellationToken)
     {
+        await DeploymentStampAsync(sourceType, sourceId, targetType, targetId, cancellationToken);
         if (sourceType == nameof(Faction))
         {
             await threat.NewCalculateAsync(sourceId, cancellationToken);
@@ -472,6 +473,38 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         {
             await threat.NewCalculatePersonScoreAsync(targetId, cancellationToken);
         }
+    }
+
+    /// <summary>A deployment hung on or off a faction refreshes its activity facet, as an activity link did.</summary>
+    private async Task DeploymentStampAsync(string sourceType, string sourceId, string targetType, string targetId,
+        CancellationToken cancellationToken)
+    {
+        (string? operationId, string? factionId) = (sourceType, targetType) switch
+        {
+            (nameof(Operation), nameof(Faction)) => (sourceId, targetId),
+            (nameof(Faction), nameof(Operation)) => (targetId, sourceId),
+            _ => ((string?)null, (string?)null),
+        };
+        if (operationId is null || factionId is null)
+        {
+            return;
+        }
+        try
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+            var status = await db.Operations.Where(o => o.Id == operationId)
+                .Select(o => (OperationStatus?)o.Status)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (status is { } s && OperationLinks.Counts(s))
+            {
+                await FactionRecency.StampAsync(db, factionId, FactionRecencyFacet.Activities, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch { /* best effort: the link stands */ }
     }
 
     public async Task UpdateLabelAsync(string linkId, string? label, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

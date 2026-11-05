@@ -32,6 +32,9 @@ public interface IOperationService
     Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<List<ClassificationHistory>> GetClassificationHistoryAsync(string id, ViewerScope scope, CancellationToken cancellationToken = default);
 
+    /// <summary>Operations hand-linked to a faction or group as involved, newest deployment first; scope-filtered.</summary>
+    Task<List<Operation>> GetLinkedAsync(string type, string id, ViewerScope scope, CancellationToken cancellationToken = default);
+
     /// <summary>NOOSE agents involved in the operation (investigation leads first).</summary>
     Task<List<OperationAgent>> GetAgentsAsync(string operationId, CancellationToken cancellationToken = default);
 

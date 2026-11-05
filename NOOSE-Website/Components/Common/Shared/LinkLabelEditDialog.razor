@@ -8,7 +8,7 @@
             <MudText Typo="Typo.subtitle1">@OtherDesignation</MudText>
             @if (WithRoleSuggestions)
             {
-                <MudAutocomplete T="string" @bind-Value="_label" Label="Rolle im Vorgang (optional)"
+                <MudAutocomplete T="string" @bind-Value="_label" Label="@RoleCaption"
                                  SearchFunc="@RoleSearch" Variant="Variant.Outlined"
                                  CoerceText="false" CoerceValue="true" ResetValueOnEmptyText="false"
                                  MinCharacters="0" Immediate="true" MaxItems="20" Clearable="true"
@@ -36,6 +36,11 @@
     [Parameter] public string? InitialLabel { get; set; }
     /// <summary>Person role picker instead of the generic label field.</summary>
     [Parameter] public bool WithRoleSuggestions { get; set; }
+    /// <summary>Record type the link hangs off; picks the role list and caption.</summary>
+    [Parameter] public string? SourceType { get; set; }
+
+    private IReadOnlyList<string> Roles => OperationInvolvedRoles.For(SourceType) ?? CasePersonRoles.Suggestions;
+    private string RoleCaption => SourceType == nameof(Operation) ? "Rolle im Einsatz (optional)" : "Rolle im Vorgang (optional)";
 
     private string? _label;
     private bool _saving;
@@ -47,11 +52,11 @@
         _label = InitialLabel;
     }
 
-    private static Task<IEnumerable<string>> RoleSearch(string value, CancellationToken token)
+    private Task<IEnumerable<string>> RoleSearch(string value, CancellationToken token)
     {
         IEnumerable<string> hit = string.IsNullOrWhiteSpace(value)
-            ? CasePersonRoles.Suggestions
-            : CasePersonRoles.Suggestions.Where(v => v.Contains(value.Trim(), StringComparison.OrdinalIgnoreCase));
+            ? Roles
+            : Roles.Where(v => v.Contains(value.Trim(), StringComparison.OrdinalIgnoreCase));
         return Task.FromResult(hit);
     }
 
@@ -73,10 +78,12 @@
         }
     }
 
-    public static async Task<bool> ShowAsync(IDialogService dialog, LinkDisplay link, bool withRoleSuggestions)
+    public static async Task<bool> ShowAsync(IDialogService dialog, LinkDisplay link, bool withRoleSuggestions,
+        string? sourceType = null)
     {
         var parameters = new DialogParameters<LinkLabelEditDialog>
         {
+            { x => x.SourceType, sourceType },
             { x => x.LinkId, link.LinkId },
             { x => x.OtherDesignation, link.OtherDesignation },
             { x => x.InitialLabel, link.Label },

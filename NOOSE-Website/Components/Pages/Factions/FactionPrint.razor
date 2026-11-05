@@ -3,6 +3,7 @@
 @inject IFactionService FactionService
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 @inject IAgentActivityService ActivityService
+@inject IOperationService OperationService
 @inject ILinkService LinkService
 @inject ICommentService CommentService
 @inject IAccessLogService AccessLog
@@ -197,6 +198,28 @@ else
             </section>
         }
 
+        @if (_operations.Count > 0)
+        {
+            <section>
+                <h2>Einsätze</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Zeitpunkt</th><th>Aktenzeichen</th><th>Einsatz</th><th>Typ</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var o in _operations)
+                        {
+                            <tr>
+                                <td>@OperationLinks.When(o).ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>@o.CaseNumber</td>
+                                <td>@o.Title</td>
+                                <td>@(o.Type ?? "—")</td>
+                                <td>@OperationStatusDisplay.Name(o.Status)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+
         @if (_activities.Count > 0)
         {
             <section>
@@ -236,6 +259,7 @@ else
     private List<FactionMember> _members = new();
     private List<FactionAgent> _agents = new();
     private List<AgentActivity> _activities = new();
+    private List<Operation> _operations = new();
     private List<ClassificationHistory> _classificationHistory = new();
     private List<LinkDisplay> _links = new();
     private List<Comment> _comments = new();
@@ -272,6 +296,7 @@ else
                 _members = await FactionService.GetMembersAsync(Id, scope);
                 _agents = await FactionService.GetAgentsAsync(Id);
                 _activities = await ActivityService.GetLinkedFullAsync(nameof(Faction), Id);
+                _operations = await OperationService.GetLinkedAsync(nameof(Faction), Id, scope);
                 _links = await LinkService.GetForRecordAsync(nameof(Faction), Id, scope);
                 _comments = await CommentService.GetForRecordAsync(nameof(Faction), Id, isLeadership);
             }

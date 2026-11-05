@@ -26,7 +26,7 @@
     }
     else
     {
-        @foreach (var v in _list)
+        @foreach (var v in _list.OrderBy(v => Rank(v)).ThenBy(v => v.OtherDesignation))
         {
             <MudPaper Class="pa-3" Elevation="1">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
@@ -47,8 +47,13 @@
                     </MudStack>
                     @if (User.MayWrite())
                     {
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                       OnClick="@(() => RemoveAsync(v))" aria-label="Beteiligten entfernen" />
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                           OnClick="@(() => EditRoleAsync(v))"
+                                           aria-label="@(v.OtherType == nameof(Person) ? "Rolle ändern" : "Notiz ändern")" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => RemoveAsync(v))" aria-label="Beteiligten entfernen" />
+                        </MudStack>
                     }
                 </MudStack>
             </MudPaper>
@@ -79,12 +84,12 @@
     private async Task AddAsync()
     {
         // Exclude already-involved targets and self.
-        var choice = await LinkDialog.ShowAsync(DialogService, User.IsLeadership(),
+        var choice = await LinkDialog.ShowAsync(DialogService, User.IsLeadership(), sourceType: nameof(Operation),
             allowedTypes: OrgTypes,
             excluded: LinkDialog.Exclusions(_list, nameof(Operation), OperationId),
             designation: "Beteiligten",
             labelCaption: "Notiz (optional)",
-            labelPlaceholder: "z. B. Zielperson, Zeuge, beteiligte Bande");
+            labelPlaceholder: "z. B. Hauptgruppierung, Unterstützer");
         if (choice is null)
         {
             return;
@@ -116,4 +121,21 @@
     }
 
     private static string TypeIcon(string type) => RecordTypeDisplay.Icon(type);
+
+    // organisations first, then accused, victims, everyone else
+    private static int Rank(LinkDisplay v) => v.OtherType != nameof(Person) ? 0
+        : OperationInvolvedRoles.Group(v.Label) switch
+        {
+            OperationRoleGroup.Accused => 1,
+            OperationRoleGroup.Victim => 2,
+            _ => 3,
+        };
+
+    private async Task EditRoleAsync(LinkDisplay v)
+    {
+        if (await LinkLabelEditDialog.ShowAsync(DialogService, v, v.OtherType == nameof(Person), nameof(Operation)))
+        {
+            await LoadAsync();
+        }
+    }
 }

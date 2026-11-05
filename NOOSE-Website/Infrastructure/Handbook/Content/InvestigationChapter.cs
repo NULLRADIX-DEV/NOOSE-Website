@@ -63,6 +63,18 @@ internal static class InvestigationChapter
                 zugeteilten Agenten, das HRT und die Führung. Ist die Operation beendet, gehen neue Zeilen als
                 <em>Nachtrag</em> hinein. Mit <em>In Ablauf übernehmen</em> landet das Protokoll im Feld
                 <em>Ablauf</em>; steht dort schon Text, wählst du anhängen oder ersetzen.</p>
+                <p>Die Operation ist auch der <strong>Einsatzbericht</strong> nach §4.6.2. Pflicht sind wer, wann,
+                wo, warum, was passiert ist und wie es ausging: Beginn mit Uhrzeit, Leitung und beteiligte Agents,
+                bei der Lage einer anderen Behörde die <em>Legitimation</em>, der Sachverhalt im <em>Ablauf</em> und
+                der Abschlussvermerk im <em>Ergebnis</em>. Beteiligte Behörden, Beweismittel, Fahrzeuge oder
+                Forderungen trägst du ein, wenn es sie gibt.</p>
+                <p>Unter <em>Beteiligte / Beziehungen</em> hängst du die Gruppierung an und die Personen mit ihrer
+                Rolle: <em>Beschuldigter</em>, <em>Geisel</em>, <em>Opfer</em>, <em>Zeuge</em> und so weiter. Eine
+                verknüpfte Fraktion zählt den Einsatz für ihren Bedrohungs-Score und ihre Aktualität, sobald er
+                läuft oder vorbei ist, ein geplanter noch nicht. Die Druckansicht gibt das Ganze als Einsatzbericht
+                aus; leere Abschnitte fallen weg.</p>
+                <p>Schnell geht es über den Plus-Knopf in der Kopfzeile, Reiter <em>Einsatz</em>: Titel, Typ,
+                Zeit, Fraktion. Läuft der Einsatz noch, landest du gleich im Einsatztagebuch.</p>
                 """,
                 NavKey: "operationen",
                 Steps:
@@ -71,12 +83,14 @@ internal static class InvestigationChapter
                         "Operationen → Neu. Titel, Ort und geplante Zeit reichen für den Anfang."),
                     new Step("Group", "Agenten zuteilen",
                         "Nur zugeteilte Agenten erscheinen später im Bericht als beteiligt."),
+                    new Step("Hub", "Gruppierung und Personen verknüpfen",
+                        "Die Fraktion als Beteiligte, Personen mit Rolle. Erst dann zählt der Einsatz für die Fraktion."),
                     new Step("PlayArrow", "Auf laufend setzen",
                         "Damit sieht die Dienststelle, dass gerade etwas passiert."),
                     new Step("ListAlt", "Einsatztagebuch führen",
                         "Lage, Anforderungen und Ergebnisse gleich während des Einsatzes eintragen, nicht hinterher aus dem Gedächtnis."),
                     new Step("Description", "Ergebnis nachtragen",
-                        "Was ist passiert, was wurde sichergestellt, wer wurde angetroffen. Ohne Nachtrag war die Operation umsonst."),
+                        "Abschlussvermerk, Beweismittel, Legitimation. Ohne Nachtrag war die Operation umsonst."),
                 ]),
 
             new Article("art-taskforces", "taskforces", "Taskforces",
@@ -239,7 +253,7 @@ internal static class InvestigationChapter
                 <p>Jede Person und jede Fraktion hat einen <strong>Bedrohungs-Score</strong> (auch
                 EHK-Score): eine Zahl von 0 bis 100, die das System selbst berechnet. Daneben steht eine
                 <strong>Konfidenz</strong> - wie gut die Datenlage ist, auf der die Zahl beruht.</p>
-                <p>Die Zahl entsteht aus dem, was in der Akte steht: Aktivitäten, Doks und Observationen
+                <p>Die Zahl entsteht aus dem, was in der Akte steht: Einsätze und frühere Aktivitäten, Doks und Observationen
                 (frische wiegen schwerer als alte), Größe und Struktur einer Fraktion, Konflikte und
                 Bündnisse, die Stellung im Beziehungsnetz. Die <strong>Einstufung</strong> setzt zusätzlich
                 einen Sockel: ein Verdachtsfall startet nie unter 50, gesichert staatsgefährdend nie unter

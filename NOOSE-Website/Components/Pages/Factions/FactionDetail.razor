@@ -211,7 +211,7 @@ else
                 }
                 @if (TabOn("aktivitaeten"))
                 {
-                <RecordSection Group="Ermittlung" Slug="aktivitaeten" Label="Aktivitäten" Icon="@Icons.Material.Filled.Bolt">
+                <RecordSection Group="Ermittlung" Slug="aktivitaeten" Label="Einsätze" Icon="@Icons.Material.Filled.Radar">
                     <AgentActivityLinkedPanel EntityType="@nameof(Faction)" EntityId="@_faction.Id" User="_user" />
                 </RecordSection>
                 }

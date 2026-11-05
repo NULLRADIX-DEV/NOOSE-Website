@@ -6544,10 +6544,20 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("Ende");
 
+                    b.Property<string>("Evidence")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)")
+                        .HasColumnName("Beweismittel");
+
                     b.Property<string>("Expiry")
                         .HasMaxLength(4000)
                         .HasColumnType("varchar(4000)")
                         .HasColumnName("Ablauf");
+
+                    b.Property<string>("InvolvedAgencies")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("BeteiligteBehoerden");
 
                     b.Property<bool>("IsArchived")
                         .HasColumnType("tinyint(1)")
@@ -6568,6 +6578,11 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<bool>("IsTRUClassified")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("IstVerschlusssacheTRU");
+
+                    b.Property<string>("Legitimation")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Legitimation");
 
                     b.Property<string>("Location")
                         .HasMaxLength(200)
