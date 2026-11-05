@@ -8,8 +8,8 @@ public abstract record DiscordRoleSyncJob(string Reason);
 /// <summary>Sync one agent from the current row.</summary>
 public sealed record AgentJob(string AgentId, string Reason) : DiscordRoleSyncJob(Reason);
 
-/// <summary>Sync a Discord id whose account is gone.</summary>
-public sealed record DeletedJob(string DiscordId, string Reason) : DiscordRoleSyncJob(Reason);
+/// <summary>Sync a Discord id whose account is gone; a team lead is never made a resident.</summary>
+public sealed record DeletedJob(string DiscordId, bool TeamLead, string Reason) : DiscordRoleSyncJob(Reason);
 
 /// <summary>Sync every agent with a Discord id.</summary>
 public sealed record AllJob(string Reason) : DiscordRoleSyncJob(Reason);
@@ -29,8 +29,8 @@ public interface IDiscordRoleSyncQueue
     /// <summary>Queue one agent; the worker reads the row fresh when it gets there.</summary>
     void Enqueue(string agentId);
 
-    /// <summary>Queue a deleted account by its Discord id.</summary>
-    void EnqueueDeleted(string discordId);
+    /// <summary>Queue a deleted account by its Discord id; the team lead flag is read before the row goes.</summary>
+    void EnqueueDeleted(string discordId, bool isTeamLead);
 
     /// <summary>Queue a run over every agent.</summary>
     void EnqueueAll(string reason);
@@ -49,8 +49,8 @@ public sealed class DiscordRoleSyncQueue : IDiscordRoleSyncQueue
     public void Enqueue(string agentId)
         => Add(new AgentJob(agentId, DiscordRoleSyncReason.AgentChanged));
 
-    public void EnqueueDeleted(string discordId)
-        => Add(new DeletedJob(discordId, DiscordRoleSyncReason.AccountDeleted));
+    public void EnqueueDeleted(string discordId, bool isTeamLead)
+        => Add(new DeletedJob(discordId, isTeamLead, DiscordRoleSyncReason.AccountDeleted));
 
     public void EnqueueAll(string reason)
         => Add(new AllJob(reason));

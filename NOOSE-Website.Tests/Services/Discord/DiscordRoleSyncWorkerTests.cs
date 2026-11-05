@@ -64,9 +64,9 @@ public class DiscordRoleSyncWorkerTests
                     _ => Task.CompletedTask,
                 };
             });
-            sync.SyncDeletedAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call =>
+            sync.SyncDeletedAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns(call =>
             {
-                Calls.Enqueue($"deleted:{call.ArgAt<string>(0)}");
+                Calls.Enqueue($"deleted:{call.ArgAt<string>(0)}:{call.ArgAt<bool>(1)}");
                 return Task.CompletedTask;
             });
             sync.SyncAllAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call =>
@@ -85,12 +85,12 @@ public class DiscordRoleSyncWorkerTests
         await host.Worker.StartAsync(CancellationToken.None);
 
         host.Queue.Enqueue("a1");
-        host.Queue.EnqueueDeleted("200000000000000001");
+        host.Queue.EnqueueDeleted("200000000000000001", isTeamLead: true);
         host.Queue.EnqueueAll(DiscordRoleSyncReason.Manual);
         await host.WaitForCallsAsync(3);
 
         Assert.Equal(
-            ["agent:a1:Änderung am Agenten", "deleted:200000000000000001", "all:von Hand angestoßen"],
+            ["agent:a1:Änderung am Agenten", "deleted:200000000000000001:True", "all:von Hand angestoßen"],
             host.Calls);
     }
 

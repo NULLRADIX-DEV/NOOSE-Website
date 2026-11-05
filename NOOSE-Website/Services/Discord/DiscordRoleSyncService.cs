@@ -140,7 +140,7 @@ public sealed class DiscordRoleSyncService(
         await SyncFreshAsync(db, agentId, Reason(reason), cancellationToken);
     }
 
-    public async Task SyncDeletedAsync(string discordId, CancellationToken cancellationToken = default)
+    public async Task SyncDeletedAsync(string discordId, bool isTeamLead, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var settings = await ReadSettingsAsync(db, cancellationToken);
@@ -149,9 +149,9 @@ public sealed class DiscordRoleSyncService(
             return;
         }
 
-        // delete may have rolled back
+        // same person signed up again; a pending row would leave the old roles
         var live = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.DiscordId == discordId, cancellationToken);
-        if (live is not null)
+        if (live is not null && DiscordRoleRules.Target(live, settings.Mapping) is not null)
         {
             await SyncOneAsync(db, live, settings, Reason(DiscordRoleSyncReason.AccountDeleted), cancellationToken);
             return;
@@ -159,7 +159,7 @@ public sealed class DiscordRoleSyncService(
 
         try
         {
-            var target = DiscordRoleRules.DeletedTarget(settings.Mapping);
+            var target = DiscordRoleRules.DeletedTarget(settings.Mapping, isTeamLead);
             await SyncMemberAsync(settings.GuildId!, discordId, target, Reason(DiscordRoleSyncReason.AccountDeleted), cancellationToken);
         }
         catch (Exception ex) when (!IsOwnCancellation(ex, cancellationToken))

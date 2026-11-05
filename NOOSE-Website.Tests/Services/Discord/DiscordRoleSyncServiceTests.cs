@@ -24,6 +24,7 @@ public class DiscordRoleSyncServiceTests
     private static readonly string SpecialAgentRole = Role(3);
     private static readonly string AssistantDirectorRole = Role(4);
     private static readonly string CidRole = Role(5);
+    private static readonly string TeamLeadRole = Role(9);
     private static readonly string Foreign = Role(50);
 
     private static string Role(int n) => $"3000000000000000{n:00}";
@@ -36,7 +37,7 @@ public class DiscordRoleSyncServiceTests
             [Rank.AssistantDirector] = [AssistantDirectorRole],
         },
         new Dictionary<Division, IReadOnlyList<string>> { [Division.Cid] = [CidRole] },
-        [Role(6)], [Role(7)], [Role(8)], [Role(9)], [ResidentRole]);
+        [Role(6)], [Role(7)], [Role(8)], [TeamLeadRole], [ResidentRole]);
 
     private static ClaimsPrincipal Admin()
         => ClaimsPrincipalBuilder.Agent("admin").WithRank(Rank.Director).AsAdmin().Build();
@@ -274,7 +275,7 @@ public class DiscordRoleSyncServiceTests
         f.Bot.Members[UserA] = [ResidentRole];
 
         await f.Service.SyncAgentAsync("a", "Beförderung");
-        await f.Service.SyncDeletedAsync(UserB);
+        await f.Service.SyncDeletedAsync(UserB, isTeamLead: false);
         await f.Service.SyncAllAsync("Tagesabgleich");
 
         Assert.Empty(f.Bot.Calls);
@@ -548,7 +549,7 @@ public class DiscordRoleSyncServiceTests
         using var f = await Fixture.CreateAsync();
         f.Bot.Members[UserA] = [BaseRole, SpecialAgentRole, Foreign];
 
-        await f.Service.SyncDeletedAsync(UserA);
+        await f.Service.SyncDeletedAsync(UserA, isTeamLead: false);
 
         AssertRoles(f.Bot.Members[UserA], ResidentRole, Foreign);
         Assert.All(f.Bot.Reasons, r => Assert.Equal("FIB-Website: Konto gelöscht", r));
@@ -559,7 +560,7 @@ public class DiscordRoleSyncServiceTests
     {
         using var f = await Fixture.CreateAsync();
 
-        await f.Service.SyncDeletedAsync(UserA);
+        await f.Service.SyncDeletedAsync(UserA, isTeamLead: false);
 
         Assert.Empty(f.Bot.Writes);
     }
@@ -570,20 +571,44 @@ public class DiscordRoleSyncServiceTests
         using var f = await Fixture.CreateAsync();
         f.Bot.Fault = (_, _) => new DiscordBotException(403, "Discord 403: Missing Permissions");
 
-        await f.Service.SyncDeletedAsync(UserA);
+        await f.Service.SyncDeletedAsync(UserA, isTeamLead: false);
     }
 
     [Fact]
-    public async Task A_live_account_behind_a_deleted_one_is_synced_from_its_row_not_made_a_resident()
+    public async Task Deleted_team_lead_loses_fib_roles_and_is_not_made_a_resident()
+    {
+        using var f = await Fixture.CreateAsync();
+        f.Bot.Members[UserA] = [TeamLeadRole, BaseRole, Foreign];
+
+        await f.Service.SyncDeletedAsync(UserA, isTeamLead: true);
+
+        AssertRoles(f.Bot.Members[UserA], Foreign);
+        Assert.DoesNotContain($"add:{UserA}:{ResidentRole}", f.Bot.Calls);
+    }
+
+    [Fact]
+    public async Task A_released_account_behind_a_deleted_one_is_synced_from_its_row_not_made_a_resident()
     {
         using var f = await Fixture.CreateAsync();
         await f.AddAgentAsync("a", UserA);
         f.Bot.Members[UserA] = [BaseRole, SpecialAgentRole, CidRole];
 
-        // the delete rolled back after the job was queued
-        await f.Service.SyncDeletedAsync(UserA);
+        // same person signed up again and was released before the job ran
+        await f.Service.SyncDeletedAsync(UserA, isTeamLead: false);
 
         AssertRoles(f.Bot.Members[UserA], BaseRole, SpecialAgentRole, CidRole);
+    }
+
+    [Fact]
+    public async Task A_pending_account_behind_a_deleted_former_agent_gets_the_deleted_target()
+    {
+        using var f = await Fixture.CreateAsync();
+        await f.AddAgentAsync("again", UserA, rank: null, status: AgentStatus.Pending);
+        f.Bot.Members[UserA] = [BaseRole, SpecialAgentRole, CidRole, Foreign];
+
+        await f.Service.SyncDeletedAsync(UserA, isTeamLead: false);
+
+        AssertRoles(f.Bot.Members[UserA], ResidentRole, Foreign);
     }
 
     [Fact]

@@ -1053,6 +1053,7 @@ public class AgentManagementService(
         var discordId = agent.DiscordId;
         // row is gone after
         var wasFormerAgent = DiscordRoleRules.CountsAsFormerAgent(agent);
+        var wasTeamLead = agent.IsTeamLead;
 
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
@@ -1214,7 +1215,7 @@ public class AgentManagementService(
         // after commit only
         if (wasFormerAgent && !string.IsNullOrWhiteSpace(discordId))
         {
-            try { roleSync.EnqueueDeleted(discordId); }
+            try { roleSync.EnqueueDeleted(discordId, wasTeamLead); }
             catch { /* best effort */ }
         }
 

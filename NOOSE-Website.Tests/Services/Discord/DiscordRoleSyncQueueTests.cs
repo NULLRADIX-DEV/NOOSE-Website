@@ -26,13 +26,13 @@ public class DiscordRoleSyncQueueTests
     }
 
     [Fact]
-    public void EnqueueDeleted_adds_a_deleted_job_with_the_discord_id()
+    public void EnqueueDeleted_adds_a_deleted_job_with_the_discord_id_and_team_lead_flag()
     {
         var queue = new DiscordRoleSyncQueue();
 
-        queue.EnqueueDeleted("200000000000000001");
+        queue.EnqueueDeleted("200000000000000001", isTeamLead: true);
 
-        Assert.Equal(new DeletedJob("200000000000000001", DiscordRoleSyncReason.AccountDeleted), Assert.Single(Drain(queue)));
+        Assert.Equal(new DeletedJob("200000000000000001", true, DiscordRoleSyncReason.AccountDeleted), Assert.Single(Drain(queue)));
     }
 
     [Fact]
@@ -51,14 +51,14 @@ public class DiscordRoleSyncQueueTests
         var queue = new DiscordRoleSyncQueue();
 
         queue.Enqueue("a");
-        queue.EnqueueDeleted("200000000000000001");
+        queue.EnqueueDeleted("200000000000000001", isTeamLead: false);
         queue.EnqueueAll(DiscordRoleSyncReason.Manual);
         queue.Enqueue("b");
 
         Assert.Equal(
             [
                 new AgentJob("a", DiscordRoleSyncReason.AgentChanged),
-                new DeletedJob("200000000000000001", DiscordRoleSyncReason.AccountDeleted),
+                new DeletedJob("200000000000000001", false, DiscordRoleSyncReason.AccountDeleted),
                 new AllJob(DiscordRoleSyncReason.Manual),
                 new AgentJob("b", DiscordRoleSyncReason.AgentChanged),
             ],

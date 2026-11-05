@@ -40,8 +40,9 @@ public static class DiscordRoleRules
         };
     }
 
-    /// <summary>A deleted account is treated like a terminated internal one.</summary>
-    public static DiscordRoleTarget DeletedTarget(DiscordRoleMapping map) => ResidentOnly(map);
+    /// <summary>A deleted account is treated like a terminated internal one, a team lead like a terminated team lead.</summary>
+    public static DiscordRoleTarget DeletedTarget(DiscordRoleMapping map, bool isTeamLead)
+        => isTeamLead ? Nothing(map) : ResidentOnly(map);
 
     /// <summary>Released at some point and not a partner, so a terminated or blocked account is still a former agent.</summary>
     public static bool CountsAsFormerAgent(Agent agent) => agent.Rank != null && agent.PartnerAgency == null;

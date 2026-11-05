@@ -321,10 +321,23 @@ public class DiscordRoleRulesTests
     {
         var map = Map();
 
-        var target = DiscordRoleRules.DeletedTarget(map);
+        var target = DiscordRoleRules.DeletedTarget(map, isTeamLead: false);
 
         AssertSet(target.Desired, "bewohner");
         Assert.True(target.Managed.SetEquals(map.AllManaged));
+    }
+
+    [Fact]
+    public void Deleted_team_lead_gets_nothing_and_keeps_resident()
+    {
+        var map = Map();
+
+        var target = DiscordRoleRules.DeletedTarget(map, isTeamLead: true);
+
+        Assert.Empty(target.Desired);
+        Assert.DoesNotContain("bewohner", target.Managed);
+        Assert.Contains("tl", target.Managed);
+        Assert.Contains("base", target.Managed);
     }
 
     [Theory]

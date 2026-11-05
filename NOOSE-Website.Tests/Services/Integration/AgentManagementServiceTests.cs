@@ -30,7 +30,8 @@ public class AgentManagementServiceTests
 
         public void Enqueue(string agentId) => Add(new AgentJob(agentId, DiscordRoleSyncReason.AgentChanged));
 
-        public void EnqueueDeleted(string discordId) => Add(new DeletedJob(discordId, DiscordRoleSyncReason.AccountDeleted));
+        public void EnqueueDeleted(string discordId, bool isTeamLead)
+            => Add(new DeletedJob(discordId, isTeamLead, DiscordRoleSyncReason.AccountDeleted));
 
         public void EnqueueAll(string reason) => Add(new AllJob(reason));
 
@@ -2787,9 +2788,24 @@ public class AgentManagementServiceTests
 
         Assert.Equal(
         [
-            new DeletedJob("200000000000000001", DiscordRoleSyncReason.AccountDeleted),
-            new DeletedJob("200000000000000002", DiscordRoleSyncReason.AccountDeleted),
+            new DeletedJob("200000000000000001", false, DiscordRoleSyncReason.AccountDeleted),
+            new DeletedJob("200000000000000002", false, DiscordRoleSyncReason.AccountDeleted),
         ], f.RoleSync.Jobs);
+    }
+
+    [Fact]
+    public async Task Deleting_a_team_lead_enqueues_the_team_lead_flag()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("lead", AgentStatus.Active, Rank.SpecialAgent,
+                a => { a.IsTeamLead = true; a.DiscordId = "200000000000000001"; }),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+
+        await f.Svc.DeleteAccountAsync("lead", Admin("keepadmin"));
+
+        Assert.Equal(new DeletedJob("200000000000000001", TeamLead: true, DiscordRoleSyncReason.AccountDeleted),
+            Assert.Single(f.RoleSync.Jobs));
     }
 
     [Fact]

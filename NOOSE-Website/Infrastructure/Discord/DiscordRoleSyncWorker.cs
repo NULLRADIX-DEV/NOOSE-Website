@@ -39,7 +39,7 @@ public sealed class DiscordRoleSyncWorker(
             await (job switch
             {
                 AgentJob agent => sync.SyncAgentAsync(agent.AgentId, agent.Reason, stoppingToken),
-                DeletedJob deleted => sync.SyncDeletedAsync(deleted.DiscordId, stoppingToken),
+                DeletedJob deleted => sync.SyncDeletedAsync(deleted.DiscordId, deleted.TeamLead, stoppingToken),
                 AllJob all => sync.SyncAllAsync(all.Reason, stoppingToken),
                 _ => Task.CompletedTask,
             });
