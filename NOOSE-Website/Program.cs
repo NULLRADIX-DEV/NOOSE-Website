@@ -397,6 +397,10 @@ builder.Services.AddHttpClient("discord", client => client.Timeout = TimeSpan.Fr
 builder.Services.AddHttpClient(DiscordWebhookService.BoardClient, client => client.Timeout = TimeSpan.FromSeconds(30))
     .RemoveAllLoggers();
 builder.Services.AddScoped<IDiscordWebhookService, DiscordWebhookService>();
+// bot token rides in the header
+builder.Services.AddHttpClient(DiscordBotClient.ClientName, client => client.Timeout = TimeSpan.FromSeconds(15))
+    .RemoveAllLoggers();
+builder.Services.AddScoped<IDiscordBotClient, DiscordBotClient>();
 // per-process share quota
 builder.Services.AddSingleton<ChannelShareQuota>();
 builder.Services.AddScoped<IChannelShareService, ChannelShareService>();
