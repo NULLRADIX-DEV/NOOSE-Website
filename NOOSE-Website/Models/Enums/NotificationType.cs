@@ -179,6 +179,14 @@ public enum NotificationType
     FirearmUseReported = 51,
     /// <summary>Follow-ups went long overdue; leadership bell only, naming neither record nor agent.</summary>
     FollowupEscalated = 52,
+
+    /// <summary>An emergency alarm summons the recipient. Routable — the post pings exactly the recipients and
+    /// carries the situation; the bell is locked, an alarm is not the recipient's to silence.</summary>
+    EmergencyAlarm = 53,
+
+    /// <summary>Leadership learns an agent raised an alarm on their own word. Bell only: the title names agent and
+    /// situation, never the reason.</summary>
+    EmergencyAlarmByAgent = 54,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -239,6 +247,8 @@ public static class NotificationTypeDisplay
         NotificationType.HandoverReceived => "Übernahme",
         NotificationType.FirearmUseReported => "Schusswaffengebrauch",
         NotificationType.FollowupEscalated => "Wiedervorlagen-Rückstand",
+        NotificationType.EmergencyAlarm => "Einsatzalarm",
+        NotificationType.EmergencyAlarmByAgent => "Einsatzalarm (Gefahr im Verzug)",
         _ => "Benachrichtigung",
     };
 
@@ -298,6 +308,8 @@ public static class NotificationTypeDisplay
         NotificationType.HandoverReceived => Icons.Material.Filled.MoveDown,
         NotificationType.FirearmUseReported => Icons.Material.Filled.GpsFixed,
         NotificationType.FollowupEscalated => Icons.Material.Filled.PendingActions,
+        NotificationType.EmergencyAlarm => Icons.Material.Filled.Emergency,
+        NotificationType.EmergencyAlarmByAgent => Icons.Material.Filled.NotificationImportant,
         _ => Icons.Material.Filled.Notifications,
     };
 }

@@ -450,6 +450,8 @@ public static class SearchCatalog
             ["PartyAgent"] = "Zuteilung ohne Text; wäre ein Zuteilungs-Orakel.",
             ["OperationAgent"] = "Zuteilung ohne Text; wäre ein Zuteilungs-Orakel.",
             ["OperationLogEntry"] = "Arbeitsprotokoll eines Einsatzes; was zählt, landet per Übernahme im durchsuchbaren Ablauf der Operation.",
+            ["EmergencyAlarm"] = "Kurzlebiger Ruf an die Agenten; was zählt, landet beim Überführen in der durchsuchbaren Operation.",
+            ["EmergencyAlarmRecipient"] = "Zeile ohne Freitext; wäre ein Orakel darüber, wer gerufen wurde.",
             ["CaseAgent"] = "Zuteilung ohne Text; wäre ein Zuteilungs-Orakel.",
             ["TaskforceAgent"] = "Zuteilung ohne Text; wäre ein Zuteilungs-Orakel.",
             ["JobAssignment"] = "Zuteilung ohne Text; wäre ein Zuteilungs-Orakel über eingeschränkte Aufgaben.",

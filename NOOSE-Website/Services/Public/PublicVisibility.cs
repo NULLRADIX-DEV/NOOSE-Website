@@ -159,6 +159,8 @@ public static class PublicVisibility
             ["Operation"] = Operational,
             ["OperationAgent"] = Assignment,
             ["OperationLogEntry"] = "Internes Einsatztagebuch; nach außen nie.",
+            ["EmergencyAlarm"] = "Interner Alarm an die Agenten; nach außen nie.",
+            ["EmergencyAlarmRecipient"] = Assignment,
             ["Taskforce"] = Operational,
             ["TaskforceAgent"] = Assignment,
             ["TaskforceMessage"] = "Interner Einheiten-Chat; nach außen nie.",

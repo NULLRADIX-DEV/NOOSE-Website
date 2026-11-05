@@ -209,9 +209,11 @@ public sealed class DiscordPingTests
     [Fact]
     public void Every_category_that_pings_its_recipients_is_a_personal_choice_except_the_notices_about_you()
     {
-        // a nudge from the inactivity radar is leadership addressing you, like a personnel entry
+        // a nudge from the inactivity radar is leadership addressing you, like a personnel entry; an alarm is no
+        // choice either: it must reach everybody it names, right away
         var recipientPings = DiscordRouting.RoutableTypes.Where(DiscordRouting.PingsRecipients)
-            .Except([NotificationType.PersonnelEntry, NotificationType.DecorationAwarded, NotificationType.PingDigest, NotificationType.InactivityNudge])
+            .Except([NotificationType.PersonnelEntry, NotificationType.DecorationAwarded, NotificationType.PingDigest, NotificationType.InactivityNudge,
+                NotificationType.EmergencyAlarm])
             .OrderBy(t => t);
 
         Assert.Equal(recipientPings, DiscordPings.Personal.OrderBy(t => t));

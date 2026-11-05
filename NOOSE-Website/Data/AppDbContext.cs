@@ -113,6 +113,8 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<Operation> Operations => Set<Operation>();
     public DbSet<OperationAgent> OperationAgents => Set<OperationAgent>();
     public DbSet<OperationLogEntry> OperationLogEntries => Set<OperationLogEntry>();
+    public DbSet<EmergencyAlarm> EmergencyAlarms => Set<EmergencyAlarm>();
+    public DbSet<EmergencyAlarmRecipient> EmergencyAlarmRecipients => Set<EmergencyAlarmRecipient>();
 
     // agent activities + org links + templates
     public DbSet<AgentActivity> AgentActivities => Set<AgentActivity>();
@@ -1055,6 +1057,32 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(e => new { e.OperationId, e.CreatedAt });
             b.HasOne(e => e.Operation).WithMany()
                 .HasForeignKey(e => e.OperationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmergencyAlarm>(b =>
+        {
+            b.Property(a => a.Situation).HasMaxLength(500).IsRequired();
+            b.Property(a => a.Location).HasMaxLength(128);
+            b.Property(a => a.Reason).HasMaxLength(NOOSE_Website.Services.CriticalChange.MaxReasonLength);
+            b.Property(a => a.TriggeredById).HasMaxLength(64).IsRequired();
+            b.Property(a => a.TriggeredByName).HasMaxLength(128).IsRequired();
+            b.Property(a => a.EndedById).HasMaxLength(64);
+            // worker scan
+            b.HasIndex(a => new { a.Expiry, a.EndedAt });
+            // operation outlives alarm
+            b.HasOne(a => a.Operation).WithMany()
+                .HasForeignKey(a => a.OperationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasMany(a => a.Recipients).WithOne(r => r.Alarm!)
+                .HasForeignKey(r => r.AlarmId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmergencyAlarmRecipient>(b =>
+        {
+            // no user cascade
+            b.HasOne(r => r.Agent).WithMany()
+                .HasForeignKey(r => r.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(r => new { r.AlarmId, r.AgentId }).IsUnique();
+            b.HasIndex(r => r.AgentId);
         });
 
         modelBuilder.Entity<AgentAbduction>(b =>

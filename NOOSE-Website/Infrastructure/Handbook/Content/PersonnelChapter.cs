@@ -329,6 +329,9 @@ internal static class PersonnelChapter
                 dabei den Schritt, in dem sie weiterläuft. War sie abgelehnt, fällt die 14-Tage-Sperre weg. Die alte
                 Entscheidung bleibt im internen Thread stehen. In der Übersicht findest du jede Bewerbung über die
                 Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber.</p>
+                <p>Ganz oben in den Stammdaten steht, ob der Bewerber einem <strong>Stream</strong> seiner Bewerbung
+                zugestimmt hat. Steht dort <em>Nicht streamen</em>, bleibt die Bearbeitung, auch das Gespräch, aus dem
+                Stream heraus. Ältere Bewerbungen zeigen <em>keine Angabe</em>; dann fragst du im Schriftwechsel nach.</p>
                 """,
                 DiagramKey: "bewerbung-ablauf",
                 NavKey: "bewerbungen",

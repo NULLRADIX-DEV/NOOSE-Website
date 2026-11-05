@@ -131,7 +131,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { Name = "  Max Mustermann  ", CoverLetter = "Mein Anschreiben" };
+        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "  Max Mustermann  ", CoverLetter = "Mein Anschreiben" };
 
         var created = await svc.SubmitAsync(model, null, null, null, Applicant("u1"));
 
@@ -144,6 +144,34 @@ public sealed class BewerbungServiceTests
         var stored = Assert.Single(db.Bewerbungen.ToList());
         Assert.Equal("Max Mustermann", stored.Name);
         Assert.Equal("Mein Anschreiben", stored.CoverLetter);
+        Assert.True(stored.StreamConsent);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_StoresARefusedStream()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _, _, _) = Build(ctx);
+
+        await svc.SubmitAsync(new BewerbungSubmitModel { StreamConsent = false, Name = "Max" }, null, null, null, Applicant("u1"));
+
+        using var db = ctx.NewContext();
+        Assert.False(Assert.Single(db.Bewerbungen.ToList()).StreamConsent);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_WithoutStreamAnswer_Throws()
+    {
+        // the page enforces it too, but the hub path skips the page
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _, _, _) = Build(ctx);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.SubmitAsync(new BewerbungSubmitModel { Name = "Max" }, null, null, null, Applicant("u1")));
+
+        Assert.Contains("gestreamt", ex.Message);
+        using var db = ctx.NewContext();
+        Assert.Empty(db.Bewerbungen.ToList());
     }
 
     [Fact]
@@ -153,7 +181,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { Name = "Trevor Ward", CoverLetter = "Wechsel zum FIB" };
+        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Trevor Ward", CoverLetter = "Wechsel zum FIB" };
 
         var created = await svc.SubmitAsync(model, null, null, null, Partner("partner-1"));
 
@@ -169,7 +197,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { Name = "Max" };
+        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Max" };
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.SubmitAsync(model, null, null, null, Junior("me")));
@@ -184,7 +212,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { Name = "   " };
+        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "   " };
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.SubmitAsync(model, null, null, null, Applicant("u1")));
@@ -202,7 +230,7 @@ public sealed class BewerbungServiceTests
             db.SaveChanges();
         }
 
-        var model = new BewerbungSubmitModel { Name = "Max" };
+        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Max" };
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.SubmitAsync(model, null, null, null, Applicant("u1")));
@@ -215,7 +243,7 @@ public sealed class BewerbungServiceTests
         var (svc, _, sperren, _, _, _) = Build(ctx);
         sperren.GetActiveAsync("u1", Arg.Any<CancellationToken>()).Returns(Ban("u1", blacklist: true));
 
-        var model = new BewerbungSubmitModel { Name = "Max" };
+        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Max" };
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.SubmitAsync(model, null, null, null, Applicant("u1")));

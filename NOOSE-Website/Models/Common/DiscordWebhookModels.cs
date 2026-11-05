@@ -66,6 +66,8 @@ public static class DiscordRouting
         // personal like a task: pings the agent, and the post names no test
         NotificationType.TestAssigned,
         NotificationType.TestDueReminder,
+        // pings its recipients and carries the situation; EmergencyAlarmByAgent stays bell only
+        NotificationType.EmergencyAlarm,
     };
 
     public static bool IsRoutable(NotificationType type) => RoutableTypes.Contains(type);
@@ -81,7 +83,9 @@ public static class DiscordRouting
                 or NotificationType.AcknowledgmentReminder or NotificationType.SavedSearchHit
                 or NotificationType.DecorationAwarded
                 or NotificationType.InactivityNudge
-                or NotificationType.TestAssigned or NotificationType.TestDueReminder;
+                or NotificationType.TestAssigned or NotificationType.TestDueReminder
+                // deliberate absence leak, accepted: only FIB agents read this channel; do not "repair" it into a role ping
+                or NotificationType.EmergencyAlarm;
 
     /// <summary>Category whose Discord post pings nobody: the embed carries inert mention chips instead.</summary>
     public static bool PingsNobody(NotificationType type)

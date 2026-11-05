@@ -36,6 +36,8 @@ public class EnumDisplayTests_B
     [InlineData(NotificationType.PublicTicketCreated, "Neues Ticket")]
     [InlineData(NotificationType.PublicTipCreated, "Neuer Bürgerhinweis")]
     [InlineData(NotificationType.FactionThreatBoard, "Gefahrenlage (Fraktionen)")]
+    [InlineData(NotificationType.EmergencyAlarm, "Einsatzalarm")]
+    [InlineData(NotificationType.EmergencyAlarmByAgent, "Einsatzalarm (Gefahr im Verzug)")]
     public void NotificationTypeName_definedValue_mapsToLabel(NotificationType type, string expected)
         => Assert.Equal(expected, NotificationTypeDisplay.Name(type));
 
@@ -726,4 +728,24 @@ public class EnumDisplayTests_B
                 PublicProfileStatus.Zurueckgezogen,
             },
             PublicProfileStatusDisplay.All);
+
+    // ---------------------------------------------------------------------
+    // EmergencyAlarmAnswerDisplay
+    // ---------------------------------------------------------------------
+
+    [Theory]
+    [InlineData(EmergencyAlarmAnswer.Coming, "Komme")]
+    [InlineData(EmergencyAlarmAnswer.NotComing, "Komme nicht")]
+    public void EmergencyAlarmAnswerName_definedValue_mapsToLabel(EmergencyAlarmAnswer answer, string expected)
+        => Assert.Equal(expected, EmergencyAlarmAnswerDisplay.Name(answer));
+
+    [Fact]
+    public void EmergencyAlarmAnswerName_undefinedValue_returnsDash()
+        => Assert.Equal("—", EmergencyAlarmAnswerDisplay.Name((EmergencyAlarmAnswer)99));
+
+    [Fact]
+    public void EmergencyAlarmAnswerAll_containsAllInDeclarationOrder()
+        => Assert.Equal(
+            new[] { EmergencyAlarmAnswer.Coming, EmergencyAlarmAnswer.NotComing },
+            EmergencyAlarmAnswerDisplay.All);
 }

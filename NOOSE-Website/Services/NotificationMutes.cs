@@ -20,6 +20,9 @@ public static class NotificationMutes
         NotificationType.Account,
         // leadership asking a silent agent to check in; muting it would defeat the only channel left
         NotificationType.InactivityNudge,
+        // a summons that muting would defeat; the by-agent notice is leadership's only sign of an unapproved alarm
+        NotificationType.EmergencyAlarm,
+        NotificationType.EmergencyAlarmByAgent,
     ];
 
     /// <summary>Discord-only categories; they never reach the bell, so there is nothing to silence.</summary>

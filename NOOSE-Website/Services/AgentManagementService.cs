@@ -1069,6 +1069,7 @@ public class AgentManagementService(
         await db.JobAssignments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AppointmentAssignments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AnnouncementAcknowledgments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.EmergencyAlarmRecipients.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentRankHistories.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentNotes.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentPromotionRequests.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);

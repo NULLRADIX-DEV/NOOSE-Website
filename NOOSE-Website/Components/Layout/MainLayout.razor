@@ -88,6 +88,8 @@
 
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4 py-6">
+            @* first thing under the app bar: a call-in outranks every notice *@
+            <EmergencyAlarmBanner />
             <AuthorizeView Policy="@Policies.OnlyReadMode" Context="ro">
                 <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">
                     Nur-Lese-Modus (Aufsicht): Sie können alle Inhalte einsehen, aber keine Änderungen speichern.

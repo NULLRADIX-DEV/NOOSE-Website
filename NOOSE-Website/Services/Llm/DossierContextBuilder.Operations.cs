@@ -385,6 +385,7 @@ public static partial class DossierContextBuilder
         Line(sb, "Geburtsdatum", Fmt(b.BirthDate));
         Line(sb, "Arbeitgeber", b.Employer);
         Line(sb, "Vorerfahrung", b.PriorExperience);
+        Line(sb, "Stream erlaubt", b.StreamConsent switch { true => "ja", false => "nein", null => null });
         Line(sb, "Status", BewerbungStatusDisplay.Name(b.Status));
         Line(sb, "Eingereicht", Fmt(b.SubmittedAt));
         Line(sb, "Zuständig", b.AssignedAgentName);
