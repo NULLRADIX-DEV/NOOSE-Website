@@ -6685,8 +6685,7 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnName("Ende");
 
                     b.Property<string>("Evidence")
-                        .HasMaxLength(4000)
-                        .HasColumnType("varchar(4000)")
+                        .HasColumnType("longtext")
                         .HasColumnName("Beweismittel");
 
                     b.Property<string>("Expiry")
@@ -6720,8 +6719,7 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnName("IstVerschlusssacheTRU");
 
                     b.Property<string>("Legitimation")
-                        .HasMaxLength(2000)
-                        .HasColumnType("varchar(2000)")
+                        .HasColumnType("longtext")
                         .HasColumnName("Legitimation");
 
                     b.Property<string>("Location")
