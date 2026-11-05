@@ -33,6 +33,8 @@
     private ClaimsPrincipal? _user;
     private List<EmergencyAlarmSummary> _alarms = [];
     private readonly HashSet<string> _busy = [];
+    // alarm ids this circuit has already seen a load for
+    private readonly HashSet<string> _known = [];
 
     // the alarm's own page asks the same question
     private IEnumerable<EmergencyAlarmSummary> Shown
@@ -73,6 +75,7 @@
         if (_user is not null)
         {
             _alarms = await AlarmService.GetOpenForMeAsync(_user);
+            _known.UnionWith(_alarms.Select(a => a.Id));
         }
     }
 
@@ -98,16 +101,22 @@
         }
     }
 
-    // any alarm may concern this agent
+    // new or shown alarms may concern this agent
     private void OnModified(string alarmId)
     {
         try
         {
             _ = InvokeAsync(async () =>
             {
+                // answered or not called: stays hidden
+                if (_known.Contains(alarmId) && _alarms.All(a => a.Id != alarmId))
+                {
+                    return;
+                }
                 try
                 {
                     await LoadAsync();
+                    _known.Add(alarmId);
                     StateHasChanged();
                 }
                 catch (Exception)

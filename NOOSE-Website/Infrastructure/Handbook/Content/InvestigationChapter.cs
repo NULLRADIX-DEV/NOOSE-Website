@@ -112,7 +112,8 @@ internal static class InvestigationChapter
                 Auslöser oder die Führung kann ihn vorher mit <em>Beenden</em> schließen.</p>
                 <p>Ist der Alarm beendet, machen der Auslöser oder die Führung daraus mit <em>Operation
                 anlegen</em> eine laufende Operation oder hängen ihn mit <em>An Operation hängen</em> an eine
-                bestehende. Alle, die <em>Komme</em> gesagt haben, werden dort als Beteiligte eingetragen.</p>
+                bestehende. Alle, die <em>Komme</em> gesagt haben, werden dort als Beteiligte eingetragen.
+                Anhängen darfst du nur, wenn du zur Führung gehörst oder Ermittlungsleiter dieser Operation bist.</p>
                 """,
                 NavKey: "einsatzalarme",
                 Steps:

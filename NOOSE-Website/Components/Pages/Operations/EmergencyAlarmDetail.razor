@@ -69,7 +69,7 @@ else
                     {
                         <div>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">Restzeit</MudText>
-                            <MudText Typo="Typo.body1">@Remaining Minuten (bis @_alarm.Expiry.ToLocalTime().ToString("HH:mm") Uhr)</MudText>
+                            <MudText Typo="Typo.body1">noch @Remaining (bis @_alarm.Expiry.ToLocalTime().ToString("HH:mm") Uhr)</MudText>
                         </div>
                     }
                     @if (!string.IsNullOrWhiteSpace(_alarm.Reason))
@@ -277,7 +277,8 @@ else
     {
         var ok = await ConfirmDialog.ShowAsync(DialogService, "Operation anlegen?",
             "Es entsteht eine laufende Operation mit der Lage als Titel. Alle mit „Komme“ werden Beteiligte.", "Anlegen");
-        if (!ok)
+        // a live update may have linked it meanwhile
+        if (!ok || _alarm is not { MayConvert: true })
         {
             return;
         }
@@ -291,7 +292,7 @@ else
 
     private async Task AttachAsync()
     {
-        if (_operation is not { } target)
+        if (_operation is not { } target || _alarm is not { MayConvert: true })
         {
             return;
         }
