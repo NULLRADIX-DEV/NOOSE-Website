@@ -271,6 +271,14 @@ internal static class InvestigationChapter
                 Aktenlage, eine Fraktionsakte ist seit Monaten unberührt.</p>
                 <p>Das sind <strong>Vorschläge, keine Feststellungen</strong>. Jeder Hinweis nennt, worauf er
                 sich stützt, und verlinkt die betroffenen Akten. Was du daraus machst, entscheidest du.</p>
+                <p>Eine eigene Sorte sind <strong>mögliche Dubletten</strong>: zwei Personenakten mit gleichem
+                oder gleich klingendem Namen, einem vertippten Namen oder Alias oder derselben Telefonnummer. Der
+                Hinweis nennt den Grund. Die Führung führt die beiden mit <em>Zusammenführen</em> gleich dort zu einer
+                Akte zusammen. Sind es zwei verschiedene Menschen, blendest du den Hinweis mit <em>Nicht dieselbe
+                Person - ignorieren</em> aus; er kommt dann nicht wieder.</p>
+                <p>Bei einem Hinweis, der eine Verbindung zwischen zwei Akten vorschlägt, legst du sie mit
+                <em>Verknüpfen</em> direkt an. Jeden anderen Hinweis kannst du ignorieren, wenn er nicht
+                weiterhilft.</p>
                 <p>Geh die Liste gelegentlich durch. Sie findet vor allem das, was niemand sucht, weil es
                 zwischen zwei Zuständigkeiten liegt.</p>
                 """,

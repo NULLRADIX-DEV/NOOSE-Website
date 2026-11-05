@@ -24,6 +24,12 @@ internal static class PersonnelChapter
                 §3.7 der Dienstverordnung. Ein Verweis nach Stufe 1 ist genau das: ein neutraler oder negativer
                 Vermerk in dieser Akte. Welche Stufe ab welchem Dienstgrad verhängt werden darf, steht unter
                 <em>Dienstvorschrift → Sanktionsstufen</em>.</p>
+                <p>Die Akte ist in <strong>Reiter</strong> gegliedert: <em>Dienstaufsicht</em> (vorn, für die
+                Führung), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beförderungen</em>,
+                <em>Finanzierung</em>, <em>KI-Kontingent</em>, <em>Module</em>, <em>Auszeichnungen</em>,
+                <em>Entführungen</em>, <em>Schusswaffengebrauch</em> und <em>Kommentare</em>. Oben auf der Akte
+                stehen die Knöpfe für Dienstausweis, Druckansicht und - wenn jemand geht - <em>Arbeit
+                übergeben</em>.</p>
                 <p>Sie ist der Führung vorbehalten. Deinen eigenen Stand siehst du in deinem Profil.</p>
                 """,
                 NavKey: "personal"),
@@ -78,7 +84,8 @@ internal static class PersonnelChapter
                 <li><strong>Vermerk</strong> (ab 30 Tagen): Ein vorausgefüllter Eintrag in der Personalakte, Art
                 <em>Disziplinarisch</em>. Text und Art lassen sich vor dem Eintragen ändern.</li>
                 <li><strong>Kündigung prüfen</strong> (ab 60 Tagen): Der übliche Kündigungsdialog, der Grund ist
-                schon ausgefüllt.</li>
+                schon ausgefüllt. Danach öffnet sich <em>Arbeit übergeben</em> (siehe <em>Ausscheiden aus der
+                Behörde</em>).</li>
                 </ul>
                 <p>Die drei Schwellen stellt die Führung unter <em>Einstellungen → Inaktivitäts-Radar</em> ein.
                 Das Radar entscheidet nichts von selbst: es meldet sich nicht in der Glocke und kündigt niemanden.
@@ -90,6 +97,33 @@ internal static class PersonnelChapter
                 nur Listen oder das Brett las gar keine Spur. Steht ein Agent nur mit einer älteren Spur im Radar,
                 ist die Zeile deshalb <em>vorläufig</em>: bis die Besuche so lange gezählt wurden wie die erste
                 Schwelle, bietet das Radar dort nur <em>Nachfassen</em> an.</p>
+                """),
+
+            new Article("art-dienstaufsicht", "dienstaufsicht", "Die Dienstaufsicht",
+                "Ein Blatt mit allem, was vor einem Beförderungs-, Ermahnungs- oder Kündigungsgespräch zählt.",
+                """
+                <p>Der erste Reiter der Personalakte heißt <em>Dienstaufsicht</em>. Er sammelt auf einem Blatt, was
+                sonst über ein halbes Dutzend Seiten verteilt ist, und stellt jede Zahl neben den
+                <strong>Median</strong> aller aktiven Agenten - die Spalte <em>Team</em>. Oben wählst du den
+                Zeitraum: <strong>30</strong>, <strong>90</strong> oder <strong>365 Tage</strong>.</p>
+                <ul>
+                <li><strong>Aktivität</strong> - das letzte Lebenszeichen, die Tage ohne eines (abgemeldete
+                ausgenommen, wie im Inaktivitäts-Radar) und die Schreibleistung je Woche.</li>
+                <li><strong>Wiedervorlagen</strong> - wie viele im Zeitraum pünktlich, verspätet oder gar nicht
+                erledigt wurden.</li>
+                <li><strong>Besprechungen</strong> - anwesend, abgemeldet, gefehlt. Es zählen nur Besprechungen,
+                deren Anwesenheit abgeschlossen ist.</li>
+                <li><strong>Abmeldungen, Punkte, Vermerke</strong> - Abmeldetage, Punkte wie in der Bestenliste,
+                Abzeichen, Belobigungen und Disziplinarvermerke.</li>
+                <li><strong>Gegenaufklärung</strong> - Zugriffe, verschiedene Akten, Zugriffe zwischen 22 und 6 Uhr
+                und welche Regeln bei diesem Agenten anschlagen. Diesen Teil sieht nur die Führung, nicht die
+                Nur-Lese-Aufsicht.</li>
+                </ul>
+                <p>Das Blatt urteilt nicht. Eine Zahl weit unter dem Team ist ein Grund, nachzufragen, kein Befund:
+                wer viel im Einsatz ist, schreibt wenig. Für das Gespräch gibt es das Blatt auch auf Papier - die
+                <em>Druckansicht</em> der Personalakte nimmt den gewählten Zeitraum mit.</p>
+                <p>Die Dienstaufsicht sehen die Führung und die Nur-Lese-Aufsicht, bei jedem Agenten außer
+                Bewerbern.</p>
                 """),
 
             new Article("art-wiedervorlagen-rueckstand", "wiedervorlagen-rueckstand", "Der Wiedervorlagen-Rückstand",
@@ -414,8 +448,32 @@ internal static class PersonnelChapter
                 <p>Das Konto verliert damit jeden Zugriff, verschwindet aus allen Auswahllisten - bleibt aber
                 in den Protokollen und an seinen Akten sichtbar. Das muss so sein: sonst wäre die
                 Nachvollziehbarkeit von Monaten Arbeit weg.</p>
+                <p>Was noch an ihm hängt, übergibt die Führung mit <em>Arbeit übergeben</em> oben in seiner
+                Personalakte an Nachfolger. Nach einer Kündigung öffnet sich das Fenster von selbst. Es listet alles
+                Offene: seine Wiedervorlagen und Aufgaben, die Vorgänge, Operationen, Taskforces, Fraktionen,
+                Personengruppen und Parteien, denen er zugeteilt ist, und die V-Personen, die er führt. Der
+                <strong>Nachfolger</strong> oben gilt für alle Zeilen; einzelne Zeilen stellst du auf jemand anderen
+                um oder wählst sie ab. Eine Leitung oder Taskforce-Rolle geht mit über, außer der Nachfolger hat
+                dort schon eine eigene.</p>
+                <p>Zwei Dinge gehen nicht über, sondern enden mit dem Ausscheiden: offene
+                <strong>Finanzierungsanträge</strong> werden zurückgezogen oder abgelehnt, weil die Auszahlung an den
+                Antragsteller ginge, und seine Teilnahme an künftigen <strong>Terminen</strong> wird gestrichen.
+                Einträge in Akten, die du selbst nicht öffnen darfst, zählt das Fenster nur mit und lässt sie, wie
+                sie sind. Abgewählte Zeilen erscheinen beim nächsten Öffnen wieder; mit <em>Später</em> schiebst du
+                die Übergabe auf. Jeder Nachfolger bekommt eine Meldung, was er übernommen hat.</p>
+                <p>Die <strong>Dienstnummer</strong> eines Gekündigten ist sofort wieder frei. Wird die Kündigung
+                zurückgenommen und trägt die Nummer inzwischen jemand anderes, wählt der Zurückgekehrte eine neue.</p>
                 <p>Kommt jemand zurück, meldet er sich mit demselben Discord-Konto an und findet seine
                 Personalakte vor.</p>
-                """),
+                """,
+                Steps:
+                [
+                    new Step("PersonOff", "Kündigung eintragen",
+                        "In der Personalakte, mit Grund und Datum. Das Konto verliert sofort jeden Zugriff."),
+                    new Step("MoveDown", "Arbeit übergeben",
+                        "Das Fenster öffnet sich danach von selbst. Nachfolger oben wählen, einzelne Zeilen umstellen."),
+                    new Step("NotificationsActive", "Nachfolger informiert",
+                        "Jeder Nachfolger bekommt eine Meldung mit dem, was er übernommen hat."),
+                ]),
         ]);
 }

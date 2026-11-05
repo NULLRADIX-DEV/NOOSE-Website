@@ -129,7 +129,7 @@ internal static class GettingStartedChapter
                 ]),
 
             new Article("art-profil", "profil", "Dein Profil",
-                "Codename, Foto und was andere von dir sehen.",
+                "Codename, Foto, was andere von dir sehen - und was du dir dort selbst einrichtest.",
                 """
                 <p>Unter <em>Mein Profil</em> pflegst du deinen <strong>Codename</strong> und dein Foto. Der
                 Codename ist der Name, unter dem dich alle anderen in der Behörde sehen - in Kommentaren, im
@@ -139,6 +139,19 @@ internal static class GettingStartedChapter
                 <p>Daneben steht deine <strong>Dienstnummer</strong> - eine römische Zahl von I bis XL. Sie ist
                 die interne Kennung, vor allem im Funk, und jede ist nur einmal vergeben. Ändern lässt sie die
                 Führung; unterhalb davon stellst du einen Änderungswunsch.</p>
+                <p>Weiter unten richtest du dir die Seite selbst ein. Zu jedem dieser Abschnitte gibt es einen
+                eigenen Artikel:</p>
+                <ul>
+                <li><em>Dienstausweis drucken</em> - dein Ausweis mit Foto und QR-Code.</li>
+                <li><em>Meine Leistung</em> - was du angelegt und erledigt hast, dazu deine Abzeichen und
+                Ehrenzeichen.</li>
+                <li><em>Textbausteine</em> - Sätze, die du mit einem Schrägstrich abrufst.</li>
+                <li><em>Meine Benachrichtigungen</em> - was die Glocke klingeln lässt und wann Discord dich
+                anpingt.</li>
+                <li><em>Kalender-Abo</em> - deine Termine als privater Link für das Handy.</li>
+                <li><em>Öffentliche Mitarbeiterliste</em> - ob du mit Klarnamen auf der öffentlichen Seite
+                <em>Mitarbeiter</em> stehst. Anfangs bist du dort nicht.</li>
+                </ul>
                 """,
                 NavKey: "profil"),
 
@@ -279,6 +292,52 @@ internal static class GettingStartedChapter
                         "„/“ am Wortanfang tippen und weiterschreiben - die Liste grenzt sich mit jedem Buchstaben ein."),
                     new Step("AutoFixHigh", "Platzhalter füllen sich",
                         "Name und Aktenzeichen kommen aus der Akte, Datum, Uhrzeit und Dienstgrad von dir."),
+                ]),
+
+            new Article("art-text-editor", "text-editor", "Der Text-Editor",
+                "Überschriften, Listen, Kästen und Bilder - und FIBI, die Rechtschreibung prüft.",
+                """
+                <p>Dokumente, Ankündigungen, Besprechungsprotokolle, Vermerke in der Personalakte und viele
+                Beschreibungen schreibst du im <strong>Text-Editor</strong>. Oben hat er eine Werkzeugleiste,
+                unten eine Zeile mit Wortzahl und Stand. Fährst du mit der Maus über einen Knopf, steht dort,
+                was er tut.</p>
+                <p>Die Leiste kann mehr als fett und kursiv: <strong>Überschriften</strong> in drei Stufen,
+                Schriftgröße, Text- und Hintergrundfarbe, nummerierte Listen, Aufzählungen und
+                <strong>Checklisten</strong> zum Abhaken, Einzüge, Ausrichtung, Zitat, Codeblock, Link, Bild und
+                Tabelle. Rückgängig und Wiederholen haben eigene Knöpfe.</p>
+                <p>Schneller geht es mit dem <strong>Schrägstrich</strong> am Anfang einer Zeile. Das Menü bietet
+                Überschriften, Listen, Zitat und Codeblock, dazu drei farbige Kästen - <em>Hinweis</em>,
+                <em>Warnung</em> und <em>Info</em> -, eine <em>Trennlinie</em>, ein <em>Inhaltsverzeichnis</em> aus
+                den Überschriften und deine Textbausteine. Markierst du Text, schwebt darüber eine kleine Leiste mit
+                den wichtigsten Formaten.</p>
+                <p>Ein <strong>Bild</strong> fügst du über die Leiste oder mit <strong>Strg+V</strong> ein; große
+                Bilder verkleinert der Editor selbst. Ein Klick auf das Bild öffnet seine Einstellungen: Größe,
+                Ausrichtung und eine Beschriftung darunter. Text aus <strong>Word</strong> oder von einer Webseite
+                kommt aufgeräumt an, Listen und Überschriften bleiben. Willst du nur den nackten Text, fügst du mit
+                <strong>Strg+Shift+V</strong> ein.</p>
+                <p>Bei langen Texten hilft die Zeile unter dem Editor: Sie zählt Wörter und Zeichen, und sobald
+                es Überschriften gibt, springt <em>Gliederung</em> zu jeder davon. <strong>Strg+F</strong> öffnet
+                <em>Suchen und Ersetzen</em>, der Vollbild-Knopf blendet alles andere aus (Escape beendet ihn).
+                Hat die Seite einen Speichern-Knopf, speichert <strong>Strg+S</strong>. Was du tippst, sichert der
+                Editor laufend als Entwurf in deinem Browser; wann zuletzt, steht in derselben Zeile.</p>
+                <p>Wo die Seite es anbietet, stehen ganz rechts zwei <strong>FIBI-Knöpfe</strong>. Der erste
+                korrigiert <em>Rechtschreibung und Grammatik</em>: im ganzen Text oder nur in dem, was du markiert
+                hast. Du siehst danach jede Änderung farbig - grün hinzugefügt, rot entfernt - und übernimmst sie
+                oder verwirfst sie. Der zweite <em>schreibt</em> nach deiner Beschreibung einen Text, den du an der
+                Schreibmarke einfügst oder gegen die Markierung tauschst. FIBI erfindet dabei keine Namen, Daten oder
+                Aktenzeichen. Beides kostet <strong>Kontingent</strong>, auch ein Ergebnis, das du verwirfst; ist der
+                Text zu lang, markiere den Abschnitt, um den es geht.</p>
+                """,
+                Steps:
+                [
+                    new Step("ShortText", "Schrägstrich am Zeilenanfang",
+                        "Überschriften, Listen, Kästen, Trennlinie, Inhaltsverzeichnis und Textbausteine aus einem Menü."),
+                    new Step("Image", "Bild anklicken",
+                        "Größe, Ausrichtung und Beschriftung stellst du am Bild selbst ein."),
+                    new Step("FindReplace", "Strg+F",
+                        "Suchen und Ersetzen im ganzen Text, auch im Vollbild."),
+                    new Step("Spellcheck", "FIBI korrigieren lassen",
+                        "Erst die Änderungen ansehen, dann übernehmen. Jeder Lauf kostet Kontingent."),
                 ]),
 
             new Article("art-listen-ansichten", "listen-ansichten", "Listen-Ansichten",
