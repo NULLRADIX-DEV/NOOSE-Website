@@ -35,6 +35,25 @@ else
                 <MudText Typo="Typo.h6" Class="mb-2">Stammdaten</MudText>
                 <MudSimpleTable Dense="true" Bordered="false" Striped="false" Style="background:transparent;">
                     <tbody>
+                        <tr>
+                            <td class="mud-text-secondary">Stream</td>
+                            <td>
+                                @switch (_b.StreamConsent)
+                                {
+                                    case true:
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined"
+                                                 Icon="@Icons.Material.Filled.Videocam" Class="ma-0">Streamen erlaubt</MudChip>
+                                        break;
+                                    case false:
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined"
+                                                 Icon="@Icons.Material.Filled.VideocamOff" Class="ma-0">Nicht streamen</MudChip>
+                                        break;
+                                    default:
+                                        <span class="mud-text-secondary">keine Angabe</span>
+                                        break;
+                                }
+                            </td>
+                        </tr>
                         <tr><td class="mud-text-secondary">Akademischer Grad</td><td>@Or(_b.AcademicDegree)</td></tr>
                         <tr><td class="mud-text-secondary">Name</td><td>@_b.Name</td></tr>
                         <tr><td class="mud-text-secondary">Geburtsdatum</td><td>@(_b.BirthDate?.ToString("dd.MM.yyyy") ?? "—")</td></tr>

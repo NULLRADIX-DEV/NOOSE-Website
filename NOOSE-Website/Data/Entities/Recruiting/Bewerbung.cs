@@ -35,6 +35,10 @@ public class Bewerbung : IAuditable, ISoftDelete
     [Column("Anschreiben")]
     public string? CoverLetter { get; set; }
 
+    /// <summary>Applicant agrees to their application being streamed; null on applications from before the question.</summary>
+    [Column("StreamFreigabe")]
+    public bool? StreamConsent { get; set; }
+
     [Column("AnhangDateiname")]
     public string? AttachmentFileNameSaved { get; set; }
     [Column("AnhangOriginalname")]

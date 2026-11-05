@@ -50,6 +50,10 @@ public class BewerbungService(
         {
             throw new InvalidOperationException("Bitte gib deinen Namen an.");
         }
+        if (model.StreamConsent is null)
+        {
+            throw new InvalidOperationException("Bitte gib an, ob deine Bewerbung gestreamt werden darf.");
+        }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -105,6 +109,7 @@ public class BewerbungService(
             Employer = Trim(model.Employer),
             PriorExperience = Trim(model.PriorExperience),
             CoverLetter = Trim(model.CoverLetter),
+            StreamConsent = model.StreamConsent,
             AttachmentFileNameSaved = fileNameSaved,
             AttachmentOriginalName = Trim(originalName),
             AttachmentContentType = Trim(contentType),

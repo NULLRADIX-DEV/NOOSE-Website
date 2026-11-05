@@ -10836,6 +10836,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<bool?>("StreamConsent")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("StreamFreigabe");
+
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("EingereichtAm");
