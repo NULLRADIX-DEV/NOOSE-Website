@@ -1,0 +1,142 @@
+@* Running alarms still waiting for this agent's answer, above every page. Internal agents only. *@
+@implements IDisposable
+@inject IEmergencyAlarmService AlarmService
+@inject EmergencyAlarmBroadcaster Broadcaster
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+@foreach (var alarm in Shown)
+{
+    var busy = _busy.Contains(alarm.Id);
+    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Class="mb-3 no-print"
+              Icon="@Icons.Material.Filled.NotificationsActive">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+            <span>
+                <b>Einsatzalarm</b> (@EmergencyAlarmDisplay.Target(alarm.Target), @alarm.TriggeredByName):
+                @alarm.Situation
+            </span>
+            <MudStack Row="true" Spacing="1">
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success" Disabled="busy"
+                           OnClick="@(() => RespondAsync(alarm.Id, EmergencyAlarmAnswer.Coming))">Komme</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Dark" Disabled="busy"
+                           OnClick="@(() => RespondAsync(alarm.Id, EmergencyAlarmAnswer.NotComing))">Komme nicht</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Inherit"
+                           Href="@($"/einsatzalarme/{alarm.Id}")">Ansehen</MudButton>
+            </MudStack>
+        </MudStack>
+    </MudAlert>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private ClaimsPrincipal? _user;
+    private List<EmergencyAlarmSummary> _alarms = [];
+    private readonly HashSet<string> _busy = [];
+
+    // the alarm's own page asks the same question
+    private IEnumerable<EmergencyAlarmSummary> Shown
+    {
+        get
+        {
+            var path = "/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
+            return _alarms.Where(a => !path.Equals($"/einsatzalarme/{a.Id}", StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is null)
+        {
+            return;
+        }
+        var user = (await AuthStateTask).User;
+        if (!user.IsInternalAgent())
+        {
+            return;
+        }
+        _user = user;
+        Broadcaster.Modified += OnModified;
+        Nav.LocationChanged += OnLocationChanged;
+        try
+        {
+            await LoadAsync();
+        }
+        catch (Exception)
+        {
+            /* never cost the layout */
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        if (_user is not null)
+        {
+            _alarms = await AlarmService.GetOpenForMeAsync(_user);
+        }
+    }
+
+    private async Task RespondAsync(string alarmId, EmergencyAlarmAnswer answer)
+    {
+        if (_user is null || !_busy.Add(alarmId))
+        {
+            return;
+        }
+        try
+        {
+            await AlarmService.RespondAsync(alarmId, answer, _user);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            try { await LoadAsync(); } catch { /* best effort */ }
+        }
+        finally
+        {
+            _busy.Remove(alarmId);
+        }
+    }
+
+    // any alarm may concern this agent
+    private void OnModified(string alarmId)
+    {
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                try
+                {
+                    await LoadAsync();
+                    StateHasChanged();
+                }
+                catch (Exception)
+                {
+                    /* the next event refreshes it */
+                }
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            /* circuit gone */
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        try
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }
+        catch (InvalidOperationException)
+        {
+            /* circuit gone */
+        }
+    }
+
+    public void Dispose()
+    {
+        Broadcaster.Modified -= OnModified;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

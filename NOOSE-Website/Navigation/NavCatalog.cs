@@ -61,6 +61,8 @@ public static class NavCatalog
             Description: "Übergeordnete Ermittlungsakte, die mehrere Akten bündelt"),
         new NavEntry("operationen", "/operationen", Icons.Material.Filled.Radar, "Operationen", NavSection.VorgaengeEinsaetze, NavArea.Akten,
             Description: "Einsatzbericht zu einem konkreten Einsatz mit Ort und Zeit"),
+        new NavEntry("einsatzalarme", "/einsatzalarme", Icons.Material.Filled.NotificationsActive, "Einsatzalarme", NavSection.VorgaengeEinsaetze, NavArea.Akten,
+            Description: "Kurzfristig Agenten zusammenrufen und sehen, wer kommt"),
         new NavEntry("taskforces", "/taskforces", Icons.Material.Filled.Groups2, "Taskforces", NavSection.VorgaengeEinsaetze, NavArea.Akten,
             Description: "Einheit aus Agenten mit Auftrag und Genehmigung"),
 

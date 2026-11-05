@@ -1,0 +1,404 @@
+@page "/einsatzalarme/{Id}"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@implements IAsyncDisposable
+@inject IEmergencyAlarmService AlarmService
+@inject EmergencyAlarmBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@using AlarmDetail = NOOSE_Website.Models.Operations.EmergencyAlarmDetail
+
+<PageTitle>Einsatzalarm · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_alarm is null)
+{
+    <PageHeader Icon="@Icons.Material.Filled.NotificationsActive" Title="Einsatzalarm" BackHref="/einsatzalarme" />
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Diesen Einsatzalarm gibt es nicht.</MudAlert>
+}
+else
+{
+    var s = _alarm.Summary;
+    <PageHeader Icon="@Icons.Material.Filled.NotificationsActive" IconColour="@(s.IsOpen ? Color.Error : Color.Default)"
+                Title="Einsatzalarm" BackHref="/einsatzalarme">
+        <Actions>
+            @if (s.IsOpen)
+            {
+                <MudChip T="string" Color="Color.Error" Variant="Variant.Filled">Läuft · noch @Remaining</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Variant="Variant.Outlined">Beendet</MudChip>
+            }
+        </Actions>
+    </PageHeader>
+
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="5">
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudStack Spacing="3">
+                    <div>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Lage</MudText>
+                        <MudText Typo="Typo.h6" Style="white-space:pre-line;">@s.Situation</MudText>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(_alarm.Location))
+                    {
+                        <div>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Ort</MudText>
+                            <MudText Typo="Typo.body1">@_alarm.Location</MudText>
+                        </div>
+                    }
+                    <div>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Ziel</MudText>
+                        <MudText Typo="Typo.body1">@(s.Target is { } d ? DivisionDisplay.Name(d) : EmergencyAlarmDisplay.Target(null))</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Ausgelöst</MudText>
+                        <MudText Typo="Typo.body1">
+                            @s.TriggeredByName · @s.TriggeredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            @if (s.IsEmergency)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="ml-1">Gefahr im Verzug</MudChip>
+                            }
+                        </MudText>
+                    </div>
+                    @if (s.IsOpen)
+                    {
+                        <div>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Restzeit</MudText>
+                            <MudText Typo="Typo.body1">@Remaining Minuten (bis @_alarm.Expiry.ToLocalTime().ToString("HH:mm") Uhr)</MudText>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_alarm.Reason))
+                    {
+                        <div>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Begründung (Gefahr im Verzug)</MudText>
+                            <MudText Typo="Typo.body2" Style="white-space:pre-line;">@_alarm.Reason</MudText>
+                        </div>
+                    }
+                    @if (s.OperationId is { } operationId)
+                    {
+                        <MudButton Href="@($"/operationen/{operationId}")" Variant="Variant.Outlined" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Radar">Zur Operation</MudButton>
+                    }
+                </MudStack>
+            </MudPaper>
+
+            @if (_alarm.MayAnswer || _alarm.MayReping || _alarm.MayEnd || _alarm.MayConvert)
+            {
+                <MudPaper Outlined="true" Class="pa-4 mt-3">
+                    <MudStack Spacing="2">
+                        @if (_alarm.MayAnswer)
+                        {
+                            <MudText Typo="Typo.subtitle2">
+                                Deine Antwort: @EmergencyAlarmDisplay.Answer(_alarm.MyAnswer)
+                            </MudText>
+                            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                                <MudButton Color="Color.Success" StartIcon="@Icons.Material.Filled.CheckCircle"
+                                           Variant="@(_alarm.MyAnswer == EmergencyAlarmAnswer.Coming ? Variant.Filled : Variant.Outlined)"
+                                           OnClick="@(() => RespondAsync(EmergencyAlarmAnswer.Coming))" Disabled="_busy">Komme</MudButton>
+                                <MudButton Color="Color.Error" StartIcon="@Icons.Material.Filled.Cancel"
+                                           Variant="@(_alarm.MyAnswer == EmergencyAlarmAnswer.NotComing ? Variant.Filled : Variant.Outlined)"
+                                           OnClick="@(() => RespondAsync(EmergencyAlarmAnswer.NotComing))" Disabled="_busy">Komme nicht</MudButton>
+                            </MudStack>
+                        }
+                        @if (_alarm.MayReping || _alarm.MayEnd)
+                        {
+                            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                                @if (_alarm.MayReping)
+                                {
+                                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.NotificationAdd"
+                                               OnClick="RepingAsync" Disabled="@(_busy || s.Open == 0)">Offene nachpingen</MudButton>
+                                }
+                                @if (_alarm.MayEnd)
+                                {
+                                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Stop"
+                                               OnClick="EndAsync" Disabled="_busy">Beenden</MudButton>
+                                }
+                            </MudStack>
+                        }
+                        @if (_alarm.MayConvert)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                Alle mit „Komme“ werden in der Operation als Beteiligte eingetragen.
+                            </MudText>
+                            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Radar"
+                                           OnClick="ConvertAsync" Disabled="_busy">Operation anlegen</MudButton>
+                                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
+                                           OnClick="@(() => _attachOpen = !_attachOpen)" Disabled="_busy">An Operation hängen</MudButton>
+                            </MudStack>
+                            @if (_attachOpen)
+                            {
+                                <QuickRecordPicker Allowed="OperationOnly" @bind-Value="_operation" Label="Operation"
+                                                   Placeholder="Titel oder Aktenzeichen" Disabled="_busy" AutoFocus="true" />
+                                <MudStack Row="true" Justify="Justify.FlexEnd">
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AttachAsync"
+                                               Disabled="@(_busy || _operation is null)">Anhängen</MudButton>
+                                </MudStack>
+                            }
+                        }
+                    </MudStack>
+                </MudPaper>
+            }
+        </MudItem>
+
+        <MudItem xs="12" md="7">
+            <MudGrid Spacing="2">
+                @foreach (var group in Groups)
+                {
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Outlined="true" Class="pa-3" Style="height:100%;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-2">
+                                <MudIcon Icon="@group.Icon" Color="@group.Colour" Size="Size.Small" />
+                                <MudText Typo="Typo.subtitle2">@group.Title</MudText>
+                                <MudSpacer />
+                                <MudChip T="string" Size="Size.Small" Color="@group.Colour" Variant="Variant.Outlined">@group.Rows.Count</MudChip>
+                            </MudStack>
+                            @if (group.Rows.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">Niemand.</MudText>
+                            }
+                            else
+                            {
+                                @foreach (var row in group.Rows)
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                        <MudText Typo="Typo.body2">@row.Codename</MudText>
+                                        <MudSpacer />
+                                        @if (row.AnsweredAt is { } at)
+                                        {
+                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@at.ToLocalTime().ToString("HH:mm")</MudText>
+                                        }
+                                    </MudStack>
+                                }
+                            }
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private static readonly IReadOnlySet<string> OperationOnly = new HashSet<string> { nameof(Operation) };
+
+    private ClaimsPrincipal _user = new();
+    private string? _loadedId;
+    private bool _load = true;
+    private bool _busy;
+    private bool _attachOpen;
+    private bool _expiryReloaded;
+    private QuickHit? _operation;
+    private AlarmDetail? _alarm;
+    private System.Threading.Timer? _clock;
+
+    private sealed record Group(string Title, string Icon, Color Colour, List<EmergencyAlarmRow> Rows);
+
+    private IEnumerable<Group> Groups
+    {
+        get
+        {
+            var rows = _alarm?.Rows ?? [];
+            yield return new Group("Komme", Icons.Material.Filled.CheckCircle, Color.Success,
+                rows.Where(r => r.Answer == EmergencyAlarmAnswer.Coming).ToList());
+            yield return new Group("Komme nicht", Icons.Material.Filled.Cancel, Color.Error,
+                rows.Where(r => r.Answer == EmergencyAlarmAnswer.NotComing).ToList());
+            yield return new Group("Offen", Icons.Material.Filled.HourglassEmpty, Color.Default,
+                rows.Where(r => r.Answer is null).ToList());
+        }
+    }
+
+    private string Remaining
+    {
+        get
+        {
+            var left = (_alarm?.Expiry ?? DateTime.UtcNow) - DateTime.UtcNow;
+            return left <= TimeSpan.Zero ? "0:00" : $"{(int)left.TotalMinutes}:{left.Seconds:00}";
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        Broadcaster.Modified += OnModified;
+        _clock = new System.Threading.Timer(_ => Tick(), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    // same component serves every alarm id
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _load = true;
+        _attachOpen = false;
+        _operation = null;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _alarm = await AlarmService.GetDetailAsync(Id, _user);
+        _expiryReloaded = false;
+        _load = false;
+    }
+
+    private Task RespondAsync(EmergencyAlarmAnswer answer)
+        => RunAsync(() => AlarmService.RespondAsync(Id, answer, _user));
+
+    private Task RepingAsync()
+        => RunAsync(async () =>
+        {
+            await AlarmService.RepingAsync(Id, _user);
+            Snackbar.Add("Die Offenen wurden erneut gerufen.", Severity.Success);
+        });
+
+    private async Task EndAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Einsatzalarm beenden?",
+            "Danach kann niemand mehr antworten.", "Beenden");
+        if (ok)
+        {
+            await RunAsync(() => AlarmService.EndAsync(Id, _user));
+        }
+    }
+
+    private async Task ConvertAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Operation anlegen?",
+            "Es entsteht eine laufende Operation mit der Lage als Titel. Alle mit „Komme“ werden Beteiligte.", "Anlegen");
+        if (!ok)
+        {
+            return;
+        }
+        string? operationId = null;
+        await RunAsync(async () => operationId = await AlarmService.ConvertToOperationAsync(Id, _user));
+        if (operationId is not null)
+        {
+            Nav.NavigateTo($"/operationen/{operationId}");
+        }
+    }
+
+    private async Task AttachAsync()
+    {
+        if (_operation is not { } target)
+        {
+            return;
+        }
+        var done = false;
+        await RunAsync(async () =>
+        {
+            await AlarmService.AttachToOperationAsync(Id, target.TargetId, _user);
+            done = true;
+        });
+        if (done)
+        {
+            Snackbar.Add($"An „{target.Name}“ gehängt.", Severity.Success);
+            _attachOpen = false;
+            _operation = null;
+        }
+    }
+
+    // one call at a time; convert is not idempotent
+    private async Task RunAsync(Func<Task> action)
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await action();
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Tick()
+    {
+        if (_alarm is not { Summary.IsOpen: true })
+        {
+            return;
+        }
+        var expired = DateTime.UtcNow >= _alarm.Expiry && !_expiryReloaded;
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                try
+                {
+                    // answers close at expiry, before the worker's sweep
+                    if (expired)
+                    {
+                        _expiryReloaded = true;
+                        await LoadAsync();
+                    }
+                    StateHasChanged();
+                }
+                catch (Exception)
+                {
+                    /* next tick */
+                }
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            /* circuit gone */
+        }
+    }
+
+    // marshal cross-circuit signal into own circuit, reload
+    private void OnModified(string alarmId)
+    {
+        if (alarmId != Id)
+        {
+            return;
+        }
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                try
+                {
+                    await LoadAsync();
+                    StateHasChanged();
+                }
+                catch (Exception)
+                {
+                    /* the next event refreshes it */
+                }
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            /* circuit gone */
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Broadcaster.Modified -= OnModified;
+        if (_clock is not null)
+        {
+            await _clock.DisposeAsync();
+        }
+    }
+}
