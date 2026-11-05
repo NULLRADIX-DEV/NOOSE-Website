@@ -1,4 +1,6 @@
+using System.Data.Common;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Operations;
@@ -14,13 +16,25 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class EmergencyAlarmServiceTests
 {
     private static (EmergencyAlarmService Service, INotificationService Notifications, List<string> Reports) Build(
-        SqliteTestContext ctx)
+        SqliteTestContext ctx, IDbContextFactory<AppDbContext>? factory = null, IOperationService? operations = null)
     {
         var notifications = Substitute.For<INotificationService>();
         var broadcaster = new EmergencyAlarmBroadcaster();
         var reports = new List<string>();
         broadcaster.Modified += reports.Add;
-        return (new EmergencyAlarmService(ctx.Factory, broadcaster, notifications, Operations(ctx)), notifications, reports);
+        return (new EmergencyAlarmService(factory ?? ctx.Factory, broadcaster, notifications, operations ?? Operations(ctx)),
+            notifications, reports);
+    }
+
+    // service whose next alarm UPDATE first runs a concurrent write
+    private static (EmergencyAlarmService Service, BeforeAlarmUpdate Race) BuildRacing(SqliteTestContext ctx)
+    {
+        var race = new BeforeAlarmUpdate();
+        var factory = new TestDbContextFactory(new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(ctx.Connection)
+            .AddInterceptors(race)
+            .Options);
+        return (Build(ctx, factory).Service, race);
     }
 
     // real service, so allocation and its rights run along
@@ -743,5 +757,140 @@ public sealed class EmergencyAlarmServiceTests
         await svc.AttachToOperationAsync(id, own, Junior());
         Assert.True(Same(StoredOperation(ctx, own).Agents.Select(a => a.AgentId).ToList(), "junior", "a1"));
         Assert.Equal(own, Stored(ctx, id).OperationId);
+    }
+
+    // ---------- races ----------
+
+    [Fact]
+    public async Task Convert_LinkedByOtherTabMeanwhile_DropsDuplicateAndThrows()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, race) = BuildRacing(ctx);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(), ("a1", EmergencyAlarmAnswer.Coming));
+        var winner = (await Operations(ctx).CreateAsync(new OperationInput { Title = "Erster Tab" }, Leader())).Id;
+        race.Arm(() =>
+        {
+            using var other = ctx.NewContext();
+            other.EmergencyAlarms.Where(a => a.Id == id).ExecuteUpdate(s => s.SetProperty(a => a.OperationId, winner));
+        });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ConvertToOperationAsync(id, Leader()));
+
+        Assert.Contains("schon zu einer Operation", ex.Message);
+        Assert.Equal(1, OperationCount(ctx));
+        Assert.Equal(winner, Stored(ctx, id).OperationId);
+        Assert.Single(StoredOperation(ctx, winner).Agents);
+    }
+
+    [Fact]
+    public async Task Attach_LinkedByOtherTabMeanwhile_AllocatesNobody()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, race) = BuildRacing(ctx);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(), ("a1", EmergencyAlarmAnswer.Coming));
+        var operations = Operations(ctx);
+        var winner = (await operations.CreateAsync(new OperationInput { Title = "Erster Tab" }, Leader())).Id;
+        var target = (await operations.CreateAsync(new OperationInput { Title = "Zweiter Tab" }, Leader())).Id;
+        race.Arm(() =>
+        {
+            using var other = ctx.NewContext();
+            other.EmergencyAlarms.Where(a => a.Id == id).ExecuteUpdate(s => s.SetProperty(a => a.OperationId, winner));
+        });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.AttachToOperationAsync(id, target, Leader()));
+
+        Assert.Equal(winner, Stored(ctx, id).OperationId);
+        Assert.Equal("lead", Assert.Single(StoredOperation(ctx, target).Agents).AgentId);
+    }
+
+    [Fact]
+    public async Task Convert_OneAllocationFails_OthersStillAllocated()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"), Agent("a2"), Agent("a3"));
+        var real = Operations(ctx);
+        var operations = Substitute.For<IOperationService>();
+        operations.CreateAsync(Arg.Any<OperationInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(ci => real.CreateAsync(ci.ArgAt<OperationInput>(0), ci.ArgAt<ClaimsPrincipal>(1), ci.ArgAt<CancellationToken>(2)));
+        operations.AgentAllocateAsync(default!, default!, default, default!, default)
+            .ReturnsForAnyArgs(ci => ci.ArgAt<string>(1) == "a2"
+                ? Task.FromException(new InvalidOperationException("veraltet"))
+                : real.AgentAllocateAsync(ci.ArgAt<string>(0), ci.ArgAt<string>(1), ci.ArgAt<bool>(2),
+                    ci.ArgAt<ClaimsPrincipal>(3), ci.ArgAt<CancellationToken>(4)));
+        var (svc, _, _) = Build(ctx, operations: operations);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(), ("a1", EmergencyAlarmAnswer.Coming),
+            ("a2", EmergencyAlarmAnswer.Coming), ("a3", EmergencyAlarmAnswer.Coming));
+
+        var operationId = await svc.ConvertToOperationAsync(id, Leader());
+
+        Assert.True(Same(StoredOperation(ctx, operationId).Agents.Select(a => a.AgentId).ToList(), "lead", "a1", "a3"));
+        Assert.Equal(operationId, Stored(ctx, id).OperationId);
+    }
+
+    [Fact]
+    public async Task Convert_MultiLineSituation_TitleOnOneLine()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief));
+        var (svc, _, _) = Build(ctx);
+        var id = await EndedAlarmAsync(svc, Leader(), Input(situation: "Geiselnahme\r\nMaze Bank\nzwei Täter"));
+
+        var operationId = await svc.ConvertToOperationAsync(id, Leader());
+
+        Assert.Equal("Geiselnahme Maze Bank zwei Täter", StoredOperation(ctx, operationId).Title);
+    }
+
+    [Fact]
+    public async Task Reping_EndedBetweenLoadAndClaim_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, race) = BuildRacing(ctx);
+        var id = await svc.TriggerAsync(Input(), Leader());
+        race.Arm(() =>
+        {
+            using var other = ctx.NewContext();
+            other.EmergencyAlarms.Where(a => a.Id == id).ExecuteUpdate(s => s.SetProperty(a => a.EndedAt, DateTime.UtcNow));
+        });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.RepingAsync(id, Leader()));
+
+        Assert.Null(Stored(ctx, id).RepingedAt);
+    }
+
+    [Fact]
+    public async Task Reping_AfterEnd_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief), Agent("a1"));
+        var (svc, _, _) = Build(ctx);
+        var id = await svc.TriggerAsync(Input(), Leader());
+        await svc.EndAsync(id, Leader());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.RepingAsync(id, Leader()));
+
+        Assert.Null(Stored(ctx, id).RepingedAt);
+    }
+
+    // one concurrent write before the next alarm update
+    private sealed class BeforeAlarmUpdate : DbCommandInterceptor
+    {
+        private Action? _pending;
+
+        public void Arm(Action concurrent) => _pending = concurrent;
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(DbCommand command,
+            CommandEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.TrimStart().StartsWith("UPDATE", StringComparison.OrdinalIgnoreCase)
+                && command.CommandText.Contains("Einsatzalarme", StringComparison.Ordinal)
+                && Interlocked.Exchange(ref _pending, null) is { } run)
+            {
+                run();
+            }
+            return ValueTask.FromResult(result);
+        }
     }
 }

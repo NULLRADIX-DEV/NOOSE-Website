@@ -14,6 +14,7 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
     INotificationService notifications, IOperationService operations) : IEmergencyAlarmService
 {
     private const int ListLimit = 100;
+    private const string AlreadyLinked = "Dieser Einsatzalarm gehört schon zu einer Operation.";
 
     /// <summary>Column length of an operation title; a longer situation is cut to it.</summary>
     public const int MaxOperationTitle = 200;
@@ -156,14 +157,14 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
         // claim once: two tabs may race here
         var now = DateTime.UtcNow;
         var claimed = await db.EmergencyAlarms
-            .Where(a => a.Id == alarmId && a.RepingedAt == null)
+            .Where(a => a.Id == alarmId && a.RepingedAt == null && a.EndedAt == null && a.Expiry > now)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(a => a.RepingedAt, now)
                 .SetProperty(a => a.ModifiedAt, now)
                 .SetProperty(a => a.ModifiedById, meId), cancellationToken);
         if (claimed == 0)
         {
-            throw new InvalidOperationException("Dieser Einsatzalarm wurde schon einmal nachgepingt.");
+            throw new InvalidOperationException("Der Einsatzalarm ist beendet oder wurde schon einmal nachgepingt.");
         }
         // ExecuteUpdate bypasses the interceptors
         db.AuditLogs.Add(ManualAudit.Row(nameof(EmergencyAlarm), alarmId, AuditAction.Modified, actor,
@@ -220,22 +221,35 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
         var alarm = await FindConvertibleAsync(db, alarmId, actor, cancellationToken);
         var coming = await ComingAsync(db, alarmId, cancellationToken);
 
+        // title is one line
+        var title = alarm.Situation.ReplaceLineEndings(" ");
         // creator becomes investigation lead
         var operation = await operations.CreateAsync(new OperationInput
         {
-            Title = alarm.Situation.Length <= MaxOperationTitle ? alarm.Situation : alarm.Situation[..MaxOperationTitle],
+            Title = title.Length <= MaxOperationTitle ? title : title[..MaxOperationTitle],
             Status = OperationStatus.Running,
             Location = alarm.Location,
             // already UTC, must not shift
             Start = DateTime.SpecifyKind(alarm.TriggeredAt, DateTimeKind.Utc),
         }, actor, cancellationToken);
-        foreach (var agentId in coming.Where(id => id != meId))
+        if (!await ClaimAsync(db, alarmId, operation.Id, actor, cancellationToken))
         {
-            await operations.AgentAllocateAsync(operation.Id, agentId, false, actor, cancellationToken);
+            // lost the race: drop the duplicate
+            try
+            {
+                var duplicate = await db.Operations.FirstOrDefaultAsync(o => o.Id == operation.Id, cancellationToken);
+                if (duplicate is not null)
+                {
+                    db.Operations.Remove(duplicate);
+                    CriticalChange.NoteDeletion(db, nameof(Operation), duplicate.Id,
+                        "Doppelt aus einem Einsatzalarm angelegt.", actor);
+                    await db.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch { /* best effort */ }
+            throw new InvalidOperationException(AlreadyLinked);
         }
-
-        alarm.OperationId = operation.Id;
-        await db.SaveChangesAsync(cancellationToken);
+        await AllocateAsync(operation.Id, coming.Where(id => id != meId), actor, cancellationToken);
 
         broadcaster.Report(alarmId);
         return operation.Id;
@@ -249,7 +263,7 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
         var meId = actor.GetAgentId();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var alarm = await FindConvertibleAsync(db, alarmId, actor, cancellationToken);
+        await FindConvertibleAsync(db, alarmId, actor, cancellationToken);
         var operation = await db.Operations.AsNoTracking().FirstOrDefaultAsync(o => o.Id == operationId, cancellationToken)
             ?? throw new InvalidOperationException("Diese Operation gibt es nicht.");
         // checked up front: with nobody new to allocate the allocation would never ask
@@ -266,13 +280,13 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
                 .ToListAsync(cancellationToken))
             .ToHashSet(StringComparer.Ordinal);
 
-        foreach (var agentId in (await ComingAsync(db, alarmId, cancellationToken)).Where(id => !allocated.Contains(id)))
-        {
-            await operations.AgentAllocateAsync(operationId, agentId, false, actor, cancellationToken);
-        }
+        var coming = await ComingAsync(db, alarmId, cancellationToken);
 
-        alarm.OperationId = operationId;
-        await db.SaveChangesAsync(cancellationToken);
+        if (!await ClaimAsync(db, alarmId, operationId, actor, cancellationToken))
+        {
+            throw new InvalidOperationException(AlreadyLinked);
+        }
+        await AllocateAsync(operationId, coming.Where(id => !allocated.Contains(id)), actor, cancellationToken);
 
         broadcaster.Report(alarmId);
     }
@@ -411,9 +425,46 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
         }
         if (alarm.OperationId is not null)
         {
-            throw new InvalidOperationException("Dieser Einsatzalarm gehört schon zu einer Operation.");
+            throw new InvalidOperationException(AlreadyLinked);
         }
         return alarm;
+    }
+
+    // two tabs may race here
+    private static async Task<bool> ClaimAsync(AppDbContext db, string alarmId, string operationId, ClaimsPrincipal actor,
+        CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var meId = actor.GetAgentId();
+        var claimed = await db.EmergencyAlarms
+            .Where(a => a.Id == alarmId && a.OperationId == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(a => a.OperationId, operationId)
+                .SetProperty(a => a.ModifiedAt, now)
+                .SetProperty(a => a.ModifiedById, meId), cancellationToken);
+        if (claimed == 0)
+        {
+            return false;
+        }
+        // ExecuteUpdate bypasses the interceptors
+        db.AuditLogs.Add(ManualAudit.Row(nameof(EmergencyAlarm), alarmId, AuditAction.Modified, actor,
+            ManualAudit.Change("Operation", null, operationId)));
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    // one stale agent must not strand the rest
+    private async Task AllocateAsync(string operationId, IEnumerable<string> agentIds, ClaimsPrincipal actor,
+        CancellationToken cancellationToken)
+    {
+        foreach (var agentId in agentIds)
+        {
+            try
+            {
+                await operations.AgentAllocateAsync(operationId, agentId, false, actor, cancellationToken);
+            }
+            catch { /* best effort */ }
+        }
     }
 
     // stale accounts would make the allocation throw
