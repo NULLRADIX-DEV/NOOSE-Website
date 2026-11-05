@@ -34,6 +34,18 @@ else if (_ready)
             <MudTextField @bind-Value="_model.CoverLetter" Label="Anschreiben" Variant="Variant.Outlined"
                           Lines="6" Placeholder="Deine Motivation und weitere Angaben …" />
 
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.subtitle2">Darf deine Bewerbung gestreamt werden?</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Gemeint ist, ob die Bearbeitung deiner Bewerbung, etwa das Vorstellungsgespräch, live gestreamt
+                    werden darf. Deine Wahl hat keinen Einfluss auf die Entscheidung.
+                </MudText>
+                <MudRadioGroup T="bool?" @bind-Value="_model.StreamConsent">
+                    <MudRadio T="bool?" Value="true" Color="Color.Primary">Ja, das ist okay</MudRadio>
+                    <MudRadio T="bool?" Value="false" Color="Color.Primary">Nein, bitte nicht</MudRadio>
+                </MudRadioGroup>
+            </MudStack>
+
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
                 <MudButton HtmlTag="label" Variant="Variant.Outlined" Color="Color.Default"
                            StartIcon="@Icons.Material.Filled.AttachFile" for="anhang">
@@ -101,6 +113,11 @@ else if (_ready)
         if (string.IsNullOrWhiteSpace(_model.Name))
         {
             Snackbar.Add("Bitte gib deinen Namen an.", Severity.Warning);
+            return;
+        }
+        if (_model.StreamConsent is null)
+        {
+            Snackbar.Add("Bitte gib an, ob deine Bewerbung gestreamt werden darf.", Severity.Warning);
             return;
         }
         _busy = true;

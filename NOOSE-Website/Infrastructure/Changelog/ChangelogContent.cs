@@ -684,6 +684,8 @@ public static class ChangelogContent
             Neu("3.0.29-einsatzalarm", "Mit einem Einsatzalarm rufst du Agenten kurzfristig zusammen, alle oder eine "
                 + "Abteilung. Jeder Gerufene antwortet mit Komme oder Komme nicht, und alle sehen live, wer kommt. "
                 + "Danach wird aus dem Alarm per Knopf eine Operation.", "Akten"),
+            Neu("3.0.30-bewerbung-stream", "Bewerber geben jetzt an, ob ihre Bewerbung gestreamt werden darf. Ihre "
+                + "Antwort steht in der Bewerbung ganz oben bei den Stammdaten.", "Bewerbungen"),
         ]),
     ];
 }

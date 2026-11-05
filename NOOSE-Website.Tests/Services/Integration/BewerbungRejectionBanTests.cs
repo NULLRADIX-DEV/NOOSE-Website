@@ -265,7 +265,7 @@ public sealed class BewerbungRejectionBanTests
 
         var applicant = ClaimsPrincipalBuilder.Agent("u1").WithStatus(AgentStatus.Applicant).Build();
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.SubmitAsync(
-            new BewerbungSubmitModel { Name = "Max Mustermann" }, null, null, null, applicant));
+            new BewerbungSubmitModel { StreamConsent = true, Name = "Max Mustermann" }, null, null, null, applicant));
 
         Assert.Contains(DateTime.UtcNow.AddDays(14).ToLocalTime().ToString("dd.MM.yyyy"), ex.Message);
     }
