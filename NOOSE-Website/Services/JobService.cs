@@ -298,6 +298,45 @@ public class JobService(
         }
     }
 
+    public async Task<int> UnitAssignAsync(string jobId, OrgUnit unit, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+    {
+        if (unit.IsNone)
+        {
+            throw new InvalidOperationException("Bitte eine Einheit wählen.");
+        }
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var job = await db.Jobs.FirstOrDefaultAsync(a => a.Id == jobId, cancellationToken)
+            ?? throw new InvalidOperationException($"Aufgabe '{jobId}' nicht gefunden.");
+        RequireCreatorOrLeadership(job, actor);
+
+        var assigned = await db.JobAssignments
+            .Where(z => z.JobId == jobId)
+            .Select(z => z.AgentId)
+            .ToListAsync(cancellationToken);
+        // home can be derived, so the seat is resolved in memory
+        var candidates = await db.Users.OnlySelectable()
+            .Where(u => u.Rank != null && !assigned.Contains(u.Id))
+            .ToListAsync(cancellationToken);
+        var added = candidates.Where(u => DivisionRules.InSeat(u, unit)).Select(u => u.Id).ToList();
+        if (added.Count == 0)
+        {
+            return 0;
+        }
+
+        foreach (var agentId in added)
+        {
+            db.JobAssignments.Add(new JobAssignment { JobId = jobId, AgentId = agentId });
+        }
+        await db.SaveChangesAsync(cancellationToken);
+
+        await notifications.NotifyManyAsync(added, NotificationType.JobAssigned,
+            $"Dir wurde eine Aufgabe zugewiesen: „{job.Title}“.", $"/aufgaben/{job.Id}",
+            triggerId: actor.GetAgentId(), cancellationToken);
+        return added.Count;
+    }
+
     public async Task AgentRemoveAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
