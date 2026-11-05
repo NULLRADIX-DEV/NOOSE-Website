@@ -401,6 +401,7 @@ builder.Services.AddScoped<IDiscordWebhookService, DiscordWebhookService>();
 builder.Services.AddHttpClient(DiscordBotClient.ClientName, client => client.Timeout = TimeSpan.FromSeconds(15))
     .RemoveAllLoggers();
 builder.Services.AddScoped<IDiscordBotClient, DiscordBotClient>();
+builder.Services.AddScoped<IDiscordRoleSyncService, DiscordRoleSyncService>();
 // per-process share quota
 builder.Services.AddSingleton<ChannelShareQuota>();
 builder.Services.AddScoped<IChannelShareService, ChannelShareService>();

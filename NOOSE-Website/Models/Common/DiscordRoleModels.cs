@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Models.Common;
@@ -21,6 +22,7 @@ public sealed record DiscordRoleMapping(
         [], [], [], [], []);
 
     /// <summary>Every mapped role id; the bot touches nothing else.</summary>
+    [JsonIgnore]
     public IReadOnlySet<string> AllManaged
     {
         get
@@ -65,3 +67,17 @@ public sealed record DiscordRoleDiff(IReadOnlyList<string> Add, IReadOnlyList<st
 {
     public bool IsEmpty => Add.Count == 0 && Remove.Count == 0;
 }
+
+/// <summary>Switch, server id and role mapping; the bot token stays in configuration.</summary>
+public sealed record DiscordRoleSyncSettings(bool Enabled, string? GuildId, DiscordRoleMapping Mapping);
+
+/// <summary>Dry-run result for one agent; role names, or ids where a name is unknown.</summary>
+public sealed record DiscordRolePreviewRow(
+    string AgentId, string Codename, IReadOnlyList<string> Add, IReadOnlyList<string> Remove, string? Note);
+
+/// <summary>Agent with a failed sync or not on the server; codename only, never the real name.</summary>
+public sealed record DiscordRoleSyncFailure(string AgentId, string Codename, string Error, DateTime? LastSuccessUtc);
+
+/// <summary>What the settings section shows about the sync.</summary>
+public sealed record DiscordRoleSyncStatus(
+    bool TokenConfigured, bool Enabled, DateTime? LastRunUtc, IReadOnlyList<DiscordRoleSyncFailure> Failures);

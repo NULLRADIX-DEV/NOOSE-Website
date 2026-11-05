@@ -8,6 +8,9 @@ namespace NOOSE_Website.Services;
 /// <summary>Which Discord roles an agent should carry and which ones the bot may take away; pure, no I/O.</summary>
 public static class DiscordRoleRules
 {
+    /// <summary>Error column value for a member who is not on the Discord server; not a failure.</summary>
+    public const string NotOnServer = "Nicht auf dem Server";
+
     /// <summary>Roles for the agent's current state; null means leave the member alone.</summary>
     public static DiscordRoleTarget? Target(Agent agent, DiscordRoleMapping map)
     {
