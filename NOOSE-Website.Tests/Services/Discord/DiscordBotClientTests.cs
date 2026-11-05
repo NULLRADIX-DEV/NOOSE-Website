@@ -1,12 +1,13 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using NOOSE_Website.Services;
 using NSubstitute;
 
 namespace NOOSE_Website.Tests.Services.Discord;
 
-/// <summary>The bot's REST calls: auth and reason headers, single role endpoints, rate limits, and no token in errors.</summary>
+/// <summary>The bot's REST calls: auth and reason headers, single role endpoints, direct messages, rate limits, and no token in errors.</summary>
 public class DiscordBotClientTests
 {
     private const string Token = "test-token";
@@ -14,22 +15,35 @@ public class DiscordBotClientTests
     private const string User = "200";
     private const string Role = "300";
     private const string Bot = "900";
+    private const string DmChannel = "555";
+    private static int lastUser = 1000;
 
-    private sealed record Sent(HttpMethod Method, string Path, string? Authorization, string? Reason);
+    private sealed record Sent(HttpMethod Method, string Path, string? Authorization, string? Reason, string? Body = null);
 
     private sealed class StubHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) : HttpMessageHandler
     {
         public List<Sent> Calls { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
             request.Headers.TryGetValues("X-Audit-Log-Reason", out var reason);
+            var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
             Calls.Add(new Sent(request.Method, request.RequestUri!.AbsolutePath,
-                request.Headers.Authorization?.ToString(), reason?.Single()));
-            return Task.FromResult(respond(request));
+                request.Headers.Authorization?.ToString(), reason?.Single(), body));
+            return respond(request);
         }
     }
+
+    // every test gets its own user: the dm channel cache is static
+    private static string NewUser() => Interlocked.Increment(ref lastUser).ToString();
+
+    private static HttpResponseMessage DmReply(HttpRequestMessage request) => request.RequestUri!.AbsolutePath switch
+    {
+        "/api/v10/users/@me/channels" => Reply(HttpStatusCode.OK, $$"""{"id":"{{DmChannel}}","type":1}"""),
+        $"/api/v10/channels/{DmChannel}/messages" => Reply(HttpStatusCode.OK, """{"id":"1"}"""),
+        _ => Reply(HttpStatusCode.NotFound),
+    };
 
     private static HttpResponseMessage Reply(HttpStatusCode status, string? json = null)
     {
@@ -250,7 +264,23 @@ public class DiscordBotClientTests
             () => client.GetMemberRolesAsync(Guild, User, CancellationToken.None));
 
         Assert.Equal(500, error.Status);
+        Assert.Null(error.Code);
         Assert.DoesNotContain("oops", error.Message);
+    }
+
+    [Theory]
+    [InlineData("""{"message":"x","code":"50007"}""")]
+    [InlineData("""{"message":"x","code":1.5}""")]
+    [InlineData("""[{"code":50007}]""")]
+    public async Task A_code_that_is_not_an_integer_is_ignored(string answer)
+    {
+        var (client, _) = Build(_ => Reply(HttpStatusCode.BadRequest, answer));
+
+        var error = await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.AddRoleAsync(Guild, User, Role, "x", CancellationToken.None));
+
+        Assert.Equal(400, error.Status);
+        Assert.Null(error.Code);
     }
 
     [Theory]
@@ -270,7 +300,138 @@ public class DiscordBotClientTests
             () => client.AddRoleAsync(Guild, User, Role, "x", CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => client.RemoveRoleAsync(Guild, User, Role, "x", CancellationToken.None));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => client.SendDirectMessageAsync(User, "x", CancellationToken.None));
         Assert.Empty(handler.Calls);
+    }
+
+    [Fact]
+    public async Task Direct_message_opens_the_channel_then_posts()
+    {
+        var user = NewUser();
+        var (client, handler) = Build(DmReply);
+
+        await client.SendDirectMessageAsync(user, "Hallo @everyone", CancellationToken.None);
+
+        Assert.Equal(2, handler.Calls.Count);
+        var open = handler.Calls[0];
+        Assert.Equal(HttpMethod.Post, open.Method);
+        Assert.Equal("/api/v10/users/@me/channels", open.Path);
+        Assert.Equal("Bot test-token", open.Authorization);
+        using var openBody = JsonDocument.Parse(open.Body!);
+        Assert.Equal(user, openBody.RootElement.GetProperty("recipient_id").GetString());
+
+        var post = handler.Calls[1];
+        Assert.Equal(HttpMethod.Post, post.Method);
+        Assert.Equal($"/api/v10/channels/{DmChannel}/messages", post.Path);
+        Assert.Equal("Bot test-token", post.Authorization);
+        using var postBody = JsonDocument.Parse(post.Body!);
+        Assert.Equal("Hallo @everyone", postBody.RootElement.GetProperty("content").GetString());
+        var parse = postBody.RootElement.GetProperty("allowed_mentions").GetProperty("parse");
+        Assert.Equal(JsonValueKind.Array, parse.ValueKind);
+        Assert.Equal(0, parse.GetArrayLength());
+    }
+
+    [Fact]
+    public async Task The_dm_channel_is_opened_once_per_user()
+    {
+        var (first, second) = (NewUser(), NewUser());
+        var opened = 0;
+        var (client, handler) = Build(request => request.RequestUri!.AbsolutePath == "/api/v10/users/@me/channels"
+            ? Reply(HttpStatusCode.OK, $$"""{"id":"{{500 + ++opened}}"}""")
+            : Reply(HttpStatusCode.OK, """{"id":"1"}"""));
+
+        await client.SendDirectMessageAsync(first, "a", CancellationToken.None);
+        await client.SendDirectMessageAsync(first, "b", CancellationToken.None);
+        await client.SendDirectMessageAsync(second, "c", CancellationToken.None);
+
+        Assert.Equal(2, handler.Calls.Count(c => c.Path == "/api/v10/users/@me/channels"));
+        Assert.Equal(
+            ["/api/v10/channels/501/messages", "/api/v10/channels/501/messages", "/api/v10/channels/502/messages"],
+            handler.Calls.Where(c => c.Path.EndsWith("/messages")).Select(c => c.Path));
+    }
+
+    [Fact]
+    public async Task The_dm_channel_is_remembered_across_clients()
+    {
+        var user = NewUser();
+        var (first, firstHandler) = Build(DmReply);
+        var (second, secondHandler) = Build(DmReply);
+
+        await first.SendDirectMessageAsync(user, "a", CancellationToken.None);
+        await second.SendDirectMessageAsync(user, "b", CancellationToken.None);
+
+        Assert.Equal(2, firstHandler.Calls.Count);
+        Assert.Equal($"/api/v10/channels/{DmChannel}/messages", Assert.Single(secondHandler.Calls).Path);
+    }
+
+    [Fact]
+    public async Task A_closed_dm_throws_with_code_50007()
+    {
+        var (client, _) = Build(request => request.RequestUri!.AbsolutePath.EndsWith("/messages")
+            ? Reply(HttpStatusCode.Forbidden, """{"message":"Cannot send messages to this user","code":50007}""")
+            : DmReply(request));
+
+        var error = await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.SendDirectMessageAsync(NewUser(), "x", CancellationToken.None));
+
+        Assert.Equal(403, error.Status);
+        Assert.Equal(50007, error.Code);
+        Assert.Equal(DiscordBotException.CannotSendToUser, error.Code);
+        Assert.Contains("Cannot send messages to this user", error.Message);
+        Assert.DoesNotContain(Token, error.Message);
+    }
+
+    [Theory]
+    [MemberData(nameof(NotSnowflakes))]
+    public async Task Non_snowflake_user_is_rejected_before_any_request(string bad)
+    {
+        var (client, handler) = Build(DmReply);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => client.SendDirectMessageAsync(bad, "x", CancellationToken.None));
+        Assert.Empty(handler.Calls);
+    }
+
+    [Theory]
+    [InlineData("""{"id":"../1"}""")]
+    [InlineData("""{"id":""}""")]
+    [InlineData("""{"id":123}""")]
+    [InlineData("{}")]
+    [InlineData("[]")]
+    [InlineData("<html>oops</html>")]
+    public async Task A_dm_channel_without_a_snowflake_id_is_not_used(string answer)
+    {
+        var (client, handler) = Build(_ => Reply(HttpStatusCode.OK, answer));
+
+        await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.SendDirectMessageAsync(NewUser(), "x", CancellationToken.None));
+        Assert.Equal("/api/v10/users/@me/channels", Assert.Single(handler.Calls).Path);
+    }
+
+    [Theory]
+    [InlineData(5, 5)]
+    [InlineData(2000, 2000)]
+    [InlineData(2001, 2000)]
+    [InlineData(2500, 2000)]
+    public async Task Long_content_is_cut_to_2000(int length, int posted)
+    {
+        var (client, handler) = Build(DmReply);
+
+        await client.SendDirectMessageAsync(NewUser(), new string('a', length), CancellationToken.None);
+
+        using var body = JsonDocument.Parse(handler.Calls[1].Body!);
+        Assert.Equal(posted, body.RootElement.GetProperty("content").GetString()!.Length);
+    }
+
+    [Fact]
+    public async Task Cutting_never_splits_a_surrogate_pair()
+    {
+        var (client, handler) = Build(DmReply);
+
+        await client.SendDirectMessageAsync(NewUser(), new string('a', 1999) + "\U0001F600\U0001F600", CancellationToken.None);
+
+        using var body = JsonDocument.Parse(handler.Calls[1].Body!);
+        Assert.Equal(new string('a', 1999), body.RootElement.GetProperty("content").GetString());
     }
 
     [Fact]

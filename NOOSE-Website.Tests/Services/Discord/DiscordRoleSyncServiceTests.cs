@@ -109,6 +109,10 @@ public class DiscordRoleSyncServiceTests
             return Task.CompletedTask;
         }
 
+        // the role sync never sends direct messages
+        public Task SendDirectMessageAsync(string userId, string content, CancellationToken ct)
+            => throw new NotSupportedException();
+
         private void CheckRole(string operation, string userId, string roleId)
         {
             if (RoleFault?.Invoke(operation, userId, roleId) is { } fault)
