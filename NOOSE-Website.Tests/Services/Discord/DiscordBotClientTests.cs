@@ -10,6 +10,10 @@ namespace NOOSE_Website.Tests.Services.Discord;
 public class DiscordBotClientTests
 {
     private const string Token = "test-token";
+    private const string Guild = "100";
+    private const string User = "200";
+    private const string Role = "300";
+    private const string Bot = "900";
 
     private sealed record Sent(HttpMethod Method, string Path, string? Authorization, string? Reason);
 
@@ -55,7 +59,7 @@ public class DiscordBotClientTests
     {
         var (client, handler) = Build(_ => Reply(HttpStatusCode.NoContent));
 
-        await client.AddRoleAsync("g", "u", "r", "FIB-Website: Beförderung", CancellationToken.None);
+        await client.AddRoleAsync(Guild, User, Role, "FIB-Website: Beförderung", CancellationToken.None);
 
         var call = Assert.Single(handler.Calls);
         Assert.Equal("Bot test-token", call.Authorization);
@@ -67,34 +71,78 @@ public class DiscordBotClientTests
     {
         var (client, handler) = Build(_ => Reply(HttpStatusCode.NoContent));
 
-        await client.AddRoleAsync("g", "u", "r", "x", CancellationToken.None);
-        await client.RemoveRoleAsync("g", "u", "r", "x", CancellationToken.None);
+        await client.AddRoleAsync(Guild, User, Role, "x", CancellationToken.None);
+        await client.RemoveRoleAsync(Guild, User, Role, "x", CancellationToken.None);
 
         Assert.Equal([HttpMethod.Put, HttpMethod.Delete], handler.Calls.Select(c => c.Method));
-        Assert.All(handler.Calls, c => Assert.Equal("/api/v10/guilds/g/members/u/roles/r", c.Path));
+        Assert.All(handler.Calls, c => Assert.Equal($"/api/v10/guilds/{Guild}/members/{User}/roles/{Role}", c.Path));
     }
 
-    [Fact]
-    public async Task Ids_cannot_escape_their_path_segment()
+    // "." and ".." would be collapsed by Uri: DELETE .../roles/.. kicks the member, .../members/../roles/x hits the server's role
+    public static TheoryData<string> NotSnowflakes => new()
+    {
+        "", ".", "..", "1/2", "u/../x", "../1", "1%2F2", "12 3", "-1", "1.5", "abc", "١٢",
+        new string('1', 21),
+    };
+
+    [Theory]
+    [MemberData(nameof(NotSnowflakes))]
+    public async Task A_bad_guild_id_is_rejected_before_any_request(string bad)
     {
         var (client, handler) = Build(_ => Reply(HttpStatusCode.NoContent));
 
-        await client.AddRoleAsync("g", "u/../x", "r", "x", CancellationToken.None);
+        await Assert.ThrowsAsync<ArgumentException>(() => client.GetMemberRolesAsync(bad, User, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.GetGuildRolesAsync(bad, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.AddRoleAsync(bad, User, Role, "x", CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.RemoveRoleAsync(bad, User, Role, "x", CancellationToken.None));
+        Assert.Empty(handler.Calls);
+    }
 
-        Assert.Equal("/api/v10/guilds/g/members/u%2F..%2Fx/roles/r", Assert.Single(handler.Calls).Path);
+    [Theory]
+    [MemberData(nameof(NotSnowflakes))]
+    public async Task A_bad_user_id_is_rejected_before_any_request(string bad)
+    {
+        var (client, handler) = Build(_ => Reply(HttpStatusCode.NoContent));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => client.GetMemberRolesAsync(Guild, bad, CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.AddRoleAsync(Guild, bad, Role, "x", CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.RemoveRoleAsync(Guild, bad, Role, "x", CancellationToken.None));
+        Assert.Empty(handler.Calls);
+    }
+
+    [Theory]
+    [MemberData(nameof(NotSnowflakes))]
+    public async Task A_bad_role_id_is_rejected_before_any_request(string bad)
+    {
+        var (client, handler) = Build(_ => Reply(HttpStatusCode.NoContent));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => client.AddRoleAsync(Guild, User, bad, "x", CancellationToken.None));
+        await Assert.ThrowsAsync<ArgumentException>(() => client.RemoveRoleAsync(Guild, User, bad, "x", CancellationToken.None));
+        Assert.Empty(handler.Calls);
+    }
+
+    [Fact]
+    public async Task Ids_of_up_to_twenty_digits_are_accepted()
+    {
+        var id = new string('7', 20);
+        var (client, handler) = Build(_ => Reply(HttpStatusCode.NoContent));
+
+        await client.AddRoleAsync(id, id, id, "x", CancellationToken.None);
+
+        Assert.Equal($"/api/v10/guilds/{id}/members/{id}/roles/{id}", Assert.Single(handler.Calls).Path);
     }
 
     [Fact]
     public async Task Member_roles_are_read_from_the_member()
     {
-        var (client, handler) = Build(_ => Reply(HttpStatusCode.OK, """{"user":{"id":"u"},"roles":["r1","r2"]}"""));
+        var (client, handler) = Build(_ => Reply(HttpStatusCode.OK, """{"user":{"id":"200"},"roles":["r1","r2"]}"""));
 
-        var roles = await client.GetMemberRolesAsync("g", "u", CancellationToken.None);
+        var roles = await client.GetMemberRolesAsync(Guild, User, CancellationToken.None);
 
         Assert.Equal(["r1", "r2"], roles);
         var call = Assert.Single(handler.Calls);
         Assert.Equal(HttpMethod.Get, call.Method);
-        Assert.Equal("/api/v10/guilds/g/members/u", call.Path);
+        Assert.Equal($"/api/v10/guilds/{Guild}/members/{User}", call.Path);
     }
 
     [Fact]
@@ -102,7 +150,7 @@ public class DiscordBotClientTests
     {
         var (client, _) = Build(_ => Reply(HttpStatusCode.NotFound, """{"message":"Unknown Member","code":10007}"""));
 
-        Assert.Null(await client.GetMemberRolesAsync("g", "u", CancellationToken.None));
+        Assert.Null(await client.GetMemberRolesAsync(Guild, User, CancellationToken.None));
     }
 
     [Fact]
@@ -110,18 +158,18 @@ public class DiscordBotClientTests
     {
         var (client, handler) = Build(request => request.RequestUri!.AbsolutePath switch
         {
-            "/api/v10/guilds/g/roles" => Reply(HttpStatusCode.OK, """
+            $"/api/v10/guilds/{Guild}/roles" => Reply(HttpStatusCode.OK, """
                 [{"id":"g","name":"@everyone","position":0,"managed":false},
                  {"id":"r1","name":"Mod","position":3,"managed":false},
                  {"id":"r2","name":"Bot","position":7,"managed":true},
                  {"id":"r3","name":"Chief","position":9,"managed":false}]
                 """),
-            "/api/v10/users/@me" => Reply(HttpStatusCode.OK, """{"id":"bot1","username":"fib"}"""),
-            "/api/v10/guilds/g/members/bot1" => Reply(HttpStatusCode.OK, """{"roles":["r1","r2"]}"""),
+            "/api/v10/users/@me" => Reply(HttpStatusCode.OK, $$"""{"id":"{{Bot}}","username":"fib"}"""),
+            $"/api/v10/guilds/{Guild}/members/{Bot}" => Reply(HttpStatusCode.OK, """{"roles":["r1","r2"]}"""),
             _ => Reply(HttpStatusCode.NotFound),
         });
 
-        var result = await client.GetGuildRolesAsync("g", CancellationToken.None);
+        var result = await client.GetGuildRolesAsync(Guild, CancellationToken.None);
 
         Assert.Equal(7, result.BotTopPosition);
         Assert.Equal(4, result.Roles.Count);
@@ -135,13 +183,13 @@ public class DiscordBotClientTests
     {
         var (client, _) = Build(request => request.RequestUri!.AbsolutePath switch
         {
-            "/api/v10/guilds/g/roles" => Reply(HttpStatusCode.OK,
+            $"/api/v10/guilds/{Guild}/roles" => Reply(HttpStatusCode.OK,
                 """[{"id":"r1","name":"Mod","position":3,"managed":false}]"""),
-            "/api/v10/users/@me" => Reply(HttpStatusCode.OK, """{"id":"bot1"}"""),
+            "/api/v10/users/@me" => Reply(HttpStatusCode.OK, $$"""{"id":"{{Bot}}"}"""),
             _ => Reply(HttpStatusCode.OK, """{"roles":[]}"""),
         });
 
-        var result = await client.GetGuildRolesAsync("g", CancellationToken.None);
+        var result = await client.GetGuildRolesAsync(Guild, CancellationToken.None);
 
         Assert.Equal(0, result.BotTopPosition);
     }
@@ -154,7 +202,7 @@ public class DiscordBotClientTests
             ? Reply((HttpStatusCode)429, """{"message":"You are being rate limited.","retry_after":0.01,"global":false}""")
             : Reply(HttpStatusCode.NoContent));
 
-        await client.AddRoleAsync("g", "u", "r", "x", CancellationToken.None);
+        await client.AddRoleAsync(Guild, User, Role, "x", CancellationToken.None);
 
         Assert.Equal(2, handler.Calls.Count);
     }
@@ -166,7 +214,7 @@ public class DiscordBotClientTests
             Reply((HttpStatusCode)429, """{"message":"You are being rate limited.","retry_after":0.01}"""));
 
         var error = await Assert.ThrowsAsync<DiscordBotException>(
-            () => client.AddRoleAsync("g", "u", "r", "x", CancellationToken.None));
+            () => client.AddRoleAsync(Guild, User, Role, "x", CancellationToken.None));
 
         Assert.Equal(429, error.Status);
         Assert.Equal(3, handler.Calls.Count);
@@ -186,7 +234,7 @@ public class DiscordBotClientTests
         var (client, _) = Build(_ => Reply(HttpStatusCode.Forbidden, """{"message":"Missing Permissions","code":50013}"""));
 
         var error = await Assert.ThrowsAsync<DiscordBotException>(
-            () => client.RemoveRoleAsync("g", "u", "r", "x", CancellationToken.None));
+            () => client.RemoveRoleAsync(Guild, User, Role, "x", CancellationToken.None));
 
         Assert.Equal(403, error.Status);
         Assert.Contains("Missing Permissions", error.Message);
@@ -199,7 +247,7 @@ public class DiscordBotClientTests
         var (client, _) = Build(_ => Reply(HttpStatusCode.InternalServerError, "<html>oops</html>"));
 
         var error = await Assert.ThrowsAsync<DiscordBotException>(
-            () => client.GetMemberRolesAsync("g", "u", CancellationToken.None));
+            () => client.GetMemberRolesAsync(Guild, User, CancellationToken.None));
 
         Assert.Equal(500, error.Status);
         Assert.DoesNotContain("oops", error.Message);
@@ -215,13 +263,13 @@ public class DiscordBotClientTests
 
         Assert.False(client.IsConfigured);
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => client.GetMemberRolesAsync("g", "u", CancellationToken.None));
+            () => client.GetMemberRolesAsync(Guild, User, CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => client.GetGuildRolesAsync("g", CancellationToken.None));
+            () => client.GetGuildRolesAsync(Guild, CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => client.AddRoleAsync("g", "u", "r", "x", CancellationToken.None));
+            () => client.AddRoleAsync(Guild, User, Role, "x", CancellationToken.None));
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => client.RemoveRoleAsync("g", "u", "r", "x", CancellationToken.None));
+            () => client.RemoveRoleAsync(Guild, User, Role, "x", CancellationToken.None));
         Assert.Empty(handler.Calls);
     }
 

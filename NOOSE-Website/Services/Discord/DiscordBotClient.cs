@@ -14,6 +14,7 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     private const string ReasonHeader = "X-Audit-Log-Reason";
     private const int MaxAttempts = 3;
     private const int MaxDetailChars = 200;
+    private const int MaxSnowflakeChars = 20;
     private static readonly TimeSpan MaxRetryWaitTime = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DefaultRetryWait = TimeSpan.FromSeconds(1);
 
@@ -40,7 +41,7 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
 
     public async Task<DiscordGuildRoles> GetGuildRolesAsync(string guildId, CancellationToken ct)
     {
-        var (status, body) = await SendAsync(HttpMethod.Get, $"guilds/{Seg(guildId)}/roles", null, ct);
+        var (status, body) = await SendAsync(HttpMethod.Get, $"{GuildPath(guildId)}/roles", null, ct);
         EnsureSuccess(status, body);
         using var json = JsonDocument.Parse(body);
         var roles = json.RootElement.EnumerateArray()
@@ -161,10 +162,22 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
             ? roles.EnumerateArray().Select(r => r.GetString()!).ToList()
             : [];
 
-    private static string MemberPath(string guildId, string userId) => $"guilds/{Seg(guildId)}/members/{Seg(userId)}";
+    private static string GuildPath(string guildId) => $"guilds/{Seg(guildId, nameof(guildId))}";
+
+    private static string MemberPath(string guildId, string userId)
+        => $"{GuildPath(guildId)}/members/{Seg(userId, nameof(userId))}";
 
     private static string RolePath(string guildId, string userId, string roleId)
-        => $"{MemberPath(guildId, userId)}/roles/{Seg(roleId)}";
+        => $"{MemberPath(guildId, userId)}/roles/{Seg(roleId, nameof(roleId))}";
 
-    private static string Seg(string id) => Uri.EscapeDataString(id);
+    /// <summary>Only snowflakes become a path segment: "." and ".." would otherwise be collapsed by <see cref="Uri"/>.</summary>
+    private static string Seg(string id, string name)
+    {
+        if (string.IsNullOrEmpty(id) || id.Length > MaxSnowflakeChars || !id.All(char.IsAsciiDigit))
+        {
+            throw new ArgumentException("Not a Discord id.", name);
+        }
+
+        return Uri.EscapeDataString(id);
+    }
 }

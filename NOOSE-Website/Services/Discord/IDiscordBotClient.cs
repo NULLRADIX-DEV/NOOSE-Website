@@ -12,7 +12,7 @@ public sealed class DiscordBotException(int status, string message) : Exception(
     public int Status { get; } = status;
 }
 
-/// <summary>The small slice of the Discord REST API the role sync needs, authenticated as the bot.</summary>
+/// <summary>The small slice of the Discord REST API the role sync needs, authenticated as the bot; ids must be digits only, else <see cref="ArgumentException"/>.</summary>
 public interface IDiscordBotClient
 {
     /// <summary>False without a bot token; every call then throws <see cref="InvalidOperationException"/>.</summary>
