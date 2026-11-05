@@ -43,6 +43,13 @@ internal static class WantedChapter
                 <p>Mit der ersten Veröffentlichung bekommt die Ausschreibung ein eigenes Aktenzeichen, das mit
                 <em>FA</em> beginnt. Unter dieser Nummer meldet sich später jeder Bürger, der etwas dazu
                 sagen will.</p>
+                <p>Ist ein Discord-Kanal für öffentliche Fahndungen eingerichtet, erscheint jede Veröffentlichung
+                dort als <strong>Steckbrief-Karte</strong>: Art und Name, das Foto, das FA-Aktenzeichen, die
+                Gefahrenstufe als Farbe, das Kopfgeld, falls eines steht, Aliase und die Warnhinweise. Ein Klick führt
+                auf den öffentlichen Steckbrief. Den <strong>Vorwurf</strong> trägt die Karte bewusst nicht: ein
+                Discord-Beitrag lässt sich nicht zurückholen, und nach einem Zurückziehen soll dort keine
+                Beschuldigung stehen bleiben, nur ein Link, der ins Leere führt. Teilt jemand den Link auf den
+                Steckbrief von Hand, zeigt Discord eine Vorschau mit Name, Vorwurf und Foto.</p>
                 <p>Am öffentlichen Steckbrief liegt ein <strong>Fahndungsposter</strong> zum Drucken. Es trägt einen
                 QR-Code und eine kurze Adresse, die man abtippen kann: aus <em>FIB-FA-2026-0042</em> wird
                 <em>/g/2026-0042</em>. Beides führt direkt zum Steckbrief, wo ein Bürger seinen Hinweis abgibt,
@@ -92,6 +99,8 @@ internal static class WantedChapter
                 Anteil, der noch beantragt ist, ist kein Geld - und würde nebenbei eine laufende interne
                 Entscheidung verraten.</p>
                 <p>Ab Senior Special Agent setzt du behördliches Geld selbst; darunter beantragst du es.</p>
+                <p>Steigt die öffentliche Summe, kommt im Discord-Kanal der öffentlichen Fahndungen eine goldene
+                Karte <em>Kopfgeld erhöht</em> mit der neuen Summe - auch dort ohne Namen der Stifter.</p>
                 """),
 
             new Article("art-buergerhinweise", "buergerhinweise", "Bürgerhinweise",

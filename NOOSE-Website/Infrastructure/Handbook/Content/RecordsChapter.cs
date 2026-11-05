@@ -26,6 +26,19 @@ internal static class RecordsChapter
                 die deine Rechte reichen.</p>
                 <p>Lege lieber <strong>eine</strong> Akte gut an als drei halbe. Wenn du unsicher bist, ob es
                 die Person schon gibt, such zuerst - die Suche findet auch ähnlich klingende Schreibweisen.</p>
+                <p>Die Seite passt beim Anlegen zusätzlich auf. Gibt es schon eine Akte mit
+                <strong>gleichem Namen</strong>, einem Namen, der <strong>gleich klingt</strong> oder nur
+                <strong>vertippt</strong> ist, oder mit derselben <strong>Telefonnummer</strong>, fragt sie vor dem
+                Speichern nach - auch über die Aliase und archivierte Akten. Ein Klick auf einen Treffer öffnet ihn
+                in einem neuen Tab, deine Eingaben bleiben stehen. Ist es dieselbe Person, brichst du ab; sonst
+                legst du mit <em>Trotzdem anlegen</em> an. Dieselbe Frage kommt, wenn du eine neue Person direkt
+                als Mitglied einer Fraktion, Gruppe oder Partei einträgst.</p>
+                <p>Ist es doch passiert, führt die <strong>Führung</strong> zwei Akten zusammen: auf der Liste
+                <em>Personen</em> mit <em>Zusammenführen</em> oder direkt aus den <em>Ermittlungshinweisen</em>.
+                Alles aus der doppelten Akte - Doks, Observationen, Fotos, Steckbrief, Verknüpfungen, Kommentare,
+                Mitgliedschaften und Verlauf - wandert in die bleibende. Die doppelte landet im Papierkorb, ihr Name
+                bleibt als Alias stehen. Einstufung und Lebensstatus der bleibenden Akte ändern sich dabei
+                nicht.</p>
                 """,
                 DiagramKey: "personenakte",
                 NavKey: "personen",
@@ -34,7 +47,7 @@ internal static class RecordsChapter
                     new Step("Search", "Zuerst suchen",
                         "Tippe den Namen in die Suche. Vielleicht gibt es die Akte längst - eine zweite Akte zur selben Person ist der häufigste Fehler."),
                     new Step("PersonAdd", "Akte anlegen",
-                        "Personen → Neu. Name reicht; alles andere kannst du später ergänzen."),
+                        "Personen → Neu. Name reicht; alles andere kannst du später ergänzen. Warnt die Seite vor einer Dublette, sieh dir den Treffer erst an."),
                     new Step("ContactPage", "Steckbrief füllen",
                         "Aliase, Telefonnummer, Fahrzeuge, Waffen - das ist der Teil, den andere am häufigsten brauchen."),
                     new Step("Shield", "Einstufung setzen",
@@ -317,6 +330,37 @@ internal static class RecordsChapter
                         "Zur Wahl stehen nur die Kanäle, die die Führung eingerichtet hat."),
                     new Step("EditNote", "Hinweis schreiben",
                         "Ein Satz, worauf die Kollegen achten sollen. Er ist freiwillig."),
+                ]),
+
+            new Article("art-akten-export", "akten-exportieren", "Listen und Akten herunterladen",
+                "Eine Liste als CSV, eine ganze Akte als Dossier - und warum beides protokolliert wird.",
+                """
+                <p>Auf den Listen der <em>Personen</em>, <em>Fraktionen</em>, <em>Personengruppen</em>,
+                <em>Parteien</em>, <em>Vorgänge</em> und <em>Operationen</em> steht oben rechts der Knopf
+                <em>CSV</em>. Er lädt die Liste <strong>genau so</strong> herunter, wie du sie gerade siehst: mit
+                deinen Filtern, in deiner Sortierung, mit den Spalten der Liste. Die Datei öffnest du in Excel oder
+                Google Tabellen. Herunterladen darf jeder interne Agent; in der Datei steht nie mehr als auf deinem
+                Bildschirm.</p>
+                <p>Die <strong>Führung</strong> und die Nur-Lese-Aufsicht laden außerdem jede dieser Akten als
+                <strong>Dossier</strong> herunter,
+                über das Download-Symbol oben auf der Akte. Das Dossier ist eine Textdatei (<em>.md</em>) mit allem,
+                was die Akte hergibt - Steckbrief, Einstufung, Doks, Verknüpfungen und so weiter -, aber nur so weit,
+                wie die Rechte dessen reichen, der es herunterlädt. Im Kopf stehen, wer es wann exportiert hat, ob die
+                Akte eine Verschlusssache ist, und der Satz, dass es nur mit Freigabe der Führung weitergegeben werden
+                darf.</p>
+                <p>Jeder Download steht im <strong>Zugriffsprotokoll</strong>: bei einer Liste die Art und die Zahl
+                der Zeilen, beim Dossier die Akte. Eine Datei verlässt das Haus und lässt sich nicht zurückholen.
+                Lade nur herunter, was du wirklich außerhalb der Seite brauchst - für alles andere gibt es die
+                <em>Druckansicht</em> und den Link auf die Akte.</p>
+                """,
+                Steps:
+                [
+                    new Step("FilterList", "Liste eingrenzen",
+                        "Filter und Sortierung einstellen. Die Datei enthält genau die Zeilen, die du siehst."),
+                    new Step("Download", "CSV herunterladen",
+                        "Oben rechts auf der Liste. Jeder Download steht im Zugriffsprotokoll."),
+                    new Step("FileDownload", "Dossier (Führung)",
+                        "Das Download-Symbol oben auf der Akte lädt sie ganz als Textdatei herunter."),
                 ]),
 
             new Article("art-neu-seit-besuch", "neu-seit-besuch", "Was ist neu an dieser Akte?",
