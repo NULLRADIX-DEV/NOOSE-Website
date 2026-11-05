@@ -91,6 +91,10 @@ public class Agent : IdentityUser
     [Column("DiscordRollenSyncAm")]
     public DateTime? DiscordRolesSyncAt { get; set; }
 
+    /// <summary>Last Discord role sync failure, null when the last run went through.</summary>
+    [Column("DiscordRollenFehler")]
+    public string? DiscordRolesSyncError { get; set; }
+
     [Column("AusstehenderCodename")]
     public string? PendingCodename { get; set; }
 

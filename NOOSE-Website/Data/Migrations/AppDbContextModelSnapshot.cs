@@ -579,6 +579,11 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("datetime(6)")
                         .HasColumnName("DiscordRollenSyncAm");
 
+                    b.Property<string>("DiscordRolesSyncError")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("DiscordRollenFehler");
+
                     b.Property<string>("DiscordUsername")
                         .HasMaxLength(64)
                         .HasColumnType("varchar(64)");

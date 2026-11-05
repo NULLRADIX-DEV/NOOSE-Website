@@ -323,9 +323,10 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(a => a.NavPreferencesJson).HasColumnType("longtext");
             b.Property(a => a.FinancingBudgetOverride).HasPrecision(18, 2);
             b.Property(a => a.InactivityNudgedByName).HasMaxLength(128);
+            b.Property(a => a.DiscordRolesSyncError).HasMaxLength(200);
             // written by ExecuteUpdate only: UserManager.UpdateAsync rewrites the whole row from a possibly stale copy
             foreach (var stamp in new[] { nameof(Agent.LastSeenAt), nameof(Agent.InactivityNudgedAt), nameof(Agent.InactivityNudgedByName),
-                         nameof(Agent.HiddenFromPublicRoster) })
+                         nameof(Agent.HiddenFromPublicRoster), nameof(Agent.DiscordRolesSyncAt), nameof(Agent.DiscordRolesSyncError) })
             {
                 b.Property(stamp).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
             }
