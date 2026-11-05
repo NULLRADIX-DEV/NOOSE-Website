@@ -95,6 +95,10 @@ public class Agent : IdentityUser
     [Column("DiscordRollenFehler")]
     public string? DiscordRolesSyncError { get; set; }
 
+    /// <summary>When Discord last refused a direct message to this agent; the next one that goes through clears it. ExecuteUpdate only.</summary>
+    [Column("DiscordDmGesperrtAm")]
+    public DateTime? DiscordDmBlockedAt { get; set; }
+
     [Column("AusstehenderCodename")]
     public string? PendingCodename { get; set; }
 

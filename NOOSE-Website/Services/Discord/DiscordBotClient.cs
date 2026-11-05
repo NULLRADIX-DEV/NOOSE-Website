@@ -18,6 +18,7 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     private const int MaxDetailChars = 200;
     private const int MaxSnowflakeChars = 20;
     private const int MaxMessageChars = 2000;
+    private const int UnknownChannelCode = 10003;
     private static readonly TimeSpan MaxRetryWaitTime = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DefaultRetryWait = TimeSpan.FromSeconds(1);
 
@@ -79,19 +80,50 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     public async Task SendDirectMessageAsync(string userId, string content, CancellationToken ct)
     {
         var user = Seg(userId, nameof(userId));
-        if (!DmChannels.TryGetValue(user, out var channelId))
-        {
-            channelId = await OpenDmChannelAsync(user, ct);
-            DmChannels[user] = channelId;
-        }
-
         var message = JsonSerializer.Serialize(new
         {
             content = Cut(content),
             allowed_mentions = new { parse = Array.Empty<string>() },
         });
+
+        // a cached channel may have gone stale; evict it and reopen once
+        var cached = DmChannels.TryGetValue(user, out var channelId);
+        if (!cached)
+        {
+            channelId = await OpenDmChannelAsync(user, ct);
+            DmChannels[user] = channelId;
+        }
+
         var (status, body) = await SendAsync(HttpMethod.Post, $"channels/{channelId}/messages", null, ct, message);
+        if (IsStaleChannel(status, body))
+        {
+            DmChannels.TryRemove(user, out _);
+            if (cached)
+            {
+                channelId = await OpenDmChannelAsync(user, ct);
+                DmChannels[user] = channelId;
+                (status, body) = await SendAsync(HttpMethod.Post, $"channels/{channelId}/messages", null, ct, message);
+                if (IsStaleChannel(status, body))
+                {
+                    DmChannels.TryRemove(user, out _);
+                }
+            }
+        }
+
         EnsureSuccess(status, body);
+    }
+
+    /// <summary>Unknown channel, or the bot lost access; 50007 is the user's own setting and leaves the channel fine.</summary>
+    private static bool IsStaleChannel(HttpStatusCode status, string body)
+    {
+        if (IsSuccess(status))
+        {
+            return false;
+        }
+
+        var (_, code) = ErrorDetails(body);
+        return status == HttpStatusCode.NotFound || code == UnknownChannelCode
+            || (status == HttpStatusCode.Forbidden && code != DiscordBotException.CannotSendToUser);
     }
 
     private async Task<string> OpenDmChannelAsync(string userId, CancellationToken ct)
@@ -167,7 +199,7 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
 
     private static void EnsureSuccess(HttpStatusCode status, string body)
     {
-        if ((int)status is >= 200 and < 300)
+        if (IsSuccess(status))
         {
             return;
         }
@@ -175,6 +207,8 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
         var (text, code) = ErrorDetails(body);
         throw new DiscordBotException((int)status, $"Discord {(int)status}: {text}", code);
     }
+
+    private static bool IsSuccess(HttpStatusCode status) => (int)status is >= 200 and < 300;
 
     /// <summary>Discord's own "message" and "code" fields; raw bodies (HTML error pages) are not echoed.</summary>
     private static (string Text, int? Code) ErrorDetails(string body)

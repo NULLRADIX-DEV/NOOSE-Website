@@ -382,6 +382,130 @@ public class DiscordBotClientTests
         Assert.DoesNotContain(Token, error.Message);
     }
 
+    // the cached channel can go stale (deleted, or the bot lost access): evict it and reopen once
+    [Theory]
+    [InlineData(404, """{"message":"Unknown Channel","code":10003}""")]
+    [InlineData(404, null)]
+    [InlineData(400, """{"message":"Unknown Channel","code":10003}""")]
+    [InlineData(403, """{"message":"Missing Access","code":50001}""")]
+    [InlineData(403, null)]
+    public async Task A_stale_cached_dm_channel_is_evicted_and_reopened_once(int status, string? answer)
+    {
+        var user = NewUser();
+        var opened = 0;
+        var stale = true;
+        var (client, handler) = Build(request =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path == "/api/v10/users/@me/channels")
+            {
+                return Reply(HttpStatusCode.OK, $$"""{"id":"{{600 + ++opened}}"}""");
+            }
+
+            // only the channel opened first is dead
+            return path == "/api/v10/channels/601/messages" && stale
+                ? Reply((HttpStatusCode)status, answer)
+                : Reply(HttpStatusCode.OK, """{"id":"1"}""");
+        });
+
+        stale = false;
+        await client.SendDirectMessageAsync(user, "a", CancellationToken.None);
+        stale = true;
+        await client.SendDirectMessageAsync(user, "b", CancellationToken.None);
+
+        Assert.Equal(2, opened);
+        Assert.Equal(
+            ["/api/v10/users/@me/channels", "/api/v10/channels/601/messages", "/api/v10/channels/601/messages",
+                "/api/v10/users/@me/channels", "/api/v10/channels/602/messages"],
+            handler.Calls.Select(c => c.Path));
+
+        // the new channel is the cached one now
+        await client.SendDirectMessageAsync(user, "c", CancellationToken.None);
+        Assert.Equal("/api/v10/channels/602/messages", handler.Calls[^1].Path);
+        Assert.Equal(2, opened);
+    }
+
+    [Fact]
+    public async Task A_fresh_dm_channel_that_fails_is_neither_retried_nor_cached()
+    {
+        var user = NewUser();
+        var opened = 0;
+        var (client, handler) = Build(request => request.RequestUri!.AbsolutePath == "/api/v10/users/@me/channels"
+            ? Reply(HttpStatusCode.OK, $$"""{"id":"{{700 + ++opened}}"}""")
+            : Reply(HttpStatusCode.NotFound, """{"message":"Unknown Channel","code":10003}"""));
+
+        var error = await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.SendDirectMessageAsync(user, "x", CancellationToken.None));
+
+        // reopening would hit the same channel, so one open and one post
+        Assert.Equal(404, error.Status);
+        Assert.Equal(10003, error.Code);
+        Assert.Equal(2, handler.Calls.Count);
+
+        // not cached after the failure: the next send opens again
+        await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.SendDirectMessageAsync(user, "y", CancellationToken.None));
+        Assert.Equal(2, opened);
+    }
+
+    [Fact]
+    public async Task A_stale_channel_that_fails_again_after_reopening_throws_after_two_posts()
+    {
+        var user = NewUser();
+        var opened = 0;
+        var failing = false;
+        var (client, handler) = Build(request =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/v10/users/@me/channels")
+            {
+                return Reply(HttpStatusCode.OK, $$"""{"id":"{{800 + ++opened}}"}""");
+            }
+
+            return failing ? Reply(HttpStatusCode.NotFound) : Reply(HttpStatusCode.OK, """{"id":"1"}""");
+        });
+        await client.SendDirectMessageAsync(user, "a", CancellationToken.None);
+        handler.Calls.Clear();
+
+        failing = true;
+        var error = await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.SendDirectMessageAsync(user, "b", CancellationToken.None));
+
+        Assert.Equal(404, error.Status);
+        Assert.Equal(
+            ["/api/v10/channels/801/messages", "/api/v10/users/@me/channels", "/api/v10/channels/802/messages"],
+            handler.Calls.Select(c => c.Path));
+    }
+
+    [Fact]
+    public async Task A_closed_dm_keeps_the_cached_channel()
+    {
+        var user = NewUser();
+        var closed = false;
+        var opened = 0;
+        var (client, handler) = Build(request =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/api/v10/users/@me/channels")
+            {
+                return Reply(HttpStatusCode.OK, $$"""{"id":"{{900 + ++opened}}"}""");
+            }
+
+            return closed
+                ? Reply(HttpStatusCode.Forbidden, """{"message":"Cannot send messages to this user","code":50007}""")
+                : Reply(HttpStatusCode.OK, """{"id":"1"}""");
+        });
+        await client.SendDirectMessageAsync(user, "a", CancellationToken.None);
+
+        closed = true;
+        await Assert.ThrowsAsync<DiscordBotException>(() => client.SendDirectMessageAsync(user, "b", CancellationToken.None));
+        closed = false;
+        await client.SendDirectMessageAsync(user, "c", CancellationToken.None);
+
+        // the channel is fine, only the user's setting says no
+        Assert.Equal(1, opened);
+        Assert.Equal(3, handler.Calls.Count(c => c.Path.EndsWith("/messages")));
+        Assert.All(handler.Calls.Where(c => c.Path.EndsWith("/messages")), c => Assert.Equal("/api/v10/channels/901/messages", c.Path));
+    }
+
     [Theory]
     [MemberData(nameof(NotSnowflakes))]
     public async Task Non_snowflake_user_is_rejected_before_any_request(string bad)
