@@ -21,6 +21,9 @@ public interface IDiscordRoleSyncService
     /// <summary>Leadership; token, switch, last full run, and agents with an error or not on the server (codename only).</summary>
     Task<DiscordRoleSyncStatus> GetStatusAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Admin with write access; queues a run over every agent for the worker and returns at once.</summary>
+    Task RunNowAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     /// <summary>Worker; syncs one agent from the current row. Does nothing while off; the reason is bare ("Beförderung"), the audit prefix is added here.</summary>
     Task SyncAgentAsync(string agentId, string reason, CancellationToken cancellationToken = default);
 

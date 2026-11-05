@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
@@ -130,9 +131,11 @@ public class DiscordRoleSyncServiceTests
 
         public FakeBot Bot { get; } = new();
 
+        public DiscordRoleSyncQueue Queue { get; } = new();
+
         public DiscordRoleSyncService Service { get; }
 
-        public Fixture() => Service = new DiscordRoleSyncService(Ctx.Factory, Bot, NullLogger<DiscordRoleSyncService>.Instance);
+        public Fixture() => Service = new DiscordRoleSyncService(Ctx.Factory, Bot, Queue, NullLogger<DiscordRoleSyncService>.Instance);
 
         public static async Task<Fixture> CreateAsync(bool enabled = true, string? guild = Guild, DiscordRoleMapping? map = null)
         {
@@ -846,6 +849,42 @@ public class DiscordRoleSyncServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.PreviewAsync(Leader()));
         Assert.Empty(f.Bot.Calls);
+    }
+
+    // ---------- run now ----------
+
+    [Fact]
+    public async Task RunNow_queues_a_full_run_and_calls_nothing_itself()
+    {
+        using var f = await Fixture.CreateAsync();
+        await f.AddAgentAsync("a", UserA);
+
+        await f.Service.RunNowAsync(Admin());
+
+        Assert.True(f.Queue.Reader.TryRead(out var job));
+        Assert.Equal(new AllJob("von Hand angestoßen"), job);
+        Assert.False(f.Queue.Reader.TryRead(out _));
+        Assert.Empty(f.Bot.Calls);
+    }
+
+    [Fact]
+    public async Task RunNow_requires_admin_and_write()
+    {
+        using var f = await Fixture.CreateAsync();
+
+        // leadership without admin
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.RunNowAsync(Leader()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.RunNowAsync(Plain()));
+        // read-only supervision: team lead without admin
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.RunNowAsync(
+            ClaimsPrincipalBuilder.Agent("ro").WithRank(Rank.Director).AsTeamLead().Build()));
+        // admins who may not write (demo session, partner)
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.RunNowAsync(
+            ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsAdmin().AsDemo().Build()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.RunNowAsync(
+            ClaimsPrincipalBuilder.Agent("partner").AsAdmin().AsPartner(PartnerAgency.LSPD, PartnerRank.Member).Build()));
+
+        Assert.False(f.Queue.Reader.TryRead(out _));
     }
 
     // ---------- settings ----------

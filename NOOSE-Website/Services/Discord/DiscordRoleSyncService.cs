@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Models.Common;
 
 namespace NOOSE_Website.Services;
@@ -13,6 +14,7 @@ namespace NOOSE_Website.Services;
 public sealed class DiscordRoleSyncService(
     IDbContextFactory<AppDbContext> dbFactory,
     IDiscordBotClient bot,
+    IDiscordRoleSyncQueue queue,
     ILogger<DiscordRoleSyncService> logger) : IDiscordRoleSyncService
 {
     // width of the error column
@@ -22,7 +24,6 @@ public sealed class DiscordRoleSyncService(
     private const int MaxIdChars = 20;
     private const string ReasonPrefix = "FIB-Website: ";
     private const string DefaultReason = "Abgleich";
-    private const string DeletedReason = "Konto gelöscht";
 
     private static readonly JsonSerializerOptions MappingJson = new() { PropertyNameCaseInsensitive = true };
 
@@ -124,6 +125,15 @@ public sealed class DiscordRoleSyncService(
         return new DiscordRoleSyncStatus(bot.IsConfigured, settings.Enabled, ParseUtc(lastRun), failures);
     }
 
+    public Task RunNowAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireWriteAccess(actor);
+        Permission.RequireAdmin(actor);
+
+        queue.EnqueueAll(DiscordRoleSyncReason.Manual);
+        return Task.CompletedTask;
+    }
+
     public async Task SyncAgentAsync(string agentId, string reason, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -143,14 +153,14 @@ public sealed class DiscordRoleSyncService(
         var live = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.DiscordId == discordId, cancellationToken);
         if (live is not null)
         {
-            await SyncOneAsync(db, live, settings, Reason(DeletedReason), cancellationToken);
+            await SyncOneAsync(db, live, settings, Reason(DiscordRoleSyncReason.AccountDeleted), cancellationToken);
             return;
         }
 
         try
         {
             var target = DiscordRoleRules.DeletedTarget(settings.Mapping);
-            await SyncMemberAsync(settings.GuildId!, discordId, target, Reason(DeletedReason), cancellationToken);
+            await SyncMemberAsync(settings.GuildId!, discordId, target, Reason(DiscordRoleSyncReason.AccountDeleted), cancellationToken);
         }
         catch (Exception ex) when (!IsOwnCancellation(ex, cancellationToken))
         {

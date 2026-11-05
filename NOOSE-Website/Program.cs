@@ -26,6 +26,7 @@ using NOOSE_Website.Infrastructure.Announcements;
 using NOOSE_Website.Infrastructure.CounterIntel;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.Authorization;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Threat;
 using NOOSE_Website.Infrastructure.Gamification;
 using NOOSE_Website.Infrastructure.Search;
@@ -402,6 +403,9 @@ builder.Services.AddHttpClient(DiscordBotClient.ClientName, client => client.Tim
     .RemoveAllLoggers();
 builder.Services.AddScoped<IDiscordBotClient, DiscordBotClient>();
 builder.Services.AddScoped<IDiscordRoleSyncService, DiscordRoleSyncService>();
+// one per process
+builder.Services.AddSingleton<IDiscordRoleSyncQueue, DiscordRoleSyncQueue>();
+builder.Services.AddHostedService<DiscordRoleSyncWorker>();
 // per-process share quota
 builder.Services.AddSingleton<ChannelShareQuota>();
 builder.Services.AddScoped<IChannelShareService, ChannelShareService>();

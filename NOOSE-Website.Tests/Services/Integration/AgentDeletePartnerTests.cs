@@ -22,6 +22,7 @@ using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Public;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
@@ -75,7 +76,8 @@ public sealed class AgentDeletePartnerTests : IDisposable
         var avatars = new AgentAvatarStorageService(env, Options.Create(new FileUploadOptions()));
         return new AgentManagementService(BuildUserManager(db), db, new Factory(_options),
             Substitute.For<INotificationService>(), Substitute.For<IDiscordWebhookService>(),
-            new ConfigurationBuilder().Build(), avatars, Substitute.For<IPublicLeadershipPhotoStorageService>());
+            new ConfigurationBuilder().Build(), avatars, Substitute.For<IPublicLeadershipPhotoStorageService>(),
+            Substitute.For<IDiscordRoleSyncQueue>());
     }
 
     private static ClaimsPrincipal Leader()
