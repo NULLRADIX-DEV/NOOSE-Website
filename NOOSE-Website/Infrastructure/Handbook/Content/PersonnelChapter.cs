@@ -153,15 +153,15 @@ internal static class PersonnelChapter
             new Article("art-befoerderung", "befoerderung", "Beförderung",
                 "Vom Antrag bis zum neuen Dienstgrad.",
                 """
-                <p>Eine <strong>Beförderung</strong> beginnt als Antrag: jemand aus der Führung (ab Special Agent
-                in Charge) schlägt einen Agenten für den nächsten Dienstgrad vor und begründet es. Der Antrag
+                <p>Eine <strong>Beförderung</strong> beginnt als Antrag: jemand aus der Führung (ab Section
+                Chief) schlägt einen Agenten für den nächsten Dienstgrad vor und begründet es. Der Antrag
                 steht dann zur Entscheidung.</p>
                 <p>Entscheiden darf erst ab <strong>Section Chief</strong>, und nur so weit, wie der Dienstgrad
                 reicht: Das <strong>Board</strong> entscheidet für alle Abteilungen. Ein <strong>Section
                 Chief</strong> entscheidet nur in seiner eigenen Abteilung, und nur über Dienstgrade bis zum
                 Special Agent in Charge; wer Section Chief oder Assistant Director werden soll, den befördert
-                nur das Board. Das ist bewusst eine höhere Schwelle als „Führung“ - wer befördert, verändert
-                dauerhaft die Rechte eines Kontos.</p>
+                nur das Board. Die Schwelle fällt mit der „Führung“ zusammen, bleibt aber an die eigene Abteilung
+                gebunden - wer befördert, verändert dauerhaft die Rechte eines Kontos.</p>
                 <p>Dieselbe Grenze gilt für jeden anderen Weg, einen Dienstgrad zu vergeben: ein neues Konto
                 freigeben, einen Bewerber annehmen oder den Dienstgrad in der Agenten-Verwaltung ändern. Die
                 Liste der offenen Anträge, der Zähler im Menü und die Knöpfe zeigen dir nur, was du auch
@@ -268,7 +268,7 @@ internal static class PersonnelChapter
                 Dienstgrad und Abteilung setzt.</p>
                 <p>Wer freigeben darf, hängt vom Dienstgrad ab: das Board und Admins geben jeden Dienstgrad in
                 jede Abteilung frei, ein Section Chief nur in die eigene Abteilung und nur unterhalb von Section
-                Chief, ein Special Agent in Charge nur als Trainee in die CID.</p>
+                Chief.</p>
                 <p>Hier werden auch die <strong>Abteilung</strong> und die <strong>Kennzeichen</strong> vergeben.
                 Die Abteilung - CID, CTD oder HRT - ändern bei einem bestehenden Agenten nur das Board und
                 Admins; das Board selbst ergibt sich aus dem Dienstgrad. Kennzeichen sind Admin, die
@@ -388,7 +388,7 @@ internal static class PersonnelChapter
                 Codenamen; im HRT stehen die HRT-Titel wie Operator oder Commanding Operator.</p>
                 <p>Nach außen gibt es stattdessen die öffentliche Seite <strong>Mitarbeiter</strong>. Dort steht
                 jeder aktive Agent mit hinterlegtem Klarnamen, der sich dafür eingeschaltet hat. Die Führung ab
-                Special Agent in Charge steht obenan als Organigramm, eine Ebene je Dienstgrad, jede Karte mit
+                Section Chief steht obenan als Organigramm, eine Ebene je Dienstgrad, jede Karte mit
                 Foto und Telefonnummer. Alle anderen stehen darunter nur mit Klarnamen, ohne Codename, Dienstgrad,
                 Einheit, Dienstnummer und Foto. Teamleitungen und Partnerbehörden erscheinen nie.</p>
                 <p>Telefonnummer und Foto trägt die Führung in den <em>Einstellungen</em> unter

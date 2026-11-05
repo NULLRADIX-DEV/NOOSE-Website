@@ -259,12 +259,12 @@ public sealed class GamificationServiceTests
     [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
     [InlineData(Rank.SeniorSpecialAgent, false)]
-    [InlineData(Rank.SpecialAgentInCharge, true)]
+    [InlineData(Rank.SpecialAgentInCharge, false)]
     [InlineData(Rank.SectionChief, true)]
     [InlineData(Rank.AssistantDirector, true)]
     [InlineData(Rank.DeputyDirector, true)]
     [InlineData(Rank.Director, true)]
-    public async Task GetLeaderboard_FloorStartsAtSpecialAgentInCharge(Rank rank, bool outOfCompetition)
+    public async Task GetLeaderboard_FloorStartsAtSectionChief(Rank rank, bool outOfCompetition)
     {
         using var ctx = new SqliteTestContext();
         using (var db = ctx.NewContext())

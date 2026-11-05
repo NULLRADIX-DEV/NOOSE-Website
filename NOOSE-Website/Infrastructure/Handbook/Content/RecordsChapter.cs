@@ -108,7 +108,7 @@ internal static class RecordsChapter
                 darf. Es gibt vier Stufen:</p>
                 <ul>
                 <li><strong>Offen</strong> - alle internen Agenten.</li>
-                <li><strong>Führung</strong> - erst ab Special Agent in Charge.</li>
+                <li><strong>Führung</strong> - erst ab Section Chief.</li>
                 <li><strong>HRT</strong> - Konten der Abteilung HRT, dazu die Führung.</li>
                 <li><strong>Administration</strong> - Konten mit dem Kennzeichen Administration Division, dazu
                 die Führung.</li>

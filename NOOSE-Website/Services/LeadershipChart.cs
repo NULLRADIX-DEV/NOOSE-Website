@@ -9,6 +9,6 @@ namespace NOOSE_Website.Services;
 /// </remarks>
 public static class LeadershipChart
 {
-    /// <summary>Special Agent in Charge and up; the band the house calls leadership.</summary>
-    public const Rank RankFloor = Rank.SpecialAgentInCharge;
+    /// <summary>Section Chief (HRT: Commanding Operator) and up; the band the house calls leadership.</summary>
+    public const Rank RankFloor = Rank.SectionChief;
 }

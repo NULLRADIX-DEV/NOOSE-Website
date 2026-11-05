@@ -28,7 +28,7 @@ public sealed class ChannelShareServiceTests : IDisposable
         ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.SpecialAgent).WithCodename("Fox");
 
     private static readonly ClaimsPrincipal Leader =
-        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).AsTru().AsHrb().WithCodename("Hawk");
+        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SectionChief).AsTru().AsHrb().WithCodename("Hawk");
 
     private static readonly ClaimsPrincipal Supervision =
         ClaimsPrincipalBuilder.Agent("sup").WithRank(Rank.Director).AsTeamLead().WithCodename("Owl");

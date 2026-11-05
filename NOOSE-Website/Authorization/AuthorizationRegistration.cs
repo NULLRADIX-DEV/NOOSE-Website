@@ -19,7 +19,7 @@ public static class AuthorizationRegistration
                 .RequireAssertion(ctx => ctx.User.GetStatus() == AgentStatus.Active))
             .AddPolicy(Policies.Leadership, p => p
                 .RequireAuthenticatedUser()
-                .AddRequirements(new RankRequirement(Rank.SpecialAgentInCharge)))
+                .AddRequirements(new RankRequirement(Rank.SectionChief)))
             .AddPolicy(Policies.Admin, p => p
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => ctx.User.IsAdmin()))

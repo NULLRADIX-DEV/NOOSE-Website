@@ -249,7 +249,7 @@ public class SituationReportService(
         try
         {
             var leadershipIds = await db.Users.OnlySelectable()
-                .Where(u => u.Rank != null && u.Rank >= Rank.SpecialAgentInCharge)
+                .Where(u => u.Rank != null && u.Rank >= Rank.SectionChief)
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
 

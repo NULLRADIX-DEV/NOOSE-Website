@@ -86,7 +86,7 @@ internal static class DutyRegulationChapter
                 Meldungen der Führung und der Aufsicht, filterbar nach Agent, Abteilung und Zeitraum.</li>
                 <li>Deine eigenen Meldungen stehen in einem eigenen Abschnitt deiner Personalakte. Bei anderen
                 Agenten zeigt die Akte den Abschnitt nur der Führung.</li>
-                <li>Bei einer neuen Meldung bekommen die Führung deiner Abteilung (ab Special Agent in Charge)
+                <li>Bei einer neuen Meldung bekommen die Führung deiner Abteilung (ab Section Chief)
                 und das Board eine Nachricht in der Glocke, ohne den Text deiner Begründung.</li>
                 <li>Nach außen geht nichts. Partnerbehörden sehen keine Meldung, und sie erscheint auf keiner
                 öffentlichen Seite.</li>
@@ -120,7 +120,7 @@ internal static class DutyRegulationChapter
                 <li><strong>Confidential</strong> - die Grundstufe für interne Informationen, für alle Agenten
                 vom Trainee an.</li>
                 <li><strong>Secret</strong> - operative Inhalte, laufende Maßnahmen, alle Lageberichte und
-                sensible Ermittlungsansätze. Nach dem Rangprinzip ab dem Special Agent in Charge, also mit dem
+                sensible Ermittlungsansätze. Nach dem Rangprinzip ab dem Section Chief, also mit dem
                 Beginn der Führung.</li>
                 <li><strong>Top Secret</strong> - Stufe 5, dem Board of Directors vorbehalten: Assistant
                 Director, Deputy Director und Director.</li>
@@ -160,13 +160,13 @@ internal static class DutyRegulationChapter
                 <tr><td><strong>Senior Special Agent</strong></td><td>Senior Operator</td><td>Darf die
                 Sanktionsstufen 1 und 2 verhängen. Auf der Seite: höchste Einstufung vergeben, selbst
                 veröffentlichen und aus der Kasse auszahlen</td></tr>
-                <tr><td><strong>Special Agent in Charge</strong></td><td>Leading Operator</td><td>Beginn der
-                Führung, Freigabe Secret, Sanktionsstufen 3 bis 6. Zutritt zur Harbor Container Facility. Von der
-                Meldepflicht für Schusswaffengebrauch und von den Beschränkungen der Einsatzbegleitung
-                ausgenommen. Stellt Beförderungsanträge</td></tr>
-                <tr><td><strong>Section Chief</strong></td><td>Commanding Operator</td><td>Leitung einer
-                Abteilung. Entscheidet in der eigenen Abteilung über Beförderungen, vergibt dort Dienstgrade bis
-                zum Special Agent in Charge und unterschreibt die Urkunden der Abteilung</td></tr>
+                <tr><td><strong>Special Agent in Charge</strong></td><td>Leading Operator</td><td>Sanktionsstufen
+                3 bis 6. Zutritt zur Harbor Container Facility. Von der Meldepflicht für Schusswaffengebrauch
+                und von den Beschränkungen der Einsatzbegleitung ausgenommen</td></tr>
+                <tr><td><strong>Section Chief</strong></td><td>Commanding Operator</td><td>Beginn der
+                Führung, Freigabe Secret, Leitung einer Abteilung. Stellt Beförderungsanträge, entscheidet in
+                der eigenen Abteilung über Beförderungen, vergibt dort Dienstgrade bis zum Special Agent in
+                Charge und unterschreibt die Urkunden der Abteilung</td></tr>
                 <tr><td><strong>Assistant Director</strong></td><td>-</td><td>Mitglied des Board of Directors.
                 Freigabe Top Secret. Entscheidet für alle Abteilungen über Beförderungen</td></tr>
                 <tr><td><strong>Deputy Director</strong></td><td>-</td><td>Board of Directors, Stellvertretung des
@@ -221,7 +221,7 @@ internal static class DutyRegulationChapter
                 ist das also, aber nie aus Versehen.</p>
                 <p>Die Abteilung eines bestehenden Agenten ändern nur <strong>das Board und Admins</strong>, in der
                 Agenten-Verwaltung. Ein neues Konto gibt das Board oder ein Admin in jede Abteilung frei, ein
-                Section Chief nur in die eigene und ein Special Agent in Charge nur als Trainee in die CID. Wird
+                Section Chief nur in die eigene. Wird
                 jemand unter Special Agent herabgestuft, wechselt er aus dem HRT in die CID und verliert die
                 Administration Division.</p>
                 """),
@@ -310,11 +310,10 @@ internal static class DutyRegulationChapter
                 Zwingend sind außerdem <strong>aktive Mitarbeit in der eigenen Abteilung</strong> und eine
                 <strong>abgeschlossene Infiltration</strong>. Auch wer alles erfüllt, hat keinen Anspruch: die
                 Posten sind begrenzt.</p>
-                <p><strong>Zum Special Agent in Charge</strong> (§2.4.3): Ab hier beginnt die Führung.
-                Vorausgesetzt werden unentbehrliche Dienste für die Abteilung sowie das vollste Vertrauen der
-                Behördenleitung.</p>
-                <p><strong>Zum Section Chief:</strong> Der Section Chief leitet eine Abteilung. Die Leitung muss
-                frei sein, und vorausgesetzt wird das vollste Vertrauen des Boards.</p>
+                <p><strong>Zum Special Agent in Charge</strong> (§2.4.3): Vorausgesetzt werden unentbehrliche Dienste für die
+                Abteilung sowie das vollste Vertrauen der Behördenleitung.</p>
+                <p><strong>Zum Section Chief:</strong> Ab hier beginnt die Führung. Der Section Chief leitet eine
+                Abteilung. Die Leitung muss frei sein, und vorausgesetzt wird das vollste Vertrauen des Boards.</p>
                 <p><strong>Ins Board</strong> (Assistant Director und darüber): Das Board hat vier Plätze; wer
                 hineinkommt, bestimmt das Board selbst.</p>
                 <p><strong>Außerordentlich</strong> (§2.4.4): Der Behördenleitung steht es jederzeit frei, einen
@@ -461,7 +460,7 @@ internal static class DutyRegulationChapter
                 <p>Nimmst du dennoch an einer fremden Einsatzlage teil, ist darüber <strong>unverzüglich ein
                 Einsatzbericht auf dieser Seite anzufertigen</strong>, nach der behördeninternen Vorlage. Das ist
                 eine <em>Operation</em> im Bereich <em>Ermittlung</em>. Ausgenommen von dieser Pflicht und von
-                den Beschränkungen sind die Behördenleitung und die Führungsebene ab Special Agent in Charge.</p>
+                den Beschränkungen sind die Behördenleitung und alle ab Special Agent in Charge.</p>
                 <p>Die Missachtung dieser Vorschrift ist ein schwerer Dienstverstoß und wird nach §3.7 geahndet;
                 wiederholte oder besonders schwere Verstöße können die sofortige Entlassung nach sich
                 ziehen.</p>

@@ -240,7 +240,7 @@ public sealed class SavedSearchWatchTests : IDisposable
         SeedPerson("Ballas Geheim", classified: true);
         await _watch.RunDueAsync(T0);
 
-        UpdateOwner(a => a.Rank = Rank.SpecialAgentInCharge);
+        UpdateOwner(a => a.Rank = Rank.SectionChief);
         Assert.Equal(0, await _watch.RunDueAsync(T0.AddHours(1)));
         Assert.Empty(Notices());
         Assert.Contains(SavedSearchRules.ReadKeys(Row(id).KnownHitsJson), k => k.StartsWith("Person:"));
@@ -253,7 +253,7 @@ public sealed class SavedSearchWatchTests : IDisposable
     [Fact]
     public async Task A_demotion_takes_effect_on_the_next_run()
     {
-        SeedOwner(Rank.SpecialAgentInCharge);
+        SeedOwner(Rank.SectionChief);
         SeedWatched(new SearchCriteria { Text = "Ballas" });
         await _watch.RunDueAsync(T0);
 

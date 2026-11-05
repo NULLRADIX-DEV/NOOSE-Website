@@ -75,7 +75,7 @@ public class FirearmUseServiceTests
     private static ClaimsPrincipalBuilder Trainee(string id) => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee);
 
     private static ClaimsPrincipalBuilder Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge);
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SectionChief);
 
     private static ClaimsPrincipal OnlyReader(string id = "tl") => ClaimsPrincipalBuilder.Agent(id).AsTeamLead().Build();
 
@@ -182,20 +182,20 @@ public class FirearmUseServiceTests
         // Board members take the report whatever their home
         SeedAgent(ctx, "ad", Rank.AssistantDirector, Division.Cid);
         SeedAgent(ctx, "director", Rank.Director, Division.Hrt);
-        // below the leadership floor
+        // below the leadership floor, a Special Agent in Charge included
         SeedAgent(ctx, "senior-ctd", Rank.SeniorSpecialAgent, Division.Ctd);
         SeedAgent(ctx, "trainee-ctd", Rank.Trainee, Division.Ctd);
         // never selectable: read-only supervision, partner, closed account
-        SeedAgent(ctx, "tl", Rank.SpecialAgentInCharge, Division.Ctd, a => a.IsTeamLead = true);
-        SeedAgent(ctx, "partner", Rank.SpecialAgentInCharge, Division.Ctd, a => a.PartnerAgency = PartnerAgency.LSPD);
-        SeedAgent(ctx, "blocked", Rank.SpecialAgentInCharge, Division.Ctd, a => a.Status = AgentStatus.Blocked);
+        SeedAgent(ctx, "tl", Rank.SectionChief, Division.Ctd, a => a.IsTeamLead = true);
+        SeedAgent(ctx, "partner", Rank.SectionChief, Division.Ctd, a => a.PartnerAgency = PartnerAgency.LSPD);
+        SeedAgent(ctx, "blocked", Rank.SectionChief, Division.Ctd, a => a.Status = AgentStatus.Blocked);
         var (svc, sent) = Build(ctx);
 
         await svc.ReportAsync(Secret, Trainee("rep").Build());
 
         var notice = Assert.Single(sent);
         Assert.Equal(NotificationType.FirearmUseReported, notice.Type);
-        Assert.Equal(["ad", "chief-ctd", "director", "sac-ctd"], notice.Recipients.Order(StringComparer.Ordinal));
+        Assert.Equal(["ad", "chief-ctd", "director"], notice.Recipients.Order(StringComparer.Ordinal));
         Assert.Equal("/schusswaffengebrauch", notice.Href);
         Assert.Equal("rep", notice.TriggerId);
     }
@@ -205,7 +205,7 @@ public class FirearmUseServiceTests
     {
         using var ctx = new SqliteTestContext();
         SeedAgent(ctx, "rep", Rank.Trainee, Division.Cid, a => a.Codename = "Falke");
-        SeedAgent(ctx, "sac", Rank.SpecialAgentInCharge, Division.Cid);
+        SeedAgent(ctx, "chief", Rank.SectionChief, Division.Cid);
         var (svc, sent) = Build(ctx);
 
         await svc.ReportAsync(Secret, Trainee("rep").Build());
@@ -221,13 +221,13 @@ public class FirearmUseServiceTests
     public async Task ReportAsync_ALeadershipReporterDoesNotNotifyThemself()
     {
         using var ctx = new SqliteTestContext();
-        SeedAgent(ctx, "sac1", Rank.SpecialAgentInCharge, Division.Cid);
-        SeedAgent(ctx, "sac2", Rank.SpecialAgentInCharge, Division.Cid);
+        SeedAgent(ctx, "chief1", Rank.SectionChief, Division.Cid);
+        SeedAgent(ctx, "chief2", Rank.SectionChief, Division.Cid);
         var (svc, sent) = Build(ctx);
 
-        await svc.ReportAsync(Secret, Leader("sac1").Build());
+        await svc.ReportAsync(Secret, Leader("chief1").Build());
 
-        Assert.Equal(["sac2"], Assert.Single(sent).Recipients);
+        Assert.Equal(["chief2"], Assert.Single(sent).Recipients);
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public class FirearmUseServiceTests
     {
         using var ctx = new SqliteTestContext();
         SeedAgent(ctx, "rep", Rank.Trainee, Division.Cid);
-        SeedAgent(ctx, "sac", Rank.SpecialAgentInCharge, Division.Cid);
+        SeedAgent(ctx, "chief", Rank.SectionChief, Division.Cid);
         var notifications = Substitute.For<INotificationService>();
         notifications.NotifyManyInAppAsync(Arg.Any<IReadOnlyCollection<string>>(), Arg.Any<NotificationType>(),
                 Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
@@ -412,7 +412,7 @@ public class FirearmUseServiceTests
     {
         using var ctx = new SqliteTestContext();
         SeedAgent(ctx, "a1", Rank.Trainee);
-        SeedAgent(ctx, "lead", Rank.SpecialAgentInCharge);
+        SeedAgent(ctx, "lead", Rank.SectionChief);
         var row = SeedUse(ctx, "a1");
         var (svc, _) = Build(ctx);
 
@@ -426,8 +426,8 @@ public class FirearmUseServiceTests
     public async Task DeleteAsync_NeverReachesTheLeadersOwnReport()
     {
         using var ctx = new SqliteTestContext();
-        SeedAgent(ctx, "lead", Rank.SpecialAgentInCharge);
-        SeedAgent(ctx, "other", Rank.SpecialAgentInCharge);
+        SeedAgent(ctx, "lead", Rank.SectionChief);
+        SeedAgent(ctx, "other", Rank.SectionChief);
         var own = SeedUse(ctx, "lead");
         var (svc, _) = Build(ctx);
 

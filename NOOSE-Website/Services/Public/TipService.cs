@@ -1353,7 +1353,7 @@ public class TipService(
 
     private static Task<List<string>> DeskRecipientsAsync(AppDbContext db, CancellationToken ct)
         => db.Users.OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SectionChief)
             .Select(u => u.Id)
             .ToListAsync(ct);
 }

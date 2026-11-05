@@ -126,7 +126,7 @@ public class WarrantPermissionTests
         // who, may request, may sign
         { "trainee", true, false },
         { "senior", true, false },
-        { "in-charge", true, true },
+        { "chief", true, true },
         { "director", true, true },
         { "admin-trainee", true, true },
         { "reader", false, false },
@@ -141,7 +141,7 @@ public class WarrantPermissionTests
     {
         "trainee" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee),
         "senior" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SeniorSpecialAgent),
-        "in-charge" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge),
+        "chief" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief),
         "director" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director),
         "admin-trainee" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsAdmin(),
         "reader" => ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).AsTeamLead(),

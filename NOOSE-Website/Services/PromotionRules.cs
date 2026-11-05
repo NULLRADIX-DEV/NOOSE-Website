@@ -61,7 +61,7 @@ public readonly record struct PromotionStanding(bool IsAdmin, Rank? ActorRank, D
 }
 
 /// <summary>Who may hand out which rank to whom; the guards and the buttons mirroring them share it.</summary>
-/// <remarks>Board and admin assign anything; a Section Chief inside the own division below Section Chief; a Special Agent in Charge only the first release as Trainee into the CID.</remarks>
+/// <remarks>Board and admin assign anything; a Section Chief inside the own division below Section Chief.</remarks>
 public static class PromotionRules
 {
     /// <summary>Lowest rank that passes the coarse gate.</summary>
@@ -69,12 +69,6 @@ public static class PromotionRules
 
     /// <summary>A Section Chief assigns only ranks below this, to agents below it.</summary>
     public const Rank SectionChiefCeiling = Rank.SectionChief;
-
-    /// <summary>The one rank a Special Agent in Charge releases a new account as.</summary>
-    public const Rank FirstReleaseRank = Rank.Trainee;
-
-    /// <summary>The one division a Special Agent in Charge releases into.</summary>
-    public const Division FirstReleaseDivision = Division.Cid;
 
     /// <summary>May the actor give a target in <paramref name="targetDivision"/> the rank <paramref name="toRank"/>?</summary>
     /// <param name="fromRank">Current rank of the target; null for a first release.</param>
@@ -88,8 +82,6 @@ public static class PromotionRules
         {
             Rank.SectionChief => actor.Home is { } home && targetDivision == home
                 && toRank < SectionChiefCeiling && (fromRank is null || fromRank < SectionChiefCeiling),
-            Rank.SpecialAgentInCharge => fromRank is null && toRank == FirstReleaseRank
-                && targetDivision == FirstReleaseDivision,
             _ => false,
         };
     }
@@ -108,9 +100,6 @@ public static class PromotionRules
                 return $"Dienstgrade ab {ceiling} vergeben nur das Board oder ein Admin.";
             case Rank.SectionChief:
                 return $"Als {ceiling} vergibst du Dienstgrade nur in deiner eigenen Abteilung.";
-            case Rank.SpecialAgentInCharge:
-                return $"Ein {RankDisplay.DefaultName(Rank.SpecialAgentInCharge)} gibt neue Konten nur als "
-                       + $"{RankDisplay.DefaultName(FirstReleaseRank)} in {DivisionDisplay.WithArticle(FirstReleaseDivision)} frei.";
             default:
                 return $"Dienstgrade vergeben das Board, Admins und in der eigenen Abteilung ein {ceiling}.";
         }
@@ -127,7 +116,7 @@ public static class PromotionRules
 
     /// <summary>The division an actor without a division picker releases into: the own one for a Section Chief, else the CID.</summary>
     public static Division ReleaseDivision(PromotionStanding actor)
-        => actor.ActorRank == Rank.SectionChief && actor.Home is { } home ? home : FirstReleaseDivision;
+        => actor.ActorRank == Rank.SectionChief && actor.Home is { } home ? home : Division.Cid;
 
     /// <summary>The ranks a picker may offer for this target; empty when the actor assigns none.</summary>
     public static IReadOnlyList<Rank> AssignableRanks(PromotionStanding actor, Division? targetDivision, Rank? fromRank)

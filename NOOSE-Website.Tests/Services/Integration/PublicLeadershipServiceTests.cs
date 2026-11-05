@@ -62,8 +62,8 @@ public sealed class PublicLeadershipServiceTests
             [
                 Named("chef", Rank.Director, "Zora Zett"),
                 Named("vize", Rank.DeputyDirector, "Bert Berg"),
-                Named("ssa", Rank.SpecialAgentInCharge, "Anna Alt"),
-                Named("ssa2", Rank.SpecialAgentInCharge, "Albert Ast"),
+                Named("ssa", Rank.SectionChief, "Anna Alt"),
+                Named("ssa2", Rank.SectionChief, "Albert Ast"),
                 Named("junior", Rank.Trainee, "Clara Cello"),
                 Named("special", Rank.SpecialAgent, "Ärne Ahorn"),
             ]);
@@ -90,7 +90,7 @@ public sealed class PublicLeadershipServiceTests
 
         var roster = await service.GetPublicAsync();
 
-        Assert.Equal(["Director", "Deputy Director", "Special Agent in Charge"],
+        Assert.Equal(["Director", "Deputy Director", "Section Chief"],
             roster.Leadership.Select(t => t.Title).ToList());
         Assert.Equal("Zora Zett | Bert Berg | Albert Ast, Anna Alt",
             string.Join(" | ", roster.Leadership.Select(t => string.Join(", ", t.Cards.Select(c => c.Name)))));
@@ -427,7 +427,8 @@ public sealed class PublicLeadershipServiceTests
     [Fact]
     public async Task The_roster_prints_the_neutral_title_of_an_hrt_agent_never_the_hrt_one()
     {
-        // the divisions never leave the house: a Leading Operator is a Special Agent in Charge out here
+        // the divisions never leave the house: a Commanding Operator is a Section Chief out here, and a Leading
+        // Operator below the leadership band is a plain name
         using var ctx = await SeededAsync(true,
             Named("hrt-lead", Rank.SpecialAgentInCharge, "Hanna Hrt", a => a.Division = Division.Hrt),
             Named("hrt-chief", Rank.SectionChief, "Hugo Hrt", a => a.Division = Division.Hrt),
@@ -437,7 +438,7 @@ public sealed class PublicLeadershipServiceTests
 
         var roster = await service.GetPublicAsync();
 
-        Assert.Equal(["Assistant Director", "Section Chief", "Special Agent in Charge"],
+        Assert.Equal(["Assistant Director", "Section Chief"],
             roster.Leadership.Select(t => t.Title).ToList());
         var shown = string.Join(" | ", roster.Leadership.Select(t => t.Title)
             .Concat(roster.Leadership.SelectMany(t => t.Cards.Select(c => c.Name)))
@@ -446,7 +447,7 @@ public sealed class PublicLeadershipServiceTests
         {
             Assert.DoesNotContain(hrtTitle, shown);
         }
-        Assert.Equal(["Hedi Hrt"], roster.Members.Select(m => m.Name).ToList());
+        Assert.Equal(["Hanna Hrt", "Hedi Hrt"], roster.Members.Select(m => m.Name).ToList());
     }
 
     [Fact]
@@ -460,7 +461,7 @@ public sealed class PublicLeadershipServiceTests
         await service.SetOwnHiddenAsync(true, Self("vize", Rank.DeputyDirector));
 
         var roster = await service.GetPublicAsync();
-        Assert.Equal(["Director", "Special Agent in Charge"], roster.Leadership.Select(t => t.Title).ToList());
+        Assert.Equal(["Director", "Section Chief"], roster.Leadership.Select(t => t.Title).ToList());
         Assert.Equal(["Ärne Ahorn"], roster.Members.Select(m => m.Name).ToList());
         Assert.True(await service.IsOwnHiddenAsync(Self("junior", Rank.Trainee)));
         Assert.False(await service.IsOwnHiddenAsync(Self("special", Rank.SpecialAgent)));

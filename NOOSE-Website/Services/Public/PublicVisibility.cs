@@ -32,7 +32,7 @@ public static class PublicVisibility
             ["Agent"] = "Die Mitarbeiterliste auf /fuehrung, solange das Modul läuft: der Klarname jedes "
                 + "auswählbaren Agenten (aktiv, keine Teamleitung, kein Partner) mit hinterlegtem Klarnamen, der "
                 + "sich selbst eingeschaltet hat (`HiddenFromPublicRoster` ist standardmäßig gesetzt; die Seite "
-                + "verrät nicht, dass jemand fehlt), und nur für die Führung ab Special Agent in Charge zusätzlich die "
+                + "verrät nicht, dass jemand fehlt), und nur für die Führung ab Section Chief zusätzlich die "
                 + "Dienstgradbezeichnung. "
                 + "Ein noch nicht bestätigter Klarname geht nicht mit. Codename, Dienstnummer, Abteilung (CID, CTD, HRT), Administration Division, "
                 + "Profilbild, Discord-Daten, Kennungen und Flags verlassen das Haus nie, und ohne laufendes "

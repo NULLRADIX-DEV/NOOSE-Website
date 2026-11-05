@@ -15,7 +15,7 @@ public sealed class ActivityStatisticsServiceTests
         => new(ctx.Factory, new MemoryCache(new MemoryCacheOptions()));
 
     private static ClaimsPrincipal Leader()
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief).Build();
 
     private static ClaimsPrincipal RankAndFile()
         => ClaimsPrincipalBuilder.Agent("agent-2").WithRank(Rank.SpecialAgent).Build();

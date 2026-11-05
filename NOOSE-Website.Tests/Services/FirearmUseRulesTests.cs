@@ -45,7 +45,7 @@ public class FirearmUseRulesTests
     public void MayRead_AnotherFileOnlyWithTheLeadershipReadOrSupervision()
     {
         Assert.False(FirearmUseRules.MayRead(Agent("a2", Rank.SeniorSpecialAgent).Build(), "a1"));
-        Assert.True(FirearmUseRules.MayRead(Agent("a2", Rank.SpecialAgentInCharge).Build(), "a1"));
+        Assert.True(FirearmUseRules.MayRead(Agent("a2", Rank.SectionChief).Build(), "a1"));
         Assert.True(FirearmUseRules.MayRead(Agent("a2", Rank.Trainee).AsAdmin().Build(), "a1"));
         Assert.True(FirearmUseRules.MayRead(ClaimsPrincipalBuilder.Agent("tl").AsTeamLead().Build(), "a1"));
     }
@@ -67,7 +67,7 @@ public class FirearmUseRulesTests
     [Fact]
     public void MayDelete_LeadershipWithWriteAccess_ForSomeoneElsesReport()
     {
-        Assert.True(FirearmUseRules.MayDelete(Agent("l1", Rank.SpecialAgentInCharge).Build(), "a1"));
+        Assert.True(FirearmUseRules.MayDelete(Agent("l1", Rank.SectionChief).Build(), "a1"));
         Assert.True(FirearmUseRules.MayDelete(Agent("l1", Rank.Director).Build(), "a1"));
         Assert.True(FirearmUseRules.MayDelete(Agent("l1", Rank.Trainee).AsAdmin().Build(), "a1"));
     }

@@ -164,7 +164,7 @@ public sealed class ViewerScopeTests
     [Fact]
     public void From_LeadershipRank_SetsClassifiedTaskforcesLeadershipAndAgenda()
     {
-        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
+        var scope = ViewerScope.From(ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief));
 
         Assert.True(scope.MayClassifiedRead);
         Assert.True(scope.MayAllTaskforces);

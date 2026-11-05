@@ -444,7 +444,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         // no team leads, partners, demo
         var leadership = await db.Users.AsNoTracking()
             .OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SectionChief)
             .Where(u => u.Id != DemoIdentity.AgentId)
             .Select(u => u.Id)
             .ToListAsync(CancellationToken.None);
@@ -457,7 +457,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
     /// <summary>The scope a reminder recipient is checked with; the due worker and reassigning share it.</summary>
     public static ViewerScope ReminderScope(string agentId, bool isAdmin, Rank? rank, PartnerAgency? partnerAgency)
     {
-        var leadership = isAdmin || rank is >= Rank.SpecialAgentInCharge;
+        var leadership = isAdmin || rank is >= Rank.SectionChief;
         // else citizen tickets hide
         return new ViewerScope(leadership, leadership, agentId, null, MayAgenda: leadership,
             IsInternalAgent: partnerAgency is null);

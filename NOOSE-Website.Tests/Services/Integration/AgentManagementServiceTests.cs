@@ -95,7 +95,7 @@ public class AgentManagementServiceTests
         => ClaimsPrincipalBuilder.Agent(id).AsAdmin().WithRank(Rank.Director).WithCodename("Chief").Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename("Lead").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SectionChief).WithCodename("Lead").Build();
 
     private static ClaimsPrincipal Junior(string id = "jr")
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
@@ -1199,26 +1199,13 @@ public class AgentManagementServiceTests
         Assert.Null(a.Rank);
     }
 
-    [Fact]
-    public async Task ReleaseAsync_SpecialAgentInChargeReleasesATraineeIntoTheCid()
-    {
-        using var f = Make();
-        PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
-
-        await f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, false, false, Holder("sac", Rank.SpecialAgentInCharge));
-
-        var a = Reload(f, "t");
-        Assert.Equal(Rank.Trainee, a.Rank);
-        Assert.Equal(Division.Cid, a.Division);
-    }
-
     [Theory]
+    [InlineData(Rank.Trainee, Division.Cid)]
     [InlineData(Rank.SpecialAgent, Division.Cid)]
     [InlineData(Rank.SpecialAgentInCharge, Division.Cid)]
     [InlineData(Rank.Director, Division.Cid)]
     [InlineData(Rank.Trainee, Division.Ctd)]
-    public async Task ReleaseAsync_SpecialAgentInChargeIsRefusedAnythingButATraineeInTheCid(Rank rank, Division division)
+    public async Task ReleaseAsync_SpecialAgentInChargeReleasesNobody(Rank rank, Division division)
     {
         using var f = Make();
         PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
@@ -1290,9 +1277,9 @@ public class AgentManagementServiceTests
     }
 
     [Theory]
-    [InlineData(Rank.Trainee, true)]
+    [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
-    public async Task PromoteApplicantToAgentAsync_SpecialAgentInChargeOnlyAsTraineeIntoTheCid(Rank rank, bool allowed)
+    public async Task PromoteApplicantToAgentAsync_SpecialAgentInChargeTakesNoApplicantOver(Rank rank, bool allowed)
     {
         using var f = Make();
         PersistHolder(f, "sac", Rank.SpecialAgentInCharge);
@@ -1354,9 +1341,9 @@ public class AgentManagementServiceTests
     }
 
     [Theory]
-    [InlineData(Rank.Trainee, true)]
+    [InlineData(Rank.Trainee, false)]
     [InlineData(Rank.SpecialAgent, false)]
-    public async Task ConvertToInternalAsync_SpecialAgentInChargeOnlyAsTrainee(Rank rank, bool allowed)
+    public async Task ConvertToInternalAsync_SpecialAgentInChargeConvertsNobody(Rank rank, bool allowed)
     {
         using var f = Make();
         PersistHolder(f, "sac", Rank.SpecialAgentInCharge);

@@ -488,7 +488,7 @@ public sealed class DecorationServiceTests : IDisposable
     public async Task Nobody_corrects_or_revokes_his_own_decoration()
     {
         var id = await _service.AwardAsync(Input("lead2"), Leader());
-        var lead2 = ClaimsPrincipalBuilder.Agent("lead2").WithRank(Rank.SpecialAgentInCharge).Build();
+        var lead2 = ClaimsPrincipalBuilder.Agent("lead2").WithRank(Rank.SectionChief).Build();
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.UpdateAsync(id, Input("lead2"), lead2));
         await Assert.ThrowsAsync<InvalidOperationException>(() => _service.RevokeAsync(id, "weg damit", lead2));

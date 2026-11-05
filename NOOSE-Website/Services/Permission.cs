@@ -26,7 +26,7 @@ public static class Permission
         if (!actor.IsLeadership())
         {
             throw new UnauthorizedAccessException(
-                "Diese Aktion ist der Führung (ab Special Agent in Charge) oder Admins vorbehalten.");
+                "Diese Aktion ist der Führung (ab Section Chief) oder Admins vorbehalten.");
         }
     }
 
@@ -208,7 +208,7 @@ public static class Permission
         if (!actor.MayWarrantSign())
         {
             throw new UnauthorizedAccessException(
-                "Anordnungen unterzeichnet nur die Führung (ab Special Agent in Charge) oder ein Admin.");
+                "Anordnungen unterzeichnet nur die Führung (ab Section Chief) oder ein Admin.");
         }
     }
 

@@ -92,7 +92,7 @@ public class DocumentViewerScopeTests
     public void CanSee_leadershipByRank_seesEveryDefinedLevel()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief));
 
         Assert.True(scope.CanSee(DocumentClassification.None));
         Assert.True(scope.CanSee(DocumentClassification.Leadership));
@@ -186,7 +186,7 @@ public class DocumentViewerScopeTests
     public void CanSee_rankExactlyLeadershipThreshold_canSeeLeadership()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief));
 
         Assert.True(scope.CanSee(DocumentClassification.Leadership));
     }
@@ -210,7 +210,7 @@ public class DocumentViewerScopeTests
     public void From_leadershipByRank_isLeadershipButNotAdmin()
     {
         var scope = DocumentViewerScope.From(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief));
 
         Assert.True(scope.MayClassified);
         Assert.True(scope.IsLeadership);
@@ -310,7 +310,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_leadership_allLevelsInOrder()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief));
 
         Assert.Equal(
             new[]
@@ -378,7 +378,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_leadershipWithTruFlag_noDuplicateTru()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).AsTru());
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief).AsTru());
 
         Assert.Equal(
             new[]
@@ -414,7 +414,7 @@ public class DocumentViewerScopeTests
     public void AssignableOptions_alwaysStartsWithNone()
     {
         var options = DocumentViewerScope.AssignableOptions(
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief));
 
         Assert.NotEmpty(options);
         Assert.Equal(DocumentClassification.None, options[0]);

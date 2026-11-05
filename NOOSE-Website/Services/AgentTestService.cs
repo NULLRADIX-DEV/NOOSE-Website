@@ -811,7 +811,7 @@ public class AgentTestService(
         CancellationToken cancellationToken)
     {
         var graders = db.Users.OnlySelectable()
-            .Where(u => u.IsHRB || u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
+            .Where(u => u.IsHRB || u.IsAdmin || u.Rank >= Rank.SectionChief)
             .Where(u => u.Id != assignment.AgentId);
         if (!string.IsNullOrEmpty(assignment.AssignedById)
             && await graders.AnyAsync(u => u.Id == assignment.AssignedById, cancellationToken))

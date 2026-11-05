@@ -6,7 +6,7 @@ public static class Policies
     /// <summary>Signed in with status Active. App-wide default.</summary>
     public const string ActiveAgent = "AktiverAgent";
 
-    /// <summary>Leadership: rank ≥ Special Agent in Charge or admin.</summary>
+    /// <summary>Leadership: rank ≥ Section Chief or admin.</summary>
     public const string Leadership = "Fuehrung";
 
     /// <summary>The write half of <see cref="Leadership"/>: the changelog editor on /einstellungen.</summary>

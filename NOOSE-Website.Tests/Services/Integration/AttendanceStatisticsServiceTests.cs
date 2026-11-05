@@ -42,7 +42,7 @@ public sealed class AttendanceStatisticsServiceTests
 
     /// <summary>Passes RequireClassifiedRead via minimum leadership rank.</summary>
     private static ClaimsPrincipal Lead()
-        => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).Build();
+        => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SectionChief).Build();
 
     private static Meeting Meeting(string id, DateTime startUtc, bool closed) => new()
     {

@@ -1124,7 +1124,7 @@ public class PublicWantedService(
             var recipients = await db.Users
                 .AsNoTracking()
                 .OnlySelectable()
-                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SpecialAgentInCharge))
+                .Where(u => u.IsAdmin || (u.Rank != null && u.Rank >= Rank.SectionChief))
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
             if (recipients.Count == 0)
