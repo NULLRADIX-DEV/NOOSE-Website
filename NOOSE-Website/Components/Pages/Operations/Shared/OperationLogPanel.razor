@@ -1,0 +1,254 @@
+@implements IAsyncDisposable
+@inject IOperationLogService LogService
+@inject IMentionService MentionService
+@inject OperationLogBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">@Hint</MudText>
+        <MudSpacer />
+        @if (_mayApply && _entries.Count > 0)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PlaylistAddCheck"
+                       OnClick="ApplyAsync" Disabled="_applies">In Ablauf übernehmen</MudButton>
+        }
+    </MudStack>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_entries.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Meldungen.</MudText>
+    }
+    else
+    {
+        @* column-reverse keeps the newest line in view *@
+        <div style="max-height:55vh; display:flex; flex-direction:column-reverse; overflow-y:auto; padding:4px;">
+            <MudTimeline TimelinePosition="TimelinePosition.Start" Class="pt-0">
+                @foreach (var e in _entries)
+                {
+                    <MudTimelineItem Color="@OperationLogKindDisplay.Color(e.Entry.Kind)" Size="Size.Small" Elevation="0">
+                        <ItemDot><MudIcon Icon="@OperationLogKindDisplay.Icon(e.Entry.Kind)" Size="Size.Small" /></ItemDot>
+                        <ItemContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                                <MudText Typo="Typo.caption"><b>@e.Entry.CreatedAt.ToLocalTime().ToString("dd.MM. HH:mm")</b></MudText>
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@OperationLogKindDisplay.Color(e.Entry.Kind)">@OperationLogKindDisplay.Name(e.Entry.Kind)</MudChip>
+                                @if (e.Entry.IsAddendum)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">Nachtrag</MudChip>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(e.Entry.Location))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                        <MudIcon Icon="@Icons.Material.Filled.Place" Size="Size.Small" Style="vertical-align:middle;" /> @e.Entry.Location
+                                    </MudText>
+                                }
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">· @(string.IsNullOrWhiteSpace(e.Entry.AuthorName) ? "Unbekannt" : e.Entry.AuthorName)</MudText>
+                                @if (_mayWrite && (e.Entry.CreatedById == _myId || _isLeadership))
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="@(() => DeleteAsync(e.Entry))" aria-label="Meldung zurückziehen" />
+                                }
+                            </MudStack>
+                            <MentionText Segments="e.Segments" />
+                        </ItemContent>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+        </div>
+    }
+
+    @if (_access.MayWrite)
+    {
+        <MudPaper Outlined="true" Class="pa-2">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-1">
+                <MudChipSet T="OperationLogKind" @bind-SelectedValue="_kind" SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
+                    @foreach (var k in OperationLogKindDisplay.All)
+                    {
+                        <MudChip T="OperationLogKind" Value="k" Size="Size.Small" Color="@OperationLogKindDisplay.Color(k)"
+                                 Variant="Variant.Outlined" Default="@(k == OperationLogKind.Situation)">@OperationLogKindDisplay.Name(k)</MudChip>
+                    }
+                </MudChipSet>
+                <MudTextField T="string" @bind-Value="_location" Label="Ort (optional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              MaxLength="@OperationLogRules.MaxLocation" Style="min-width:200px;" />
+            </MudStack>
+            <MentionInput @ref="_input" @bind-Text="_text" Placeholder="@Placeholder" OnSubmit="SendAsync"
+                          MaxLength="@OperationLogRules.MaxText" Lines="2"
+                          DraftKey='@($"einsatztagebuch:{OperationId}")' />
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-1">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                           OnClick="SendAsync" Disabled="@(_sends || string.IsNullOrWhiteSpace(_text))">
+                    @(_access.IsAddendum ? "Nachtrag eintragen" : "Eintragen")
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string OperationId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    /// <summary>Current Ablauf text; decides whether taking over asks replace or append.</summary>
+    [Parameter] public string? Expiry { get; set; }
+    /// <summary>Operation status; the write state is re-read when it changes.</summary>
+    [Parameter] public OperationStatus Status { get; set; }
+    /// <summary>Raised after the log was taken over into the Ablauf.</summary>
+    [Parameter] public EventCallback Applied { get; set; }
+
+    private const string Placeholder = "Meldung … (Verlinken per @, Strg+Enter trägt ein)";
+    private bool _load = true;
+    private bool _sends;
+    private bool _applies;
+    private bool _isLeadership;
+    private bool _mayWrite;
+    private bool _mayApply;
+    private string? _myId;
+    private string _text = string.Empty;
+    private string? _location;
+    private OperationLogKind _kind = OperationLogKind.Situation;
+    private MentionInput? _input;
+    private List<Row> _entries = new();
+    private OperationLogAccess _access = OperationLogAccess.None;
+    private OperationStatus? _accessFor;
+
+    private sealed record Row(OperationLogEntry Entry, IReadOnlyList<MentionSegment> Segments);
+
+    private string Hint => _access.Status switch
+    {
+        OperationStatus.Planned => "Das Einsatztagebuch öffnet, sobald die Operation auf „Laufend“ steht.",
+        OperationStatus.Running => "Läuft mit: jede Meldung erscheint sofort bei allen, die die Akte offen haben.",
+        _ => "Die Operation ist beendet. Neue Zeilen werden als Nachtrag gekennzeichnet.",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLeadership = User.IsLeadership();
+        _mayWrite = User.MayWrite();
+        _mayApply = User.MayWrite() && User.IsInternalAgent();
+        _myId = User.GetAgentId();
+        Broadcaster.Modified += OnModified;
+        await LoadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_accessFor != Status)
+        {
+            _accessFor = Status;
+            _access = await LogService.GetAccessAsync(OperationId, User);
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        var entries = await LogService.GetEntriesAsync(OperationId, ViewerScope.From(User));
+        var segments = await MentionService.ResolveManyAsync(
+            entries.Select(e => (string?)e.Text).ToList(), User.MayClassifiedRead(), _myId,
+            partnerAgency: User.GetPartnerAgency());
+        _entries = entries.Select((e, i) => new Row(e, segments[i])).ToList();
+        _load = false;
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_text) || _sends)
+        {
+            return;
+        }
+        _sends = true;
+        try
+        {
+            await LogService.AddAsync(OperationId, _kind, _text, _location, User);
+            if (_input is not null)
+            {
+                await _input.MarkSavedAsync();
+            }
+            _text = string.Empty; // broadcaster refreshes the list; kind and place stay for the next line
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _sends = false;
+    }
+
+    private async Task DeleteAsync(OperationLogEntry entry)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Meldung zurückziehen?",
+            "Die Meldung wird aus dem Einsatztagebuch entfernt.", "Zurückziehen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await LogService.DeleteAsync(entry.Id, User);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task ApplyAsync()
+    {
+        var append = false;
+        if (string.IsNullOrWhiteSpace(Expiry))
+        {
+            var ok = await ConfirmDialog.ShowAsync(DialogService, "In Ablauf übernehmen?",
+                "Das Einsatztagebuch wird als Text in das Feld „Ablauf“ der Operation geschrieben.", "Übernehmen");
+            if (!ok)
+            {
+                return;
+            }
+        }
+        else
+        {
+            var choice = await DialogService.ShowMessageBoxAsync("Ablauf ist schon ausgefüllt",
+                "Soll das Einsatztagebuch unten angehängt werden oder den bisherigen Ablauf ersetzen?",
+                yesText: "Anhängen", noText: "Ersetzen", cancelText: "Abbrechen");
+            if (choice is null)
+            {
+                return;
+            }
+            append = choice.Value;
+        }
+
+        _applies = true;
+        try
+        {
+            await LogService.ApplyToExpiryAsync(OperationId, append, User);
+            Snackbar.Add("Einsatztagebuch in den Ablauf übernommen.", Severity.Success);
+            await Applied.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _applies = false;
+    }
+
+    // Marshal cross-circuit signal into own circuit, reload
+    private void OnModified(string operationId)
+    {
+        if (operationId != OperationId)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            await LoadAsync();
+            StateHasChanged();
+        });
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Broadcaster.Modified -= OnModified;
+        return ValueTask.CompletedTask;
+    }
+}

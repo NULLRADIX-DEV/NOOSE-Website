@@ -139,6 +139,14 @@ else
                     </MudStack>
                 </RecordSection>
                 }
+                @* working log: internal only, never released to partners *@
+                @if (!_isPartner)
+                {
+                <RecordSection Group="Akte" Slug="einsatztagebuch" Label="Einsatztagebuch" Icon="@Icons.Material.Filled.ListAlt">
+                    <OperationLogPanel OperationId="@_operation.Id" User="_user" Expiry="@_operation.Expiry"
+                                       Status="_operation.Status" Applied="NewLoadAsync" />
+                </RecordSection>
+                }
                 @* assigned NOOSE agents: internal only *@
                 @if (!_isPartner)
                 {
@@ -222,15 +230,17 @@ else
 
     private static readonly string[] _tabs =
     {
-        "stammdaten", "agents", "beziehungen", "einstufung",
+        "stammdaten", "einsatztagebuch", "agents", "beziehungen", "einstufung",
         "quellen", "wiedervorlagen", "kommentare", "zusatzfelder", "historie",
     };
+
+    private static readonly HashSet<string> InternalOnly = new() { "einsatztagebuch", "agents" };
 
     // partner tab gating: null = no restriction (internal/unconfigured/individually released)
     private IReadOnlySet<string>? _visibleTabs;
     private List<string> _renderTabs = new();
     private bool TabOn(string slug) => _visibleTabs is null || _visibleTabs.Contains(slug);
-    private void RebuildRenderTabs() => _renderTabs = _tabs.Where(s => (s != "agents" || !_isPartner) && TabOn(s)).ToList();
+    private void RebuildRenderTabs() => _renderTabs = _tabs.Where(s => (!InternalOnly.Contains(s) || !_isPartner) && TabOn(s)).ToList();
 
     protected override async Task OnInitializedAsync()
     {

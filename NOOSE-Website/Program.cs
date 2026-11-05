@@ -367,6 +367,8 @@ builder.Services.AddScoped<ITaskforceService, TaskforceService>();
 builder.Services.AddScoped<ITaskforceChatService, TaskforceChatService>();
 builder.Services.AddScoped<IMentionService, MentionService>();
 builder.Services.AddSingleton<TaskforceChatBroadcaster>();
+builder.Services.AddScoped<IOperationLogService, OperationLogService>();
+builder.Services.AddSingleton<OperationLogBroadcaster>();
 builder.Services.AddScoped<IObservationService, ObservationService>();
 // fans the global recycle bin out over every record service, so restore keeps its guards
 builder.Services.AddScoped<ITrashService, TrashService>();

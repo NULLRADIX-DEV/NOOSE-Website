@@ -33,8 +33,10 @@ public static class ChangelogContent
     /// Raised to 8 when the lines of 2 November moved from 2.7.00 into 2.8.00 and three older ones closed the gap;
     /// each carries its former key as <c>LegacyKey</c>.
     /// Raised to 9 when the lines of the older releases were reworded from NOOSE to FIB and release 3.0.00 came.
+    /// Raised to 10 when three lines of 3.0.00 closed the gap two merges had left at 3.0.22; each carries its former
+    /// key as <c>LegacyKey</c>.
     /// </remarks>
-    public const int Revision = 9;
+    public const int Revision = 10;
 
     /// <param name="Key">Stable handle; renaming one orphans the old row and creates a second.</param>
     /// <param name="LegacyKey">The key this line shipped under before it moved into another release.</param>
@@ -657,14 +659,18 @@ public static class ChangelogContent
             Neu("3.0.21-finanzierung-abteilungen", "Der Finanzierungskatalog kennt jetzt eigene Freigaben je Abteilung: "
                 + "das HRT darf manche Waffe und manches Fahrzeug früher beantragen als CID und CTD. Auch das Monatsbudget "
                 + "stellt die Führung jetzt für jede Abteilung und jeden Dienstgrad getrennt ein.", "Finanzierung"),
-            Besser("3.0.23-kurzbrief", "Der FIBI-Kurzbrief einer Akte kommt schneller und scheitert deutlich seltener.",
-                "FIBI"),
-            Neu("3.0.24-kalender-abo", "In deinem Profil legst du jetzt einen privaten Kalender-Link an, mit dem du deine "
+            Besser("3.0.22-kurzbrief", "Der FIBI-Kurzbrief einer Akte kommt schneller und scheitert deutlich seltener.",
+                "FIBI", "3.0.23-kurzbrief"),
+            Neu("3.0.23-kalender-abo", "In deinem Profil legst du jetzt einen privaten Kalender-Link an, mit dem du deine "
                 + "Termine, Besprechungen und Fristen in Google, Apple oder Outlook auf dem Handy abonnierst. Du kannst "
-                + "den Link jederzeit erneuern oder widerrufen.", "Kalender"),
-            Neu("3.0.25-anordnung-pruefung", "Auf dem Ausdruck einer unterzeichneten Anordnung steht jetzt ein QR-Code. "
+                + "den Link jederzeit erneuern oder widerrufen.", "Kalender", "3.0.24-kalender-abo"),
+            Neu("3.0.24-anordnung-pruefung", "Auf dem Ausdruck einer unterzeichneten Anordnung steht jetzt ein QR-Code. "
                 + "Ist die Prüfseite freigeschaltet, sieht jeder, der ihn scannt, ob die Anordnung echt ist und noch gilt: "
-                + "Art, Aktenzeichen, Gültigkeit und Unterschrift, nie die Person oder der Gegenstand.", "Ermittlung"),
+                + "Art, Aktenzeichen, Gültigkeit und Unterschrift, nie die Person oder der Gegenstand.", "Ermittlung",
+                "3.0.25-anordnung-pruefung"),
+            Neu("3.0.25-einsatztagebuch", "Läuft eine Operation, führen die Beteiligten, das HRT und die Führung jetzt "
+                + "ein Einsatztagebuch an der Akte: Lagemeldungen, Anforderungen und Ergebnisse mit Uhrzeit und Ort, die "
+                + "alle sofort sehen. Nach dem Einsatz übernimmst du das Protokoll per Knopf in den Ablauf.", "Akten"),
         ]),
     ];
 }

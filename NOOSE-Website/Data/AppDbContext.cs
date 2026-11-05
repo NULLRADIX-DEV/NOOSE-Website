@@ -112,6 +112,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     // operations
     public DbSet<Operation> Operations => Set<Operation>();
     public DbSet<OperationAgent> OperationAgents => Set<OperationAgent>();
+    public DbSet<OperationLogEntry> OperationLogEntries => Set<OperationLogEntry>();
 
     // agent activities + org links + templates
     public DbSet<AgentActivity> AgentActivities => Set<AgentActivity>();
@@ -1039,6 +1040,16 @@ public class AppDbContext : IdentityDbContext<Agent>
                 .HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
             b.HasIndex(a => new { a.OperationId, a.AgentId }).IsUnique();
             b.HasIndex(a => a.AgentId);
+        });
+
+        modelBuilder.Entity<OperationLogEntry>(b =>
+        {
+            b.Property(e => e.Text).HasMaxLength(1000).IsRequired();
+            b.Property(e => e.Location).HasMaxLength(128);
+            b.Property(e => e.AuthorName).HasMaxLength(128);
+            b.HasIndex(e => new { e.OperationId, e.CreatedAt });
+            b.HasOne(e => e.Operation).WithMany()
+                .HasForeignKey(e => e.OperationId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<AgentAbduction>(b =>

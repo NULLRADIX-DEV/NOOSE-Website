@@ -49,6 +49,7 @@ public static class WatchlistRecordRollup
             case PartyMember pm: return One(nameof(Party), pm.PartyId);
             case PartyAgent paa: return One(nameof(Party), paa.PartyId);
             case OperationAgent oa: return One(nameof(Operation), oa.OperationId);
+            case OperationLogEntry ol: return One(nameof(Operation), ol.OperationId);
             case CaseAgent va: return One(nameof(Case), va.CaseId);
             case TaskforceAgent ta: return One(nameof(Taskforce), ta.TaskforceId);
             case TaskforceMessage tn: return One(nameof(Taskforce), tn.TaskforceId);

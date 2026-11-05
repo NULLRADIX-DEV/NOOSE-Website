@@ -6669,6 +6669,73 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("OperationAgenten");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.OperationLogEntry", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AuthorName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AutorName");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<bool>("IsAddendum")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstNachtrag");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int")
+                        .HasColumnName("Art");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("Ort");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("OperationId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId", "CreatedAt");
+
+                    b.ToTable("Einsatztagebuch");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Parties.Party", b =>
                 {
                     b.Property<string>("Id")
@@ -12649,6 +12716,17 @@ namespace NOOSE_Website.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Agent");
+
+                    b.Navigation("Operation");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.OperationLogEntry", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Operations.Operation", "Operation")
+                        .WithMany()
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Operation");
                 });
