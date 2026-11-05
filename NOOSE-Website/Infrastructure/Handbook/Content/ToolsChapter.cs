@@ -185,7 +185,8 @@ internal static class ToolsChapter
                 Agenten von selbst im Discord: bei der Freigabe, bei jeder Beförderung und Versetzung, und nach einer
                 Kündigung nimmt der <strong>Bot</strong> - das Konto, mit dem die Seite im Discord Rollen vergibt - sie
                 wieder weg. Maßgeblich ist immer die Seite. Der Bot überträgt nur von hier nach Discord, nie zurück,
-                und fasst nur Rollen an, die hier zugeordnet sind. Alles andere im Discord bleibt, wie es ist.</p>
+                und fasst nur Rollen an, die hier zugeordnet sind. Alles andere im Discord bleibt, wie es ist.
+                Markier eine Teamleitung schon vor der Freigabe, sonst tauchen ihre Dienstgrad-Rollen kurz im Discord auf.</p>
                 <p>Damit das klappt, braucht der Bot auf dem Discord-Server das Recht <strong>Rollen verwalten</strong>,
                 und seine eigene Rolle muss in der Rollenliste <strong>über</strong> allen zugeordneten Rollen stehen.
                 Sonst lehnt Discord ab, und der Agent steht mit einem Fehler in der Liste. Schalte den Abgleich nie

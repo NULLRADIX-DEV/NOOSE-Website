@@ -1346,7 +1346,7 @@ public class AgentManagementService(
             ChangesJson = changesJson,
         });
 
-    /// <summary>Persist agent; rotate the security stamp to force re-login when claims change.</summary>
+    /// <summary>Persist agent; newStamp forces re-login and queues the Discord role sync, so rank, division, flags, status and partner writes need it.</summary>
     private async Task Save(Agent agent, bool newStamp)
     {
         var result = await userManager.UpdateAsync(agent);
