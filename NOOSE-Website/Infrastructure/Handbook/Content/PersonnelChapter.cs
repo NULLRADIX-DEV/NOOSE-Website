@@ -238,6 +238,32 @@ internal static class PersonnelChapter
                 erwartet wird, bevor ihn jemand danach fragt.</p>
                 """),
 
+            new Article("art-einarbeitung", "einarbeitung-und-probezeit", "Einarbeitung und Probezeit",
+                "Pate, Pflichtmodule und Probezeit-Ende für neue Agenten.",
+                """
+                <p>Wird ein neuer Agent freigegeben oder ein Bewerber hochgestuft, beginnt für ihn von selbst eine
+                <strong>Einarbeitung</strong>. Sie besteht aus drei Dingen: den <strong>Pflichtmodulen</strong>,
+                einem <strong>Paten</strong> und dem Ende der <strong>Probezeit</strong>.</p>
+                <p>Welche Ausbildungsmodule Pflicht sind, legt die Führung in den Einstellungen unter
+                <em>Module</em> fest; dort steht auch, wie viele Tage die Probezeit dauert (vorgegeben sind 14).
+                Den Paten wählst du gleich bei der Freigabe aus, du kannst das Feld aber auch leer lassen und ihn
+                später eintragen. Der Pate bekommt eine Benachrichtigung.</p>
+                <p>In der Personalakte, Reiter <em>Module</em>, zeigt eine <strong>Ampel</strong>, wie es steht:
+                grün, solange die erledigten Pflichtmodule mit der verstrichenen Zeit Schritt halten, gelb, wenn
+                der Agent hinterherhängt, rot, wenn die Probezeit vorbei ist und noch Module offen sind.
+                Pate und Frist ändern die Führung und die Administration Division.</p>
+                <p>Drei Tage vor dem Ende und noch einmal am Ende erinnert die Glocke den Paten, den Section Chief
+                der Abteilung und das Board. Abschließen darf nur die Führung: <em>Bestanden</em> oder
+                <em>Nicht bestanden</em>, auf Wunsch mit einem Satz dazu. Das Ergebnis steht danach als Vermerk
+                in der Personalakte.</p>
+                <p>Agenten, die vor dieser Funktion freigegeben wurden, haben keine Einarbeitung. Für sie startest
+                du sie bei Bedarf in der Personalakte von Hand.</p>
+                """,
+                RoleplayHtml: """
+                <p>Der Pate ist der erste Ansprechpartner des Neuen: er nimmt ihn auf Streife mit, zeigt ihm die
+                Abläufe und sagt der Führung vor dem Ende der Probezeit, wie er sich macht.</p>
+                """),
+
             new Article("art-interne-tests", "interne-tests", "Interne Tests",
                 "Tests für Agenten: zuweisen, ablegen, korrigieren.",
                 """
@@ -299,6 +325,10 @@ internal static class PersonnelChapter
                 <p>Der Bewerber sieht außerdem einen <strong>vergröberten Status</strong>: Test und
                 Vorstellungsgespräch erscheinen ihm als eine Stufe. Sonst wüsste er nach dem Weiterrücken,
                 dass er den Test bestanden hat, bevor die Entscheidung gefallen ist.</p>
+                <p>Eine angenommene oder abgelehnte Bewerbung holst du mit <em>Wieder öffnen</em> zurück und wählst
+                dabei den Schritt, in dem sie weiterläuft. War sie abgelehnt, fällt die 14-Tage-Sperre weg. Die alte
+                Entscheidung bleibt im internen Thread stehen. In der Übersicht findest du jede Bewerbung über die
+                Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber.</p>
                 """,
                 DiagramKey: "bewerbung-ablauf",
                 NavKey: "bewerbungen",

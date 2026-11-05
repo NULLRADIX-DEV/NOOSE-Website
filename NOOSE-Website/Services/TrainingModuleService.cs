@@ -47,6 +47,7 @@ public class TrainingModuleService(IDbContextFactory<AppDbContext> dbFactory) : 
             Name = name,
             Description = Empty(input.Description),
             IsActive = input.IsActive,
+            IsMandatory = input.IsMandatory,
             Sorting = input.Sorting,
         };
         db.TrainingModules.Add(module);
@@ -74,6 +75,7 @@ public class TrainingModuleService(IDbContextFactory<AppDbContext> dbFactory) : 
         module.Name = name;
         module.Description = Empty(input.Description);
         module.IsActive = input.IsActive;
+        module.IsMandatory = input.IsMandatory;
         module.Sorting = input.Sorting;
         await db.SaveChangesAsync(cancellationToken);
     }

@@ -134,7 +134,9 @@ else
                     <LlmQuotaAgentPanel Agent="_agent" @key="_reloadKey" />
                 </MudTabPanel>
                 <MudTabPanel Text="Module" Icon="@Icons.Material.Filled.School">
-                    <ModulesPanel AgentId="@_agent.Id" MayMark="@AgentSelection.IsSelectable(_agent)" />
+                    <ProbationPanel @ref="_probation" AgentId="@_agent.Id" MayStart="@AgentSelection.IsSelectable(_agent)" @key="_agent.Id" />
+                    <ModulesPanel AgentId="@_agent.Id" MayMark="@AgentSelection.IsSelectable(_agent)"
+                                  Changed="@(() => _probation?.ReloadAsync() ?? Task.CompletedTask)" />
                     @if (_isHrbOrLeadership)
                     {
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-6 mb-2">
@@ -178,6 +180,7 @@ else
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _load = true;
+    private ProbationPanel? _probation;
     private bool _isLeadership;
     private bool _isHrbOrLeadership;
     private int _onboardingDone;

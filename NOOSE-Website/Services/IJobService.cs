@@ -33,6 +33,9 @@ public interface IJobService
     /// <summary>Assign an agent (creator or leadership); notifies the agent unless they are the actor.</summary>
     Task AgentAssignAsync(string jobId, string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Assign every selectable member of the unit not yet on the job (creator or leadership); returns how many were added.</summary>
+    Task<int> UnitAssignAsync(string jobId, OrgUnit unit, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     Task AgentRemoveAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Audit entries for the job incl. assignments/links.</summary>

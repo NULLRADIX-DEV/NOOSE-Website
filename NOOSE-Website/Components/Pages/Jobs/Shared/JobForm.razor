@@ -55,6 +55,16 @@
                     </MudSelectItem>
                 }
             </MudSelect>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap" Class="mt-1">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Ganze Einheit hinzufügen:</MudText>
+                @foreach (var unit in DivisionRules.Seats)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@DivisionRules.Colour(unit)"
+                             Icon="@Icons.Material.Filled.GroupAdd" OnClick="@(() => UnitAddAsync(unit))">
+                        @DivisionRules.Label(unit) (@UnitMembers(unit).Count())
+                    </MudChip>
+                }
+            </MudStack>
             @* a hint you lose by closing the dropdown is a hint nobody read *@
             @if (SelectedAbsenceNote() is { Length: > 0 } note)
             {
@@ -131,6 +141,13 @@
         AgentIds = values;
         await AgentIdsChanged.InvokeAsync(values);
     }
+
+    private IEnumerable<string> UnitMembers(OrgUnit unit)
+        => _agents.Where(a => DivisionRules.InSeat(a, unit)).Select(a => a.Id);
+
+    /// <summary>Adds today's members of the unit to the selection; later members are not included.</summary>
+    private Task UnitAddAsync(OrgUnit unit)
+        => OnAgentsChanged(AgentIds.Union(UnitMembers(unit)).ToHashSet());
 
     private string DisplaySelection(IReadOnlyList<string> ids)
     {

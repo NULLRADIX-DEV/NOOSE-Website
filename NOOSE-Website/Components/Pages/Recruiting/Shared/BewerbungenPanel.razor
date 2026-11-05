@@ -30,13 +30,19 @@
     <MudTabPanel Text="@($"Alle ({_all.Count})")" />
 </MudTabs>
 
+<MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="200" Clearable="true"
+              Placeholder="Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber" Adornment="Adornment.Start"
+              AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
 @if (_load)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
 else if (Current.Count == 0)
 {
-    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Keine Bewerbungen in dieser Ansicht.</MudAlert>
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        @(string.IsNullOrWhiteSpace(_search) ? "Keine Bewerbungen in dieser Ansicht." : "Keine Bewerbung passt zur Suche.")
+    </MudAlert>
 }
 else
 {
@@ -74,7 +80,10 @@ else
     private List<Bewerbung> _open = new();
     private List<Bewerbung> _archived = new();
 
-    private List<Bewerbung> Current => _tab switch { 1 => _archived, 2 => _all, _ => _open };
+    private string? _search;
+
+    private List<Bewerbung> Current
+        => BewerbungSearch.Filter(_tab switch { 1 => _archived, 2 => _all, _ => _open }, _search);
 
     private int RejectedCount => _all.Count(b => b.Status == BewerbungStatus.Abgelehnt);
     private int TotalCount => _all.Count;

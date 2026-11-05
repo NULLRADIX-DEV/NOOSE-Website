@@ -379,6 +379,8 @@ builder.Services.AddScoped<IAgentHandoverService, AgentHandoverService>();
 builder.Services.AddScoped<ISupervisionSheetService, SupervisionSheetService>();
 builder.Services.AddScoped<IRecordExportService, RecordExportService>();
 builder.Services.AddScoped<ITrainingModuleService, TrainingModuleService>();
+builder.Services.AddScoped<IProbationService, ProbationService>();
+builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Personnel.ProbationReminderWorker>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IStatisticsService, StatisticsService>();

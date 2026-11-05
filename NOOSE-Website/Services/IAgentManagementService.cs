@@ -21,7 +21,8 @@ public interface IAgentManagementService
 
     /// <summary>Release a pending account and assign rank, division and the Administration Division flag; status becomes Active.</summary>
     /// <remarks>A full division needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
-    Task ReleaseAsync(string agentId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor);
+    Task ReleaseAsync(string agentId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor,
+        string? mentorId = null);
 
     /// <summary>Release a pending account as an external partner; no rank or internal flags, read-only on released records.</summary>
     Task ReleaseAsPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor);
@@ -30,7 +31,8 @@ public interface IAgentManagementService
     Task RejectAsync(string agentId, string reason, ClaimsPrincipal actor);
 
     /// <summary>Promote an applicant (status Applicant) directly to an active agent with rank, division and flag; leadership only. Rotates the SecurityStamp.</summary>
-    Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor);
+    Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor,
+        string? mentorId = null);
 
     /// <summary>Turn a citizen account into an applicant so it can use the applicant portal; the citizen area stays open.</summary>
     Task<Agent> StartApplicationAsync(string userId, CancellationToken cancellationToken = default);

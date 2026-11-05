@@ -170,6 +170,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     // training modules + per-agent completion
     public DbSet<TrainingModule> TrainingModules => Set<TrainingModule>();
     public DbSet<AgentModuleCompletion> AgentModuleCompletions => Set<AgentModuleCompletion>();
+    public DbSet<AgentProbation> AgentProbations => Set<AgentProbation>();
     public DbSet<AgentTestAssignment> AgentTestAssignments => Set<AgentTestAssignment>();
     public DbSet<AgentTestAnswer> AgentTestAnswers => Set<AgentTestAnswer>();
     public DbSet<Presentation> Presentations => Set<Presentation>();
@@ -1707,6 +1708,17 @@ public class AppDbContext : IdentityDbContext<Agent>
                 .HasForeignKey(c => c.AgentId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(c => c.Module).WithMany()
                 .HasForeignKey(c => c.ModuleId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AgentProbation>(b =>
+        {
+            b.Property(p => p.ClosedByName).HasMaxLength(128);
+            b.HasIndex(p => p.AgentId);
+            b.HasIndex(p => new { p.ClosedAt, p.EndsAt });
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(p => p.MentorAgentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<SystemSetting>(b =>

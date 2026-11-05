@@ -125,6 +125,17 @@ public static class DivisionRules
     public static bool SameSeat(OrgUnit a, OrgUnit b)
         => a.IsBoard == b.IsBoard && (a.IsBoard || a.Home == b.Home);
 
+    /// <summary>The Board as a seat, for pickers that choose a whole unit.</summary>
+    public static readonly OrgUnit Board = new(null, true);
+
+    /// <summary>Units a whole-unit picker offers: the divisions, then the Board.</summary>
+    public static readonly IReadOnlyList<OrgUnit> Seats =
+        DivisionDisplay.All.Select(d => new OrgUnit(d, false)).Append(Board).ToList();
+
+    /// <summary>Agent holds a seat in the unit; accounts without a unit hold none.</summary>
+    public static bool InSeat(Agent agent, OrgUnit unit)
+        => Of(agent) is { IsNone: false } own && SameSeat(own, unit);
+
     /// <summary>Selectable agents seated in the unit, not counting the agent being moved.</summary>
     public static async Task<int> CountAsync(IQueryable<Agent> users, OrgUnit unit, string? exceptAgentId,
         CancellationToken cancellationToken = default)

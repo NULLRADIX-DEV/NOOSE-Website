@@ -1,4 +1,5 @@
 @inject ITrainingModuleService ModuleService
+@inject IProbationService ProbationService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -15,7 +16,26 @@
     Module sind kleine Schulungen, die Agenten absolvieren können. Hier werden sie zentral verwaltet (anlegen,
     bearbeiten, aktivieren, löschen). Aktive Module lassen sich anschließend in der Personalakte eines Agenten
     als abgeschlossen markieren. Beim Löschen verschwindet das Modul samt aller Abschlüsse aus den Akten.
+    Pflichtmodule bilden den Einarbeitungsplan, der bei jeder Freigabe eines neuen Agenten entsteht.
 </MudText>
+
+<MudPaper Class="pa-4 mb-6" Elevation="1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+        <MudIcon Icon="@Icons.Material.Filled.HourglassTop" Color="Color.Primary" />
+        <MudText Typo="Typo.subtitle2">Probezeit neuer Agenten</MudText>
+        <MudNumericField T="int" @bind-Value="_probationDays" Label="Tage ab Freigabe" Variant="Variant.Outlined"
+                         Margin="Margin.Dense" Min="@ProbationRules.MinDays" Max="@ProbationRules.MaxDays"
+                         ReadOnly="@(!_mayEditDays)" Style="max-width:160px;" />
+        @if (_mayEditDays)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Disabled="_busy"
+                       OnClick="SaveDaysAsync">Speichern</MudButton>
+        }
+    </MudStack>
+    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+        Gilt für Einarbeitungen, die ab jetzt beginnen. Laufende verlängert man in der Personalakte.
+    </MudText>
+</MudPaper>
 
 @if (_load)
 {
@@ -46,6 +66,10 @@ else
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Inaktiv</MudChip>
                 }
+                @if (context.IsMandatory)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">Pflicht</MudChip>
+                }
             </MudTd>
             <MudTd DataLabel="Aktion" Style="text-align:right;">
                 <AuthorizeView Policy="@Policies.Leadership" Context="adminCtx">
@@ -71,10 +95,32 @@ else
     private List<TrainingModule> _modules = new();
     private ClaimsPrincipal _user = default!;
 
+    private int _probationDays = ProbationRules.DefaultDays;
+    private bool _mayEditDays;
+    private bool _busy;
+
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
+        // mirrors the service guard
+        _mayEditDays = _user.MayWrite() && _user.IsLeadership();
+        _probationDays = await ProbationService.GetDaysAsync();
         await LoadAsync();
+    }
+
+    private async Task SaveDaysAsync()
+    {
+        _busy = true;
+        try
+        {
+            await ProbationService.SetDaysAsync(_probationDays, _user);
+            Snackbar.Add($"Probezeit auf {_probationDays} Tage gesetzt.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _busy = false;
     }
 
     private async Task LoadAsync()
@@ -110,6 +156,7 @@ else
             Name = module.Name,
             Description = module.Description,
             IsActive = module.IsActive,
+            IsMandatory = module.IsMandatory,
             Sorting = module.Sorting,
         };
         var input = await ModuleDialog.ShowAsync(DialogService, "Modul bearbeiten", current);

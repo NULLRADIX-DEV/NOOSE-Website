@@ -1,0 +1,236 @@
+@* Onboarding plan: mentor, probation end, mandatory-module light; HRB or leadership manage, leadership closes. *@
+@inject IProbationService ProbationService
+@inject IAgentManagementService AgentService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (_view is not null || (_mayManage && MayStart))
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+            <MudIcon Icon="@Icons.Material.Filled.Flag" Color="Color.Primary" />
+            <MudText Typo="Typo.subtitle1">Einarbeitung</MudText>
+            @if (_view is not null)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@ProbationRules.LightColour(_view.Light)">
+                    @ProbationRules.LightLabel(_view.Light)
+                </MudChip>
+            }
+            <MudSpacer />
+            @if (_view is { IsOpen: true } && _mayManage && !_editing && !_closing)
+            {
+                <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="BeginEdit">Pate / Frist ändern</MudButton>
+                @if (_mayClose)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.TaskAlt" OnClick="@(() => _closing = true)">Abschließen</MudButton>
+                }
+            }
+        </MudStack>
+
+        @if (_view is null)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                Für diesen Agenten läuft keine Einarbeitung. Sie entsteht sonst bei der Freigabe.
+            </MudText>
+            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Disabled="_busy"
+                       StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="StartAsync">Einarbeitung starten</MudButton>
+        }
+        else if (_editing)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                <MudSelect T="string" @bind-Value="_mentorId" Label="Pate" Variant="Variant.Outlined" Margin="Margin.Dense"
+                           Clearable="true" Style="min-width:200px;">
+                    @foreach (var mentor in _mentors.Where(m => m.Id != AgentId))
+                    {
+                        <MudSelectItem T="string" Value="@mentor.Id">@mentor.Codename</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudDatePicker @bind-Date="_endsAt" Label="Probezeit bis" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               MinDate="DateTime.Today.AddDays(1)" DateFormat="dd.MM.yyyy" Style="max-width:180px;" />
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy"
+                           OnClick="SaveEditAsync">Speichern</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _editing = false)">Abbrechen</MudButton>
+            </MudStack>
+        }
+        else
+        {
+            <MudStack Spacing="1">
+                <MudText Typo="Typo.body2">
+                    Pate: @(_view.MentorCodename ?? "noch keiner")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    Probezeit: @_view.StartedAt.ToLocalTime().ToString("dd.MM.yyyy") bis @_view.EndsAt.ToLocalTime().ToString("dd.MM.yyyy")
+                </MudText>
+                <MudText Typo="Typo.body2">
+                    Pflichtmodule: @_view.MandatoryDone von @_view.MandatoryTotal erledigt
+                </MudText>
+                @if (_view.IsOpen && _view.OpenModules.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Offen: @string.Join(", ", _view.OpenModules)</MudText>
+                }
+                @if (!_view.IsOpen)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Abgeschlossen am @_view.ClosedAt!.Value.ToLocalTime().ToString("dd.MM.yyyy")
+                        @(string.IsNullOrWhiteSpace(_view.ClosedByName) ? "" : $" durch {_view.ClosedByName}")
+                    </MudText>
+                    @if (_mayManage && MayStart)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Class="mt-1" Disabled="_busy"
+                                   StartIcon="@Icons.Material.Filled.Replay" OnClick="StartAsync">Neue Einarbeitung starten</MudButton>
+                    }
+                }
+            </MudStack>
+        }
+
+        @if (_closing && _view is { IsOpen: true })
+        {
+            <MudDivider Class="my-3" />
+            <MudStack Spacing="2">
+                <MudRadioGroup T="ProbationOutcome" @bind-Value="_outcome">
+                    <MudRadio T="ProbationOutcome" Value="ProbationOutcome.Passed" Color="Color.Success">Bestanden</MudRadio>
+                    <MudRadio T="ProbationOutcome" Value="ProbationOutcome.Failed" Color="Color.Error">Nicht bestanden</MudRadio>
+                </MudRadioGroup>
+                <MudTextField T="string" @bind-Value="_note" Label="Vermerk (optional)" Variant="Variant.Outlined"
+                              Lines="2" MaxLength="2000" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Das Ergebnis wird als Vermerk in der Personalakte abgelegt.</MudText>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy"
+                               OnClick="CloseAsync">Abschließen</MudButton>
+                    <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _closing = false)">Abbrechen</MudButton>
+                </MudStack>
+            </MudStack>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter, EditorRequired] public string AgentId { get; set; } = default!;
+
+    /// <summary>False for partner and departed accounts.</summary>
+    [Parameter] public bool MayStart { get; set; } = true;
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private ProbationView? _view;
+    private bool _mayManage;
+    private bool _mayClose;
+    private bool _busy;
+    private bool _editing;
+    private bool _closing;
+    private string? _mentorId;
+    private DateTime? _endsAt;
+    private ProbationOutcome _outcome = ProbationOutcome.Passed;
+    private string? _note;
+    private List<Agent> _mentors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        // mirror the service guards
+        _mayManage = _user.MayWrite() && _user.IsHrbOrLeadership();
+        _mayClose = _user.MayWrite() && _user.IsLeadership();
+        await ReloadAsync();
+    }
+
+    public async Task ReloadAsync()
+    {
+        try
+        {
+            _view = _user.IsPartner() ? null : await ProbationService.GetAsync(AgentId, _user);
+        }
+        catch
+        {
+            _view = null;
+        }
+        StateHasChanged();
+    }
+
+    private async Task BeginEdit()
+    {
+        if (_view is null)
+        {
+            return;
+        }
+        if (_mentors.Count == 0)
+        {
+            _mentors = await AgentService.GetSelectableAsync();
+        }
+        _mentorId = _view.MentorAgentId;
+        _endsAt = _view.EndsAt.ToLocalTime().Date;
+        _editing = true;
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (_view is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            if (_mentorId != _view.MentorAgentId)
+            {
+                await ProbationService.SetMentorAsync(AgentId, _mentorId, _user);
+            }
+            // end of the picked day, local time
+            if (_endsAt is { } day && day.Date != _view.EndsAt.ToLocalTime().Date)
+            {
+                await ProbationService.ExtendAsync(AgentId, day.Date.AddDays(1).AddSeconds(-1).ToUniversalTime(), _user);
+            }
+            _editing = false;
+            Snackbar.Add("Einarbeitung gespeichert.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _busy = false;
+    }
+
+    private async Task StartAsync()
+    {
+        _busy = true;
+        try
+        {
+            await ProbationService.StartAsync(AgentId, null, _user);
+            Snackbar.Add("Einarbeitung gestartet.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _busy = false;
+    }
+
+    private async Task CloseAsync()
+    {
+        var verdict = _outcome == ProbationOutcome.Passed ? "bestanden" : "nicht bestanden";
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Einarbeitung abschließen?",
+            $"Die Probezeit wird als {verdict} vermerkt.", "Abschließen");
+        if (!ok)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await ProbationService.CloseAsync(AgentId, _outcome, _note, _user);
+            _closing = false;
+            _note = null;
+            Snackbar.Add($"Probezeit als {verdict} abgeschlossen.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _busy = false;
+    }
+}

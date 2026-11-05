@@ -675,6 +675,12 @@ public static class ChangelogContent
                 + "Legitimation, beteiligten Behörden, Beschuldigten und Geiseln samt Rolle, Beweismitteln und einem "
                 + "Einsatzbericht zum Drucken. Eine verknüpfte Fraktion zählt den Einsatz für ihren Score. Die alten "
                 + "Aktivitäten bleiben lesbar.", "Akten"),
+            Neu("3.0.27-einarbeitung", "Neue Agenten bekommen bei der Freigabe jetzt eine Einarbeitung: einen Paten, "
+                + "die Pflichtmodule und ein Probezeit-Ende. Eine Ampel in der Personalakte zeigt den Stand, vor dem "
+                + "Ende erinnert die Glocke Pate und Führung, und das Ergebnis landet als Vermerk in der Akte.", "Personal"),
+            Neu("3.0.28-bewerbung-wieder-oeffnen", "Angenommene und abgelehnte Bewerbungen lassen sich jetzt wieder öffnen "
+                + "und in einen beliebigen Schritt zurückstellen. In der Bewerbungsübersicht suchst du nach Name, "
+                + "Aktenzeichen, Bearbeiter oder Arbeitgeber.", "Bewerbungen"),
         ]),
     ];
 }

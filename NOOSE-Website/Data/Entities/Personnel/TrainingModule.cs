@@ -18,6 +18,10 @@ public class TrainingModule : IAuditable, ISoftDelete
     [Column("IstAktiv")]
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Part of every new agent's onboarding plan.</summary>
+    [Column("IstPflicht")]
+    public bool IsMandatory { get; set; }
+
     /// <summary>List sort order; smaller first.</summary>
     [Column("Sortierung")]
     public int Sorting { get; set; }
