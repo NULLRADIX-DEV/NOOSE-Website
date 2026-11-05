@@ -127,18 +127,7 @@ public sealed class DiscordRoleSyncService(
     public async Task SyncAgentAsync(string agentId, string reason, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var settings = await ReadSettingsAsync(db, cancellationToken);
-        if (!IsActive(settings))
-        {
-            return;
-        }
-
-        // fresh row
-        var agent = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == agentId, cancellationToken);
-        if (agent is not null)
-        {
-            await SyncOneAsync(db, agent, settings, Reason(reason), cancellationToken);
-        }
+        await SyncFreshAsync(db, agentId, Reason(reason), cancellationToken);
     }
 
     public async Task SyncDeletedAsync(string discordId, CancellationToken cancellationToken = default)
@@ -173,25 +162,60 @@ public sealed class DiscordRoleSyncService(
     public async Task SyncAllAsync(string reason, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var settings = await ReadSettingsAsync(db, cancellationToken);
-        if (!IsActive(settings))
+        if (!IsActive(await ReadSettingsAsync(db, cancellationToken)))
         {
             return;
         }
 
+        var agentIds = await db.Users.AsNoTracking().Where(u => u.DiscordId != "").OrderBy(u => u.Id)
+            .Select(u => u.Id).ToListAsync(cancellationToken);
         var why = Reason(reason);
-        foreach (var agent in await LoadAgentsAsync(db, cancellationToken))
+        foreach (var agentId in agentIds)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            await SyncOneAsync(db, agent, settings, why, cancellationToken);
+            // switched off or token gone mid-run: stop, and leave the run unstamped
+            if (!await SyncFreshAsync(db, agentId, why, cancellationToken))
+            {
+                return;
+            }
         }
 
-        await SetAsync(db, SystemSettingKeys.DiscordRoleSyncLastRun,
-            DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture), cancellationToken);
-        await db.SaveChangesAsync(cancellationToken);
+        await StampLastRunAsync(db, cancellationToken);
     }
 
     private bool IsActive(DiscordRoleSyncSettings settings) => settings.Enabled && bot.IsConfigured && settings.GuildId is not null;
+
+    /// <summary>Reads switch, mapping and row anew; false when the sync is no longer active.</summary>
+    private async Task<bool> SyncFreshAsync(AppDbContext db, string agentId, string reason, CancellationToken cancellationToken)
+    {
+        var settings = await ReadSettingsAsync(db, cancellationToken);
+        if (!IsActive(settings))
+        {
+            return false;
+        }
+
+        var agent = await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == agentId, cancellationToken);
+        if (agent is not null)
+        {
+            await SyncOneAsync(db, agent, settings, reason, cancellationToken);
+        }
+        return true;
+    }
+
+    // worker state, no actor: ExecuteUpdate past the audit, only the first row is a tracked insert
+    private static async Task StampLastRunAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+        var key = SystemSettingKeys.DiscordRoleSyncLastRun;
+        if (await db.SystemSettings.AnyAsync(s => s.Key == key, cancellationToken))
+        {
+            await db.SystemSettings.Where(s => s.Key == key)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Value, now), cancellationToken);
+            return;
+        }
+        db.SystemSettings.Add(new SystemSetting { Key = key, Value = now });
+        await db.SaveChangesAsync(cancellationToken);
+    }
 
     private static Task<List<Agent>> LoadAgentsAsync(AppDbContext db, CancellationToken cancellationToken)
         => db.Users.AsNoTracking().Where(u => u.DiscordId != "").OrderBy(u => u.Id).ToListAsync(cancellationToken);
@@ -224,7 +248,7 @@ public sealed class DiscordRoleSyncService(
         await WriteResultAsync(db, agent.Id, error, cancellationToken);
     }
 
-    /// <summary>Null once in line, <see cref="DiscordRoleRules.NotOnServer"/> if absent; throws on a Discord failure.</summary>
+    /// <summary>Null once in line, <see cref="DiscordRoleRules.NotOnServer"/> if absent; throws the first failure after trying every role.</summary>
     private async Task<string?> SyncMemberAsync(string guildId, string discordId, DiscordRoleTarget target, string reason,
         CancellationToken cancellationToken)
     {
@@ -235,17 +259,48 @@ public sealed class DiscordRoleSyncService(
         }
 
         var diff = DiscordRoleRules.Diff(target, current);
+        Exception? first = null;
         // removals first, they close access
         foreach (var role in diff.Remove)
         {
-            await bot.RemoveRoleAsync(guildId, discordId, role, reason, cancellationToken);
+            first = await AttemptAsync(() => bot.RemoveRoleAsync(guildId, discordId, role, reason, cancellationToken), first,
+                cancellationToken);
         }
         foreach (var role in diff.Add)
         {
-            await bot.AddRoleAsync(guildId, discordId, role, reason, cancellationToken);
+            first = await AttemptAsync(() => bot.AddRoleAsync(guildId, discordId, role, reason, cancellationToken), first,
+                cancellationToken);
+        }
+
+        if (first is not null)
+        {
+            throw first;
         }
         return null;
     }
+
+    /// <summary>One role call; keeps the first role-local failure, any other failure ends the agent.</summary>
+    private static async Task<Exception?> AttemptAsync(Func<Task> call, Exception? first, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await call();
+            return first;
+        }
+        catch (Exception ex) when (IsRoleLocal(ex))
+        {
+            return first ?? ex;
+        }
+        catch (Exception ex) when (first is not null && !IsOwnCancellation(ex, cancellationToken))
+        {
+            // would hit every call alike
+            throw first;
+        }
+    }
+
+    /// <summary>Only this role failed (refused, unknown, bad id); the rest would fail every call.</summary>
+    private static bool IsRoleLocal(Exception ex)
+        => ex is ArgumentException or DiscordBotException { Status: >= 400 and < 500 and not (401 or 429) };
 
     private async Task<DiscordRolePreviewRow?> PreviewRowAsync(string guildId, Agent agent, DiscordRoleTarget target,
         DiscordGuildRoles? guildRoles, CancellationToken cancellationToken)
