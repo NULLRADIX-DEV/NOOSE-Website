@@ -93,6 +93,38 @@ internal static class InvestigationChapter
                         "Abschlussvermerk, Beweismittel, Legitimation. Ohne Nachtrag war die Operation umsonst."),
                 ]),
 
+            new Article("art-einsatzalarme", "einsatzalarme", "Einsatzalarme",
+                "Kurzfristig Agenten zusammenrufen und sehen, wer kommt.",
+                """
+                <p>Ein <strong>Einsatzalarm</strong> ruft Agenten kurzfristig zusammen. Du gibst die
+                <em>Lage</em> in einem Satz an, auf Wunsch einen <em>Ort</em>, und wählst, wen er trifft:
+                <em>alle Agenten</em> oder eine Abteilung, also CID, CTD oder HRT. Das Board wird nur bei
+                <em>alle Agenten</em> gerufen. Wer heute abgemeldet ist, bekommt keinen Alarm.</p>
+                <p>Auslösen darf die Führung. Jeder andere Agent mit Schreibrecht darf es nur bei
+                <strong>Gefahr im Verzug</strong>: dann ist eine Begründung Pflicht, und die Führung wird sofort
+                benachrichtigt. Ein Alarm ohne echten Anlass schadet allen, denn er soll ernst genommen werden.</p>
+                <p>Jeder Gerufene bekommt eine Glocke, die sich nicht stummschalten lässt, und einen Ping im
+                Discord. Oben auf jeder Seite steht ein roter Balken, bis du antwortest: <em>Komme</em> oder
+                <em>Komme nicht</em>. Die Antwort lässt sich ändern, solange der Alarm läuft. Auf der Alarmseite
+                sehen alle live, wer kommt, wer absagt und wer noch offen ist.</p>
+                <p>Wer den Alarm ausgelöst hat, kann die Offenen <strong>einmal</strong> mit <em>Offene
+                nachpingen</em> erneut rufen. Der Alarm läuft 30 Minuten und schließt sich dann selbst; der
+                Auslöser oder die Führung kann ihn vorher mit <em>Beenden</em> schließen.</p>
+                <p>Ist der Alarm beendet, machen der Auslöser oder die Führung daraus mit <em>Operation
+                anlegen</em> eine laufende Operation oder hängen ihn mit <em>An Operation hängen</em> an eine
+                bestehende. Alle, die <em>Komme</em> gesagt haben, werden dort als Beteiligte eingetragen.</p>
+                """,
+                NavKey: "einsatzalarme",
+                Steps:
+                [
+                    new Step("NotificationsActive", "Alarm auslösen",
+                        "Einsatzalarme → Alarm auslösen. Lage, Ort und Ziel angeben, bei Gefahr im Verzug die Begründung."),
+                    new Step("CheckCircle", "Antworten",
+                        "Im roten Balken oder auf der Alarmseite Komme oder Komme nicht wählen."),
+                    new Step("Radar", "In eine Operation überführen",
+                        "Nach dem Ende eine Operation anlegen oder den Alarm an eine bestehende hängen."),
+                ]),
+
             new Article("art-taskforces", "taskforces", "Taskforces",
                 "Eine Einheit mit Auftrag, Genehmigung und eigenem Chat.",
                 """

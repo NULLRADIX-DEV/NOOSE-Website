@@ -681,6 +681,9 @@ public static class ChangelogContent
             Neu("3.0.28-bewerbung-wieder-oeffnen", "Angenommene und abgelehnte Bewerbungen lassen sich jetzt wieder öffnen "
                 + "und in einen beliebigen Schritt zurückstellen. In der Bewerbungsübersicht suchst du nach Name, "
                 + "Aktenzeichen, Bearbeiter oder Arbeitgeber.", "Bewerbungen"),
+            Neu("3.0.29-einsatzalarm", "Mit einem Einsatzalarm rufst du Agenten kurzfristig zusammen, alle oder eine "
+                + "Abteilung. Jeder Gerufene antwortet mit Komme oder Komme nicht, und alle sehen live, wer kommt. "
+                + "Danach wird aus dem Alarm per Knopf eine Operation.", "Akten"),
         ]),
     ];
 }
