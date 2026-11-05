@@ -1103,4 +1103,22 @@ public class DiscordRoleSyncServiceTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.GetStatusAsync(Plain()));
     }
+
+    [Fact]
+    public async Task Read_only_supervision_reads_status_and_server_roles_whatever_its_rank()
+    {
+        using var f = await Fixture.CreateAsync();
+        f.Bot.GuildRoles = new DiscordGuildRoles([new DiscordGuildRole(BaseRole, "FIB", 2, false)], 5);
+        // team lead without admin, below leadership: the page lets it in, so the reads must too
+        var supervisor = ClaimsPrincipalBuilder.Agent("ro").WithRank(Rank.SpecialAgent).AsTeamLead().Build();
+
+        Assert.True((await f.Service.GetStatusAsync(supervisor)).TokenConfigured);
+        Assert.Single((await f.Service.GetGuildRolesAsync(supervisor))!.Roles);
+
+        // but nothing beyond reading
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.PreviewAsync(supervisor));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.RunNowAsync(supervisor));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.GetStatusAsync(Plain()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.GetGuildRolesAsync(Plain()));
+    }
 }

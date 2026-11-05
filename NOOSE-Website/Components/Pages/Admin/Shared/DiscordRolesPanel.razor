@@ -3,8 +3,8 @@
 @inject ISnackbar Snackbar
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-    Dienstgrad, Abteilung und Kennzeichen eines Agenten landen von selbst als Rollen im Discord. Die Seite ist die
-    Wahrheit: Der Bot überträgt nur von hier nach Discord, nie zurück, und fasst <b>nur</b> Rollen an, die hier
+    Dienstgrad, Abteilung und Kennzeichen eines Agenten landen von selbst als Rollen im Discord. Maßgeblich ist
+    die Website: Der Bot überträgt nur von hier nach Discord, nie zurück, und fasst <b>nur</b> Rollen an, die hier
     zugeordnet sind. Alles andere im Discord bleibt, wie es ist. Jeder Eintrag nimmt mehrere Rollen auf, dieselbe Rolle
     darf in mehreren Einträgen stehen. Ein leerer Eintrag heißt: Hier vergibt der Bot nichts.
 </MudText>
@@ -77,7 +77,7 @@ else
                 <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Text" Class="mb-2">
                     @(_status.TokenConfigured && _savedGuildId is not null
                         ? "Discord nicht erreichbar, Namen fehlen. Die Ids stehen als Zahlen da, mehrere mit Komma oder Zeilenumbruch trennen."
-                        : "Ohne Bot-Token und gespeicherte Server-Id gibt es keine Rollenliste. Die Ids lassen sich von Hand eintragen, mehrere mit Komma oder Zeilenumbruch trennen.")
+                        : "Ohne Bot-Token oder gespeicherte Server-Id gibt es keine Rollenliste. Die Ids lassen sich von Hand eintragen, mehrere mit Komma oder Zeilenumbruch trennen.")
                 </MudAlert>
             }
             @foreach (var group in _entries.GroupBy(e => e.Group))
@@ -142,7 +142,7 @@ else
             <MudPaper Class="pa-4" Elevation="2">
                 <MudText Typo="Typo.h6" Class="mb-1">Probelauf</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
-                    So würde ein Abgleich jetzt ändern, Agenten ohne Abweichung fehlen in der Liste. Nach Discord wurde nichts geschrieben.
+                    Das würde ein Abgleich jetzt ändern; Agenten ohne Abweichung fehlen in der Liste. Nach Discord wurde nichts geschrieben.
                 </MudText>
                 <MudTable Items="_preview" T="DiscordRolePreviewRow" Hover="true" Breakpoint="Breakpoint.Sm"
                           Elevation="0" Dense="true" RowsPerPage="25">

@@ -12,13 +12,13 @@ public interface IDiscordRoleSyncService
     /// <summary>Admin with write access; bad ids or the resident role in another entry throw <see cref="InvalidOperationException"/>.</summary>
     Task SaveSettingsAsync(DiscordRoleSyncSettings settings, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Leadership; the server's roles for the picker, null without token or server id or when Discord fails.</summary>
+    /// <summary>Leadership or read-only supervision; the server's roles for the picker, null without token or server id or when Discord fails.</summary>
     Task<DiscordGuildRoles?> GetGuildRolesAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Admin; what a run would add and remove, unchanged agents left out, nothing written; throws <see cref="InvalidOperationException"/> without token or server id.</summary>
     Task<IReadOnlyList<DiscordRolePreviewRow>> PreviewAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Leadership; token, switch, last full run, and agents with an error or not on the server (codename only).</summary>
+    /// <summary>Leadership or read-only supervision; token, switch, last full run, and agents with an error or not on the server (codename only).</summary>
     Task<DiscordRoleSyncStatus> GetStatusAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Admin with write access; queues a run over every agent for the worker and returns at once.</summary>

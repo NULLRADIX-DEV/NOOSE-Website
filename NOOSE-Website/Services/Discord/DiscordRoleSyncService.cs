@@ -65,7 +65,7 @@ public sealed class DiscordRoleSyncService(
 
     public async Task<DiscordGuildRoles?> GetGuildRolesAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLeadership(actor);
+        Permission.RequireClassifiedRead(actor);
 
         var settings = await GetSettingsAsync(cancellationToken);
         if (!bot.IsConfigured || settings.GuildId is null)
@@ -105,7 +105,7 @@ public sealed class DiscordRoleSyncService(
 
     public async Task<DiscordRoleSyncStatus> GetStatusAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireLeadership(actor);
+        Permission.RequireClassifiedRead(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var settings = await ReadSettingsAsync(db, cancellationToken);
