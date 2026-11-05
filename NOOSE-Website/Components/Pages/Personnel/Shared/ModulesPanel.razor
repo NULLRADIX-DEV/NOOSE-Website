@@ -77,6 +77,9 @@
     /// <summary>False for partner and departed accounts: the training catalogue is NOOSE-internal.</summary>
     [Parameter] public bool MayMark { get; set; } = true;
 
+    /// <summary>Raised after a module was ticked or unticked.</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _load = true;
@@ -129,6 +132,7 @@
                 }
             }
             await LoadAsync();
+            await Changed.InvokeAsync();
         }
         catch (Exception ex)
         {

@@ -92,7 +92,8 @@ public class AgentManagementService(
         return options;
     }
 
-    public async Task ReleaseAsync(string agentId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor)
+    public async Task ReleaseAsync(string agentId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor,
+        string? mentorId = null)
     {
         // The page was the only gate. Releasing an account hands out a rank - up to Director - and the socket
         // takes whatever it is sent, so the check has to sit here, where every path through it passes.
@@ -104,6 +105,7 @@ public class AgentManagementService(
         await RequireMayAssignAsync(actor, DivisionRules.Normalize(rank, division), agent.Rank, rank);
         var after = new OrgUnit(DivisionRules.Normalize(rank, division), DivisionRules.IsBoard(rank));
         await RequireSeatAsync(agent, after, counts: !agent.IsTeamLead && agent.PartnerAgency is null, confirmOverLimit);
+        var mentor = await ProbationRules.RequireMentorAsync(db, agent.Id, mentorId);
 
         var altRank = agent.Rank;
         agent.Status = AgentStatus.Active;
@@ -115,6 +117,7 @@ public class AgentManagementService(
         agent.BlockedReason = null;
 
         HistoryEntryAdd(agent.Id, altRank, rank, actor, "Erstmalige Freigabe");
+        await ProbationRules.OpenAsync(db, agent.Id, mentor, agent.ReleasedAt.Value);
         Audit(agent, AuditAction.Modified, actor,
             $"Freigegeben als {rank} ({DivisionRules.Label(after)}){(isHRB ? " (Administration Division)" : "")}");
         await Save(agent, newStamp: true);
@@ -122,6 +125,7 @@ public class AgentManagementService(
         // notify agent
         try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Dein Account wurde freigegeben.", "/"); }
         catch { /* best effort */ }
+        await NotifyMentorAsync(mentor, agent);
     }
 
     public async Task ReleaseAsPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor)
@@ -164,7 +168,8 @@ public class AgentManagementService(
         await Save(agent, newStamp: true);
     }
 
-    public async Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor)
+    public async Task PromoteApplicantToAgentAsync(string applicantUserId, Rank rank, Division division, bool isHRB, bool confirmOverLimit, ClaimsPrincipal actor,
+        string? mentorId = null)
     {
         Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
@@ -182,6 +187,7 @@ public class AgentManagementService(
         {
             throw new InvalidOperationException("Nur Bewerber können hochgestuft werden.");
         }
+        var mentor = await ProbationRules.RequireMentorAsync(db, agent.Id, mentorId);
         var after = new OrgUnit(DivisionRules.Normalize(rank, division), DivisionRules.IsBoard(rank));
         await RequireSeatAsync(agent, after, counts: !agent.IsTeamLead, confirmOverLimit);
 
@@ -197,11 +203,23 @@ public class AgentManagementService(
         agent.BlockedReason = null;
 
         HistoryEntryAdd(agent.Id, altRank, rank, actor, "Aus Bewerbung hochgestuft");
+        await ProbationRules.OpenAsync(db, agent.Id, mentor, agent.ReleasedAt.Value);
         Audit(agent, AuditAction.Modified, actor,
             $"Bewerber hochgestuft als {rank} ({DivisionRules.Label(after)}){(isHRB ? " (Administration Division)" : "")}");
         await Save(agent, newStamp: true);
 
         try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Dein FIB-Zugang wurde freigeschaltet.", "/"); }
+        catch { /* best effort */ }
+        await NotifyMentorAsync(mentor, agent);
+    }
+
+    private async Task NotifyMentorAsync(string? mentorId, Agent agent)
+    {
+        if (mentorId is null)
+        {
+            return;
+        }
+        try { await notifications.NotifyAsync(mentorId, NotificationType.Account, $"Du bist Pate von {agent.Codename}.", ProbationRules.Route(agent.Id)); }
         catch { /* best effort */ }
     }
 
@@ -1051,6 +1069,10 @@ public class AgentManagementService(
         await db.AgentNotes.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentPromotionRequests.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentModuleCompletions.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.AgentProbations.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        // a mentee keeps the plan, just without this mentor
+        await db.AgentProbations.Where(x => x.MentorAgentId == agentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.MentorAgentId, (string?)null), cancellationToken);
         // internal tests go with the account like the module ticks; answers first, they point at the assignment
         await db.AgentTestAnswers.IgnoreQueryFilters()
             .Where(x => db.AgentTestAssignments.IgnoreQueryFilters().Any(a => a.Id == x.AssignmentId && a.AgentId == agentId))

@@ -32,6 +32,13 @@
             <MudTooltip Text="@DepartmentRules.Hint" Disabled="DepartmentsOpen">
                 <MudCheckBox T="bool" @bind-Value="_hrb" Label="@DepartmentRules.ColumnLabel" Disabled="@(!DepartmentsOpen)" />
             </MudTooltip>
+            <MudSelect T="string" @bind-Value="_mentorId" Label="Pate (optional)" Variant="Variant.Outlined"
+                       Margin="Margin.Dense" Clearable="true" Style="min-width:200px;">
+                @foreach (var mentor in _mentors.Where(m => m.Id != ApplicantUserId))
+                {
+                    <MudSelectItem T="string" Value="@mentor.Id">@mentor.Codename</MudSelectItem>
+                }
+            </MudSelect>
             <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.MilitaryTech"
                        OnClick="PromoteAsync" Disabled="_busy">Hochstufen</MudButton>
         </MudStack>
@@ -50,14 +57,20 @@
     private Division _division = Division.Cid;
     private bool _hrb;
     private bool _busy;
+    private string? _mentorId;
+    private List<Agent> _mentors = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _standing = PromotionStanding.Of(User);
         _mayPickDivision = User.MayWrite() && User.MayDivisionSet();
         // no picker: own division or CID
         _division = _mayPickDivision ? Division.Cid : PromotionRules.ReleaseDivision(_standing);
         _rank = RankOptions.FirstOrDefault(Rank.Trainee);
+        if (User.IsLeadership())
+        {
+            _mentors = await AgentService.GetSelectableAsync();
+        }
     }
 
     /// <summary>Ranks the viewer may hand out as a first release.</summary>
@@ -94,7 +107,7 @@
         try
         {
             if (await DivisionLimitConfirm.RunAsync(DialogService, confirm =>
-                    AgentService.PromoteApplicantToAgentAsync(ApplicantUserId, _rank, _division, _hrb, confirm, User)))
+                    AgentService.PromoteApplicantToAgentAsync(ApplicantUserId, _rank, _division, _hrb, confirm, User, _mentorId)))
             {
                 Snackbar.Add("Bewerber wurde zum Agent hochgestuft.", Severity.Success);
                 await OnPromoted.InvokeAsync();
