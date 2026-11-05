@@ -158,6 +158,7 @@ public static class PublicVisibility
             ["CaseAgent"] = Assignment,
             ["Operation"] = Operational,
             ["OperationAgent"] = Assignment,
+            ["OperationLogEntry"] = "Internes Einsatztagebuch; nach außen nie.",
             ["Taskforce"] = Operational,
             ["TaskforceAgent"] = Assignment,
             ["TaskforceMessage"] = "Interner Einheiten-Chat; nach außen nie.",

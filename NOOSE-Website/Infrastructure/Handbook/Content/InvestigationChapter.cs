@@ -57,6 +57,12 @@ internal static class InvestigationChapter
                 bevor jemand losfährt, und hinterher fehlt nur noch das Ergebnis.</p>
                 <p>Verknüpfe sie mit dem Vorgang, zu dem sie gehört. Eine Operation, die an keinem Vorgang
                 hängt, ist hinterher nicht mehr auffindbar.</p>
+                <p>Solange sie <em>Laufend</em> ist, führt ihr an der Akte das <strong>Einsatztagebuch</strong>:
+                kurze Zeilen als <em>Lagemeldung</em>, <em>Anforderung</em> oder <em>Ergebnis</em>, mit Uhrzeit und
+                auf Wunsch einem Ort. Wer die Akte offen hat, sieht jede Zeile sofort. Schreiben dürfen die
+                zugeteilten Agenten, das HRT und die Führung. Ist die Operation beendet, gehen neue Zeilen als
+                <em>Nachtrag</em> hinein. Mit <em>In Ablauf übernehmen</em> landet das Protokoll im Feld
+                <em>Ablauf</em>; steht dort schon Text, wählst du anhängen oder ersetzen.</p>
                 """,
                 NavKey: "operationen",
                 Steps:
@@ -67,6 +73,8 @@ internal static class InvestigationChapter
                         "Nur zugeteilte Agenten erscheinen später im Bericht als beteiligt."),
                     new Step("PlayArrow", "Auf laufend setzen",
                         "Damit sieht die Dienststelle, dass gerade etwas passiert."),
+                    new Step("ListAlt", "Einsatztagebuch führen",
+                        "Lage, Anforderungen und Ergebnisse gleich während des Einsatzes eintragen, nicht hinterher aus dem Gedächtnis."),
                     new Step("Description", "Ergebnis nachtragen",
                         "Was ist passiert, was wurde sichergestellt, wer wurde angetroffen. Ohne Nachtrag war die Operation umsonst."),
                 ]),
