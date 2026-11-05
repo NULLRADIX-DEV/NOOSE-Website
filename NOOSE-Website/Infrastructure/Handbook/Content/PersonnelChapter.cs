@@ -325,6 +325,10 @@ internal static class PersonnelChapter
                 <p>Der Bewerber sieht außerdem einen <strong>vergröberten Status</strong>: Test und
                 Vorstellungsgespräch erscheinen ihm als eine Stufe. Sonst wüsste er nach dem Weiterrücken,
                 dass er den Test bestanden hat, bevor die Entscheidung gefallen ist.</p>
+                <p>Eine angenommene oder abgelehnte Bewerbung holst du mit <em>Wieder öffnen</em> zurück und wählst
+                dabei den Schritt, in dem sie weiterläuft. War sie abgelehnt, fällt die 14-Tage-Sperre weg. Die alte
+                Entscheidung bleibt im internen Thread stehen. In der Übersicht findest du jede Bewerbung über die
+                Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber.</p>
                 """,
                 DiagramKey: "bewerbung-ablauf",
                 NavKey: "bewerbungen",

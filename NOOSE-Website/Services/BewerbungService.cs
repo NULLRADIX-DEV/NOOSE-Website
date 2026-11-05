@@ -240,6 +240,94 @@ public class BewerbungService(
             "einer Bewerbungs-Entscheidung", nameof(Bewerbung), id, actor, cancellationToken);
     }
 
+    public async Task ReopenAsync(string id, BewerbungStatus target, string? note, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        // write access before the rank check: lifting the ban below is a second write
+        Permission.RequireRecruitingDecision(actor);
+        if (BewerbungStatusDisplay.IsTerminal(target))
+        {
+            throw new InvalidOperationException("Eine Bewerbung lässt sich nur in einen offenen Schritt zurückstellen.");
+        }
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var bewerbung = await GetOrThrow(db, id, cancellationToken);
+        var previous = bewerbung.Status;
+        if (previous is not (BewerbungStatus.Angenommen or BewerbungStatus.Abgelehnt))
+        {
+            throw new InvalidOperationException("Nur angenommene oder abgelehnte Bewerbungen lassen sich wieder öffnen.");
+        }
+
+        // same rule as on submit: one running application per account
+        bool otherActive = await db.Bewerbungen.AnyAsync(b => b.Id != id && b.ApplicantUserId == bewerbung.ApplicantUserId
+            && b.Status != BewerbungStatus.Abgelehnt && b.Status != BewerbungStatus.Geschlossen, cancellationToken);
+        if (otherActive)
+        {
+            throw new InvalidOperationException("Für dieses Konto läuft bereits eine andere Bewerbung.");
+        }
+
+        bewerbung.Status = target;
+        if (target is BewerbungStatus.Eingereicht or BewerbungStatus.InSicherheitspruefung)
+        {
+            bewerbung.SecurityCheckPassed = null; // the check runs again
+        }
+        var decidedBy = bewerbung.DecidedByName;
+        var decidedAt = bewerbung.DecidedAt;
+        var decisionNote = bewerbung.DecisionNote;
+        bewerbung.DecidedByName = null;
+        bewerbung.DecidedAt = null;
+        bewerbung.DecisionNote = null;
+
+        // the decision fields are cleared, so the internal thread keeps the trace
+        var trimmedNote = Trim(note);
+        var trace = $"Bewerbung wieder geöffnet ({BewerbungStatusDisplay.Name(previous)} → {BewerbungStatusDisplay.Name(target)}).";
+        if (!string.IsNullOrWhiteSpace(decidedBy) || decidedAt is not null)
+        {
+            trace += $" Vorherige Entscheidung{(string.IsNullOrWhiteSpace(decidedBy) ? "" : $" von {decidedBy}")}"
+                     + $"{(decidedAt is { } at ? $" am {at.ToLocalTime():dd.MM.yyyy HH:mm}" : "")}.";
+        }
+        if (decisionNote is not null)
+        {
+            trace += $" Damalige Notiz: {decisionNote}";
+        }
+        if (trimmedNote is not null)
+        {
+            trace += $" Begründung: {trimmedNote}";
+        }
+        db.BewerbungMessages.Add(new BewerbungMessage
+        {
+            BewerbungId = id,
+            Audience = BewerbungMessageAudience.Intern,
+            Text = trace,
+            AuthorName = actor.GetCodename(),
+        });
+        await db.SaveChangesAsync(cancellationToken);
+
+        // the rejection left a temp ban; lift it before the broadcast so the ban panel reads the new state
+        if (previous is BewerbungStatus.Abgelehnt)
+        {
+            try
+            {
+                var ban = await sperren.GetActiveAsync(bewerbung.ApplicantUserId, cancellationToken);
+                if (ban is { IsBlacklist: false })
+                {
+                    await sperren.LiftAsync(ban.Id, actor, cancellationToken);
+                }
+            }
+            catch (Exception ex) { logger.LogError(ex, "Lifting the ban after reopening application {Id} failed.", id); }
+        }
+        broadcaster.Report(id);
+
+        try
+        {
+            await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
+                $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+        }
+        catch { /* best effort */ }
+
+        await MentionNotify.DeltaAsync(notifications, null, trimmedNote,
+            "einer Bewerbungs-Entscheidung", nameof(Bewerbung), id, actor, cancellationToken);
+    }
+
     public async Task SetSecurityResultAsync(string id, bool passed, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         // write access before the rank check: a failed check rejects, and the ban below is a second write
