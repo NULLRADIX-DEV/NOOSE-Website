@@ -243,6 +243,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IRecencyService, RecencyService>();
 builder.Services.AddScoped<IFollowupService, FollowupService>();
 builder.Services.AddHostedService<FollowupDueWorker>();
+builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Operations.EmergencyAlarmExpiryWorker>();
 builder.Services.AddHostedService<TicketFollowupWorker>();
 builder.Services.AddHostedService<JobDueSoonWorker>();
 builder.Services.AddScoped<IPingDigestService, PingDigestService>();
