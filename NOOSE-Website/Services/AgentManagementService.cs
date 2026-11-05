@@ -9,6 +9,7 @@ using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Infrastructure.Audit;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Enums;
 
@@ -23,7 +24,8 @@ public class AgentManagementService(
     IDiscordWebhookService discord,
     IConfiguration configuration,
     IAgentAvatarStorageService avatars,
-    IPublicLeadershipPhotoStorageService leadershipPhotos) : IAgentManagementService
+    IPublicLeadershipPhotoStorageService leadershipPhotos,
+    IDiscordRoleSyncQueue roleSync) : IAgentManagementService
 {
     private static readonly SemaphoreSlim BadgeNumberGate = new(1, 1);
 
@@ -1049,6 +1051,9 @@ public class AgentManagementService(
 
         var codename = agent.Codename;
         var discordId = agent.DiscordId;
+        // row is gone after
+        var wasFormerAgent = DiscordRoleRules.CountsAsFormerAgent(agent);
+        var wasTeamLead = agent.IsTeamLead;
 
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
@@ -1207,6 +1212,13 @@ public class AgentManagementService(
 
         await tx.CommitAsync(cancellationToken);
 
+        // after commit only
+        if (wasFormerAgent && !string.IsNullOrWhiteSpace(discordId))
+        {
+            try { roleSync.EnqueueDeleted(discordId, wasTeamLead); }
+            catch { /* best effort */ }
+        }
+
         // the public card photo is a copy nobody could find again once its row is gone
         if (cardPhoto is not null)
         {
@@ -1334,7 +1346,7 @@ public class AgentManagementService(
             ChangesJson = changesJson,
         });
 
-    /// <summary>Persist agent; rotate the security stamp to force re-login when claims change.</summary>
+    /// <summary>Persist agent; newStamp forces re-login and queues the Discord role sync, so rank, division, flags, status and partner writes need it.</summary>
     private async Task Save(Agent agent, bool newStamp)
     {
         var result = await userManager.UpdateAsync(agent);
@@ -1351,6 +1363,10 @@ public class AgentManagementService(
                 throw new InvalidOperationException(
                     "Sicherheits-Stamp konnte nicht erneuert werden: " + string.Join("; ", stamp.Errors.Select(e => e.Description)));
             }
+
+            // claims changed
+            try { roleSync.Enqueue(agent.Id); }
+            catch { /* best effort */ }
         }
     }
 }

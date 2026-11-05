@@ -686,6 +686,8 @@ public static class ChangelogContent
                 + "Danach wird aus dem Alarm per Knopf eine Operation.", "Akten"),
             Neu("3.0.30-bewerbung-stream", "Bewerber geben jetzt an, ob ihre Bewerbung gestreamt werden darf. Ihre "
                 + "Antwort steht in der Bewerbung ganz oben bei den Stammdaten.", "Bewerbungen"),
+            Neu("3.0.31-discord-rollen", "Dienstgrad, Abteilung und Kennzeichen landen jetzt von selbst als Rollen im "
+                + "Discord, und nach einer Kündigung verschwinden die FIB-Rollen dort wieder.", "Personal"),
         ]),
     ];
 }

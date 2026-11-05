@@ -9,14 +9,42 @@ using NSubstitute;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Recruiting;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Services;
 using NOOSE_Website.Models.Enums;
+using System.Threading.Channels;
 
 namespace NOOSE_Website.Tests.Services.Integration;
 
 public class AgentManagementServiceTests
 {
+    /// <summary>Remembers what the write paths queue for the role sync; can be told to fail.</summary>
+    private sealed class RecordingQueue : IDiscordRoleSyncQueue
+    {
+        public List<DiscordRoleSyncJob> Jobs { get; } = [];
+
+        public Exception? Fault { get; set; }
+
+        public ChannelReader<DiscordRoleSyncJob> Reader => throw new NotSupportedException();
+
+        public void Enqueue(string agentId) => Add(new AgentJob(agentId, DiscordRoleSyncReason.AgentChanged));
+
+        public void EnqueueDeleted(string discordId, bool isTeamLead)
+            => Add(new DeletedJob(discordId, isTeamLead, DiscordRoleSyncReason.AccountDeleted));
+
+        public void EnqueueAll(string reason) => Add(new AllJob(reason));
+
+        private void Add(DiscordRoleSyncJob job)
+        {
+            if (Fault is not null)
+            {
+                throw Fault;
+            }
+            Jobs.Add(job);
+        }
+    }
+
     private sealed class Fixture : IDisposable
     {
         public required SqliteTestContext Ctx;
@@ -24,6 +52,7 @@ public class AgentManagementServiceTests
         public required AgentManagementService Svc;
         public required INotificationService Notifications;
         public required IDiscordWebhookService Discord;
+        public required RecordingQueue RoleSync;
         public required string AvatarPath;
         public required string Root;
         public void Dispose()
@@ -63,11 +92,12 @@ public class AgentManagementServiceTests
         var uploadOptions = new FileUploadOptions();
         var avatars = new AgentAvatarStorageService(env, Options.Create(uploadOptions));
 
+        var roleSync = new RecordingQueue();
         var svc = new AgentManagementService(BuildUserManager(db), db, ctx.Factory, notifications,
-            discord, builder.Build(), avatars, Substitute.For<IPublicLeadershipPhotoStorageService>());
+            discord, builder.Build(), avatars, Substitute.For<IPublicLeadershipPhotoStorageService>(), roleSync);
         return new Fixture
         {
-            Ctx = ctx, Db = db, Svc = svc, Notifications = notifications, Discord = discord,
+            Ctx = ctx, Db = db, Svc = svc, Notifications = notifications, Discord = discord, RoleSync = roleSync,
             Root = root, AvatarPath = Path.Combine(root, uploadOptions.AvatarsPath),
         };
     }
@@ -2646,5 +2676,161 @@ public class AgentManagementServiceTests
         await f.Svc.ConvertToInternalAsync("t", Rank.Trainee, false, Holder("sc", Rank.SectionChief));
 
         Assert.Equal(Division.Ctd, Reload(f, "t").Division);
+    }
+
+    // ---- Discord role sync ----
+
+    private static AgentJob RoleJob(string agentId) => new(agentId, DiscordRoleSyncReason.AgentChanged);
+
+    [Fact]
+    public async Task Rank_change_enqueues_the_agent()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, Rank.Trainee));
+
+        await f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, false, Admin());
+
+        Assert.Equal(RoleJob("t"), Assert.Single(f.RoleSync.Jobs));
+    }
+
+    [Fact]
+    public async Task Terminate_enqueues_the_agent()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, Rank.SpecialAgent));
+
+        await f.Svc.TerminateAsync("t", "weg", createNote: false, postDiscord: false, Admin());
+
+        Assert.Equal(RoleJob("t"), Assert.Single(f.RoleSync.Jobs));
+    }
+
+    [Fact]
+    public async Task Release_and_unblock_enqueue_the_agent()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("new", AgentStatus.Pending), NewAgent("bl", AgentStatus.Blocked, Rank.Trainee));
+
+        await f.Svc.ReleaseAsync("new", Rank.SpecialAgent, Division.Hrt, isHRB: false, confirmOverLimit: false, Admin());
+        await f.Svc.UnblockAsync("bl", Admin());
+
+        Assert.Equal([RoleJob("new"), RoleJob("bl")], f.RoleSync.Jobs);
+    }
+
+    [Fact]
+    public async Task Master_data_change_enqueues_the_agent()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, Rank.Trainee));
+
+        await f.Svc.MasterDataChangeAsync("t", null, "Neu", "II", Admin());
+
+        Assert.Equal(RoleJob("t"), Assert.Single(f.RoleSync.Jobs));
+    }
+
+    [Fact]
+    public async Task Master_data_without_new_stamp_does_not_enqueue()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("jr", AgentStatus.Active, Rank.Trainee,
+            a => { a.AvatarFileName = "alt.png"; a.AvatarContentType = "image/png"; }));
+
+        await f.Svc.AvatarRemoveAsync("jr", Leader());
+
+        Assert.Null(Reload(f, "jr").AvatarFileName);
+        Assert.Empty(f.RoleSync.Jobs);
+    }
+
+    [Fact]
+    public async Task A_refused_write_enqueues_nothing()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, Rank.Trainee));
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => f.Svc.RankChangeAsync("t", Rank.SeniorSpecialAgent, false, Junior()));
+
+        Assert.Empty(f.RoleSync.Jobs);
+    }
+
+    [Fact]
+    public async Task Discord_failure_never_fails_the_write()
+    {
+        using var f = Make();
+        f.RoleSync.Fault = new InvalidOperationException("queue is broken");
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, Rank.SpecialAgent));
+
+        await f.Svc.TerminateAsync("t", "weg", createNote: false, postDiscord: false, Admin());
+
+        Assert.Equal(AgentStatus.Terminated, Reload(f, "t").Status);
+    }
+
+    [Fact]
+    public async Task Delete_enqueues_discord_id_of_former_agent_only()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("former", AgentStatus.Active, Rank.SpecialAgent, a => a.DiscordId = "200000000000000001"),
+            NewAgent("left", AgentStatus.Terminated, Rank.SpecialAgent, a => a.DiscordId = "200000000000000002"),
+            NewAgent("pending", AgentStatus.Pending, cfg: a => a.DiscordId = "200000000000000003"),
+            NewAgent("partner", AgentStatus.Active, Rank.SpecialAgent,
+                a => { a.PartnerAgency = PartnerAgency.LSPD; a.DiscordId = "200000000000000004"; }),
+            NewAgent("noid", AgentStatus.Active, Rank.SpecialAgent, a => a.DiscordId = ""),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+
+        foreach (var id in new[] { "pending", "partner", "noid" })
+        {
+            await f.Svc.DeleteAccountAsync(id, Admin("keepadmin"));
+        }
+        Assert.Empty(f.RoleSync.Jobs);
+
+        await f.Svc.DeleteAccountAsync("former", Admin("keepadmin"));
+        await f.Svc.DeleteAccountAsync("left", Admin("keepadmin"));
+
+        Assert.Equal(
+        [
+            new DeletedJob("200000000000000001", false, DiscordRoleSyncReason.AccountDeleted),
+            new DeletedJob("200000000000000002", false, DiscordRoleSyncReason.AccountDeleted),
+        ], f.RoleSync.Jobs);
+    }
+
+    [Fact]
+    public async Task Deleting_a_team_lead_enqueues_the_team_lead_flag()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("lead", AgentStatus.Active, Rank.SpecialAgent,
+                a => { a.IsTeamLead = true; a.DiscordId = "200000000000000001"; }),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+
+        await f.Svc.DeleteAccountAsync("lead", Admin("keepadmin"));
+
+        Assert.Equal(new DeletedJob("200000000000000001", TeamLead: true, DiscordRoleSyncReason.AccountDeleted),
+            Assert.Single(f.RoleSync.Jobs));
+    }
+
+    [Fact]
+    public async Task A_refused_delete_enqueues_nothing()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("only", AgentStatus.Active, Rank.Director, a => a.IsAdmin = true));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Svc.DeleteAccountAsync("only", Admin("other")));
+
+        Assert.Empty(f.RoleSync.Jobs);
+    }
+
+    [Fact]
+    public async Task Discord_failure_never_fails_the_delete()
+    {
+        using var f = Make();
+        f.RoleSync.Fault = new InvalidOperationException("queue is broken");
+        Persist(f.Ctx,
+            NewAgent("t", AgentStatus.Active, Rank.SpecialAgent),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+
+        await f.Svc.DeleteAccountAsync("t", Admin("keepadmin"));
+
+        using var db = f.Ctx.NewContext();
+        Assert.False(db.Users.Any(u => u.Id == "t"));
     }
 }

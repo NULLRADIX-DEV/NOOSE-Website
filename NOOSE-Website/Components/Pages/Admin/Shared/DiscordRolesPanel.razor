@@ -1,0 +1,380 @@
+@* Discord role sync: which Discord roles each rank, division and flag carries. Admins edit, leadership and supervision read. *@
+@inject IDiscordRoleSyncService RoleSync
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+    Dienstgrad, Abteilung und Kennzeichen eines Agenten landen von selbst als Rollen im Discord. Maßgeblich ist
+    die Website: Der Bot überträgt nur von hier nach Discord, nie zurück, und fasst <b>nur</b> Rollen an, die hier
+    zugeordnet sind. Alles andere im Discord bleibt, wie es ist. Jeder Eintrag nimmt mehrere Rollen auf, dieselbe Rolle
+    darf in mehreren Einträgen stehen. Ein leerer Eintrag heißt: Hier vergibt der Bot nichts.
+</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
+    Der Bot braucht auf dem Server das Recht <b>Rollen verwalten</b>, und seine eigene Rolle muss im Discord
+    <b>über</b> allen zugeordneten Rollen stehen. Zuordnung, Server-Id und Schalter ändern nur Admins, die Führung
+    sieht Stand und Fehler.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_loadError is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-3">Der Stand der Discord-Rollen ließ sich nicht laden.</MudAlert>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="LoadAsync">Erneut laden</MudButton>
+}
+else
+{
+    <MudStack Spacing="4">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Stand</MudText>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Key"
+                         Color="@(_status.TokenConfigured ? Color.Success : Color.Warning)">
+                    Bot-Token: @(_status.TokenConfigured ? "vorhanden" : "fehlt")
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.PowerSettingsNew"
+                         Color="@(_status.Enabled ? Color.Success : Color.Default)">
+                    Abgleich: @(_status.Enabled ? "an" : "aus")
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Schedule"
+                         Color="Color.Default">
+                    Letzter Abgleich aller Agenten: @Stamp(_status.LastRunUtc)
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.ErrorOutline"
+                         Color="@(ErrorCount > 0 ? Color.Error : Color.Default)">
+                    Fehler: @ErrorCount
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.PersonOff"
+                         Color="Color.Default">
+                    Nicht auf dem Server: @AbsentCount
+                </MudChip>
+            </MudStack>
+            @if (!_status.TokenConfigured)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Text" Class="mt-3">
+                    Auf dem Server ist kein Bot-Token hinterlegt, der Abgleich bleibt aus.
+                </MudAlert>
+            }
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudSwitch T="bool" @bind-Value="_enabled" Disabled="@(!_mayEdit)" Color="Color.Primary"
+                       Label="Rollenabgleich aktiv" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Erst einschalten, wenn der Probelauf stimmt. Aus: Der Bot tut nichts, auch nicht beim Tagesabgleich.
+            </MudText>
+            <MudTextField @bind-Value="_guildId" Label="Server-Id" Variant="Variant.Outlined" Class="mt-3"
+                          ReadOnly="@(!_mayEdit)" Placeholder="17 bis 20 Ziffern"
+                          HelperText="Die Rollenliste unten gehört zur gespeicherten Server-Id, nach dem Speichern wird sie neu geladen." />
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Zuordnung</MudText>
+            @if (_roles is null)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Text" Class="mb-2">
+                    @(_status.TokenConfigured && _savedGuildId is not null
+                        ? "Discord nicht erreichbar, Namen fehlen. Die Ids stehen als Zahlen da, mehrere mit Komma oder Zeilenumbruch trennen."
+                        : "Ohne Bot-Token oder gespeicherte Server-Id gibt es keine Rollenliste. Die Ids lassen sich von Hand eintragen, mehrere mit Komma oder Zeilenumbruch trennen.")
+                </MudAlert>
+            }
+            @foreach (var group in _entries.GroupBy(e => e.Group))
+            {
+                <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">@group.Key</MudText>
+                <MudGrid Spacing="2">
+                    @foreach (var entry in group)
+                    {
+                        <MudItem xs="12" md="6" @key="entry.Key">
+                            @if (_roles is not null)
+                            {
+                                <MudSelect T="string" Label="@entry.Label" MultiSelection="true" Variant="Variant.Outlined"
+                                           SelectedValues="entry.Ids" SelectedValuesChanged="@(v => Pick(entry, v))"
+                                           MultiSelectionTextFunc="@SelectionText" Disabled="@(!_mayEdit)"
+                                           HelperText="@entry.Help">
+                                    @foreach (var role in _roleItems)
+                                    {
+                                        var blocked = !MayAssign(role);
+                                        <MudSelectItem T="string" Value="@role.Id" Disabled="@(blocked && !entry.Ids.Contains(role.Id))">
+                                            @role.Name
+                                            @if (blocked)
+                                            {
+                                                <span class="mud-text-secondary"> · Bot darf diese Rolle nicht vergeben</span>
+                                            }
+                                        </MudSelectItem>
+                                    }
+                                    @foreach (var id in entry.Ids.Where(id => !_knownIds.Contains(id)))
+                                    {
+                                        <MudSelectItem T="string" Value="@id">@UnknownRole(id)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudTextField T="string" @bind-Value="entry.IdText" Label="@entry.Label" Lines="2"
+                                              Variant="Variant.Outlined" ReadOnly="@(!_mayEdit)" HelperText="@entry.Help" />
+                            }
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        </MudPaper>
+
+        @if (_mayEdit)
+        {
+            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.FactCheck"
+                           OnClick="PreviewAsync" Disabled="@(_busy || !_status.TokenConfigured || _savedGuildId is null)">Probelauf</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
+                           OnClick="RunNowAsync" Disabled="@(_busy || !_status.TokenConfigured || !_status.Enabled)">Jetzt abgleichen</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+            </MudStack>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary" Align="Align.Right">
+                Probelauf und Abgleich arbeiten mit der gespeicherten Zuordnung, nicht mit ungespeicherten Änderungen.
+                „Jetzt abgleichen“ geht nur bei eingeschaltetem Abgleich.
+            </MudText>
+        }
+
+        @if (_preview is not null)
+        {
+            <MudPaper Class="pa-4" Elevation="2">
+                <MudText Typo="Typo.h6" Class="mb-1">Probelauf</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                    Das würde ein Abgleich jetzt ändern; Agenten ohne Abweichung fehlen in der Liste. Nach Discord wurde nichts geschrieben.
+                </MudText>
+                <MudTable Items="_preview" T="DiscordRolePreviewRow" Hover="true" Breakpoint="Breakpoint.Sm"
+                          Elevation="0" Dense="true" RowsPerPage="25">
+                    <HeaderContent>
+                        <MudTh>Codename</MudTh>
+                        <MudTh>Hinzufügen</MudTh>
+                        <MudTh>Entfernen</MudTh>
+                        <MudTh>Hinweis</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Codename">@context.Codename</MudTd>
+                        <MudTd DataLabel="Hinzufügen">@Join(context.Add)</MudTd>
+                        <MudTd DataLabel="Entfernen">@Join(context.Remove)</MudTd>
+                        <MudTd DataLabel="Hinweis">@(context.Note ?? "—")</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <EmptyState Icon="@Icons.Material.Filled.CheckCircle" Text="Alle Agenten stehen schon richtig." />
+                    </NoRecordsContent>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+                    </PagerContent>
+                </MudTable>
+            </MudPaper>
+        }
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-1">Fehler und fehlende Mitglieder</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                Agenten, bei denen der letzte Abgleich scheiterte oder die nicht auf dem Server sind. Nur Codenamen.
+            </MudText>
+            <MudTable Items="_status.Failures" T="DiscordRoleSyncFailure" Hover="true" Breakpoint="Breakpoint.Sm"
+                      Elevation="0" Dense="true" RowsPerPage="25">
+                <HeaderContent>
+                    <MudTh>Codename</MudTh>
+                    <MudTh>Meldung</MudTh>
+                    <MudTh>Letzter Erfolg</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Codename">@context.Codename</MudTd>
+                    <MudTd DataLabel="Meldung">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                 Color="@(IsAbsent(context) ? Color.Default : Color.Error)">@context.Error</MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Letzter Erfolg">@Stamp(context.LastSuccessUtc)</MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <EmptyState Icon="@Icons.Material.Filled.CheckCircle" Text="Keine Fehler, alle Agenten sind abgeglichen." />
+                </NoRecordsContent>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    </MudStack>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private const string KeyBase = "base";
+    private const string KeyBoard = "board";
+    private const string KeyAdministration = "administration";
+    private const string KeyAdmin = "admin";
+    private const string KeyTeamLead = "teamlead";
+    private const string KeyResident = "resident";
+
+    private sealed class Entry(string key, string group, string label, string? help = null)
+    {
+        public string Key { get; } = key;
+        public string Group { get; } = group;
+        public string Label { get; } = label;
+        public string? Help { get; } = help;
+        public List<string> Ids { get; set; } = [];
+
+        // fallback field when Discord's role list is missing
+        public string IdText
+        {
+            get => string.Join(", ", Ids);
+            set => Ids = (value ?? string.Empty).Split([',', ';', ' ', '\r', '\n', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Distinct(StringComparer.Ordinal).ToList();
+        }
+    }
+
+    private ClaimsPrincipal _user = new();
+    // twin of the service guards (write access, then admin); read-only supervision and the demo never edit
+    private bool _mayEdit;
+    private bool _load = true;
+    private bool _busy;
+    private string? _loadError;
+    private bool _enabled;
+    private string? _guildId;
+    private string? _savedGuildId;
+    private DiscordRoleSyncStatus _status = new(false, false, null, []);
+    private DiscordGuildRoles? _roles;
+    private List<DiscordGuildRole> _roleItems = [];
+    private HashSet<string> _knownIds = [];
+    private List<Entry> _entries = [];
+    private IReadOnlyList<DiscordRolePreviewRow>? _preview;
+
+    private int AbsentCount => _status.Failures.Count(IsAbsent);
+    private int ErrorCount => _status.Failures.Count - AbsentCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayEdit = _user.IsAdmin() && _user.MayWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _loadError = null;
+        _preview = null;
+        try
+        {
+            var settings = await RoleSync.GetSettingsAsync();
+            var status = await RoleSync.GetStatusAsync(_user);
+            var roles = await RoleSync.GetGuildRolesAsync(_user);
+
+            _status = status;
+            _roles = roles;
+            _enabled = settings.Enabled;
+            _guildId = _savedGuildId = settings.GuildId;
+            _entries = BuildEntries(settings.Mapping);
+            // @everyone has the guild's id and can't be handed out
+            _roleItems = roles?.Roles.Where(r => r.Id != settings.GuildId)
+                .OrderByDescending(r => r.Position).ThenBy(r => r.Name, StringComparer.CurrentCultureIgnoreCase).ToList() ?? [];
+            _knownIds = _roleItems.Select(r => r.Id).ToHashSet(StringComparer.Ordinal);
+        }
+        catch (Exception ex)
+        {
+            _loadError = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _load = false;
+        }
+    }
+
+    private Task SaveAsync() => EditAsync(async () =>
+    {
+        var guildId = string.IsNullOrWhiteSpace(_guildId) ? null : _guildId.Trim();
+        await RoleSync.SaveSettingsAsync(new DiscordRoleSyncSettings(_enabled, guildId, ToMapping()), _user);
+        Snackbar.Add("Discord-Rollen gespeichert.", Severity.Success);
+        await LoadAsync();
+    });
+
+    private Task PreviewAsync() => EditAsync(async () => _preview = await RoleSync.PreviewAsync(_user));
+
+    private Task RunNowAsync() => EditAsync(async () =>
+    {
+        await RoleSync.RunNowAsync(_user);
+        Snackbar.Add("Abgleich vorgemerkt, er läuft im Hintergrund.", Severity.Success);
+    });
+
+    // every write path checks the gate again, a disabled button alone leaves the SignalR path open
+    private async Task EditAsync(Func<Task> action)
+    {
+        if (!_mayEdit)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static List<Entry> BuildEntries(DiscordRoleMapping map)
+    {
+        const string ranks = "Dienstgrade", divisions = "Abteilungen", flags = "Kennzeichen";
+        var entries = new List<Entry>
+        {
+            new(KeyBase, "Grundrollen", "Grundrollen FIB", "Bekommt jeder aktive Agent.") { Ids = Clean(map.Base) },
+        };
+        foreach (var rank in Enum.GetValues<Rank>())
+        {
+            entries.Add(new Entry($"rank-{(int)rank}", ranks, RankDisplay.Name(rank)) { Ids = Clean(map.ByRank?.GetValueOrDefault(rank)) });
+        }
+        foreach (var division in Enum.GetValues<Division>())
+        {
+            entries.Add(new Entry($"division-{(int)division}", divisions, DivisionDisplay.Short(division))
+                { Ids = Clean(map.ByDivision?.GetValueOrDefault(division)) });
+        }
+        entries.Add(new Entry(KeyBoard, divisions, DivisionDisplay.BoardShort,
+            "Wer im Board sitzt, bekommt nur diese Rollen, nicht die seiner Heimat-Abteilung. Die Dienstgrad-Rollen bekommt er weiter.")
+            { Ids = Clean(map.Board) });
+        entries.Add(new Entry(KeyAdministration, flags, DepartmentRules.ColumnLabel) { Ids = Clean(map.Administration) });
+        entries.Add(new Entry(KeyAdmin, flags, "Admin", "Leer lassen, wenn das eine Rolle des ganzen RP-Servers ist.")
+            { Ids = Clean(map.Admin) });
+        entries.Add(new Entry(KeyTeamLead, flags, "Teamleitung",
+            "Eigene Rollen für Teamleitungen; Dienstgrad- und Abteilungsrollen bekommen sie nicht.") { Ids = Clean(map.TeamLead) });
+        entries.Add(new Entry(KeyResident, "Gekündigt oder gesperrt", "Bewohner",
+            "Diese Rolle darf in keinem anderen Eintrag stehen. Teamleitungen werden nie zu Bewohnern.") { Ids = Clean(map.Resident) });
+        return entries;
+    }
+
+    private DiscordRoleMapping ToMapping() => new(
+        IdsOf(KeyBase),
+        Enum.GetValues<Rank>().ToDictionary(r => r, r => IdsOf($"rank-{(int)r}")),
+        Enum.GetValues<Division>().ToDictionary(d => d, d => IdsOf($"division-{(int)d}")),
+        IdsOf(KeyBoard), IdsOf(KeyAdministration), IdsOf(KeyAdmin), IdsOf(KeyTeamLead), IdsOf(KeyResident));
+
+    // a copy, so the saved record never shares a list with the form
+    private IReadOnlyList<string> IdsOf(string key) => _entries.First(e => e.Key == key).Ids.ToList();
+
+    private static List<string> Clean(IReadOnlyList<string>? ids)
+        => DiscordRoleMapping.Ids(ids).Distinct(StringComparer.Ordinal).ToList();
+
+    private static void Pick(Entry entry, IReadOnlyCollection<string> values) => entry.Ids = values.ToList();
+
+    private bool MayAssign(DiscordGuildRole role) => !role.Managed && role.Position < (_roles?.BotTopPosition ?? 0);
+
+    private string SelectionText(IReadOnlyList<string> ids)
+        => string.Join(", ", ids.Select(id => _roleItems.FirstOrDefault(r => r.Id == id)?.Name ?? UnknownRole(id)));
+
+    private static string UnknownRole(string id) => $"unbekannte Rolle {id}";
+
+    private static bool IsAbsent(DiscordRoleSyncFailure failure) => failure.Error == DiscordRoleRules.NotOnServer;
+
+    private static string Join(IReadOnlyList<string> items) => items.Count == 0 ? "—" : string.Join(", ", items);
+
+    private static string Stamp(DateTime? utc) => utc is { } t ? t.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : "noch nie";
+}

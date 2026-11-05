@@ -53,6 +53,18 @@ public static class SystemSettingKeys
     /// <summary>Channels a record can be shared into, as JSON with their webhook URLs; written past the audit.</summary>
     public const string DiscordShareChannels = "DiscordTeilenKanaele";
 
+    /// <summary>Switch of the Discord role sync, separate from the webhook switch; default off.</summary>
+    public const string DiscordRoleSyncEnabled = "DiscordRollenAbgleichAktiv";
+
+    /// <summary>Id of the Discord server the bot syncs roles on; not a secret.</summary>
+    public const string DiscordGuildId = "DiscordServerId";
+
+    /// <summary>Role mapping as one JSON value; the Discord role ids per rank, division and flag.</summary>
+    public const string DiscordRoleMapping = "DiscordRollenZuordnung";
+
+    /// <summary>Last time the whole-roster role sync ran through (round-trip UTC); worker state, not user-edited.</summary>
+    public const string DiscordRoleSyncLastRun = "DiscordRollenAbgleichZuletzt";
+
     // periodic top-3 agent announcement; the interval also drives its wording
     public const string BestAgentEnabled = "BesterAgentAktiv";
     public const string BestAgentIntervalDays = "BesterAgentIntervallTage";

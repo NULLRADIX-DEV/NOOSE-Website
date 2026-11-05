@@ -16,6 +16,9 @@
       "ClientSecret": ""
     }
   },
+  "Discord": {
+    "BotToken": ""
+  },
   "GoogleDrive": {
     "ClientId": "",
     "ApiKey": "",
