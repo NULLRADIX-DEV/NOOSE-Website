@@ -243,6 +243,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IRecencyService, RecencyService>();
 builder.Services.AddScoped<IFollowupService, FollowupService>();
 builder.Services.AddHostedService<FollowupDueWorker>();
+builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Operations.EmergencyAlarmExpiryWorker>();
 builder.Services.AddHostedService<TicketFollowupWorker>();
 builder.Services.AddHostedService<JobDueSoonWorker>();
 builder.Services.AddScoped<IPingDigestService, PingDigestService>();
@@ -369,6 +370,8 @@ builder.Services.AddScoped<IMentionService, MentionService>();
 builder.Services.AddSingleton<TaskforceChatBroadcaster>();
 builder.Services.AddScoped<IOperationLogService, OperationLogService>();
 builder.Services.AddSingleton<OperationLogBroadcaster>();
+builder.Services.AddScoped<IEmergencyAlarmService, EmergencyAlarmService>();
+builder.Services.AddSingleton<EmergencyAlarmBroadcaster>();
 builder.Services.AddScoped<IObservationService, ObservationService>();
 // fans the global recycle bin out over every record service, so restore keeps its guards
 builder.Services.AddScoped<ITrashService, TrashService>();

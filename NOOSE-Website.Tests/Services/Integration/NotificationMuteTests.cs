@@ -83,6 +83,25 @@ public sealed class NotificationMuteTests
         Assert.Null(ReadAtOf(ctx, "a1"));
     }
 
+    [Theory]
+    [InlineData(NotificationType.EmergencyAlarm)]
+    [InlineData(NotificationType.EmergencyAlarmByAgent)]
+    public async Task An_alarm_rings_despite_a_stored_mute_and_a_quiet_absence(NotificationType type)
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "a1", p =>
+        {
+            p.MutedNotifications.Add(type.ToString());
+            p.QuietDuringAbsence = true;
+        });
+        SeedAbsenceCoveringToday(ctx, "a1");
+
+        await NewService(ctx).NotifyManyAsync(["a1"], type, "Einsatzalarm: Lage", "/einsatzalarme/1", triggerId: null);
+
+        Assert.Null(ReadAtOf(ctx, "a1"));
+        Assert.False(NotificationMutes.IsMutable(type));
+    }
+
     [Fact]
     public async Task Quiet_during_absence_silences_only_while_an_absence_covers_today()
     {

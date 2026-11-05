@@ -1,0 +1,162 @@
+@page "/einsatzalarme"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@implements IAsyncDisposable
+@inject IEmergencyAlarmService AlarmService
+@inject EmergencyAlarmBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+
+<PageTitle>Einsatzalarme · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.NotificationsActive" Title="Einsatzalarme"
+            Subtitle="Kurzfristig Agenten zusammenrufen: wer gerufen wurde, wer kommt, wer absagt. Die Liste läuft live mit.">
+    <Actions>
+        @if (_mayTrigger)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.NotificationsActive"
+                       OnClick="TriggerAsync" Disabled="_triggers">Alarm auslösen</MudButton>
+        }
+    </Actions>
+</PageHeader>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudTable T="EmergencyAlarmSummary" Items="_rows" Hover="true" Dense="true" Elevation="2"
+              OnRowClick="@(args => Open(args.Item!))" RowStyle="cursor:pointer;">
+        <HeaderContent>
+            <MudTh>Ausgelöst</MudTh>
+            <MudTh>Lage</MudTh>
+            <MudTh>Ziel</MudTh>
+            <MudTh>Auslöser</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Rückmeldung</MudTh>
+            <MudTh>Operation</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Ausgelöst">@context.TriggeredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Lage">
+                <MudLink Href="@($"/einsatzalarme/{context.Id}")" @onclick:stopPropagation="true">@context.Situation</MudLink>
+            </MudTd>
+            <MudTd DataLabel="Ziel">@EmergencyAlarmDisplay.Target(context.Target)</MudTd>
+            <MudTd DataLabel="Auslöser">
+                @context.TriggeredByName
+                @if (context.IsEmergency)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="ml-1">Gefahr im Verzug</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.IsOpen)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Läuft</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Beendet</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Rückmeldung">
+                <MudText Typo="Typo.body2">
+                    <span class="mud-success-text">@context.Coming kommen</span> ·
+                    <span class="mud-error-text">@context.NotComing nicht</span> ·
+                    <span class="mud-text-secondary">@context.Open offen</span>
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Operation">
+                @if (context.OperationId is { } operationId)
+                {
+                    <MudLink Href="@($"/operationen/{operationId}")" @onclick:stopPropagation="true">Zur Operation</MudLink>
+                }
+                else
+                {
+                    <span class="mud-text-secondary">—</span>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <EmptyState Icon="@Icons.Material.Filled.NotificationsActive" Title="Noch kein Einsatzalarm"
+                        Text="Hier erscheint jeder Alarm mit seiner Rückmeldung, sobald jemand einen auslöst." />
+        </NoRecordsContent>
+    </MudTable>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    private bool _load = true;
+    private bool _mayTrigger;
+    private bool _triggers;
+    private List<EmergencyAlarmSummary> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayTrigger = EmergencyAlarmRules.MayTrigger(_user);
+        Broadcaster.Modified += OnModified;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _rows = await AlarmService.GetListAsync(_user);
+        _load = false;
+    }
+
+    private void Open(EmergencyAlarmSummary row) => Nav.NavigateTo($"/einsatzalarme/{row.Id}");
+
+    private async Task TriggerAsync()
+    {
+        if (_triggers)
+        {
+            return;
+        }
+        _triggers = true;
+        try
+        {
+            var id = await EmergencyAlarmDialog.ShowAsync(DialogService, _user);
+            if (id is not null)
+            {
+                Nav.NavigateTo($"/einsatzalarme/{id}");
+            }
+        }
+        finally
+        {
+            _triggers = false;
+        }
+    }
+
+    // any alarm changes the list
+    private void OnModified(string alarmId)
+    {
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                try
+                {
+                    await LoadAsync();
+                    StateHasChanged();
+                }
+                catch (Exception)
+                {
+                    /* the next event refreshes it */
+                }
+            });
+        }
+        catch (InvalidOperationException)
+        {
+            /* circuit gone */
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Broadcaster.Modified -= OnModified;
+        return ValueTask.CompletedTask;
+    }
+}

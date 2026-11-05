@@ -6492,6 +6492,143 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("Benachrichtigungen");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.EmergencyAlarm", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("BeendetAm");
+
+                    b.Property<string>("EndedById")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("BeendetVonId");
+
+                    b.Property<DateTime>("Expiry")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Ablauf");
+
+                    b.Property<bool>("IsEmergency")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("GefahrImVerzug");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("Ort");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("OperationId")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Begruendung");
+
+                    b.Property<DateTime?>("RepingedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("NachgepingtAm");
+
+                    b.Property<string>("Situation")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("Lage");
+
+                    b.Property<int?>("Target")
+                        .HasColumnType("int")
+                        .HasColumnName("Ziel");
+
+                    b.Property<DateTime>("TriggeredAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AusgeloestAm");
+
+                    b.Property<string>("TriggeredById")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("AusgeloestVonId");
+
+                    b.Property<string>("TriggeredByName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AusgeloestVonName");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperationId");
+
+                    b.HasIndex("Expiry", "EndedAt");
+
+                    b.ToTable("Einsatzalarme");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.EmergencyAlarmRecipient", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AlarmId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int?>("Answer")
+                        .HasColumnType("int")
+                        .HasColumnName("Antwort");
+
+                    b.Property<DateTime?>("AnsweredAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeantwortetAm");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("AlarmId", "AgentId")
+                        .IsUnique();
+
+                    b.ToTable("EinsatzalarmEmpfaenger");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.Operation", b =>
                 {
                     b.Property<string>("Id")
@@ -12789,6 +12926,35 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Meeting");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.EmergencyAlarm", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Operations.Operation", "Operation")
+                        .WithMany()
+                        .HasForeignKey("OperationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Operation");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.EmergencyAlarmRecipient", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Operations.EmergencyAlarm", "Alarm")
+                        .WithMany("Recipients")
+                        .HasForeignKey("AlarmId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("Alarm");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.OperationAgent", b =>
                 {
                     b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
@@ -13739,6 +13905,11 @@ namespace NOOSE_Website.Data.Migrations
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Meetings.Meeting", b =>
                 {
                     b.Navigation("AgendaItems");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.EmergencyAlarm", b =>
+                {
+                    b.Navigation("Recipients");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Operations.Operation", b =>

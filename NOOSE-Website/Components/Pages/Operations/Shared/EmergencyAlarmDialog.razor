@@ -1,0 +1,102 @@
+@* Triggers an emergency alarm; the service freezes the recipients and pings them. *@
+@inject IEmergencyAlarmService AlarmService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="min-width:340px;">
+            @if (_needsReason)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    <b>Gefahr im Verzug – die Führung wird benachrichtigt.</b>
+                    Ohne Führungsrang löst du einen Alarm nur aus, wenn Warten nicht geht. Sag in der Begründung, warum.
+                </MudAlert>
+            }
+            <TextDraft DraftKey='@DraftKeys.In(DraftScope, "lage")' OnRestore="@(t => _situation = t)">
+                <MudTextField @bind-Value="_situation" Label="Lage" Variant="Variant.Outlined" Lines="3"
+                              Immediate="true" AutoFocus="true" Required="true"
+                              MaxLength="@EmergencyAlarmRules.MaxSituation" Counter="@EmergencyAlarmRules.MaxSituation"
+                              HelperText="In einem Satz: Was ist los, und wofür braucht ihr Leute?" />
+            </TextDraft>
+            <MudTextField @bind-Value="_location" Label="Ort (optional)" Variant="Variant.Outlined"
+                          Immediate="true" MaxLength="@EmergencyAlarmRules.MaxLocation" Counter="@EmergencyAlarmRules.MaxLocation" />
+            <MudSelect T="Division?" @bind-Value="_target" Label="Ziel" Variant="Variant.Outlined"
+                       HelperText="Wer heute abgemeldet ist, wird nicht alarmiert. Das Board nur bei „Alle Agenten“.">
+                <MudSelectItem T="Division?" Value="@((Division?)null)">@EmergencyAlarmDisplay.Target(null)</MudSelectItem>
+                @foreach (var d in DivisionDisplay.All)
+                {
+                    <MudSelectItem T="Division?" Value="@((Division?)d)">@DivisionDisplay.Name(d)</MudSelectItem>
+                }
+            </MudSelect>
+            @if (_needsReason)
+            {
+                <TextDraft DraftKey='@DraftKeys.In(DraftScope, "begruendung")' OnRestore="@(t => _reason = t)">
+                    <MudTextField @bind-Value="_reason" Label="Begründung" Variant="Variant.Outlined" Lines="3"
+                                  Immediate="true" Required="true"
+                                  MaxLength="@CriticalChange.MaxReasonLength" Counter="@CriticalChange.MaxReasonLength" />
+                </TextDraft>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="_sends">Abbrechen</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.NotificationsActive"
+                   OnClick="SubmitAsync" Disabled="@(_sends || !Complete)">Auslösen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    // dialog saves itself, so it drops the scope too
+    private const string DraftScope = "einsatzalarm:ausloesen";
+
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _needsReason;
+    private bool _sends;
+    private string? _situation;
+    private string? _location;
+    private Division? _target;
+    private string? _reason;
+
+    private bool Complete => !string.IsNullOrWhiteSpace(_situation)
+        && (!_needsReason || !string.IsNullOrWhiteSpace(_reason));
+
+    protected override void OnInitialized() => _needsReason = EmergencyAlarmRules.NeedsReason(User);
+
+    private async Task SubmitAsync()
+    {
+        if (_sends || !Complete)
+        {
+            return;
+        }
+        _sends = true;
+        try
+        {
+            var id = await AlarmService.TriggerAsync(
+                new EmergencyAlarmInput(_situation!, _location, _target, _needsReason ? _reason : null), User);
+            // only once the alarm went out
+            await TextDraft.DiscardScopeAsync(JS, User.GetAgentId(), DraftScope);
+            MudDialog.Close(DialogResult.Ok(id));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _sends = false;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    /// <summary>Shows the dialog; the new alarm's id, or null on cancel.</summary>
+    public static async Task<string?> ShowAsync(IDialogService dialog, ClaimsPrincipal user)
+    {
+        var parameters = new DialogParameters<EmergencyAlarmDialog> { { d => d.User, user } };
+        var reference = await dialog.ShowAsync<EmergencyAlarmDialog>("Einsatzalarm auslösen", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseOnEscapeKey = true, BackdropClick = false });
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: string id } ? id : null;
+    }
+}
