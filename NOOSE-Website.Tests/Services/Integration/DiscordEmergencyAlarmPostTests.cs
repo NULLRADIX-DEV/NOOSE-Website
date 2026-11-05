@@ -88,21 +88,6 @@ public sealed class DiscordEmergencyAlarmPostTests
     }
 
     [Fact]
-    public async Task EmergencyAlarm_PostKeepsTheLongestSituationAndLocationUncut()
-    {
-        using var ctx = new SqliteTestContext();
-        var (service, handler) = await HostAsync(ctx, NotificationType.EmergencyAlarm, includeHeadline: false);
-        var title = "Einsatzalarm: " + new string('L', EmergencyAlarmRules.MaxSituation)
-            + " (" + new string('O', EmergencyAlarmRules.MaxLocation) + ")";
-
-        await service.PushAsync(NotificationType.EmergencyAlarm, "/einsatzalarme/7", ["a1"], title);
-
-        var content = Sent(handler).GetProperty("content").GetString()!;
-        Assert.Contains(title, content);
-        Assert.DoesNotContain('…', content);
-    }
-
-    [Fact]
     public async Task EmergencyAlarm_WithoutAHeadlineFallsBackToTheNoticeAndTheAlarmPage()
     {
         using var ctx = new SqliteTestContext();

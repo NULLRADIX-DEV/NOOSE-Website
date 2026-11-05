@@ -48,7 +48,7 @@ public class DiscordWebhookService(
                 return;
             }
             var content = ShouldIncludeHeadline(type, config, headline)
-                ? ComposeHeadline(headline!, config.SiteBaseUrl, href, MaxHeadlineChars(type))
+                ? ComposeHeadline(headline!, config.SiteBaseUrl, href)
                 : Compose(type, config.SiteBaseUrl, href);
             // a long ping list goes out as several posts, or Discord refuses the whole message
             foreach (var mention in await ResolveMentionsAsync(type, recipientAgentIds, config, content.Length, cancellationToken))
@@ -702,13 +702,10 @@ public class DiscordWebhookService(
             && (type == NotificationType.EmergencyAlarm
                 || (config.IncludeHeadline && type is NotificationType.Announcement or NotificationType.Recruiting));
 
-    // an alarm title holds a 500-character situation and a location, so it gets more room than a record title
-    private static int MaxHeadlineChars(NotificationType type) => type == NotificationType.EmergencyAlarm ? 700 : 300;
-
     // app-authored header + login-gated link; single-line, capped, mentions stay inert via allowed_mentions
-    private static string ComposeHeadline(string headline, string baseUrl, string? href, int maxChars)
+    private static string ComposeHeadline(string headline, string baseUrl, string? href)
     {
-        var sb = new StringBuilder(Truncate(headline.Replace('\r', ' ').Replace('\n', ' ').Trim(), maxChars));
+        var sb = new StringBuilder(Truncate(headline.Replace('\r', ' ').Replace('\n', ' ').Trim(), 300));
         var link = Link(baseUrl, href);
         if (link is not null)
         {
