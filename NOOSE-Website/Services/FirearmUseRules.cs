@@ -11,7 +11,7 @@ public static class FirearmUseRules
     public const int MaxReasonLength = 1000;
 
     /// <summary>Lowest rank the bell reaches.</summary>
-    public const Rank NotifyFloor = Rank.SpecialAgentInCharge;
+    public const Rank NotifyFloor = Rank.SectionChief;
 
     /// <summary>The report is trimmed; an empty or oversized one is refused with a message for the dialog.</summary>
     public static string CleanReason(string? reason)

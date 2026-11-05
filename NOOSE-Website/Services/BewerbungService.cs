@@ -531,7 +531,7 @@ public class BewerbungService(
 
     private static Task<List<string>> HrbRecipientIdsAsync(AppDbContext db, CancellationToken cancellationToken)
         => db.Users.OnlySelectable()
-            .Where(u => u.IsHRB || u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
+            .Where(u => u.IsHRB || u.IsAdmin || u.Rank >= Rank.SectionChief)
             .Select(u => u.Id)
             .ToListAsync(cancellationToken);
 

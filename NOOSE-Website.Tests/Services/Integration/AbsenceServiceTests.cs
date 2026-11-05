@@ -62,7 +62,7 @@ public class AbsenceServiceTests
     private static ClaimsPrincipal Owner(string id) => ClaimsPrincipalBuilder.Agent(id).Build();
 
     private static ClaimsPrincipal Leader(string id = "lead", string codename = "Chief")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename(codename).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SectionChief).WithCodename(codename).Build();
 
     private static ClaimsPrincipal OnlyReader(string id = "tl")
         => ClaimsPrincipalBuilder.Agent(id).AsTeamLead().Build();

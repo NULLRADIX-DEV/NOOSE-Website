@@ -789,7 +789,7 @@ public sealed class FollowupPlanTests
     [Fact]
     public void The_reminder_scope_reads_leadership_from_rank_or_admin()
     {
-        Assert.True(FollowupService.ReminderScope("a", false, Rank.SpecialAgentInCharge, null).MayClassifiedRead);
+        Assert.True(FollowupService.ReminderScope("a", false, Rank.SectionChief, null).MayClassifiedRead);
         Assert.True(FollowupService.ReminderScope("a", true, Rank.Trainee, null).MayClassifiedRead);
         Assert.False(FollowupService.ReminderScope("a", false, Rank.SeniorSpecialAgent, null).MayClassifiedRead);
         Assert.False(FollowupService.ReminderScope("a", false, null, PartnerAgency.LSPD).IsInternalAgent);

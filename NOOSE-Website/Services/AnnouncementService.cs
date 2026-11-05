@@ -448,7 +448,7 @@ public class AnnouncementService(
     /// the audience (another taskforce, lost TRU) no longer owes it: the board hides the entry from them.</remarks>
     private static IQueryable<AnnouncementAcknowledgment> Owed(AppDbContext db)
     {
-        var leadershipFloor = Rank.SpecialAgentInCharge;
+        var leadershipFloor = Rank.SectionChief;
         // the reference nav forces the join, so the announcement's soft-delete filter hides trashed ones
         return db.AnnouncementAcknowledgments
             .Where(q => q.AcknowledgedAt == null && q.Announcement!.AcknowledgmentRequired)

@@ -139,7 +139,7 @@ public class TextImageServiceTests
         var (service, _) = Build(ctx);
 
         Assert.Null(await service.GetAccessAsync(Guid.NewGuid().ToString(),
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge)));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief)));
         Assert.Null(await service.GetAccessAsync(id, ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgent)));
     }
 
@@ -156,7 +156,7 @@ public class TextImageServiceTests
         var id = await RowAsync(ctx, nameof(Person), person.Id);
         var (service, _) = Build(ctx);
 
-        var access = await service.GetAccessAsync(id, ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge));
+        var access = await service.GetAccessAsync(id, ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief));
 
         Assert.NotNull(access);
         Assert.Equal("bild.png", access.FileNameSaved);
@@ -177,7 +177,7 @@ public class TextImageServiceTests
         var id = await RowAsync(ctx, nameof(Person), person.Id);
         var (service, _) = Build(ctx);
 
-        Assert.Null(await service.GetAccessAsync(id, ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge)));
+        Assert.Null(await service.GetAccessAsync(id, ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief)));
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public class TextImageServiceTests
 
         Assert.Null(await service.GetAccessAsync(id, ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgent)));
         Assert.NotNull(await service.GetAccessAsync(id,
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge)));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief)));
     }
 
     [Fact]
@@ -217,7 +217,7 @@ public class TextImageServiceTests
 
         Assert.Null(await service.GetAccessAsync(id, ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgent)));
         Assert.NotNull(await service.GetAccessAsync(id,
-            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge)));
+            ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief)));
     }
 
     [Fact]

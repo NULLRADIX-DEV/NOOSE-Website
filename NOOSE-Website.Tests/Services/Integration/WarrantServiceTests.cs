@@ -72,7 +72,7 @@ public sealed class WarrantServiceTests : IDisposable
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgent).WithCodename($"Hawk-{id}").Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename($"Falcon-{id}").Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SectionChief).WithCodename($"Falcon-{id}").Build();
 
     private static ClaimsPrincipal Reader()
         => ClaimsPrincipalBuilder.Agent("tl").WithRank(Rank.Director).AsTeamLead().Build();
@@ -275,7 +275,7 @@ public sealed class WarrantServiceTests : IDisposable
         Assert.Equal(row.ValidFrom!.Value.AddDays(7), row.ValidUntil);
         Assert.Equal("lead", row.DeciderId);
         Assert.Equal("Falcon-lead", row.DeciderName);
-        Assert.Equal(Rank.SpecialAgentInCharge, row.DeciderRank);
+        Assert.Equal(Rank.SectionChief, row.DeciderRank);
         Assert.Equal("passt", row.DecisionNote);
         Assert.Equal(WarrantState.Valid, (await _svc.GetAsync(w.Id, Agent()))!.State);
         await _notifications.Received(1).NotifyAsync("agent", NotificationType.RequestDecided,

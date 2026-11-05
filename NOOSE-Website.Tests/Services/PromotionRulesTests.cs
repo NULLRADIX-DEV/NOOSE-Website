@@ -26,7 +26,7 @@ public class PromotionRulesTests
         Assert.Equal(Rank.AssistantDirector, DivisionRules.BoardFloor);
         Assert.Equal(DivisionRules.BoardFloor, DecorationRules.SignatoryFloor);
         // leadership stays where it was; a Special Agent in Charge leads but does not hand out ranks
-        Assert.Equal(Rank.SpecialAgentInCharge, LeadershipChart.RankFloor);
+        Assert.Equal(Rank.SectionChief, LeadershipChart.RankFloor);
     }
 
     [Theory]
@@ -147,46 +147,15 @@ public class PromotionRulesTests
         }
     }
 
-    // ---- Special Agent in Charge: one first release, nothing else ----
-
-    [Theory]
-    [InlineData(Division.Cid, null, Rank.Trainee, true)]
-    [InlineData(Division.Cid, null, Rank.SpecialAgent, false)]
-    [InlineData(Division.Cid, null, Rank.SpecialAgentInCharge, false)]
-    [InlineData(Division.Ctd, null, Rank.Trainee, false)]
-    [InlineData(Division.Hrt, null, Rank.Trainee, false)]
-    [InlineData(null, null, Rank.Trainee, false)]
-    // not a first release: the account has a rank already
-    [InlineData(Division.Cid, Rank.Trainee, Rank.Trainee, false)]
-    [InlineData(Division.Cid, Rank.Trainee, Rank.SpecialAgent, false)]
-    [InlineData(Division.Cid, Rank.SpecialAgent, Rank.Trainee, false)]
-    public void A_special_agent_in_charge_may_only_release_a_new_account_as_trainee_into_the_cid(
-        Division? target, Rank? from, Rank to, bool expected)
-    {
-        var actor = Standing(Rank.SpecialAgentInCharge, Division.Cid);
-
-        Assert.Equal(expected, PromotionRules.MayAssign(actor, target, from, to));
-    }
-
-    [Theory]
-    [InlineData(Division.Ctd)]
-    [InlineData(Division.Hrt)]
-    public void A_special_agent_in_charge_of_another_division_still_releases_only_into_the_cid(Division home)
-    {
-        var actor = Standing(Rank.SpecialAgentInCharge, home);
-
-        Assert.True(PromotionRules.MayAssign(actor, Division.Cid, null, Rank.Trainee));
-        Assert.False(PromotionRules.MayAssign(actor, home, null, Rank.Trainee));
-    }
-
-    // ---- everybody else, and an actor nobody can place ----
+    // ---- everybody below Section Chief, and an actor nobody can place ----
 
     [Theory]
     [InlineData(null)]
     [InlineData(Rank.Trainee)]
     [InlineData(Rank.SpecialAgent)]
     [InlineData(Rank.SeniorSpecialAgent)]
-    public void Below_special_agent_in_charge_nothing_is_assigned(Rank? actorRank)
+    [InlineData(Rank.SpecialAgentInCharge)]
+    public void Below_section_chief_nothing_is_assigned(Rank? actorRank)
     {
         var actor = Standing(actorRank, Division.Cid);
 
@@ -206,15 +175,12 @@ public class PromotionRulesTests
     public void The_refusal_says_what_the_actor_may_do_instead()
     {
         var sectionChief = Standing(Rank.SectionChief, Division.Cid);
-        var special = Standing(Rank.SpecialAgentInCharge, Division.Cid);
 
         Assert.Contains("eigenen Abteilung",
             PromotionRules.Refusal(sectionChief, Division.Ctd, Rank.SpecialAgent, Rank.SeniorSpecialAgent));
         Assert.Contains("ab Section Chief",
             PromotionRules.Refusal(sectionChief, Division.Cid, Rank.SpecialAgent, Rank.SectionChief));
-        var first = PromotionRules.Refusal(special, Division.Cid, Rank.SpecialAgent, Rank.SeniorSpecialAgent);
-        Assert.Contains("Trainee", first);
-        Assert.Contains("Criminal Investigation Division", first);
+        Assert.Contains("Board", PromotionRules.Refusal(Standing(Rank.SpecialAgentInCharge, Division.Cid), Division.Cid, null, Rank.Trainee));
         Assert.Contains("Board", PromotionRules.Refusal(Standing(Rank.SeniorSpecialAgent), Division.Cid, null, Rank.Trainee));
     }
 
@@ -236,9 +202,6 @@ public class PromotionRulesTests
     [InlineData(Rank.SectionChief, Division.Hrt, Division.Hrt)]
     [InlineData(Rank.SectionChief, Division.Ctd, Division.Ctd)]
     [InlineData(Rank.SectionChief, Division.Cid, Division.Cid)]
-    // a Special Agent in Charge of the HRT still releases into the CID only
-    [InlineData(Rank.SpecialAgentInCharge, Division.Hrt, Division.Cid)]
-    [InlineData(Rank.SpecialAgentInCharge, Division.Ctd, Division.Cid)]
     public void Without_a_division_picker_the_release_goes_into_the_division_the_actor_may_assign(
         Rank rank, Division home, Division expected)
     {
@@ -267,11 +230,11 @@ public class PromotionRulesTests
     }
 
     [Fact]
-    public void The_picker_offers_a_special_agent_in_charge_trainee_for_a_new_account_and_nothing_for_anyone_else()
+    public void The_picker_offers_a_special_agent_in_charge_nothing()
     {
         var special = Standing(Rank.SpecialAgentInCharge, Division.Cid);
 
-        Assert.Equal([Rank.Trainee], PromotionRules.AssignableRanks(special, Division.Cid, null));
+        Assert.Empty(PromotionRules.AssignableRanks(special, Division.Cid, null));
         Assert.Empty(PromotionRules.AssignableRanks(special, Division.Ctd, null));
         Assert.Empty(PromotionRules.AssignableRanks(special, Division.Cid, Rank.Trainee));
         Assert.Empty(PromotionRules.AssignableRanks(Standing(Rank.SeniorSpecialAgent), Division.Cid, null));
@@ -309,7 +272,6 @@ public class PromotionRulesTests
         Assert.True(PromotionRules.MayDecide(Standing(Rank.AssistantDirector), target, Rank.Director));
         Assert.True(PromotionRules.MayDecide(Standing(null, admin: true), target, Rank.SectionChief));
         Assert.False(PromotionRules.MayDecide(Standing(Rank.SpecialAgentInCharge, Division.Hrt), target, Rank.SeniorSpecialAgent));
-        // a first release would pass the fine gate for this actor, but a request never is one
         Assert.False(PromotionRules.MayDecide(Standing(Rank.SpecialAgentInCharge, Division.Cid), Target("new", null, null), Rank.Trainee));
     }
 

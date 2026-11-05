@@ -379,7 +379,7 @@ public sealed class FindingWatchService(
     private static Task<List<Recipient>> LeadershipAsync(AppDbContext db)
         => db.Users.AsNoTracking()
             .OnlySelectable()
-            .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
+            .Where(u => u.IsAdmin || u.Rank >= Rank.SectionChief)
             .Where(u => u.Id != DemoIdentity.AgentId)
             .Select(u => new Recipient(u.Id, u.NavPreferencesJson))
             .ToListAsync(CancellationToken.None);

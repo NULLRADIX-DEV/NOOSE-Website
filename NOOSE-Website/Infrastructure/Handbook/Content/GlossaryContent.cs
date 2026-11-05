@@ -25,7 +25,7 @@ internal static class GlossaryContent
             "Deine Stufe von Trainee bis Director. Entscheidet zusammen mit Abteilung und Kennzeichen über deine Rechte.",
             Synonyms: "Rang", ArticleKey: "art-rechte"),
         new("beg-fuehrung", "Führung",
-            "Alle ab Special Agent in Charge, dazu Admins. Die Schwelle, ab der Verschlusssachen sichtbar werden.",
+            "Alle ab Section Chief (im HRT Commanding Operator), dazu Admins. Die Schwelle, ab der Verschlusssachen sichtbar werden.",
             Synonyms: "Leadership", ArticleKey: "art-rechte"),
         // the two old unit names stay as pointers: older documents and notes still use them
         new("beg-tru", "TRU",
@@ -523,7 +523,7 @@ internal static class GlossaryContent
             "Die Grundstufe der Dienstverordnung für interne Informationen, für alle Agenten vom Trainee an.",
             ArticleKey: "art-dvo-freigaben"),
         new("beg-secret", "Sicherheitsfreigabe Secret",
-            "Erweiterte Freigabe für operative Inhalte und Lageberichte; nach dem Rangprinzip ab dem Special Agent in Charge.",
+            "Erweiterte Freigabe für operative Inhalte und Lageberichte; nach dem Rangprinzip ab dem Section Chief.",
             ArticleKey: "art-dvo-freigaben"),
         new("beg-top-secret", "Sicherheitsfreigabe Top Secret",
             "Stufe 5 der Dienstverordnung, dem Board of Directors vorbehalten.",

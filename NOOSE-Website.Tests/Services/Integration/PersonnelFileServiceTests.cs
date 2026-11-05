@@ -14,7 +14,7 @@ public sealed class PersonnelFileServiceTests
         => new(ctx.Factory, discord ?? Substitute.For<IDiscordWebhookService>());
 
     private static ClaimsPrincipal Leadership(string id = "lead-1", string codename = "Falcon")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).WithCodename(codename).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SectionChief).WithCodename(codename).Build();
 
     private static ClaimsPrincipal Admin(string id = "admin-1")
         => ClaimsPrincipalBuilder.Agent(id).AsAdmin().WithRank(Rank.Director).Build();

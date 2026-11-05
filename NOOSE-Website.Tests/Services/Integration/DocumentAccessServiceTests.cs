@@ -187,7 +187,7 @@ public sealed class DocumentAccessServiceTests
         using var ctx = new SqliteTestContext();
         AddDocument(ctx, "d1", d => d.IsClassified = true);
         AddAgent(ctx, "plain");
-        AddAgent(ctx, "boss", rank: Rank.SpecialAgentInCharge);
+        AddAgent(ctx, "boss", rank: Rank.SectionChief);
         AddAgent(ctx, "adm", configure: a => a.IsAdmin = true);
         // read-only supervision can read the file, it is just never listed anywhere
         AddAgent(ctx, "tl", configure: a => a.IsTeamLead = true);
@@ -220,7 +220,7 @@ public sealed class DocumentAccessServiceTests
         AddDocument(ctx, "d1", d => d.IsTRUClassified = true);
         AddAgent(ctx, "plain");
         AddAgent(ctx, "tru", configure: a => a.IsTRU = true);
-        AddAgent(ctx, "boss", rank: Rank.SpecialAgentInCharge);
+        AddAgent(ctx, "boss", rank: Rank.SectionChief);
         var (svc, _) = Build(ctx);
 
         var ids = (await svc.GetAccessListAsync("d1", Leader())).Select(e => e.AgentId).ToHashSet();
@@ -235,7 +235,7 @@ public sealed class DocumentAccessServiceTests
         AddDocument(ctx, "d1", d => d.IsHRBClassified = true);
         AddAgent(ctx, "plain");
         AddAgent(ctx, "hrb", configure: a => a.IsHRB = true);
-        AddAgent(ctx, "boss", rank: Rank.SpecialAgentInCharge);
+        AddAgent(ctx, "boss", rank: Rank.SectionChief);
         var (svc, _) = Build(ctx);
 
         var ids = (await svc.GetAccessListAsync("d1", Leader())).Select(e => e.AgentId).ToHashSet();
@@ -250,7 +250,7 @@ public sealed class DocumentAccessServiceTests
         AddDocument(ctx, "d1", d => d.OwnerTaskforceId = "tf1");
         AddAgent(ctx, "mem");
         AddAgent(ctx, "out");
-        AddAgent(ctx, "boss", rank: Rank.SpecialAgentInCharge);
+        AddAgent(ctx, "boss", rank: Rank.SectionChief);
         AddTaskforceMember(ctx, "tf1", "mem", TaskforceRole.Member);
         var (svc, _) = Build(ctx);
 
@@ -347,7 +347,7 @@ public sealed class DocumentAccessServiceTests
     {
         using var ctx = new SqliteTestContext();
         AddDocument(ctx, "d1", d => d.CreatedById = "creator1");
-        AddAgent(ctx, "boss", rank: Rank.SpecialAgentInCharge);
+        AddAgent(ctx, "boss", rank: Rank.SectionChief);
         var (svc, _) = Build(ctx);
 
         // creator (non-leadership) may manage the doc but cannot strip a leadership agent

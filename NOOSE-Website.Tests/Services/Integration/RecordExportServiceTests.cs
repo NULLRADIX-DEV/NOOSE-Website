@@ -13,7 +13,7 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class RecordExportServiceTests
 {
     private static readonly ClaimsPrincipal Leader =
-        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).WithCodename("Hawk");
+        ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SectionChief).WithCodename("Hawk");
 
     private static readonly ClaimsPrincipal Supervision =
         ClaimsPrincipalBuilder.Agent("sup").WithRank(Rank.SpecialAgent).AsTeamLead().WithCodename("Owl");

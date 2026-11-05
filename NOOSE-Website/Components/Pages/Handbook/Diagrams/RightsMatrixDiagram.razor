@@ -5,7 +5,7 @@
     <title id="rightsDiagramTitle">Dienstgrad, Abteilung und Kennzeichen</title>
     <desc id="rightsDiagramDesc">
         Senkrecht die acht Dienstgrade von Trainee bis Director, mit der Führungsschwelle ab
-        Special Agent in Charge und dem Board of Directors ab Assistant Director. Waagerecht Admin, HRT und
+        Section Chief und dem Board of Directors ab Assistant Director. Waagerecht Admin, HRT und
         Administration, die neben dem Dienstgrad stehen; HRT und Administration Division gibt es erst ab
         Special Agent.
     </desc>
@@ -13,7 +13,7 @@
     @{
         // top-down from the ladder
         var ranks = RankDisplay.All.Reverse().Select(r => (RankDisplay.Name(r), (int)r)).ToArray();
-        var leadershipFloor = (int)Rank.SpecialAgentInCharge;
+        var leadershipFloor = (int)Rank.SectionChief;
         var boardFloor = (int)DivisionRules.BoardFloor;
         var leadershipRows = ranks.Count(r => r.Item2 >= leadershipFloor);
     }

@@ -410,7 +410,7 @@ public sealed class FindingWatchTests : IDisposable
         using var db = _ctx.NewContext();
         db.Users.AddRange(
             Seed.Agent("lead1", Rank.Director),
-            Seed.Agent("lead2", Rank.SpecialAgentInCharge),
+            Seed.Agent("lead2", Rank.SectionChief),
             Seed.Agent("admin", Rank.Trainee, configure: a => a.IsAdmin = true),
             Seed.Agent("junior", Rank.Trainee),
             Seed.Agent("tl", Rank.Director, configure: a => a.IsTeamLead = true),

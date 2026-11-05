@@ -429,7 +429,7 @@ public class AbductionService(
                 .FirstOrDefaultAsync(cancellationToken) ?? "Unbekannt";
 
             var recipients = await db.Users.AsNoTracking().OnlySelectable()
-                .Where(u => u.IsAdmin || u.Rank >= Rank.SpecialAgentInCharge)
+                .Where(u => u.IsAdmin || u.Rank >= Rank.SectionChief)
                 .Select(u => u.Id)
                 .ToListAsync(cancellationToken);
 

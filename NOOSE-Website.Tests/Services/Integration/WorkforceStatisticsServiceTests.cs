@@ -14,7 +14,7 @@ public sealed class WorkforceStatisticsServiceTests
         => new(ctx.Factory, new MemoryCache(new MemoryCacheOptions()));
 
     private static ClaimsPrincipal Leader()
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief).Build();
 
     private static StatisticsScope Scope() => new(true, StatisticsRange.Months12);
 

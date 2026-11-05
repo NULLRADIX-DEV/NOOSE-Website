@@ -18,10 +18,10 @@ public sealed class ValueListLabelServiceTests : IDisposable
     private static ValueListLabelService Build(SqliteTestContext ctx) => new(ctx.Factory);
 
     private static ClaimsPrincipal Leader
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief).Build();
 
     private static ClaimsPrincipal ReadOnlySupervision
-        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgentInCharge).AsTeamLead().Build();
+        => ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief).AsTeamLead().Build();
 
     [Fact]
     public async Task SetAsync_CreatesAndUpdatesOverride_AndRefreshesStore()

@@ -166,7 +166,7 @@ internal static class GettingStartedChapter
                 es entsteht nicht aus deinem Dienstgrad. Die Dienstverordnung zieht trotzdem eine Schwelle:
                 <strong>HRT und Administration Division gibt es erst ab Special Agent</strong> (§2.4.1). Die
                 Seite hält sich daran - darunter lässt sich beides gar nicht erst setzen.</p>
-                <p>Ab <strong>Special Agent in Charge</strong> zählst du zur <strong>Führung</strong>. Das
+                <p>Ab <strong>Section Chief</strong> (im HRT <strong>Commanding Operator</strong>) zählst du zur <strong>Führung</strong>. Das
                 ist die Schwelle, ab der Verschlusssachen, Klarnamen und die meisten Entscheidungen sichtbar
                 werden. Das Kennzeichen <strong>Admin</strong> überspringt jede Rangprüfung - ein Admin gilt
                 überall als Führung, unabhängig von seinem Dienstgrad.</p>

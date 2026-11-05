@@ -91,7 +91,7 @@ public sealed class SituationReportServiceTests
 
         using (var db = ctx.NewContext())
         {
-            db.Users.Add(Seed.Agent("lead1", Rank.SpecialAgentInCharge, AgentStatus.Active));
+            db.Users.Add(Seed.Agent("lead1", Rank.SectionChief, AgentStatus.Active));
             db.Users.Add(Seed.Agent("lead2", Rank.Director, AgentStatus.Active));
             db.Users.Add(Seed.Agent("junior", Rank.SpecialAgent, AgentStatus.Active));      // below leadership
             db.Users.Add(Seed.Agent("inactive", Rank.Director, AgentStatus.Blocked));       // not active

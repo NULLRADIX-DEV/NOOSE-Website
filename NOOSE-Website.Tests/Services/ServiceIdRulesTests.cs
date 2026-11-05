@@ -35,7 +35,7 @@ public class ServiceIdRulesTests
     [Fact]
     public void Leadership_prints_any_card()
     {
-        var lead = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).Build();
+        var lead = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SectionChief).Build();
 
         Assert.Equal(ServiceIdAccess.Allowed, ServiceIdRules.Check(lead, Holder("holder")));
     }

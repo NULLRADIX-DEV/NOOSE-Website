@@ -22,7 +22,7 @@ public class AgentAvatarTests
         => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.Trainee).Build();
 
     private static ClaimsPrincipal Leader(string id = "lead")
-        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgentInCharge).Build();
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SectionChief).Build();
 
     // ---- Url ----
 

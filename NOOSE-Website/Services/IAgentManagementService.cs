@@ -38,7 +38,7 @@ public interface IAgentManagementService
     /// <summary>Set an agent's master data; codename is required.</summary>
     Task MasterDataChangeAsync(string agentId, string? realName, string codename, string? badgeNumber, ClaimsPrincipal actor);
 
-    /// <summary>Request a self master-data change (below Special Agent in Charge): staged until leadership approves; codename required. A repeat call overwrites a pending request.</summary>
+    /// <summary>Request a self master-data change (below Section Chief): staged until leadership approves; codename required. A repeat call overwrites a pending request.</summary>
     Task NameChangeRequestAsync(string agentId, string? realName, string codename, string? badgeNumber, ClaimsPrincipal actor);
 
     /// <summary>Pending name-change requests for the release inbox.</summary>

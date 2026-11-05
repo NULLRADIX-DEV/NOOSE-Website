@@ -114,9 +114,9 @@ public static class AgentPrincipalExtensions
     /// <summary>May set up the share channels = internal leadership with write access.</summary>
     public static bool MayManageShareChannels(this ClaimsPrincipal user) => user.MayShareToChannel() && user.IsLeadership();
 
-    /// <summary>Leadership = rank ≥ Special Agent in Charge or admin.</summary>
+    /// <summary>Leadership = rank ≥ Section Chief or admin.</summary>
     public static bool IsLeadership(this ClaimsPrincipal user)
-        => user.IsAdmin() || user.GetRank() is >= Rank.SpecialAgentInCharge;
+        => user.IsAdmin() || user.GetRank() is >= Rank.SectionChief;
 
     /// <summary>May READ classified content = leadership or read-only supervision. Read gates only, never write/real-name.</summary>
     public static bool MayClassifiedRead(this ClaimsPrincipal user)

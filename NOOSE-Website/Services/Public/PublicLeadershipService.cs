@@ -323,7 +323,7 @@ public partial class PublicLeadershipService(
         if (!await IsLeaderAsync(db, agentId, cancellationToken))
         {
             throw new InvalidOperationException(
-                "Eine Führungskarte gibt es nur für aktive Agenten ab Special Agent in Charge mit Klarnamen.");
+                "Eine Führungskarte gibt es nur für aktive Agenten ab Section Chief mit Klarnamen.");
         }
     }
 

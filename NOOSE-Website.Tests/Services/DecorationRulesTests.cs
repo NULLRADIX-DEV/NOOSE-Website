@@ -29,7 +29,7 @@ public sealed class DecorationRulesTests
     [Fact]
     public void Leadership_and_the_recipient_may_print_nobody_else()
     {
-        var leader = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SpecialAgentInCharge).Build();
+        var leader = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.SectionChief).Build();
         var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.Trainee).Build();
         var colleague = ClaimsPrincipalBuilder.Agent("other").WithRank(Rank.SeniorSpecialAgent).Build();
         var partner = ClaimsPrincipalBuilder.Agent("lspd").WithRank(Rank.Director)
