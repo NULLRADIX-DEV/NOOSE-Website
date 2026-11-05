@@ -48,7 +48,7 @@ public class DiscordWebhookService(
                 return;
             }
             var content = ShouldIncludeHeadline(type, config, headline)
-                ? ComposeHeadline(headline!, config.SiteBaseUrl, href)
+                ? ComposeHeadline(headline!, config.SiteBaseUrl, href, MaxHeadlineChars(type))
                 : Compose(type, config.SiteBaseUrl, href);
             // a long ping list goes out as several posts, or Discord refuses the whole message
             foreach (var mention in await ResolveMentionsAsync(type, recipientAgentIds, config, content.Length, cancellationToken))
@@ -696,15 +696,19 @@ public class DiscordWebhookService(
         return sb.ToString();
     }
 
-    // categories whose role-ping post may carry the record header/title (opt-in, admin-toggleable)
+    // announcements and recruiting carry the title when the admin allows; an alarm always does, the situation is its point
     private static bool ShouldIncludeHeadline(NotificationType type, DiscordWebhookConfig config, string? headline)
-        => config.IncludeHeadline && !string.IsNullOrWhiteSpace(headline)
-            && type is NotificationType.Announcement or NotificationType.Recruiting;
+        => !string.IsNullOrWhiteSpace(headline)
+            && (type == NotificationType.EmergencyAlarm
+                || (config.IncludeHeadline && type is NotificationType.Announcement or NotificationType.Recruiting));
+
+    // an alarm title holds a 500-character situation and a location, so it gets more room than a record title
+    private static int MaxHeadlineChars(NotificationType type) => type == NotificationType.EmergencyAlarm ? 700 : 300;
 
     // app-authored header + login-gated link; single-line, capped, mentions stay inert via allowed_mentions
-    private static string ComposeHeadline(string headline, string baseUrl, string? href)
+    private static string ComposeHeadline(string headline, string baseUrl, string? href, int maxChars)
     {
-        var sb = new StringBuilder(Truncate(headline.Replace('\r', ' ').Replace('\n', ' ').Trim(), 300));
+        var sb = new StringBuilder(Truncate(headline.Replace('\r', ' ').Replace('\n', ' ').Trim(), maxChars));
         var link = Link(baseUrl, href);
         if (link is not null)
         {
@@ -742,6 +746,7 @@ public class DiscordWebhookService(
         NotificationType.FactionThreatBoard => "/fraktionen",
         NotificationType.TestAssigned => "/tests",
         NotificationType.TestDueReminder => "/tests",
+        NotificationType.EmergencyAlarm => "/einsatzalarme",
         _ => "/dashboard",
     };
 
@@ -772,6 +777,7 @@ public class DiscordWebhookService(
         NotificationType.FactionThreatBoard => "🚨 Gefahrenlage der Fraktionen.",
         NotificationType.TestAssigned => "📝 Dir wurde ein Test zugewiesen.",
         NotificationType.TestDueReminder => "⏰ Ein Test wird bald fällig.",
+        NotificationType.EmergencyAlarm => "🚨 Einsatzalarm",
         _ => "🔔 Neue Benachrichtigung.",
     };
 

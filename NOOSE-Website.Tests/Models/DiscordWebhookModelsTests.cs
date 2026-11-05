@@ -37,6 +37,7 @@ public class DiscordWebhookModelsTests
         NotificationType.FactionThreatBoard,
         NotificationType.TestAssigned,
         NotificationType.TestDueReminder,
+        NotificationType.EmergencyAlarm,
     };
 
     // Enum members NOT in the routable list.
@@ -68,6 +69,8 @@ public class DiscordWebhookModelsTests
         NotificationType.FirearmUseReported,
         // who lets work rot is for the leadership bell alone
         NotificationType.FollowupEscalated,
+        // the leadership bell for an alarm raised on an agent's own word; the reason must not reach a channel
+        NotificationType.EmergencyAlarmByAgent,
     };
 
     // ----- IsRoutable: true branch -----
@@ -86,6 +89,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.PublicWantedPublished)]
     [InlineData(NotificationType.PublicWantedBountyRaised)]
     [InlineData(NotificationType.PublicTicketCreated)]
+    [InlineData(NotificationType.EmergencyAlarm)]
     public void IsRoutable_forRoutableTypes_returnsTrue(NotificationType type)
     {
         Assert.True(DiscordRouting.IsRoutable(type));
@@ -99,6 +103,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.RecordModified)]
     [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.AbsenceFiled)]
+    [InlineData(NotificationType.EmergencyAlarmByAgent)]
     public void IsRoutable_forNonRoutableTypes_returnsFalse(NotificationType type)
     {
         Assert.False(DiscordRouting.IsRoutable(type));
@@ -125,6 +130,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.InactivityNudge)]
     [InlineData(NotificationType.TestAssigned)]
     [InlineData(NotificationType.TestDueReminder)]
+    [InlineData(NotificationType.EmergencyAlarm)]
     public void PingsRecipients_forRecipientCategories_returnsTrue(NotificationType type)
     {
         Assert.True(DiscordRouting.PingsRecipients(type));
@@ -153,6 +159,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.RecordModified)]
     [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.AbsenceFiled)]
+    [InlineData(NotificationType.EmergencyAlarmByAgent)]
     public void PingsRecipients_forNonRoutableTypes_returnsFalse(NotificationType type)
     {
         Assert.False(DiscordRouting.PingsRecipients(type));
@@ -186,6 +193,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.Followup)]
     [InlineData(NotificationType.JobAssigned)]
     [InlineData(NotificationType.JobDueSoon)]
+    [InlineData(NotificationType.EmergencyAlarm)]
     public void PingsRole_forRecipientCategories_returnsFalse(NotificationType type)
     {
         Assert.False(DiscordRouting.PingsRole(type));
@@ -199,6 +207,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.RecordModified)]
     [InlineData(NotificationType.AppointmentScheduled)]
     [InlineData(NotificationType.AbsenceFiled)]
+    [InlineData(NotificationType.EmergencyAlarmByAgent)]
     public void PingsRole_forNonRoutableTypes_returnsFalse(NotificationType type)
     {
         Assert.False(DiscordRouting.PingsRole(type));
@@ -373,6 +382,21 @@ public class DiscordWebhookModelsTests
             Assert.True(DiscordRouting.PingsRole(type));
             Assert.False(DiscordRouting.PingsRecipients(type));
         }
+
+        // an alarm names its recipients, so the panel must not offer a role field for it
+        Assert.DoesNotContain(NotificationType.EmergencyAlarm, DiscordRouting.RoleRoutableTypes);
+    }
+
+    [Fact]
+    public void EmergencyAlarm_pingsExactlyItsRecipientsWhileTheLeadershipNoticeStaysOffTheChannel()
+    {
+        Assert.True(DiscordRouting.IsRoutable(NotificationType.EmergencyAlarm));
+        Assert.True(DiscordRouting.PingsRecipients(NotificationType.EmergencyAlarm));
+        Assert.False(DiscordRouting.PingsRole(NotificationType.EmergencyAlarm));
+        Assert.False(DiscordRouting.PingsNobody(NotificationType.EmergencyAlarm));
+        // the reason for an alarm on an agent's own word is for the leadership bell alone
+        Assert.False(DiscordRouting.IsRoutable(NotificationType.EmergencyAlarmByAgent));
+        Assert.False(DiscordRouting.PingsRecipients(NotificationType.EmergencyAlarmByAgent));
     }
 
     [Fact]

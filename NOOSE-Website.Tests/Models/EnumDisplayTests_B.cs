@@ -36,6 +36,8 @@ public class EnumDisplayTests_B
     [InlineData(NotificationType.PublicTicketCreated, "Neues Ticket")]
     [InlineData(NotificationType.PublicTipCreated, "Neuer Bürgerhinweis")]
     [InlineData(NotificationType.FactionThreatBoard, "Gefahrenlage (Fraktionen)")]
+    [InlineData(NotificationType.EmergencyAlarm, "Einsatzalarm")]
+    [InlineData(NotificationType.EmergencyAlarmByAgent, "Einsatzalarm (Gefahr im Verzug)")]
     public void NotificationTypeName_definedValue_mapsToLabel(NotificationType type, string expected)
         => Assert.Equal(expected, NotificationTypeDisplay.Name(type));
 
