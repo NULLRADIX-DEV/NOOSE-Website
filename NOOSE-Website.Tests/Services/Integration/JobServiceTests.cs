@@ -610,6 +610,99 @@ public sealed class JobServiceTests
             () => svc.AgentAssignAsync("j1", "active", Member("stranger")));
     }
 
+    // ---------- UnitAssignAsync ----------
+
+    [Fact]
+    public async Task UnitAssignAsync_AssignsSelectableMembersOfTheDivision_SkipsAssignedAndOthers()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("cid1", Rank.SpecialAgent, configure: a => a.Division = Division.Cid));
+            // empty home derives to CID
+            db.Users.Add(Seed.Agent("cid2", Rank.Trainee));
+            db.Users.Add(Seed.Agent("cidAssigned", Rank.SpecialAgent, configure: a => a.Division = Division.Cid));
+            db.Users.Add(Seed.Agent("ctd", Rank.SpecialAgent, configure: a => a.Division = Division.Ctd));
+            // board holds its own seat, not its home's
+            db.Users.Add(Seed.Agent("board", Rank.Director, configure: a => a.Division = Division.Cid));
+            db.Users.Add(Seed.Agent("tl", Rank.SpecialAgent, configure: a => { a.Division = Division.Cid; a.IsTeamLead = true; }));
+            db.Users.Add(Seed.Agent("gone", Rank.SpecialAgent, AgentStatus.Terminated, a => a.Division = Division.Cid));
+            db.Jobs.Add(NewJob("j1", "Task", "creator"));
+            db.JobAssignments.Add(new JobAssignment { JobId = "j1", AgentId = "cidAssigned" });
+            db.SaveChanges();
+        }
+        var (svc, notifications) = Build(ctx);
+
+        var added = await svc.UnitAssignAsync("j1", new OrgUnit(Division.Cid, false), Leader("lead"));
+
+        Assert.Equal(2, added);
+        using (var check = ctx.NewContext())
+        {
+            var ids = await check.JobAssignments.Where(z => z.JobId == "j1").Select(z => z.AgentId).ToListAsync();
+            Assert.Equal(new HashSet<string> { "cid1", "cid2", "cidAssigned" }, ids.ToHashSet());
+        }
+        await notifications.Received(1).NotifyManyAsync(
+            Arg.Is<IReadOnlyCollection<string>>(r => r.Count == 2 && r.Contains("cid1") && r.Contains("cid2")),
+            NotificationType.JobAssigned, Arg.Any<string>(), Arg.Any<string>(), "lead", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task UnitAssignAsync_Board_AssignsBoardMembersOnly()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("board", Rank.Director, configure: a => a.Division = Division.Hrt));
+            db.Users.Add(Seed.Agent("hrt", Rank.SpecialAgent, configure: a => a.Division = Division.Hrt));
+            db.Jobs.Add(NewJob("j1", "Task", "creator"));
+            db.SaveChanges();
+        }
+        var (svc, _) = Build(ctx);
+
+        Assert.Equal(1, await svc.UnitAssignAsync("j1", DivisionRules.Board, Leader()));
+
+        using var check = ctx.NewContext();
+        Assert.Equal(new[] { "board" }, await check.JobAssignments.Select(z => z.AgentId).ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task UnitAssignAsync_NothingNew_ReturnsZero_WithoutNotifying()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("ctd", Rank.SpecialAgent, configure: a => a.Division = Division.Ctd));
+            db.Jobs.Add(NewJob("j1", "Task", "creator"));
+            db.JobAssignments.Add(new JobAssignment { JobId = "j1", AgentId = "ctd" });
+            db.SaveChanges();
+        }
+        var (svc, notifications) = Build(ctx);
+
+        Assert.Equal(0, await svc.UnitAssignAsync("j1", new OrgUnit(Division.Ctd, false), Leader()));
+        await notifications.DidNotReceiveWithAnyArgs().NotifyManyAsync(default!, default, default!, default, default, default);
+    }
+
+    [Fact]
+    public async Task UnitAssignAsync_Throws_WhenNotCreatorOrLeadership()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Jobs.Add(NewJob("j1", "Task", "creator"));
+            db.SaveChanges();
+        }
+        var (svc, _) = Build(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => svc.UnitAssignAsync("j1", new OrgUnit(Division.Cid, false), Member("stranger")));
+    }
+
+    [Fact]
+    public void Seats_ListsTheDivisionsThenTheBoard()
+    {
+        Assert.Equal(new[] { "CID", "CTD", "HRT", "Board" }, DivisionRules.Seats.Select(DivisionRules.Label).ToArray());
+    }
+
     // ---------- AgentRemoveAsync ----------
 
     [Fact]

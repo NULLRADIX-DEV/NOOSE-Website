@@ -8,9 +8,18 @@
         <MudText Typo="Typo.subtitle1">Zugewiesene Agents (@_agents.Count)</MudText>
         @if (CanManage)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.GroupAdd" OnClick="AssignAsync">
-                Agent zuweisen
-            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudMenu Label="Einheit zuweisen" Variant="Variant.Outlined" Color="Color.Primary"
+                         StartIcon="@Icons.Material.Filled.Groups" EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
+                    @foreach (var unit in DivisionRules.Seats)
+                    {
+                        <MudMenuItem OnClick="@(() => UnitAssignAsync(unit))">@DivisionRules.LongLabel(unit)</MudMenuItem>
+                    }
+                </MudMenu>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.GroupAdd" OnClick="AssignAsync">
+                    Agent zuweisen
+                </MudButton>
+            </MudStack>
         }
     </MudStack>
 
@@ -84,6 +93,34 @@
         {
             await JobService.AgentAssignAsync(JobId, choice.AgentId, User);
             Snackbar.Add("Agent zugewiesen.", Severity.Success);
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task UnitAssignAsync(OrgUnit unit)
+    {
+        var name = DivisionRules.Label(unit);
+        var ok = await ConfirmDialog.ShowAsync(DialogService, $"{name} zuweisen?",
+            $"Alle heutigen Mitglieder der Einheit {name} werden zugewiesen und benachrichtigt. Wer später dazukommt, ist nicht dabei.",
+            "Zuweisen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            var added = await JobService.UnitAssignAsync(JobId, unit, User);
+            if (added == 0)
+            {
+                Snackbar.Add($"Alle Mitglieder der Einheit {name} sind bereits zugewiesen.", Severity.Info);
+                return;
+            }
+            Snackbar.Add($"{added} {(added == 1 ? "Agent" : "Agents")} der Einheit {name} zugewiesen.", Severity.Success);
             await LoadAsync();
             await Changed.InvokeAsync();
         }
