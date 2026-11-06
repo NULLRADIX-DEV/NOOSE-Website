@@ -2681,3 +2681,46 @@ div.vis-tooltip {
         margin-bottom: 16px !important;
     }
 }
+
+/* App bar and drawer, below 960px.
+   Measured on master at 375x812 with phone emulation: the drawer is position:fixed already (MudBlazor), and on a page
+   without sideways overflow (/dashboard) it stays put. On a page wider than the screen (/personen, 478px) the phone
+   browser widens the layout viewport to 478x1033 while the screen still shows 375x812. Fixed boxes size against the
+   layout viewport, so MudBlazor's height:calc(100% - app bar) made the drawer 981px tall: its lower 221px lay below the
+   screen, rail and panel never had anything to scroll (scrollHeight = clientHeight), and while the finger scrolled,
+   the screen slid down inside the taller layout viewport and took the top of the drawer, the area rail, out of view.
+   Viewport units follow the screen (100dvh = 812 there, 100% = 1033), so the drawer ends at the screen's bottom edge
+   and rail and panel scroll in themselves. The top stays MudBlazor's: it follows the app bar's own height, which is
+   lower than --mud-appbar-height on phones (52.5px upright, 45px on its side). Pages that fit the screen, the goal of
+   the whole phone work, also keep the top of the drawer on screen while scrolling. */
+@media screen and (max-width: 959.98px) {
+    .mud-drawer.mud-drawer-fixed.mud-drawer-responsive.noose-drawer {
+        height: auto;
+        bottom: calc(100% - 100vh);
+        bottom: calc(100% - 100dvh);
+    }
+
+    /* a swipe at the end of the list stays in the drawer instead of scrolling the page behind it */
+    .noose-drawer .noose-nav-rail,
+    .noose-drawer .noose-nav-panel {
+        overscroll-behavior: contain;
+    }
+}
+
+/* App bar on phones: crest, search, bell and the avatar menu; the rest moves into that menu (MainLayout). */
+@media screen and (max-width: 599.98px) {
+    .mud-appbar .noose-appbar-aktionen {
+        gap: 4px;
+    }
+
+    /* the command palette fills the screen, like MudBlazor's own full-screen dialog */
+    .mud-dialog.noose-palette {
+        width: 100%;
+        max-width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+    }
+}

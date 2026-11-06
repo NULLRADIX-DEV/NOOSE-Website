@@ -14,12 +14,17 @@
 
 <MudLayout>
     <MudAppBar Elevation="2">
+        @* One button per width: only the desktop one remembers the drawer state. Below 960px the drawer starts
+           closed and closes after a tap on an entry (MudBlazor's responsive drawer does both), so a phone must not
+           overwrite the state the desktop restores. *@
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                       OnClick="ToggleDrawer" aria-label="Navigation umschalten" />
+                       OnClick="ToggleDrawer" aria-label="Navigation umschalten" Class="noose-schmal-aus" />
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                       OnClick="ToggleDrawerNarrow" aria-label="Navigation umschalten" Class="noose-nur-schmal" />
         @* logo + wordmark are the only way back to the public home *@
         <MudLink Href="/" Underline="Underline.None" Color="Color.Inherit" Class="d-flex align-center mr-3" title="Zur Startseite">
             <MudImage Src="@(_configuration?.HasLogo == true ? "/system/logo" : "FibIcon.png")" Alt="Wappen des FIB" Height="36" Class="mr-3" />
-            <MudText Typo="Typo.h6" Style="font-weight:700;letter-spacing:.12em;">F.I.B.</MudText>
+            <MudText Typo="Typo.h6" Class="noose-mobil-aus" Style="font-weight:700;letter-spacing:.12em;">F.I.B.</MudText>
         </MudLink>
         <MudText Typo="Typo.caption" Class="mud-text-secondary d-none d-md-flex">
             Federal Investigation Bureau
@@ -27,16 +32,17 @@
         <MudSpacer />
         <AuthorizeView>
             <Authorized Context="auth">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                    @* Quick-add new records from the topbar. *@
+                @* phones: 4px between the buttons instead of 12px (noose-appbar-aktionen in app.css) *@
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="noose-appbar-aktionen">
+                    @* Quick-add new records from the topbar; on phones it sits in the avatar menu below. *@
                     <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
-                        <MudTooltip Text="Schnellerfassung – neue Akte anlegen">
+                        <MudTooltip Text="Schnellerfassung – neue Akte anlegen" RootClass="noose-mobil-aus">
                             <MudIconButton Icon="@Icons.Material.Filled.AddCircle" Color="Color.Inherit"
                                            OnClick="QuickAddAsync" aria-label="Schnellerfassung" />
                         </MudTooltip>
                     </AuthorizeView>
                     @* firearm-use quick report, shown to in-house writers only *@
-                    <FirearmUseButton />
+                    <FirearmUseButton Class="noose-mobil-aus" />
                     <MudTextField T="string" @bind-Value="_search" Placeholder="Suchen…" Immediate="true"
                                   Margin="Margin.Dense" Variant="Variant.Outlined"
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
@@ -46,29 +52,50 @@
                                    Class="d-flex d-md-none" aria-label="Suchen und springen" title="Suchen und springen" />
                     <NotificationBell User="auth.User" />
                     <MudLink Href="/profil" Underline="Underline.None" Color="Color.Inherit"
-                             Class="d-flex align-center" title="Mein Profil">
+                             Class="d-flex align-center noose-mobil-aus" title="Mein Profil">
                         <MudStack Spacing="0" AlignItems="AlignItems.End" Class="d-none d-sm-flex mr-3">
                             <MudText Typo="Typo.body2" Style="line-height:1.2;">@DisplayName(auth.User)</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="line-height:1.2;">
                                 @RankRow(auth.User)
                             </MudText>
                         </MudStack>
-                        @if (_avatarUrl is not null)
-                        {
-                            <MudAvatar Size="Size.Medium">
-                                <MudImage Src="@_avatarUrl" Alt="Mein Profilbild" />
-                            </MudAvatar>
-                        }
-                        else
-                        {
-                            <MudAvatar Color="Color.Primary" Size="Size.Medium">@Initial(DisplayName(auth.User))</MudAvatar>
-                        }
+                        @AvatarOf(auth.User)
                     </MudLink>
-                    <form method="post" action="/Account/Logout" onsubmit="if (window.nooseEntwuerfeLoeschen) { window.nooseEntwuerfeLoeschen(); }">
+                    <form method="post" action="/Account/Logout" class="noose-mobil-aus" onsubmit="if (window.nooseEntwuerfeLoeschen) { window.nooseEntwuerfeLoeschen(); }">
                         <AntiforgeryToken />
                         <MudIconButton ButtonType="ButtonType.Submit" Icon="@Icons.Material.Filled.Logout"
                                        Color="Color.Inherit" aria-label="Abmelden" title="Abmelden" />
                     </form>
+                    @* Phones: profile, quick add, firearm use and logout behind the avatar, each behind the same
+                       permission check as its app-bar button above. *@
+                    <MudMenu Class="noose-nur-handy" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                        <ActivatorContent>
+                            <MudIconButton OnClick="@context.ToggleAsync" Class="pa-0" aria-label="Profilmenü" title="Profilmenü">
+                                @AvatarOf(auth.User)
+                            </MudIconButton>
+                        </ActivatorContent>
+                        <ChildContent>
+                            <div class="px-4 py-2">
+                                <MudText Typo="Typo.body2" Style="line-height:1.2;">@DisplayName(auth.User)</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="line-height:1.2;">
+                                    @RankRow(auth.User)
+                                </MudText>
+                            </div>
+                            <MudDivider />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/profil">Mein Profil</MudMenuItem>
+                            <AuthorizeView Policy="@Policies.WriteAccess" Context="schreibMenue">
+                                <MudMenuItem Icon="@Icons.Material.Filled.AddCircle" OnClick="QuickAddAsync">Schnellerfassung</MudMenuItem>
+                            </AuthorizeView>
+                            <FirearmUseButton AsMenuItem="true" />
+                            <MudDivider />
+                            <form method="post" action="/Account/Logout" onsubmit="if (window.nooseEntwuerfeLoeschen) { window.nooseEntwuerfeLoeschen(); }">
+                                <AntiforgeryToken />
+                                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Inherit"
+                                           FullWidth="true" StartIcon="@Icons.Material.Filled.Logout"
+                                           Class="justify-start px-4 py-2">Abmelden</MudButton>
+                            </form>
+                        </ChildContent>
+                    </MudMenu>
                 </MudStack>
             </Authorized>
         </AuthorizeView>
@@ -293,6 +320,24 @@
             _ = NavPrefs.SetDrawerOpenAsync(_agentId, _drawerOpen);
         }
     }
+
+    // below 960px: open or close for this visit only, NavPreferences.DrawerOpen belongs to the desktop
+    private void ToggleDrawerNarrow() => _drawerOpen = !_drawerOpen;
+
+    // the same avatar in the app bar (tablet and desktop) and on the phone's profile menu button
+    private RenderFragment AvatarOf(System.Security.Claims.ClaimsPrincipal user) => __builder =>
+    {
+        if (_avatarUrl is not null)
+        {
+            <MudAvatar Size="Size.Medium">
+                <MudImage Src="@_avatarUrl" Alt="Mein Profilbild" />
+            </MudAvatar>
+        }
+        else
+        {
+            <MudAvatar Color="Color.Primary" Size="Size.Medium">@Initial(DisplayName(user))</MudAvatar>
+        }
+    };
 
     private CommandPalette? _palette;
 

@@ -75,6 +75,28 @@ public sealed class E2EFixture : IAsyncLifetime
         return await context.NewPageAsync();
     }
 
+    /// <summary>
+    /// A fresh context that behaves like a phone browser (mobile viewport rules, touch). Unlike a plain small window,
+    /// a page wider than the screen then widens the layout viewport, which is what fixed elements are laid out
+    /// against on a real phone.
+    /// </summary>
+    public async Task<IPage> NewPhonePageAsync(int width, int height)
+    {
+        if (_browser is null)
+            throw new InvalidOperationException($"{BaseUrlVariable} is not set.");
+        var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = BaseUrl!,
+            ViewportSize = new ViewportSize { Width = width, Height = height },
+            IsMobile = true,
+            HasTouch = true,
+            Locale = "de-DE",
+            TimezoneId = "Europe/Berlin",
+            ReducedMotion = ReducedMotion.Reduce,
+        });
+        return await context.NewPageAsync();
+    }
+
     public async Task DisposeAsync()
     {
         if (_browser is not null)
