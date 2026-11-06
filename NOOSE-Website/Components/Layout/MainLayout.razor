@@ -87,7 +87,7 @@
     </MudDrawer>
 
     <MudMainContent>
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4 py-6">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-3 px-sm-4 py-3 py-md-6">
             @* first thing under the app bar: a call-in outranks every notice *@
             <EmergencyAlarmBanner />
             <AuthorizeView Policy="@Policies.OnlyReadMode" Context="ro">
@@ -164,7 +164,7 @@
         </MudContainer>
 
         @* Legal footer, reachable from anywhere. *@
-        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-4 pb-4 no-print">
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="px-3 px-sm-4 pb-4 no-print">
             <MudDivider Class="mb-2" />
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="2">
                 <MudLink Href="@LegalData.ImprintUrl" Target="_blank" rel="noopener noreferrer"
