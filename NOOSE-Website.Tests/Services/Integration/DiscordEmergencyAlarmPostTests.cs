@@ -101,6 +101,22 @@ public sealed class DiscordEmergencyAlarmPostTests
     }
 
     [Theory]
+    [MemberData(nameof(PersonalTypes))]
+    public async Task APersonalPing_ChannelTextIsTheDirectMessageTextBehindTheMention(NotificationType type)
+    {
+        using var ctx = new SqliteTestContext();
+        var (service, handler) = await HostAsync(ctx, type, includeHeadline: true);
+
+        await service.PushAsync(type, "/aufgaben/1", ["a1"], headline: "Titel, den kein Ping nennt");
+
+        var content = Sent(handler).GetProperty("content").GetString()!;
+        Assert.Equal($"<@{FirstSnowflake}> {DiscordWebhookService.PersonalText(type, DiscordWebhookConfig.DefaultBaseUrl, "/aufgaben/1")}",
+            content);
+    }
+
+    public static TheoryData<NotificationType> PersonalTypes => new(DiscordPings.Personal);
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task TheHeadlineSwitchStillGovernsAnnouncements(bool includeHeadline)

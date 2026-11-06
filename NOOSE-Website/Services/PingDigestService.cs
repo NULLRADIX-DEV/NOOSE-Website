@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
@@ -22,12 +23,15 @@ public interface IPingDigestService
 public sealed class PingDigestService(
     IDbContextFactory<AppDbContext> dbFactory,
     IDiscordWebhookService discord,
+    IDiscordDmService directMessages,
+    IDiscordDmQueue directQueue,
     ILogger<PingDigestService> logger) : IPingDigestService
 {
     // Discord takes 2000 characters and 100 mentions per message; the heading and the link need room
     private const int MaxChars = 1800;
     private const int MaxMentions = 90;
     private const string Heading = "🗞️ **Tagesüberblick** – ungelesen seit dem letzten Überblick:";
+    private const string DirectHeading = "🗞️ Tagesüberblick:";
     private const string InboxRoute = "/benachrichtigungen";
 
     public async Task<int> RunDueAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
@@ -40,7 +44,9 @@ public sealed class PingDigestService(
         }
 
         var listed = 0;
-        if (await ChannelLiveAsync(cancellationToken))
+        var config = await discord.GetConfigAsync(cancellationToken);
+        var direct = await directMessages.PersonalActiveAsync(cancellationToken);
+        if (direct || ChannelLive(config))
         {
             // a day at most, so an outage never sends a stale pile; never what the last digest already counted
             var since = nowUtc.AddDays(-1);
@@ -50,14 +56,13 @@ public sealed class PingDigestService(
             }
 
             var entries = await CollectAsync(db, since, nowUtc, cancellationToken);
-            var delivered = true;
-            foreach (var message in Compose(entries))
+            if (direct)
             {
-                delivered &= await discord.PushDigestAsync(message.Content, message.DiscordIds, InboxRoute, cancellationToken);
+                QueueDirect(entries, config.SiteBaseUrl);
             }
-            if (!delivered)
+            else
             {
-                logger.LogWarning("Ping digest not fully delivered ({Agents} agents listed).", entries.Count);
+                await PostAsync(entries, cancellationToken);
             }
             listed = entries.Count;
         }
@@ -108,14 +113,39 @@ public sealed class PingDigestService(
     }
 
     /// <summary>One mention plus a count per category; category names only, never a title.</summary>
-    public static string Line(PingDigestEntry entry)
-        => $"<@{entry.DiscordId}> "
-            + string.Join(", ", entry.Counts.Select(c => $"{c.Count}× {NotificationTypeDisplay.Name(c.Type)}"));
+    public static string Line(PingDigestEntry entry) => $"<@{entry.DiscordId}> " + Counts(entry);
 
-    private async Task<bool> ChannelLiveAsync(CancellationToken cancellationToken)
+    /// <summary>The direct message: the counts and the inbox link, no mention; the channel line is its fallback.</summary>
+    public static string DirectText(PingDigestEntry entry, string baseUrl)
+        => $"{DirectHeading} {Counts(entry)}\n{DiscordWebhookService.Link(baseUrl, InboxRoute)}";
+
+    private static string Counts(PingDigestEntry entry)
+        => string.Join(", ", entry.Counts.Select(c => $"{c.Count}× {NotificationTypeDisplay.Name(c.Type)}"));
+
+    private static bool ChannelLive(DiscordWebhookConfig config)
+        => config.Enabled && !string.IsNullOrWhiteSpace(config.Webhooks.GetValueOrDefault(NotificationType.PingDigest));
+
+    private async Task PostAsync(IReadOnlyList<PingDigestEntry> entries, CancellationToken cancellationToken)
     {
-        var config = await discord.GetConfigAsync(cancellationToken);
-        return config.Enabled && !string.IsNullOrWhiteSpace(config.Webhooks.GetValueOrDefault(NotificationType.PingDigest));
+        var delivered = true;
+        foreach (var message in Compose(entries))
+        {
+            delivered &= await discord.PushDigestAsync(message.Content, message.DiscordIds, InboxRoute, cancellationToken);
+        }
+        if (!delivered)
+        {
+            logger.LogWarning("Ping digest not fully delivered ({Agents} agents listed).", entries.Count);
+        }
+    }
+
+    // the line is the fallback
+    private void QueueDirect(IReadOnlyList<PingDigestEntry> entries, string baseUrl)
+    {
+        foreach (var entry in entries)
+        {
+            directQueue.Enqueue(new DiscordDmJob(entry.AgentId, entry.DiscordId, DirectText(entry, baseUrl),
+                NotificationType.PingDigest, InboxRoute, Line(entry)));
+        }
     }
 
     /// <summary>Unread notices per agent in the categories that agent collects, created inside the window.</summary>
@@ -178,7 +208,7 @@ public sealed class PingDigestService(
                 .ToList();
             if (mine.Count > 0)
             {
-                entries.Add(new PingDigestEntry(agent.DiscordId, mine));
+                entries.Add(new PingDigestEntry(id, agent.DiscordId, mine));
             }
         }
         return entries;

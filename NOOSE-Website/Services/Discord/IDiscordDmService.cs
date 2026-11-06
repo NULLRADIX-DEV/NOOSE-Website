@@ -22,5 +22,6 @@ public interface IDiscordDmService
     Task<bool> ApplicantsActiveAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Worker, no guard; a closed direct message (50007 or 403) stamps the agent, success clears it, any failure falls back to the channel for agents only. Never throws except on the run's own cancellation; never logs the text.</summary>
+    /// <remarks>Callers enqueue only recipients the channel would have pinged; an ambiguous timeout may deliver both the message and the fallback.</remarks>
     Task DeliverAsync(DiscordDmJob job, CancellationToken cancellationToken = default);
 }

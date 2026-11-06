@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -43,6 +44,13 @@ public sealed class DiscordDmService(
 
     public async Task DeliverAsync(DiscordDmJob job, CancellationToken cancellationToken = default)
     {
+        // never pinged anyway
+        if (job.AgentId == DemoIdentity.AgentId || !DiscordWebhookService.IsSnowflake(job.DiscordId))
+        {
+            logger.LogDebug("Discord direct message for agent {AgentId} skipped: no Discord recipient.", job.AgentId);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(job.Content))
         {
             logger.LogWarning("Discord direct message for agent {AgentId} skipped: no text.", job.AgentId);
@@ -75,7 +83,8 @@ public sealed class DiscordDmService(
     /// <summary>Agents get the message as the channel post they got before; applicants have the portal bell.</summary>
     private async Task FallBackAsync(DiscordDmJob job, CancellationToken cancellationToken)
     {
-        if (job.FallbackType is not { } type)
+        // role pings, no fallback
+        if (job.FallbackType is not { } type || !(DiscordPings.IsPersonal(type) || type == NotificationType.PingDigest))
         {
             return;
         }

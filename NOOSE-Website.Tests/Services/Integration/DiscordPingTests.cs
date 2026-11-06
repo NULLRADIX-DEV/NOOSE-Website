@@ -1,9 +1,11 @@
 using System.Text.Json;
+using System.Threading.Channels;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -25,11 +27,32 @@ public sealed class DiscordPingTests
     // half past six in the evening, Berlin time, whatever zone the test machine runs in
     private static readonly DateTime Evening = MeetingTime.ToUtc(new DateTime(2026, 10, 13, 18, 30, 0));
 
-    private static NotificationService NewService(SqliteTestContext ctx, IDiscordWebhookService discord)
-        => new(ctx.Factory, new NotificationBroadcaster(), discord);
+    private const string FirstSnowflake = "111111111111111111";
+    private const string SecondSnowflake = "222222222222222222";
 
-    private static PingDigestService NewDigest(SqliteTestContext ctx, IDiscordWebhookService discord)
-        => new(ctx.Factory, discord, NullLogger<PingDigestService>.Instance);
+    private sealed class RecordingQueue : IDiscordDmQueue
+    {
+        public List<DiscordDmJob> Jobs { get; } = [];
+
+        public ChannelReader<DiscordDmJob> Reader => throw new NotSupportedException();
+
+        public void Enqueue(DiscordDmJob job) => Jobs.Add(job);
+    }
+
+    private static IDiscordDmService Dm(bool personal)
+    {
+        var dm = Substitute.For<IDiscordDmService>();
+        dm.PersonalActiveAsync(Arg.Any<CancellationToken>()).Returns(personal);
+        return dm;
+    }
+
+    private static NotificationService NewService(SqliteTestContext ctx, IDiscordWebhookService discord,
+        bool direct = false, RecordingQueue? queue = null)
+        => new(ctx.Factory, new NotificationBroadcaster(), discord, Dm(direct), queue ?? new RecordingQueue());
+
+    private static PingDigestService NewDigest(SqliteTestContext ctx, IDiscordWebhookService discord,
+        bool direct = false, RecordingQueue? queue = null)
+        => new(ctx.Factory, discord, Dm(direct), queue ?? new RecordingQueue(), NullLogger<PingDigestService>.Instance);
 
     private static void SeedAgent(SqliteTestContext ctx, string id, string? discordId = null,
         Action<NavPreferences>? prefs = null)
@@ -186,6 +209,151 @@ public sealed class DiscordPingTests
             Arg.Is<IReadOnlyCollection<string>>(c => c.Count == 2), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
+    // ---- the event post as a direct message ---------------------------------
+
+    [Fact]
+    public async Task With_private_pings_on_each_instant_recipient_gets_one_message_and_the_channel_none()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "eins", FirstSnowflake);
+        SeedAgent(ctx, "zwei", SecondSnowflake);
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        await NewService(ctx, discord, direct: true, queue).NotifyManyAsync(["eins", "zwei"],
+            NotificationType.JobAssigned, "Geheimer Aufgabentitel", "/aufgaben/1", triggerId: null);
+
+        // the channel text without the mention, no title, and the channel post as the agent's fallback
+        const string text = "📌 Dir wurde eine Aufgabe zugewiesen.\nhttps://fibhq.com/aufgaben/1";
+        Assert.Equal(
+            [
+                new DiscordDmJob("eins", FirstSnowflake, text, NotificationType.JobAssigned, "/aufgaben/1"),
+                new DiscordDmJob("zwei", SecondSnowflake, text, NotificationType.JobAssigned, "/aufgaben/1"),
+            ],
+            queue.Jobs);
+        await discord.DidNotReceiveWithAnyArgs().PushAsync(default, default, default, default, default);
+        // the bell is unaffected
+        using var db = ctx.NewContext();
+        Assert.Equal(2, db.Notifications.Count(n => n.ReadAt == null));
+    }
+
+    [Fact]
+    public async Task With_private_pings_on_who_collects_or_muted_gets_no_message_either()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "sofort", FirstSnowflake);
+        SeedAgent(ctx, "gesammelt", SecondSnowflake, p => p.DigestPings.Add(nameof(NotificationType.JobAssigned)));
+        SeedAgent(ctx, "nie", "333333333333333333", p => p.MutedPings.Add(nameof(NotificationType.JobAssigned)));
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        await NewService(ctx, discord, direct: true, queue).NotifyManyAsync(["sofort", "gesammelt", "nie"],
+            NotificationType.JobAssigned, "Neue Aufgabe", "/aufgaben/1", triggerId: null);
+
+        Assert.Equal(["sofort"], queue.Jobs.Select(j => j.AgentId));
+        await discord.DidNotReceiveWithAnyArgs().PushAsync(default, default, default, default, default);
+    }
+
+    [Fact]
+    public async Task With_nobody_left_for_a_direct_message_nothing_is_queued_and_nothing_posted()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "gesammelt", FirstSnowflake, p => p.DigestPings.Add(nameof(NotificationType.Followup)));
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        await NewService(ctx, discord, direct: true, queue).NotifyManyAsync(["gesammelt"], NotificationType.Followup,
+            "Wiedervorlage fällig", "/personen/p1", triggerId: null);
+
+        Assert.Empty(queue.Jobs);
+        await discord.DidNotReceiveWithAnyArgs().PushAsync(default, default, default, default, default);
+    }
+
+    [Fact]
+    public async Task Whoever_has_no_discord_id_is_still_pinged_in_the_channel()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "verknuepft", FirstSnowflake);
+        SeedAgent(ctx, "ohne", "");
+        SeedAgent(ctx, DemoIdentity.AgentId, "demo");
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        await NewService(ctx, discord, direct: true, queue).NotifyManyAsync(
+            ["verknuepft", "ohne", DemoIdentity.AgentId], NotificationType.JobAssigned, "Neue Aufgabe", "/aufgaben/1",
+            triggerId: null);
+
+        Assert.Equal(["verknuepft"], queue.Jobs.Select(j => j.AgentId));
+        await discord.Received(1).PushAsync(NotificationType.JobAssigned, "/aufgaben/1",
+            Arg.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(new[] { "ohne", DemoIdentity.AgentId })),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task With_private_pings_off_the_channel_post_is_exactly_as_before()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "eins", FirstSnowflake);
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        await NewService(ctx, discord, direct: false, queue).NotifyManyAsync(["eins"], NotificationType.JobAssigned,
+            "Neue Aufgabe", "/aufgaben/1", triggerId: null);
+
+        Assert.Empty(queue.Jobs);
+        await discord.Received(1).PushAsync(NotificationType.JobAssigned, "/aufgaben/1",
+            Arg.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(new[] { "eins" })), Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_role_category_stays_in_the_channel_whatever_the_switch_says()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "eins", FirstSnowflake);
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        await NewService(ctx, discord, direct: true, queue).NotifyManyAsync(["eins"], NotificationType.Announcement,
+            "Ankündigung", "/brett/1", triggerId: null);
+
+        Assert.Empty(queue.Jobs);
+        await discord.Received(1).PushAsync(NotificationType.Announcement, "/brett/1",
+            Arg.Is<IReadOnlyCollection<string>>(c => c.SequenceEqual(new[] { "eins" })), Arg.Any<string?>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_folded_notice_is_no_new_direct_message()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "eins", FirstSnowflake);
+        var discord = Discord();
+        var queue = new RecordingQueue();
+        var service = NewService(ctx, discord, direct: true, queue);
+
+        await service.NotifyManyOnceAsync(["eins"], NotificationType.Followup, "Wiedervorlage", "/personen/p1", null);
+        await service.NotifyManyOnceAsync(["eins"], NotificationType.Followup, "Wiedervorlage", "/personen/p1", null);
+
+        var job = Assert.Single(queue.Jobs);
+        Assert.Equal("⏰ Eine Wiedervorlage ist fällig.\nhttps://fibhq.com/personen/p1", job.Content);
+        Assert.Equal(NotificationType.Followup, job.FallbackType);
+    }
+
+    [Fact]
+    public void The_text_is_the_notice_and_an_absolute_link_and_never_a_mention()
+    {
+        Assert.Equal("📌 Dir wurde eine Aufgabe zugewiesen.\nhttps://fibhq.com/aufgaben/1",
+            DiscordWebhookService.PersonalText(NotificationType.JobAssigned, "https://fibhq.com/", "/aufgaben/1"));
+        // no record link: the category's own page
+        Assert.Equal("💬 Es gibt eine neue Erwähnung in einer Akte.\nhttps://fibhq.com/dashboard",
+            DiscordWebhookService.PersonalText(NotificationType.Mention, "https://fibhq.com", null));
+        Assert.Equal("⏰ Ein Test wird bald fällig.\nhttps://fibhq.com/tests",
+            DiscordWebhookService.PersonalText(NotificationType.TestDueReminder, "https://fibhq.com", " "));
+        Assert.All(DiscordPings.Personal, type =>
+            Assert.DoesNotContain("<@", DiscordWebhookService.PersonalText(type, "https://fibhq.com", "/x")));
+    }
+
     [Fact]
     public async Task The_profile_keeps_one_choice_per_category_and_refuses_the_others()
     {
@@ -320,10 +488,104 @@ public sealed class DiscordPingTests
     }
 
     [Fact]
+    public async Task With_private_pings_on_the_digest_goes_as_one_message_per_agent_without_the_channel_post()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "a", "111", p =>
+        {
+            p.DigestPings.Add(nameof(NotificationType.JobAssigned));
+            p.DigestPings.Add(nameof(NotificationType.Mention));
+        });
+        SeedAgent(ctx, "b", "222", p => p.DigestPings.Add(nameof(NotificationType.Followup)));
+        SeedAgent(ctx, "sofort", "333");
+        var hourAgo = Evening.AddHours(-1);
+        SeedNotice(ctx, "a", NotificationType.JobAssigned, hourAgo);
+        SeedNotice(ctx, "a", NotificationType.JobAssigned, hourAgo);
+        SeedNotice(ctx, "a", NotificationType.Mention, hourAgo);
+        SeedNotice(ctx, "b", NotificationType.Followup, hourAgo);
+        SeedNotice(ctx, "sofort", NotificationType.JobAssigned, hourAgo);
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        var listed = await NewDigest(ctx, discord, direct: true, queue).RunDueAsync(Evening);
+
+        Assert.Equal(2, listed);
+        // the counts and the inbox link, no mention and no title; the channel line only as the fallback
+        Assert.Equal(
+            [
+                new DiscordDmJob("a", "111", "🗞️ Tagesüberblick: 1× Erwähnung, 2× Aufgabe\nhttps://fibhq.com/benachrichtigungen",
+                    NotificationType.PingDigest, "/benachrichtigungen", "<@111> 1× Erwähnung, 2× Aufgabe"),
+                new DiscordDmJob("b", "222", "🗞️ Tagesüberblick: 1× Wiedervorlage fällig\nhttps://fibhq.com/benachrichtigungen",
+                    NotificationType.PingDigest, "/benachrichtigungen", "<@222> 1× Wiedervorlage fällig"),
+            ],
+            queue.Jobs);
+        Assert.All(queue.Jobs, j =>
+        {
+            Assert.DoesNotContain("<@", j.Content);
+            Assert.DoesNotContain("Geheimer", j.Content);
+        });
+        await discord.DidNotReceiveWithAnyArgs().PushDigestAsync(default!, default!);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    public async Task With_private_pings_on_the_digest_needs_no_channel_and_the_day_is_still_done(bool enabled, bool channel)
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "a", "111", p => p.DigestPings.Add(nameof(NotificationType.JobAssigned)));
+        SeedNotice(ctx, "a", NotificationType.JobAssigned, Evening.AddHours(-1));
+        var discord = Discord(enabled, channel);
+        var queue = new RecordingQueue();
+        var digest = NewDigest(ctx, discord, direct: true, queue);
+
+        Assert.Equal(1, await digest.RunDueAsync(Evening));
+        Assert.Equal(0, await digest.RunDueAsync(Evening.AddHours(1)));
+
+        Assert.Single(queue.Jobs);
+        await discord.DidNotReceiveWithAnyArgs().PushDigestAsync(default!, default!);
+        using var db = ctx.NewContext();
+        Assert.Single(db.SystemSettings, s => s.Key == SystemSettingKeys.PingDigestLastRun);
+    }
+
+    [Fact]
+    public async Task With_private_pings_on_nobody_collecting_queues_nothing_and_stamps_the_day()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "sofort", "333");
+        SeedNotice(ctx, "sofort", NotificationType.JobAssigned, Evening.AddHours(-1));
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        Assert.Equal(0, await NewDigest(ctx, discord, direct: true, queue).RunDueAsync(Evening));
+
+        Assert.Empty(queue.Jobs);
+        using var db = ctx.NewContext();
+        Assert.Single(db.SystemSettings, s => s.Key == SystemSettingKeys.PingDigestLastRun);
+    }
+
+    [Fact]
+    public async Task With_private_pings_off_the_digest_is_exactly_the_channel_post_as_before()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "a", "111", p => p.DigestPings.Add(nameof(NotificationType.JobAssigned)));
+        SeedNotice(ctx, "a", NotificationType.JobAssigned, Evening.AddHours(-1));
+        var discord = Discord();
+        var queue = new RecordingQueue();
+
+        Assert.Equal(1, await NewDigest(ctx, discord, direct: false, queue).RunDueAsync(Evening));
+
+        Assert.Empty(queue.Jobs);
+        await discord.Received(1).PushDigestAsync(Arg.Is<string>(c => c.Contains("<@111> 1× Aufgabe")),
+            Arg.Any<IReadOnlyList<string>>(), "/benachrichtigungen", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public void A_long_digest_is_split_into_messages_discord_accepts()
     {
         var entries = Enumerable.Range(0, 95)
-            .Select(i => new PingDigestEntry($"{100000000000000000 + i}",
+            .Select(i => new PingDigestEntry($"agent-{i}", $"{100000000000000000 + i}",
                 [new PingDigestCount(NotificationType.JobAssigned, 3), new PingDigestCount(NotificationType.Followup, 1)]))
             .ToList();
 

@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -488,6 +489,70 @@ public class DiscordDmServiceTests
         await AssertNoFallbackAsync(f);
         Assert.NotEmpty(f.Log.Lines);
     }
+
+    [Fact]
+    public async Task The_demo_account_is_skipped_without_a_message_a_fallback_or_a_stamp()
+    {
+        using var f = await Fixture.WithAgentAsync(Blocked);
+
+        await f.Service.DeliverAsync(AgentJob() with { AgentId = DemoIdentity.AgentId });
+
+        Assert.Empty(f.Bot.Sent);
+        Assert.Equal(Blocked, await f.StampAsync());
+        await AssertNoFallbackAsync(f);
+        Assert.Contains(f.Log.Lines, line => line.Contains(DemoIdentity.AgentId));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("demo")]
+    [InlineData("discord-a")]
+    [InlineData("2000000000000000x1")]
+    public async Task A_discord_id_that_is_no_snowflake_is_skipped_without_a_message_or_a_fallback(string discordId)
+    {
+        using var f = await Fixture.WithAgentAsync(Blocked);
+        f.Bot.Fault = () => new HttpRequestException("down");
+
+        await f.Service.DeliverAsync(AgentJob() with { DiscordId = discordId });
+        await f.Service.DeliverAsync(DigestJob() with { DiscordId = discordId });
+
+        Assert.Empty(f.Bot.Sent);
+        Assert.Equal(Blocked, await f.StampAsync());
+        await AssertNoFallbackAsync(f);
+    }
+
+    [Theory]
+    [InlineData(NotificationType.Announcement)]
+    [InlineData(NotificationType.EmergencyAlarm)]
+    [InlineData(NotificationType.PersonnelEntry)]
+    [InlineData(NotificationType.InactivityNudge)]
+    public async Task Only_a_personal_category_or_the_digest_falls_back_to_the_channel(NotificationType type)
+    {
+        using var f = await Fixture.WithAgentAsync();
+        f.Bot.Fault = () => new DiscordBotException(403, "Discord 403: x", DiscordBotException.CannotSendToUser);
+
+        await f.Service.DeliverAsync(AgentJob() with { FallbackType = type });
+
+        // the refusal is still recorded, there is just no channel post for a role or notice category
+        Assert.NotNull(await f.StampAsync());
+        await AssertNoFallbackAsync(f);
+    }
+
+    [Theory]
+    [MemberData(nameof(PersonalTypes))]
+    public async Task Every_personal_category_falls_back_to_the_channel(NotificationType type)
+    {
+        using var f = await Fixture.WithAgentAsync();
+        f.Bot.Fault = () => new HttpRequestException("down");
+
+        await f.Service.DeliverAsync(AgentJob() with { FallbackType = type });
+
+        await f.Webhook.Received(1).PushAsync(type, "/aufgaben",
+            Arg.Is<IReadOnlyCollection<string>>(ids => ids.SequenceEqual(new[] { "a" })), null, Arg.Any<CancellationToken>());
+    }
+
+    public static TheoryData<NotificationType> PersonalTypes => new(DiscordPings.Personal);
 
     [Fact]
     public async Task Cancelling_the_run_escapes_without_stamp_or_fallback()

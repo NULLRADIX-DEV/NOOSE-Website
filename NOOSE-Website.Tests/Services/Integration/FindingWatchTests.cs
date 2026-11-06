@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NOOSE_Website.Data.Entities.CounterIntel;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Common;
@@ -36,7 +37,7 @@ public sealed class FindingWatchTests : IDisposable
         _prefs = new NavPreferencesService(_ctx.Factory, new MemoryCache(new MemoryCacheOptions()));
         _rules = new CounterIntelRuleService(_ctx.Factory);
         _watch = Watch(new NotificationService(_ctx.Factory, new NotificationBroadcaster(),
-            Substitute.For<IDiscordWebhookService>()));
+            Substitute.For<IDiscordWebhookService>(), Substitute.For<IDiscordDmService>(), Substitute.For<IDiscordDmQueue>()));
         SeedRoster();
     }
 
