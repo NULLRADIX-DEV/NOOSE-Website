@@ -2805,6 +2805,7 @@ div.vis-tooltip {
    noose-pager-handy         MudDataGridPager/MudTablePager Class: rows-per-page caption and selector hidden below 600px;
                              PageSizeSelector stays true, so desktop keeps it
    noose-datum-paar          flex row or MudGrid of a date and a time field (or from and to): stacked below 600px
+   noose-chip-umbruch        MudChip with a long text (a sentence, a penalty): the text breaks onto more lines below 600px
    Fixed px widths: keep the inline style (desktop, 600 to 959px and paper stay as they are) and add noose-breite-frei
    or noose-min-breite-frei; the !important below beats the inline style on phones only. */
 @media screen and (max-width: 959.98px) {
@@ -3071,5 +3072,42 @@ div.vis-tooltip {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
+    }
+
+    .mud-chip.noose-chip-umbruch {
+        height: auto;
+        min-height: 24px;
+        max-width: 100%;
+    }
+
+    .mud-chip.noose-chip-umbruch .mud-chip-content {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        padding-block: 2px;
+    }
+
+    /* an expansion panel's title may shrink, so a long title wraps instead of pushing the arrow off the screen */
+    .mud-expand-panel-header .mud-expand-panel-text {
+        min-width: 0;
+    }
+
+    /* Glossary bubble: hung from the term it is 14rem wide and runs off the right edge even while hidden, which widens
+       the page. On a phone it sits fixed above the bottom edge across the screen instead, and is not laid out at all
+       until the term is tapped (focus) or hovered. */
+    .dokument-html .glossar::after {
+        display: none;
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        min-width: 0;
+        max-width: none;
+        margin-bottom: 0;
+    }
+
+    .dokument-html .glossar:hover::after,
+    .dokument-html .glossar:focus::after,
+    .dokument-html .glossar:focus-visible::after {
+        display: block;
     }
 }

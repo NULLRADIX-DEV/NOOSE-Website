@@ -102,7 +102,9 @@ else
                                 <MudText Typo="Typo.body1"><b>@law.Paragraph</b> – @law.Title</MudText>
                                 @if (!string.IsNullOrWhiteSpace(law.Sentence))
                                 {
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">@law.Sentence</MudChip>
+                                    @* a long penalty breaks onto more lines on phones instead of pushing the arrow out *@
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                             Class="noose-chip-umbruch">@law.Sentence</MudChip>
                                 }
                             </MudStack>
                         </TitleContent>
