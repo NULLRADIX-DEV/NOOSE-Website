@@ -688,11 +688,13 @@ public static class ChangelogContent
                 + "Antwort steht in der Bewerbung ganz oben bei den Stammdaten.", "Bewerbungen"),
             Neu("3.0.31-discord-rollen", "Dienstgrad, Abteilung und Kennzeichen landen jetzt von selbst als Rollen im "
                 + "Discord, und nach einer Kündigung verschwinden die FIB-Rollen dort wieder.", "Personal"),
-            Neu("3.0.32-pings-privat", "Wenn ein Admin es einschaltet, schreibt dir der Bot Pings zu Erwähnungen, "
+            Besser("3.0.32-favoriten-leiste", "Deine ersten fünf Favoriten stehen jetzt direkt in der linken "
+                + "Leiste unter dem Stern und sind mit einem Klick erreichbar.", "Bedienung"),
+            Neu("3.0.33-pings-privat", "Wenn ein Admin es einschaltet, schreibt dir der Bot Pings zu Erwähnungen, "
                 + "Aufgaben und Wiedervorlagen privat als Direktnachricht, nicht mehr in einem Kanal, den alle sehen. "
                 + "Lässt du Direktnachrichten nicht zu, kommen die Pings weiter im Kanal, und dein Profil sagt dir, "
                 + "woran es liegt.", "Discord"),
-            Neu("3.0.33-bewerber-discord", "Bewerber bekommen jetzt per Discord-Direktnachricht kurz Bescheid, wenn "
+            Neu("3.0.34-bewerber-discord", "Bewerber bekommen jetzt per Discord-Direktnachricht kurz Bescheid, wenn "
                 + "ihre Bewerbung eingegangen ist, ein Test ansteht, eine Nachricht für sie da ist oder sich ihr Stand "
                 + "ändert. Die Nachricht nennt nie einen Namen oder ein Ergebnis; ein Admin schaltet sie ein.",
                 "Bewerbungen"),

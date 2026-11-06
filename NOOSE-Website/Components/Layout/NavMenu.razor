@@ -30,6 +30,17 @@
             </MudTooltip>
         }
 
+        @* the first favorites one click away; the star above still opens the whole list *@
+        @foreach (var fav in RailFavorites)
+        {
+            <MudTooltip Text="@fav.Label" Placement="Placement.Right">
+                <MudIconButton Icon="@fav.Icon" Href="@fav.Route"
+                               Color="@(IsCurrentRoute(fav.Route) ? Color.Primary : Color.Default)"
+                               aria-label="@fav.Label"
+                               aria-current="@(IsCurrentRoute(fav.Route) ? "page" : null)" />
+            </MudTooltip>
+        }
+
         <MudDivider Class="my-1" />
 
         @for (var i = 0; i < _areas.Count; i++)
@@ -250,6 +261,45 @@
             <MudNavLink Href="@fav.Route" Match="NavLinkMatch.Prefix" Icon="@fav.Icon">@fav.Label</MudNavLink>
         }
     };
+
+    /// <summary>How many favorites the rail shows directly, so the areas below stay in reach.</summary>
+    private const int RailFavoriteCount = 5;
+
+    private sealed record RailLink(string Label, string Route, string Icon);
+
+    // the same gates as the favorites panel, decided up front: a favorite the viewer may not open is skipped,
+    // so the next one moves up instead of leaving the rail one short
+    private IEnumerable<RailLink> RailFavorites => _prefs.Favorites
+        .Select(ResolveRailLink)
+        .OfType<RailLink>()
+        .Take(RailFavoriteCount);
+
+    private RailLink? ResolveRailLink(NavFavorite fav)
+    {
+        if (fav.Kind == "record")
+        {
+            return new RailLink(fav.Label, fav.Route, fav.Icon);
+        }
+        if (fav.Kind != "page")
+        {
+            return null;
+        }
+
+        var key = fav.Key ?? string.Empty;
+        if (NavCatalog.ByKey(key) is null && LegacyRoutes.AliasKey(key) is { } alias)
+        {
+            key = alias;
+        }
+        if (NavCatalog.ByKey(key) is { } e)
+        {
+            return _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section)) ? new RailLink(e.Label, e.Route, e.Icon) : null;
+        }
+        return _user?.IsPartner() == true && PartnerTypeAllowed(fav.Key) ? new RailLink(fav.Label, fav.Route, fav.Icon) : null;
+    }
+
+    private bool IsCurrentRoute(string route)
+        => string.Equals("/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/'),
+                         route.Split('?', '#')[0].TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
 
     // filtered before counting, so the rail button and the heading never stand over a list with nothing in it;
     // the same per-circuit policy snapshot gates the drawer's own entries

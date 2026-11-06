@@ -261,7 +261,7 @@ public class DiscordRoleSyncServiceTests
         await f.AddAgentAsync("a", UserA);
         f.Bot.Members[UserA] = [BaseRole, SpecialAgentRole, CidRole];
 
-        await f.Service.SyncAgentAsync("a", "Tagesabgleich");
+        await f.Service.SyncAgentAsync("a", "Regelabgleich");
 
         Assert.Empty(f.Bot.Writes);
         Assert.NotNull((await f.ReadAsync("a")).DiscordRolesSyncAt);
@@ -280,7 +280,7 @@ public class DiscordRoleSyncServiceTests
 
         await f.Service.SyncAgentAsync("a", "Beförderung");
         await f.Service.SyncDeletedAsync(UserB, isTeamLead: false);
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         Assert.Empty(f.Bot.Calls);
         var agent = await f.ReadAsync("a");
@@ -350,7 +350,7 @@ public class DiscordRoleSyncServiceTests
         await f.AddAgentAsync("a", UserA, status: AgentStatus.Pending);
         await f.SetStampAsync("a", null, "Bot darf die Rolle nicht ändern (403)");
 
-        await f.Service.SyncAgentAsync("a", "Tagesabgleich");
+        await f.Service.SyncAgentAsync("a", "Regelabgleich");
 
         Assert.Null((await f.ReadAsync("a")).DiscordRolesSyncError);
         Assert.Empty(f.Bot.Calls);
@@ -369,7 +369,7 @@ public class DiscordRoleSyncServiceTests
         f.Bot.Fault = (op, user) => op == "add" && user == UserA
             ? new DiscordBotException(403, "Discord 403: Missing Permissions") : null;
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         var first = await f.ReadAsync("a");
         Assert.Contains("403", first.DiscordRolesSyncError);
@@ -408,7 +408,7 @@ public class DiscordRoleSyncServiceTests
         f.Bot.Members[UserB] = [];
         f.Bot.Fault = (op, user) => op == "get" && user == UserA ? Failure(kind) : null;
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         var first = await f.ReadAsync("a");
         Assert.False(string.IsNullOrWhiteSpace(first.DiscordRolesSyncError));
@@ -623,7 +623,7 @@ public class DiscordRoleSyncServiceTests
         f.Bot.Members[UserA] = [];
         var before = DateTime.UtcNow.AddSeconds(-1);
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         var status = await f.Service.GetStatusAsync(Admin());
         Assert.NotNull(status.LastRunUtc);
@@ -635,7 +635,7 @@ public class DiscordRoleSyncServiceTests
     public async Task A_second_run_moves_the_last_run_stamp()
     {
         using var f = await Fixture.CreateAsync();
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
         var longAgo = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         await using (var db = f.Ctx.NewContext())
         {
@@ -644,7 +644,7 @@ public class DiscordRoleSyncServiceTests
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.Value, stamp));
         }
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         Assert.True((await f.Service.GetStatusAsync(Admin())).LastRunUtc > longAgo);
     }
@@ -665,7 +665,7 @@ public class DiscordRoleSyncServiceTests
             }
         };
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         Assert.DoesNotContain(f.Bot.Calls, c => c.Contains(UserB));
         Assert.Empty(f.Bot.Members[UserB]);
@@ -694,7 +694,7 @@ public class DiscordRoleSyncServiceTests
             }
         };
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         Assert.Contains(newRole, f.Bot.Members[UserB]);
         Assert.DoesNotContain(SpecialAgentRole, f.Bot.Members[UserB]);
@@ -716,7 +716,7 @@ public class DiscordRoleSyncServiceTests
             }
         };
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         Assert.Contains(AssistantDirectorRole, f.Bot.Members[UserB]);
         Assert.DoesNotContain(SpecialAgentRole, f.Bot.Members[UserB]);
@@ -731,7 +731,7 @@ public class DiscordRoleSyncServiceTests
         await f.AddAgentAsync("pending", UserB, status: AgentStatus.Pending);
         f.Bot.Members[UserA] = [];
 
-        await f.Service.SyncAllAsync("Tagesabgleich");
+        await f.Service.SyncAllAsync("Regelabgleich");
 
         Assert.DoesNotContain(f.Bot.Calls, c => c.Contains(UserB));
         Assert.Equal(1, f.Bot.Calls.Count(c => c.StartsWith("get:")));
@@ -749,7 +749,7 @@ public class DiscordRoleSyncServiceTests
             return new OperationCanceledException(cts.Token);
         };
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => f.Service.SyncAllAsync("Tagesabgleich", cts.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => f.Service.SyncAllAsync("Regelabgleich", cts.Token));
 
         Assert.Null((await f.Service.GetStatusAsync(Admin())).LastRunUtc);
     }

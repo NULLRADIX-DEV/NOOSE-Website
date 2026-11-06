@@ -2,14 +2,14 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Infrastructure.Discord;
 
-/// <summary>Works off the role sync queue one job at a time, and queues the full run once a day.</summary>
+/// <summary>Works off the role sync queue one job at a time, and queues the full run every five minutes.</summary>
 public sealed class DiscordRoleSyncWorker(
     IDiscordRoleSyncQueue queue,
     IServiceScopeFactory scopeFactory,
     ILogger<DiscordRoleSyncWorker> logger) : BackgroundService
 {
-    private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(10);
-    private static readonly TimeSpan Interval = TimeSpan.FromHours(24);
+    private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
         => Task.WhenAll(ConsumeAsync(stoppingToken), ScheduleAsync(stoppingToken));
@@ -34,6 +34,10 @@ public sealed class DiscordRoleSyncWorker(
     {
         try
         {
+            if (job is AllJob)
+            {
+                queue.MarkFullRunStarted();
+            }
             using var scope = scopeFactory.CreateScope();
             var sync = scope.ServiceProvider.GetRequiredService<IDiscordRoleSyncService>();
             await (job switch
@@ -68,7 +72,7 @@ public sealed class DiscordRoleSyncWorker(
         using var timer = new PeriodicTimer(Interval);
         do
         {
-            queue.EnqueueAll(DiscordRoleSyncReason.Daily);
+            queue.EnqueueAll(DiscordRoleSyncReason.Scheduled);
         }
         while (await SafeWaitAsync(timer, stoppingToken));
     }
