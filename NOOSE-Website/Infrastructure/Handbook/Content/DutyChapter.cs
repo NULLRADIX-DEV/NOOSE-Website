@@ -244,6 +244,16 @@ internal static class DutyChapter
                 andere Rundrufe pingen eine ganze Rolle; die schaltest du in Discord selbst stumm. Bittet dich die
                 Führung um eine Rückmeldung, weil sie lange nichts von dir gesehen hat, pingt das immer sofort -
                 abgemeldet bekommst du diese Bitte gar nicht erst.</p>
+                <p>Schaltet ein Admin <em>Persönliche Pings privat zustellen</em> ein, kommen diese persönlichen Pings
+                nicht mehr als Erwähnung in einem Kanal, den alle sehen, sondern als <strong>Direktnachricht vom
+                Bot</strong> - dem Konto, mit dem die Seite in Discord schreibt. Es ist derselbe kurze Satz mit Link,
+                nie der Titel einer Akte. Deine Wahl <em>Sofort</em>, <em>Gesammelt</em> oder <em>Nie</em> gilt davor
+                unverändert, und der Tagesüberblick kommt dann ebenfalls als Direktnachricht. Rundrufe an eine Rolle
+                bleiben im Kanal.</p>
+                <p>Dafür muss Discord dem Bot erlauben, dir zu schreiben. Hast du in den Privatsphäre-Einstellungen des
+                Servers Direktnachrichten gesperrt, fällt der Ping nur für dich auf den Kanal zurück, und dein Profil
+                sagt dir, dass Discord keine Direktnachrichten zulässt. Erlaubst du sie wieder, kommt der nächste Ping
+                wieder privat.</p>
                 """,
                 NavKey: "benachrichtigungen",
                 Steps:

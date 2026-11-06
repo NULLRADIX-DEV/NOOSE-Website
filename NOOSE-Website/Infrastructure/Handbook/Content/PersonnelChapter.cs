@@ -332,6 +332,14 @@ internal static class PersonnelChapter
                 <p>Ganz oben in den Stammdaten steht, ob der Bewerber einem <strong>Stream</strong> seiner Bewerbung
                 zugestimmt hat. Steht dort <em>Nicht streamen</em>, bleibt die Bearbeitung, auch das Gespräch, aus dem
                 Stream heraus. Ältere Bewerbungen zeigen <em>keine Angabe</em>; dann fragst du im Schriftwechsel nach.</p>
+                <p>Ist <em>Bewerber per Direktnachricht informieren</em> eingeschaltet (<em>Einstellungen →
+                Discord-Direktnachrichten</em>), schreibt der Bot dem Bewerber kurz in Discord: wenn seine Bewerbung
+                eingegangen ist, ein Test freigegeben wurde oder abgelaufen ist, eine neue Nachricht da ist und wenn es
+                einen neuen Stand gibt. Jede Nachricht ist ein fester Satz mit Link ins Portal. Sie nennt nie einen Namen,
+                einen Dienstgrad, ein Ergebnis oder einen Grund, und der neue Stand sagt nicht, welcher es ist.
+                Der Schritt vom Test zum Vorstellungsgespräch löst keine Nachricht aus, denn der Bewerber sieht beide
+                als eine Stufe. Hat er Direktnachrichten gesperrt, bleibt ihm die Glocke im Portal; im Kanal taucht
+                nichts dafür auf.</p>
                 """,
                 DiagramKey: "bewerbung-ablauf",
                 NavKey: "bewerbungen",
