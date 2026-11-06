@@ -1,14 +1,24 @@
-@* Toolbar action that opens the partner-release dialog; place inside a WriteAccess AuthorizeView. *@
+@* Toolbar action that opens the partner-release dialog; place inside a WriteAccess AuthorizeView, the menu entry
+   (AsMenuItem) inside the same one. *@
 @inject IDialogService DialogService
 
-<MudTooltip Text="Partner-Freigabe verwalten oder beantragen">
-    <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Share"
-               OnClick="OpenAsync">Partner-Freigabe</MudButton>
-</MudTooltip>
+@if (AsMenuItem)
+{
+    <MudMenuItem Icon="@Icons.Material.Filled.Share" OnClick="OpenAsync">Partner-Freigabe</MudMenuItem>
+}
+else
+{
+    <MudTooltip Text="Partner-Freigabe verwalten oder beantragen">
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Share"
+                   OnClick="OpenAsync">Partner-Freigabe</MudButton>
+    </MudTooltip>
+}
 
 @code {
     [Parameter, EditorRequired] public string EntityType { get; set; } = default!;
     [Parameter, EditorRequired] public string EntityId { get; set; } = default!;
+    /// <summary>Renders the action as a menu entry (the ⋮ menu of a narrow page header), behind the same check.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
 
     private Task OpenAsync() => PartnerShareDialog.ShowAsync(DialogService, EntityType, EntityId);
 }

@@ -3,7 +3,13 @@
 @inject ISnackbar Snackbar
 
 @* leadership and the read-only supervision: a whole record as a file goes no wider than the classified read *@
-@if (_mayExport)
+@if (_mayExport && AsMenuItem)
+{
+    <MudMenuItem Icon="@Icons.Material.Filled.FileDownload" OnClick="ExportAsync" Disabled="_busy">
+        Dossier herunterladen
+    </MudMenuItem>
+}
+else if (_mayExport)
 {
     <MudTooltip Text="Dossier (.md) – die ganze Akte als Datei herunterladen">
         <MudIconButton Icon="@Icons.Material.Filled.FileDownload" Color="Color.Default"
@@ -14,6 +20,8 @@
 @code {
     [Parameter, EditorRequired] public string EntityType { get; set; } = default!;
     [Parameter, EditorRequired] public string EntityId { get; set; } = default!;
+    /// <summary>Renders the action as a menu entry (the ⋮ menu of a narrow page header), behind the same check.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _mayExport;

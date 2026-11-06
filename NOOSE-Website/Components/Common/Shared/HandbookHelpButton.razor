@@ -9,19 +9,31 @@
 {
     @* internal only: /handbuch carries no Authorize of its own, so a partner would follow a working link *@
     <AuthorizeView Policy="@Policies.InternalAgent" Context="hilfe">
-        <MudTooltip Text="@($"Handbuch: {_article.Title}")">
-            <MudIconButton Icon="@Icons.Material.Filled.HelpOutline"
-                           Size="Size.Small"
-                           Color="Color.Default"
-                           Href="@($"/handbuch/{_article.Slug}")"
-                           aria-label="@($"Hilfe zu dieser Seite: {_article.Title}")" />
-        </MudTooltip>
+        @if (AsMenuItem)
+        {
+            <MudMenuItem Icon="@Icons.Material.Filled.HelpOutline" Href="@($"/handbuch/{_article.Slug}")">
+                Hilfe: @_article.Title
+            </MudMenuItem>
+        }
+        else
+        {
+            <MudTooltip Text="@($"Handbuch: {_article.Title}")">
+                <MudIconButton Icon="@Icons.Material.Filled.HelpOutline"
+                               Size="Size.Small"
+                               Color="Color.Default"
+                               Href="@($"/handbuch/{_article.Slug}")"
+                               aria-label="@($"Hilfe zu dieser Seite: {_article.Title}")" />
+            </MudTooltip>
+        }
     </AuthorizeView>
 }
 
 @code {
     /// <summary>Overrides the route lookup; set it where the resolved menu entry is the wrong answer.</summary>
     [Parameter] public string? NavKey { get; set; }
+
+    /// <summary>Renders the action as a menu entry (the ⋮ menu of a narrow page header), behind the same check.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
 
     private HandbookArticleCard? _article;
     private string? _loadedKey;

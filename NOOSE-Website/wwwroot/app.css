@@ -2724,3 +2724,50 @@ div.vis-tooltip {
         border-radius: 0;
     }
 }
+
+/* Page header below 960px (PageHeader, HeaderMenu): the row wraps instead of pushing the page wider than the screen,
+   the secondary actions sit in the ⋮ menu. On statically rendered pages that menu is a native <details>, laid out here
+   like MudBlazor's own popover list; interactive pages use MudMenu and need nothing from this block. */
+@media screen and (max-width: 959.98px) {
+    .noose-kopf-umbruch {
+        flex-wrap: wrap;
+    }
+
+    details.noose-kopfmenue {
+        position: relative;
+    }
+
+    details.noose-kopfmenue > summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        line-height: 1;
+        color: var(--mud-palette-action-default);
+        user-select: none;
+    }
+
+    details.noose-kopfmenue > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details.noose-kopfmenue > summary:hover,
+    details.noose-kopfmenue[open] > summary {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    details.noose-kopfmenue > .noose-kopfmenue-liste {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: var(--mud-zindex-popover);
+        min-width: 200px;
+        max-width: calc(100vw - 2 * var(--noose-gutter));
+        padding: 8px 0;
+    }
+}

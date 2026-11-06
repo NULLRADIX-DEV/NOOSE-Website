@@ -10,7 +10,7 @@
 
 <PageHeader Icon="@Icons.Material.Filled.Badge" Title="Personen-Akten"
             Subtitle="Zentrale Personenakten des Nachrichtendienstes. Klicke eine Akte an, um Steckbrief, Doks, Einstufung, Fotos und Historie zu sehen.">
-    <Actions>
+    <MoreActions>
         <SavedViewButton BaseRoute="/personen" Filters="FilterState" OnApply="ApplyViewAsync" />
         <ListExportButton T="PersonRow" RecordType="@nameof(Person)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
         <AuthorizeView Policy="@Policies.Leadership">
@@ -18,6 +18,16 @@
                        OnClick="MergeAsync">Zusammenführen</MudButton>
             <MudButton Href="/papierkorb?tab=personen" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
         </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <SavedViewButton AsMenuItem="true" BaseRoute="/personen" Filters="FilterState" OnApply="ApplyViewAsync" />
+        <ListExportButton AsMenuItem="true" T="PersonRow" RecordType="@nameof(Person)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.CallMerge" OnClick="MergeAsync">Zusammenführen</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=personen">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
         <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
             <MudButton Href="/personen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd">Neue Person</MudButton>
         </AuthorizeView>

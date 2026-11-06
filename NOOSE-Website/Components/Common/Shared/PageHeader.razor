@@ -1,6 +1,10 @@
-@* Shared page header: icon, title, actions row and an optional explanatory line. *@
+@* Shared page header: icon, title, actions row and an optional explanatory line.
+   From 960px up it renders as it always did: every action in one row. Below 960px the row may wrap
+   (noose-kopf-umbruch), the secondary actions (MoreActions) give way to a ⋮ menu holding the same actions as menu
+   entries (MoreActionsMenu), and below 600px the large icon goes. The switch is CSS only, both variants are in the
+   markup, so the first paint already shows the narrow header. *@
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 noose-kopf-umbruch">
     @if (!string.IsNullOrEmpty(BackHref))
     {
         <MudTooltip Text="@BackText">
@@ -9,7 +13,7 @@
     }
     @if (!string.IsNullOrEmpty(Icon))
     {
-        <MudIcon Icon="@Icon" Color="@IconColour" Size="Size.Large" />
+        <MudIcon Icon="@Icon" Color="@IconColour" Size="Size.Large" Class="noose-mobil-aus" />
     }
     <MudText Typo="Typo.h4">@Title</MudText>
     @if (ShowHelp)
@@ -18,7 +22,20 @@
         <HandbookHelpButton NavKey="@HelpNavKey" />
     }
     <MudSpacer />
-    @Actions
+    @if (MoreActionsLast)
+    {
+        @Actions
+        @SecondaryRow
+    }
+    else
+    {
+        @SecondaryRow
+        @Actions
+    }
+    @if (MoreActionsMenu is not null)
+    {
+        <HeaderMenu>@MoreActionsMenu</HeaderMenu>
+    }
 </MudStack>
 
 @if (SubtitleContent is not null)
@@ -47,7 +64,25 @@ else
 
     [Parameter] public string? BackHref { get; set; }
     [Parameter] public string BackText { get; set; } = "Zurück";
+
+    /// <summary>The main action (usually "Neu …" or "Bearbeiten"); it stays in the row at every width.</summary>
     [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>Secondary actions (views, CSV, bin, follow, share, print …): buttons from 960px up, hidden below.</summary>
+    /// <remarks>Requires <see cref="MoreActionsMenu"/>: below 960px these actions exist only there.</remarks>
+    [Parameter] public RenderFragment? MoreActions { get; set; }
+
+    /// <summary>
+    /// The same actions as <see cref="MoreActions"/> as menu entries (<c>MudMenuItem</c>, header buttons with
+    /// <c>AsMenuItem</c>) for the ⋮ menu below 960px, each behind the same <c>AuthorizeView</c> as its button.
+    /// </summary>
+    [Parameter] public RenderFragment? MoreActionsMenu { get; set; }
+
+    /// <summary>
+    /// Puts the secondary buttons after the main action on wide screens. The default keeps the list layout, where the
+    /// "Neu …" button sits at the right edge after the secondary ones.
+    /// </summary>
+    [Parameter] public bool MoreActionsLast { get; set; }
 
     /// <summary>Set false where the handbook link would point at the page the reader is already on.</summary>
     [Parameter] public bool ShowHelp { get; set; } = true;
@@ -59,4 +94,23 @@ else
     /// name a key here where it is not.
     /// </remarks>
     [Parameter] public string? HelpNavKey { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (MoreActions is not null && MoreActionsMenu is null)
+        {
+            // below 960px the buttons are hidden: without their menu entries the actions would be gone on phones
+            throw new InvalidOperationException($"{nameof(PageHeader)} \"{Title}\": {nameof(MoreActions)} needs {nameof(MoreActionsMenu)}.");
+        }
+    }
+
+    // d-contents: the wrapper adds no box, so from 960px up the buttons are items of the row exactly as before
+    // (same gap, no extra gap when every button inside is withheld); below 960px noose-schmal-aus removes them.
+    private RenderFragment SecondaryRow => __builder =>
+    {
+        if (MoreActions is not null)
+        {
+            <div class="d-contents noose-schmal-aus">@MoreActions</div>
+        }
+    };
 }
