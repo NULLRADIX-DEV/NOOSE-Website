@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="NOOSE-Website.E2E/NOOSE-Website.E2E.csproj" />
   <Project Path="NOOSE-Website.Tests/NOOSE-Website.Tests.csproj" />
   <Project Path="NOOSE-Website/NOOSE-Website.csproj" />
 </Solution>
