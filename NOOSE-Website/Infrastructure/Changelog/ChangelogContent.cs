@@ -688,6 +688,8 @@ public static class ChangelogContent
                 + "Antwort steht in der Bewerbung ganz oben bei den Stammdaten.", "Bewerbungen"),
             Neu("3.0.31-discord-rollen", "Dienstgrad, Abteilung und Kennzeichen landen jetzt von selbst als Rollen im "
                 + "Discord, und nach einer Kündigung verschwinden die FIB-Rollen dort wieder.", "Personal"),
+            Besser("3.0.32-favoriten-leiste", "Deine ersten fünf Favoriten stehen jetzt direkt in der linken "
+                + "Leiste unter dem Stern und sind mit einem Klick erreichbar.", "Bedienung"),
         ]),
     ];
 }
