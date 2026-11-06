@@ -7,11 +7,11 @@
 @inject IPartnerShareService PartnerShareService
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Quellen &amp; Anhänge (@_sources.Count)</MudText>
         @if (_mayWrite)
         {
-            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="noose-kopf-umbruch">
                 <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadImagesAsync"
                                Accept="image/*" MaximumFileCount="20">
                     <CustomContent>
@@ -49,8 +49,8 @@
         @foreach (var q in _sources)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex-wrap:wrap;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex-wrap:wrap;" Class="noose-eintrag-titel">
                         <MudIcon Icon="@TypeIcon(q.Type)" Color="Color.Primary" Size="Size.Small" />
                         <MudText Typo="Typo.body2"><b>@q.Title</b></MudText>
                         @if (q.Pinned)
@@ -65,7 +65,7 @@
                     </MudStack>
                     @if (_mayWrite)
                     {
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0" Class="noose-mobil-aus">
                             <PartnerChildShareButton Show="@(_canShareChildren && !q.IsInternalOnly)" ChildType="@nameof(Source)" ChildId="@q.Id" />
                             <MudIconButton Size="Size.Small"
                                            Icon="@(q.Pinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
@@ -75,6 +75,16 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                            OnClick="@(() => RemoveAsync(q))" aria-label="Quelle löschen" />
                         </MudStack>
+                        @* the same actions, still inside the _mayWrite check, as a ⋮ menu below 600px *@
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                                 AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                            <PartnerChildShareButton Show="@(_canShareChildren && !q.IsInternalOnly)" ChildType="@nameof(Source)" ChildId="@q.Id" AsMenuItem="true" />
+                            <MudMenuItem Icon="@(q.Pinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
+                                         OnClick="@(() => PinToggleAsync(q))">@(q.Pinned ? "Quelle lösen" : "Quelle anpinnen")</MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                         OnClick="@(() => RemoveAsync(q))">Quelle löschen</MudMenuItem>
+                        </MudMenu>
                     }
                 </MudStack>
 

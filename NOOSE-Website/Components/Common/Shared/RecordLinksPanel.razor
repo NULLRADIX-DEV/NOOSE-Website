@@ -4,7 +4,7 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@_list.Count)</MudText>
         @if (_mayWrite)
         {
@@ -36,8 +36,8 @@
                 @foreach (var v in group)
                 {
                     <MudPaper Class="pa-3 mb-2" Elevation="1">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap noose-eintrag-titel">
                                 @if (v.Href is not null)
                                 {
                                     <MudLink Href="@v.Href" Typo="Typo.body2"><b>@v.OtherDesignation</b></MudLink>

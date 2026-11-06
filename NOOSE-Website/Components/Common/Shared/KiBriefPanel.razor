@@ -145,7 +145,7 @@ else if (_view.Brief is { } brief)
                         @foreach (var step in brief.Verlauf)
                         {
                             <tr>
-                                <td style="width:22%;white-space:nowrap;" class="mud-text-secondary">
+                                <td style="width:22%;white-space:nowrap;" class="mud-text-secondary ki-brief-wann">
                                     @(string.IsNullOrWhiteSpace(step.Wann) ? "—" : step.Wann)
                                 </td>
                                 <td>@step.Was</td>

@@ -18,7 +18,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pt-4"
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pt-4" Class="noose-reiter-handy"
                  ActivePanelIndex="_tab" ActivePanelIndexChanged="TabChangedAsync">
 
             <MudTabPanel Text="Neue Akte" Icon="@Icons.Material.Filled.NoteAdd">
@@ -52,12 +52,13 @@
                 <MudStack Spacing="3">
                     <MudTextField @bind-Value="_activityTitle" Label="Titel" Variant="Variant.Outlined"
                                   Immediate="true" MaxLength="200" Placeholder="z. B. Bankraub – Bloc13" />
-                    <MudStack Row="true" Spacing="2">
+                    @* type, date and time side by side; below 600px each takes its own line *@
+                    <MudStack Row="true" Spacing="2" Class="noose-eintrag">
                         <MudAutocomplete T="string" @bind-Value="_activityKind" Label="Typ" Variant="Variant.Outlined"
                                          SearchFunc="SearchKinds" CoerceValue="true" Clearable="true"
-                                         MinCharacters="0" Immediate="true" Class="flex-grow-1" />
-                        <MudDatePicker @bind-Date="_activityDate" Label="Datum" Variant="Variant.Outlined" />
-                        <MudTimePicker @bind-Time="_activityTime" Label="Uhrzeit" Variant="Variant.Outlined" AmPm="false" />
+                                         MinCharacters="0" Immediate="true" Class="flex-grow-1 noose-breite-frei" />
+                        <MudDatePicker @bind-Date="_activityDate" Label="Datum" Variant="Variant.Outlined" Class="noose-breite-frei" />
+                        <MudTimePicker @bind-Time="_activityTime" Label="Uhrzeit" Variant="Variant.Outlined" AmPm="false" Class="noose-breite-frei" />
                     </MudStack>
                     <QuickRecordPicker Allowed="QuickCapture.ActivityTargets" @bind-Value="_activityOrg"
                                        Label="Fraktion oder Gruppe (optional)" Placeholder="Suchen …"

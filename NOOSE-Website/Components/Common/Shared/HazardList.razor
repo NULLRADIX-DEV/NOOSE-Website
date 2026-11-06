@@ -15,7 +15,7 @@ else
             {
                 <MudListItem T="string" OnClick="@(() => Open(item.Href))" Style="cursor:pointer;">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag-titel">
                             <span style="@Dot(item.Level)"></span>
                             <div>
                                 <MudText Typo="Typo.body2"><b>@item.Name</b></MudText>

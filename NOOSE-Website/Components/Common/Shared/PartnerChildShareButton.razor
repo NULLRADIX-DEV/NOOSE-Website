@@ -1,7 +1,11 @@
 @* Per-item partner release; render only when Show is set (leadership + the record has a shell release). *@
 @inject IDialogService DialogService
 
-@if (Show)
+@if (Show && AsMenuItem)
+{
+    <MudMenuItem Icon="@Icons.Material.Filled.Share" OnClick="OpenAsync">Einzeln für Partner freigeben</MudMenuItem>
+}
+else if (Show)
 {
     <MudTooltip Text="Diesen Eintrag einzeln für Partner freigeben">
         <MudIconButton Icon="@Icons.Material.Filled.Share" Size="Size.Small" Color="Color.Default"
@@ -15,6 +19,9 @@
 
     // gate set by the host panel: true only for leadership when a shell release exists
     [Parameter] public bool Show { get; set; }
+
+    /// <summary>Renders a menu entry for an entry row's ⋮ menu on phones instead of the icon button.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
 
     private Task OpenAsync() => PartnerChildShareDialog.ShowAsync(DialogService, ChildType, ChildId);
 }

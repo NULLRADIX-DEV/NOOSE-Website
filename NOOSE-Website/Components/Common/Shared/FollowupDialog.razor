@@ -3,7 +3,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudStack Spacing="3" Style="min-width:380px;">
+        <MudStack Spacing="3" Style="min-width:380px;" Class="noose-min-breite-frei">
             @* the sign-offs are read for the due date, so moving it has to move them too *@
             <MudDatePicker @bind-Date="_due" @bind-Date:after="ReloadAbsencesAsync" Label="Fällig am" Editable="true"
                            Variant="Variant.Outlined" DateFormat="dd.MM.yyyy"
