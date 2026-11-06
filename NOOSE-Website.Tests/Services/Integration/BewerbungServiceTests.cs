@@ -32,7 +32,8 @@ public sealed class BewerbungServiceTests
         broadcaster.Modified += id => reported.Add(id);
         var applicationCases = Substitute.For<IApplicationCaseService>();
         var logger = Substitute.For<ILogger<BewerbungService>>();
-        var svc = new BewerbungService(ctx.Factory, caseNo, storage, broadcaster, sperren, notifications, applicationCases, logger);
+        var svc = new BewerbungService(ctx.Factory, caseNo, storage, broadcaster, sperren, notifications, Substitute.For<IApplicantDmNotifier>(),
+            FakeDiscordMembership.Always(DiscordMembership.Unknown), Substitute.For<IDiscordDmService>(), applicationCases, logger);
         return (svc, storage, sperren, notifications, broadcaster, reported);
     }
 
@@ -396,7 +397,9 @@ public sealed class BewerbungServiceTests
         var applicationCases = Substitute.For<IApplicationCaseService>();
         var svc = new BewerbungService(ctx.Factory, caseNo, Substitute.For<ISourcesStorageService>(),
             new BewerbungBroadcaster(), Substitute.For<IBewerbungssperreService>(),
-            Substitute.For<INotificationService>(), applicationCases, Substitute.For<ILogger<BewerbungService>>());
+            Substitute.For<INotificationService>(), Substitute.For<IApplicantDmNotifier>(),
+            FakeDiscordMembership.Always(DiscordMembership.Unknown), Substitute.For<IDiscordDmService>(), applicationCases,
+            Substitute.For<ILogger<BewerbungService>>());
         return (svc, applicationCases);
     }
 

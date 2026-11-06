@@ -147,7 +147,7 @@ internal static class GettingStartedChapter
                 Ehrenzeichen.</li>
                 <li><em>Textbausteine</em> - Sätze, die du mit einem Schrägstrich abrufst.</li>
                 <li><em>Meine Benachrichtigungen</em> - was die Glocke klingeln lässt und wann Discord dich
-                anpingt.</li>
+                anpingt, im Kanal oder privat.</li>
                 <li><em>Kalender-Abo</em> - deine Termine als privater Link für das Handy.</li>
                 <li><em>Öffentliche Mitarbeiterliste</em> - ob du mit Klarnamen auf der öffentlichen Seite
                 <em>Mitarbeiter</em> stehst. Anfangs bist du dort nicht.</li>

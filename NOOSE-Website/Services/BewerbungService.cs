@@ -21,6 +21,9 @@ public class BewerbungService(
     BewerbungBroadcaster broadcaster,
     IBewerbungssperreService sperren,
     INotificationService notifications,
+    IApplicantDmNotifier applicantMessages,
+    IDiscordMembershipCheck discordMembership,
+    IDiscordDmService discordSettings,
     IApplicationCaseService applicationCases,
     ILogger<BewerbungService> logger) : IBewerbungService
 {
@@ -73,6 +76,14 @@ public class BewerbungService(
         if (ban is { BannedUntil: { } until })
         {
             throw new InvalidOperationException($"Du bist noch bis zum {until.ToLocalTime():dd.MM.yyyy} für Bewerbungen gesperrt.");
+        }
+
+        // before any copy or row: only Discord's clear "not on the server" stops an application, an outage never does
+        if (await discordMembership.CheckAsync(userId, cancellationToken) == DiscordMembership.NotMember)
+        {
+            var invite = (await discordSettings.GetSettingsAsync(cancellationToken)).InviteLink;
+            throw new InvalidOperationException("Bewerbungen nehmen wir nur von Mitgliedern unseres Discord-Servers an. "
+                + $"Tritt ihm bei und sende die Bewerbung dann erneut ab: {invite}");
         }
 
         string? fileNameSaved = null;
@@ -143,6 +154,9 @@ public class BewerbungService(
         }
         catch { /* best effort */ }
 
+        try { await applicantMessages.NotifyAsync(userId, ApplicantDmEvent.Received, cancellationToken); }
+        catch { /* best effort */ }
+
         return bewerbung;
     }
 
@@ -204,6 +218,7 @@ public class BewerbungService(
                     : $"Wechsel von „{BewerbungStatusDisplay.Name(bewerbung.Status)}“ zu „{BewerbungStatusDisplay.Name(target)}“ ist nicht möglich.");
         }
 
+        var previous = bewerbung.Status;
         bewerbung.Status = target;
         if (BewerbungStatusDisplay.IsTerminal(target))
         {
@@ -236,8 +251,13 @@ public class BewerbungService(
 
         try
         {
-            await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+            // only what the applicant sees
+            if (BewerbungStatusDisplay.ChangesApplicantView(previous, target))
+            {
+                await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
+                    $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+                await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
+            }
         }
         catch { /* best effort */ }
 
@@ -324,8 +344,12 @@ public class BewerbungService(
 
         try
         {
-            await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+            if (BewerbungStatusDisplay.ChangesApplicantView(previous, target))
+            {
+                await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
+                    $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+                await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
+            }
         }
         catch { /* best effort */ }
 
@@ -344,6 +368,7 @@ public class BewerbungService(
             throw new InvalidOperationException("Diese Bewerbung ist bereits abgeschlossen.");
         }
 
+        var previous = bewerbung.Status;
         bewerbung.SecurityCheckPassed = passed;
         if (passed)
         {
@@ -368,9 +393,13 @@ public class BewerbungService(
 
         try
         {
-            await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                passed ? $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(BewerbungStatus.ImTest)}" : "Deine Bewerbung wurde abgeschlossen.",
-                "/portal/status", cancellationToken);
+            if (BewerbungStatusDisplay.ChangesApplicantView(previous, bewerbung.Status))
+            {
+                await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
+                    passed ? $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(BewerbungStatus.ImTest)}" : "Deine Bewerbung wurde abgeschlossen.",
+                    "/portal/status", cancellationToken);
+                await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
+            }
         }
         catch { /* best effort */ }
     }
@@ -538,6 +567,7 @@ public class BewerbungService(
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 "Neue Nachricht zu deiner Bewerbung", "/portal/status", cancellationToken);
+            await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.NewMessage, cancellationToken);
         }
         catch { /* best effort */ }
 

@@ -34,6 +34,9 @@ public sealed class BewerbungRejectionBanTests
             new BewerbungBroadcaster(),
             new BewerbungssperreService(ctx.Factory), // the real one: that is the whole point of this file
             Substitute.For<INotificationService>(),
+            Substitute.For<IApplicantDmNotifier>(),
+            FakeDiscordMembership.Always(DiscordMembership.Unknown),
+            Substitute.For<IDiscordDmService>(),
             Substitute.For<IApplicationCaseService>(),
             Substitute.For<ILogger<BewerbungService>>());
     }

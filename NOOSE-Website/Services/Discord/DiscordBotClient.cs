@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
+using System.Text;
 using System.Text.Json;
 
 namespace NOOSE_Website.Services;
@@ -15,8 +17,15 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     private const int MaxAttempts = 3;
     private const int MaxDetailChars = 200;
     private const int MaxSnowflakeChars = 20;
+    private const int MaxMessageChars = 2000;
+    private const int UnknownChannelCode = 10003;
+    private const int UnknownMemberCode = 10007;
+    private const int UnknownUserCode = 10013;
     private static readonly TimeSpan MaxRetryWaitTime = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DefaultRetryWait = TimeSpan.FromSeconds(1);
+
+    // static: the client is scoped, the channels outlive it
+    private static readonly ConcurrentDictionary<string, string> DmChannels = new();
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(Token);
 
@@ -29,7 +38,8 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     public async Task<IReadOnlyList<string>?> GetMemberRolesAsync(string guildId, string userId, CancellationToken ct)
     {
         var (status, body) = await SendAsync(HttpMethod.Get, MemberPath(guildId, userId), null, ct);
-        if (status == HttpStatusCode.NotFound)
+        // only Discord's own "no such member"; any other 404 (an unknown server above all) is an error, not an absent member
+        if (status == HttpStatusCode.NotFound && ErrorDetails(body).Code is UnknownMemberCode or UnknownUserCode)
         {
             return null;
         }
@@ -70,6 +80,64 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
         EnsureSuccess(status, body);
     }
 
+    public async Task SendDirectMessageAsync(string userId, string content, CancellationToken ct)
+    {
+        var user = Seg(userId, nameof(userId));
+        var message = JsonSerializer.Serialize(new
+        {
+            content = Cut(content),
+            allowed_mentions = new { parse = Array.Empty<string>() },
+        });
+
+        // a cached channel may have gone stale; evict it and reopen once
+        var cached = DmChannels.TryGetValue(user, out var channelId);
+        if (!cached)
+        {
+            channelId = await OpenDmChannelAsync(user, ct);
+            DmChannels[user] = channelId;
+        }
+
+        var (status, body) = await SendAsync(HttpMethod.Post, $"channels/{channelId}/messages", null, ct, message);
+        if (IsStaleChannel(status, body))
+        {
+            DmChannels.TryRemove(user, out _);
+            if (cached)
+            {
+                channelId = await OpenDmChannelAsync(user, ct);
+                DmChannels[user] = channelId;
+                (status, body) = await SendAsync(HttpMethod.Post, $"channels/{channelId}/messages", null, ct, message);
+                if (IsStaleChannel(status, body))
+                {
+                    DmChannels.TryRemove(user, out _);
+                }
+            }
+        }
+
+        EnsureSuccess(status, body);
+    }
+
+    /// <summary>Unknown channel, or the bot lost access; 50007 is the user's own setting and leaves the channel fine.</summary>
+    private static bool IsStaleChannel(HttpStatusCode status, string body)
+    {
+        if (IsSuccess(status))
+        {
+            return false;
+        }
+
+        var (_, code) = ErrorDetails(body);
+        return status == HttpStatusCode.NotFound || code == UnknownChannelCode
+            || (status == HttpStatusCode.Forbidden && code != DiscordBotException.CannotSendToUser);
+    }
+
+    private async Task<string> OpenDmChannelAsync(string userId, CancellationToken ct)
+    {
+        var (status, body) = await SendAsync(HttpMethod.Post, "users/@me/channels", null, ct,
+            JsonSerializer.Serialize(new { recipient_id = userId }));
+        EnsureSuccess(status, body);
+        return ReadChannelId(body)
+            ?? throw new DiscordBotException((int)status, $"Discord {(int)status}: no usable direct channel");
+    }
+
     private async Task<string> GetBotIdAsync(CancellationToken ct)
     {
         var (status, body) = await SendAsync(HttpMethod.Get, "users/@me", null, ct);
@@ -79,7 +147,7 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     }
 
     private async Task<(HttpStatusCode Status, string Body)> SendAsync(HttpMethod method, string path, string? reason,
-        CancellationToken ct)
+        CancellationToken ct, string? jsonBody = null)
     {
         var token = Token;
         if (string.IsNullOrWhiteSpace(token))
@@ -96,6 +164,11 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
             {
                 // header values must be ASCII
                 request.Headers.TryAddWithoutValidation(ReasonHeader, Uri.EscapeDataString(reason));
+            }
+
+            if (jsonBody is not null)
+            {
+                request.Content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
             }
 
             using var response = await http.SendAsync(request, ct);
@@ -129,32 +202,75 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
 
     private static void EnsureSuccess(HttpStatusCode status, string body)
     {
-        if ((int)status is >= 200 and < 300)
+        if (IsSuccess(status))
         {
             return;
         }
 
-        throw new DiscordBotException((int)status, $"Discord {(int)status}: {ErrorText(body)}");
+        var (text, code) = ErrorDetails(body);
+        throw new DiscordBotException((int)status, $"Discord {(int)status}: {text}", code);
     }
 
-    /// <summary>Discord's own "message" field; raw bodies (HTML error pages) are not echoed.</summary>
-    private static string ErrorText(string body)
+    private static bool IsSuccess(HttpStatusCode status) => (int)status is >= 200 and < 300;
+
+    /// <summary>Discord's own "message" and "code" fields; raw bodies (HTML error pages) are not echoed.</summary>
+    private static (string Text, int? Code) ErrorDetails(string body)
     {
+        var text = "no details";
+        int? code = null;
         try
         {
             using var json = JsonDocument.Parse(body);
-            if (json.RootElement.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+            if (json.RootElement.ValueKind == JsonValueKind.Object)
             {
-                var text = message.GetString()!;
-                return text.Length > MaxDetailChars ? text[..MaxDetailChars] : text;
+                if (json.RootElement.TryGetProperty("message", out var message) && message.ValueKind == JsonValueKind.String)
+                {
+                    text = message.GetString()!;
+                    text = text.Length > MaxDetailChars ? text[..MaxDetailChars] : text;
+                }
+
+                if (json.RootElement.TryGetProperty("code", out var number) && number.ValueKind == JsonValueKind.Number
+                    && number.TryGetInt32(out var value))
+                {
+                    code = value;
+                }
             }
         }
         catch (JsonException)
         {
-            // no usable text
+            // no usable details
         }
 
-        return "no details";
+        return (text, code);
+    }
+
+    private static string? ReadChannelId(string body)
+    {
+        try
+        {
+            using var json = JsonDocument.Parse(body);
+            return json.RootElement.ValueKind == JsonValueKind.Object
+                && json.RootElement.TryGetProperty("id", out var id)
+                && id.ValueKind == JsonValueKind.String
+                && id.GetString() is { } value && IsSnowflake(value)
+                    ? value
+                    : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
+    private static string Cut(string content)
+    {
+        if (content.Length <= MaxMessageChars)
+        {
+            return content;
+        }
+
+        // keep surrogate pairs whole
+        return content[..(char.IsHighSurrogate(content[MaxMessageChars - 1]) ? MaxMessageChars - 1 : MaxMessageChars)];
     }
 
     private static IReadOnlyList<string> ReadRoleIds(JsonElement member)
@@ -173,11 +289,14 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     /// <summary>Only snowflakes become a path segment: "." and ".." would otherwise be collapsed by <see cref="Uri"/>.</summary>
     private static string Seg(string id, string name)
     {
-        if (string.IsNullOrEmpty(id) || id.Length > MaxSnowflakeChars || !id.All(char.IsAsciiDigit))
+        if (!IsSnowflake(id))
         {
             throw new ArgumentException("Not a Discord id.", name);
         }
 
         return Uri.EscapeDataString(id);
     }
+
+    private static bool IsSnowflake(string id)
+        => !string.IsNullOrEmpty(id) && id.Length <= MaxSnowflakeChars && id.All(char.IsAsciiDigit);
 }

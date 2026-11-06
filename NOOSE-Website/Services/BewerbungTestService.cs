@@ -13,7 +13,8 @@ namespace NOOSE_Website.Services;
 public class BewerbungTestService(
     IDbContextFactory<AppDbContext> dbFactory,
     BewerbungBroadcaster broadcaster,
-    INotificationService notifications) : IBewerbungTestService
+    INotificationService notifications,
+    IApplicantDmNotifier applicantMessages) : IBewerbungTestService
 {
     public async Task<List<BewerbungTest>> GetTestsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
@@ -260,6 +261,7 @@ public class BewerbungTestService(
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 "Dir wurde ein Test zugewiesen.", "/portal/test", cancellationToken);
+            await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.TestAssigned, cancellationToken);
         }
         catch { /* best effort */ }
     }
@@ -749,6 +751,7 @@ public class BewerbungTestService(
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 "Dein Test wurde neu freigegeben.", "/portal/test", cancellationToken);
+            await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.TestAssigned, cancellationToken);
         }
         catch { /* best effort */ }
     }
@@ -846,6 +849,7 @@ public class BewerbungTestService(
             }
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 "Deine Bearbeitungszeit ist abgelaufen.", "/portal/status", cancellationToken);
+            await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.TestExpired, cancellationToken);
         }
         catch { /* best effort */ }
         return true;

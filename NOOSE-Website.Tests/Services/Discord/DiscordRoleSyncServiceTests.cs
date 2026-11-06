@@ -109,6 +109,10 @@ public class DiscordRoleSyncServiceTests
             return Task.CompletedTask;
         }
 
+        // the role sync never sends direct messages
+        public Task SendDirectMessageAsync(string userId, string content, CancellationToken ct)
+            => throw new NotSupportedException();
+
         private void CheckRole(string operation, string userId, string roleId)
         {
             if (RoleFault?.Invoke(operation, userId, roleId) is { } fault)
@@ -374,6 +378,35 @@ public class DiscordRoleSyncServiceTests
         Assert.Null(second.DiscordRolesSyncError);
         Assert.NotNull(second.DiscordRolesSyncAt);
         AssertRoles(f.Bot.Members[UserB], BaseRole, SpecialAgentRole, CidRole);
+    }
+
+    [Fact]
+    public async Task An_unknown_server_is_recorded_as_an_error_not_as_a_member_who_is_absent()
+    {
+        using var f = await Fixture.CreateAsync();
+        await f.AddAgentAsync("a", UserA);
+        f.Bot.Fault = (op, _) => op == "get" ? new DiscordBotException(404, "Discord 404: Unknown Guild", 10004) : null;
+
+        await f.Service.SyncAgentAsync("a", "Beförderung");
+
+        var agent = await f.ReadAsync("a");
+        Assert.False(string.IsNullOrWhiteSpace(agent.DiscordRolesSyncError));
+        Assert.NotEqual(DiscordRoleRules.NotOnServer, agent.DiscordRolesSyncError);
+        Assert.Contains("Server-Id", agent.DiscordRolesSyncError);
+        Assert.Null(agent.DiscordRolesSyncAt);
+    }
+
+    [Fact]
+    public async Task Preview_reports_an_unknown_server_as_an_error_not_as_absent_members()
+    {
+        using var f = await Fixture.CreateAsync();
+        await f.AddAgentAsync("a", UserA);
+        f.Bot.Fault = (op, _) => op == "get" ? new DiscordBotException(404, "Discord 404: Unknown Guild", 10004) : null;
+
+        var row = Assert.Single(await f.Service.PreviewAsync(Admin()));
+
+        Assert.NotEqual(DiscordRoleRules.NotOnServer, row.Note);
+        Assert.Contains("Server-Id", row.Note);
     }
 
     private static Exception Failure(string kind) => kind switch

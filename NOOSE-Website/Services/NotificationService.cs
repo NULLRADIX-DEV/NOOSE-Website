@@ -5,6 +5,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
@@ -14,7 +15,8 @@ namespace NOOSE_Website.Services;
 
 /// <inheritdoc cref="INotificationService" />
 public class NotificationService(
-    IDbContextFactory<AppDbContext> dbFactory, NotificationBroadcaster broadcaster, IDiscordWebhookService discord)
+    IDbContextFactory<AppDbContext> dbFactory, NotificationBroadcaster broadcaster, IDiscordWebhookService discord,
+    IDiscordDmService directMessages, IDiscordDmQueue directQueue)
     : INotificationService
 {
     public async Task NotifyAsync(string? recipientId, NotificationType type, string title, string? href,
@@ -329,15 +331,46 @@ public class NotificationService(
         }
     }
 
-    /// <summary>Posts to the category's channel; a personal category pings only who wants it now, and with nobody left there is no post.</summary>
+    /// <summary>Posts to the category's channel; a personal category pings only who wants it now, by direct message when the admin allows it, and with nobody left there is no post.</summary>
     private async Task PushAsync(AppDbContext db, NotificationType type, string? href,
         IReadOnlyCollection<string> recipientIds, string? headline, CancellationToken cancellationToken)
     {
         var pinged = await PingNowAsync(db, recipientIds, type, cancellationToken);
+        if (pinged.Count > 0 && DiscordPings.IsPersonal(type) && await directMessages.PersonalActiveAsync(cancellationToken))
+        {
+            pinged = await QueueDirectAsync(db, type, href, pinged, cancellationToken);
+        }
         if (pinged.Count > 0)
         {
             await discord.PushAsync(type, href, pinged, headline, cancellationToken);
         }
+    }
+
+    /// <summary>Queues one direct message per recipient with a Discord id (the worker falls back to the channel); returns who is left for the channel post.</summary>
+    private async Task<IReadOnlyCollection<string>> QueueDirectAsync(AppDbContext db, NotificationType type, string? href,
+        IReadOnlyCollection<string> recipientIds, CancellationToken cancellationToken)
+    {
+        var ids = recipientIds.ToList();
+        var linked = (await db.Users.AsNoTracking()
+                .Where(u => ids.Contains(u.Id))
+                .Select(u => new { u.Id, u.DiscordId })
+                .ToListAsync(cancellationToken))
+            // demo stays in channel
+            .Where(u => u.Id != DemoIdentity.AgentId && DiscordWebhookService.IsSnowflake(u.DiscordId))
+            .ToList();
+        if (linked.Count == 0)
+        {
+            return recipientIds;
+        }
+
+        var baseUrl = (await discord.GetConfigAsync(cancellationToken)).SiteBaseUrl;
+        var text = DiscordWebhookService.PersonalText(type, baseUrl, href);
+        foreach (var user in linked)
+        {
+            directQueue.Enqueue(new DiscordDmJob(user.Id, user.DiscordId, text, type, href));
+        }
+        var queued = linked.Select(u => u.Id).ToHashSet();
+        return recipientIds.Where(id => !queued.Contains(id)).ToList();
     }
 
     /// <summary>Recipients the post may ping right away; the others collect it for the digest or switched it off.</summary>

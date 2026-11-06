@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Notifications;
@@ -22,7 +23,7 @@ public class NotificationServiceTests
 
     private static NotificationService NewService(
         SqliteTestContext ctx, NotificationBroadcaster broadcaster, IDiscordWebhookService discord)
-        => new(ctx.Factory, broadcaster, discord);
+        => new(ctx.Factory, broadcaster, discord, Substitute.For<IDiscordDmService>(), Substitute.For<IDiscordDmQueue>());
 
     private static string MentionToken(string agentId) => $"@{{Agent:{agentId}}}";
 

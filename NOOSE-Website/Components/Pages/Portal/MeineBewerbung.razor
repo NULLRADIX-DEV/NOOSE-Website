@@ -3,6 +3,8 @@
 @attribute [AllowAnonymous]
 @inject IBewerbungService BewerbungService
 @inject IBewerbungssperreService SperreService
+@inject IDiscordMembershipCheck MembershipCheck
+@inject IDiscordDmService DiscordSettings
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 
@@ -23,6 +25,27 @@ else if (_ready)
                 Bitte fülle die folgenden Angaben sorgfältig aus. Nach dem Absenden kannst du den Status hier im
                 Portal verfolgen und mit der Administration Division kommunizieren.
             </MudText>
+
+            @if (NotMember)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    <MudStack Spacing="3">
+                        <MudText>
+                            Du bist noch nicht auf unserem Discord-Server. Bewerbungen nehmen wir nur von Mitgliedern an.
+                        </MudText>
+                        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" Href="@_inviteLink" Target="_blank"
+                                       rel="noopener noreferrer" StartIcon="@Icons.Material.Filled.OpenInNew">
+                                Discord beitreten
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" Color="Color.Warning" OnClick="RecheckAsync"
+                                       Disabled="_checking" StartIcon="@Icons.Material.Filled.Refresh">
+                                Erneut prüfen
+                            </MudButton>
+                        </MudStack>
+                    </MudStack>
+                </MudAlert>
+            }
 
             <MudTextField @bind-Value="_model.AcademicDegree" Label="Akademischer Grad (optional)" Variant="Variant.Outlined" />
             <MudTextField @bind-Value="_model.Name" Label="Name" Required="true" Variant="Variant.Outlined" />
@@ -60,7 +83,7 @@ else if (_ready)
 
             <MudStack Row="true" Justify="Justify.FlexEnd">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
-                           OnClick="SubmitAsync" Disabled="_busy">Bewerbung absenden</MudButton>
+                           OnClick="SubmitAsync" Disabled="@(_busy || NotMember)">Bewerbung absenden</MudButton>
             </MudStack>
         </MudStack>
     </MudPaper>
@@ -75,6 +98,10 @@ else if (_ready)
     private bool _ready;
     private bool _blocked;
     private bool _busy;
+    private bool _checking;
+    private bool _membershipAsked;
+    private DiscordMembership _membership = DiscordMembership.Unknown;
+    private string _inviteLink = DiscordDmSettings.DefaultInviteLink;
     private BewerbungssperreInfo? _ban;
     private BewerbungStatus? _lastStatus;
     private readonly BewerbungSubmitModel _model = new();
@@ -104,6 +131,50 @@ else if (_ready)
             return;
         }
         _ready = true;
+    }
+
+    private bool NotMember => _membership == DiscordMembership.NotMember;
+
+    // once the form shows, so an unreachable Discord never holds it back; the first render is still without it
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_ready && !_membershipAsked)
+        {
+            _membershipAsked = true;
+            await CheckMembershipAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task RecheckAsync()
+    {
+        await CheckMembershipAsync();
+        if (NotMember)
+        {
+            Snackbar.Add("Wir finden dich noch nicht auf dem Server.", Severity.Info);
+        }
+    }
+
+    // Unknown (also on any error) shows nothing and blocks nothing
+    private async Task CheckMembershipAsync()
+    {
+        _checking = true;
+        try
+        {
+            _membership = await MembershipCheck.CheckAsync(_user.GetAgentId() ?? string.Empty);
+            if (NotMember)
+            {
+                _inviteLink = (await DiscordSettings.GetSettingsAsync()).InviteLink;
+            }
+        }
+        catch
+        {
+            _membership = DiscordMembership.Unknown;
+        }
+        finally
+        {
+            _checking = false;
+        }
     }
 
     private void OnFile(InputFileChangeEventArgs e) => _file = e.File;
@@ -139,6 +210,8 @@ else if (_ready)
         catch (Exception ex)
         {
             Snackbar.Add(ex.Message, Severity.Error);
+            // a refusal for the missing Discord membership then shows its link and buttons
+            await CheckMembershipAsync();
         }
         finally
         {

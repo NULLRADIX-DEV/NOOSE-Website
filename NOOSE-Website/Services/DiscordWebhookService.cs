@@ -527,8 +527,8 @@ public class DiscordWebhookService(
         return ids.Where(IsSnowflake).Distinct().ToList()!;
     }
 
-    // only numeric snowflakes are pingable (guards "" and the seeded "demo" user)
-    private static bool IsSnowflake(string? value)
+    /// <summary>Only numeric ids are real Discord users (guards "" and the seeded "demo" user).</summary>
+    public static bool IsSnowflake(string? value)
         => !string.IsNullOrEmpty(value) && value.All(char.IsAsciiDigit);
 
     public async Task<DiscordWebhookConfig> GetConfigAsync(CancellationToken cancellationToken = default)
@@ -683,6 +683,9 @@ public class DiscordWebhookService(
         return embed;
     }
 
+    /// <summary>The channel text of a personal ping without the mention; what a direct message carries.</summary>
+    public static string PersonalText(NotificationType type, string baseUrl, string? href) => Compose(type, baseUrl, href);
+
     // generic per-category notice + login-gated link; NEVER the in-app title (which may carry names/notes/VS content)
     private static string Compose(NotificationType type, string baseUrl, string? href)
     {
@@ -778,8 +781,8 @@ public class DiscordWebhookService(
         _ => "🔔 Neue Benachrichtigung.",
     };
 
-    // absolute href as-is; relative href joined onto the configured base
-    private static string? Link(string baseUrl, string? href)
+    /// <summary>Absolute href as-is, a relative one joined onto the base; null without an href.</summary>
+    public static string? Link(string baseUrl, string? href)
     {
         if (string.IsNullOrWhiteSpace(href))
         {

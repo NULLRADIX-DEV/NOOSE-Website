@@ -570,6 +570,10 @@ namespace NOOSE_Website.Data.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("longtext");
 
+                    b.Property<DateTime?>("DiscordDmBlockedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("DiscordDmGesperrtAm");
+
                     b.Property<string>("DiscordId")
                         .IsRequired()
                         .HasMaxLength(32)

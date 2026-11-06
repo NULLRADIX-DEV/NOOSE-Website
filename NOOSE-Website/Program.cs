@@ -411,6 +411,11 @@ builder.Services.AddScoped<IDiscordRoleSyncService, DiscordRoleSyncService>();
 // one per process
 builder.Services.AddSingleton<IDiscordRoleSyncQueue, DiscordRoleSyncQueue>();
 builder.Services.AddHostedService<DiscordRoleSyncWorker>();
+builder.Services.AddScoped<IDiscordDmService, DiscordDmService>();
+builder.Services.AddScoped<IDiscordMembershipCheck, DiscordMembershipCheck>();
+builder.Services.AddScoped<IApplicantDmNotifier, ApplicantDmNotifier>();
+builder.Services.AddSingleton<IDiscordDmQueue, DiscordDmQueue>();
+builder.Services.AddHostedService<DiscordDmWorker>();
 // per-process share quota
 builder.Services.AddSingleton<ChannelShareQuota>();
 builder.Services.AddScoped<IChannelShareService, ChannelShareService>();

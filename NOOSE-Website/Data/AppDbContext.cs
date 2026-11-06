@@ -329,7 +329,8 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(a => a.DiscordRolesSyncError).HasMaxLength(200);
             // written by ExecuteUpdate only: UserManager.UpdateAsync rewrites the whole row from a possibly stale copy
             foreach (var stamp in new[] { nameof(Agent.LastSeenAt), nameof(Agent.InactivityNudgedAt), nameof(Agent.InactivityNudgedByName),
-                         nameof(Agent.HiddenFromPublicRoster), nameof(Agent.DiscordRolesSyncAt), nameof(Agent.DiscordRolesSyncError) })
+                         nameof(Agent.HiddenFromPublicRoster), nameof(Agent.DiscordRolesSyncAt), nameof(Agent.DiscordRolesSyncError),
+                         nameof(Agent.DiscordDmBlockedAt) })
             {
                 b.Property(stamp).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
             }

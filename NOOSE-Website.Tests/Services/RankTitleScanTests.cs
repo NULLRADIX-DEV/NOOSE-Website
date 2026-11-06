@@ -17,6 +17,7 @@ public partial class RankTitleScanTests
     [
         "Services/BewerbungTemplateRenderer.cs",
         "Services/PlaceholderService.cs",
+        "Services/Recruiting/ApplicantDmTexts.cs",
         "Components/Pages/Recruiting/Shared/BewerbungMessagePanel.razor",
         "Services/Public",
         "Services/Decorations",
@@ -56,6 +57,7 @@ public partial class RankTitleScanTests
 
         Assert.Contains("Services/BewerbungTemplateRenderer.cs", files);
         Assert.Contains("Services/PlaceholderService.cs", files);
+        Assert.Contains("Services/Recruiting/ApplicantDmTexts.cs", files);
         Assert.Contains("Components/Pages/Recruiting/Shared/BewerbungMessagePanel.razor", files);
         Assert.Contains("Services/Public/PublicLeadershipService.cs", files);
         Assert.Contains("Components/Pages/Decorations/Shared/CertificateSheet.razor", files);

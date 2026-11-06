@@ -10,7 +10,8 @@ namespace NOOSE_Website.Services;
 public class BewerbungTestExpiryService(
     IDbContextFactory<AppDbContext> dbFactory,
     BewerbungBroadcaster broadcaster,
-    INotificationService notifications) : IBewerbungTestExpiryService
+    INotificationService notifications,
+    IApplicantDmNotifier applicantMessages) : IBewerbungTestExpiryService
 {
     /// <summary>Rows per pass; a countdown is minutes long, so there is never a real backlog.</summary>
     private const int ExpiryBatch = 100;
@@ -99,6 +100,7 @@ public class BewerbungTestExpiryService(
             }
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 "Deine Bearbeitungszeit ist abgelaufen.", "/portal/status", cancellationToken);
+            await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.TestExpired, cancellationToken);
         }
         catch { /* best effort */ }
         return true;

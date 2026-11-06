@@ -11,6 +11,7 @@ using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.CurrentUser;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -33,7 +34,8 @@ public sealed class SavedSearchWatchTests : IDisposable
 
     public SavedSearchWatchTests()
     {
-        var notifications = new NotificationService(_ctx.Factory, new NotificationBroadcaster(), _discord);
+        var notifications = new NotificationService(_ctx.Factory, new NotificationBroadcaster(), _discord,
+            Substitute.For<IDiscordDmService>(), Substitute.For<IDiscordDmQueue>());
         _watch = new SavedSearchWatchService(_ctx.Factory, SearchTestHost.NewService(_ctx),
             new FreshPrincipals(_ctx), notifications, NullLogger<SavedSearchWatchService>.Instance);
         _saved = new SavedSearchService(_ctx.Factory);
@@ -154,7 +156,8 @@ public sealed class SavedSearchWatchTests : IDisposable
             .UseSqlite(_ctx.Connection)
             .AddInterceptors(new AuditSaveChangesInterceptor(new SystemUser()))
             .Options;
-        var notifications = new NotificationService(new TestDbContextFactory(audited), new NotificationBroadcaster(), _discord);
+        var notifications = new NotificationService(new TestDbContextFactory(audited), new NotificationBroadcaster(), _discord,
+            Substitute.For<IDiscordDmService>(), Substitute.For<IDiscordDmQueue>());
         var watch = new SavedSearchWatchService(_ctx.Factory, SearchTestHost.NewService(_ctx),
             new FreshPrincipals(_ctx), notifications, NullLogger<SavedSearchWatchService>.Instance);
         SeedOwner();

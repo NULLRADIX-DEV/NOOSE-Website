@@ -11,7 +11,7 @@ public interface IBewerbungService
     /// <summary>The signed-in applicant's own application (most recent, non-deleted), or null.</summary>
     Task<Bewerbung?> GetOwnAsync(ClaimsPrincipal applicant, CancellationToken cancellationToken = default);
 
-    /// <summary>Submit a new application. Applicant only; one open application at a time, blocked while banned or blacklisted.</summary>
+    /// <summary>Submit a new application. Applicant only; one open application at a time, blocked while banned or blacklisted, and while Discord says the applicant is not on the FIB server (an unanswered check lets it through).</summary>
     /// <param name="attachmentSize">Length in bytes; 0 means "not supplied" and skips the size check.</param>
     Task<Bewerbung> SubmitAsync(BewerbungSubmitModel model, Stream? attachment, string? originalName, string? contentType,
         ClaimsPrincipal applicant, long attachmentSize = 0, CancellationToken cancellationToken = default);

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
@@ -14,7 +15,8 @@ namespace NOOSE_Website.Tests.Services.Integration;
 public sealed class NotificationMuteTests
 {
     private static NotificationService NewService(SqliteTestContext ctx)
-        => new(ctx.Factory, new NotificationBroadcaster(), Substitute.For<IDiscordWebhookService>());
+        => new(ctx.Factory, new NotificationBroadcaster(), Substitute.For<IDiscordWebhookService>(),
+            Substitute.For<IDiscordDmService>(), Substitute.For<IDiscordDmQueue>());
 
     private static void SeedAgent(SqliteTestContext ctx, string id, Action<NavPreferences>? prefs = null)
     {

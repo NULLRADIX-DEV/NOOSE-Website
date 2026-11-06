@@ -6,6 +6,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Decorations;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Infrastructure;
+using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Notifications;
 using NOOSE_Website.Models.Announcements;
 using NOOSE_Website.Models.Decorations;
@@ -38,7 +39,8 @@ public sealed class DecorationServiceTests : IDisposable
             .Returns(_ => new Announcement { Id = "ann-1" });
         var cache = new MemoryCache(new MemoryCacheOptions());
         _prefs = new NavPreferencesService(_ctx.Factory, cache);
-        var notifications = new NotificationService(_ctx.Factory, new NotificationBroadcaster(), _bellChannel);
+        var notifications = new NotificationService(_ctx.Factory, new NotificationBroadcaster(), _bellChannel,
+            Substitute.For<IDiscordDmService>(), Substitute.For<IDiscordDmQueue>());
         _service = new DecorationService(_ctx.Factory, _announcements, notifications, _discord,
             NullLogger<DecorationService>.Instance);
         SeedRoster();
