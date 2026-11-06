@@ -38,6 +38,14 @@ public sealed class PageHeaderScanTests
         ["Components/Pages/Public/"] = "statisch gerenderte öffentliche Seiten mit eigenem Hero (Bauplan Task 17)",
         ["Components/Pages/Portal/"] = "Bürger- und Bewerberportal mit eigenem Layout (Bauplan Task 17)",
         ["Components/Pages/Legal/"] = "Rechtstexte im LegalLayout, Überschrift des Dokuments",
+        ["Components/Pages/Home.razor"] = "Begrüßung des Dashboards, keine Seitenüberschrift mit Aktionen",
+        ["Components/Pages/Board/SchwarzesBoard.razor"] = "Kopfzeile von Hand, damit der Desktop-Abstand bleibt; auf dem Handy umbrechend und ohne großes Symbol",
+        ["Components/Pages/Board/AnnouncementEditor.razor"] = "Kopfzeile von Hand, damit der Desktop-Abstand bleibt; auf dem Handy umbrechend und ohne großes Symbol",
+        ["Components/Pages/Documents/DocumentView.razor"] = "Kopfzeile von Hand, damit der Desktop-Abstand bleibt; auf dem Handy umbrechend und ohne großes Symbol",
+        ["Components/Pages/Documents/DocumentEditor.razor"] = "Kopfzeile von Hand, damit der Desktop-Abstand bleibt; auf dem Handy umbrechend und ohne großes Symbol",
+        ["Components/Pages/Laws/LawView.razor"] = "Kopfzeile von Hand, damit der Desktop-Abstand bleibt; auf dem Handy umbrechend und ohne großes Symbol",
+        ["Components/Pages/Recruiting/BewerbungDetail.razor"] = "Name des Bewerbers mit Untertitel und Statusaktionen, umbrechende Zeile",
+        ["Components/Pages/Recruiting/BewerbungVorlagenEditor.razor"] = "Kopfzeile von Hand, damit der Desktop-Abstand bleibt; auf dem Handy umbrechend und ohne großes Symbol",
     };
 
     private static readonly Regex Policy = new(@"<AuthorizeView\b[^>]*?\b(Policy|Roles)=""([^""]+)""", RegexOptions.Compiled);
@@ -191,7 +199,7 @@ public sealed class PageHeaderScanTests
         Assert.True(offenders.Count == 0, string.Join(Environment.NewLine, offenders));
     }
 
-    [Fact(Skip = "wird in Phase Parallel scharf")]
+    [Fact]
     public void No_hand_built_page_titles()
     {
         var offenders = RazorFiles()

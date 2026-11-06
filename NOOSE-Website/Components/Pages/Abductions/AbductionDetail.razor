@@ -67,19 +67,19 @@ else
                     }
                 </MudText>
             </MudItem>
-            <MudItem xs="12" sm="6" md="4">
+            <MudItem xs="6" sm="6" md="4">
                 <MudText Typo="Typo.overline" Class="mud-text-secondary">Ausgang</MudText>
                 <MudChip T="string" Size="Size.Small" Color="@AbductionOutcomeDisplay.ChipColor(a.Outcome)">
                     @AbductionOutcomeDisplay.Name(a.Outcome)
                 </MudChip>
             </MudItem>
-            <MudItem xs="12" sm="6" md="4">
+            <MudItem xs="6" sm="6" md="4">
                 <MudText Typo="Typo.overline" Class="mud-text-secondary">Zeitpunkt</MudText>
                 <MudText Typo="Typo.body1">@a.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
             </MudItem>
             @if (a.ReleasedAt is { } rel)
             {
-                <MudItem xs="12" sm="6" md="4">
+                <MudItem xs="6" sm="6" md="4">
                     <MudText Typo="Typo.overline" Class="mud-text-secondary">Freigelassen</MudText>
                     <MudText Typo="Typo.body1">@rel.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
                 </MudItem>
@@ -91,7 +91,7 @@ else
                     <MudText Typo="Typo.body1">@a.Location</MudText>
                 </MudItem>
             }
-            <MudItem xs="12" sm="6" md="4">
+            <MudItem xs="6" sm="6" md="4">
                 <MudText Typo="Typo.overline" Class="mud-text-secondary">Wahrheitsserum</MudText>
                 <MudText Typo="Typo.body1">@(a.TruthSerum ? "Ja" : "Nein")</MudText>
             </MudItem>

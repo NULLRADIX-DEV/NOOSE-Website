@@ -2804,7 +2804,6 @@ div.vis-tooltip {
    noose-min-breite-frei     element with an inline min-width in px: no min-width below 600px, width as before
    noose-pager-handy         MudDataGridPager/MudTablePager Class: rows-per-page caption and selector hidden below 600px;
                              PageSizeSelector stays true, so desktop keeps it
-   noose-datum-paar          flex row or MudGrid of a date and a time field (or from and to): stacked below 600px
    noose-chip-umbruch        MudChip with a long text (a sentence, a penalty): the text breaks onto more lines below 600px
    Fixed px widths: keep the inline style (desktop, 600 to 959px and paper stay as they are) and add noose-breite-frei
    or noose-min-breite-frei; the !important below beats the inline style on phones only. */
@@ -3057,21 +3056,6 @@ div.vis-tooltip {
     .noose-pager-handy .mud-table-pagination-select,
     .noose-pager-handy .mud-table-pagination-caption:has(+ .mud-table-pagination-select) {
         display: none !important;
-    }
-
-    /* MudStack Row and d-flex flex-row set their direction with !important; MudItem xs="6" caps width and basis */
-    .noose-datum-paar {
-        flex-direction: column !important;
-        flex-wrap: nowrap !important;
-        align-items: stretch !important;
-        gap: 8px;
-    }
-
-    .noose-datum-paar > * {
-        flex: 0 0 auto !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
     }
 
     .mud-chip.noose-chip-umbruch {
