@@ -6,31 +6,32 @@
 @inject NavigationManager Nav
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-        <MudText Typo="Typo.h6">Bestand</MudText>
-        <MudSpacer />
-        @if (_mayClear)
-        {
-            @if (_selectMode)
+    @* the menu only with the buttons it mirrors: three of them outside select mode, behind the same _mayClear *@
+    <SectionHeader Title="Bestand" Wrap="Wrap.Wrap" ActionsMenu="@(_mayClear && !_selectMode ? ItemsMenu : null)">
+        <Actions>
+            @if (_mayClear)
             {
-                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Close"
-                           OnClick="ExitSelect">Auswahl beenden</MudButton>
+                @if (_selectMode)
+                {
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Close"
+                               OnClick="ExitSelect">Auswahl beenden</MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Default" Disabled="@(_rows.Count == 0)"
+                               StartIcon="@Icons.Material.Filled.Checklist" OnClick="EnterSelect">Auswählen</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning"
+                               Disabled="@(_rows.Count == 0 && !HasFilter)"
+                               StartIcon="@Icons.Material.Filled.Outbox"
+                               OnClick="@(() => ClearAsync(null))">
+                        @ClearLabel
+                    </MudButton>
+                    <MudButton Href="/asservatenkammer/item/neu" Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add">Neues Item</MudButton>
+                }
             }
-            else
-            {
-                <MudButton Variant="Variant.Outlined" Color="Color.Default" Disabled="@(_rows.Count == 0)"
-                           StartIcon="@Icons.Material.Filled.Checklist" OnClick="EnterSelect">Auswählen</MudButton>
-                <MudButton Variant="Variant.Outlined" Color="Color.Warning"
-                           Disabled="@(_rows.Count == 0 && !HasFilter)"
-                           StartIcon="@Icons.Material.Filled.Outbox"
-                           OnClick="@(() => ClearAsync(null))">
-                    @(_category is null ? "Kammer räumen" : $"„{EvidenceCategories.Label(_category)}“ räumen")
-                </MudButton>
-                <MudButton Href="/asservatenkammer/item/neu" Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Add">Neues Item</MudButton>
-            }
-        }
-    </MudStack>
+        </Actions>
+    </SectionHeader>
 
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
         <MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="300"
@@ -170,6 +171,18 @@
 
     private bool _load = true;
     private bool _mayClear;
+
+    private string ClearLabel => _category is null ? "Kammer räumen" : $"„{EvidenceCategories.Label(_category)}“ räumen";
+
+    // the header's buttons as ⋮ entries below 600px; the clearing one last, after a line, as in every record menu
+    private RenderFragment ItemsMenu => __builder =>
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.Add" Href="/asservatenkammer/item/neu">Neues Item</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.Checklist" Disabled="@(_rows.Count == 0)" OnClick="EnterSelect">Auswählen</MudMenuItem>
+        <MudDivider Class="my-1" />
+        <MudMenuItem Icon="@Icons.Material.Filled.Outbox" IconColor="Color.Warning" Disabled="@(_rows.Count == 0 && !HasFilter)"
+                     OnClick="@(() => ClearAsync(null))">@ClearLabel</MudMenuItem>
+    };
     private bool _mayCreate;
     private bool _selectMode;
     private bool _showZero;

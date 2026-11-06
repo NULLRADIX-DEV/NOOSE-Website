@@ -67,6 +67,10 @@ public interface INavPreferencesService
     /// <summary>Deletes one saved list view by its id.</summary>
     Task RemoveViewAsync(string agentId, string viewId, CancellationToken cancellationToken = default);
 
+    /// <summary>Remembers which columns one list shows on phones; an empty choice is refused.</summary>
+    /// <exception cref="ArgumentException">No list key, or no column left after dropping blanks and duplicates.</exception>
+    Task SetMobileColumnsAsync(string agentId, string listKey, IReadOnlyList<string> columns, CancellationToken cancellationToken = default);
+
     /// <summary>Records a look at "Meine Schicht" and returns where its "since your last visit" block starts.</summary>
     Task<ShiftWindow> StampShiftVisitAsync(string agentId, DateTime nowUtc, CancellationToken cancellationToken = default);
 

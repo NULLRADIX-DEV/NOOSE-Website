@@ -57,6 +57,13 @@ public sealed class NavPreferences
     /// </remarks>
     public List<SavedView> SavedViews { get; set; } = [];
 
+    /// <summary>Columns a list shows on phones, by list key; a list without an entry shows its defaults.</summary>
+    /// <remarks>
+    /// Only below 600px has this any effect; the desktop always shows every column. Read through
+    /// <see cref="MobileColumnSet.Resolve"/>, which drops keys a list no longer has.
+    /// </remarks>
+    public Dictionary<string, List<string>> MobileColumns { get; set; } = [];
+
     /// <summary>Notification categories that arrive already read, by <see cref="Enums.NotificationType"/> name.</summary>
     /// <remarks>
     /// Names rather than numbers, so a renumbered enum cannot silently mute a different category. Only what

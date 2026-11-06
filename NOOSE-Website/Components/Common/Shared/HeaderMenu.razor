@@ -7,14 +7,14 @@
 @if (AssignedRenderMode is not null)
 {
     <MudMenu Icon="@Icons.Material.Filled.MoreVert" Color="Color.Default" AriaLabel="Weitere Aktionen"
-             Class="noose-nur-schmal noose-kopfmenue-knopf" Dense="true"
+             Class="@($"{VisibleClass} noose-kopfmenue-knopf")" Dense="true"
              AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
         @ChildContent
     </MudMenu>
 }
 else
 {
-    <details class="noose-nur-schmal noose-kopfmenue">
+    <details class="@($"{VisibleClass} noose-kopfmenue")">
         <summary aria-label="Weitere Aktionen" title="Weitere Aktionen">⋮</summary>
         <div class="noose-kopfmenue-liste mud-paper mud-elevation-8">
             @ChildContent
@@ -25,4 +25,11 @@ else
 @code {
     /// <summary>The menu entries: <c>MudMenuItem</c>s, the header buttons with <c>AsMenuItem</c>, dividers.</summary>
     [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>
+    /// Shows the menu only below 600px instead of below 960px: a section header keeps its buttons down to phone width.
+    /// </summary>
+    [Parameter] public bool PhoneOnly { get; set; }
+
+    private string VisibleClass => PhoneOnly ? "noose-nur-handy" : "noose-nur-schmal";
 }

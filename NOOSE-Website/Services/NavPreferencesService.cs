@@ -250,6 +250,24 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
             ? Task.CompletedTask
             : MutateAsync(agentId, p => SavedViewRules.Remove(p.SavedViews, viewId), cancellationToken);
 
+    // the picker shows its own choice back, nothing else reads it: no broadcast. The demo keeps it per connection,
+    // which MutateAsync does for every setting there.
+    public Task SetMobileColumnsAsync(string agentId, string listKey, IReadOnlyList<string> columns,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(listKey))
+        {
+            throw new ArgumentException("Die Liste fehlt.", nameof(listKey));
+        }
+        var kept = columns.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal).ToList();
+        if (kept.Count == 0)
+        {
+            // a list with no column on the phone would be an empty grid; the picker never offers it
+            throw new ArgumentException("Mindestens eine Spalte muss sichtbar bleiben.", nameof(columns));
+        }
+        return MutateAsync(agentId, p => p.MobileColumns[listKey] = kept, cancellationToken, notify: false);
+    }
+
     // inside the writer lock: the stamp reads and moves the visit in one step
     public async Task<ShiftWindow> StampShiftVisitAsync(string agentId, DateTime nowUtc,
         CancellationToken cancellationToken = default)

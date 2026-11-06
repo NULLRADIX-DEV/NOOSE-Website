@@ -1,0 +1,53 @@
+@* Shared header of a section or panel: optional icon, h6 title, spacer, actions.
+   From 960px up it renders as the hand-built row it replaces (MudStack Row, centred, Spacing 2, h6, MudSpacer,
+   actions). Below 960px the row may wrap (noose-kopf-umbruch). Below 600px a single action stays a button; a header
+   with two or more actions passes them again as ActionsMenu, and there the buttons give way to a ⋮ menu holding those
+   entries. The switch is CSS only, both variants are in the markup. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="@Wrap" Class="@($"noose-kopf-umbruch {Class}".TrimEnd())">
+    @if (!string.IsNullOrEmpty(Icon))
+    {
+        <MudIcon Icon="@Icon" Color="@IconColour" />
+    }
+    <MudText Typo="Typo.h6">@Title</MudText>
+    @TitleContent
+    <MudSpacer />
+    @if (ActionsMenu is null)
+    {
+        @Actions
+    }
+    else
+    {
+        @* d-contents: no box of its own, so from 600px up the buttons are items of the row exactly as before *@
+        <div class="d-contents noose-mobil-aus">@Actions</div>
+        <HeaderMenu PhoneOnly="true">@ActionsMenu</HeaderMenu>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+
+    /// <summary>Icon before the title, in the default size the panels use.</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    [Parameter] public Color IconColour { get; set; } = Color.Primary;
+
+    /// <summary>Small things right after the title (a count chip, a state chip); they stay at every width.</summary>
+    [Parameter] public RenderFragment? TitleContent { get; set; }
+
+    /// <summary>The header's actions: buttons, switches, a filter select. At the right edge from 600px up.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>
+    /// The same actions as menu entries (<c>MudMenuItem</c>, buttons with <c>AsMenuItem</c>) for the ⋮ menu below
+    /// 600px, each behind the same <c>AuthorizeView</c> or permission check as its button. Set it for two or more
+    /// actions; with it the buttons are hidden below 600px, so an action missing here is gone on phones.
+    /// </summary>
+    [Parameter] public RenderFragment? ActionsMenu { get; set; }
+
+    /// <summary>Lets the row wrap at every width, for a panel whose hand-built row already did (Wrap.Wrap).</summary>
+    [Parameter] public Wrap? Wrap { get; set; }
+
+    /// <summary>Extra classes on the row, e.g. its bottom margin (mb-1, mb-3).</summary>
+    [Parameter] public string? Class { get; set; }
+}

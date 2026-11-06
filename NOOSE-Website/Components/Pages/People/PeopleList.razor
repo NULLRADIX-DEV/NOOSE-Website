@@ -1,4 +1,5 @@
 @page "/personen"
+@using NOOSE_Website.Models.Navigation
 @inject IPersonService PersonService
 @inject IRecencyService Recency
 @inject IThreatTrendService Trends
@@ -68,10 +69,12 @@ else
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
             </MudSelect>
+            <MobileColumnPicker ListKey="personen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" />
-            <TemplateColumn Sortable="true" Title="Name" SortBy="x => x.Name">
+            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" HeaderClass="@Col("aktenzeichen")" CellClass="@Col("aktenzeichen")" />
+            <TemplateColumn Sortable="true" Title="Name" SortBy="x => x.Name" HeaderClass="@Col("name")" CellClass="@Col("name")">
                 <CellTemplate>
                     @* Real link: middle/ctrl-click opens record in new tab; keyboard/screenreader-reachable. *@
                     <MudLink Href="@($"/personen/{context.Item.Id}")" @onclick:stopPropagation="true">@context.Item.Name</MudLink>
@@ -81,18 +84,19 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.Aliases" Title="Aliase" />
-            <TemplateColumn Sortable="true" Title="Lebensstatus" SortBy="x => x.EffectiveLifeStatus">
+            <PropertyColumn Property="x => x.Aliases" Title="Aliase" HeaderClass="@Col("aliase")" CellClass="@Col("aliase")" />
+            <TemplateColumn Sortable="true" Title="Lebensstatus" SortBy="x => x.EffectiveLifeStatus" HeaderClass="@Col("lebensstatus")" CellClass="@Col("lebensstatus")">
                 <CellTemplate>
                     <LifeStatusBadge Status="context.Item.LifeStatusRaw" DeadUntil="context.Item.DeadUntil" />
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Einstufung" SortBy="x => x.Classification">
+            <TemplateColumn Sortable="true" Title="Einstufung" SortBy="x => x.Classification" HeaderClass="@Col("einstufung")" CellClass="@Col("einstufung")">
                 <CellTemplate>
                     <ClassificationBadge Value="context.Item.Classification" />
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Gefährdung" SortBy="x => x.ThreatScore ?? -1" InitialDirection="SortDirection.Descending">
+            <TemplateColumn Sortable="true" Title="Gefährdung" SortBy="x => x.ThreatScore ?? -1" InitialDirection="SortDirection.Descending"
+                            HeaderClass="@Col("gefaehrdung")" CellClass="@Col("gefaehrdung")">
                 <CellTemplate>
                     @if (context.Item.ThreatScore is { } gscore)
                     {
@@ -113,7 +117,7 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Verschluss" SortBy="x => x.IsClassified">
+            <TemplateColumn Sortable="true" Title="Verschluss" SortBy="x => x.IsClassified" HeaderClass="@Col("verschluss")" CellClass="@Col("verschluss")">
                 <CellTemplate>
                     @if (context.Item.IsClassified)
                     {
@@ -121,12 +125,12 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Aktualität" SortBy="x => x.Level">
+            <TemplateColumn Sortable="true" Title="Aktualität" SortBy="x => x.Level" HeaderClass="@Col("aktualitaet")" CellClass="@Col("aktualitaet")">
                 <CellTemplate>
                     <RecencyIndicator Level="context.Item.Level" ReferenceDateUtc="context.Item.RefreshedUtc" />
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" Format="dd.MM.yyyy HH:mm" />
+            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" Format="dd.MM.yyyy HH:mm" HeaderClass="@Col("zuletzt")" CellClass="@Col("zuletzt")" />
         </Columns>
         <NoRecordsContent>
             @if (HasFilter)
@@ -168,6 +172,23 @@ else
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private MudDataGrid<PersonRow>? _grid;
+
+    /// <summary>The grid's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("name", "Name"), ("aliase", "Aliase"), ("lebensstatus", "Lebensstatus"),
+        ("einstufung", "Einstufung"), ("gefaehrdung", "Gefährdung"), ("verschluss", "Verschluss"),
+        ("aktualitaet", "Aktualität"), ("zuletzt", "Zuletzt"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: name and threat (owner's decision).</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["name", "gefaehrdung"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     /// <summary>The CSV export's columns: the grid's own, minus the trend curve.</summary>
     private static readonly IReadOnlyList<ExportColumn<PersonRow>> ExportColumns =
