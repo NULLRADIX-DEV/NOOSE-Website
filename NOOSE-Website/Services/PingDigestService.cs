@@ -161,7 +161,7 @@ public sealed class PingDigestService(
         foreach (var agent in agents)
         {
             // the shared demo account keeps its choices in the visitor's session; an unlinked account cannot be pinged
-            if (agent.Id == DemoIdentity.AgentId || !IsSnowflake(agent.DiscordId))
+            if (agent.Id == DemoIdentity.AgentId || !DiscordWebhookService.IsSnowflake(agent.DiscordId))
             {
                 continue;
             }
@@ -213,10 +213,6 @@ public sealed class PingDigestService(
         }
         return entries;
     }
-
-    // only numeric snowflakes are pingable (guards "" and the seeded "demo" user)
-    private static bool IsSnowflake(string? value)
-        => !string.IsNullOrEmpty(value) && value.All(char.IsAsciiDigit);
 
     private static async Task<DateTime?> ReadLastRunAsync(AppDbContext db, CancellationToken cancellationToken)
     {
