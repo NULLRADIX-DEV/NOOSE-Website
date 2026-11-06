@@ -192,7 +192,7 @@ internal static class ToolsChapter
                 Sonst lehnt Discord ab, und der Agent steht mit einem Fehler in der Liste. Schalte den Abgleich nie
                 gleich ein: Mach erst einen <em>Probelauf</em>. Er zeigt für jeden Agenten, bei dem sich etwas ändern
                 würde, welche Rollen dazukämen und welche wegfielen, und schreibt nichts nach Discord. Erst wenn die Liste stimmt, schaltest du
-                <em>Rollenabgleich aktiv</em> ein. Ab dann läuft einmal am Tag ein Abgleich über alle Agenten, und
+                <em>Rollenabgleich aktiv</em> ein. Ab dann läuft alle fünf Minuten ein Abgleich über alle Agenten, und
                 <em>Jetzt abgleichen</em> startet ihn von Hand. Die Zuordnung ändert nur ein Admin, die Führung sieht
                 Stand und Fehler.</p>
                 <p>Die Einstellungen sind der Führung vorbehalten.</p>

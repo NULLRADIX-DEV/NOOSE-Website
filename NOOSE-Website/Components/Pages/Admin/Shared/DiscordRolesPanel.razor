@@ -63,7 +63,7 @@ else
             <MudSwitch T="bool" @bind-Value="_enabled" Disabled="@(!_mayEdit)" Color="Color.Primary"
                        Label="Rollenabgleich aktiv" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                Erst einschalten, wenn der Probelauf stimmt. Aus: Der Bot tut nichts, auch nicht beim Tagesabgleich.
+                Erst einschalten, wenn der Probelauf stimmt. Aus: Der Bot tut nichts, auch nicht beim Abgleich alle fünf Minuten.
             </MudText>
             <MudTextField @bind-Value="_guildId" Label="Server-Id" Variant="Variant.Outlined" Class="mt-3"
                           ReadOnly="@(!_mayEdit)" Placeholder="17 bis 20 Ziffern"

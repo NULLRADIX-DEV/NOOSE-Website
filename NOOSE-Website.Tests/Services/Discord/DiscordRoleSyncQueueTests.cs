@@ -40,9 +40,33 @@ public class DiscordRoleSyncQueueTests
     {
         var queue = new DiscordRoleSyncQueue();
 
-        queue.EnqueueAll(DiscordRoleSyncReason.Daily);
+        queue.EnqueueAll(DiscordRoleSyncReason.Scheduled);
 
-        Assert.Equal(new AllJob("Tagesabgleich"), Assert.Single(Drain(queue)));
+        Assert.Equal(new AllJob("Regelabgleich"), Assert.Single(Drain(queue)));
+    }
+
+    [Fact]
+    public void A_full_run_that_is_still_waiting_is_not_queued_twice()
+    {
+        var queue = new DiscordRoleSyncQueue();
+
+        queue.EnqueueAll(DiscordRoleSyncReason.Scheduled);
+        queue.EnqueueAll(DiscordRoleSyncReason.Manual);
+
+        Assert.Equal(new AllJob(DiscordRoleSyncReason.Scheduled), Assert.Single(Drain(queue)));
+    }
+
+    [Fact]
+    public void Once_the_worker_took_the_full_run_the_next_one_queues_again()
+    {
+        var queue = new DiscordRoleSyncQueue();
+
+        queue.EnqueueAll(DiscordRoleSyncReason.Scheduled);
+        Drain(queue);
+        queue.MarkFullRunStarted();
+        queue.EnqueueAll(DiscordRoleSyncReason.Manual);
+
+        Assert.Equal(new AllJob(DiscordRoleSyncReason.Manual), Assert.Single(Drain(queue)));
     }
 
     [Fact]
@@ -91,7 +115,7 @@ public class DiscordRoleSyncQueueTests
     {
         Assert.Equal("Änderung am Agenten", DiscordRoleSyncReason.AgentChanged);
         Assert.Equal("Konto gelöscht", DiscordRoleSyncReason.AccountDeleted);
-        Assert.Equal("Tagesabgleich", DiscordRoleSyncReason.Daily);
+        Assert.Equal("Regelabgleich", DiscordRoleSyncReason.Scheduled);
         Assert.Equal("von Hand angestoßen", DiscordRoleSyncReason.Manual);
     }
 }

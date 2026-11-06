@@ -120,6 +120,22 @@ public class DiscordRoleSyncWorkerTests
 
         await host.Worker.StopAsync(CancellationToken.None).WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.True(host.Worker.ExecuteTask!.IsCompletedSuccessfully);
+        // .NET 10 starts ExecuteAsync via Task.Run, so an early stop may cancel it before it ran
+        Assert.True(host.Worker.ExecuteTask!.IsCompleted);
+        Assert.False(host.Worker.ExecuteTask.IsFaulted);
+    }
+
+    [Fact]
+    public async Task A_finished_full_run_lets_the_next_one_queue()
+    {
+        await using var host = new Host();
+        await host.Worker.StartAsync(CancellationToken.None);
+
+        host.Queue.EnqueueAll(DiscordRoleSyncReason.Scheduled);
+        await host.WaitForCallsAsync(1);
+        host.Queue.EnqueueAll(DiscordRoleSyncReason.Manual);
+        await host.WaitForCallsAsync(2);
+
+        Assert.Equal(["all:Regelabgleich", "all:von Hand angestoßen"], host.Calls);
     }
 }
