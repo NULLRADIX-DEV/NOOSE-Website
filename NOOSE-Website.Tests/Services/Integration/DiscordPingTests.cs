@@ -510,13 +510,15 @@ public sealed class DiscordPingTests
         var listed = await NewDigest(ctx, discord, direct: true, queue).RunDueAsync(Evening);
 
         Assert.Equal(2, listed);
-        // the counts and the inbox link, no mention and no title; the channel line only as the fallback
+        // the counts and the inbox link, no mention and no title; the full one-agent channel post only as the fallback
         Assert.Equal(
             [
                 new DiscordDmJob("a", "111", "🗞️ Tagesüberblick: 1× Erwähnung, 2× Aufgabe\nhttps://fibhq.com/benachrichtigungen",
-                    NotificationType.PingDigest, "/benachrichtigungen", "<@111> 1× Erwähnung, 2× Aufgabe"),
+                    NotificationType.PingDigest, "/benachrichtigungen",
+                    "🗞️ **Tagesüberblick** – ungelesen seit dem letzten Überblick:\n<@111> 1× Erwähnung, 2× Aufgabe"),
                 new DiscordDmJob("b", "222", "🗞️ Tagesüberblick: 1× Wiedervorlage fällig\nhttps://fibhq.com/benachrichtigungen",
-                    NotificationType.PingDigest, "/benachrichtigungen", "<@222> 1× Wiedervorlage fällig"),
+                    NotificationType.PingDigest, "/benachrichtigungen",
+                    "🗞️ **Tagesüberblick** – ungelesen seit dem letzten Überblick:\n<@222> 1× Wiedervorlage fällig"),
             ],
             queue.Jobs);
         Assert.All(queue.Jobs, j =>

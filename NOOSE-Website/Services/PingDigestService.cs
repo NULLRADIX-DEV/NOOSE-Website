@@ -115,7 +115,7 @@ public sealed class PingDigestService(
     /// <summary>One mention plus a count per category; category names only, never a title.</summary>
     public static string Line(PingDigestEntry entry) => $"<@{entry.DiscordId}> " + Counts(entry);
 
-    /// <summary>The direct message: the counts and the inbox link, no mention; the channel line is its fallback.</summary>
+    /// <summary>The direct message: the counts and the inbox link, no mention; the channel message is its fallback.</summary>
     public static string DirectText(PingDigestEntry entry, string baseUrl)
         => $"{DirectHeading} {Counts(entry)}\n{DiscordWebhookService.Link(baseUrl, InboxRoute)}";
 
@@ -138,13 +138,13 @@ public sealed class PingDigestService(
         }
     }
 
-    // the line is the fallback
+    // the one-agent digest message is the fallback
     private void QueueDirect(IReadOnlyList<PingDigestEntry> entries, string baseUrl)
     {
         foreach (var entry in entries)
         {
             directQueue.Enqueue(new DiscordDmJob(entry.AgentId, entry.DiscordId, DirectText(entry, baseUrl),
-                NotificationType.PingDigest, InboxRoute, Line(entry)));
+                NotificationType.PingDigest, InboxRoute, Compose([entry])[0].Content));
         }
     }
 

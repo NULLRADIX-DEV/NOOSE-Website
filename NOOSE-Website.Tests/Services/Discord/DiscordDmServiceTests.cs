@@ -112,9 +112,12 @@ public class DiscordDmServiceTests
     private static DiscordDmJob ApplicantJob(string content = "Deine Bewerbung beim FIB ist eingegangen.")
         => new("a", UserA, content, null, null);
 
+    private static readonly string DigestPost
+        = $"🗞️ **Tagesüberblick** – ungelesen seit dem letzten Überblick:\n<@{UserA}> 2× Aufgabe";
+
     private static DiscordDmJob DigestJob()
         => new("a", UserA, "Tagesüberblick: 2× Aufgabe", NotificationType.PingDigest, "/benachrichtigungen",
-            $"<@{UserA}> 2× Aufgabe");
+            DigestPost);
 
     private static readonly DateTime Blocked = new(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc);
 
@@ -421,14 +424,14 @@ public class DiscordDmServiceTests
     }
 
     [Fact]
-    public async Task The_digest_falls_back_to_the_digest_channel_with_the_mention_line()
+    public async Task The_digest_falls_back_to_the_digest_channel_with_heading_and_mention_line()
     {
         using var f = await Fixture.WithAgentAsync();
         f.Bot.Fault = () => new DiscordBotException(403, "Discord 403: x", DiscordBotException.CannotSendToUser);
 
         await f.Service.DeliverAsync(DigestJob());
 
-        await f.Webhook.Received(1).PushDigestAsync($"<@{UserA}> 2× Aufgabe",
+        await f.Webhook.Received(1).PushDigestAsync(DigestPost,
             Arg.Is<IReadOnlyList<string>>(ids => ids.SequenceEqual(new[] { UserA })), "/benachrichtigungen",
             Arg.Any<CancellationToken>());
         await f.Webhook.DidNotReceiveWithAnyArgs().PushAsync(default, default, default, default, default);
@@ -443,7 +446,7 @@ public class DiscordDmServiceTests
 
         await f.Service.DeliverAsync(DigestJob());
 
-        await f.Webhook.Received(1).PushDigestAsync($"<@{UserA}> 2× Aufgabe", Arg.Any<IReadOnlyList<string>>(),
+        await f.Webhook.Received(1).PushDigestAsync(DigestPost, Arg.Any<IReadOnlyList<string>>(),
             "/benachrichtigungen", Arg.Any<CancellationToken>());
         Assert.Null(await f.StampAsync());
     }

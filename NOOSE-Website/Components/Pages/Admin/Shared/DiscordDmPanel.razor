@@ -40,7 +40,7 @@ else
                        Label="Persönliche Pings privat zustellen" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
                 Erwähnungen, Aufgaben, Wiedervorlagen usw. kommen als Direktnachricht vom Bot statt als Ping im Kanal.
-                Wer Direktnachrichten gesperrt hat, bekommt sie weiter im Kanal.
+                Wer Direktnachrichten gesperrt hat, bekommt sie weiter im Kanal, sofern dafür einer eingerichtet ist.
             </MudText>
 
             <MudSwitch T="bool" @bind-Value="_applicants" Disabled="@(!_mayEdit)" Color="Color.Primary"

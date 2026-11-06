@@ -251,9 +251,9 @@ internal static class DutyChapter
                 unverändert, und der Tagesüberblick kommt dann ebenfalls als Direktnachricht. Rundrufe an eine Rolle
                 bleiben im Kanal.</p>
                 <p>Dafür muss Discord dem Bot erlauben, dir zu schreiben. Hast du in den Privatsphäre-Einstellungen des
-                Servers Direktnachrichten gesperrt, fällt der Ping nur für dich auf den Kanal zurück, und dein Profil
-                sagt dir, dass Discord keine Direktnachrichten zulässt. Erlaubst du sie wieder, kommt der nächste Ping
-                wieder privat.</p>
+                Servers Direktnachrichten gesperrt, fällt der Ping nur für dich auf den Kanal zurück, sofern dafür
+                einer eingerichtet ist, und dein Profil sagt dir, dass Discord keine Direktnachrichten zulässt.
+                Erlaubst du sie wieder, kommt der nächste Ping wieder privat.</p>
                 """,
                 NavKey: "benachrichtigungen",
                 Steps:

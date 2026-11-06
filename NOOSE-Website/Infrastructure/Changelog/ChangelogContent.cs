@@ -692,8 +692,8 @@ public static class ChangelogContent
                 + "Leiste unter dem Stern und sind mit einem Klick erreichbar.", "Bedienung"),
             Neu("3.0.33-pings-privat", "Wenn ein Admin es einschaltet, schreibt dir der Bot Pings zu Erwähnungen, "
                 + "Aufgaben und Wiedervorlagen privat als Direktnachricht, nicht mehr in einem Kanal, den alle sehen. "
-                + "Lässt du Direktnachrichten nicht zu, kommen die Pings weiter im Kanal, und dein Profil sagt dir, "
-                + "woran es liegt.", "Discord"),
+                + "Lässt du Direktnachrichten nicht zu, kommen sie weiter im Kanal, falls einer eingerichtet ist, "
+                + "und dein Profil sagt dir warum.", "Discord"),
             Neu("3.0.34-bewerber-discord", "Bewerber bekommen jetzt per Discord-Direktnachricht kurz Bescheid, wenn "
                 + "ihre Bewerbung eingegangen ist, ein Test ansteht, eine Nachricht für sie da ist oder sich ihr Stand "
                 + "ändert. Die Nachricht nennt nie einen Namen oder ein Ergebnis; ein Admin schaltet sie ein.",

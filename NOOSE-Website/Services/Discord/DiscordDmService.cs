@@ -97,7 +97,7 @@ public sealed class DiscordDmService(
             }
             else if (!string.IsNullOrWhiteSpace(job.FallbackContent))
             {
-                // the line carries its own mention
+                // the message carries its own mention
                 await webhook.PushDigestAsync(job.FallbackContent, [job.DiscordId], job.FallbackHref ?? DigestRoute,
                     cancellationToken);
             }

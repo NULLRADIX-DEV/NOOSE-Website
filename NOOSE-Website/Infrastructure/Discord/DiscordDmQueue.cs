@@ -3,7 +3,7 @@ using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Infrastructure.Discord;
 
-/// <summary>One direct message; FallbackType set means an agent (channel fallback), null an applicant (none); FallbackContent is the digest's own line.</summary>
+/// <summary>One direct message; FallbackType set means an agent (channel fallback), null an applicant (none); FallbackContent is the digest's own channel message.</summary>
 public sealed record DiscordDmJob(
     string AgentId, string DiscordId, string Content, NotificationType? FallbackType, string? FallbackHref,
     string? FallbackContent = null);

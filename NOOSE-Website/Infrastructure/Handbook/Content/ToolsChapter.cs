@@ -204,8 +204,8 @@ internal static class ToolsChapter
                 <p>Beide Schalter wirken nur, wenn auf dem Server ein Bot-Token hinterlegt ist; der Abschnitt zeigt, ob
                 eines da ist. Der Bot kann nur Leuten schreiben, mit denen er einen Server teilt - er muss also auf
                 demselben Discord-Server sein wie Agenten und Bewerber. Wer Direktnachrichten gesperrt hat, bekommt
-                keine: Agenten erhalten den Ping dann weiter im Kanal, Bewerber behalten die Glocke im Portal. Die
-                Schalter ändert nur ein Admin, die Führung sieht den Stand.</p>
+                keine: Agenten erhalten den Ping dann weiter im Kanal, sofern dafür einer eingerichtet ist; Bewerber
+                behalten die Glocke im Portal. Die Schalter ändert nur ein Admin, die Führung sieht den Stand.</p>
                 <p>Die Einstellungen sind der Führung vorbehalten.</p>
                 """,
                 NavKey: "einstellungen"),
