@@ -63,12 +63,13 @@
 {
     <MudDivider Class="my-4" />
     <MudStack Spacing="2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudText Typo="Typo.h6">Mitglieder</MudText>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="MemberAddAsync">
-                Mitglied hinzufügen
-            </MudButton>
-        </MudStack>
+        <SectionHeader Title="Mitglieder">
+            <Actions>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="MemberAddAsync">
+                    Mitglied hinzufügen
+                </MudButton>
+            </Actions>
+        </SectionHeader>
         @if (Input.Members.Count == 0)
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Mitglieder – optional. Können auch später in der Akte ergänzt werden.</MudText>
@@ -78,8 +79,8 @@
             @foreach (var m in Input.Members)
             {
                 <MudPaper Class="pa-2" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                             <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Small" />
                             <MudText Typo="Typo.body2"><b>@m.PersonName</b></MudText>
                             @if (m.IsLead)

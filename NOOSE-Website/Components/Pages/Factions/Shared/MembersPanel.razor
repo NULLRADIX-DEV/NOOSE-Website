@@ -4,11 +4,16 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    @* below 960px the row wraps; below 600px the two buttons give way to a ⋮ menu with the same entries, same check *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Mitglieder (@_members.Count)</MudText>
         @if (_mayWrite)
         {
-            <MudStack Row="true" Spacing="2">
+            <HeaderMenu PhoneOnly="true">
+                <MudMenuItem Icon="@Icons.Material.Filled.GroupAdd" OnClick="BulkAsync">Bulk hinzufügen</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.PersonAdd" OnClick="AddAsync">Mitglied hinzufügen</MudMenuItem>
+            </HeaderMenu>
+            <MudStack Row="true" Spacing="2" Class="noose-mobil-aus">
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.GroupAdd" OnClick="BulkAsync">
                     Bulk hinzufügen
                 </MudButton>
@@ -32,8 +37,8 @@
         @foreach (var m in _members)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                         <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Small" />
                         <MudLink Href="@($"/personen/{m.PersonId}")" Typo="Typo.body2"><b>@m.Person?.Name</b></MudLink>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@m.Person?.CaseNumber</MudText>

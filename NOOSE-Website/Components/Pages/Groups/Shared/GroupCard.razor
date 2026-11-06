@@ -1,6 +1,10 @@
-<MudPaper Class="pa-4" Elevation="2">
+@* Below 960px the card shrinks to a compact head (noose-steckbrief-* in app.css): 64px picture beside the name,
+   the markers in one wrapping row, the capture progress, and the rest behind "Details". The wrappers repeat MudStack's
+   gap-3 column, so from 960px up the card renders as before. *@
+<MudPaper Class="pa-4 noose-steckbrief" Elevation="2">
     <MudStack Spacing="3">
-        <MudStack AlignItems="AlignItems.Center" Class="py-2">
+        <div class="d-flex flex-column gap-3 noose-steckbrief-kopf">
+        <MudStack AlignItems="AlignItems.Center" Class="py-2 noose-steckbrief-bild">
             @if (!string.IsNullOrEmpty(TitleImagePhotoId))
             {
                 <div @onclick="OpenLightboxAsync" style="cursor:pointer;">
@@ -18,8 +22,8 @@
             }
         </MudStack>
 
-        <div>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div class="noose-steckbrief-name">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="noose-steckbrief-kennzeichen">
                 <MudText Typo="Typo.h5">@Group.Name</MudText>
                 @if (Group.IsClassified)
                 {
@@ -29,6 +33,9 @@
             </MudStack>
             <MudText Typo="Typo.body2" Class="mud-text-secondary">@Group.CaseNumber</MudText>
         </div>
+        </div>
+
+        <div class="d-flex flex-column gap-3 noose-steckbrief-kennzeichen">
 
         <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled"
                  Icon="@KindIcon(Group.Kind)" Class="align-self-start">
@@ -36,10 +43,13 @@
         </MudChip>
 
         <ClassificationBadge Value="Group.Classification" />
+        </div>
 
+        <div class="@RestClass">
         <InvestigationLeadDisplay Names="InvestigationLead" />
 
         <MudDivider />
+        </div>
 
         <div>
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
@@ -58,6 +68,7 @@
             }
         </div>
 
+        <div class="@RestClass">
         <MudDivider />
 
         <MudStack Spacing="1">
@@ -73,6 +84,12 @@
                            Color="Color.Info" Size="Size.Small" Label="Veralterung deaktiviert" />
             </AuthorizeView>
         </MudStack>
+        </div>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Class="noose-nur-schmal align-self-start"
+                   EndIcon="@(_details ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                   OnClick="@(() => _details = !_details)" aria-expanded="@(_details ? "true" : "false")">
+            @(_details ? "Weniger" : "Details")
+        </MudButton>
     </MudStack>
 </MudPaper>
 
@@ -89,6 +106,13 @@
     [Parameter] public EventCallback Changed { get; set; }
 
     [Inject] private IRecencyService Recency { get; set; } = default!;
+
+    // below 960px the lead and freshness lines start folded; the class does nothing from 960px up
+    private bool _details;
+
+    private string RestClass => _details
+        ? "d-flex flex-column gap-3 noose-steckbrief-rest"
+        : "d-flex flex-column gap-3 noose-steckbrief-rest noose-steckbrief-zu";
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
 
