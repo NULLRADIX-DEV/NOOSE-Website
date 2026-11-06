@@ -19,7 +19,7 @@ public static class DiscordRoleSyncReason
 {
     public const string AgentChanged = "Änderung am Agenten";
     public const string AccountDeleted = "Konto gelöscht";
-    public const string Daily = "Tagesabgleich";
+    public const string Scheduled = "Regelabgleich";
     public const string Manual = "von Hand angestoßen";
 }
 
@@ -32,8 +32,11 @@ public interface IDiscordRoleSyncQueue
     /// <summary>Queue a deleted account by its Discord id; the team lead flag is read before the row goes.</summary>
     void EnqueueDeleted(string discordId, bool isTeamLead);
 
-    /// <summary>Queue a run over every agent.</summary>
+    /// <summary>Queue a run over every agent; ignored while one is still waiting.</summary>
     void EnqueueAll(string reason);
+
+    /// <summary>The worker took the waiting full run; the next one may queue again.</summary>
+    void MarkFullRunStarted();
 
     ChannelReader<DiscordRoleSyncJob> Reader { get; }
 }
@@ -52,8 +55,18 @@ public sealed class DiscordRoleSyncQueue : IDiscordRoleSyncQueue
     public void EnqueueDeleted(string discordId, bool isTeamLead)
         => Add(new DeletedJob(discordId, isTeamLead, DiscordRoleSyncReason.AccountDeleted));
 
+    private int _fullRunWaiting;
+
     public void EnqueueAll(string reason)
-        => Add(new AllJob(reason));
+    {
+        // a run every five minutes must not pile up behind a slow one
+        if (Interlocked.CompareExchange(ref _fullRunWaiting, 1, 0) == 0)
+        {
+            Add(new AllJob(reason));
+        }
+    }
+
+    public void MarkFullRunStarted() => Interlocked.Exchange(ref _fullRunWaiting, 0);
 
     // unbounded, never full
     private void Add(DiscordRoleSyncJob job) => _channel.Writer.TryWrite(job);

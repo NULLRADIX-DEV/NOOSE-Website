@@ -35,6 +35,8 @@ public class AgentManagementServiceTests
 
         public void EnqueueAll(string reason) => Add(new AllJob(reason));
 
+        public void MarkFullRunStarted() { }
+
         private void Add(DiscordRoleSyncJob job)
         {
             if (Fault is not null)
