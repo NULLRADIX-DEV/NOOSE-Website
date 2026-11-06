@@ -27,14 +27,14 @@ else if (_edit && !_mayEdit)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel" aria-label="Zurück" />
-        <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h4">@(_edit ? "Aktivität bearbeiten" : "Neue Aktivität")</MudText>
-        <MudSpacer />
-        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
-        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
-    </MudStack>
+    @* From 960px up save and cancel stand in the header as always; below 960px they move to the form bar pinned to the
+       bottom of the screen at the end of the form (both variants in the markup, CSS shows one) *@
+    <PageHeader BackHref="@BackHref" Icon="@Icons.Material.Filled.Bolt" Title="@(_edit ? "Aktivität bearbeiten" : "Neue Aktivität")"
+                ShowHelp="false">
+        <Actions>
+            <div class="d-contents noose-schmal-aus">@SaveButtons</div>
+        </Actions>
+    </PageHeader>
 
     <MudPaper Class="pa-4" Elevation="2">
         <MudStack Spacing="3">
@@ -54,10 +54,10 @@ else
                 </MudItem>
             </MudGrid>
 
-            <MudStack Row="true" Spacing="2">
-                <MudDatePicker @bind-Date="_date" Label="Datum" Editable="true" Variant="Variant.Outlined"
+            <MudStack Row="true" Spacing="2" Class="noose-kopf-umbruch">
+                <MudDatePicker @bind-Date="_date" Class="noose-breite-frei" Label="Datum" Editable="true" Variant="Variant.Outlined"
                                DateFormat="dd.MM.yyyy" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Event" />
-                <MudTimePicker @bind-Time="_time" Label="Uhrzeit" Editable="true" Variant="Variant.Outlined"
+                <MudTimePicker @bind-Time="_time" Class="noose-breite-frei" Label="Uhrzeit" Editable="true" Variant="Variant.Outlined"
                                AmPm="false" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Schedule" />
             </MudStack>
 
@@ -100,6 +100,7 @@ else
                                 OnSaveRequested="SaveAsync"
                                 DraftKey="@DraftKey" />
             </div>
+            <FormActions Class="noose-nur-schmal">@SaveButtons</FormActions>
         </MudStack>
     </MudPaper>
 }
@@ -316,6 +317,14 @@ else
         }
     }
 
-    private void Cancel()
-        => Nav.NavigateTo(_edit ? $"/aktivitaeten/{Id}" : "/aktivitaeten");
+    private string BackHref => _edit ? $"/aktivitaeten/{Id}" : "/aktivitaeten";
+
+    private void Cancel() => Nav.NavigateTo(BackHref);
+
+    // the header's buttons from 960px up, the form bar's below
+    private RenderFragment SaveButtons => __builder =>
+    {
+        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
+        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
+    };
 }

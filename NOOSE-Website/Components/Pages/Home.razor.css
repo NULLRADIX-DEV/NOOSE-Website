@@ -9,3 +9,20 @@
     min-height: 0;
     overflow-y: auto;
 }
+
+/* Below 960px the bottom row's three columns stand one under the other (Bauplan Task 13): no fixed 28rem height and
+   no inner scrolling, five entries each (Home.razor marks the rest with dashboard-mehr). From 960px up nothing here
+   applies. ::deep reaches the MudPaper and list items, which carry no scope attribute of their own. */
+@media screen and (max-width: 959.98px) {
+    .dashboard-seite ::deep .dashboard-spalte {
+        height: auto !important;
+    }
+
+    .dashboard-spalte-body {
+        overflow-y: visible;
+    }
+
+    .dashboard-seite ::deep .dashboard-mehr {
+        display: none;
+    }
+}

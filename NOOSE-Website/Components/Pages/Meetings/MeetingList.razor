@@ -1,13 +1,16 @@
 @page "/besprechungen"
+@using NOOSE_Website.Models.Navigation
 @attribute [Authorize(Policy = Policies.InternalAgent)]
 @inject IMeetingService MeetingService
 @inject NavigationManager Nav
 
 <PageTitle>Besprechungen – FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+@* page title with the h5 it always had (PageHeader would make it h4 on desktop): below 960px the row wraps, below
+   600px the large icon goes and the column choice for the table appears beside the main action *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 noose-kopf-umbruch">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" Size="Size.Large" />
+        <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">Besprechungen</MudText>
             <MudText Typo="Typo.caption" Class="mud-text-secondary">
@@ -15,11 +18,15 @@
             </MudText>
         </MudStack>
     </MudStack>
-    @if (_mayCreate)
-    {
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add"
-                   Href="/besprechungen/neu">Neue Besprechung</MudButton>
-    }
+    <div class="d-flex align-center gap-2">
+        <MobileColumnPicker ListKey="besprechungen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                            VisibleChanged="@(v => _phoneColumns = v)" />
+        @if (_mayCreate)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add"
+                       Href="/besprechungen/neu">Neue Besprechung</MudButton>
+        }
+    </div>
 </MudStack>
 
 @if (_load)
@@ -32,23 +39,24 @@ else if (_list.Count == 0)
 }
 else
 {
-    <MudTable Items="_list" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1"
+    @* a table on phones too: fewer columns (the agent's choice) instead of stacked cards *@
+    <MudTable Items="_list" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="1"
               OnRowClick="@((TableRowClickEventArgs<MeetingListItem> e) => Open(e.Item))" T="MeetingListItem"
               Style="cursor:pointer;">
         <HeaderContent>
-            <MudTh>Aktenzeichen</MudTh>
-            <MudTh>Titel</MudTh>
-            <MudTh>Beginn</MudTh>
-            <MudTh>Ort</MudTh>
-            <MudTh>TOPs</MudTh>
-            <MudTh>Status</MudTh>
+            <MudTh Class="@Col("aktenzeichen")">Aktenzeichen</MudTh>
+            <MudTh Class="@Col("titel")">Titel</MudTh>
+            <MudTh Class="@Col("beginn")">Beginn</MudTh>
+            <MudTh Class="@Col("ort")">Ort</MudTh>
+            <MudTh Class="@Col("tops")">TOPs</MudTh>
+            <MudTh Class="@Col("status")">Status</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Aktenzeichen">
+            <MudTd DataLabel="Aktenzeichen" Class="@Col("aktenzeichen")">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.CaseNumber</MudText>
             </MudTd>
-            <MudTd DataLabel="Titel">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudTd DataLabel="Titel" Class="@Col("titel")">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
                     <b>@context.Title</b>
                     @if (context.OwnSignedOff)
                     {
@@ -57,10 +65,10 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Beginn">@MeetingTime.Local(context.Start).ToString("dd.MM.yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="Ort">@(context.Location ?? "—")</MudTd>
-            <MudTd DataLabel="TOPs">@context.AgendaCount</MudTd>
-            <MudTd DataLabel="Status"><MeetingStatusChip Status="@context.Status" /></MudTd>
+            <MudTd DataLabel="Beginn" Class="@Col("beginn")">@MeetingTime.Local(context.Start).ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Ort" Class="@Col("ort")">@(context.Location ?? "—")</MudTd>
+            <MudTd DataLabel="TOPs" Class="@Col("tops")">@context.AgendaCount</MudTd>
+            <MudTd DataLabel="Status" Class="@Col("status")"><MeetingStatusChip Status="@context.Status" /></MudTd>
         </RowTemplate>
     </MudTable>
 
@@ -82,6 +90,22 @@ else
     private int _total;
     private string? _meId;
     private bool _mayCreate;
+
+    /// <summary>The table's columns for the phone column picker, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("titel", "Titel"), ("beginn", "Beginn"), ("ort", "Ort"), ("tops", "TOPs"),
+        ("status", "Status"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: title and start.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["titel", "beginn"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     protected override async Task OnInitializedAsync()
     {

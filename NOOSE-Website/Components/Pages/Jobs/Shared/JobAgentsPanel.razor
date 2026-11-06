@@ -4,11 +4,11 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Zugewiesene Agents (@_agents.Count)</MudText>
         @if (CanManage)
         {
-            <MudStack Row="true" Spacing="2">
+            <MudStack Row="true" Spacing="2" Class="noose-kopf-umbruch">
                 <MudMenu Label="Einheit zuweisen" Variant="Variant.Outlined" Color="Color.Primary"
                          StartIcon="@Icons.Material.Filled.Groups" EndIcon="@Icons.Material.Filled.KeyboardArrowDown">
                     @foreach (var unit in DivisionRules.Seats)
@@ -37,7 +37,7 @@
         {
             <MudPaper Class="pa-3" Elevation="1">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag-titel">
                         <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Size="Size.Small" />
                         <MudText Typo="Typo.body2"><b>@a.Agent?.Codename</b></MudText>
                         <AgentRankChip Agent="a.Agent" />

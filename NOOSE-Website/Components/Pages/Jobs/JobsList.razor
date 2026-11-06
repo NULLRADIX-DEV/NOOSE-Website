@@ -8,11 +8,19 @@
 
 <PageHeader Icon="@Icons.Material.Filled.AssignmentTurnedIn" Title="Aufgaben-Board"
             Subtitle="Gemeinsames Team-Board: Karten per Drag & Drop zwischen den Spalten verschieben, um den Status zu ändern.">
-    <Actions>
+    <MoreActions>
         <SavedViewButton BaseRoute="/aufgaben" Filters="FilterState" OnApply="ApplyViewAsync" />
         <AuthorizeView Policy="@Policies.Leadership">
             <MudButton Href="/papierkorb?tab=aufgaben" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
         </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <SavedViewButton AsMenuItem="true" BaseRoute="/aufgaben" Filters="FilterState" OnApply="ApplyViewAsync" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=aufgaben">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
         <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
             <MudButton Href="/aufgaben/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Aufgabe</MudButton>
         </AuthorizeView>
@@ -25,14 +33,18 @@
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 flex-wrap">
+    @* below 600px: search over the full row, the two filters folded behind "Filter (n)" *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 flex-wrap noose-filterleiste">
         <MudTextField T="string" Value="_search" ValueChanged="SearchModified" Placeholder="Suchen (Titel, Aktenzeichen, Agent)…"
                       Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:360px;" />
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:360px;"
+                      Class="noose-filter-feld" />
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                   Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)">Filter (@ActiveFilters)</MudButton>
         <MudSpacer />
-        <MudSwitch T="bool" Value="_onlyMy" ValueChanged="OnlyMySelected" Color="Color.Primary" Label="Nur meine" />
+        <MudSwitch T="bool" Value="_onlyMy" ValueChanged="OnlyMySelected" Color="Color.Primary" Label="Nur meine" Class="@FilterFold" />
         <MudSelect T="JobPriority?" Value="_priorityFilter" ValueChanged="PrioritySelected" Label="Priorität" Dense="true"
-                   Clearable="true" Variant="Variant.Outlined" Style="max-width:200px;">
+                   Clearable="true" Variant="Variant.Outlined" Style="max-width:200px;" Class="@($"noose-filter-feld {FilterFold}")">
             <MudSelectItem T="JobPriority?" Value="@((JobPriority?)null)">Alle</MudSelectItem>
             @foreach (var p in JobPriorityDisplay.All)
             {
@@ -66,10 +78,22 @@ else
                       ApplyDropClassesOnDragStarted="true"
                       CanDropClass="aufgaben-dropzone-aktiv" NoDropClass="aufgaben-dropzone-gesperrt">
         <ChildContent>
+            @* below 960px one status column at a time, picked here; from 960px up all four stand side by side *@
+            <MudToggleGroup T="JobStatus" Value="_boardStatus" ValueChanged="@(v => _boardStatus = v)" Color="Color.Primary"
+                            Size="Size.Small" Outlined="true" CheckMark="false" Class="noose-nur-schmal mb-3">
+                @foreach (var s in JobStatusDisplay.All)
+                {
+                    <MudToggleItem Value="s">
+                        <MudIcon Icon="@Symbol(s)" Size="Size.Small" Class="mr-1" />
+                        <span class="noose-mobil-aus mr-1">@JobStatusDisplay.Name(s)</span>
+                        <span>(@Count(s))</span>
+                    </MudToggleItem>
+                }
+            </MudToggleGroup>
             <div class="aufgaben-board">
                 @foreach (var s in JobStatusDisplay.All)
                 {
-                    <div class="aufgaben-spalte">
+                    <div class="@(s == _boardStatus ? "aufgaben-spalte" : "aufgaben-spalte aufgaben-spalte-zu")">
                         <div class="aufgaben-spalte-kopf" style="@($"background-color:{Colour(s)};")">
                             <MudIcon Icon="@Symbol(s)" Size="Size.Small" />
                             <span>@JobStatusDisplay.Name(s)</span>
@@ -86,8 +110,24 @@ else
             <MudPaper Class="aufgaben-karte pa-3" Elevation="2" @onclick="@(() => Open(context))">
                 <MudStack Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="1">
-                        <MudText Typo="Typo.subtitle2" Color="Color.Primary">@context.Title</MudText>
-                        <JobPriorityChip Priority="context.Priority" />
+                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="noose-eintrag-titel">@context.Title</MudText>
+                        <div class="d-flex align-center">
+                            <JobPriorityChip Priority="context.Priority" />
+                            @if (context.MayStatusChange)
+                            {
+                                @* dragging needs a mouse and all four columns side by side; below 960px the status moves from
+                                   this menu instead, behind the same check the drop zones ask (CanDrop) *@
+                                <div class="noose-nur-schmal" @onclick:stopPropagation="true">
+                                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AriaLabel="Status ändern"
+                                             AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                        @foreach (var target in JobStatusDisplay.All.Where(t => t != context.Status))
+                                        {
+                                            <MudMenuItem Icon="@Symbol(target)" OnClick="@(() => ChangeStatusAsync(context, target))">Nach „@JobStatusDisplay.Name(target)“</MudMenuItem>
+                                        }
+                                    </MudMenu>
+                                </div>
+                            }
+                        </div>
                     </MudStack>
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.CaseNumber</MudText>
                     @if (context.DueDate is { } f)
@@ -125,6 +165,12 @@ else
     private List<JobRow> _all = new();
     private ClaimsPrincipal _user = default!;
     private MudDropContainer<JobRow>? _container;
+    private bool _filtersOpen;
+    // the one column the board shows below 960px
+    private JobStatus _boardStatus = JobStatus.Open;
+
+    private int ActiveFilters => (_onlyMy ? 1 : 0) + (_priorityFilter is null ? 0 : 1);
+    private string FilterFold => _filtersOpen ? string.Empty : "noose-filter-zu";
 
     protected override async Task OnInitializedAsync()
     {
@@ -236,7 +282,16 @@ else
     private async Task ItemDroppedAsync(MudItemDropInfo<JobRow> info)
     {
         var item = info.Item;
-        if (item is null || !Enum.TryParse<JobStatus>(info.DropzoneIdentifier, out var target) || item.Status == target)
+        if (item is null || !Enum.TryParse<JobStatus>(info.DropzoneIdentifier, out var target))
+        {
+            return;
+        }
+        await ChangeStatusAsync(item, target);
+    }
+
+    private async Task ChangeStatusAsync(JobRow item, JobStatus target)
+    {
+        if (item.Status == target)
         {
             return;
         }

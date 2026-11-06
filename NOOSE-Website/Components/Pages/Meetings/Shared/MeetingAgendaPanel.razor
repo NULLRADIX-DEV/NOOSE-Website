@@ -51,7 +51,7 @@ else
                                     <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
                                 }
 
-                                <MudText Typo="Typo.body1"
+                                <MudText Typo="Typo.body1" Class="noose-eintrag-titel"
                                          Style="@(item.Done ? "text-decoration:line-through;opacity:.6;" : null)">
                                     @item.Title
                                 </MudText>
@@ -80,7 +80,20 @@ else
 
                                 @if (CanEdit)
                                 {
-                                    <div @onclick:stopPropagation="true">
+                                    @* three icon buttons: below 600px they give way to a ⋮ menu with the same entries *@
+                                    <div class="noose-nur-handy" @onclick:stopPropagation="true">
+                                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true"
+                                                 AriaLabel="Aktionen zum Punkt" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                            <MudMenuItem Icon="@Icons.Material.Filled.ArrowUpward" Disabled="@(index == 0)"
+                                                         OnClick="@(() => MoveAsync(item.Id, -1))">Nach oben</MudMenuItem>
+                                            <MudMenuItem Icon="@Icons.Material.Filled.ArrowDownward" Disabled="@(index == _items.Count - 1)"
+                                                         OnClick="@(() => MoveAsync(item.Id, 1))">Nach unten</MudMenuItem>
+                                            <MudDivider Class="my-1" />
+                                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                                         OnClick="@(() => RemoveAsync(item))">Punkt löschen</MudMenuItem>
+                                        </MudMenu>
+                                    </div>
+                                    <div class="noose-mobil-aus" @onclick:stopPropagation="true">
                                         <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
                                                        Disabled="@(index == 0)"
                                                        OnClick="@(() => MoveAsync(item.Id, -1))" aria-label="Nach oben" />
@@ -119,7 +132,7 @@ else
 
                                 @if (CanNote)
                                 {
-                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3 noose-kopf-umbruch">
                                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
                                                    StartIcon="@Icons.Material.Filled.AddTask"
                                                    OnClick="@(() => MeasureAsync(item))">Maßnahme</MudButton>

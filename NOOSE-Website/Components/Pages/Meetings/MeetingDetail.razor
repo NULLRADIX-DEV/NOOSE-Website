@@ -23,7 +23,7 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
             <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/besprechungen" aria-label="Zurück" />
             <MudStack Spacing="0">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
                     <MudText Typo="Typo.h5">@_meeting.Title</MudText>
                     <MeetingStatusChip Status="@_meeting.Status" />
                 </MudStack>
@@ -41,21 +41,32 @@ else
             @* rank AND write: a rank-3 read-only supervisor must not see controls that always throw *@
             @if (_mayAgendaWrite)
             {
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.EventRepeat"
-                           OnClick="NextAsync" Disabled="@(_hasNext || _cloning)">
-                    Nächste Besprechung
-                </MudButton>
+                @* below 960px Bearbeiten stays, the other two give way to the ⋮ menu behind the same check;
+                   the d-contents wrappers add no box, so from 960px up the row is the one it was *@
+                <div class="d-contents noose-schmal-aus">
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.EventRepeat"
+                               OnClick="NextAsync" Disabled="@(_hasNext || _cloning)">
+                        Nächste Besprechung
+                    </MudButton>
+                </div>
                 <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Edit"
                            Href="@($"/besprechungen/{Id}/bearbeiten")">Bearbeiten</MudButton>
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                               OnClick="DeleteAsync" aria-label="Besprechung löschen" />
+                <div class="d-contents noose-schmal-aus">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="DeleteAsync" aria-label="Besprechung löschen" />
+                </div>
+                <HeaderMenu>
+                    <MudMenuItem Icon="@Icons.Material.Filled.EventRepeat" OnClick="NextAsync" Disabled="@(_hasNext || _cloning)">Nächste Besprechung</MudMenuItem>
+                    <MudDivider Class="my-1" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Besprechung löschen</MudMenuItem>
+                </HeaderMenu>
             }
         </MudStack>
     </MudStack>
 
     @* KeepPanelsAlive: switching tabs must not tear down the note editor and lose unsaved text *@
     <MudTabs @bind-ActivePanelIndex="_activeTab" Elevation="1" Rounded="true" ApplyEffectsToContainer="true"
-             KeepPanelsAlive="true"
+             KeepPanelsAlive="true" Class="noose-reiter-handy"
              @bind-ActivePanelIndex:after="@(() => TabUrlState.WriteAsync(JS, Nav, _renderTabs, _activeTab))">
 
         @if (_mayAgenda)
