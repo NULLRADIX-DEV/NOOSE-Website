@@ -17,6 +17,9 @@
                       user-select:none; -webkit-user-select:none; }
     .challenge-letter { pointer-events:none; }
     .challenge-letter::before { content:attr(data-c); }
+    @@media screen and (max-width: 599.98px) {
+        .challenge-word { font-size:clamp(1.25rem, 8vw, 2rem); gap:.2rem; letter-spacing:.1rem; padding:.5rem .75rem; }
+    }
 </style>
 
 @code {

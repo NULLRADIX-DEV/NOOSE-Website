@@ -35,8 +35,8 @@
         @foreach (var e in _entries)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="noose-eintrag noose-eintrag-titel">
                         <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Color="Color.Default" />
                         <MudText Typo="Typo.body2"><b>@(string.IsNullOrWhiteSpace(e.K.AuthorName) ? "Unbekannt" : e.K.AuthorName)</b></MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
@@ -47,7 +47,7 @@
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">· bearbeitet</MudText>
                         }
                     </MudStack>
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="0" Class="noose-mobil-aus">
                         <PartnerChildShareButton Show="_canShareChildren" ChildType="@nameof(Comment)" ChildId="@e.K.Id" />
                         @if (_mayWrite && MayEdit(e.K) && _editingId != e.K.Id)
                         {
@@ -60,6 +60,23 @@
                                            OnClick="@(() => DeleteAsync(e.K))" aria-label="Kommentar löschen" />
                         }
                     </MudStack>
+                    @* the same actions behind the same checks, as a ⋮ menu below 600px *@
+                    @if (_canShareChildren || (_mayWrite && MayEdit(e.K) && _editingId != e.K.Id) || (_mayWrite && MayDelete(e.K)))
+                    {
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                                 AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                            <PartnerChildShareButton Show="_canShareChildren" ChildType="@nameof(Comment)" ChildId="@e.K.Id" AsMenuItem="true" />
+                            @if (_mayWrite && MayEdit(e.K) && _editingId != e.K.Id)
+                            {
+                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => BeginEdit(e.K))">Bearbeiten</MudMenuItem>
+                            }
+                            @if (_mayWrite && MayDelete(e.K))
+                            {
+                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                             OnClick="@(() => DeleteAsync(e.K))">Löschen</MudMenuItem>
+                            }
+                        </MudMenu>
+                    }
                 </MudStack>
                 @if (_editingId == e.K.Id)
                 {

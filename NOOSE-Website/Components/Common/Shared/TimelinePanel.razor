@@ -46,7 +46,7 @@ else
                 {
                     <MudTimelineItem Color="@Colour(e.Category)" Size="Size.Small">
                         <MudStack Spacing="1">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                                 <MudIcon Icon="@Symbol(e.Category)" Size="Size.Small" Color="@Colour(e.Category)" />
                                 @if (!string.IsNullOrEmpty(e.Href))
                                 {

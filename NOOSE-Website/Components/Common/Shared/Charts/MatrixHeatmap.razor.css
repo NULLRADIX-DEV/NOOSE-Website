@@ -1,0 +1,12 @@
+/* Phones only: the grid keeps at least 28px per column (--heatmap-min, set in the markup) and scrolls sideways
+   inside its tile instead of squeezing the cells or pushing the page wider than the screen. */
+@media screen and (max-width: 599.98px) {
+    .heatmap-rahmen {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    .heatmap-flaeche {
+        min-width: var(--heatmap-min, 560px);
+    }
+}

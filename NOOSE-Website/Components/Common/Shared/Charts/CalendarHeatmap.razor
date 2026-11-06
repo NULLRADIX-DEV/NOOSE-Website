@@ -5,7 +5,12 @@
 
 <ChartFrame Title="@Title" Subtitle="@Subtitle" Height="@Height" IsEmpty="@(Days.Count == 0)"
             Bare="@Bare" Stale="@Stale" EmptyText="@EmptyText">
-    <EChartsCanvas Kind="calendar" Payload="@_payload" Height="@Height" />
+    @* plain blocks from 600px up; on phones the year keeps a readable day size and scrolls in its own frame *@
+    <div class="kalender-rahmen">
+        <div class="kalender-flaeche">
+            <EChartsCanvas Kind="calendar" Payload="@_payload" Height="@Height" />
+        </div>
+    </div>
 </ChartFrame>
 
 @code {

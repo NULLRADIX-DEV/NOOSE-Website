@@ -6,8 +6,13 @@
 <ChartFrame Title="@Title" Subtitle="@Subtitle" Height="@Height" IsEmpty="@Matrix.IsEmpty"
             Bare="@Bare" Stale="@Stale" EmptyText="@EmptyText">
     <ChildContent>
-        <MudChart T="double" ChartType="ChartType.HeatMap" ChartSeries="@_series" ChartLabels="@_labels"
-                  ChartOptions="@_options" Width="100%" Height="@Height" />
+        @* plain blocks from 600px up; on phones the grid keeps a readable cell size and scrolls in its own frame *@
+        <div class="heatmap-rahmen">
+            <div class="heatmap-flaeche" style="@MinWidthStyle">
+                <MudChart T="double" ChartType="ChartType.HeatMap" ChartSeries="@_series" ChartLabels="@_labels"
+                          ChartOptions="@_options" Width="100%" Height="@Height" />
+            </div>
+        </div>
     </ChildContent>
     <Footer>
         <div class="d-flex align-center justify-end mt-2" style="gap:.5rem;">
@@ -45,6 +50,9 @@
     private List<ChartSeries<double>> _series = [];
     private string[] _labels = [];
     private HeatMapChartOptions _options = new();
+
+    // 28px per column plus the row labels: the narrowest the grid gets on a phone before its frame scrolls
+    private string MinWidthStyle => string.Create(CultureInfo.InvariantCulture, $"--heatmap-min:{96 + _labels.Length * 28}px;");
 
     protected override void OnParametersSet()
     {

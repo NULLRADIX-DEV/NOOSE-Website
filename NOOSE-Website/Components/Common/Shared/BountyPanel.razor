@@ -70,9 +70,9 @@
                 <tr>
                     <th>Betrag</th>
                     <th>Herkunft</th>
-                    <th>Stifter</th>
+                    <th class="noose-mobil-aus">Stifter</th>
                     <th>Status</th>
-                    <th>Seit</th>
+                    <th class="noose-mobil-aus">Seit</th>
                     <th></th>
                 </tr>
             </thead>
@@ -87,7 +87,7 @@
                                 @BountyOriginDisplay.Name(share.Origin)@(share.Account is { } a ? $" · {KassenKontoDisplay.Name(a)}" : string.Empty)
                             </MudChip>
                         </td>
-                        <td>@share.DonorName</td>
+                        <td class="noose-mobil-aus">@share.DonorName</td>
                         <td>
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
                                      Color="@BountyShareStatusDisplay.ChipColor(share.Status)">
@@ -102,7 +102,7 @@
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@share.WithdrawnReason</MudText>
                             }
                         </td>
-                        <td>@share.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="noose-mobil-aus">@share.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                         <td class="text-right">
                             @if (MayWrite && share.Origin == BountyOrigin.AgentPrivat
                                 && share.Status == BountyShareStatus.Zugesagt && (share.IsOwn || IsLeadership))
@@ -142,23 +142,23 @@
                     <MudSimpleTable Dense="true" Hover="true" Striped="false" Elevation="0">
                         <thead>
                             <tr>
-                                <th>Beleg</th>
+                                <th class="noose-mobil-aus">Beleg</th>
                                 <th>Hinweis</th>
                                 <th>Empfänger</th>
                                 <th>Betrag</th>
-                                <th>Buchung</th>
-                                <th>Am</th>
+                                <th class="noose-mobil-aus">Buchung</th>
+                                <th class="noose-mobil-aus">Am</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var reward in _rewards)
                             {
                                 <tr>
-                                    <td>@reward.ReceiptNumber</td>
+                                    <td class="noose-mobil-aus">@reward.ReceiptNumber</td>
                                     <td><MudLink Href="@($"/hinweise/{reward.TipId}")">@reward.TipCaseNumber</MudLink></td>
                                     <td>@(reward.CitizenName ?? "—")</td>
                                     <td>@Money.Format(reward.Amount)</td>
-                                    <td>
+                                    <td class="noose-mobil-aus">
                                         @if (reward.SelfPaid)
                                         {
                                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">
@@ -172,7 +172,7 @@
                                             </MudText>
                                         }
                                     </td>
-                                    <td>@reward.PaidAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td class="noose-mobil-aus">@reward.PaidAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                                 </tr>
                             }
                         </tbody>

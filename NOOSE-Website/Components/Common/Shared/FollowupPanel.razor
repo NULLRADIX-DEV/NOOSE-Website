@@ -5,7 +5,7 @@
 @inject IPartnerShareService PartnerShareService
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Wiedervorlagen (@_open.Count)</MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.EventRepeat" OnClick="NewAsync">
             Wiedervorlage planen
@@ -27,8 +27,8 @@
             @foreach (var w in _open)
             {
                 <MudPaper Class="pa-3" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                             <MudIcon Icon="@(w.Overdue ? Icons.Material.Filled.EventBusy : Icons.Material.Filled.Event)"
                                      Color="@(w.Overdue ? Color.Error : Color.Primary)" Size="Size.Small" />
                             <MudText Typo="Typo.body2"><b>@w.DueAt.ToLocalTime().ToString("dd.MM.yyyy")</b></MudText>
@@ -37,7 +37,7 @@
                                 <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">überfällig</MudChip>
                             }
                         </MudStack>
-                        <MudStack Row="true" Spacing="0" AlignItems="AlignItems.Center">
+                        <MudStack Row="true" Spacing="0" AlignItems="AlignItems.Center" Class="noose-mobil-aus">
                             <PartnerChildShareButton Show="_canShareChildren" ChildType="@nameof(Followup)" ChildId="@w.Id" />
                             @if (w.MayEdit)
                             {
@@ -49,6 +49,23 @@
                                                OnClick="@(() => DeleteAsync(w))" aria-label="Löschen" />
                             }
                         </MudStack>
+                        @* the same actions behind the same checks, as a ⋮ menu below 600px *@
+                        @if (_canShareChildren || w.MayEdit)
+                        {
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                                     AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                                <PartnerChildShareButton Show="_canShareChildren" ChildType="@nameof(Followup)" ChildId="@w.Id" AsMenuItem="true" />
+                                @if (w.MayEdit)
+                                {
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Check" IconColor="Color.Success"
+                                                 OnClick="@(() => CompleteAsync(w))">Als erledigt markieren</MudMenuItem>
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditAsync(w))">Bearbeiten</MudMenuItem>
+                                    <MudDivider />
+                                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                                 OnClick="@(() => DeleteAsync(w))">Löschen</MudMenuItem>
+                                }
+                            </MudMenu>
+                        }
                     </MudStack>
 
                     @if (!string.IsNullOrWhiteSpace(w.Note))
@@ -70,8 +87,8 @@
                         @foreach (var w in _done)
                         {
                             <MudPaper Class="pa-3" Elevation="0" Style="opacity:.75;">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                                         <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small" />
                                         <MudText Typo="Typo.body2">@w.DueAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
                                         @if (w.DoneAt is { } done)

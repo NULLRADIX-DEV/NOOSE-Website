@@ -1,0 +1,7 @@
+/* Phones only: the "when" column of the brief's history may break, so a long date phrase cannot push the panel
+   wider than the screen. From 600px up it stays on one line as before. */
+@media screen and (max-width: 599.98px) {
+    .ki-brief-wann {
+        white-space: normal !important;
+    }
+}

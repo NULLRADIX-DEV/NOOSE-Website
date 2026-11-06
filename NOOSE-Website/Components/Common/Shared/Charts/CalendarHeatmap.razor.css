@@ -1,0 +1,12 @@
+/* Phones only: 53 weeks in 350px would leave 5px days; the year keeps a readable size and scrolls sideways inside
+   its tile. ECharts measures the container when it draws, so it lays the year out at this width. */
+@media screen and (max-width: 599.98px) {
+    .kalender-rahmen {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    .kalender-flaeche {
+        min-width: 640px;
+    }
+}

@@ -7,7 +7,7 @@
     {
         var list = _lists.TryGetValue(s.Kind, out var l) ? l : new();
         <MudStack Spacing="3">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
                 <MudText Typo="Typo.subtitle1" Color="s.Colour">@s.Title (@list.Count)</MudText>
                 @if (_mayWrite)
                 {
@@ -30,8 +30,8 @@
                 @foreach (var v in list)
                 {
                     <MudPaper Class="pa-3" Elevation="1">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                                 <MudIcon Icon="@s.Icon" Color="s.Colour" Size="Size.Small" />
                                 <MudLink Href="@SearchNavigation.For(v.OtherType, v.OtherId)" Typo="Typo.body2"><b>@v.OtherDesignation</b></MudLink>
                                 @if (!string.IsNullOrWhiteSpace(v.Label))
