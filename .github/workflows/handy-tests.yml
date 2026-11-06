@@ -2,8 +2,7 @@ name: Handy-Tests
 
 # Unit tests plus the browser tests of NOOSE-Website.E2E: every route at 375 px must fit without sideways scrolling
 # (job "handy"), and at 1280 px the branch must render like master (job "desktop"). Own workflow next to image.yml so
-# it never blocks the image build. "handy" and "desktop" only report until the mobile refactor is done
-# (continue-on-error), then they become hard checks.
+# it never blocks the image build. All three jobs are hard checks.
 
 on:
   pull_request:
@@ -39,7 +38,6 @@ jobs:
   handy:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    continue-on-error: true
     services:
       mariadb:
         image: mariadb:10.11
@@ -111,7 +109,6 @@ jobs:
   desktop:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    continue-on-error: true
     services:
       mariadb:
         image: mariadb:10.11
