@@ -36,6 +36,11 @@ dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj
   wider than the viewport. The message lists the outermost elements that stick out.
 - `MobileOverflowTests.Record_detail_fits_375px` — opens each list in `RouteCatalog.DetailSeeds`,
   follows the first record link and checks the detail page the same way.
+- `DesktopBaselineTests.Desktop_matches_master` — at 1280×900 a fixed set of routes (plus `/personen/{id}/druck` and a
+  certificate with print media emulation) is screenshotted on the branch and on a `master` build
+  (`NOOSE_E2E_BASELINE_URL`) and compared pixel by pixel (at most 0.1 % differing pixels). Times, dates, relative
+  times and the build version are masked on both sides; lists whose order depends on equal timestamps are sorted by
+  case number first. On a difference both shots and a diff image go to the artifacts folder. Skipped without both URLs.
 
 Screenshots of failing routes go to `NOOSE_E2E_ARTIFACTS` (default `bin/.../e2e-artifacts`).
 
@@ -68,8 +73,10 @@ desktop comparison).
 `.github/workflows/handy-tests.yml` runs on every pull request and on `master`: job `unit` runs this
 project, job `handy` publishes the app, starts it in demo mode against a fresh `mariadb:10.11`
 service and runs `NOOSE-Website.E2E`; the TRX file, the screenshots and the app log are uploaded as
-the artifact `handy-tests`. Until the mobile refactor is finished, `handy` only reports
-(`continue-on-error: true`).
+the artifact `handy-tests`. Job `desktop` publishes `master` and the branch side by side (databases
+`noose_base` and `noose_head` in one MariaDB service, apps on 5081 and 5080, both in demo mode) and runs
+`DesktopBaselineTests`; results go to the artifact `desktop-tests`. Until the mobile refactor is finished,
+`handy` and `desktop` only report (`continue-on-error: true`).
 
 ## Coverage
 

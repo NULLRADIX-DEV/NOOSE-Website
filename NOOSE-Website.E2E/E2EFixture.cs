@@ -10,6 +10,7 @@ public sealed class E2EFixture : IAsyncLifetime
 {
     public const string BaseUrlVariable = "NOOSE_E2E_BASEURL";
     public const string ArtifactsVariable = "NOOSE_E2E_ARTIFACTS";
+    public const string BaselineUrlVariable = "NOOSE_E2E_BASELINE_URL";
 
     /// <summary>Base address of the app under test, without trailing slash; null when the variable is missing.</summary>
     public static string? BaseUrl
@@ -17,6 +18,19 @@ public sealed class E2EFixture : IAsyncLifetime
         get
         {
             var url = Environment.GetEnvironmentVariable(BaseUrlVariable);
+            return string.IsNullOrWhiteSpace(url) ? null : url.TrimEnd('/');
+        }
+    }
+
+    /// <summary>
+    /// Base address of a master build for the desktop comparison, without trailing slash; null when the variable is
+    /// missing.
+    /// </summary>
+    public static string? BaselineUrl
+    {
+        get
+        {
+            var url = Environment.GetEnvironmentVariable(BaselineUrlVariable);
             return string.IsNullOrWhiteSpace(url) ? null : url.TrimEnd('/');
         }
     }
@@ -43,13 +57,16 @@ public sealed class E2EFixture : IAsyncLifetime
     }
 
     /// <summary>A fresh context (own cookies, own circuit) with one page at the given viewport.</summary>
-    public async Task<IPage> NewPageAsync(int width, int height)
+    public Task<IPage> NewPageAsync(int width, int height) => NewPageAsync(width, height, BaseUrl!);
+
+    /// <summary>A fresh context with one page at the given viewport against another app (e.g. the master baseline).</summary>
+    public async Task<IPage> NewPageAsync(int width, int height, string baseUrl)
     {
         if (_browser is null)
             throw new InvalidOperationException($"{BaseUrlVariable} is not set.");
         var context = await _browser.NewContextAsync(new BrowserNewContextOptions
         {
-            BaseURL = BaseUrl,
+            BaseURL = baseUrl,
             ViewportSize = new ViewportSize { Width = width, Height = height },
             Locale = "de-DE",
             TimezoneId = "Europe/Berlin",
@@ -79,6 +96,21 @@ public sealed class E2EFactAttribute : FactAttribute
     {
         if (E2EFixture.BaseUrl is null)
             Skip = $"{E2EFixture.BaseUrlVariable} is not set (no app under test).";
+    }
+}
+
+/// <summary>
+/// A theory that is skipped unless both <c>NOOSE_E2E_BASEURL</c> (branch) and <c>NOOSE_E2E_BASELINE_URL</c> (master)
+/// point at a running app.
+/// </summary>
+public sealed class E2EBaselineTheoryAttribute : SkippableTheoryAttribute
+{
+    public E2EBaselineTheoryAttribute()
+    {
+        if (E2EFixture.BaseUrl is null)
+            Skip = $"{E2EFixture.BaseUrlVariable} is not set (no app under test).";
+        else if (E2EFixture.BaselineUrl is null)
+            Skip = $"{E2EFixture.BaselineUrlVariable} is not set (no master build to compare with).";
     }
 }
 
