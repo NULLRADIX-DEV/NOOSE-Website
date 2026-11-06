@@ -715,7 +715,7 @@ public sealed class AgentTestServiceTests
             });
             db.SaveChanges();
         }
-        var recruiting = new BewerbungTestService(ctx.Factory, new BewerbungBroadcaster(), Substitute.For<INotificationService>());
+        var recruiting = new BewerbungTestService(ctx.Factory, new BewerbungBroadcaster(), Substitute.For<INotificationService>(), Substitute.For<IApplicantDmNotifier>());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => recruiting.AssignAsync("b1", "t1", Hrb()));
     }
@@ -735,7 +735,7 @@ public sealed class AgentTestServiceTests
             });
             db.SaveChanges();
         }
-        var recruiting = new BewerbungTestService(ctx.Factory, new BewerbungBroadcaster(), Substitute.For<INotificationService>());
+        var recruiting = new BewerbungTestService(ctx.Factory, new BewerbungBroadcaster(), Substitute.For<INotificationService>(), Substitute.For<IApplicantDmNotifier>());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => recruiting.DeleteQuestionAsync("t1-q1", Hrb()));
         await Assert.ThrowsAsync<InvalidOperationException>(() => recruiting.DeleteTestAsync("t1", Hrb()));

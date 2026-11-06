@@ -21,13 +21,13 @@ public sealed class BewerbungTestZeitTests
     {
         var notifications = Substitute.For<INotificationService>();
         var broadcaster = new BewerbungBroadcaster();
-        return (new BewerbungTestService(ctx.Factory, broadcaster, notifications), broadcaster, notifications);
+        return (new BewerbungTestService(ctx.Factory, broadcaster, notifications, Substitute.For<IApplicantDmNotifier>()), broadcaster, notifications);
     }
 
     private static (BewerbungTestExpiryService Svc, INotificationService Notifications) BuildSweep(SqliteTestContext ctx)
     {
         var notifications = Substitute.For<INotificationService>();
-        return (new BewerbungTestExpiryService(ctx.Factory, new BewerbungBroadcaster(), notifications), notifications);
+        return (new BewerbungTestExpiryService(ctx.Factory, new BewerbungBroadcaster(), notifications, Substitute.For<IApplicantDmNotifier>()), notifications);
     }
 
     private static ClaimsPrincipal Hrb(string id = "hrb1")

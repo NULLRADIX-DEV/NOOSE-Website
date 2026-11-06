@@ -21,6 +21,7 @@ public class BewerbungService(
     BewerbungBroadcaster broadcaster,
     IBewerbungssperreService sperren,
     INotificationService notifications,
+    IApplicantDmNotifier applicantMessages,
     IApplicationCaseService applicationCases,
     ILogger<BewerbungService> logger) : IBewerbungService
 {
@@ -143,6 +144,9 @@ public class BewerbungService(
         }
         catch { /* best effort */ }
 
+        try { await applicantMessages.NotifyAsync(userId, ApplicantDmEvent.Received, cancellationToken); }
+        catch { /* best effort */ }
+
         return bewerbung;
     }
 
@@ -204,6 +208,7 @@ public class BewerbungService(
                     : $"Wechsel von „{BewerbungStatusDisplay.Name(bewerbung.Status)}“ zu „{BewerbungStatusDisplay.Name(target)}“ ist nicht möglich.");
         }
 
+        var previous = bewerbung.Status;
         bewerbung.Status = target;
         if (BewerbungStatusDisplay.IsTerminal(target))
         {
@@ -238,6 +243,10 @@ public class BewerbungService(
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+            if (BewerbungStatusDisplay.ChangesApplicantView(previous, target))
+            {
+                await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
+            }
         }
         catch { /* best effort */ }
 
@@ -326,6 +335,10 @@ public class BewerbungService(
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+            if (BewerbungStatusDisplay.ChangesApplicantView(previous, target))
+            {
+                await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
+            }
         }
         catch { /* best effort */ }
 
@@ -344,6 +357,7 @@ public class BewerbungService(
             throw new InvalidOperationException("Diese Bewerbung ist bereits abgeschlossen.");
         }
 
+        var previous = bewerbung.Status;
         bewerbung.SecurityCheckPassed = passed;
         if (passed)
         {
@@ -371,6 +385,10 @@ public class BewerbungService(
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 passed ? $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(BewerbungStatus.ImTest)}" : "Deine Bewerbung wurde abgeschlossen.",
                 "/portal/status", cancellationToken);
+            if (BewerbungStatusDisplay.ChangesApplicantView(previous, bewerbung.Status))
+            {
+                await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
+            }
         }
         catch { /* best effort */ }
     }
@@ -538,6 +556,7 @@ public class BewerbungService(
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
                 "Neue Nachricht zu deiner Bewerbung", "/portal/status", cancellationToken);
+            await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.NewMessage, cancellationToken);
         }
         catch { /* best effort */ }
 

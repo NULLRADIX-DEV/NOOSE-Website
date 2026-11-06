@@ -16,7 +16,7 @@ public sealed class BewerbungTestServiceTests
     {
         var notifications = Substitute.For<INotificationService>();
         var broadcaster = new BewerbungBroadcaster();
-        var svc = new BewerbungTestService(ctx.Factory, broadcaster, notifications);
+        var svc = new BewerbungTestService(ctx.Factory, broadcaster, notifications, Substitute.For<IApplicantDmNotifier>());
         return (svc, broadcaster, notifications);
     }
 

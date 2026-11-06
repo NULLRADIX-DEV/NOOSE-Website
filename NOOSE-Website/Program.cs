@@ -412,6 +412,7 @@ builder.Services.AddScoped<IDiscordRoleSyncService, DiscordRoleSyncService>();
 builder.Services.AddSingleton<IDiscordRoleSyncQueue, DiscordRoleSyncQueue>();
 builder.Services.AddHostedService<DiscordRoleSyncWorker>();
 builder.Services.AddScoped<IDiscordDmService, DiscordDmService>();
+builder.Services.AddScoped<IApplicantDmNotifier, ApplicantDmNotifier>();
 builder.Services.AddSingleton<IDiscordDmQueue, DiscordDmQueue>();
 builder.Services.AddHostedService<DiscordDmWorker>();
 // per-process share quota

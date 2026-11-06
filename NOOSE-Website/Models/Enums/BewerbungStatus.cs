@@ -50,6 +50,10 @@ public static class BewerbungStatusDisplay
         _ => Name(status),
     };
 
+    /// <summary>Whether the applicant sees a different name afterwards; test to interview is no change.</summary>
+    public static bool ChangesApplicantView(BewerbungStatus from, BewerbungStatus to)
+        => ApplicantName(from) != ApplicantName(to);
+
     /// <summary>Collapses the interview stage onto the test stage for the applicant stepper.</summary>
     public static BewerbungStatus ApplicantStep(BewerbungStatus status)
         => status == BewerbungStatus.ImVorstellungsgespraech ? BewerbungStatus.ImTest : status;
