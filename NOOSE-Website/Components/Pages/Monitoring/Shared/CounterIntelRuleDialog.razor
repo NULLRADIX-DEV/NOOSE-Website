@@ -4,7 +4,8 @@
 @inject ICounterIntelService CounterIntel
 @inject ITagService TagService
 
-<MudDialog>
+@* a long form: the whole screen on phones *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         <MudForm @ref="_form">
             <MudStack Spacing="3" Style="min-width:min(720px, 80vw);">

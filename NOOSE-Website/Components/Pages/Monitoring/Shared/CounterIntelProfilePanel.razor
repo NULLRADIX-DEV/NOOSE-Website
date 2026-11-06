@@ -19,7 +19,7 @@ else
 {
     <MudSelect T="string" Label="Agent" Value="_selected" ValueChanged="OnAgentChangedAsync"
                Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
-               Style="min-width:260px;" Class="mb-4">
+               Style="min-width:260px;" Class="mb-4 noose-filter-feld">
         @foreach (var a in _agents)
         {
             <MudSelectItem T="string" Value="@a.Id">@a.Name</MudSelectItem>
@@ -29,15 +29,15 @@ else
     @if (_profile is { } p)
     {
         <MudGrid Spacing="2" Class="mb-4">
-            <MudItem xs="4">
+            <MudItem xs="6" sm="4">
                 <StatTile Icon="@Icons.Material.Filled.Visibility" Colour="Color.Primary" Label="Zugriffe"
                           Value="@(p.Total.ToString("N0"))" Hint="Lesezugriffe dieses Agenten im Zeitfenster" />
             </MudItem>
-            <MudItem xs="4">
+            <MudItem xs="6" sm="4">
                 <StatTile Icon="@Icons.Material.Filled.FolderOpen" Colour="Color.Tertiary" Label="Verschiedene Akten"
                           Value="@(p.DistinctRecords.ToString("N0"))" Hint="Wie breit der Agent gestreut hat" />
             </MudItem>
-            <MudItem xs="4">
+            <MudItem xs="6" sm="4">
                 <StatTile Icon="@Icons.Material.Filled.NightsStay" Colour="Color.Warning" Label="Off-Hours"
                           Value="@(p.OffHours.ToString("N0"))" Hint="Zugriffe außerhalb der üblichen Dienstzeiten" />
             </MudItem>
@@ -62,7 +62,7 @@ else
                 @foreach (var r in p.Recent)
                 {
                     <tr style="@(r.Href is null ? "" : "cursor:pointer;")" @onclick="@(() => Go(r.Href))">
-                        <td style="width:11rem;">@r.WhenLocal.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="ci-zeit-spalte" style="width:11rem;">@r.WhenLocal.ToString("dd.MM.yyyy HH:mm")</td>
                         <td>@AuditEntityDisplay.Label(r.EntityType)</td>
                     </tr>
                 }

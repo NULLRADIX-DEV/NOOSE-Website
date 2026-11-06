@@ -1,0 +1,12 @@
+/* Phone only: the four range buttons share the full row instead of running past the screen edge. */
+@media screen and (max-width: 599.98px) {
+    .statistik-filter ::deep .statistik-zeitraum {
+        width: 100%;
+    }
+
+    .statistik-filter ::deep .statistik-zeitraum .mud-button-root {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-inline: 4px;
+    }
+}

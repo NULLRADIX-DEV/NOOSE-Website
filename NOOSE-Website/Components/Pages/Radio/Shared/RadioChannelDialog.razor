@@ -5,11 +5,12 @@
 <MudDialog>
     <DialogContent>
         <MudStack Spacing="3">
-            <MudStack Row="true" Spacing="2">
+            @* side by side from 600px up, one under the other on phones *@
+            <MudStack Row="true" Spacing="2" Class="noose-eintrag">
                 <MudTextField @bind-Value="_input.Frequency" Label="Frequenz" Variant="Variant.Outlined"
                               Required="true" RequiredError="Frequenz ist erforderlich"
-                              Placeholder="z. B. 411.7" Style="max-width:200px;" />
-                <MudTextField @bind-Value="_input.Label" Label="Bezeichnung" Variant="Variant.Outlined"
+                              Placeholder="z. B. 411.7" Style="max-width:200px;" Class="noose-breite-frei" />
+                <MudTextField @bind-Value="_input.Label" Label="Bezeichnung" Variant="Variant.Outlined" Class="noose-breite-frei"
                               Required="true" RequiredError="Bezeichnung ist erforderlich"
                               Placeholder="z. B. HRT Einsatzkanal" />
             </MudStack>

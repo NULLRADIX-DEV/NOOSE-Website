@@ -115,8 +115,10 @@ else
             </MudItem>
         </MudGrid>
 
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                   OnClick="SaveAsync" Disabled="_saving" Class="mt-4">Speichern</MudButton>
+        <FormActions Justify="Justify.FlexStart" Class="mt-4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="_saving">Speichern</MudButton>
+        </FormActions>
     </MudPaper>
 }
 

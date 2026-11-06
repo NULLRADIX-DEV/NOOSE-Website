@@ -1,5 +1,6 @@
 @* Radio plan: own channels, partner channels and the faction frequencies read live from their records. *@
 @page "/funk"
+@using NOOSE_Website.Models.Navigation
 @inject IRadioService RadioService
 @inject ITaskforceService TaskforceService
 @inject IDialogService DialogService
@@ -31,6 +32,10 @@ else
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                   Variant="Variant.Outlined" Clearable="true" Class="mb-4" />
 
+    @* phones only: which channel columns stay visible; the action column always does *@
+    <MobileColumnPicker ListKey="funk" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                        VisibleChanged="@(v => _phoneColumns = v)" />
+
     @* filtered once per render: every block below and the empty state must agree on what the filter left *@
     var blocks = RadioScopeDisplay.All.Select(s => (Scope: s, Rows: ChannelsOf(s))).ToList();
     var factions = FilteredFactions();
@@ -55,20 +60,20 @@ else
                 continue;
             }
             <MudText Typo="Typo.h6" Class="mb-2">@RadioScopeDisplay.Heading(scope)</MudText>
-            <MudTable Items="rows" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm" Elevation="2"
+            <MudTable Items="rows" Hover="true" Dense="true" Breakpoint="Breakpoint.None" Elevation="2"
                       T="RadioChannelRow" Class="mb-6">
                 <HeaderContent>
-                    <MudTh>Frequenz</MudTh>
-                    <MudTh>Bezeichnung</MudTh>
-                    <MudTh>Zuordnung</MudTh>
-                    <MudTh>Bemerkung</MudTh>
+                    <MudTh Class="@Col("frequenz")">Frequenz</MudTh>
+                    <MudTh Class="@Col("bezeichnung")">Bezeichnung</MudTh>
+                    <MudTh Class="@Col("zuordnung")">Zuordnung</MudTh>
+                    <MudTh Class="@Col("bemerkung")">Bemerkung</MudTh>
                     @if (_mayWrite)
                     {
                         <MudTh Style="text-align:right;">Aktion</MudTh>
                     }
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Frequenz" Style="@RowStyle(context.Id)">
+                    <MudTd DataLabel="Frequenz" Style="@RowStyle(context.Id)" Class="@Col("frequenz")">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                             <MudText Typo="Typo.body1" Style="font-family:var(--mud-typography-monospace,monospace);">
                                 <b>@context.Frequency</b>
@@ -81,8 +86,8 @@ else
                             }
                         </MudStack>
                     </MudTd>
-                    <MudTd DataLabel="Bezeichnung" Style="@RowStyle(context.Id)">@context.Label</MudTd>
-                    <MudTd DataLabel="Zuordnung" Style="@RowStyle(context.Id)">
+                    <MudTd DataLabel="Bezeichnung" Style="@RowStyle(context.Id)" Class="@Col("bezeichnung")">@context.Label</MudTd>
+                    <MudTd DataLabel="Zuordnung" Style="@RowStyle(context.Id)" Class="@Col("zuordnung")">
                         @if (context.TaskforceId is not null)
                         {
                             <MudLink Href="@($"/taskforces/{context.TaskforceId}")">@(context.TaskforceName ?? "Taskforce")</MudLink>
@@ -98,7 +103,7 @@ else
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
                         }
                     </MudTd>
-                    <MudTd DataLabel="Bemerkung" Style="@RowStyle(context.Id)">
+                    <MudTd DataLabel="Bemerkung" Style="@RowStyle(context.Id)" Class="@Col("bemerkung")">
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.Note ?? "—")</MudText>
                     </MudTd>
                     @if (_mayWrite)
@@ -125,7 +130,7 @@ else
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
                 Direkt aus den Fraktionsakten gelesen. Geändert wird die Frequenz dort, nicht hier.
             </MudText>
-            <MudTable Items="factions" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm" Elevation="2"
+            <MudTable Items="factions" Hover="true" Dense="true" Breakpoint="Breakpoint.None" Elevation="2"
                       T="RadioFactionRow" Class="mb-6">
                 <HeaderContent>
                     <MudTh>Frequenz</MudTh>
@@ -232,6 +237,21 @@ else
     }
 
     private bool HasFilter => !string.IsNullOrWhiteSpace(_search);
+
+    /// <summary>The channel tables' columns for the phone column picker, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("frequenz", "Frequenz"), ("bezeichnung", "Bezeichnung"), ("zuordnung", "Zuordnung"), ("bemerkung", "Bemerkung"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the frequency and what it is called.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["frequenz", "bezeichnung"];
+
+    // the defaults until the picker reports the stored choice, so the first paint is already narrow
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     private string RowStyle(string id)
         => id == _highlight ? "background:var(--mud-palette-action-default-hover);" : string.Empty;

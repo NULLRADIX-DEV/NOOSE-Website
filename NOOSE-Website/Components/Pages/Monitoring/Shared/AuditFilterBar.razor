@@ -1,8 +1,17 @@
-@* Shared filter bar of the change- and access-log sections. Presentational: mutates the filter it is given. *@
+@* Shared filter bar of the change- and access-log sections. Presentational: mutates the filter it is given.
+   On phones the fields fold behind "Filter (n)" so the log starts on the first screen; from 600px up the button is
+   gone and every field stands as before (noose-nur-handy, noose-filter-zu). *@
 
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudGrid Spacing="2">
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" Class="noose-nur-handy">
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                       EndIcon="@(_open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                       OnClick="@(() => _open = !_open)" aria-expanded="@(_open ? "true" : "false")">
+                Filter (@ActiveCount)
+            </MudButton>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3" Class="@Fold">
             <MudSelect T="string" @bind-Value="Filter.AgentId" Label="Agent" Clearable="true"
                        Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var a in Options.Agents)
@@ -11,7 +20,7 @@
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="3" Class="@Fold">
             <MudSelect T="string" @bind-Value="Filter.EntityType" Label="Objekt-Typ" Clearable="true"
                        Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var t in Options.EntityTypes)
@@ -20,18 +29,18 @@
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="3" Class="@Fold">
             <MudDatePicker Date="@From" DateChanged="FromChanged" Label="Von" Editable="true"
                            DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="3" Class="@Fold">
             <MudDatePicker Date="@To" DateChanged="ToChanged" Label="Bis" Editable="true"
                            DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
 
         @if (ShowAction)
         {
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="12" sm="6" md="3" Class="@Fold">
                 <MudSelect T="AuditAction?" @bind-Value="Filter.Action" Label="Aktion" Clearable="true"
                            Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                     @foreach (var ac in AuditActionDisplay.All)
@@ -41,7 +50,7 @@
                 </MudSelect>
             </MudItem>
         }
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="3" Class="@Fold">
             <MudTextField @bind-Value="Filter.EntityId" Label="Objekt-ID (optional)" Clearable="true"
                           Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
@@ -76,4 +85,15 @@
     [Parameter] public bool Busy { get; set; }
     [Parameter] public EventCallback OnApply { get; set; }
     [Parameter] public EventCallback OnReset { get; set; }
+
+    private bool _open;
+
+    /// <summary>Folded below 600px until "Filter (n)" is tapped; from 600px up the class does nothing.</summary>
+    private string? Fold => _open ? null : "noose-filter-zu";
+
+    /// <summary>How many filters are set, for the button's label.</summary>
+    private int ActiveCount
+        => (string.IsNullOrEmpty(Filter.AgentId) ? 0 : 1) + (string.IsNullOrEmpty(Filter.EntityType) ? 0 : 1)
+           + (From is null ? 0 : 1) + (To is null ? 0 : 1) + (ShowAction && Filter.Action is not null ? 1 : 0)
+           + (string.IsNullOrWhiteSpace(Filter.EntityId) ? 0 : 1);
 }

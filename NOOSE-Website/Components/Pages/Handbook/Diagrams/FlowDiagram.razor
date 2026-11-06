@@ -1,6 +1,8 @@
-@* Shared shape for every "one stage after another" drawing. Six diagrams differ only in their labels. *@
+@* Shared shape for every "one stage after another" drawing. Six diagrams differ only in their labels.
+   Below 600px the drawing would shrink to unreadable type, so the same steps stand as numbered cards instead
+   (the look of HandbookStepCards); from 600px up only the drawing shows. *@
 
-<svg viewBox="@($"0 0 640 {Height}")" role="img" aria-label="@Caption"
+<svg viewBox="@($"0 0 640 {Height}")" role="img" aria-label="@Caption" class="noose-mobil-aus"
      style="width:100%;height:auto;max-width:640px;">
     <title>@Caption</title>
     <desc>@Description</desc>
@@ -50,6 +52,34 @@
         </g>
     }
 </svg>
+
+<div class="noose-nur-handy" role="group" aria-label="@Caption">
+    <MudText Typo="Typo.subtitle2" Class="mb-2">@Caption</MudText>
+    <MudStack Spacing="2">
+        @for (var i = 0; i < Steps.Count; i++)
+        {
+            var step = Steps[i];
+            <MudPaper Elevation="0" Class="pa-3" Outlined="true"
+                      Style="@(step.Accent ? "border-color:var(--mud-palette-primary);" : null)">
+                <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Start">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">@(i + 1)</MudAvatar>
+                    <div style="flex:1;min-width:0;">
+                        <MudText Typo="Typo.body1">@step.Title</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@step.Text</MudText>
+                        @if (step.Note is { Length: > 0 } note)
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Warning">@note</MudText>
+                        }
+                    </div>
+                </MudStack>
+            </MudPaper>
+        }
+    </MudStack>
+    @if (Footnote is { Length: > 0 })
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">@Footnote</MudText>
+    }
+</div>
 
 @code {
     /// <summary>One stage of the flow; <c>Note</c> is the aside that hangs off to the right.</summary>
