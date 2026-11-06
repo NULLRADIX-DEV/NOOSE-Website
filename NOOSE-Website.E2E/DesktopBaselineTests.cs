@@ -36,7 +36,10 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
         // "Letzte Änderungen": entries seeded with the same timestamp come in database order
         ["/dashboard"] = new("/dashboard", Masks: [".mud-timeline"]),
         ["/personen"] = new("/personen", SortBy: "Aktenzeichen"),
-        ["/personen/{id}"] = new(SeedList: "/personen", SeedPrefix: "/personen/", SortBy: "Aktenzeichen"),
+        // aliases, phones, vehicles, weapons and relations have no order of their own: they come in key order, and
+        // the keys are random per database, so the chip rows (ProfileList) and those print cells are masked
+        ["/personen/{id}"] = new(SeedList: "/personen", SeedPrefix: "/personen/", SortBy: "Aktenzeichen",
+            Masks: [".d-flex.flex-wrap > .d-flex.flex-wrap:has(> .mud-chip-container)"]),
         ["/fraktionen"] = new("/fraktionen", SortBy: "Aktenzeichen"),
         ["/einstellungen"] = new("/einstellungen"),
         ["/aufgaben"] = new("/aufgaben"),
@@ -46,7 +49,8 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
         ["/portal"] = new("/portal"),
         // print views with print media emulation (Review Focus 5)
         ["/personen/{id}/druck"] = new(SeedList: "/personen", SeedPrefix: "/personen/", Suffix: "/druck", Print: true,
-            SortBy: "Aktenzeichen"),
+            SortBy: "Aktenzeichen",
+            Masks: ["section:has(> h2:has-text('Steckbrief')) td", "section:has(> h2:has-text('Beziehungen')) tbody td"]),
         ["/urkunden/ehrung/{id}"] = new(SeedList: "/profil", SeedPrefix: "/urkunden/ehrung/", Print: true),
     };
 
