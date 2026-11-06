@@ -60,7 +60,7 @@ public sealed class IsolatedPdfInspectorTests
     public async Task A_page_tree_that_overflows_the_parser_takes_down_only_the_child()
     {
         // in the web process this file ends the whole app with a stack overflow
-        var error = await Assert.ThrowsAsync<GoogleExportException>(() => Build().InspectAsync(DeepTree(20000)));
+        var error = await Assert.ThrowsAsync<GoogleExportException>(() => Build().InspectAsync(DeepTree(200000)));
 
         Assert.Contains("lässt sich nicht lesen", error.Message);
         Assert.Equal(new PdfInfo(1, null), await Build().InspectAsync(DeepTree(3)));

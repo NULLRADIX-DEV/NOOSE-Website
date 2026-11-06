@@ -35,7 +35,9 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     {
         // "Letzte Änderungen": entries seeded with the same timestamp come in database order
         ["/dashboard"] = new("/dashboard", Masks: [".mud-timeline"]),
-        ["/personen"] = new("/personen", SortBy: "Aktenzeichen"),
+        // the threat score comes from a background job, so whether it has run before the screenshot depends on timing;
+        // the Gefährdung column (sixth) is masked
+        ["/personen"] = new("/personen", SortBy: "Aktenzeichen", Masks: ["tbody td:nth-child(6)"]),
         // aliases, phones, vehicles, weapons and relations have no order of their own: they come in key order, and
         // the keys are random per database, so the chip rows (ProfileList) and those print cells are masked
         ["/personen/{id}"] = new(SeedList: "/personen", SeedPrefix: "/personen/", SortBy: "Aktenzeichen",
