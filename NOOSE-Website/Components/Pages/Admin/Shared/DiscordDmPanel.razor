@@ -1,0 +1,129 @@
+@* Discord direct messages: two switches that move personal pings and applicant notices into private messages. Admins edit, leadership and supervision read. *@
+@inject IDiscordDmService DirectMessages
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
+    Der Bot kann Pings und Hinweise als Direktnachricht schicken statt als Erwähnung in einem Kanal, den alle sehen.
+    Die Texte sind dieselben neutralen Meldungen wie bisher, mit Link, ohne Titel einer Akte. Wo eine Direktnachricht
+    nicht ankommt, bleibt es beim bisherigen Weg. Die Schalter ändern nur Admins, die Führung sieht den Stand.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_loadError is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-3">Der Stand der Direktnachrichten ließ sich nicht laden.</MudAlert>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh"
+               OnClick="LoadAsync">Erneut laden</MudButton>
+}
+else
+{
+    <MudStack Spacing="4">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Stand</MudText>
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Key"
+                     Color="@(_botConfigured ? Color.Success : Color.Warning)">
+                Bot-Token: @(_botConfigured ? "vorhanden" : "fehlt")
+            </MudChip>
+            @if (!_botConfigured)
+            {
+                <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Text" Class="mt-3">
+                    Auf dem Server ist kein Bot-Token hinterlegt, die Schalter bleiben ohne Wirkung.
+                </MudAlert>
+            }
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudSwitch T="bool" @bind-Value="_personal" Disabled="@(!_mayEdit)" Color="Color.Primary"
+                       Label="Persönliche Pings privat zustellen" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
+                Erwähnungen, Aufgaben, Wiedervorlagen usw. kommen als Direktnachricht vom Bot statt als Ping im Kanal.
+                Wer Direktnachrichten gesperrt hat, bekommt sie weiter im Kanal.
+            </MudText>
+
+            <MudSwitch T="bool" @bind-Value="_applicants" Disabled="@(!_mayEdit)" Color="Color.Primary"
+                       Label="Bewerber per Direktnachricht informieren" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                Eingang, Test, Nachricht, neuer Stand: Bewerber bekommen kurze, feste Texte ohne Namen und Ergebnisse.
+            </MudText>
+        </MudPaper>
+
+        @if (_mayEdit)
+        {
+            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+            </MudStack>
+        }
+    </MudStack>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    // twin of the service guards (write access, then admin); read-only supervision and the demo never edit
+    private bool _mayEdit;
+    private bool _load = true;
+    private bool _busy;
+    private string? _loadError;
+    private bool _personal;
+    private bool _applicants;
+    private bool _botConfigured;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayEdit = _user.IsAdmin() && _user.MayWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _loadError = null;
+        try
+        {
+            var settings = await DirectMessages.GetSettingsAsync();
+            _personal = settings.Personal;
+            _applicants = settings.Applicants;
+            _botConfigured = settings.BotConfigured;
+        }
+        catch (Exception ex)
+        {
+            _loadError = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _load = false;
+        }
+    }
+
+    // the write path checks the gate again, a disabled switch alone leaves the SignalR path open
+    private async Task SaveAsync()
+    {
+        if (!_mayEdit)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await DirectMessages.SaveSettingsAsync(_personal, _applicants, _user);
+            Snackbar.Add("Direktnachrichten gespeichert.", Severity.Success);
+            // read back: the switches show what is stored
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

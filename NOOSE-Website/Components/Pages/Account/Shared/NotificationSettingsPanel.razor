@@ -1,6 +1,7 @@
 @* Which categories ring the bell, and when Discord pings the agent personally. *@
 @inject INavPreferencesService NavPrefs
 @inject IDiscordWebhookService Discord
+@inject IDiscordDmService DirectMessages
 @using NOOSE_Website.Models.Navigation
 @inject ISnackbar Snackbar
 
@@ -65,24 +66,44 @@
 
         <MudDivider Class="my-5" />
         <MudText Typo="Typo.subtitle1" Class="mb-1">Pings auf Discord</MudText>
-        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
-            Lege fest, wann Discord dich persönlich anpingt. Bei <b>Gesammelt</b> kommt statt vieler Einzelpings einmal
-            am Tag um @DiscordPings.DigestHour Uhr ein Tagesüberblick mit der Zahl deiner noch ungelesenen Meldungen.
-            Bei <b>Nie</b> pingt Discord dich dafür gar nicht. In der Glocke kommt alles weiter an.
-        </MudText>
+        @if (_direct)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+                Lege fest, wann Discord dich persönlich anpingt. Die Pings kommen als <b>Direktnachricht vom Bot</b>,
+                nicht als Erwähnung im Kanal. Bei <b>Gesammelt</b> kommt statt vieler Einzelnachrichten einmal am Tag
+                um @DiscordPings.DigestHour Uhr ein Tagesüberblick mit der Zahl deiner noch ungelesenen Meldungen.
+                Bei <b>Nie</b> schreibt der Bot dir dafür gar nicht. In der Glocke kommt alles weiter an.
+            </MudText>
 
-        @if (!_discordLive)
-        {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-                Die Discord-Weiterleitung ist gerade ausgeschaltet. Deine Wahl gilt, sobald sie wieder läuft.
-            </MudAlert>
+            @if (DirectMessagesBlockedAt is not null)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    Discord lässt keine Direktnachrichten von Server-Mitgliedern zu, deine Pings kommen deshalb im Kanal.
+                    Erlaube in Discord in den Privatsphäre-Einstellungen des Servers Direktnachrichten.
+                </MudAlert>
+            }
         }
-        else if (!_digestLive)
+        else
         {
-            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-                Für den Tagesüberblick ist noch kein Channel eingerichtet. Gesammelt lässt sich wählen, sobald die
-                Leitung ihn unter Einstellungen → Discord-Benachrichtigungen einträgt.
-            </MudAlert>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+                Lege fest, wann Discord dich persönlich anpingt. Bei <b>Gesammelt</b> kommt statt vieler Einzelpings einmal
+                am Tag um @DiscordPings.DigestHour Uhr ein Tagesüberblick mit der Zahl deiner noch ungelesenen Meldungen.
+                Bei <b>Nie</b> pingt Discord dich dafür gar nicht. In der Glocke kommt alles weiter an.
+            </MudText>
+
+            @if (!_discordLive)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    Die Discord-Weiterleitung ist gerade ausgeschaltet. Deine Wahl gilt, sobald sie wieder läuft.
+                </MudAlert>
+            }
+            else if (!_digestLive)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    Für den Tagesüberblick ist noch kein Channel eingerichtet. Gesammelt lässt sich wählen, sobald die
+                    Leitung ihn unter Einstellungen → Discord-Benachrichtigungen einträgt.
+                </MudAlert>
+            }
         }
 
         @foreach (var type in DiscordPings.Personal)
@@ -99,7 +120,7 @@
                     <MudRadio T="DiscordPingMode" Value="DiscordPingMode.Instant" Color="Color.Primary" Dense="true">Sofort</MudRadio>
                     @* a stored choice stays selectable, so it can be seen and changed back *@
                     <MudRadio T="DiscordPingMode" Value="DiscordPingMode.Digest" Color="Color.Primary" Dense="true"
-                              Disabled="@(!_digestLive && mode != DiscordPingMode.Digest)">Gesammelt</MudRadio>
+                              Disabled="@(!_digestLive && !_direct && mode != DiscordPingMode.Digest)">Gesammelt</MudRadio>
                     <MudRadio T="DiscordPingMode" Value="DiscordPingMode.Off" Color="Color.Primary" Dense="true">Nie</MudRadio>
                 </MudRadioGroup>
             </MudStack>
@@ -119,6 +140,9 @@
 @code {
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
+    /// <summary>When Discord last refused a direct message to this agent, null when none was refused.</summary>
+    [Parameter] public DateTime? DirectMessagesBlockedAt { get; set; }
+
     private bool _load = true;
     private bool _busy;
     private bool _isDemo;
@@ -127,6 +151,8 @@
     // unknown counts as live: a failed read must not lock the choices
     private bool _discordLive = true;
     private bool _digestLive = true;
+    // unknown counts as off, so a failed read shows the channel wording
+    private bool _direct;
 
     protected override async Task OnInitializedAsync()
     {
@@ -161,6 +187,16 @@
             _discordLive = config.Enabled;
             _digestLive = config.Enabled
                 && !string.IsNullOrWhiteSpace(config.Webhooks.GetValueOrDefault(NotificationType.PingDigest));
+        }
+        catch
+        {
+            /* best effort */
+        }
+
+        try
+        {
+            // the demo account is never messaged privately
+            _direct = !_isDemo && await DirectMessages.PersonalActiveAsync();
         }
         catch
         {
