@@ -12,16 +12,16 @@
     else
     {
         <MudGrid>
-            <MudItem xs="12" sm="4">
+            <MudItem xs="6" sm="4">
                 <StatTile Icon="@Icons.Material.Filled.PersonOff" Colour="Color.Error"
                           Label="Entführungen" Value="@_data.Total.ToString()" Href="/entfuehrungen" />
             </MudItem>
-            <MudItem xs="12" sm="4">
+            <MudItem xs="6" sm="4">
                 <StatTile Icon="@Icons.Material.Filled.Warning" Colour="Color.Warning"
                           Label="Mit Informationsabfluss" Value="@LeakRate()"
                           Hint="@($"{_data.WithLeak} von {_data.Total}")" />
             </MudItem>
-            <MudItem xs="12" sm="4">
+            <MudItem xs="6" sm="4">
                 <StatTile Icon="@Icons.Material.Filled.GppBad" Colour="Color.Error"
                           Label="Aktive kompromittierte Akten" Value="@_data.ActiveCompromised.ToString()" />
             </MudItem>

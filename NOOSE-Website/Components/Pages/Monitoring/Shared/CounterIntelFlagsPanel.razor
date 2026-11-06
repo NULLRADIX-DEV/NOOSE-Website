@@ -40,7 +40,7 @@ else
                 @foreach (var f in group)
                 {
                     <tr style="cursor:pointer;" @onclick="@(() => Go(f.Href))">
-                        <td style="width:14rem;">
+                        <td class="ci-agent-spalte" style="width:14rem;">
                             <b>@f.AgentName</b>
                             @if (_unseen.IsNew(f.RuleId, f.AgentId))
                             {

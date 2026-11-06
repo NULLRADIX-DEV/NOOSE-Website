@@ -1,7 +1,8 @@
 @* Add or edit one article. The wording rules live in the helper texts, where an author reads them. *@
 @using NOOSE_Website.Navigation
 
-<MudDialog>
+@* a long form with two editors: the whole screen on phones *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         <MudStack Spacing="3">
             <MudStack Row="true" Spacing="2">
@@ -45,8 +46,9 @@
             <RichTextEditor @ref="_roleplayEditor" @bind-Value="_roleplayHtml" MinHeight="140px"
                             DraftKey='@($"handbuch:{(string.IsNullOrEmpty(EntityId) ? "neu" : EntityId)}:rollenspiel")' />
 
-            <MudStack Row="true" Spacing="2">
-                <MudSelect T="string" @bind-Value="_diagramKey" Label="Diagramm (optional)"
+            @* side by side from 600px up, one under the other on phones *@
+            <MudStack Row="true" Spacing="2" Class="noose-eintrag">
+                <MudSelect T="string" @bind-Value="_diagramKey" Label="Diagramm (optional)" Class="noose-breite-frei"
                            Variant="Variant.Outlined" Clearable="true"
                            HelperText="Gezeichnete Schaubilder liegen im Code und veralten nicht.">
                     <MudSelectItem T="string" Value="@(null as string)">— keines —</MudSelectItem>
@@ -56,7 +58,7 @@
                     }
                 </MudSelect>
 
-                <MudSelect T="string" @bind-Value="_navKey" Label="Erklärt welche Seite? (optional)"
+                <MudSelect T="string" @bind-Value="_navKey" Label="Erklärt welche Seite? (optional)" Class="noose-breite-frei"
                            Variant="Variant.Outlined" Clearable="true"
                            HelperText="Setzt den „?“-Knopf in der Kopfzeile dieser Seite auf diesen Artikel.">
                     <MudSelectItem T="string" Value="@(null as string)">— keine —</MudSelectItem>

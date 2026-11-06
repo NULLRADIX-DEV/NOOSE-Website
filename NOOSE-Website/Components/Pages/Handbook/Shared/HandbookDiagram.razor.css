@@ -1,0 +1,13 @@
+/* Phone only: a drawing keeps at least 560px of width, so its 10 to 13px labels stay readable, and the frame scrolls
+   sideways instead of the page. Flow diagrams hide their drawing there and show step cards (FlowDiagram), which need
+   no frame. Only the drawing itself, the frame's direct svg child, is held wide: never the icons inside the cards. */
+@media screen and (max-width: 599.98px) {
+    .handbuch-diagramm-rahmen {
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+    }
+
+    .handbuch-diagramm-rahmen ::deep > svg {
+        min-width: 560px;
+    }
+}

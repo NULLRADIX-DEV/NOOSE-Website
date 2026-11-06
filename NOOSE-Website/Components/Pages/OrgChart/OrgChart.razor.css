@@ -205,3 +205,32 @@
         box-shadow: none;
     }
 }
+
+/* Phone: two agent cards per row instead of one 150px card per line, a slimmer unit frame, and rank titles and
+   names that break instead of running out of their column. From 600px up nothing here applies. */
+@media screen and (max-width: 599.98px) {
+    .org-unit {
+        padding: 0.6rem 0.6rem 0.8rem;
+    }
+
+    .org-tier > .org-rank {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+
+    .org-cards > li {
+        flex: 0 1 calc(50% - 0.25rem);
+        min-width: 0;
+    }
+
+    .org-card {
+        width: auto;
+        height: 100%;
+        min-width: 0;
+    }
+
+    .org-card-name,
+    .org-card-sub {
+        overflow-wrap: anywhere;
+    }
+}

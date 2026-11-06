@@ -1,0 +1,6 @@
+/* Phone only: the label column of the overview gives up its fixed 12rem, so the values keep most of the row. */
+@media screen and (max-width: 599.98px) {
+    .informant-feld {
+        width: 7.5rem !important;
+    }
+}

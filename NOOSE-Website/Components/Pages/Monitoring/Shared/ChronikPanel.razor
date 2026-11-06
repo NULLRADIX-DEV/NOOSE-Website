@@ -15,19 +15,27 @@
                     @preset.Label
                 </MudChip>
             }
+            @* on phones the search spans the row and the other filters fold behind "Filter (n)"; from 600px up the
+               button is gone and the filters stand as before (noose-nur-handy, noose-filter-zu) *@
             <MudDateRangePicker Label="Zeitraum" DateRange="_customRange" DateRangeChanged="OnCustomRangeAsync"
-                                Clearable="true" Margin="Margin.Dense" Style="min-width:230px;" />
+                                Clearable="true" Margin="Margin.Dense" Style="min-width:230px;" Class="@FilterClass" />
             <MudSpacer />
             <MudTextField T="string" Value="_text" ValueChanged="OnTextAsync" Immediate="true"
                           DebounceInterval="400" Placeholder="Akte, Ereignis oder Agent suchen"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           Clearable="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                          Style="min-width:260px;" />
+                          Style="min-width:260px;" Class="noose-filter-feld" />
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" Size="Size.Small" Class="noose-nur-handy"
+                       StartIcon="@Icons.Material.Filled.FilterList"
+                       EndIcon="@(_filtersOpen ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                       OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")">
+                Filter (@FilterCount)
+            </MudButton>
         </MudStack>
 
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
             <MudSelect T="string" Label="Aktentyp" MultiSelection="true" SelectedValues="_types"
-                       SelectedValuesChanged="OnTypesAsync" Dense="true" Margin="Margin.Dense"
+                       SelectedValuesChanged="OnTypesAsync" Dense="true" Margin="Margin.Dense" Class="@FilterClass"
                        Style="min-width:210px;" MultiSelectionTextFunc="@(v => TypeSummary(v))">
                 @foreach (var t in _options.Types)
                 {
@@ -36,7 +44,7 @@
             </MudSelect>
 
             <MudSelect T="string" Label="Agent" MultiSelection="true" SelectedValues="_agents"
-                       SelectedValuesChanged="OnAgentsAsync" Dense="true" Margin="Margin.Dense"
+                       SelectedValuesChanged="OnAgentsAsync" Dense="true" Margin="Margin.Dense" Class="@FilterClass"
                        Style="min-width:210px;">
                 @foreach (var a in _options.Agents)
                 {
@@ -173,6 +181,14 @@
     private string? _text;
 
     private bool TextActive => !string.IsNullOrWhiteSpace(_text);
+
+    private bool _filtersOpen;
+
+    /// <summary>A folded filter on phones until "Filter (n)" is tapped; both classes do nothing from 600px up.</summary>
+    private string FilterClass => _filtersOpen ? "noose-filter-feld" : "noose-filter-feld noose-filter-zu";
+
+    /// <summary>Folded filters that are set: own date range, record types, agents.</summary>
+    private int FilterCount => (_customRange is null ? 0 : 1) + (_types.Count > 0 ? 1 : 0) + (_agents.Count > 0 ? 1 : 0);
 
     private bool HasFilters => _types.Count > 0 || _agents.Count > 0 || _categories.Count > 0 || TextActive;
 

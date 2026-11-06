@@ -1,10 +1,10 @@
 @* Time scrubber for network-growth playback: emits a UTC cutoff (null = show all). *@
 @implements IAsyncDisposable
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap noose-breite-frei">
     <MudIconButton Icon="@(_playing ? Icons.Material.Filled.Pause : Icons.Material.Filled.PlayArrow)"
                    Color="Color.Primary" Size="Size.Small" OnClick="ToggleAsync" />
-    <MudText Typo="Typo.body2" Style="min-width:9rem;">@Label</MudText>
+    <MudText Typo="Typo.body2" Style="min-width:9rem;" Class="noose-min-breite-frei">@Label</MudText>
     <MudSlider T="int" Min="0" Max="100" Step="1" Value="_pos" ValueChanged="OnScrubAsync" Class="flex-grow-1" />
 </MudStack>
 

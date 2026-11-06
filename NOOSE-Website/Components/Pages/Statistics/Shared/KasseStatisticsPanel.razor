@@ -13,19 +13,19 @@
     else
     {
         <MudGrid>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <StatTile Icon="@Icons.Material.Filled.MoneyOff" Colour="Color.Error"
                           Label="Schwarzgeld" Value="@Money.Format(_data.SchwarzgeldBalance)" Href="/kasse" />
             </MudItem>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <StatTile Icon="@Icons.Material.Filled.Payments" Colour="Color.Success"
                           Label="Grüngeld" Value="@Money.Format(_data.GruengeldBalance)" Href="/kasse" />
             </MudItem>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <StatTile Icon="@Icons.Material.Filled.TrendingUp" Colour="Color.Success"
                           Label="Einzahlungen (Zeitraum)" Value="@Money.Format(_data.TotalDeposits)" />
             </MudItem>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <StatTile Icon="@Icons.Material.Filled.TrendingDown" Colour="Color.Warning"
                           Label="Auszahlungen (Zeitraum)" Value="@Money.Format(_data.TotalWithdrawals)" />
             </MudItem>

@@ -14,12 +14,14 @@
 
 <MudStack Spacing="3">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-        <MudIcon Icon="@Icons.Material.Filled.Hub" Color="Color.Primary" Size="Size.Large" />
+        <MudIcon Icon="@Icons.Material.Filled.Hub" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
         <div>
             <MudText Typo="Typo.h5">Beziehungsgraph</MudText>
             <MudText Typo="Typo.body2" Class="mud-text-secondary">Verknüpfungen &amp; Beziehungen aller Akten als interaktives Lagebild.</MudText>
         </div>
         <MudSpacer />
+        @* the canvas tools stand as buttons from 960px up; below they sit in the ⋮ menu after this row *@
+        <div class="d-contents noose-schmal-aus">
         <MudTooltip Text="@(_freeMode ? "Graph angehalten – nichts bewegt sich von selbst. Knoten frei ziehen; verbundene Knoten (z. B. die Fraktion) kommen mit. Klicken zum Zurückschalten auf die lebendige Animation." : "Anhalten &amp; frei anordnen: Animation aus, Positionen bleiben stehen – Knoten ziehen nimmt verbundene Knoten mit")">
             <MudIconButton Icon="@(_freeMode ? Icons.Material.Filled.PanTool : Icons.Material.Outlined.PanTool)"
                            Color="@(_freeMode ? Color.Primary : Color.Default)"
@@ -43,6 +45,21 @@
         </MudTooltip>
         <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Color="Color.Primary"
                    OnClick="LoadAndDrawAsync" Disabled="@(!_ready)">Neu laden</MudButton>
+        </div>
+        <HeaderMenu>
+            <MudMenuItem Icon="@(_freeMode ? Icons.Material.Filled.PanTool : Icons.Material.Outlined.PanTool)"
+                         OnClick="ToggleFreeModeAsync" Disabled="@(!_ready)">
+                @(_freeMode ? "Animation wieder einschalten" : "Anhalten & frei anordnen")
+            </MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.CenterFocusStrong" OnClick="CustomizeAsync" Disabled="@(!_ready)">Auf den Bildschirm einpassen</MudMenuItem>
+            @if (_focus is not null)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.MyLocation" OnClick="JumpToFocusAsync" Disabled="@(!_ready)">Zur Fokus-Akte springen</MudMenuItem>
+            }
+            <MudMenuItem Icon="@Icons.Material.Filled.Fullscreen" OnClick="FullscreenAsync" Disabled="@(!_ready)">Vollbild</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Download" OnClick="ExportAsync" Disabled="@(!_ready)">Als Bild (PNG) speichern</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.Refresh" OnClick="LoadAndDrawAsync" Disabled="@(!_ready)">Neu laden</MudMenuItem>
+        </HeaderMenu>
     </MudStack>
 
     <MudPaper Class="pa-3" Elevation="1">
@@ -158,7 +175,23 @@
     }
 
     <MudPaper Elevation="2" Class="noose-graph-flaeche">
-        <div id="@ContainerId" style="height:72vh;width:100%;"></div>
+        <div id="@ContainerId" class="graph-leinwand" style="height:72vh;width:100%;"></div>
+        @* below 960px a finger on the canvas would pan the graph instead of scrolling the page: the canvas stays
+           behind this cover until "Bedienen" is tapped, and "Fertig" puts it back; from 960px up neither exists *@
+        @if (!_touchActive)
+        {
+            <div class="graph-bedienschutz noose-nur-schmal">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.TouchApp"
+                           OnClick="@(() => _touchActive = true)">Bedienen</MudButton>
+            </div>
+        }
+        else
+        {
+            <div class="graph-bedienen-fertig noose-nur-schmal">
+                <MudButton Variant="Variant.Filled" Color="Color.Default" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Check" OnClick="@(() => _touchActive = false)">Fertig</MudButton>
+            </div>
+        }
         @if (_load)
         {
             <div class="noose-graph-overlay">
@@ -178,7 +211,8 @@
         }
         @if (_selectedNode is not null)
         {
-            <div style="position:absolute;top:8px;right:8px;bottom:8px;width:340px;z-index:6;">
+            @* a side panel from 960px up, a sheet from the bottom of the screen below (RelationGraph.razor.css) *@
+            <div class="graph-dossier" style="position:absolute;top:8px;right:8px;bottom:8px;width:340px;z-index:6;">
                 <DossierPanel EntityType="@_selType" EntityId="@_selId" Designation="@_selectedNode.Designation"
                               Subtitle="@_selectedNode.Subtitle" Href="@_selectedNode.Href"
                               ThreatScore="_selectedNode.ThreatScore" IsClassified="_selectedNode.IsClassified"
@@ -191,9 +225,9 @@
     @if (_scrubMin is { } smin && _scrubMax is { } smax && smax > smin)
     {
         <MudPaper Class="pa-3" Elevation="1">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                 <MudIcon Icon="@Icons.Material.Filled.Timeline" Color="Color.Primary" />
-                <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="min-width:8rem;">Netzwerk-Wachstum</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary noose-min-breite-frei" Style="min-width:8rem;">Netzwerk-Wachstum</MudText>
                 <TimelineScrubberBar MinDate="smin" MaxDate="smax" OnCutoffChanged="CutoffChangedAsync" />
             </MudStack>
         </MudPaper>
@@ -341,6 +375,9 @@
     private bool _communityOn;
     private bool _linkMode;
     private GraphNode? _selectedNode;
+
+    /// <summary>Below 960px: the agent unlocked the canvas for touch; until then the page scrolls over it.</summary>
+    private bool _touchActive;
     private string _selType = string.Empty;
     private string _selId = string.Empty;
     private List<GraphCanvasLayout> _layouts = new();
