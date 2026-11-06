@@ -8,7 +8,7 @@
 @inject IJSRuntime JS
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Doks (@_docs.Count)</MudText>
         @if (_mayWrite)
         {
@@ -30,8 +30,8 @@
         {
             var doc = display.Doc;
             <MudPaper Class="pa-3 cursor-pointer" Elevation="1" @onclick="@(() => OpenAsync(display))">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudText Typo="Typo.body2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudText Typo="Typo.body2" Class="noose-eintrag-titel">
                         <b>@doc.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</b> · @MeasureOutcomeDisplay.Name(doc.Outcome)
                     </MudText>
                     @* Stop click so delete doesn't also open the detail dialog. *@

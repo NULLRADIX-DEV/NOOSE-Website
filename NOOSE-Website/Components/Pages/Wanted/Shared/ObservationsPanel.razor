@@ -13,7 +13,7 @@
 }
 else
 {
-    <MudTable T="ObservationDisplay" Items="_entries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
+    <MudTable T="ObservationDisplay" Items="_entries" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true"
               Filter="Filter" RowClass="cursor-pointer" OnRowClick="@(args => Open(args.Item))">
         <ToolBarContent>
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Person, Aktenzeichen, Ort)…" Immediate="true"
@@ -21,11 +21,11 @@ else
         </ToolBarContent>
         <HeaderContent>
             <MudTh><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.Person?.Name)">Person</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.Person?.CaseNumber)">Aktenzeichen</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.Person?.CaseNumber)">Aktenzeichen</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.Start)" InitialDirection="SortDirection.Descending">Beginn</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.End)">Ende</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.AgentCodename)">Agent</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.Location)">Ort</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.End)">Ende</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.AgentCodename)">Agent</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="ObservationDisplay" SortBy="@(x => x.Obs.Location)">Ort</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Person">
@@ -37,21 +37,21 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Aktenzeichen">
+            <MudTd DataLabel="Aktenzeichen" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Obs.Person?.CaseNumber</MudText>
             </MudTd>
             <MudTd DataLabel="Beginn">
                 <MudText Typo="Typo.body2">@context.Obs.Start.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
             </MudTd>
-            <MudTd DataLabel="Ende">
+            <MudTd DataLabel="Ende" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @(context.Obs.End is { } end ? end.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : "—")
                 </MudText>
             </MudTd>
-            <MudTd DataLabel="Agent">
+            <MudTd DataLabel="Agent" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.AgentCodename ?? "—")</MudText>
             </MudTd>
-            <MudTd DataLabel="Ort">
+            <MudTd DataLabel="Ort" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary"
                          Style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                     @(string.IsNullOrWhiteSpace(context.Obs.Location) ? "—" : context.Obs.Location)

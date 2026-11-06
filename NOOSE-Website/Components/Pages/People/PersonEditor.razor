@@ -20,11 +20,8 @@ else if (_input is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref" aria-label="Zurück" />
-        <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.PersonAdd)" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h4">@(IsEdit ? "Akte bearbeiten" : "Neue Person anlegen")</MudText>
-    </MudStack>
+    <PageHeader BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.PersonAdd)"
+                Title="@(IsEdit ? "Akte bearbeiten" : "Neue Person anlegen")" ShowHelp="false" />
 
     <MudForm @ref="_form">
         <MudGrid>
@@ -84,7 +81,7 @@ else
         <ProfileForm @key="_loadedId" Input="_input" />
     </MudForm>
 
-    <MudStack Row="true" Spacing="2" Class="mt-4">
+    <FormActions Justify="Justify.FlexStart" Class="mt-4">
         @if (IsEdit)
         {
             <AuthorizeView Policy="@Policies.WriteAccess">
@@ -96,7 +93,7 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Disabled="_saves">Anlegen</MudButton>
         }
         <MudButton Variant="Variant.Text" Href="@BackHref">Abbrechen</MudButton>
-    </MudStack>
+    </FormActions>
 }
 
 @code {

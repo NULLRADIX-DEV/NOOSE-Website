@@ -4,7 +4,7 @@
 @inject IPersonGroupService GroupService
 @inject IDocTemplateService TemplateService
 
-<MudDialog>
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         <MudForm @ref="_form">
             <MudStack Spacing="3">
@@ -53,11 +53,11 @@
                 <MudDivider />
 
                 <MudGrid>
-                    <MudItem xs="7">
+                    <MudItem xs="12" sm="7">
                         <MudDatePicker Label="Datum der Maßnahme" @bind-Date="_date" Required="true"
                                        RequiredError="Datum ist erforderlich" DateFormat="dd.MM.yyyy" />
                     </MudItem>
-                    <MudItem xs="5">
+                    <MudItem xs="12" sm="5">
                         <MudTimePicker Label="Uhrzeit" @bind-Time="_time" />
                     </MudItem>
                 </MudGrid>
