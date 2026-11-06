@@ -3,19 +3,19 @@
 @inject IAgentManagementService AgentService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@using NOOSE_Website.Models.Navigation
 
 <PageTitle>Agenten-Verwaltung · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Agenten-Verwaltung</MudText>
-</MudStack>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Dienstgrade und Abteilungen vergeben, die Administration Division und Teamleitung-Rechte verwalten sowie Accounts sperren. Eine Sperre beendet
-    alle laufenden Sitzungen des Agents sofort (Kill-Switch). Teamleitungen (FiveM-Aufsicht) sind im RP-Betrieb
-    überall ausgeblendet und nur hier sichtbar – Vollzugriff erst durch den Admin-Haken. Das Setzen des
-    Admin-Hakens selbst ist ausschließlich Admins vorbehalten; die Führung kann ihn nur einsehen.
-</MudText>
+@* no help button: the hand-built header this replaces had none, and the desktop stays as it was *@
+<PageHeader Icon="@Icons.Material.Filled.ManageAccounts" Title="Agenten-Verwaltung" ShowHelp="false">
+    <SubtitleContent>
+        Dienstgrade und Abteilungen vergeben, die Administration Division und Teamleitung-Rechte verwalten sowie Accounts sperren. Eine Sperre beendet
+        alle laufenden Sitzungen des Agents sofort (Kill-Switch). Teamleitungen (FiveM-Aufsicht) sind im RP-Betrieb
+        überall ausgeblendet und nur hier sichtbar – Vollzugriff erst durch den Admin-Haken. Das Setzen des
+        Admin-Hakens selbst ist ausschließlich Admins vorbehalten; die Führung kann ihn nur einsehen.
+    </SubtitleContent>
+</PageHeader>
 
 @if (_load)
 {
@@ -24,7 +24,7 @@
 else
 {
     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="false"
-             @bind-ActivePanelIndex="_tab" Class="mb-3">
+             @bind-ActivePanelIndex="_tab" Class="mb-3 noose-reiter-handy">
         <MudTabPanel Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success"
                      Text="@($"Aktiv ({CountActive})")" />
         <MudTabPanel Icon="@Icons.Material.Filled.Block" IconColor="Color.Error"
@@ -39,13 +39,16 @@ else
 
     @if (_tab == 3)
     {
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3 noose-filterleiste" Wrap="Wrap.Wrap">
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Codename, Klarname)…" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" Style="min-width:220px;" />
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1 noose-filter-feld" Style="min-width:220px;" />
+            @* phones: the two selects fold behind this button; from 600px up it is gone and they stand as before *@
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                       Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)">Filter (@ActiveFilterCount)</MudButton>
             <MudSelect T="PartnerAgency?" Value="_agencyFilter" ValueChanged="@(v => _agencyFilter = v)"
                        Label="Behörde" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                       Style="min-width:160px;">
+                       Style="min-width:160px;" Class="@FilterClass">
                 <MudSelectItem T="PartnerAgency?" Value="@((PartnerAgency?)null)">Alle Behörden</MudSelectItem>
                 @foreach (var ag in PartnerAgencyDisplay.All)
                 {
@@ -54,7 +57,7 @@ else
             </MudSelect>
             <MudSelect T="PartnerRank?" Value="_rankFilter" ValueChanged="@(v => _rankFilter = v)"
                        Label="Rang" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                       Style="min-width:160px;">
+                       Style="min-width:160px;" Class="@FilterClass">
                 <MudSelectItem T="PartnerRank?" Value="@((PartnerRank?)null)">Alle Ränge</MudSelectItem>
                 @foreach (var pr in PartnerRankDisplay.All)
                 {
@@ -64,19 +67,22 @@ else
         </MudStack>
     }
 
-    <MudTable Items="VisibleAgents" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MobileColumnPicker ListKey="admin-agenten" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                        VisibleChanged="@(v => _phoneColumns = v)" />
+    @* rows stay rows on phones, with the columns the agent chose (MudBlazor stacked them below 600px before) *@
+    <MudTable Items="VisibleAgents" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DisplayName(x))">Agent</MudTableSortLabel></MudTh>
-            <MudTh Style="min-width:220px;"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DivisionRules.Of(x).Home)">Abteilung</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTeamLead)">Teamleitung</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsAdmin)">Admin</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align:right;">Aktion</MudTh>
+            <MudTh Class="@Col("agent")"><MudTableSortLabel T="Agent" SortBy="@(x => DisplayName(x))">Agent</MudTableSortLabel></MudTh>
+            <MudTh Style="min-width:220px;" Class="@($"noose-min-breite-frei {Col("dienstgrad")}")"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
+            <MudTh Class="@Col("status")"><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
+            <MudTh Class="@Col("abteilung")"><MudTableSortLabel T="Agent" SortBy="@(x => DivisionRules.Of(x).Home)">Abteilung</MudTableSortLabel></MudTh>
+            <MudTh Class="@Col("hrb")"><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
+            <MudTh Class="@Col("teamleitung")"><MudTableSortLabel T="Agent" SortBy="@(x => x.IsTeamLead)">Teamleitung</MudTableSortLabel></MudTh>
+            <MudTh Class="@Col("admin")"><MudTableSortLabel T="Agent" SortBy="@(x => x.IsAdmin)">Admin</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align:right;" Class="@Col("aktion")">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Agent">
+            <MudTd DataLabel="Agent" Class="@Col("agent")">
                 <MudText Typo="Typo.body2">@DisplayName(context)</MudText>
                 @if (!string.IsNullOrWhiteSpace(RealNameBadgeNumber(context)))
                 {
@@ -102,7 +108,7 @@ else
                     </MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="Dienstgrad">
+            <MudTd DataLabel="Dienstgrad" Class="@Col("dienstgrad")">
                 @if (context.PartnerAgency is { } partnerAgency)
                 {
                     <MudSelect T="PartnerRank" Value="@(context.PartnerRank ?? PartnerRank.Member)"
@@ -136,13 +142,13 @@ else
                     }
                 }
             </MudTd>
-            <MudTd DataLabel="Status">
+            <MudTd DataLabel="Status" Class="@Col("status")">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudIcon Icon="@AgentStatusDisplay.Icon(context.Status)" Color="@AgentStatusDisplay.Colour(context.Status)" Size="Size.Small" />
                     <MudText Typo="Typo.body2" Color="@AgentStatusDisplay.Colour(context.Status)">@AgentStatusDisplay.Name(context.Status)</MudText>
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Abteilung">
+            <MudTd DataLabel="Abteilung" Class="@Col("abteilung")">
                 <AuthorizeView Policy="@Policies.DivisionSetWrite" Context="abteilung">
                     <Authorized>
                         <MudTooltip Text="@DivisionRules.PickerHint(context.Rank)" Disabled="@(DivisionRules.PickerHint(context.Rank) is null)">
@@ -165,24 +171,24 @@ else
                     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">Board</MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="@DepartmentRules.ColumnLabel">
+            <MudTd DataLabel="@DepartmentRules.ColumnLabel" Class="@Col("hrb")">
                 <MudTooltip Text="@DepartmentRules.Hint" Disabled="@(context.PartnerAgency != null || DepartmentOpen(context))">
                     <MudSwitch T="bool" Value="context.IsHRB" ValueChanged="@(v => HrbSet(context, v))" Color="Color.Info"
                                Disabled="@(context.PartnerAgency != null || (!DepartmentOpen(context) && !context.IsHRB))" />
                 </MudTooltip>
             </MudTd>
-            <MudTd DataLabel="Teamleitung">
+            <MudTd DataLabel="Teamleitung" Class="@Col("teamleitung")">
                 <MudSwitch T="bool" Value="context.IsTeamLead" ValueChanged="@(v => TeamLeadSet(context, v))" Color="Color.Tertiary"
                            Disabled="@(context.PartnerAgency != null)" />
             </MudTd>
-            <MudTd DataLabel="Admin">
+            <MudTd DataLabel="Admin" Class="@Col("admin")">
                 <MudTooltip Text="@AdminToggleHint(context)" Disabled="@(_amAdmin && context.Id != _myId)">
                     <MudSwitch T="bool" Value="context.IsAdmin" ValueChanged="@(v => AdminSet(context, v))"
                                Color="Color.Secondary" Disabled="@(!_amAdmin || context.Id == _myId || context.PartnerAgency != null)" />
                 </MudTooltip>
             </MudTd>
-            <MudTd DataLabel="Aktion" Style="text-align:right;">
-                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
+            <MudTd DataLabel="Aktion" Style="text-align:right;" Class="@Col("aktion")">
+                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Class="noose-mobil-aus">
                     <MudTooltip Text="Personalakte">
                         <MudIconButton Icon="@Icons.Material.Filled.Badge" Size="Size.Small" Color="Color.Default"
                                        Href="@($"/personal/{context.Id}")" aria-label="Personalakte öffnen" />
@@ -233,6 +239,34 @@ else
                         </MudTooltip>
                     }
                 </MudStack>
+                @* phones: the same actions under the same conditions in a ⋮ menu, deleting last after a line *@
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                         AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Badge" Href="@($"/personal/{context.Id}")">Personalakte</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="() => Edit(context)">Stammdaten bearbeiten</MudMenuItem>
+                    @if (context.Status == AgentStatus.Active && MayChangeAffiliation(context))
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.SwapHoriz" Disabled="@(context.Id == _myId)"
+                                     OnClick="() => ChangeAffiliation(context)">Zugehörigkeit ändern</MudMenuItem>
+                    }
+                    @if (context.Status == AgentStatus.Blocked)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.LockOpen" IconColor="Color.Success"
+                                     OnClick="() => Unblock(context)">Entsperren</MudMenuItem>
+                    }
+                    else if (context.Status != AgentStatus.Terminated)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Block" IconColor="Color.Error" Disabled="@(context.Id == _myId)"
+                                     OnClick="() => Block(context)">Sperren</MudMenuItem>
+                    }
+                    @if (context.Id != _myId)
+                    {
+                        <MudDivider Class="my-1" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.DeleteForever" IconColor="Color.Error"
+                                     Disabled="@(context.Status == AgentStatus.Terminated)"
+                                     OnClick="() => DeleteAccount(context)">Account vollständig löschen</MudMenuItem>
+                    }
+                </MudMenu>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
@@ -266,6 +300,27 @@ else
     private string _search = string.Empty;
     private PartnerAgency? _agencyFilter;
     private PartnerRank? _rankFilter;
+
+    // phones only: whether the two partner selects are unfolded under the search
+    private bool _filtersOpen;
+    private int ActiveFilterCount => (_agencyFilter is null ? 0 : 1) + (_rankFilter is null ? 0 : 1);
+    private string FilterClass => _filtersOpen ? "noose-filter-feld" : "noose-filter-feld noose-filter-zu";
+
+    /// <summary>The table's columns for the phone column picker, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("agent", "Agent"), ("dienstgrad", "Dienstgrad"), ("status", "Status"), ("abteilung", "Abteilung"),
+        ("hrb", DepartmentRules.ColumnLabel), ("teamleitung", "Teamleitung"), ("admin", "Admin"), ("aktion", "Aktion"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: who, their rank, and the row's actions.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["agent", "dienstgrad", "aktion"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     private IEnumerable<Agent> VisibleAgents => _tab switch
     {

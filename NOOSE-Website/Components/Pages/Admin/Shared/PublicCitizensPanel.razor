@@ -8,11 +8,11 @@
     nur das Einreichen — öffentliche Inhalte bleiben lesbar. Die Sperre hängt am Discord-Konto, nicht am Namen.
 </MudText>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="mb-4">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="mb-4 noose-filterleiste">
     <MudTextField @bind-Value="_search" @bind-Value:after="LoadAsync" Placeholder="Suchen (Name, Discord)…"
                   Immediate="true" DebounceInterval="300" Variant="Variant.Outlined" Margin="Margin.Dense"
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                  Style="max-width:340px;" Class="mt-0" />
+                  Style="max-width:340px;" Class="mt-0 noose-filter-feld" />
     <MudSpacer />
     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@_rows.Count Konten</MudChip>
     @if (_blockedCount > 0)
@@ -31,22 +31,22 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudTable Items="_rows" Dense="true" Hover="true">
+    <MudTable Breakpoint="Breakpoint.None" Items="_rows" Dense="true" Hover="true">
         <HeaderContent>
             <MudTh>Name</MudTh>
-            <MudTh>Discord</MudTh>
-            <MudTh>Registriert</MudTh>
-            <MudTh>Bestätigte Hinweise</MudTh>
-            <MudTh>Personenakte</MudTh>
+            <MudTh Class="noose-mobil-aus">Discord</MudTh>
+            <MudTh Class="noose-mobil-aus">Registriert</MudTh>
+            <MudTh Class="noose-mobil-aus">Bestätigte Hinweise</MudTh>
+            <MudTh Class="noose-mobil-aus">Personenakte</MudTh>
             <MudTh>Status</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.DisplayName</MudTd>
-            <MudTd DataLabel="Discord">@(context.DiscordUsername ?? "—")</MudTd>
-            <MudTd DataLabel="Registriert">@context.RegisteredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="Bestätigte Hinweise">@context.ConfirmedTips</MudTd>
-            <MudTd DataLabel="Personenakte">
+            <MudTd DataLabel="Discord" Class="noose-mobil-aus">@(context.DiscordUsername ?? "—")</MudTd>
+            <MudTd DataLabel="Registriert" Class="noose-mobil-aus">@context.RegisteredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Bestätigte Hinweise" Class="noose-mobil-aus">@context.ConfirmedTips</MudTd>
+            <MudTd DataLabel="Personenakte" Class="noose-mobil-aus">
                 @if (context.LinkedPersonId is not null)
                 {
                     <MudLink Href="@($"/personen/{context.LinkedPersonId}")">Akte öffnen</MudLink>
@@ -81,6 +81,7 @@ else
             </MudTd>
             <MudTd>
                 <AuthorizeView Policy="@Policies.WriteAccess" Context="writeCtx">
+                    <span class="noose-mobil-aus">
                     @if (context.IsBlocked)
                     {
                         <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
@@ -112,6 +113,29 @@ else
                                    StartIcon="@Icons.Material.Filled.NoAccounts"
                                    OnClick="() => StartAccountBlock(context)">Konto aussperren</MudButton>
                     }
+                    </span>
+                    @* phones: the same four actions in a ⋮ menu, inside the same write check *@
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                             AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                        @if (context.IsBlocked)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.LockOpen" OnClick="() => UnblockAsync(context)">Entsperren</MudMenuItem>
+                        }
+                        else
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.Block" IconColor="Color.Error" OnClick="() => StartBlock(context)">Sperren</MudMenuItem>
+                        }
+                        <MudMenuItem Icon="@Icons.Material.Filled.Link" OnClick="() => StartLinkAsync(context)">Personenakte</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.DriveFileRenameOutline" OnClick="() => StartRename(context)">Name ändern</MudMenuItem>
+                        @if (context.AccountBlocked)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.HowToReg" OnClick="() => UnblockAccountAsync(context)">Aussperrung aufheben</MudMenuItem>
+                        }
+                        else
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.NoAccounts" IconColor="Color.Error" OnClick="() => StartAccountBlock(context)">Konto aussperren</MudMenuItem>
+                        }
+                    </MudMenu>
                 </AuthorizeView>
             </MudTd>
         </RowTemplate>
@@ -149,7 +173,7 @@ else
 
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                 <MudTextField @bind-Value="_personSearch" Label="Person suchen" Variant="Variant.Outlined"
-                              Margin="Margin.Dense" Immediate="true" Style="min-width:240px;" />
+                              Margin="Margin.Dense" Immediate="true" Style="min-width:240px;" Class="noose-breite-frei" />
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Search"
                            OnClick="SearchPeopleAsync">Suchen</MudButton>
                 <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="CancelLink">Schließen</MudButton>

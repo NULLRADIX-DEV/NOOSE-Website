@@ -20,10 +20,10 @@
 }
 else
 {
-    <MudTable Items="_entries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_entries" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="TagUsage" SortBy="@(x => x.Tag.Name)">Tag</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="TagUsage" SortBy="@(x => x.Tag.Colour)">Farbe</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="TagUsage" SortBy="@(x => x.Tag.Colour)">Farbe</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="TagUsage" SortBy="@(x => x.Count)">Verwendungen</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
@@ -31,7 +31,7 @@ else
             <MudTd DataLabel="Tag">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@ColourBy(context.Tag.Colour)">@context.Tag.Name</MudChip>
             </MudTd>
-            <MudTd DataLabel="Farbe">
+            <MudTd DataLabel="Farbe" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.Tag.Colour ?? "Standard")</MudText>
             </MudTd>
             <MudTd DataLabel="Verwendungen">

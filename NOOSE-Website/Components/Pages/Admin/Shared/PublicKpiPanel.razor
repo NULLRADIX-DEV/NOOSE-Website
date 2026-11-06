@@ -156,20 +156,21 @@ else
             <MudSimpleTable Dense="true" Hover="true" Striped="true">
                 <thead>
                     <tr>
-                        <th>Aktenzeichen</th>
+                        @* phones keep the notice and its views; case number and date stay on wider screens *@
+                        <th class="noose-mobil-aus">Aktenzeichen</th>
                         <th>Ausschreibung</th>
                         <th style="text-align:right;">Aufrufe</th>
-                        <th>Veröffentlicht</th>
+                        <th class="noose-mobil-aus">Veröffentlicht</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var row in views.Top)
                     {
                         <tr>
-                            <td>@row.CaseNumber</td>
+                            <td class="noose-mobil-aus">@row.CaseNumber</td>
                             <td>@row.DisplayName</td>
                             <td style="text-align:right;">@row.ViewCount.ToString("N0")</td>
-                            <td>@(row.PublishedAt is { } at ? at.ToLocalTime().ToString("dd.MM.yyyy") : "—")</td>
+                            <td class="noose-mobil-aus">@(row.PublishedAt is { } at ? at.ToLocalTime().ToString("dd.MM.yyyy") : "—")</td>
                         </tr>
                     }
                 </tbody>

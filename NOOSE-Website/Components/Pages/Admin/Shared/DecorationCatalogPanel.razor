@@ -10,16 +10,16 @@
     vergeben werden soll.
 </MudText>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-    <MudText Typo="Typo.h6">Katalog</MudText>
-    <MudSpacer />
-    @if (_mayWrite)
-    {
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync">
-            Neues Ehrenzeichen
-        </MudButton>
-    }
-</MudStack>
+<SectionHeader Title="Katalog" Class="mb-3">
+    <Actions>
+        @if (_mayWrite)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync">
+                Neues Ehrenzeichen
+            </MudButton>
+        }
+    </Actions>
+</SectionHeader>
 
 @if (_load)
 {
@@ -32,27 +32,27 @@ else if (_catalog.Count == 0)
 }
 else
 {
-    <MudTable Items="_catalog" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_catalog" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
-            <MudTh>#</MudTh>
+            <MudTh Class="noose-mobil-aus">#</MudTh>
             <MudTh>Ehrenzeichen</MudTh>
-            <MudTh>Beschreibung</MudTh>
-            <MudTh>Verliehen</MudTh>
+            <MudTh Class="noose-mobil-aus">Beschreibung</MudTh>
+            <MudTh Class="noose-mobil-aus">Verliehen</MudTh>
             <MudTh>Status</MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="#">@context.Order</MudTd>
+            <MudTd DataLabel="#" Class="noose-mobil-aus">@context.Order</MudTd>
             <MudTd DataLabel="Ehrenzeichen">
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                     <DecorationPlaque Name="@context.Name" Symbol="@context.Symbol" Tier="@context.Tier" />
                     <MudText Typo="Typo.body2"><b>@context.Name</b> · @DecorationTierDisplay.Name(context.Tier)</MudText>
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Beschreibung">
+            <MudTd DataLabel="Beschreibung" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@context.Description</MudText>
             </MudTd>
-            <MudTd DataLabel="Verliehen">@context.AwardCount×</MudTd>
+            <MudTd DataLabel="Verliehen" Class="noose-mobil-aus">@context.AwardCount×</MudTd>
             <MudTd DataLabel="Status">
                 @if (context.IsActive)
                 {

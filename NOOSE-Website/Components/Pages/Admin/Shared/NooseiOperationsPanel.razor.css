@@ -1,0 +1,11 @@
+/* Phones only: the 260px key column of the read-only tables would leave a model name no room and push the table wider
+   than the screen. Below 600px the key column takes what its text needs and a long model name breaks. */
+@media screen and (max-width: 599.98px) {
+    td.ki-schluessel {
+        width: auto !important;
+    }
+
+    td.ki-wert code {
+        overflow-wrap: anywhere;
+    }
+}

@@ -39,7 +39,7 @@ else
 
         <MudExpansionPanel>
             <TitleContent>
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                     <MudText>Fraktion – Teilscores S1–S4</MudText>
                     <MudChip T="string" Size="Size.Small" Color="@(FactionSumOk ? Color.Success : Color.Error)">Σ Caps @($"{FactionCapsSum:0.##}")/100</MudChip>
                     <MudChip T="string" Size="Size.Small" Color="@(S2SubOk ? Color.Success : Color.Error)">S2-Sub @($"{S2SubSum:0.##}")/@($"{_k.CapS2:0.##}")</MudChip>
@@ -78,7 +78,7 @@ else
 
         <MudExpansionPanel>
             <TitleContent>
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                     <MudText>Person – Teilscores P1–P5</MudText>
                     <MudChip T="string" Size="Size.Small" Color="@(PersonSumOk ? Color.Success : Color.Error)">Σ Caps @($"{PersonCapsSum:0.##}")/100</MudChip>
                     <MudChip T="string" Size="Size.Small" Color="@(P2SubOk ? Color.Success : Color.Error)">P2-Sub @($"{P2SubSum:0.##}")/@($"{_k.CapP2:0.##}")</MudChip>
@@ -116,7 +116,7 @@ else
         </MudAlert>
     }
 
-    <MudStack Row="true" Spacing="2" Class="mb-6">
+    <MudStack Row="true" Spacing="2" Class="mb-6 noose-kopf-umbruch">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
                    Disabled="@(!IsValid || _saves)" OnClick="SaveAsync">Speichern</MudButton>
         <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Balance"
@@ -288,7 +288,7 @@ else
 
     private RenderFragment DistCard(string title, ThreatScoreDistribution d) => __builder =>
     {
-        <MudPaper Class="pa-4" Elevation="2" Style="min-width:320px;flex:1;">
+        <MudPaper Class="pa-4 noose-min-breite-frei" Elevation="2" Style="min-width:320px;flex:1;">
             <MudText Typo="Typo.h6" Class="mb-1">@title</MudText>
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                 @d.Scored bewertet · Ø-Score @d.AverageScore · Ø-Konfidenz @d.AverageConfidence % · @d.TriageCount Triage@(d.Excluded > 0 ? $" · {d.Excluded} ausgenommen" : "")

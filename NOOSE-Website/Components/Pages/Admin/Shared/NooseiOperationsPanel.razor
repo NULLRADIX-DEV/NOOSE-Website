@@ -44,7 +44,7 @@ else
                 var fallback = o.ModelFor(provider, LlmFeature.Chat);
                 var standard = provider == LlmProvider.DeepSeek ? o.DeepSeek.Model : o.Model;
             }
-            <tr><td style="width:260px;">Modell (Standard)</td><td><code>@(string.IsNullOrWhiteSpace(standard) ? "—" : standard)</code></td></tr>
+            <tr><td style="width:260px;" class="ki-schluessel">Modell (Standard)</td><td class="ki-wert"><code>@(string.IsNullOrWhiteSpace(standard) ? "—" : standard)</code></td></tr>
             @foreach (var feature in LlmFeatureDisplay.All)
             {
                 var model = o.ModelFor(provider, feature);
@@ -53,7 +53,7 @@ else
                 {
                     <tr>
                         <td>Modell · @LlmFeatureDisplay.Name(feature)</td>
-                        <td><code>@model</code></td>
+                        <td class="ki-wert"><code>@model</code></td>
                     </tr>
                 }
             }
@@ -91,7 +91,7 @@ else
 <MudText Typo="Typo.subtitle2" Class="mb-2">Gemeinsam</MudText>
 <MudSimpleTable Dense="true" Elevation="0">
     <tbody>
-        <tr><td style="width:260px;">Aktiv</td><td>@(o.Enabled ? "Ja" : "Nein")</td></tr>
+        <tr><td style="width:260px;" class="ki-schluessel">Aktiv</td><td>@(o.Enabled ? "Ja" : "Nein")</td></tr>
         <tr>
             <td>Verschlusssachen nach außen</td>
             <td>@(o.AllowClassifiedEgress ? "Erlaubt (im Rahmen der eigenen Sichtbarkeit)" : "Gesperrt")</td>

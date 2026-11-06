@@ -18,11 +18,12 @@
 }
 else if (_edit is not null)
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="CloseEditor" aria-label="Zurück zur Liste" />
-        <MudText Typo="Typo.h6">@(_isNew ? "Neuer Lagebericht" : _edit.Title)</MudText>
+        <MudText Typo="Typo.h6" Class="noose-eintrag-titel">@(_isNew ? "Neuer Lagebericht" : _edit.Title)</MudText>
         <MudSpacer />
-        <MudButton OnClick="SaveDraftAsync" Variant="Variant.Filled" Color="Color.Primary"
+        @* below 960px the same button pins to the foot of the form *@
+        <MudButton OnClick="SaveDraftAsync" Variant="Variant.Filled" Color="Color.Primary" Class="noose-schmal-aus"
                    StartIcon="@Icons.Material.Filled.Save" Disabled="_save">Entwurf speichern</MudButton>
     </MudStack>
 
@@ -54,6 +55,10 @@ else if (_edit is not null)
             @* keyed by row: switching reports must re-initialise Quill instead of keeping the previous content *@
             <RichTextEditor @ref="_editor" @key="_editorKey" Value="@_draftHtml" MinHeight="360px"
                             DraftKey='@(_edit is null ? null : $"lagebericht:{_edit.Id}")' />
+            <FormActions Class="noose-nur-schmal">
+                <MudButton OnClick="SaveDraftAsync" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save" Disabled="_save">Entwurf speichern</MudButton>
+            </FormActions>
         </MudStack>
     </MudPaper>
 }
@@ -68,16 +73,16 @@ else
         }
     </MudStack>
 
-    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
-            <MudTh>Zeitraum</MudTh>
+            <MudTh Class="noose-mobil-aus">Zeitraum</MudTh>
             <MudTh>Titel</MudTh>
             <MudTh>Status</MudTh>
-            <MudTh>Veröffentlicht</MudTh>
+            <MudTh Class="noose-mobil-aus">Veröffentlicht</MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Zeitraum">
+            <MudTd DataLabel="Zeitraum" Class="noose-mobil-aus">
                 <MudStack Spacing="0">
                     <MudText Typo="Typo.body2">@ReportPeriod.Label(context.Year, context.Month)</MudText>
                     <code>@ReportPeriod.Format(context.Year, context.Month)</code>
@@ -110,7 +115,7 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Veröffentlicht">
+            <MudTd DataLabel="Veröffentlicht" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @* a draft has no publication date; without the fallback its only timestamp would be invisible *@
                     @(context.PublishedAt is { } at
@@ -121,7 +126,7 @@ else
                 </MudText>
             </MudTd>
             <MudTd DataLabel="Aktion" Style="text-align:right;">
-                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
+                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Class="noose-mobil-aus">
                     @if (context.HasAnchor && context.SituationReportId is { Length: > 0 } anchorId)
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Assessment" Size="Size.Small" Color="Color.Default"
@@ -150,6 +155,32 @@ else
                                        OnClick="@(() => DeleteAsync(context))" aria-label="Bericht löschen" />
                     }
                 </MudStack>
+                @* phones: the same actions under the same conditions in a ⋮ menu, deleting last after a line *@
+                @if (_mayEdit || context.Status == PublicReportStatus.Veroeffentlicht || context.HasAnchor && context.SituationReportId is { Length: > 0 })
+                {
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                             AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                        @if (context.HasAnchor && context.SituationReportId is { Length: > 0 } anchorMenu)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.Assessment" Href="@($"/lageberichte/{anchorMenu}")">Internen Monatsbericht öffnen</MudMenuItem>
+                        }
+                        @if (context.Status == PublicReportStatus.Veroeffentlicht)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.OpenInNew" Href="@($"/berichte/{ReportPeriod.Format(context.Year, context.Month)}")">Öffentlichen Bericht öffnen</MudMenuItem>
+                        }
+                        @if (_mayEdit)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OpenEditorAsync(context))">Bearbeiten</MudMenuItem>
+                            @if (context.Status == PublicReportStatus.Veroeffentlicht)
+                            {
+                                <MudMenuItem Icon="@Icons.Material.Filled.CloudOff" IconColor="Color.Warning" OnClick="@(() => RetractAsync(context))">Zurückziehen</MudMenuItem>
+                            }
+                            <MudMenuItem Icon="@Icons.Material.Filled.CloudUpload" IconColor="Color.Success" OnClick="@(() => PublishAsync(context))">Veröffentlichen</MudMenuItem>
+                            <MudDivider Class="my-1" />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => DeleteAsync(context))">Löschen</MudMenuItem>
+                        }
+                    </MudMenu>
+                }
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
