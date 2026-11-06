@@ -94,11 +94,11 @@ else
                     }
                 </MudSelect>
 
-                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                <FormActions>
                     <MudButton Href="@BackHref">Abbrechen</MudButton>
                     <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_saving"
                                StartIcon="@Icons.Material.Filled.Send">Beantragen</MudButton>
-                </MudStack>
+                </FormActions>
             </MudStack>
         </MudForm>
     </MudPaper>

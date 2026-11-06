@@ -1,16 +1,20 @@
-@* Full list of all documented abductions. *@
+@* Full list of all documented abductions: the table of the /entfuehrungen list, with its phone column picker. *@
+@using NOOSE_Website.Models.Navigation
 @inject IAbductionService AbductionService
 @inject NavigationManager Nav
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudText Typo="Typo.h6">Dokumentierte Entführungen</MudText>
-        <MudSpacer />
-        <AuthorizeView Policy="@Policies.WriteAccess">
-            <MudButton Href="/entfuehrungen/neu" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add">Neue Entführung</MudButton>
-        </AuthorizeView>
-    </MudStack>
+    <SectionHeader Title="Dokumentierte Entführungen">
+        <Actions>
+            @* "Spalten" shows below 600px only *@
+            <MobileColumnPicker ListKey="entfuehrungen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
+            <AuthorizeView Policy="@Policies.WriteAccess">
+                <MudButton Href="/entfuehrungen/neu" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add">Neue Entführung</MudButton>
+            </AuthorizeView>
+        </Actions>
+    </SectionHeader>
 
     @if (_load)
     {
@@ -26,29 +30,29 @@
         <MudSimpleTable Dense="true" Hover="true" Striped="true">
             <thead>
                 <tr>
-                    <th>Aktenzeichen</th>
-                    <th>Opfer</th>
-                    <th>Täter</th>
-                    <th>Zeitpunkt</th>
-                    <th>Ausgang</th>
-                    <th>Leak</th>
-                    <th>Kompromittiert</th>
+                    <th class="@Col("aktenzeichen")">Aktenzeichen</th>
+                    <th class="@Col("opfer")">Opfer</th>
+                    <th class="@Col("taeter")">Täter</th>
+                    <th class="@Col("zeitpunkt")">Zeitpunkt</th>
+                    <th class="@Col("ausgang")">Ausgang</th>
+                    <th class="@Col("leak")">Leak</th>
+                    <th class="@Col("kompromittiert")">Kompromittiert</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var r in _rows)
                 {
                     <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/entfuehrungen/{r.Abduction.Id}"))">
-                        <td>@r.Abduction.CaseNumber</td>
-                        <td>@r.VictimCodename</td>
-                        <td>@(r.PerpetratorName ?? "—")</td>
-                        <td>@r.Abduction.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>
+                        <td class="@Col("aktenzeichen")">@r.Abduction.CaseNumber</td>
+                        <td class="@Col("opfer")">@r.VictimCodename</td>
+                        <td class="@Col("taeter")">@(r.PerpetratorName ?? "—")</td>
+                        <td class="@Col("zeitpunkt")">@r.Abduction.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="@Col("ausgang")">
                             <MudChip T="string" Size="Size.Small" Color="@AbductionOutcomeDisplay.ChipColor(r.Abduction.Outcome)">
                                 @AbductionOutcomeDisplay.Name(r.Abduction.Outcome)
                             </MudChip>
                         </td>
-                        <td>
+                        <td class="@Col("leak")">
                             @if (r.Abduction.InformationLeaked)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="@LeakSeverityDisplay.ChipColor(r.Abduction.LeakSeverity)">
@@ -60,7 +64,7 @@
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
                             }
                         </td>
-                        <td>
+                        <td class="@Col("kompromittiert")">
                             @if (r.CompromisedActiveCount > 0)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Error" Icon="@Icons.Material.Filled.GppBad">
@@ -82,6 +86,22 @@
 @code {
     private bool _load = true;
     private List<AbductionDisplay> _rows = new();
+
+    /// <summary>The table's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("opfer", "Opfer"), ("taeter", "Täter"), ("zeitpunkt", "Zeitpunkt"),
+        ("ausgang", "Ausgang"), ("leak", "Leak"), ("kompromittiert", "Kompromittiert"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the victim and how it ended.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["opfer", "ausgang"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     protected override async Task OnInitializedAsync()
     {

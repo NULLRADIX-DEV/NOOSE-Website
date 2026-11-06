@@ -1,18 +1,21 @@
-@* Rows of warrants; a click opens the warrant. *@
+@* Rows of warrants; a click opens the warrant.
+   Below 600px only some columns show: the list page passes its column picker's choice (ColumnClass), a panel on a
+   record keeps the fixed phone columns file number, person and status. From 600px up every column shows. *@
+@using NOOSE_Website.Models.Navigation
 @inject NavigationManager Nav
 
 <MudSimpleTable Dense="true" Hover="true" Striped="true">
     <thead>
         <tr>
-            <th>Aktenzeichen</th>
-            <th>Art</th>
+            <th class="@Col("aktenzeichen")">Aktenzeichen</th>
+            <th class="@Col("art")">Art</th>
             @if (ShowPerson)
             {
-                <th>Person</th>
+                <th class="@Col("person")">Person</th>
             }
-            <th>Status</th>
-            <th>Gültig bis</th>
-            <th>Beantragt</th>
+            <th class="@Col("status")">Status</th>
+            <th class="@Col("gueltig")">Gültig bis</th>
+            <th class="@Col("beantragt")">Beantragt</th>
         </tr>
     </thead>
     <tbody>
@@ -20,8 +23,8 @@
         {
             var w = row.Warrant;
             <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/anordnungen/{w.Id}"))">
-                <td>@w.CaseNumber</td>
-                <td>
+                <td class="@Col("aktenzeichen")">@w.CaseNumber</td>
+                <td class="@Col("art")">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                         <MudIcon Icon="@WarrantTypeDisplay.Icon(w.Type)" Size="Size.Small" />
                         <span>@WarrantTypeDisplay.Name(w.Type)</span>
@@ -29,11 +32,11 @@
                 </td>
                 @if (ShowPerson)
                 {
-                    <td>@row.PersonName</td>
+                    <td class="@Col("person")">@row.PersonName</td>
                 }
-                <td><WarrantStateChip State="row.State" /></td>
-                <td>@(w.ValidUntil?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")</td>
-                <td>
+                <td class="@Col("status")"><WarrantStateChip State="row.State" /></td>
+                <td class="@Col("gueltig")">@(w.ValidUntil?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")</td>
+                <td class="@Col("beantragt")">
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                         @(w.RequesterName ?? "—") · @w.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
                     </MudText>
@@ -48,4 +51,24 @@
 
     /// <summary>Off on a person's own file, where the column would repeat the same name.</summary>
     [Parameter] public bool ShowPerson { get; set; } = true;
+
+    /// <summary>
+    /// The class of each column below 600px, by key (aktenzeichen, art, person, status, gueltig, beantragt): the list
+    /// page's <c>MobileColumnPicker.ClassFor</c>. Unset, a panel shows the fixed phone columns.
+    /// </summary>
+    [Parameter] public Func<string, string>? ColumnClass { get; set; }
+
+    /// <summary>The columns a phone shows in a panel, and the list's default before the agent chooses.</summary>
+    public static readonly IReadOnlyList<string> PhoneDefaults = ["aktenzeichen", "person", "status"];
+
+    /// <summary>Every column for the list page's column picker, in table order.</summary>
+    public static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("art", "Art"), ("person", "Person"), ("status", "Status"),
+        ("gueltig", "Gültig bis"), ("beantragt", "Beantragt"),
+    ];
+
+    private static readonly IReadOnlySet<string> FixedPhoneColumns = PhoneDefaults.ToHashSet(StringComparer.Ordinal);
+
+    private string Col(string key) => ColumnClass?.Invoke(key) ?? MobileColumnSet.ClassFor(FixedPhoneColumns, key);
 }

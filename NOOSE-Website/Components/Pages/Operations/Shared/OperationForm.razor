@@ -23,19 +23,19 @@
         </MudSelect>
     </MudItem>
 
-    <MudItem xs="7" md="3">
+    <MudItem xs="12" sm="7" md="3">
         <MudDatePicker @bind-Date="StartDate" Label="Beginn" Variant="Variant.Outlined"
                        Clearable="true" Editable="true" DateFormat="dd.MM.yyyy" />
     </MudItem>
-    <MudItem xs="5" md="3">
+    <MudItem xs="12" sm="5" md="3">
         <MudTimePicker @bind-Time="StartTime" Label="Uhrzeit" Variant="Variant.Outlined" AmPm="false"
                        Disabled="@(Input.Start is null)" />
     </MudItem>
-    <MudItem xs="7" md="3">
+    <MudItem xs="12" sm="7" md="3">
         <MudDatePicker @bind-Date="EndDate" Label="Ende (optional)" Variant="Variant.Outlined"
                        Clearable="true" Editable="true" DateFormat="dd.MM.yyyy" />
     </MudItem>
-    <MudItem xs="5" md="3">
+    <MudItem xs="12" sm="5" md="3">
         <MudTimePicker @bind-Time="EndTime" Label="Uhrzeit" Variant="Variant.Outlined" AmPm="false"
                        Disabled="@(Input.End is null)" />
     </MudItem>

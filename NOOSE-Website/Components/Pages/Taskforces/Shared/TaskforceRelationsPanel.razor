@@ -1,9 +1,11 @@
+@* Linked people and organisations. Rows below 600px (noose-eintrag-*): icon and name beside the button, the label
+   chip on a line of its own. *@
 @inject ILinkService LinkService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Verknüpfte Personen &amp; Organisationen (@_list.Count)</MudText>
         @if (_mayWrite)
         {
@@ -28,8 +30,8 @@
         @foreach (var v in _list)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                         <MudIcon Icon="@TypeIcon(v.OtherType)" Color="Color.Primary" Size="Size.Small" />
                         @if (v.Href is not null)
                         {
@@ -41,7 +43,9 @@
                         }
                         @if (!string.IsNullOrWhiteSpace(v.Label))
                         {
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@v.Label</MudChip>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag-chips">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@v.Label</MudChip>
+                            </MudStack>
                         }
                     </MudStack>
                     @if (_mayWrite)

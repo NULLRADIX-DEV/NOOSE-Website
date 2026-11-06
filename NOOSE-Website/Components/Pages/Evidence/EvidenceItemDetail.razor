@@ -19,7 +19,9 @@ else
 {
     var item = _display.Item;
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* Record toolbar: from 960px up exactly the row it always was. Below 960px it wraps, "Bearbeiten" stays, delete
+       moves into the ⋮ menu (HeaderMenu) behind the same check as its button. *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/asservatenkammer" aria-label="Zurück" />
         <MudText Typo="Typo.h5">@item.Name</MudText>
         <MudChip T="string" Size="Size.Small"
@@ -37,13 +39,19 @@ else
         <AuthorizeView Policy="@Policies.Leadership" Context="edit">
             <MudButton Href="@($"/asservatenkammer/item/{item.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
-            <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
-                       OnClick="DeleteAsync">Löschen</MudButton>
+            <div class="d-contents noose-schmal-aus">
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteAsync">Löschen</MudButton>
+            </div>
+            <HeaderMenu>
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            </HeaderMenu>
         </AuthorizeView>
     </MudStack>
 
     <MudPaper Class="pa-4 mb-4" Elevation="1">
-        <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+        @* noose-eintrag: below 600px the description wraps under the picture instead of squeezing beside it *@
+        <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center" Class="noose-eintrag">
             @if (_display.HasImage)
             {
                 <MudImage Src="@($"/dateien/asservate/{item.Id}")" Alt="@item.Name" Height="160" Width="200"
@@ -79,7 +87,7 @@ else
             {
                 <MudSimpleTable Dense="true" Hover="true" Striped="true">
                     <thead>
-                        <tr><th>Aktenzeichen</th><th>Art</th><th>Menge</th><th>Besitzer</th><th>Bearbeiter</th><th>Datum</th></tr>
+                        <tr><th>Aktenzeichen</th><th>Art</th><th>Menge</th><th class="noose-mobil-aus">Besitzer</th><th class="noose-mobil-aus">Bearbeiter</th><th class="noose-mobil-aus">Datum</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var e in _entries)
@@ -92,9 +100,9 @@ else
                                     </MudChip>
                                 </td>
                                 <td>@(e.Lines.Where(l => l.ItemId == item.Id).Sum(l => l.Quantity))</td>
-                                <td>@e.OwnerDisplay</td>
-                                <td>@e.HandlerCodename</td>
-                                <td>@e.Entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                                <td class="noose-mobil-aus">@e.OwnerDisplay</td>
+                                <td class="noose-mobil-aus">@e.HandlerCodename</td>
+                                <td class="noose-mobil-aus">@e.Entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                             </tr>
                         }
                     </tbody>

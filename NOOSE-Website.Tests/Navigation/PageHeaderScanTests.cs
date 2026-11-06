@@ -28,10 +28,8 @@ public sealed class PageHeaderScanTests
     /// <summary>Headers still to be split, by Task 6 of the phone plan; the list may only shrink.</summary>
     private static readonly HashSet<string> NotYetSplit = new(StringComparer.Ordinal)
     {
-        "Components/Pages/Cases/CasesList.razor",
         "Components/Pages/Jobs/JobsList.razor",
         "Components/Pages/Notifications/NotificationInbox.razor",
-        "Components/Pages/Operations/OperationsList.razor",
     };
 
     /// <summary>Files that may set a title with Typo.h4 themselves, each with the reason.</summary>

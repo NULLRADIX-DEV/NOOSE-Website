@@ -33,23 +33,28 @@
         </Actions>
     </SectionHeader>
 
-    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="noose-filterleiste">
         <MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="300"
                       OnDebounceIntervalElapsed="@(_ => ReloadAsync())"
                       Placeholder="Item suchen…" Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Clearable="true"
-                      Class="flex-grow-1" />
-        <MudSelect T="string" Value="_category" ValueChanged="CategoryChanged" Clearable="true" Dense="true"
-                   Placeholder="Alle Kategorien" Style="min-width:200px;max-width:240px" Variant="Variant.Outlined"
-                   ToStringFunc="@(c => c is null ? string.Empty : EvidenceCategories.Label(c))">
-            @foreach (var c in _categories)
-            {
-                <MudSelectItem T="string" Value="@c">@c</MudSelectItem>
-            }
-            <MudSelectItem T="string" Value="@EvidenceCategories.None">Ohne Kategorie</MudSelectItem>
-        </MudSelect>
-        <MudSwitch T="bool" Value="_showZero" ValueChanged="ShowZeroChanged" Color="Color.Primary"
-                   Label="Bestand 0 anzeigen" />
+                      Class="flex-grow-1 noose-filter-feld" />
+        @* below 600px category and the zero switch fold behind this button; from 600px up it is gone *@
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList" Class="noose-nur-handy"
+                   OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@ActiveFilters)</MudButton>
+        <div class="@FilterGroupClass">
+            <MudSelect T="string" Value="_category" ValueChanged="CategoryChanged" Clearable="true" Dense="true"
+                       Placeholder="Alle Kategorien" Style="min-width:200px;max-width:240px" Variant="Variant.Outlined"
+                       ToStringFunc="@(c => c is null ? string.Empty : EvidenceCategories.Label(c))" Class="noose-filter-feld">
+                @foreach (var c in _categories)
+                {
+                    <MudSelectItem T="string" Value="@c">@c</MudSelectItem>
+                }
+                <MudSelectItem T="string" Value="@EvidenceCategories.None">Ohne Kategorie</MudSelectItem>
+            </MudSelect>
+            <MudSwitch T="bool" Value="_showZero" ValueChanged="ShowZeroChanged" Color="Color.Primary"
+                       Label="Bestand 0 anzeigen" />
+        </div>
     </MudStack>
 
     @if (_load)
@@ -186,6 +191,13 @@
     private bool _mayCreate;
     private bool _selectMode;
     private bool _showZero;
+
+    // below 600px category and zero switch start folded behind "Filter (n)"; the class does nothing from 600px up
+    private bool _filtersOpen;
+
+    private string FilterGroupClass => _filtersOpen ? "d-contents" : "d-contents noose-filter-zu";
+
+    private int ActiveFilters => (_category is null ? 0 : 1) + (_showZero ? 1 : 0);
     private string? _search;
     private string? _category;
     private int _zeroCount;
