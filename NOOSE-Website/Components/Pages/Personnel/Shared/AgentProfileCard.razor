@@ -1,6 +1,11 @@
-<MudPaper Class="pa-4" Elevation="2">
+@* Agent identity card of a personnel file.
+   Below 960px it is a compact head (noose-steckbrief-* in app.css): 64px picture beside the name, the chips in one
+   wrapping row. The remove button then moves under the head, since the 64px picture column has no room for it. The
+   wrapper repeats MudStack's gap-3 column, so from 960px up the card renders as before. *@
+<MudPaper Class="pa-4 noose-steckbrief" Elevation="2">
     <MudStack Spacing="3">
-        <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="py-2">
+        <div class="d-flex flex-column gap-3 noose-steckbrief-kopf">
+        <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="py-2 noose-steckbrief-bild">
             @if (AgentAvatar.Url(Agent.AvatarFileName) is { } bild)
             {
                 <MudAvatar Rounded="true" Style="height:120px;width:120px;">
@@ -8,7 +13,7 @@
                 </MudAvatar>
                 @if (MayRemove)
                 {
-                    <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Class="noose-schmal-aus"
                                StartIcon="@Icons.Material.Filled.Delete" OnClick="OnRemove">Profilbild entfernen</MudButton>
                 }
             }
@@ -20,7 +25,7 @@
             }
         </MudStack>
 
-        <div>
+        <div class="noose-steckbrief-name">
             <MudText Typo="Typo.h5">@(string.IsNullOrWhiteSpace(Agent.Codename) ? "Unbenannter Agent" : Agent.Codename)</MudText>
             @if (MayRealName && !string.IsNullOrWhiteSpace(Agent.RealName))
             {
@@ -31,8 +36,15 @@
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">Dienstnummer: @Agent.BadgeNumber</MudText>
             }
         </div>
+        </div>
 
-        <MudStack Row="true" Spacing="2" Class="flex-wrap" AlignItems="AlignItems.Center">
+        @if (MayRemove && AgentAvatar.Url(Agent.AvatarFileName) is not null)
+        {
+            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Class="noose-nur-schmal align-self-start"
+                       StartIcon="@Icons.Material.Filled.Delete" OnClick="OnRemove">Profilbild entfernen</MudButton>
+        }
+
+        <MudStack Row="true" Spacing="2" Class="flex-wrap noose-steckbrief-kennzeichen" AlignItems="AlignItems.Center">
             <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled" Icon="@Icons.Material.Filled.MilitaryTech">@DivisionRules.RankName(Agent)</MudChip>
             <MudChip T="string" Size="Size.Small" Color="@AgentStatusDisplay.Colour(Agent.Status)" Variant="Variant.Outlined">@AgentStatusDisplay.Name(Agent.Status)</MudChip>
             @if (!Unit.IsNone)

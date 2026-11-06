@@ -1,9 +1,10 @@
 @inject IPersonnelTemplateService PersonnelTemplateService
 @inject IPlaceholderService Placeholder
 
-<MudDialog>
+@* a form with an editor: full screen below 600px (noose-dialog-lang), where the minimum width gives way too *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
-        <MudStack Spacing="3" Style="min-width:420px;">
+        <MudStack Spacing="3" Class="noose-min-breite-frei" Style="min-width:420px;">
             <MudText Typo="Typo.body2" Class="mud-text-secondary">Beförderungsantrag für <b>@Codename</b> (aktuell: @RankDisplay.Name(Current)).</MudText>
             <MudSelect T="Rank" @bind-Value="_target" Label="Ziel-Dienstgrad" Variant="Variant.Outlined">
                 @foreach (var d in RankDisplay.All)

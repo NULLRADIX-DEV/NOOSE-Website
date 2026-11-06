@@ -18,14 +18,14 @@
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
             <MudCheckBox T="bool" @bind-Value="_model.Test.IsActive" Label="Aktiv" />
             <MudNumericField T="int?" @bind-Value="_model.Test.PassPercent" Label="Bestehensgrenze % (leer = keine)" Min="0" Max="100"
-                             Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:240px;" />
+                             Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-breite-frei" Style="max-width:240px;" />
             <MudNumericField T="int?" @bind-Value="_model.Test.TimeLimitMinutes" Label="Bearbeitungszeit Min. (leer = unbegrenzt)" Min="1" Max="@TestDeadline.MaxMinutes"
-                             Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:270px;" />
+                             Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-breite-frei" Style="max-width:270px;" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveTestAsync">Speichern</MudButton>
         </MudStack>
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap" Class="mt-2">
             <MudSelect T="TestUsage" @bind-Value="_model.Test.Usage" Label="Verwendung" Variant="Variant.Outlined"
-                       Margin="Margin.Dense" Style="max-width:260px;">
+                       Margin="Margin.Dense" Class="noose-breite-frei" Style="max-width:260px;">
                 @foreach (var u in TestUsageDisplay.All)
                 {
                     <MudSelectItem T="TestUsage" Value="@u">@TestUsageDisplay.Name(u)</MudSelectItem>
@@ -34,7 +34,7 @@
             @if (TestUsageDisplay.ForAgents(_model.Test.Usage))
             {
                 <MudSelect T="string" @bind-Value="_model.Test.TrainingModuleId" Label="Ausbildungsmodul bei Bestehen"
-                           Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Style="min-width:280px;"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Class="noose-breite-frei" Style="min-width:280px;"
                            HelperText="Wird für den Agenten abgehakt, sobald die Korrektur ihn als bestanden abschließt.">
                     @foreach (var m in _modules)
                     {
@@ -103,14 +103,15 @@
                 @foreach (var o in qe.Options)
                 {
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-1">
-                        <MudTextField @bind-Value="o.Label" Immediate="true" @bind-Value:after="@(() => MarkDirty(qe.Question.Id))" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:240px;" />
+                        @* below 600px the 240px minimum gives way, so field, checkbox and delete fit one phone row *@
+                        <MudTextField @bind-Value="o.Label" Immediate="true" @bind-Value:after="@(() => MarkDirty(qe.Question.Id))" Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-min-breite-frei" Style="min-width:240px;" />
                         <MudCheckBox T="bool" @bind-Value="o.IsCorrect" @bind-Value:after="@(() => MarkDirty(qe.Question.Id))" Label="Richtig" />
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteOptionAsync(qe.Question.Id, o.Id))" />
                     </MudStack>
                 }
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-2">
                     <MudTextField Value="@_newOption.GetValueOrDefault(qe.Question.Id, string.Empty)" ValueChanged="@(v => _newOption[qe.Question.Id] = v)"
-                                  T="string" Placeholder="Neue Option" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:240px;" />
+                                  T="string" Placeholder="Neue Option" Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-min-breite-frei" Style="min-width:240px;" />
                     <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => AddOptionAsync(qe.Question.Id))">Option</MudButton>
                 </MudStack>
             }
@@ -132,7 +133,7 @@
 
     <MudPaper Elevation="2" Class="pa-4">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-            <MudSelect T="TestQuestionType" @bind-Value="_newType" Label="Fragetyp" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:200px;">
+            <MudSelect T="TestQuestionType" @bind-Value="_newType" Label="Fragetyp" Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:200px;">
                 @foreach (var t in Enum.GetValues<TestQuestionType>())
                 {
                     <MudSelectItem T="TestQuestionType" Value="@t">@TestQuestionTypeDisplay.Name(t)</MudSelectItem>

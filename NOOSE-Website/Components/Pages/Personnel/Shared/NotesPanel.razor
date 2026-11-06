@@ -11,19 +11,20 @@
         <MudPaper Class="pa-3" Elevation="1">
             <MudStack Spacing="2">
                 <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    @* below 600px each field takes the full row: date and time stand one under the other *@
                     <MudSelect T="AgentNoteKind" @bind-Value="_kind" @bind-Value:after="OnKindChanged" Label="Art"
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:200px;">
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:200px;">
                         @foreach (var k in AgentNoteKindDisplay.Creatable)
                         {
                             <MudSelectItem T="AgentNoteKind" Value="@k">@AgentNoteKindDisplay.Name(k)</MudSelectItem>
                         }
                     </MudSelect>
                     <MudTextField @bind-Value="_artFreetext" Label="Art-Freitext (optional)" Variant="Variant.Outlined"
-                                  Margin="Margin.Dense" Style="min-width:220px;" HelperText="Überschreibt die Kategorie-Bezeichnung." />
+                                  Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:220px;" HelperText="Überschreibt die Kategorie-Bezeichnung." />
                     <MudDatePicker @bind-Date="_entryDate" Label="Datum" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                   Style="min-width:180px;" />
+                                   Class="noose-breite-frei" Style="min-width:180px;" />
                     <MudTimePicker @bind-Time="_entryTime" Label="Uhrzeit" Variant="Variant.Outlined" Margin="Margin.Dense"
-                                   Style="min-width:140px;" />
+                                   Class="noose-breite-frei" Style="min-width:140px;" />
                 </MudStack>
 
                 <MudSelect T="string" Label="Auszuführende" MultiSelection="true"
@@ -56,11 +57,11 @@
         </MudPaper>
     </AuthorizeView>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Einträge (@Filtered.Count)</MudText>
         <MudSpacer />
         <MudSelect T="AgentNoteKind?" @bind-Value="_filterKind" Label="Filter" Variant="Variant.Outlined" Dense="true"
-                   Clearable="true" Style="min-width:220px;" Placeholder="Alle Arten">
+                   Clearable="true" Class="noose-filter-feld" Style="min-width:220px;" Placeholder="Alle Arten">
             @foreach (var k in AgentNoteKindDisplay.All)
             {
                 <MudSelectItem T="AgentNoteKind?" Value="@k">@AgentNoteKindDisplay.Name(k)</MudSelectItem>
@@ -82,7 +83,7 @@
         {
             <MudPaper Class="pa-3" Elevation="1">
                 <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
-                    <div style="flex:1;">
+                    <div style="flex:1;" class="noose-eintrag-titel">
                         <MudText Typo="Typo.overline" Class="mud-text-secondary">📝 Eintrag</MudText>
                         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2" Wrap="Wrap.Wrap">
                             <MudChip T="string" Size="Size.Small" Color="@AgentNoteKindDisplay.ChipColor(v.Kind)"

@@ -11,15 +11,16 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+    @* a table on phones too: assignment date and result are hidden below 600px *@
+    <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.None">
         <HeaderContent>
-            <MudTh>Test</MudTh><MudTh>Zugewiesen</MudTh><MudTh>Stand</MudTh><MudTh>Ergebnis</MudTh><MudTh></MudTh>
+            <MudTh>Test</MudTh><MudTh Class="noose-mobil-aus">Zugewiesen</MudTh><MudTh>Stand</MudTh><MudTh Class="noose-mobil-aus">Ergebnis</MudTh><MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Test">@context.TestTitle</MudTd>
-            <MudTd DataLabel="Zugewiesen">@context.AssignedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
+            <MudTd DataLabel="Zugewiesen" Class="noose-mobil-aus">@context.AssignedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
             <MudTd DataLabel="Stand"><AgentTestStateChip Row="context" Now="_now" /></MudTd>
-            <MudTd DataLabel="Ergebnis">
+            <MudTd DataLabel="Ergebnis" Class="noose-mobil-aus">
                 @if (context.State == AgentTestState.Korrigiert)
                 {
                     @($"{context.Points} / {context.MaxPoints} ({context.Percent} %)")

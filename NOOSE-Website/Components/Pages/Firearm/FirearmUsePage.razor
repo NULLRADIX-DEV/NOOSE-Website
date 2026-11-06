@@ -5,6 +5,7 @@
 @inject IJSRuntime JS
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@using NOOSE_Website.Models.Navigation
 
 <PageTitle>Schusswaffengebrauch · FIB</PageTitle>
 
@@ -18,8 +19,16 @@
 }
 
 <MudPaper Class="pa-4 mb-4" Elevation="2">
+    @* below 600px the filters fold behind this button, next to the column choice; from 600px up neither shows *@
+    <div class="d-flex flex-wrap align-center gap-2 noose-nur-handy">
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                   OnClick="@(() => _filtersOpen = !_filtersOpen)"
+                   aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@ActiveFilters)</MudButton>
+        <MobileColumnPicker ListKey="schusswaffengebrauch" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                            VisibleChanged="@(v => _phoneColumns = v)" />
+    </div>
     <MudGrid Spacing="2">
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="3" Class="@FilterClass">
             <MudSelect T="string" @bind-Value="_agentId" @bind-Value:after="ApplyAsync" Label="Agent" Clearable="true"
                        Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var a in _agents)
@@ -28,7 +37,7 @@
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="3" Class="@FilterClass">
             <MudSelect T="Division?" @bind-Value="_division" @bind-Value:after="ApplyAsync" Label="Abteilung"
                        Clearable="true" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                 @foreach (var d in DivisionDisplay.All)
@@ -37,15 +46,15 @@
                 }
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" sm="6" md="2">
+        <MudItem xs="12" sm="6" md="2" Class="@FilterClass">
             <MudDatePicker @bind-Date="_from" @bind-Date:after="ApplyAsync" Label="Von" Editable="true"
                            DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="12" sm="6" md="2">
+        <MudItem xs="12" sm="6" md="2" Class="@FilterClass">
             <MudDatePicker @bind-Date="_to" @bind-Date:after="ApplyAsync" Label="Bis" Editable="true"
                            DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" />
         </MudItem>
-        <MudItem xs="12" md="2" Class="d-flex align-center">
+        <MudItem xs="12" md="2" Class="@($"d-flex align-center {FilterClass}")">
             <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Clear"
                        OnClick="ResetAsync" Disabled="@(_busy || !Filtered)">Zurücksetzen</MudButton>
         </MudItem>
@@ -59,22 +68,23 @@
     </MudAlert>
 }
 
-<MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
+@* Breakpoint.None: on phones a table with the chosen columns; the delete action always stays *@
+<MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true"
           Loading="_busy" LoadingProgressColor="Color.Primary">
     <HeaderContent>
-        <MudTh>Zeitpunkt</MudTh>
-        <MudTh>Agent</MudTh>
-        <MudTh>Abteilung</MudTh>
-        <MudTh>Begründung</MudTh>
+        <MudTh Class="@Col("zeitpunkt")">Zeitpunkt</MudTh>
+        <MudTh Class="@Col("agent")">Agent</MudTh>
+        <MudTh Class="@Col("abteilung")">Abteilung</MudTh>
+        <MudTh Class="@Col("begruendung")">Begründung</MudTh>
         <MudTh Style="text-align:right;">Aktion</MudTh>
     </HeaderContent>
     <RowTemplate>
-        <MudTd DataLabel="Zeitpunkt">@context.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-        <MudTd DataLabel="Agent">
+        <MudTd DataLabel="Zeitpunkt" Class="@Col("zeitpunkt")">@context.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+        <MudTd DataLabel="Agent" Class="@Col("agent")">
             <MudLink Href="@($"/personal/{context.AgentId}")">@context.Codename</MudLink>
             <MudText Typo="Typo.caption" Class="mud-text-secondary">@RankDisplay.Name(context.Rank, context.Home)</MudText>
         </MudTd>
-        <MudTd DataLabel="Abteilung">
+        <MudTd DataLabel="Abteilung" Class="@Col("abteilung")">
             @if (context.Home is { } home)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@DivisionDisplay.Colour(home)"
@@ -87,7 +97,7 @@
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
             }
         </MudTd>
-        <MudTd DataLabel="Begründung">
+        <MudTd DataLabel="Begründung" Class="@Col("begruendung")">
             <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@context.Reason</MudText>
         </MudTd>
         <MudTd DataLabel="Aktion" Style="text-align:right;">
@@ -117,6 +127,28 @@
     private List<(string Id, string Codename)> _agents = new();
     private string? _agentId;
     private Division? _division;
+    private bool _filtersOpen;
+
+    /// <summary>The table's columns for the phone column picker; the delete action is no choice, it always shows.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("zeitpunkt", "Zeitpunkt"), ("agent", "Agent"), ("abteilung", "Abteilung"), ("begruendung", "Begründung"),
+    ];
+
+    /// <summary>Agent plus the time of the report.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["zeitpunkt", "agent"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    private int ActiveFilters => (_agentId is null ? 0 : 1) + (_division is null ? 0 : 1) + (_from is null ? 0 : 1) + (_to is null ? 0 : 1);
+
+    // folded only below 600px (noose-filter-zu); from 600px up the grid stands as before
+    private string FilterClass => _filtersOpen ? string.Empty : "noose-filter-zu";
+
     private DateTime? _from;
     private DateTime? _to;
     private bool _busy = true;

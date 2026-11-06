@@ -4,9 +4,10 @@
 @inject IAgentHandoverService HandoverService
 @inject ISnackbar Snackbar
 
-<MudDialog>
+@* a long form: full screen below 600px (noose-dialog-lang), where the minimum width gives way too *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
-        <MudStack Spacing="3" Style="min-width:min(640px, 90vw);">
+        <MudStack Spacing="3" Class="noose-min-breite-frei" Style="min-width:min(640px, 90vw);">
             <MudText Typo="Typo.body2">
                 Der Nachfolger oben gilt für alle Zeilen. Einzelne Zeilen kannst du auf jemand anderen umstellen oder
                 abwählen; abgewählte Zeilen bleiben, wie sie sind, und erscheinen beim nächsten Öffnen wieder.
@@ -72,7 +73,7 @@
                                                  SearchFunc="@SearchAgents" ToStringFunc="@Name" Dense="true"
                                                  Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
                                                  CoerceText="false" CoerceValue="false" ResetValueOnEmptyText="true"
-                                                 MinCharacters="0" Immediate="true" Style="max-width:220px;"
+                                                 MinCharacters="0" Immediate="true" Class="noose-breite-frei" Style="max-width:220px;"
                                                  aria-label="@($"Nachfolger für {line.Row.Title}")">
                                     <ItemTemplate Context="a">
                                         @AgentItem(a)

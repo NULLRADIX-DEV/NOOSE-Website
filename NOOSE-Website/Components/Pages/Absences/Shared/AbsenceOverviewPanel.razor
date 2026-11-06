@@ -75,9 +75,10 @@ else if (_report is { } r)
                     <tr>
                         <th style="width:32px;"></th>
                         <th>Agent</th>
-                        <th>Bewertet</th>
-                        <th>Anwesend</th>
-                        <th>Abgemeldet</th>
+                        @* phones keep the level dot, the agent, the unexcused count and the level *@
+                        <th class="noose-mobil-aus">Bewertet</th>
+                        <th class="noose-mobil-aus">Anwesend</th>
+                        <th class="noose-mobil-aus">Abgemeldet</th>
                         <th>Unentschuldigt</th>
                         <th>Stufe</th>
                     </tr>
@@ -90,9 +91,9 @@ else if (_report is { } r)
                                 <span style="@($"display:inline-block;width:10px;height:10px;border-radius:50%;background:{AttendanceAnomalyLevelDisplay.Colour(a.Level)};")"></span>
                             </td>
                             <td><MudLink Href="@a.Href"><b>@a.Codename</b></MudLink></td>
-                            <td>@a.Evaluated</td>
-                            <td>@a.Present</td>
-                            <td>@a.Excused</td>
+                            <td class="noose-mobil-aus">@a.Evaluated</td>
+                            <td class="noose-mobil-aus">@a.Present</td>
+                            <td class="noose-mobil-aus">@a.Excused</td>
                             <td><b>@a.Missing</b></td>
                             <td>@AttendanceAnomalyLevelDisplay.Name(a.Level)</td>
                         </tr>
@@ -107,21 +108,22 @@ else if (_report is { } r)
         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
             Über die letzten @r.WindowSize abgeschlossenen Besprechungen.
         </MudText>
-        <MudTable Items="r.AllAgents" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0"
+        @* a table on phones too: agent, unexcused and level; the other counts are hidden below 600px *@
+        <MudTable Items="r.AllAgents" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="0"
                   T="AttendanceAgentRow" SortLabel="Sortieren">
             <HeaderContent>
                 <MudTh><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Codename)">Agent</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Evaluated)">Bewertet</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Present)">Anwesend</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Excused)">Abgemeldet</MudTableSortLabel></MudTh>
+                <MudTh Class="noose-mobil-aus"><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Evaluated)">Bewertet</MudTableSortLabel></MudTh>
+                <MudTh Class="noose-mobil-aus"><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Present)">Anwesend</MudTableSortLabel></MudTh>
+                <MudTh Class="noose-mobil-aus"><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Excused)">Abgemeldet</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel SortBy="new Func<AttendanceAgentRow, object>(a => a.Missing)" InitialDirection="SortDirection.Descending">Unentschuldigt</MudTableSortLabel></MudTh>
                 <MudTh>Stufe</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Agent"><MudLink Href="@context.Href"><b>@context.Codename</b></MudLink></MudTd>
-                <MudTd DataLabel="Bewertet">@context.Evaluated</MudTd>
-                <MudTd DataLabel="Anwesend">@context.Present</MudTd>
-                <MudTd DataLabel="Abgemeldet">@context.Excused</MudTd>
+                <MudTd DataLabel="Bewertet" Class="noose-mobil-aus">@context.Evaluated</MudTd>
+                <MudTd DataLabel="Anwesend" Class="noose-mobil-aus">@context.Present</MudTd>
+                <MudTd DataLabel="Abgemeldet" Class="noose-mobil-aus">@context.Excused</MudTd>
                 <MudTd DataLabel="Unentschuldigt"><b>@context.Missing</b></MudTd>
                 <MudTd DataLabel="Stufe">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
@@ -134,14 +136,15 @@ else if (_report is { } r)
     </MudPaper>
 
     <MudPaper Class="pa-4" Elevation="1">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
-            <MudText Typo="Typo.h6">Alle Abmeldungen</MudText>
-            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                @* the Papierkorb button is gone: it is a sibling section of this panel now *@
-                <MudSwitch T="bool" @bind-Value="_onlyOpen" @bind-Value:after="Filter"
-                           Color="Color.Primary" Label="Nur offene Kenntnisnahmen" />
-            </MudStack>
-        </MudStack>
+        <SectionHeader Title="Alle Abmeldungen" Class="mb-3">
+            <Actions>
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    @* the Papierkorb button is gone: it is a sibling section of this panel now *@
+                    <MudSwitch T="bool" @bind-Value="_onlyOpen" @bind-Value:after="Filter"
+                               Color="Color.Primary" Label="Nur offene Kenntnisnahmen" />
+                </MudStack>
+            </Actions>
+        </SectionHeader>
 
         @if (_shown.Count == 0)
         {
@@ -149,13 +152,14 @@ else if (_report is { } r)
         }
         else
         {
-            <MudTable Items="_shown" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" T="AbsenceRow">
+            @* a table on phones too: agent, period and the acknowledgement action stay below 600px *@
+            <MudTable Items="_shown" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="0" T="AbsenceRow">
                 <HeaderContent>
                     <MudTh>Agent</MudTh>
                     <MudTh>Zeitraum</MudTh>
-                    <MudTh>Tage</MudTh>
-                    <MudTh>Grund</MudTh>
-                    <MudTh>Anmerkung</MudTh>
+                    <MudTh Class="noose-mobil-aus">Tage</MudTh>
+                    <MudTh Class="noose-mobil-aus">Grund</MudTh>
+                    <MudTh Class="noose-mobil-aus">Anmerkung</MudTh>
                     <MudTh>Kenntnisnahme</MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -167,9 +171,9 @@ else if (_report is { } r)
                             <text> – @context.ToDate.ToString("dd.MM.yyyy")</text>
                         }
                     </MudTd>
-                    <MudTd DataLabel="Tage">@context.Days</MudTd>
-                    <MudTd DataLabel="Grund"><AbsenceCategoryChip Category="@context.Category" /></MudTd>
-                    <MudTd DataLabel="Anmerkung">
+                    <MudTd DataLabel="Tage" Class="noose-mobil-aus">@context.Days</MudTd>
+                    <MudTd DataLabel="Grund" Class="noose-mobil-aus"><AbsenceCategoryChip Category="@context.Category" /></MudTd>
+                    <MudTd DataLabel="Anmerkung" Class="noose-mobil-aus">
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">
                             @if (context.Reason is null)
                             {

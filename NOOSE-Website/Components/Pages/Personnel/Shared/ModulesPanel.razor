@@ -4,7 +4,7 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Ausbildungsmodule (@_completedCount / @_modules.Count)</MudText>
         <MudSpacer />
         <AuthorizeView Policy="@Policies.Admin">
@@ -28,8 +28,9 @@
         @foreach (var m in _modules)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2" Class="flex-grow-1">
+                @* below 600px the state chip takes its own line under the module (noose-eintrag) *@
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start" Spacing="2" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2" Class="flex-grow-1 noose-eintrag-titel">
                         @* MayMark blocks new completions only; an existing one stays correctable *@
                         <MudCheckBox T="bool" Value="m.IsCompleted" ReadOnly="@(!_mayTick || _busy || (!MayMark && !m.IsCompleted))"
                                      Color="Color.Success" Dense="true"
@@ -57,6 +58,7 @@
                             }
                         </div>
                     </MudStack>
+                    <div class="d-flex noose-eintrag-chips">
                     @if (m.IsCompleted)
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled" Icon="@Icons.Material.Filled.CheckCircle">Abgeschlossen</MudChip>
@@ -65,6 +67,7 @@
                     {
                         <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Offen</MudChip>
                     }
+                    </div>
                 </MudStack>
             </MudPaper>
         }
