@@ -5,10 +5,7 @@
 
 <PageTitle>Beobachtete Akten · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-    <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Beobachtete Akten</MudText>
-</MudStack>
+<PageHeader Icon="@Icons.Material.Filled.Star" IconColour="Color.Warning" Title="Beobachtete Akten" ShowHelp="false" />
 
 @if (_load)
 {
@@ -26,9 +23,9 @@ else
         @foreach (var a in _records)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <div class="d-flex align-center" style="gap:.75rem">
+                <div class="d-flex align-center noose-eintrag" style="gap:.75rem">
                     <MudIcon Icon="@TypeIcon(a.Type)" Color="Color.Primary" />
-                    <div class="flex-grow-1">
+                    <div class="flex-grow-1 noose-eintrag-titel">
                         @if (a.Accessible && !string.IsNullOrEmpty(a.Href))
                         {
                             <MudLink Href="@a.Href" Typo="Typo.body1">@a.Display</MudLink>

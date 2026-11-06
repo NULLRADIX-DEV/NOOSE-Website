@@ -6,7 +6,7 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Zugehörigkeit (@_affiliations.Count)</MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddAsync">
             Fraktion / Gruppe hinzufügen
@@ -26,8 +26,8 @@
         @foreach (var z in _affiliations)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                         <MudIcon Icon="@TypeIcon(z.Type)" Color="Color.Primary" Size="Size.Small" />
                         <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@TypeDisplay(z.Type)</MudChip>
                         <MudLink Href="@Route(z)" Typo="Typo.body2"><b>@z.Name</b></MudLink>
@@ -57,7 +57,7 @@
         @foreach (var z in _former)
         {
             <MudPaper Class="pa-3" Outlined="true" Style="opacity:.7;">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                     <MudIcon Icon="@TypeIcon(z.Type)" Color="Color.Default" Size="Size.Small" />
                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@TypeDisplay(z.Type)</MudChip>
                     <MudLink Href="@Route(z)" Typo="Typo.body2">@z.Name</MudLink>

@@ -2,26 +2,26 @@
 @inject IFactionService FactionService
 @inject IPersonGroupService GroupService
 
-<MudDialog>
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         <MudForm @ref="_form">
             <MudStack Spacing="3">
                 <MudGrid>
-                    <MudItem xs="7">
+                    <MudItem xs="12" sm="7">
                         <MudDatePicker Label="Beginn (Datum)" @bind-Date="_startDate" Required="true"
                                        RequiredError="Beginn ist erforderlich" DateFormat="dd.MM.yyyy" />
                     </MudItem>
-                    <MudItem xs="5">
+                    <MudItem xs="12" sm="5">
                         <MudTimePicker Label="Uhrzeit" @bind-Time="_startTime" />
                     </MudItem>
                 </MudGrid>
 
                 <MudGrid>
-                    <MudItem xs="7">
+                    <MudItem xs="12" sm="7">
                         <MudDatePicker Label="Ende (Datum, optional)" @bind-Date="_endDate" Clearable="true" DateFormat="dd.MM.yyyy"
                                        HelperText="Leer lassen, wenn die Observation noch läuft / kein Ende erfasst wird." />
                     </MudItem>
-                    <MudItem xs="5">
+                    <MudItem xs="12" sm="5">
                         <MudTimePicker Label="Uhrzeit" @bind-Time="_endTime" Clearable="true" />
                     </MudItem>
                 </MudGrid>

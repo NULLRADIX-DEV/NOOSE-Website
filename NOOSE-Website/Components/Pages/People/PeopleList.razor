@@ -42,13 +42,16 @@
 else
 {
     <MudDataGrid @ref="_grid" T="PersonRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
-                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" Class="noose-filterleiste">
         <ToolBarContent>
             <MudTextField Value="_search" ValueChanged="@((string v) => SearchChangedAsync(v))" Placeholder="Suchen (Name, Aktenzeichen, Alias)…" Immediate="true"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0 noose-filter-feld" />
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList" Class="noose-nur-handy"
+                       OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@ActiveFilterCount)</MudButton>
             <MudSpacer />
             <MudSelect T="Classification?" Value="_classification" ValueChanged="ClassificationSelectedAsync" Label="Einstufung" Dense="true"
-                       Clearable="true" Variant="Variant.Outlined" Style="max-width:220px;" Margin="Margin.Dense">
+                       Clearable="true" Variant="Variant.Outlined" Style="max-width:220px;" Margin="Margin.Dense" Class="@($"noose-filter-feld {FilterFoldClass}")">
                 <MudSelectItem T="Classification?" Value="@(null)">Alle</MudSelectItem>
                 @foreach (var e in ClassificationDisplay.All)
                 {
@@ -56,7 +59,7 @@ else
                 }
             </MudSelect>
             <MudSelect T="RecencyLevel?" Value="_recency" ValueChanged="RecencySelectedAsync" Label="Aktualität" Dense="true"
-                       Clearable="true" Variant="Variant.Outlined" Style="max-width:180px;" Margin="Margin.Dense" Class="ml-2">
+                       Clearable="true" Variant="Variant.Outlined" Style="max-width:180px;" Margin="Margin.Dense" Class="@($"ml-2 noose-filter-feld {FilterFoldClass}")">
                 <MudSelectItem T="RecencyLevel?" Value="@(null)">Alle</MudSelectItem>
                 @foreach (var e in Enum.GetValues<RecencyLevel>())
                 {
@@ -64,7 +67,7 @@ else
                 }
             </MudSelect>
             <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
-                       Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-2">
+                       Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="@($"ml-2 noose-filter-feld {FilterFoldClass}")">
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
@@ -212,6 +215,11 @@ else
     private RecencyLevel? _recency;
     private ArchiveFilter _archive = ArchiveFilter.Active;
     private List<PersonRow> _rows = new();
+
+    // below 600px the selects fold behind "Filter (n)"; the class does nothing from 600px up
+    private bool _filtersOpen;
+    private string FilterFoldClass => _filtersOpen ? string.Empty : "noose-filter-zu";
+    private int ActiveFilterCount => (_classification is null ? 0 : 1) + (_recency is null ? 0 : 1) + (_archive == ArchiveFilter.Active ? 0 : 1);
 
     private bool HasFilter => !string.IsNullOrWhiteSpace(_search) || _classification is not null || _recency is not null
         || _archive != ArchiveFilter.Active;

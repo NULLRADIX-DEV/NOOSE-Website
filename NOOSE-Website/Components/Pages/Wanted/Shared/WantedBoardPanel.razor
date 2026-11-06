@@ -26,20 +26,26 @@ else
     <MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
         <MudTextField @bind-Value="_search" @bind-Value:after="Apply" Placeholder="Suchen (Name, Aktenzeichen, Alias)…"
                       Immediate="true" Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:340px;" Class="mt-0" />
+                      AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:340px;" Class="mt-0 noose-filter-feld" />
+        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                   Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)"
+                   aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@(_stufe == AllKey ? 0 : 1))</MudButton>
         <MudSpacer />
-        <MudButton Size="Size.Small" Variant="@(_stufe == AllKey ? Variant.Filled : Variant.Outlined)"
-                   Color="Color.Primary" OnClick="@(() => SetFilter(AllKey))">Alle</MudButton>
-        @foreach (var c in ClassificationDisplay.All.Where(x => x != Classification.Unknown))
-        {
-            var key = c.ToString();
-            <MudButton Size="Size.Small" Variant="@(_stufe == key ? Variant.Filled : Variant.Outlined)"
-                       Color="Color.Primary" OnClick="@(() => SetFilter(key))">@ClassificationDisplay.Name(c)</MudButton>
-        }
-        <MudButton Size="Size.Small" Variant="@(_stufe == FugitiveKey ? Variant.Filled : Variant.Outlined)"
-                   Color="Color.Primary" OnClick="@(() => SetFilter(FugitiveKey))">Nur Flüchtige</MudButton>
-        <MudButton Size="Size.Small" Variant="@(_stufe == WantedKey ? Variant.Filled : Variant.Outlined)"
-                   Color="Color.Primary" OnClick="@(() => SetFilter(WantedKey))">Manuell ausgeschrieben</MudButton>
+        @* d-contents: no box of its own, so from 600px up the buttons are items of the row as before *@
+        <div class="@($"d-contents {FilterFoldClass}".TrimEnd())">
+            <MudButton Size="Size.Small" Variant="@(_stufe == AllKey ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary" OnClick="@(() => SetFilter(AllKey))">Alle</MudButton>
+            @foreach (var c in ClassificationDisplay.All.Where(x => x != Classification.Unknown))
+            {
+                var key = c.ToString();
+                <MudButton Size="Size.Small" Variant="@(_stufe == key ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary" OnClick="@(() => SetFilter(key))">@ClassificationDisplay.Name(c)</MudButton>
+            }
+            <MudButton Size="Size.Small" Variant="@(_stufe == FugitiveKey ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary" OnClick="@(() => SetFilter(FugitiveKey))">Nur Flüchtige</MudButton>
+            <MudButton Size="Size.Small" Variant="@(_stufe == WantedKey ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary" OnClick="@(() => SetFilter(WantedKey))">Manuell ausgeschrieben</MudButton>
+        </div>
     </MudStack>
 
     @if (_filtered.Count == 0)
@@ -108,6 +114,9 @@ else
     private bool _load = true;
     private string _search = string.Empty;
     private string _stufe = AllKey;
+    // below 600px the filter buttons fold behind "Filter (n)"; the class does nothing from 600px up
+    private bool _filtersOpen;
+    private string FilterFoldClass => _filtersOpen ? string.Empty : "noose-filter-zu";
     private HazardLevel _threshold = HazardLevel.Critical;
     private List<WantedRow> _all = new();
     private List<WantedRow> _filtered = new();

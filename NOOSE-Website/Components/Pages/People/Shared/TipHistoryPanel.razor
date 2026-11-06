@@ -4,12 +4,13 @@
 @* Tips of the citizen accounts tied to this file. A promised anonymity keeps a tip out of here entirely. *@
 <MudPaper Outlined="true" Class="pa-4">
     <MudStack Spacing="3">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-            <MudText Typo="Typo.h6">Hinweisgeber</MudText>
-            <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                Bürgerhinweise der mit dieser Akte verknüpften Bürgerkonten.
-            </MudText>
-        </MudStack>
+        <SectionHeader Title="Hinweisgeber" Wrap="Wrap.Wrap">
+            <TitleContent>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Bürgerhinweise der mit dieser Akte verknüpften Bürgerkonten.
+                </MudText>
+            </TitleContent>
+        </SectionHeader>
 
         @if (_load)
         {
@@ -22,19 +23,20 @@
         }
         else
         {
-            <MudTable Items="_rows" Hover="true" Dense="true">
+            @* on phones the case number and status stay; the rest is one tap away in the tip *@
+            <MudTable Items="_rows" Hover="true" Dense="true" Breakpoint="Breakpoint.None">
                 <HeaderContent>
                     <MudTh>Aktenzeichen</MudTh>
-                    <MudTh>Hinweisgeber</MudTh>
+                    <MudTh Class="noose-mobil-aus">Hinweisgeber</MudTh>
                     <MudTh>Status</MudTh>
-                    <MudTh>Eingegangen</MudTh>
-                    <MudTh>Auszug</MudTh>
+                    <MudTh Class="noose-mobil-aus">Eingegangen</MudTh>
+                    <MudTh Class="noose-mobil-aus">Auszug</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Aktenzeichen">
                         <MudLink Href="@($"/hinweise/{context.Id}")">@context.CaseNumber</MudLink>
                     </MudTd>
-                    <MudTd DataLabel="Hinweisgeber">
+                    <MudTd DataLabel="Hinweisgeber" Class="noose-mobil-aus">
                         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                             @(context.CitizenName ?? "—")
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
@@ -47,8 +49,8 @@
                             @TipStatusDisplay.Name(context.Status)
                         </MudChip>
                     </MudTd>
-                    <MudTd DataLabel="Eingegangen">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-                    <MudTd DataLabel="Auszug">
+                    <MudTd DataLabel="Eingegangen" Class="noose-mobil-aus">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+                    <MudTd DataLabel="Auszug" Class="noose-mobil-aus">
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Excerpt</MudText>
                     </MudTd>
                 </RowTemplate>
