@@ -1,4 +1,8 @@
-@* Schematic of the screen: icon rail, page list, content, top bar. Drawn, not screenshotted - a screenshot ages. *@
+@* Schematic of the screen: icon rail, page list, content, top bar. Drawn, not screenshotted - a screenshot ages.
+   The second drawing is the phone: menu button, search, bell and the avatar menu that holds profile, quick add,
+   firearm use and logout there, plus the ⋮ menu of a page header and the "Spalten" button of a list. It sits in its
+   own div, so the 560px minimum width HandbookDiagram.razor.css gives a frame's direct svg child on phones does not
+   blow the narrow drawing up. *@
 
 <svg viewBox="0 0 640 340" role="img" aria-labelledby="layoutDiagramTitle layoutDiagramDesc"
      style="width:100%;height:auto;max-width:640px;">
@@ -71,3 +75,78 @@
         Inhalt
     </text>
 </svg>
+
+<div class="mt-4">
+<svg viewBox="0 0 320 312" role="img" aria-labelledby="layoutDiagramPhoneTitle layoutDiagramPhoneDesc"
+     style="width:100%;height:auto;max-width:320px;">
+    <title id="layoutDiagramPhoneTitle">Die Oberfläche auf dem Handy</title>
+    <desc id="layoutDiagramPhoneDesc">
+        Oben links der Menüknopf, dann Wappen, Suche, Glocke und das Profilbild. Ein Tipp auf das Profilbild öffnet
+        Mein Profil, Schnellerfassung, Schusswaffengebrauch und Abmelden. Der Knopf mit den drei Punkten im Seitenkopf
+        öffnet die weiteren Aktionen, der Knopf Spalten wählt die Spalten einer Liste.
+    </desc>
+
+    <!-- phone -->
+    <rect x="8" y="8" width="180" height="284" rx="16"
+          fill="var(--mud-palette-background)" stroke="var(--mud-palette-lines-default)" stroke-width="1.5" />
+
+    <!-- top bar: menu button, crest, search, bell, avatar -->
+    <rect x="16" y="24" width="164" height="34" rx="6"
+          fill="var(--mud-palette-surface)" stroke="var(--mud-palette-lines-default)" />
+    @for (var i = 0; i < 3; i++)
+    {
+        <rect x="24" y="@(35 + (i * 6))" width="14" height="2" rx="1" fill="var(--mud-palette-text-primary)" />
+    }
+    <circle cx="54" cy="41" r="8" fill="var(--mud-palette-text-secondary)" opacity="0.35" />
+    <rect x="68" y="31" width="52" height="20" rx="10"
+          fill="var(--mud-palette-background)" stroke="var(--mud-palette-lines-default)" />
+    <text x="78" y="45" font-size="9" fill="var(--mud-palette-text-secondary)">Suche</text>
+    <circle cx="136" cy="41" r="8" fill="none" stroke="var(--mud-palette-primary)" stroke-width="1.5" />
+    <text x="133" y="45" font-size="9" fill="var(--mud-palette-primary)">!</text>
+    <circle cx="161" cy="41" r="10" fill="var(--mud-palette-primary)" opacity="0.35"
+            stroke="var(--mud-palette-primary)" stroke-width="1.5" />
+
+    <!-- page header with the ⋮ menu, list with the "Spalten" button -->
+    <rect x="24" y="72" width="100" height="12" rx="4" fill="var(--mud-palette-text-primary)" opacity="0.7" />
+    <text x="168" y="84" font-size="16" text-anchor="middle" fill="var(--mud-palette-primary)">⋮</text>
+    <rect x="24" y="94" width="58" height="18" rx="4"
+          fill="none" stroke="var(--mud-palette-primary)" stroke-width="1.2" />
+    <text x="53" y="107" font-size="9" text-anchor="middle" fill="var(--mud-palette-primary)">Spalten</text>
+    @for (var i = 0; i < 5; i++)
+    {
+        var y = 122 + (i * 30);
+        <rect x="24" y="@y" width="148" height="24" rx="5"
+              fill="var(--mud-palette-surface)" stroke="var(--mud-palette-lines-default)" />
+        <rect x="32" y="@(y + 8)" width="@(56 + (i * 6))" height="8" rx="4"
+              fill="var(--mud-palette-text-secondary)" opacity="0.45" />
+        <rect x="132" y="@(y + 6)" width="32" height="12" rx="6"
+              fill="var(--mud-palette-primary)" opacity="0.25" />
+    }
+
+    <!-- avatar menu -->
+    <line x1="171" y1="41" x2="196" y2="44" stroke="var(--mud-palette-primary)" stroke-dasharray="3 3" />
+    <rect x="196" y="28" width="118" height="120" rx="6"
+          fill="var(--mud-palette-surface)" stroke="var(--mud-palette-lines-default)" stroke-width="1.5" />
+    <text x="206" y="50" font-size="9" fill="var(--mud-palette-text-primary)">Mein Profil</text>
+    <text x="206" y="72" font-size="9" fill="var(--mud-palette-text-primary)">Schnellerfassung</text>
+    <text x="206" y="94" font-size="9" fill="var(--mud-palette-text-primary)">Schusswaffengebrauch</text>
+    <line x1="204" y1="108" x2="306" y2="108" stroke="var(--mud-palette-lines-default)" />
+    <text x="206" y="130" font-size="9" fill="var(--mud-palette-text-primary)">Abmelden</text>
+
+    <!-- ⋮ menu -->
+    <line x1="174" y1="80" x2="196" y2="178" stroke="var(--mud-palette-primary)" stroke-dasharray="3 3" />
+    <rect x="196" y="166" width="118" height="78" rx="6"
+          fill="var(--mud-palette-surface)" stroke="var(--mud-palette-lines-default)" stroke-width="1.5" />
+    <text x="206" y="184" font-size="9" fill="var(--mud-palette-text-secondary)">Weitere Aktionen</text>
+    @for (var i = 0; i < 3; i++)
+    {
+        <rect x="206" y="@(196 + (i * 16))" width="@(70 + (i * 10))" height="8" rx="4"
+              fill="var(--mud-palette-text-secondary)" opacity="0.45" />
+    }
+
+    <!-- labels -->
+    <text x="98" y="306" font-size="9" text-anchor="middle" fill="var(--mud-palette-text-secondary)">Handy</text>
+    <text x="255" y="160" font-size="9" text-anchor="middle" fill="var(--mud-palette-text-secondary)">Profilbild</text>
+    <text x="255" y="258" font-size="9" text-anchor="middle" fill="var(--mud-palette-text-secondary)">Drei Punkte</text>
+</svg>
+</div>

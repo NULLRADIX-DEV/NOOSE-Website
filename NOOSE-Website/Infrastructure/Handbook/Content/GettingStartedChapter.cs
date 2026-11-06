@@ -46,6 +46,10 @@ internal static class GettingStartedChapter
                 einem Tipp auf eine Seite geht es wieder zu. Oben rechts bleiben Suche, Glocke und dein Profilbild.
                 Ein Tipp auf das Profilbild öffnet dein Profil, die Schnellerfassung, den Schusswaffengebrauch und
                 <em>Abmelden</em>.</p>
+                <p>Passen die Knöpfe einer Seite nicht in die Zeile, stehen sie hinter den <strong>drei Punkten</strong>
+                im Seitenkopf (<em>Weitere Aktionen</em>). Es fehlt keiner: Was nicht in der Zeile steht, steht im
+                Menü, und auch dort nur, wofür deine Rechte reichen. In Listen wählst du auf dem Handy über <em>Spalten</em>, welche Spalten
+                stehen bleiben; die Wahl merkt sich die Seite für dich, am Rechner siehst du weiter alle.</p>
                 <p>Was du im Menü nicht siehst, darfst du meistens auch nicht öffnen: die Leiste zeigt nur,
                 wofür deine Rechte reichen.</p>
                 """,
