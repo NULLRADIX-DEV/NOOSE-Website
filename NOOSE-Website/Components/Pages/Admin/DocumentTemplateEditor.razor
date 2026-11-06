@@ -20,7 +20,7 @@ else if (_edit && !_found)
 else
 {
     @* no help button: the hand-built header this replaces had none *@
-    <PageHeader Icon="@Icons.Material.Filled.Dvr" Title="@(_edit ? "Dokument-Vorlage bearbeiten" : "Neue Dokument-Vorlage")"
+    <PageHeader Compact="true" BackTooltip="false" Icon="@Icons.Material.Filled.Dvr" Title="@(_edit ? "Dokument-Vorlage bearbeiten" : "Neue Dokument-Vorlage")"
                 BackHref="/einstellungen?tab=vorlagen-dokument" ShowHelp="false">
         <Actions>
             @* from 960px up in the title row as before; below, the same buttons pin to the foot of the form *@

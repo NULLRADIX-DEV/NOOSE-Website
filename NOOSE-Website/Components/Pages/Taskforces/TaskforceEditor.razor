@@ -21,7 +21,7 @@ else if (_input is null)
 else
 {
     @* the shared page header; no handbook link, as the hand-built title it replaces had none *@
-    <PageHeader Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Groups2)" Title="@(IsEdit ? "Taskforce bearbeiten" : "Neue Taskforce anlegen")" BackHref="@BackHref" ShowHelp="false" />
+    <PageHeader Compact="true" BackTooltip="false" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Groups2)" Title="@(IsEdit ? "Taskforce bearbeiten" : "Neue Taskforce anlegen")" BackHref="@BackHref" ShowHelp="false" />
 
     <MudForm @ref="_form">
         <TaskforceForm DraftScope="@DraftScope" @key="_loadedId" Input="_input" IsLeadership="_isLeadership" />

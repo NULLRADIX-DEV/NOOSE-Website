@@ -22,7 +22,7 @@ else if (_input is null)
 else
 {
     @* no help button: the editor never had one *@
-    <PageHeader BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Groups)"
+    <PageHeader Compact="true" BackTooltip="false" BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Groups)"
                 Title="@(IsEdit ? "Fraktion bearbeiten" : "Neue Fraktion anlegen")" ShowHelp="false" />
 
     <MudForm @ref="_form">

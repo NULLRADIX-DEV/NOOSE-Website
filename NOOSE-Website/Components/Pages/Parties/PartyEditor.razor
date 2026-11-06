@@ -21,7 +21,7 @@ else if (_input is null)
 else
 {
     @* no help button: the editor never had one *@
-    <PageHeader BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.AccountBalance)"
+    <PageHeader Compact="true" BackTooltip="false" BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.AccountBalance)"
                 Title="@(IsEdit ? "Partei bearbeiten" : "Neue Partei anlegen")" ShowHelp="false" />
 
     <MudForm @ref="_form">

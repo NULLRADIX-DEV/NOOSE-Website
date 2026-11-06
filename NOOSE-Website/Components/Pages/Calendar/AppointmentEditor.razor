@@ -26,7 +26,7 @@ else if (_input is null)
 }
 else
 {
-    <PageHeader BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.EventNote)"
+    <PageHeader Compact="true" BackTooltip="false" BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.EventNote)"
                 Title="@(IsEdit ? "Termin bearbeiten" : "Neuen Termin anlegen")" ShowHelp="false" />
 
     <MudForm @ref="_form">

@@ -18,11 +18,15 @@
             <MudText Typo="Typo.body2" Class="mud-text-secondary">@SubtitleText</MudText>
         </div>
 
-        <MudSelect T="CalendarMode" Value="_mode" ValueChanged="ModeSetAsync" Label="Ansicht" Dense="true"
-                   Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-nur-handy noose-filter-feld">
-            <MudSelectItem T="CalendarMode" Value="CalendarMode.My">Mein Kalender</MudSelectItem>
-            <MudSelectItem T="CalendarMode" Value="CalendarMode.Authority">Behörden-Kalender</MudSelectItem>
-        </MudSelect>
+        @* the wrapper is the row item: MudSelect puts Class on its inner control, so the outer .mud-select
+           (flex-grow 1) would stay in the desktop row and push the button group away from the title *@
+        <div class="noose-nur-handy noose-filter-feld">
+            <MudSelect T="CalendarMode" Value="_mode" ValueChanged="ModeSetAsync" Label="Ansicht" Dense="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="CalendarMode" Value="CalendarMode.My">Mein Kalender</MudSelectItem>
+                <MudSelectItem T="CalendarMode" Value="CalendarMode.Authority">Behörden-Kalender</MudSelectItem>
+            </MudSelect>
+        </div>
         <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small" OverrideStyles="false" Class="ml-2 noose-mobil-aus">
             <MudButton Variant="@(_mode == CalendarMode.My ? Variant.Filled : Variant.Outlined)"
                        Color="@(_mode == CalendarMode.My ? Color.Primary : Color.Default)"

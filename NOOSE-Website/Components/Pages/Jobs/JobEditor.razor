@@ -28,7 +28,7 @@ else if (_input is null)
 }
 else
 {
-    <PageHeader BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.AssignmentTurnedIn)"
+    <PageHeader Compact="true" BackTooltip="false" BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.AssignmentTurnedIn)"
                 Title="@(IsEdit ? "Aufgabe bearbeiten" : "Neue Aufgabe anlegen")" ShowHelp="false" />
 
     <MudForm @ref="_form">

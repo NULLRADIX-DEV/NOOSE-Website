@@ -29,7 +29,7 @@ else
 {
     @* From 960px up save and cancel stand in the header as always; below 960px they move to the form bar pinned to the
        bottom of the screen at the end of the form (both variants in the markup, CSS shows one) *@
-    <PageHeader BackHref="@BackHref" Icon="@Icons.Material.Filled.Bolt" Title="@(_edit ? "Aktivität bearbeiten" : "Neue Aktivität")"
+    <PageHeader Compact="true" BackTooltip="false" BackHref="@BackHref" Icon="@Icons.Material.Filled.Bolt" Title="@(_edit ? "Aktivität bearbeiten" : "Neue Aktivität")"
                 ShowHelp="false">
         <Actions>
             <div class="d-contents noose-schmal-aus">@SaveButtons</div>

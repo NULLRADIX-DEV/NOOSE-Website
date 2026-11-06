@@ -20,7 +20,7 @@ else
 {
     @* Bearbeiten stays at every width; Löschen goes into the ⋮ menu below 960px. Both only for the creator or the
        leadership, so without that right the header has neither the button nor the menu. *@
-    <PageHeader BackHref="/aktivitaeten" Icon="@Icons.Material.Filled.Bolt" Title="@_view.Activity.Title" ShowHelp="false"
+    <PageHeader Compact="true" BackTooltip="false" BackHref="/aktivitaeten" Icon="@Icons.Material.Filled.Bolt" Title="@_view.Activity.Title" ShowHelp="false"
                 MoreActionsLast="true"
                 MoreActions="@(_canManage ? DeleteButton : null)" MoreActionsMenu="@(_canManage ? DeleteMenu : null)">
         <Actions>

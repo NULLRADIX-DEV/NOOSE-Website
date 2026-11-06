@@ -21,7 +21,7 @@ else if (_input is null)
 else
 {
     @* the shared page header; no handbook link, as the hand-built title it replaces had none *@
-    <PageHeader Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.FolderSpecial)" Title="@(IsEdit ? "Vorgang bearbeiten" : "Neuen Vorgang anlegen")" BackHref="@BackHref" ShowHelp="false" />
+    <PageHeader Compact="true" BackTooltip="false" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.FolderSpecial)" Title="@(IsEdit ? "Vorgang bearbeiten" : "Neuen Vorgang anlegen")" BackHref="@BackHref" ShowHelp="false" />
 
     <MudForm @ref="_form">
         <CaseForm DraftScope="@DraftScope" @key="_loadedId" Input="_input" ShowClassification="@(!IsEdit)" MayHighest="_mayHighest"

@@ -24,7 +24,7 @@ else if (_input is null)
 else
 {
     @* the shared page header; no handbook link, as the hand-built title it replaces had none *@
-    <PageHeader Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Radar)" Title="@(IsEdit ? "Operation bearbeiten" : "Neue Operation anlegen")" BackHref="@BackHref" ShowHelp="false" />
+    <PageHeader Compact="true" BackTooltip="false" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Radar)" Title="@(IsEdit ? "Operation bearbeiten" : "Neue Operation anlegen")" BackHref="@BackHref" ShowHelp="false" />
 
     @if (!IsEdit && _prelinkName is not null)
     {

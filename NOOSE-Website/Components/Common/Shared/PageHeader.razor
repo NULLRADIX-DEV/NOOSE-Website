@@ -4,12 +4,19 @@
    entries (MoreActionsMenu), and below 600px the large icon goes. The switch is CSS only, both variants are in the
    markup, so the first paint already shows the narrow header. *@
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 noose-kopf-umbruch">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="@RowClass">
     @if (!string.IsNullOrEmpty(BackHref))
     {
-        <MudTooltip Text="@BackText">
+        if (BackTooltip)
+        {
+            <MudTooltip Text="@BackText">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref" aria-label="@BackText" />
+            </MudTooltip>
+        }
+        else
+        {
             <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref" aria-label="@BackText" />
-        </MudTooltip>
+        }
     }
     @if (!string.IsNullOrEmpty(Icon))
     {
@@ -46,7 +53,7 @@ else if (!string.IsNullOrWhiteSpace(Subtitle))
 {
     <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">@Subtitle</MudText>
 }
-else
+else if (!Compact)
 {
     <div class="mb-6"></div>
 }
@@ -64,6 +71,16 @@ else
 
     [Parameter] public string? BackHref { get; set; }
     [Parameter] public string BackText { get; set; } = "Zurück";
+
+    /// <summary>Set false where the back arrow never had a tooltip (the plain title rows of editors and detail pages).</summary>
+    [Parameter] public bool BackTooltip { get; set; } = true;
+
+    /// <summary>
+    /// Reproduces the plain title row of editor pages from 960px up: the row keeps its own <c>mb-4</c> and the
+    /// spacer for a missing subtitle is left out, so the content below sits where it always did. Meant for headers
+    /// without a subtitle.
+    /// </summary>
+    [Parameter] public bool Compact { get; set; }
 
     /// <summary>The main action (usually "Neu …" or "Bearbeiten"); it stays in the row at every width.</summary>
     [Parameter] public RenderFragment? Actions { get; set; }
@@ -103,6 +120,8 @@ else
             throw new InvalidOperationException($"{nameof(PageHeader)} \"{Title}\": {nameof(MoreActions)} needs {nameof(MoreActionsMenu)}.");
         }
     }
+
+    private string RowClass => Compact ? "mb-4 noose-kopf-umbruch" : "mb-1 noose-kopf-umbruch";
 
     // d-contents: the wrapper adds no box, so from 960px up the buttons are items of the row exactly as before
     // (same gap, no extra gap when every button inside is withheld); below 960px noose-schmal-aus removes them.
