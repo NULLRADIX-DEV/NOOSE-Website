@@ -1,0 +1,15 @@
+/* Below 960px the slide rail sits above the editor at full width: one row of thumbnails that scrolls sideways
+   instead of a tall column of full-width slides. From 960px up the rail stays the column beside the editor. */
+@media screen and (max-width: 959.98px) {
+    .praesentation-leiste {
+        flex-direction: row;
+        max-height: none;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+    }
+
+    .praesentation-leiste-eintrag {
+        flex: 0 0 140px;
+    }
+}

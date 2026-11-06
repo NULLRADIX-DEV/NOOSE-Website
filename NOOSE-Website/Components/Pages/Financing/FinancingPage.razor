@@ -43,9 +43,10 @@ else
         <AuthorizeView Policy="@Policies.LeadershipPage" Context="inbox">
             <RecordSection Slug="alle" Label="Alle Anträge" Icon="@Icons.Material.Filled.Inbox">
                 <MudStack Spacing="3">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-filterleiste">
                         <MudSelect T="FinancingStatus?" Value="_filter" ValueChanged="OnFilterChangedAsync"
-                                   Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px">
+                                   Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px"
+                                   Class="noose-filter-feld">
                             <MudSelectItem T="FinancingStatus?" Value="@((FinancingStatus?)null)">Alle</MudSelectItem>
                             @foreach (var status in FinancingStatusDisplay.All)
                             {

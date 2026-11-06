@@ -21,7 +21,9 @@ else if (_detail is null)
 else
 {
     var z = _detail.Row;
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* hand-built record bar (h5 title with its markers, no PageHeader form; the desktop keeps its look). Below 960px
+       it wraps, print and delete move into the ⋮ menu, each entry behind its button's check. *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/brett" aria-label="Zurück" />
         @if (z.Important)
         {
@@ -35,18 +37,32 @@ else
             </MudTooltip>
         }
         <MudSpacer />
-        <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
-            <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
-                           Href="@($"/brett/{Id}/druck")" Target="_blank"
-                           aria-label="Druckansicht öffnen" />
-        </MudTooltip>
+        <div class="d-contents noose-schmal-aus">
+            <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
+                               Href="@($"/brett/{Id}/druck")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+        </div>
         @if (z.MayManage)
         {
             <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
                 <MudButton Href="@($"/brett/{z.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
-                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+                <div class="d-contents noose-schmal-aus">
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+                </div>
             </AuthorizeView>
         }
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/brett/{Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+            @if (z.MayManage)
+            {
+                <AuthorizeView Policy="@Policies.WriteAccess" Context="schreibMenu">
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+                </AuthorizeView>
+            }
+        </HeaderMenu>
     </MudStack>
 
     <MudGrid>

@@ -79,8 +79,8 @@ else
                             <thead>
                                 <tr>
                                     <th>Position</th>
-                                    <th style="text-align:right">Einzelpreis</th>
-                                    <th style="text-align:right">Zuschuss</th>
+                                    <th class="noose-mobil-aus" style="text-align:right">Einzelpreis</th>
+                                    <th class="noose-mobil-aus" style="text-align:right">Zuschuss</th>
                                     <th style="text-align:right">Menge</th>
                                     <th style="text-align:right">FIB zahlt</th>
                                     <th></th>
@@ -102,8 +102,8 @@ else
                                                 <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@row.Item.Description</MudText>
                                             }
                                         </td>
-                                        <td style="text-align:right">@Money.Format(row.Item.UnitPrice)</td>
-                                        <td style="text-align:right">@row.Item.SubsidyPercent %</td>
+                                        <td class="noose-mobil-aus" style="text-align:right">@Money.Format(row.Item.UnitPrice)</td>
+                                        <td class="noose-mobil-aus" style="text-align:right">@row.Item.SubsidyPercent %</td>
                                         <td style="text-align:right; width:130px">
                                             <MudNumericField T="int" Value="@row.Quantity" Min="1" Max="@row.Item.MaxQuantity"
                                                              ValueChanged="@(v => SetQuantity(row, v))"
@@ -155,12 +155,12 @@ else
             </MudAlert>
         }
 
-        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+        <FormActions>
             <MudButton Href="/finanzierungen">Abbrechen</MudButton>
             <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Send"
                        Disabled="@(_saving || TotalSubsidy <= 0 || string.IsNullOrWhiteSpace(_justification))"
                        OnClick="SaveAsync">Antrag stellen</MudButton>
-        </MudStack>
+        </FormActions>
     </MudStack>
 }
 

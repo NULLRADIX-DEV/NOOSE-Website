@@ -4,9 +4,9 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3 noose-filterleiste">
     <MudTextField @bind-Value="_search" Placeholder="Suchen (Titel, Kategorie, Dateiname)…" Immediate="true"
-                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Class="mt-0" />
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Class="mt-0 noose-filter-feld" />
     <MudSpacer />
     <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile"
@@ -20,13 +20,14 @@
 }
 else
 {
-    <MudTable Items="_filtered" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true" T="LibraryFile">
+    @* a table in a tab of /dokumente: fixed phone columns (title and actions), no column picker *@
+    <MudTable Items="_filtered" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true" T="LibraryFile">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.Title)">Titel</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.Category)">Kategorie</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.SizeBytes)">Größe</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.ModifiedAt ?? x.CreatedAt)" InitialDirection="SortDirection.Descending">Zuletzt</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.Classification)">Verschluss</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.Category)">Kategorie</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.SizeBytes)">Größe</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.ModifiedAt ?? x.CreatedAt)" InitialDirection="SortDirection.Descending">Zuletzt</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="LibraryFile" SortBy="@(x => x.Classification)">Verschluss</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -44,16 +45,16 @@ else
                 </MudStack>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.OriginalName</MudText>
             </MudTd>
-            <MudTd DataLabel="Kategorie">
+            <MudTd DataLabel="Kategorie" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@(string.IsNullOrWhiteSpace(context.Category) ? "—" : context.Category)</MudText>
             </MudTd>
-            <MudTd DataLabel="Größe">
+            <MudTd DataLabel="Größe" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@SizeText(context.SizeBytes)</MudText>
             </MudTd>
-            <MudTd DataLabel="Zuletzt">
+            <MudTd DataLabel="Zuletzt" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@((context.ModifiedAt ?? context.CreatedAt).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))</MudText>
             </MudTd>
-            <MudTd DataLabel="Verschluss">
+            <MudTd DataLabel="Verschluss" Class="noose-mobil-aus">
                 @if (context.IsRestricted)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined"

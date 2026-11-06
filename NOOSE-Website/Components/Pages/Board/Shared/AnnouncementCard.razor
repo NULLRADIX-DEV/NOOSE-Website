@@ -2,12 +2,12 @@
 
 <MudPaper Class="pa-4" Elevation="2" Style="@(Row.Important ? "border-left:4px solid var(--mud-palette-warning);" : "")">
     <MudStack Spacing="2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
             @if (Row.Important)
             {
                 <MudIcon Icon="@Icons.Material.Filled.Star" Color="Color.Warning" Size="Size.Small" />
             }
-            <MudLink Href="@($"/brett/{Row.Id}")" Typo="Typo.h6" Color="Color.Primary">@Row.Title</MudLink>
+            <MudLink Href="@($"/brett/{Row.Id}")" Typo="Typo.h6" Color="Color.Primary" Class="noose-eintrag-titel">@Row.Title</MudLink>
             @if (Row.AsBroadcast)
             {
                 <MudTooltip Text="Als Broadcast in die Glocke gesendet">

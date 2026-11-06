@@ -23,8 +23,10 @@ else if (_view is null)
 else
 {
     var p = _view.Presentation;
+    @* presenting (or watching) is what this page is for and stays inline; edit, print and delete go into the ⋮ menu
+       below 960px. MoreActionsLast keeps the desktop order. *@
     <PageHeader Icon="@Icons.Material.Filled.CoPresent" Title="@p.Title" Subtitle="@p.Description"
-                BackHref="/praesentationen" BackText="Zur Übersicht">
+                BackHref="/praesentationen" BackText="Zur Übersicht" MoreActionsLast="true">
         <Actions>
             @if (_live is not null)
             {
@@ -38,6 +40,8 @@ else
                 <MudButton Href="@($"/praesentationen/{Id}/live")" Variant="Variant.Filled" Color="Color.Error"
                            StartIcon="@Icons.Material.Filled.PlayArrow" Disabled="@(_view.Slides.Count == 0)">Vorführen</MudButton>
             }
+        </Actions>
+        <MoreActions>
             @if (_view.MayManage)
             {
                 <MudButton Href="@($"/praesentationen/{Id}/bearbeiten")" Variant="Variant.Outlined" Color="Color.Primary"
@@ -52,7 +56,19 @@ else
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="DeleteAsync" />
                 </MudTooltip>
             }
-        </Actions>
+        </MoreActions>
+        <MoreActionsMenu>
+            @if (_view.MayManage)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit" Href="@($"/praesentationen/{Id}/bearbeiten")">Bearbeiten</MudMenuItem>
+            }
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/praesentationen/{Id}/druck")">Drucken</MudMenuItem>
+            @if (_view.MayManage)
+            {
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            }
+        </MoreActionsMenu>
     </PageHeader>
 
     <MudStack Row="true" Spacing="2" Class="mb-3 flex-wrap" AlignItems="AlignItems.Center">

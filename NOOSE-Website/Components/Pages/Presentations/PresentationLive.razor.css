@@ -1,0 +1,8 @@
+/* Phone only (below 600px): the stage reaches from screen edge to screen edge, the page gutter goes to the slide.
+   From 600px up and on paper nothing here applies. */
+@media screen and (max-width: 599.98px) {
+    .praesentation-live .praesentation-buehne {
+        margin-inline: calc(-1 * var(--noose-gutter));
+        max-width: none;
+    }
+}

@@ -18,9 +18,11 @@ else if (_document is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* hand-built record bar: PageHeader has no place for the chips beside the title, and the desktop keeps its look.
+       Below 960px the row wraps and everything but Bearbeiten moves into the ⋮ menu, each entry behind its button's check. *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/dokumente" aria-label="Zurück zur Bibliothek" />
-        <MudIcon Icon="@Icons.Material.Filled.Article" Color="Color.Primary" Size="Size.Large" />
+        <MudIcon Icon="@Icons.Material.Filled.Article" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
         <MudText Typo="Typo.h4">@_document.Title</MudText>
         @if (_document.IsRestricted)
         {
@@ -31,28 +33,46 @@ else
             <MudChip T="string" Size="Size.Small" Color="Color.Primary" Icon="@Icons.Material.Filled.PushPin" Variant="Variant.Outlined">Angepinnt</MudChip>
         }
         <MudSpacer />
-        <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
-            <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
-                           Href="@($"/dokumente/{Id}/druck")" Target="_blank"
-                           aria-label="Druckansicht öffnen" />
-        </MudTooltip>
-        @if (_isLeadership)
-        {
-            <MudButton Variant="Variant.Text" Color="Color.Primary"
-                       StartIcon="@(_document.Pinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
-                       OnClick="PinToggleAsync">@(_document.Pinned ? "Lösen" : "Anpinnen")</MudButton>
-        }
-        @if (_mayDelete)
-        {
-            <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
-        }
-        <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
-            <PartnerShareButton EntityType="@nameof(Document)" EntityId="@_document.Id" />
-        </AuthorizeView>
+        <div class="d-contents noose-schmal-aus">
+            <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
+                               Href="@($"/dokumente/{Id}/druck")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+            @if (_isLeadership)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Primary"
+                           StartIcon="@(_document.Pinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
+                           OnClick="PinToggleAsync">@(_document.Pinned ? "Lösen" : "Anpinnen")</MudButton>
+            }
+            @if (_mayDelete)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+            }
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
+                <PartnerShareButton EntityType="@nameof(Document)" EntityId="@_document.Id" />
+            </AuthorizeView>
+        </div>
         @if (_mayEdit)
         {
             <MudButton Href="@($"/dokumente/{_document.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
         }
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/dokumente/{Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+            @if (_isLeadership)
+            {
+                <MudMenuItem Icon="@(_document.Pinned ? Icons.Material.Filled.PushPin : Icons.Material.Outlined.PushPin)"
+                             OnClick="PinToggleAsync">@(_document.Pinned ? "Lösen" : "Anpinnen")</MudMenuItem>
+            }
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabeMenu">
+                <PartnerShareButton AsMenuItem="true" EntityType="@nameof(Document)" EntityId="@_document.Id" />
+            </AuthorizeView>
+            @if (_mayDelete)
+            {
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            }
+        </HeaderMenu>
     </MudStack>
 
     <MudGrid>

@@ -21,20 +21,17 @@ else if (_request is null)
 }
 else
 {
+    @* the decision that moves the request on stays inline; whatever a status allows besides goes into the ⋮ menu
+       below 960px. Every status renders its buttons in the same order as before. *@
     <PageHeader Icon="@Icons.Material.Filled.RequestQuote"
                 Title="@_request.CaseNumber"
                 Subtitle="@($"{_agentCodename} · {FinancingStatusDisplay.Name(_request.Status)}")"
-                BackHref="/finanzierungen">
+                BackHref="/finanzierungen" MoreActionsLast="true">
         <Actions>
             @if (_mayDecide && _request.Status is FinancingStatus.Requested or FinancingStatus.Rejected)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Check"
                            OnClick="ApproveAsync">Annehmen</MudButton>
-            }
-            @if (_mayDecide && _request.Status == FinancingStatus.Requested)
-            {
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Close"
-                           OnClick="RejectAsync">Ablehnen</MudButton>
             }
             @if (_mayDecide && _request.Status == FinancingStatus.Approved)
             {
@@ -42,13 +39,23 @@ else
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Payments"
                                Disabled="@(!CanPay)" OnClick="PayAsync">Auszahlen</MudButton>
                 </MudTooltip>
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Undo"
-                           OnClick="RevokeAsync">Genehmigung zurücknehmen</MudButton>
             }
             @if (_mayDecide && _request.Status == FinancingStatus.Paid)
             {
                 <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Undo"
                            OnClick="CancelPaymentAsync">Auszahlung stornieren</MudButton>
+            }
+        </Actions>
+        <MoreActions>
+            @if (_mayDecide && _request.Status == FinancingStatus.Requested)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Close"
+                           OnClick="RejectAsync">Ablehnen</MudButton>
+            }
+            @if (_mayDecide && _request.Status == FinancingStatus.Approved)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Undo"
+                           OnClick="RevokeAsync">Genehmigung zurücknehmen</MudButton>
             }
             @if (_mayActAsOwner && _request.Status == FinancingStatus.Requested)
             {
@@ -60,7 +67,26 @@ else
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
                                OnClick="DeleteAsync" aria-label="Antrag löschen" />
             }
-        </Actions>
+        </MoreActions>
+        <MoreActionsMenu>
+            @if (_mayDecide && _request.Status == FinancingStatus.Requested)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Close" IconColor="Color.Error" OnClick="RejectAsync">Ablehnen</MudMenuItem>
+            }
+            @if (_mayDecide && _request.Status == FinancingStatus.Approved)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Undo" OnClick="RevokeAsync">Genehmigung zurücknehmen</MudMenuItem>
+            }
+            @if (_mayActAsOwner && _request.Status == FinancingStatus.Requested)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Undo" OnClick="WithdrawAsync">Zurückziehen</MudMenuItem>
+            }
+            @if (_mayDelete)
+            {
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Antrag löschen</MudMenuItem>
+            }
+        </MoreActionsMenu>
     </PageHeader>
 
     <RecordSectionRail>
@@ -71,8 +97,8 @@ else
                         <thead>
                             <tr>
                                 <th>Position</th>
-                                <th style="text-align:right">Einzelpreis</th>
-                                <th style="text-align:right">Zuschuss</th>
+                                <th class="noose-mobil-aus" style="text-align:right">Einzelpreis</th>
+                                <th class="noose-mobil-aus" style="text-align:right">Zuschuss</th>
                                 <th style="text-align:right">Beantragt</th>
                                 <th style="text-align:right">Genehmigt</th>
                                 <th style="text-align:right">FIB zahlt</th>
@@ -89,8 +115,8 @@ else
                                             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@line.Category</MudText>
                                         }
                                     </td>
-                                    <td style="text-align:right">@Money.Format(line.UnitPrice)</td>
-                                    <td style="text-align:right">@line.SubsidyPercent %</td>
+                                    <td class="noose-mobil-aus" style="text-align:right">@Money.Format(line.UnitPrice)</td>
+                                    <td class="noose-mobil-aus" style="text-align:right">@line.SubsidyPercent %</td>
                                     <td style="text-align:right">@line.Quantity</td>
                                     <td style="text-align:right">
                                         @if (line.ApprovedQuantity is { } granted)

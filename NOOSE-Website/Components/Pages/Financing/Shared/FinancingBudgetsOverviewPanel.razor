@@ -17,14 +17,15 @@
     }
     else
     {
+        @* phones keep agent, remaining budget and the actions *@
         <MudSimpleTable Dense="true" Hover="true" Striped="true">
             <thead>
                 <tr>
                     <th>Agent</th>
-                    <th>Dienstgrad</th>
-                    <th style="text-align:right">Grundbudget</th>
-                    <th style="text-align:right">Übertrag</th>
-                    <th style="text-align:right">Verbraucht</th>
+                    <th class="noose-mobil-aus">Dienstgrad</th>
+                    <th class="noose-mobil-aus" style="text-align:right">Grundbudget</th>
+                    <th class="noose-mobil-aus" style="text-align:right">Übertrag</th>
+                    <th class="noose-mobil-aus" style="text-align:right">Verbraucht</th>
                     <th style="text-align:right">Rest</th>
                     <th></th>
                 </tr>
@@ -34,16 +35,16 @@
                 {
                     <tr>
                         <td>@row.Codename</td>
-                        <td>@RankDisplay.Name(row.Rank)</td>
-                        <td style="text-align:right">
+                        <td class="noose-mobil-aus">@RankDisplay.Name(row.Rank)</td>
+                        <td class="noose-mobil-aus" style="text-align:right">
                             @Money.Format(row.BaseBudget)
                             @if (row.IsOverride)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info" Class="ml-1">individuell</MudChip>
                             }
                         </td>
-                        <td style="text-align:right">@Money.Format(row.CarryIn)</td>
-                        <td style="text-align:right">@Money.Format(row.Consumed)</td>
+                        <td class="noose-mobil-aus" style="text-align:right">@Money.Format(row.CarryIn)</td>
+                        <td class="noose-mobil-aus" style="text-align:right">@Money.Format(row.Consumed)</td>
                         <td style="text-align:right">
                             <MudText Typo="Typo.body2" Color="@(row.Remaining > 0 ? Color.Success : Color.Error)">
                                 @Money.Format(row.Remaining)

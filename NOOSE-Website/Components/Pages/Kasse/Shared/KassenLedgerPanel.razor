@@ -3,25 +3,26 @@
 @inject NavigationManager Nav
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudText Typo="Typo.h6">Buchungen · @KassenKontoDisplay.Name(Account)</MudText>
-        <MudSpacer />
-        @if (_bookers.Count > 0)
-        {
-            <MudSelect T="string" Value="_agentFilter" ValueChanged="OnAgentFilterChanged" Clearable="true" Dense="true"
-                       Placeholder="Alle Agenten" Style="max-width:240px" Variant="Variant.Outlined"
-                       Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Badge">
-                @foreach (var b in _bookers)
-                {
-                    <MudSelectItem T="string" Value="@b.Id">@b.Codename</MudSelectItem>
-                }
-            </MudSelect>
-        }
-        <AuthorizeView Policy="@Policies.WriteAccess">
-            <MudButton Href="@($"/kasse/buchung/neu?konto={(int)Account}")" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add">Neue Buchung</MudButton>
-        </AuthorizeView>
-    </MudStack>
+    @* the agent filter is no menu entry: below 600px it takes the full row and the button wraps under it *@
+    <SectionHeader Title="@($"Buchungen · {KassenKontoDisplay.Name(Account)}")">
+        <Actions>
+            @if (_bookers.Count > 0)
+            {
+                <MudSelect T="string" Value="_agentFilter" ValueChanged="OnAgentFilterChanged" Clearable="true" Dense="true"
+                           Placeholder="Alle Agenten" Style="max-width:240px" Variant="Variant.Outlined" Class="noose-filter-feld"
+                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Badge">
+                    @foreach (var b in _bookers)
+                    {
+                        <MudSelectItem T="string" Value="@b.Id">@b.Codename</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            <AuthorizeView Policy="@Policies.WriteAccess">
+                <MudButton Href="@($"/kasse/buchung/neu?konto={(int)Account}")" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add">Neue Buchung</MudButton>
+            </AuthorizeView>
+        </Actions>
+    </SectionHeader>
 
     @if (_load)
     {
@@ -35,16 +36,17 @@
     else
     {
         var rows = Filtered();
+        @* phones keep case number, amount and time; the rest of the row is one tap away on the booking *@
         <MudSimpleTable Dense="true" Hover="true" Striped="true">
             <thead>
                 <tr>
                     <th>Aktenzeichen</th>
-                    <th>Art</th>
+                    <th class="noose-mobil-aus">Art</th>
                     <th style="text-align:right">Betrag</th>
-                    <th>Grund</th>
-                    <th>Gebucht von</th>
+                    <th class="noose-mobil-aus">Grund</th>
+                    <th class="noose-mobil-aus">Gebucht von</th>
                     <th>Zeitpunkt</th>
-                    <th style="text-align:right">Stand nachher</th>
+                    <th class="noose-mobil-aus" style="text-align:right">Stand nachher</th>
                 </tr>
             </thead>
             <tbody>
@@ -56,7 +58,7 @@
                 {
                     <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/kasse/buchung/{r.Buchung.Id}"))">
                         <td>@r.Buchung.CaseNumber</td>
-                        <td>
+                        <td class="noose-mobil-aus">
                             <MudChip T="string" Size="Size.Small" Color="@KassenBuchungArtDisplay.ChipColor(r.Buchung.Kind)"
                                      Icon="@KassenBuchungArtDisplay.Icon(r.Buchung.Kind)">
                                 @KassenBuchungArtDisplay.Name(r.Buchung.Kind)
@@ -65,7 +67,7 @@
                         <td style="text-align:right">
                             <MudText Typo="Typo.body2" Color="@DeltaColour(r.Delta)">@Money.Signed(r.Delta)</MudText>
                         </td>
-                        <td>
+                        <td class="noose-mobil-aus">
                             @if (r.FinancingRequestId is { } financingId)
                             {
                                 @* stopPropagation so the link wins over the row's navigation to the booking *@
@@ -78,9 +80,9 @@
                                 @(string.IsNullOrWhiteSpace(r.Buchung.Reason) ? "—" : r.Buchung.Reason)
                             }
                         </td>
-                        <td>@r.BookedByCodename</td>
+                        <td class="noose-mobil-aus">@r.BookedByCodename</td>
                         <td>@r.Buchung.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                        <td style="text-align:right">@Money.Format(r.BalanceAfter)</td>
+                        <td class="noose-mobil-aus" style="text-align:right">@Money.Format(r.BalanceAfter)</td>
                     </tr>
                 }
             </tbody>
