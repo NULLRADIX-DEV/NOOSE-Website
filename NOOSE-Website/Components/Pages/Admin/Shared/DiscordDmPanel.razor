@@ -128,7 +128,7 @@ else
         try
         {
             await DirectMessages.SaveSettingsAsync(_personal, _applicants, _inviteLink, _user);
-            Snackbar.Add("Direktnachrichten gespeichert.", Severity.Success);
+            Snackbar.Add("Gespeichert.", Severity.Success);
             // read back: the switches and the link show what is stored
             await LoadAsync();
         }

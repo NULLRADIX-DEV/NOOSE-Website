@@ -168,6 +168,40 @@ public class DiscordBotClientTests
     }
 
     [Fact]
+    public async Task An_unknown_user_returns_null_too()
+    {
+        var (client, _) = Build(_ => Reply(HttpStatusCode.NotFound, """{"message":"Unknown User","code":10013}"""));
+
+        Assert.Null(await client.GetMemberRolesAsync(Guild, User, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task An_unknown_server_is_an_error_not_a_missing_member()
+    {
+        var (client, _) = Build(_ => Reply(HttpStatusCode.NotFound, """{"message":"Unknown Guild","code":10004}"""));
+
+        var error = await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.GetMemberRolesAsync(Guild, User, CancellationToken.None));
+
+        Assert.Equal(404, error.Status);
+        Assert.Equal(10004, error.Code);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("<html>not found</html>")]
+    [InlineData("""{"message":"404: Not Found","code":0}""")]
+    public async Task A_404_without_a_member_code_is_an_error(string? body)
+    {
+        var (client, _) = Build(_ => Reply(HttpStatusCode.NotFound, body));
+
+        var error = await Assert.ThrowsAsync<DiscordBotException>(
+            () => client.GetMemberRolesAsync(Guild, User, CancellationToken.None));
+
+        Assert.Equal(404, error.Status);
+    }
+
+    [Fact]
     public async Task Guild_roles_carry_the_bots_top_position()
     {
         var (client, handler) = Build(request => request.RequestUri!.AbsolutePath switch

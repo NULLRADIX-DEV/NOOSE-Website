@@ -19,6 +19,8 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     private const int MaxSnowflakeChars = 20;
     private const int MaxMessageChars = 2000;
     private const int UnknownChannelCode = 10003;
+    private const int UnknownMemberCode = 10007;
+    private const int UnknownUserCode = 10013;
     private static readonly TimeSpan MaxRetryWaitTime = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DefaultRetryWait = TimeSpan.FromSeconds(1);
 
@@ -36,7 +38,8 @@ public sealed class DiscordBotClient(IHttpClientFactory httpFactory, IConfigurat
     public async Task<IReadOnlyList<string>?> GetMemberRolesAsync(string guildId, string userId, CancellationToken ct)
     {
         var (status, body) = await SendAsync(HttpMethod.Get, MemberPath(guildId, userId), null, ct);
-        if (status == HttpStatusCode.NotFound)
+        // only Discord's own "no such member"; any other 404 (an unknown server above all) is an error, not an absent member
+        if (status == HttpStatusCode.NotFound && ErrorDetails(body).Code is UnknownMemberCode or UnknownUserCode)
         {
             return null;
         }

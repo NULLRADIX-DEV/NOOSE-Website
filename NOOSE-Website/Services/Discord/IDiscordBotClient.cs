@@ -12,6 +12,9 @@ public sealed class DiscordBotException(int status, string message, int? code = 
     /// <summary>Discord's error code for a user who closed their direct messages or shares no server with the bot.</summary>
     public const int CannotSendToUser = 50007;
 
+    /// <summary>Discord's error code for a server id that matches no server the bot can see.</summary>
+    public const int UnknownGuild = 10004;
+
     public int Status { get; } = status;
 
     /// <summary>Discord's own error code from the answer's JSON, if it sent one.</summary>
@@ -24,7 +27,7 @@ public interface IDiscordBotClient
     /// <summary>False without a bot token; every call then throws <see cref="InvalidOperationException"/>.</summary>
     bool IsConfigured { get; }
 
-    /// <summary>Role ids the member carries; null if the user is not on the server.</summary>
+    /// <summary>Role ids the member carries; null only when Discord answers "unknown member" or "unknown user", any other failure (an unknown server too) throws <see cref="DiscordBotException"/>.</summary>
     Task<IReadOnlyList<string>?> GetMemberRolesAsync(string guildId, string userId, CancellationToken ct);
 
     Task<DiscordGuildRoles> GetGuildRolesAsync(string guildId, CancellationToken ct);

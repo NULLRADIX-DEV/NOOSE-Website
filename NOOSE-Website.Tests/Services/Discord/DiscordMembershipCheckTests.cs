@@ -142,6 +142,17 @@ public class DiscordMembershipCheckTests
     }
 
     [Fact]
+    public async Task A_mistyped_server_id_is_unknown_not_a_missing_member()
+    {
+        using var f = new Fixture();
+        // what the client throws for Discord's "Unknown Guild"
+        f.Bot.GetMemberRolesAsync(Guild, UserA, Arg.Any<CancellationToken>())
+            .Returns<IReadOnlyList<string>?>(_ => throw new DiscordBotException(404, "Discord 404: Unknown Guild", 10004));
+
+        Assert.Equal(DiscordMembership.Unknown, await f.Check.CheckAsync(AgentId));
+    }
+
+    [Fact]
     public async Task A_network_error_is_unknown()
     {
         using var f = new Fixture();

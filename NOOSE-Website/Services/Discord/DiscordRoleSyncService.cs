@@ -402,6 +402,8 @@ public sealed class DiscordRoleSyncService(
         DiscordBotException { Status: 401 } => "Discord lehnt den Bot-Token ab (401).",
         DiscordBotException { Status: 403 } =>
             "Bot darf die Rolle nicht ändern (403): Rollen-Hierarchie und Recht „Rollen verwalten“ prüfen.",
+        DiscordBotException { Code: DiscordBotException.UnknownGuild } =>
+            "Server bei Discord nicht gefunden (404): Server-Id prüfen.",
         DiscordBotException { Status: 404 } => "Rolle oder Mitglied bei Discord nicht gefunden (404).",
         DiscordBotException { Status: 429 } => "Discord bremst den Bot (429), später erneut versuchen.",
         DiscordBotException { Status: >= 500 } e => $"Discord meldet einen Serverfehler ({e.Status}).",
