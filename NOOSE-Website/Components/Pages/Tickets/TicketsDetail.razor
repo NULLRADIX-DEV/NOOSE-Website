@@ -24,50 +24,83 @@ else if (_ticket is null)
 }
 else
 {
-    <PageHeader Icon="@Icons.Material.Filled.Forum"
-                Title="@($"Ticket {_ticket.CaseNumber}")"
-                Subtitle="@($"Eröffnet am {_ticket.CreatedAt.ToLocalTime():dd.MM.yyyy HH:mm}")"
-                BackHref="/tickets">
-        <Actions>
-            @if (_canWrite)
-            {
-                @if (_ticket.HandlerId is null)
+    @* two headers rather than an empty ⋮ menu for a participant: whoever is not the desk gets no actions at all *@
+    @if (!_canWrite)
+    {
+        <PageHeader Icon="@Icons.Material.Filled.Forum"
+                    Title="@($"Ticket {_ticket.CaseNumber}")"
+                    Subtitle="@($"Eröffnet am {_ticket.CreatedAt.ToLocalTime():dd.MM.yyyy HH:mm}")"
+                    BackHref="/tickets" />
+    }
+    else
+    {
+        <PageHeader Icon="@Icons.Material.Filled.Forum"
+                    Title="@($"Ticket {_ticket.CaseNumber}")"
+                    Subtitle="@($"Eröffnet am {_ticket.CreatedAt.ToLocalTime():dd.MM.yyyy HH:mm}")"
+                    BackHref="/tickets" MoreActionsLast="true">
+            <Actions>
+                @if (_canWrite && _ticket.HandlerId is null)
                 {
                     <MudButton OnClick="AssignAsync" Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.AssignmentInd">Übernehmen</MudButton>
                 }
-                <MudButton OnClick="AssignToAsync" Variant="Variant.Outlined" Color="Color.Default"
-                           StartIcon="@Icons.Material.Filled.PersonSearch">Zuweisen</MudButton>
-                <MudMenu Label="Kategorie" Variant="Variant.Outlined" Color="Color.Default"
-                         StartIcon="@Icons.Material.Filled.Category">
+            </Actions>
+            @* below 960px in the ⋮ menu, behind the same _canWrite as the buttons; deleting last after a line *@
+            <MoreActions>
+                @if (_canWrite)
+                {
+                    <MudButton OnClick="AssignToAsync" Variant="Variant.Outlined" Color="Color.Default"
+                               StartIcon="@Icons.Material.Filled.PersonSearch">Zuweisen</MudButton>
+                    <MudMenu Label="Kategorie" Variant="Variant.Outlined" Color="Color.Default"
+                             StartIcon="@Icons.Material.Filled.Category">
+                        @foreach (var option in TicketKategorieDisplay.All)
+                        {
+                            <MudMenuItem OnClick="@(() => SetCategoryAsync(option))"
+                                         Disabled="@(option == _ticket.Category)">
+                                @TicketKategorieDisplay.Name(option)
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                    <MudButton OnClick="SetPriorityAsync" Variant="Variant.Outlined" Color="Color.Default"
+                               StartIcon="@Icons.Material.Filled.LowPriority">Priorität</MudButton>
+                    <MudMenu Label="Status setzen" Variant="Variant.Outlined" Color="Color.Default"
+                             StartIcon="@Icons.Material.Filled.Flag">
+                        @foreach (var target in TicketRules.AllowedTargets(_ticket.Status))
+                        {
+                            <MudMenuItem OnClick="@(() => SetStatusAsync(target))">
+                                @TicketStatusDisplay.Name(target)
+                            </MudMenuItem>
+                        }
+                    </MudMenu>
+                    <MudButton OnClick="ToCaseAsync" Disabled="_busy" Variant="Variant.Outlined"
+                               Color="Color.Secondary" StartIcon="@Icons.Material.Filled.FolderSpecial">
+                        Vorgang anlegen
+                    </MudButton>
+                    <MudButton OnClick="DeleteAsync" Variant="Variant.Text" Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
+                }
+            </MoreActions>
+            <MoreActionsMenu>
+                @if (_canWrite)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.PersonSearch" OnClick="AssignToAsync">Zuweisen</MudMenuItem>
                     @foreach (var option in TicketKategorieDisplay.All)
                     {
-                        <MudMenuItem OnClick="@(() => SetCategoryAsync(option))"
-                                     Disabled="@(option == _ticket.Category)">
-                            @TicketKategorieDisplay.Name(option)
-                        </MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Category" OnClick="@(() => SetCategoryAsync(option))"
+                                     Disabled="@(option == _ticket.Category)">Kategorie: @TicketKategorieDisplay.Name(option)</MudMenuItem>
                     }
-                </MudMenu>
-                <MudButton OnClick="SetPriorityAsync" Variant="Variant.Outlined" Color="Color.Default"
-                           StartIcon="@Icons.Material.Filled.LowPriority">Priorität</MudButton>
-                <MudMenu Label="Status setzen" Variant="Variant.Outlined" Color="Color.Default"
-                         StartIcon="@Icons.Material.Filled.Flag">
+                    <MudMenuItem Icon="@Icons.Material.Filled.LowPriority" OnClick="SetPriorityAsync">Priorität</MudMenuItem>
                     @foreach (var target in TicketRules.AllowedTargets(_ticket.Status))
                     {
-                        <MudMenuItem OnClick="@(() => SetStatusAsync(target))">
-                            @TicketStatusDisplay.Name(target)
-                        </MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Flag" OnClick="@(() => SetStatusAsync(target))">Status: @TicketStatusDisplay.Name(target)</MudMenuItem>
                     }
-                </MudMenu>
-                <MudButton OnClick="ToCaseAsync" Disabled="_busy" Variant="Variant.Outlined"
-                           Color="Color.Secondary" StartIcon="@Icons.Material.Filled.FolderSpecial">
-                    Vorgang anlegen
-                </MudButton>
-                <MudButton OnClick="DeleteAsync" Variant="Variant.Text" Color="Color.Error"
-                           StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
-            }
-        </Actions>
-    </PageHeader>
+                    <MudMenuItem Icon="@Icons.Material.Filled.FolderSpecial" OnClick="ToCaseAsync" Disabled="_busy">Vorgang anlegen</MudMenuItem>
+                    <MudDivider Class="my-1" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+                }
+            </MoreActionsMenu>
+        </PageHeader>
+    }
 
     <MudGrid Spacing="4">
         <MudItem xs="12" md="5">

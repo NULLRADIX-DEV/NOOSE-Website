@@ -3,7 +3,7 @@
 @* Public shell for the legal texts (no nav/drawer, narrow column); static SSR, theme provider only. *@
 <MudThemeProvider Theme="NooseTheme.Theme" IsDarkMode="true" />
 
-<div style="min-height:100vh;background:var(--mud-palette-background,#1C1C1C);padding:32px 16px;">
+<div class="oeffentlich-rahmen" style="min-height:100vh;background:var(--mud-palette-background,#1C1C1C);padding:32px 16px;">
     <div style="max-width:820px;margin:0 auto;">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
             <MudLink Href="/" Underline="Underline.None" Color="Color.Inherit">
@@ -19,7 +19,8 @@
                        StartIcon="@Icons.Material.Filled.ArrowBack">Zurück</MudButton>
         </MudStack>
 
-        <MudPaper Elevation="4" Class="pa-8">
+        @* pa-sm-8 from 600px up as before; a phone keeps the text column instead of 32px of padding each side *@
+        <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
             @Body
         </MudPaper>
 
