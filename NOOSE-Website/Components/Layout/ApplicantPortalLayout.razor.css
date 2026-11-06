@@ -1,0 +1,7 @@
+/* Phones: the outward shells keep a 12px margin instead of 24 to 32px above and 16px beside the column. Below 600px
+   only, so desktop and tablet keep the inline padding; !important beats that inline style. */
+@media screen and (max-width: 599.98px) {
+    .oeffentlich-rahmen {
+        padding: 12px !important;
+    }
+}

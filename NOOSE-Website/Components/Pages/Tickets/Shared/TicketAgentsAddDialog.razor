@@ -3,7 +3,7 @@
 
 <MudDialog>
     <DialogContent>
-        <MudStack Spacing="3" Style="min-width:420px;">
+        <MudStack Spacing="3" Style="min-width:420px;" Class="noose-min-breite-frei">
             <MudAutocomplete T="Agent" @ref="_auto" Label="Agent suchen" Value="_selected" AutoFocus="true"
                              ValueChanged="PickAsync" SearchFunc="@SearchAgents"
                              ToStringFunc="@(a => a is null ? string.Empty : a.Codename)"

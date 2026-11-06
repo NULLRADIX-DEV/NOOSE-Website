@@ -46,7 +46,7 @@
                     <tr>
                         <th style="width:4rem;">#</th>
                         <th>Organisation</th>
-                        <th>Einordnung</th>
+                        <th class="noose-mobil-aus">Einordnung</th>
                         <th>Gefahrenstufe</th>
                     </tr>
                 </thead>
@@ -57,7 +57,7 @@
                         <tr>
                             <td>@(i + 1)</td>
                             <td>@card.DisplayName</td>
-                            <td>@PublicFactionStandingDisplay.Name(card.Standing)</td>
+                            <td class="noose-mobil-aus">@PublicFactionStandingDisplay.Name(card.Standing)</td>
                             <td>
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
                                     @HazardLevelLogic.Name(card.HazardLevel)

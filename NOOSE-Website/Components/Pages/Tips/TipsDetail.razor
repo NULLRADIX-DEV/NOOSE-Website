@@ -23,30 +23,55 @@ else if (_tip is null)
 }
 else
 {
-    <PageHeader Icon="@Icons.Material.Filled.TipsAndUpdates"
-                Title="@($"Bürgerhinweis {_tip.CaseNumber}")"
-                Subtitle="@($"Eingegangen am {_tip.CreatedAt.ToLocalTime():dd.MM.yyyy HH:mm}")"
-                BackHref="/hinweise">
-        <Actions>
-            @if (_canWrite)
-            {
-                @if (_tip.HandlerId is null)
+    @* two headers rather than an empty ⋮ menu for a reader: whoever may not write gets no actions at all *@
+    @if (!_canWrite)
+    {
+        <PageHeader Icon="@Icons.Material.Filled.TipsAndUpdates"
+                    Title="@($"Bürgerhinweis {_tip.CaseNumber}")"
+                    Subtitle="@($"Eingegangen am {_tip.CreatedAt.ToLocalTime():dd.MM.yyyy HH:mm}")"
+                    BackHref="/hinweise" />
+    }
+    else
+    {
+        <PageHeader Icon="@Icons.Material.Filled.TipsAndUpdates"
+                    Title="@($"Bürgerhinweis {_tip.CaseNumber}")"
+                    Subtitle="@($"Eingegangen am {_tip.CreatedAt.ToLocalTime():dd.MM.yyyy HH:mm}")"
+                    BackHref="/hinweise" MoreActionsLast="true">
+            <Actions>
+                @if (_canWrite && _tip.HandlerId is null)
                 {
                     <MudButton OnClick="AssignAsync" Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.AssignmentInd">Übernehmen</MudButton>
                 }
-                <MudMenu Label="Status setzen" Variant="Variant.Outlined" Color="Color.Default"
-                         StartIcon="@Icons.Material.Filled.Flag">
+            </Actions>
+            @* below 960px in the ⋮ menu, behind the same _canWrite as the buttons *@
+            <MoreActions>
+                @if (_canWrite)
+                {
+                    <MudMenu Label="Status setzen" Variant="Variant.Outlined" Color="Color.Default"
+                             StartIcon="@Icons.Material.Filled.Flag">
+                        @foreach (var target in TipRules.AllowedTargets(_tip.Status))
+                        {
+                            <MudMenuItem OnClick="@(() => SetStatusAsync(target))">@TipStatusDisplay.Name(target)</MudMenuItem>
+                        }
+                    </MudMenu>
+                    <MudButton OnClick="DeleteAsync" Variant="Variant.Text" Color="Color.Error"
+                               StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
+                }
+            </MoreActions>
+            <MoreActionsMenu>
+                @if (_canWrite)
+                {
                     @foreach (var target in TipRules.AllowedTargets(_tip.Status))
                     {
-                        <MudMenuItem OnClick="@(() => SetStatusAsync(target))">@TipStatusDisplay.Name(target)</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Flag" OnClick="@(() => SetStatusAsync(target))">Status: @TipStatusDisplay.Name(target)</MudMenuItem>
                     }
-                </MudMenu>
-                <MudButton OnClick="DeleteAsync" Variant="Variant.Text" Color="Color.Error"
-                           StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
-            }
-        </Actions>
-    </PageHeader>
+                    <MudDivider Class="my-1" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+                }
+            </MoreActionsMenu>
+        </PageHeader>
+    }
 
     <MudGrid Spacing="4">
         <MudItem xs="12" md="6">
@@ -239,7 +264,7 @@ else
                             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
                                 <MudTextField @bind-Value="_newPersonName" Label="Name der neuen Personenakte"
                                               Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
-                                              Style="min-width:240px;" />
+                                              Style="min-width:240px;" Class="noose-breite-frei" />
                                 <MudButton OnClick="ToNewPersonAsync" Disabled="_busy" Variant="Variant.Filled"
                                            Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd">
                                     Personenakte anlegen
@@ -253,7 +278,7 @@ else
                             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
                                 <MudTextField @bind-Value="_personSearch" Label="Bestehende Person suchen"
                                               Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
-                                              Style="min-width:240px;" />
+                                              Style="min-width:240px;" Class="noose-breite-frei" />
                                 <MudButton OnClick="SearchPeopleAsync" Disabled="_busy" Variant="Variant.Outlined"
                                            StartIcon="@Icons.Material.Filled.Search">Suchen</MudButton>
                             </MudStack>

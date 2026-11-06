@@ -160,3 +160,11 @@
         opacity: 0;
     }
 }
+
+/* Phones: the window never runs wider than the screen, with 16px to spare on each side. */
+@media screen and (max-width: 599.98px) {
+    #components-reconnect-modal {
+        width: min(20rem, calc(100vw - 32px));
+        padding: 1.5rem;
+    }
+}

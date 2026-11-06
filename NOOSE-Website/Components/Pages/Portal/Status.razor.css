@@ -1,0 +1,25 @@
+/* Phones: the page takes its natural height instead of the screen minus the shell, and the reply field (the last
+   child of the message panel) sticks to the bottom of the screen while the chat is on it. From 600px up the chat
+   fills the screen as before; !important beats the inline styles that set that up. */
+@media screen and (max-width: 599.98px) {
+    .portal-status {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    .portal-status ::deep > .mud-paper:last-child {
+        flex: none !important;
+    }
+
+    .portal-status-chat ::deep > .mud-stack {
+        height: auto !important;
+    }
+
+    .portal-status-chat ::deep > .mud-stack > :last-child {
+        position: sticky;
+        bottom: 0;
+        z-index: 2;
+        padding-block: 8px calc(8px + env(safe-area-inset-bottom));
+        background-color: var(--mud-palette-surface);
+    }
+}

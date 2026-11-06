@@ -20,9 +20,9 @@ else
             <tr>
                 <th>Aktenzeichen</th>
                 <th>Betreff</th>
-                <th>Art</th>
+                <th class="noose-mobil-aus">Art</th>
                 <th>Status</th>
-                <th>Letzte Aktivität</th>
+                <th class="noose-mobil-aus">Letzte Aktivität</th>
             </tr>
         </thead>
         <tbody>
@@ -42,9 +42,9 @@ else
                         </MudStack>
                     </td>
                     <td>@row.Subject</td>
-                    <td>@TicketArtDisplay.Name(row.Kind)</td>
+                    <td class="noose-mobil-aus">@TicketArtDisplay.Name(row.Kind)</td>
                     <td>@TicketStatusDisplay.Name(row.Status)</td>
-                    <td>@row.LastActivityAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    <td class="noose-mobil-aus">@row.LastActivityAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                 </tr>
             }
         </tbody>

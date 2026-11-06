@@ -1,0 +1,54 @@
+/* The phone menu of the outward shells (noose-nur-handy hides it from 600px up, where the two rows of buttons stand).
+   A native <details>, laid out like a full-width menu button; its list pushes the page down instead of floating, so
+   it needs no layer and works the same on statically rendered pages. */
+@media screen and (max-width: 599.98px) {
+    .oeffentlich-menue > summary {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        padding: 0 8px;
+        border-radius: var(--mud-default-borderradius);
+        color: var(--mud-palette-text-primary);
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .oeffentlich-menue > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .oeffentlich-menue > summary:hover,
+    .oeffentlich-menue[open] > summary {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    .oeffentlich-menue-aktuell {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .oeffentlich-menue[open] > summary ::deep .oeffentlich-menue-pfeil {
+        transform: rotate(180deg);
+    }
+
+    .oeffentlich-menue-liste {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 4px 0 8px;
+    }
+
+    .oeffentlich-menue-liste ::deep .oeffentlich-menue-titel {
+        display: block;
+        margin-top: 8px;
+        padding: 0 8px;
+        border-top: 1px solid var(--mud-palette-divider);
+        padding-top: 8px;
+    }
+}

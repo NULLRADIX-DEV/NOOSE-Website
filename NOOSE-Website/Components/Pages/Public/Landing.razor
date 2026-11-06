@@ -14,6 +14,8 @@
 <LinkPreview Title="Federal Investigation Bureau"
              Description="Das FIB bündelt die staatliche Gefahrenabwehr und Aufklärung an einer Stelle. Diese Seite ist der öffentliche Zugang zur Behörde." />
 
+@* a plain block around the page, invisible in the layout: the anchor Landing.razor.css reaches into MudBlazor from *@
+<div class="landing">
 <MudStack Spacing="4">
 
     <MudPaper Elevation="4" Class="pa-4 pa-sm-8">
@@ -64,7 +66,7 @@
                     <MudStack Row="true" Spacing="3" Wrap="Wrap.Wrap">
                         @if (_numbers.OpenNotices is { } openNotices)
                         {
-                            <div style="flex:1 1 190px;">
+                            <div class="landing-kachel" style="flex:1 1 190px;">
                                 <StatTile Icon="@Icons.Material.Filled.PersonSearch" Colour="Color.Primary"
                                           Label="Laufende Fahndungen" Value="@openNotices.ToString("N0")"
                                           Hint="Derzeit öffentlich ausgeschrieben." />
@@ -72,7 +74,7 @@
                         }
                         @if (_numbers.CapturedNotices is { } captured)
                         {
-                            <div style="flex:1 1 190px;">
+                            <div class="landing-kachel" style="flex:1 1 190px;">
                                 <StatTile Icon="@Icons.Material.Filled.Inventory2" Colour="Color.Success"
                                           Label="Abgeschlossen" Value="@captured.ToString("N0")"
                                           Hint="Abgeschlossene Ausschreibungen seit Beginn." />
@@ -82,7 +84,7 @@
                         {
                             @* the two sub-figures used to be tiles of their own; they are shares OF this number,
                                so they belong in its hint rather than in the same row as their own total *@
-                            <div style="flex:1 1 190px;">
+                            <div class="landing-kachel" style="flex:1 1 190px;">
                                 <StatTile Icon="@Icons.Material.Filled.TipsAndUpdates" Colour="Color.Info"
                                           Label="Hinweise" Value="@tips.ToString("N0")"
                                           Hint="@TipsHint(tips)" />
@@ -90,7 +92,7 @@
                         }
                         @if (_numbers.RewardsPaid is { } paid)
                         {
-                            <div style="flex:1 1 190px;">
+                            <div class="landing-kachel" style="flex:1 1 190px;">
                                 <StatTile Icon="@Icons.Material.Filled.Paid" Colour="Color.Warning"
                                           Label="Ausgezahlte Belohnungen" Value="@($"{paid.ToString("N0")} $")"
                                           Hint="Insgesamt an Hinweisgeber ausgezahlt." />
@@ -112,7 +114,8 @@
                                StartIcon="@Icons.Material.Filled.PersonSearch">Alle Fahndungen</MudButton>
                 </MudStack>
 
-                <MudStack Row="true" Spacing="3" Wrap="Wrap.Wrap" AlignItems="AlignItems.Stretch">
+                @* a sideways strip on phones (Landing.razor.css): three cards stacked would fill two screens *@
+                <MudStack Row="true" Spacing="3" Wrap="Wrap.Wrap" AlignItems="AlignItems.Stretch" Class="landing-streifen">
                     @foreach (var card in _wanted)
                     {
                         <MudPaper Outlined="true" Class="pa-0" Style="flex:1 1 240px;">
@@ -270,6 +273,7 @@
     </MudPaper>
 
 </MudStack>
+</div>
 
 @code {
     /// <summary>How many notices the start page shows before pointing at the board.</summary>

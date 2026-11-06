@@ -229,3 +229,17 @@
         overflow: visible;
     }
 }
+
+/* phones: a long rank title or name breaks instead of pushing the chart wider than the screen */
+@media screen and (max-width: 599.98px) {
+    .org-node {
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .org-card-name {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+}
