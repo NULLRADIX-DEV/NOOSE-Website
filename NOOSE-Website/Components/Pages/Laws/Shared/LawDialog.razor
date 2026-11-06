@@ -1,7 +1,8 @@
 @* Add or edit one paragraph; the text is rich text, the book comes from the catalog. *@
 @inject ILawService LawService
 
-<MudDialog>
+@* a long form with a rich-text editor: full screen below 600px *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         <MudStack Spacing="3">
             @if (_loaded && _books.Count == 0)
@@ -13,7 +14,7 @@
             <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
                 <MudSelect T="string" Value="_input.LawBook" ValueChanged="BookChangedAsync" Label="Gesetzbuch"
                            Variant="Variant.Outlined" Required="true" RequiredError="Gesetzbuch ist erforderlich"
-                           Style="min-width:240px;">
+                           Style="min-width:240px;" Class="noose-breite-frei">
                     @foreach (var book in _books)
                     {
                         <MudSelectItem T="string" Value="@book.Abbreviation">@book.Abbreviation – @book.Name</MudSelectItem>

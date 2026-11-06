@@ -6,17 +6,29 @@
 @inject PresentationBroadcaster Broadcaster
 @inject IDialogService DialogService
 @inject NavigationManager Nav
+@using NOOSE_Website.Models.Navigation
 
 <PageTitle>Präsentationen · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.CoPresent"
             Title="Präsentationen"
             Subtitle="Folien anlegen und live für die Agenten vorführen, die gerade online sind.">
-    <Actions>
+    <MoreActions>
         @if (_mayCreate)
         {
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudDownload"
                        OnClick="ImportAsync">Aus Google Slides importieren</MudButton>
+        }
+    </MoreActions>
+    <MoreActionsMenu>
+        @if (_mayCreate)
+        {
+            <MudMenuItem Icon="@Icons.Material.Filled.CloudDownload" OnClick="ImportAsync">Aus Google Slides importieren</MudMenuItem>
+        }
+    </MoreActionsMenu>
+    <Actions>
+        @if (_mayCreate)
+        {
             <MudButton Href="/praesentationen/neu" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add">Neue Präsentation</MudButton>
         }
@@ -52,7 +64,7 @@
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3 flex-wrap">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3 flex-wrap noose-filterleiste">
         <MudChipSet T="string" @bind-SelectedValue="_filter" SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
             <MudChip T="string" Value="@("alle")" Text="Alle" />
             <MudChip T="string" Value="@("meine")" Text="Meine" />
@@ -60,7 +72,9 @@ else
         <MudSpacer />
         <MudTextField @bind-Value="_search" Placeholder="Suchen …" Adornment="Adornment.Start"
                       AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense"
-                      Immediate="true" Clearable="true" Style="max-width:320px;" />
+                      Immediate="true" Clearable="true" Style="max-width:320px;" Class="noose-filter-feld" />
+        <MobileColumnPicker ListKey="praesentationen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                            VisibleChanged="@(v => _phoneColumns = v)" />
     </MudStack>
 
     @if (Shown.Count == 0)
@@ -71,16 +85,16 @@ else
     }
     else
     {
-        <MudTable Items="Shown" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.Sm">
+        <MudTable Items="Shown" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
             <HeaderContent>
-                <MudTh>Titel</MudTh>
-                <MudTh>Sichtbar für</MudTh>
-                <MudTh>Von</MudTh>
-                <MudTh>Folien</MudTh>
-                <MudTh>Geändert</MudTh>
+                <MudTh Class="@Col("titel")">Titel</MudTh>
+                <MudTh Class="@Col("sichtbar")">Sichtbar für</MudTh>
+                <MudTh Class="@Col("von")">Von</MudTh>
+                <MudTh Class="@Col("folien")">Folien</MudTh>
+                <MudTh Class="@Col("geaendert")">Geändert</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Titel">
+                <MudTd DataLabel="Titel" Class="@Col("titel")">
                     <MudLink Href="@($"/praesentationen/{context.Id}")"><b>@context.Title</b></MudLink>
                     @if (_liveIds.Contains(context.Id))
                     {
@@ -91,15 +105,15 @@ else
                         <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.Description</MudText>
                     }
                 </MudTd>
-                <MudTd DataLabel="Sichtbar für">
+                <MudTd DataLabel="Sichtbar für" Class="@Col("sichtbar")">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                         <MudIcon Icon="@PresentationDisplay.Icon(context.Access)" Size="Size.Small" />
                         <span>@context.AccessLabel</span>
                     </MudStack>
                 </MudTd>
-                <MudTd DataLabel="Von">@context.OwnerCodename</MudTd>
-                <MudTd DataLabel="Folien">@context.SlideCount</MudTd>
-                <MudTd DataLabel="Geändert">@context.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Von" Class="@Col("von")">@context.OwnerCodename</MudTd>
+                <MudTd DataLabel="Folien" Class="@Col("folien")">@context.SlideCount</MudTd>
+                <MudTd DataLabel="Geändert" Class="@Col("geaendert")">@context.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
             </RowTemplate>
         </MudTable>
     }
@@ -111,6 +125,21 @@ else
     private ClaimsPrincipal _user = new();
     private string? _me;
     private bool _mayCreate;
+
+    /// <summary>The table's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("titel", "Titel"), ("sichtbar", "Sichtbar für"), ("von", "Von"), ("folien", "Folien"), ("geaendert", "Geändert"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the title and when it last changed.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["titel", "geaendert"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
     private List<PresentationListItem>? _items;
     private List<LiveSessionSnapshot> _live = [];
     private HashSet<string> _liveIds = [];

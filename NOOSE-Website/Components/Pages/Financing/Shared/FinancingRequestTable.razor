@@ -1,4 +1,5 @@
-@* Funding requests as a flat table; every row links to its record, where the decisions happen. *@
+@* Funding requests as a flat table; every row links to its record, where the decisions happen.
+   Phones keep case number, status and the link; the other columns are on the record. *@
 
 @if (Rows.Count == 0)
 {
@@ -12,13 +13,13 @@ else
                 <th>Aktenzeichen</th>
                 @if (ShowAgent)
                 {
-                    <th>Agent</th>
+                    <th class="noose-mobil-aus">Agent</th>
                 }
                 <th>Status</th>
-                <th>Positionen</th>
-                <th style="text-align:right">Beantragt</th>
-                <th style="text-align:right">Genehmigt</th>
-                <th>Gestellt</th>
+                <th class="noose-mobil-aus">Positionen</th>
+                <th class="noose-mobil-aus" style="text-align:right">Beantragt</th>
+                <th class="noose-mobil-aus" style="text-align:right">Genehmigt</th>
+                <th class="noose-mobil-aus">Gestellt</th>
                 <th></th>
             </tr>
         </thead>
@@ -30,17 +31,17 @@ else
                     <td style="white-space:nowrap">@request.CaseNumber</td>
                     @if (ShowAgent)
                     {
-                        <td>@row.AgentCodename</td>
+                        <td class="noose-mobil-aus">@row.AgentCodename</td>
                     }
                     <td>
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
                                  Color="@FinancingStatusDisplay.ChipColor(request.Status)"
                                  Icon="@FinancingStatusDisplay.Icon(request.Status)">@FinancingStatusDisplay.Name(request.Status)</MudChip>
                     </td>
-                    <td>@Summary(request)</td>
-                    <td style="text-align:right">@Money.Format(request.RequestedSubsidy)</td>
-                    <td style="text-align:right">@(request.ApprovedSubsidy is { } sum ? Money.Format(sum) : "—")</td>
-                    <td style="white-space:nowrap">@request.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    <td class="noose-mobil-aus">@Summary(request)</td>
+                    <td class="noose-mobil-aus" style="text-align:right">@Money.Format(request.RequestedSubsidy)</td>
+                    <td class="noose-mobil-aus" style="text-align:right">@(request.ApprovedSubsidy is { } sum ? Money.Format(sum) : "—")</td>
+                    <td class="noose-mobil-aus" style="white-space:nowrap">@request.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                     <td style="text-align:right">
                         <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
                                        Href="@($"/finanzierungen/{request.Id}")" aria-label="Antrag öffnen" />

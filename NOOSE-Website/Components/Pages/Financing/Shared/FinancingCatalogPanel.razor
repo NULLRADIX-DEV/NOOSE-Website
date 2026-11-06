@@ -7,15 +7,15 @@
 @inject IJSRuntime JS
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudText Typo="Typo.h6">Katalog</MudText>
-        <MudSpacer />
-        @if (_mayManage)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@(() => StartEdit(null))">Neue Position</MudButton>
-        }
-    </MudStack>
+    <SectionHeader Title="Katalog">
+        <Actions>
+            @if (_mayManage)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => StartEdit(null))">Neue Position</MudButton>
+            }
+        </Actions>
+    </SectionHeader>
 
     @if (_editing is not null)
     {
@@ -110,15 +110,16 @@
         @foreach (var group in _rows.GroupBy(i => string.IsNullOrWhiteSpace(i.Category) ? "Ohne Kategorie" : i.Category!))
         {
             <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mt-2">@group.Key</MudText>
+            @* phones keep the name, the subsidy share and the actions *@
             <MudSimpleTable Dense="true" Hover="true" Striped="true">
                 <thead>
                     <tr>
                         <th>Bezeichnung</th>
-                        <th style="text-align:right">Einzelpreis</th>
+                        <th class="noose-mobil-aus" style="text-align:right">Einzelpreis</th>
                         <th style="text-align:right">Zuschuss</th>
-                        <th style="text-align:right">Max.</th>
-                        <th>Ab Dienstgrad</th>
-                        <th>Aktiv</th>
+                        <th class="noose-mobil-aus" style="text-align:right">Max.</th>
+                        <th class="noose-mobil-aus">Ab Dienstgrad</th>
+                        <th class="noose-mobil-aus">Aktiv</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -133,11 +134,11 @@
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@item.Description</MudText>
                                 }
                             </td>
-                            <td style="text-align:right">@Money.Format(item.UnitPrice)</td>
+                            <td class="noose-mobil-aus" style="text-align:right">@Money.Format(item.UnitPrice)</td>
                             <td style="text-align:right">@item.SubsidyPercent %</td>
-                            <td style="text-align:right">@item.MaxQuantity</td>
-                            <td>@FinancingItemRanks.Label(item)</td>
-                            <td>@(item.IsActive ? "Ja" : "Nein")</td>
+                            <td class="noose-mobil-aus" style="text-align:right">@item.MaxQuantity</td>
+                            <td class="noose-mobil-aus">@FinancingItemRanks.Label(item)</td>
+                            <td class="noose-mobil-aus">@(item.IsActive ? "Ja" : "Nein")</td>
                             <td style="text-align:right; white-space:nowrap">
                                 @if (_mayManage)
                                 {

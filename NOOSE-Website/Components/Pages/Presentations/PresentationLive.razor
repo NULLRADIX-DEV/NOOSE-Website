@@ -39,14 +39,27 @@ else if (_role == LiveRole.Presenter && _session is not null)
             <MudChip T="string" Color="Color.Error" Size="Size.Small" Icon="@Icons.Material.Filled.FiberManualRecord">LIVE</MudChip>
             <MudText Typo="Typo.h6">@_view.Presentation.Title</MudText>
             <MudSpacer />
-            <MudToggleGroup T="PresentationFollowMode" Value="_session.Mode" ValueChanged="SetModeAsync"
-                            Size="Size.Small" Color="Color.Primary" Outlined="true">
-                <MudToggleItem Value="PresentationFollowMode.Strict" Text="Alle folgen mir" />
-                <MudToggleItem Value="PresentationFollowMode.Free" Text="Frei blättern" />
-            </MudToggleGroup>
-            <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
-                       StartIcon="@Icons.Material.Filled.Stop" OnClick="EndAsync">Beenden</MudButton>
+            @* the presenter's tools: from 600px up as before, on a phone in a ⋮ menu so the slide gets the room *@
+            <div class="d-contents noose-mobil-aus">
+                <MudToggleGroup T="PresentationFollowMode" Value="_session.Mode" ValueChanged="SetModeAsync"
+                                Size="Size.Small" Color="Color.Primary" Outlined="true">
+                    <MudToggleItem Value="PresentationFollowMode.Strict" Text="Alle folgen mir" />
+                    <MudToggleItem Value="PresentationFollowMode.Free" Text="Frei blättern" />
+                </MudToggleGroup>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Stop" OnClick="EndAsync">Beenden</MudButton>
+            </div>
+            <HeaderMenu PhoneOnly="true">
+                <MudMenuItem Icon="@ModeIcon(PresentationFollowMode.Strict)"
+                             OnClick="@(() => SetModeAsync(PresentationFollowMode.Strict))">Alle folgen mir</MudMenuItem>
+                <MudMenuItem Icon="@ModeIcon(PresentationFollowMode.Free)"
+                             OnClick="@(() => SetModeAsync(PresentationFollowMode.Free))">Frei blättern</MudMenuItem>
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Stop" IconColor="Color.Error" OnClick="EndAsync">Beenden</MudMenuItem>
+            </HeaderMenu>
         </MudStack>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="noose-nur-handy mb-3"
+                  Icon="@Icons.Material.Filled.ScreenRotation">Quer gehalten werden die Folien größer.</MudAlert>
 
         <MudGrid>
             <MudItem xs="12" md="8">
@@ -145,6 +158,8 @@ else if (_role == LiveRole.Viewer && _session is not null)
                 <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="EndAsync">Vorführung beenden</MudButton>
             }
         </MudStack>
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="noose-nur-handy mb-3"
+                  Icon="@Icons.Material.Filled.ScreenRotation">Quer gehalten werden die Folien größer.</MudAlert>
         <div class="praesentation-buehne" @ref="_stage">
             <SlideView Slide="SlideAt(shownIndex)" Number="@(shownIndex + 1)" />
         </div>
@@ -236,6 +251,10 @@ else
     // the picker for whoever may present; empty for everyone else
     private List<Agent> _agents = [];
     private List<string> _toInvite = [];
+
+    /// <summary>The ⋮ menu's mark for the follow mode in force (phone only; the toggle group shows it from 600px up).</summary>
+    private string ModeIcon(PresentationFollowMode mode)
+        => _session?.Mode == mode ? Icons.Material.Filled.RadioButtonChecked : Icons.Material.Filled.RadioButtonUnchecked;
 
     private bool Following => _session is null || _session.Mode == PresentationFollowMode.Strict || _following;
 

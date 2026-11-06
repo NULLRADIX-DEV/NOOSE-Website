@@ -25,10 +25,10 @@ else if (IsNew)
     {
         <MudPaper Class="pa-4" Elevation="1">
             <PresentationSettingsForm Input="_input" User="_user" />
-            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
+            <FormActions Spacing="3" Class="mt-4">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettingsAsync" Disabled="_busy"
                            StartIcon="@Icons.Material.Filled.Add">Anlegen und Folien bearbeiten</MudButton>
-            </MudStack>
+            </FormActions>
         </MudPaper>
     }
 }
@@ -60,17 +60,17 @@ else
             <MudExpansionPanel Text="@($"Google-Importe ({_view.Files.Count})")">
                 <MudSimpleTable Dense="true" Hover="true" Elevation="0">
                     <thead>
-                        <tr><th>Präsentation</th><th>Seiten</th><th>Folien</th><th>Quelle</th><th>Importiert</th><th></th></tr>
+                        <tr><th>Präsentation</th><th class="noose-mobil-aus">Seiten</th><th>Folien</th><th class="noose-mobil-aus">Quelle</th><th class="noose-mobil-aus">Importiert</th><th></th></tr>
                     </thead>
                     <tbody>
                         @foreach (var file in _view.Files)
                         {
                             <tr>
                                 <td>@file.Title</td>
-                                <td>@file.PageCount</td>
+                                <td class="noose-mobil-aus">@file.PageCount</td>
                                 <td>@file.SlideCount</td>
-                                <td>@(file.SourceKind switch { ImportSourceKind.Link => "Freigabe-Link", ImportSourceKind.Drive => "Google-Anmeldung", _ => "Datei" })</td>
-                                <td>@file.ImportedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @file.ImportedByCodename</td>
+                                <td class="noose-mobil-aus">@(file.SourceKind switch { ImportSourceKind.Link => "Freigabe-Link", ImportSourceKind.Drive => "Google-Anmeldung", _ => "Datei" })</td>
+                                <td class="noose-mobil-aus">@file.ImportedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @file.ImportedByCodename</td>
                                 <td style="text-align:right; white-space:nowrap;">
                                     <MudTooltip Text="Aktualisieren">
                                         <MudIconButton Icon="@Icons.Material.Filled.Sync" Size="Size.Small" Disabled="_busy"
@@ -128,21 +128,34 @@ else
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-3 flex-wrap">
                         <MudText Typo="Typo.subtitle1"><b>Folie @(index + 1) von @_slides.Count</b></MudText>
                         <MudSpacer />
-                        <MudTooltip Text="Nach vorne">
-                            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
-                                           Disabled="@(_busy || index <= 0)" OnClick="@(() => MoveAsync(index - 1))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Nach hinten">
-                            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
-                                           Disabled="@(_busy || index >= _slides.Count - 1)" OnClick="@(() => MoveAsync(index + 1))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Duplizieren">
-                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Disabled="_busy" OnClick="DuplicateAsync" />
-                        </MudTooltip>
-                        <MudTooltip Text="Folie löschen">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                           Disabled="_busy" OnClick="DeleteSlideAsync" />
-                        </MudTooltip>
+                        @* four tool buttons: below 600px they move into a ⋮ menu beside Speichern *@
+                        <div class="d-contents noose-mobil-aus">
+                            <MudTooltip Text="Nach vorne">
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                               Disabled="@(_busy || index <= 0)" OnClick="@(() => MoveAsync(index - 1))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Nach hinten">
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                               Disabled="@(_busy || index >= _slides.Count - 1)" OnClick="@(() => MoveAsync(index + 1))" />
+                            </MudTooltip>
+                            <MudTooltip Text="Duplizieren">
+                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small" Disabled="_busy" OnClick="DuplicateAsync" />
+                            </MudTooltip>
+                            <MudTooltip Text="Folie löschen">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               Disabled="_busy" OnClick="DeleteSlideAsync" />
+                            </MudTooltip>
+                        </div>
+                        <HeaderMenu PhoneOnly="true">
+                            <MudMenuItem Icon="@Icons.Material.Filled.ArrowUpward" Disabled="@(_busy || index <= 0)"
+                                         OnClick="@(() => MoveAsync(index - 1))">Nach vorne</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.ArrowDownward" Disabled="@(_busy || index >= _slides.Count - 1)"
+                                         OnClick="@(() => MoveAsync(index + 1))">Nach hinten</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.ContentCopy" Disabled="_busy" OnClick="DuplicateAsync">Duplizieren</MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" Disabled="_busy"
+                                         OnClick="DeleteSlideAsync">Folie löschen</MudMenuItem>
+                        </HeaderMenu>
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Class="ml-2"
                                    StartIcon="@Icons.Material.Filled.Save" Disabled="_busy" OnClick="@(() => SaveSlideAsync(false))">
                             Speichern

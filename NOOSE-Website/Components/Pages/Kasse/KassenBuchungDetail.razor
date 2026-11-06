@@ -19,7 +19,9 @@ else
 {
     var b = _display.Buchung;
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* the hand-built record bar stays (its h5 title with chips has no PageHeader form, and the desktop keeps its
+       look); below 960px it wraps, print and delete give way to the ⋮ menu, each entry behind its button's check *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/kasse" aria-label="Zurück" />
         <MudChip T="string" Size="Size.Small" Color="@KassenKontoDisplay.Colour(b.Account)"
                  Icon="@KassenKontoDisplay.Icon(b.Account)">@KassenKontoDisplay.Name(b.Account)</MudChip>
@@ -27,21 +29,32 @@ else
                  Icon="@KassenBuchungArtDisplay.Icon(b.Kind)">@KassenBuchungArtDisplay.Name(b.Kind)</MudChip>
         <MudText Typo="Typo.h5">@b.CaseNumber</MudText>
         <MudSpacer />
-        <MudTooltip Text="Druckansicht">
-            <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/kasse/buchung/{b.Id}/druck")" Target="_blank"
-                           aria-label="Druckansicht öffnen" />
-        </MudTooltip>
+        <div class="d-contents noose-schmal-aus">
+            <MudTooltip Text="Druckansicht">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/kasse/buchung/{b.Id}/druck")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+        </div>
         <AuthorizeView Policy="@Policies.Leadership" Context="edit">
             <MudButton Href="@($"/kasse/buchung/{b.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
-            <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
-                       OnClick="DeleteAsync">Löschen</MudButton>
+            <div class="d-contents noose-schmal-aus">
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteAsync">Löschen</MudButton>
+            </div>
         </AuthorizeView>
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/kasse/buchung/{b.Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+            <AuthorizeView Policy="@Policies.Leadership" Context="editMenu">
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            </AuthorizeView>
+        </HeaderMenu>
     </MudStack>
 
     <MudPaper Class="pa-4 mb-4" Elevation="1">
         <MudGrid>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <MudText Typo="Typo.overline" Class="mud-text-secondary">
                     @(b.Kind == KassenBuchungArt.Auszahlung ? "Abgebucht" : b.Kind == KassenBuchungArt.Einzahlung ? "Eingezahlt" : "Korrektur")
                 </MudText>
@@ -49,7 +62,7 @@ else
                     @(b.Kind == KassenBuchungArt.Korrektur ? Money.Format(b.Amount) : Money.Signed(_display.Delta))
                 </MudText>
             </MudItem>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <MudText Typo="Typo.overline" Class="mud-text-secondary">Neuer Stand</MudText>
                 <MudText Typo="Typo.h6">@Money.Format(_display.BalanceAfter)</MudText>
             </MudItem>

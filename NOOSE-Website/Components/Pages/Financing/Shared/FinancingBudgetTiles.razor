@@ -1,22 +1,22 @@
 @* Budget of one agent for the running month; reused on the funding page and in the personnel file. *@
 
 <MudGrid>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.Savings" Colour="Color.Primary"
                   Label="Grundbudget" Value="@Money.Format(Status.BaseBudget)"
                   Hint="@(Status.IsOverride ? "individuell gesetzt" : "nach Dienstgrad")" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.MoveDown" Colour="Color.Info"
                   Label="Übertrag aus Vormonat" Value="@Money.Format(Status.CarryIn)"
                   Hint="@($"{Status.CarryPercent} % des Restes")" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.TrendingDown" Colour="Color.Warning"
                   Label="Verbraucht" Value="@Money.Format(Status.Consumed)"
                   Hint="genehmigt und ausgezahlt" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.AccountBalanceWallet" Colour="@(Status.Remaining > 0 ? Color.Success : Color.Error)"
                   Label="Restbudget" Value="@Money.Format(Status.Remaining)"
                   Hint="@FinancingPeriod.Label(Status.Year, Status.Month)" />
