@@ -241,10 +241,11 @@ public class BewerbungService(
 
         try
         {
-            await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
+            // only what the applicant sees
             if (BewerbungStatusDisplay.ChangesApplicantView(previous, target))
             {
+                await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
+                    $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
                 await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
             }
         }
@@ -333,10 +334,10 @@ public class BewerbungService(
 
         try
         {
-            await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
             if (BewerbungStatusDisplay.ChangesApplicantView(previous, target))
             {
+                await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
+                    $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(target)}", "/portal/status", cancellationToken);
                 await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
             }
         }
@@ -382,11 +383,11 @@ public class BewerbungService(
 
         try
         {
-            await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                passed ? $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(BewerbungStatus.ImTest)}" : "Deine Bewerbung wurde abgeschlossen.",
-                "/portal/status", cancellationToken);
             if (BewerbungStatusDisplay.ChangesApplicantView(previous, bewerbung.Status))
             {
+                await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
+                    passed ? $"Statusänderung: {BewerbungStatusDisplay.ApplicantName(BewerbungStatus.ImTest)}" : "Deine Bewerbung wurde abgeschlossen.",
+                    "/portal/status", cancellationToken);
                 await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.StatusChanged, cancellationToken);
             }
         }

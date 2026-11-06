@@ -255,7 +255,8 @@ public sealed class ApplicantDmTests
 
     // ---------- the wiring: BewerbungService ----------
 
-    private static (BewerbungService Svc, IApplicantDmNotifier Dm) BuildApplications(SqliteTestContext ctx)
+    private static (BewerbungService Svc, IApplicantDmNotifier Dm) BuildApplications(
+        SqliteTestContext ctx, INotificationService? notifications = null)
     {
         var caseNo = Substitute.For<ICaseNumberService>();
         caseNo.NextAsync(Arg.Any<AppDbContext>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -263,7 +264,7 @@ public sealed class ApplicantDmTests
         var dm = Substitute.For<IApplicantDmNotifier>();
         var svc = new BewerbungService(ctx.Factory, caseNo, Substitute.For<ISourcesStorageService>(),
             new BewerbungBroadcaster(), Substitute.For<IBewerbungssperreService>(),
-            Substitute.For<INotificationService>(), dm, Substitute.For<IApplicationCaseService>(),
+            notifications ?? Substitute.For<INotificationService>(), dm, Substitute.For<IApplicationCaseService>(),
             Substitute.For<ILogger<BewerbungService>>());
         return (svc, dm);
     }
@@ -454,6 +455,63 @@ public sealed class ApplicantDmTests
         {
             AssertSilent(dm);
         }
+    }
+
+    private static int BellRings(INotificationService bell) => bell.ReceivedCalls()
+        .Count(c => c.GetMethodInfo().Name == nameof(INotificationService.NotifyAsync)
+            && c.GetArguments()[0] as string == "u1" && c.GetArguments()[1] is NotificationType.Recruiting);
+
+    [Theory]
+    [InlineData(BewerbungStatus.Eingereicht, BewerbungStatus.InSicherheitspruefung, true)]
+    [InlineData(BewerbungStatus.ImVorstellungsgespraech, BewerbungStatus.Angenommen, true)]
+    [InlineData(BewerbungStatus.ImTest, BewerbungStatus.Abgelehnt, true)]
+    // the step from the test to the interview rings nothing, or the applicant could tell it from the bell
+    [InlineData(BewerbungStatus.ImTest, BewerbungStatus.ImVorstellungsgespraech, false)]
+    public async Task Setting_a_status_rings_the_applicant_bell_only_when_their_view_changes(
+        BewerbungStatus from, BewerbungStatus to, bool rings)
+    {
+        using var ctx = new SqliteTestContext();
+        SeedApplication(ctx, from);
+        var bell = Substitute.For<INotificationService>();
+        var (svc, _) = BuildApplications(ctx, bell);
+
+        await svc.SetStatusAsync("b1", to, null, Hrb());
+
+        Assert.Equal(rings ? 1 : 0, BellRings(bell));
+    }
+
+    [Theory]
+    [InlineData(BewerbungStatus.Abgelehnt, BewerbungStatus.ImTest)]
+    [InlineData(BewerbungStatus.Angenommen, BewerbungStatus.ImVorstellungsgespraech)]
+    public async Task Reopening_rings_the_applicant_bell_once(BewerbungStatus decided, BewerbungStatus target)
+    {
+        using var ctx = new SqliteTestContext();
+        SeedApplication(ctx, decided);
+        var bell = Substitute.For<INotificationService>();
+        var (svc, _) = BuildApplications(ctx, bell);
+
+        await svc.ReopenAsync("b1", target, "neue Lage", Hrb());
+
+        Assert.Equal(1, BellRings(bell));
+    }
+
+    [Theory]
+    [InlineData(BewerbungStatus.InSicherheitspruefung, true, true)]
+    [InlineData(BewerbungStatus.ImTest, false, true)]
+    // a repeated check inside the selection changes nothing the applicant sees
+    [InlineData(BewerbungStatus.ImTest, true, false)]
+    [InlineData(BewerbungStatus.ImVorstellungsgespraech, true, false)]
+    public async Task A_security_result_rings_the_applicant_bell_only_when_their_view_changes(
+        BewerbungStatus from, bool passed, bool rings)
+    {
+        using var ctx = new SqliteTestContext();
+        SeedApplication(ctx, from);
+        var bell = Substitute.For<INotificationService>();
+        var (svc, _) = BuildApplications(ctx, bell);
+
+        await svc.SetSecurityResultAsync("b1", passed, Hrb());
+
+        Assert.Equal(rings ? 1 : 0, BellRings(bell));
     }
 
     [Fact]
