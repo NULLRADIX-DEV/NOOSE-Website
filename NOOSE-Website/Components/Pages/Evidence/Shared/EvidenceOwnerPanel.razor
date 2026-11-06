@@ -1,4 +1,5 @@
-@* Evidence entries linked to a record: an owner (person) or a faction's current members. *@
+@* Evidence entries linked to a record: an owner (person) or a faction's current members.
+   Below 600px owner and date give way (noose-mobil-aus); file number, kind and items stay. *@
 @inject IEvidenceService Evidence
 @inject NavigationManager Nav
 
@@ -21,9 +22,9 @@
                     <th>Gegenstände</th>
                     @if (_showOwner)
                     {
-                        <th>Besitzer</th>
+                        <th class="noose-mobil-aus">Besitzer</th>
                     }
-                    <th>Datum</th>
+                    <th class="noose-mobil-aus">Datum</th>
                 </tr>
             </thead>
             <tbody>
@@ -43,9 +44,9 @@
                         </td>
                         @if (_showOwner)
                         {
-                            <td>@r.OwnerDisplay</td>
+                            <td class="noose-mobil-aus">@r.OwnerDisplay</td>
                         }
-                        <td>@r.Entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="noose-mobil-aus">@r.Entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                     </tr>
                 }
             </tbody>

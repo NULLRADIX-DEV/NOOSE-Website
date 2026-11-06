@@ -36,7 +36,8 @@ else
 
                 <div>
                     <MudText Typo="Typo.subtitle2" Class="mb-2">Bild</MudText>
-                    <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+                    @* noose-eintrag: below 600px the buttons wrap under the picture instead of pushing the page wider *@
+                    <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Class="noose-eintrag">
                         @if (_file is not null)
                         {
                             <MudChip T="string" Icon="@Icons.Material.Filled.Image" Color="Color.Info">@_file.Name</MudChip>
@@ -67,13 +68,13 @@ else
                     </MudStack>
                 </div>
 
-                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                <FormActions>
                     <MudButton Href="@(IsEdit ? $"/asservatenkammer/item/{Id}" : "/asservatenkammer")">Abbrechen</MudButton>
                     <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_saving"
                                StartIcon="@Icons.Material.Filled.Save">
                         @(IsEdit ? "Änderungen speichern" : "Item anlegen")
                     </MudButton>
-                </MudStack>
+                </FormActions>
             </MudStack>
         </MudForm>
     </MudPaper>

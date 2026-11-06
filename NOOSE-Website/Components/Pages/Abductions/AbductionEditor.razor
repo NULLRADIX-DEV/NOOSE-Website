@@ -69,17 +69,17 @@ else
 
                 <MudDivider />
                 <MudGrid>
-                    <MudItem xs="7" md="4">
+                    <MudItem xs="12" sm="7" md="4">
                         <MudDatePicker Label="Datum der Entführung" @bind-Date="_date" Required="true"
                                        RequiredError="Datum ist erforderlich" DateFormat="dd.MM.yyyy" />
                     </MudItem>
-                    <MudItem xs="5" md="2">
+                    <MudItem xs="12" sm="5" md="2">
                         <MudTimePicker Label="Uhrzeit" @bind-Time="_time" />
                     </MudItem>
-                    <MudItem xs="7" md="4">
+                    <MudItem xs="12" sm="7" md="4">
                         <MudDatePicker Label="Freigelassen am (optional)" @bind-Date="_releasedDate" DateFormat="dd.MM.yyyy" Clearable="true" />
                     </MudItem>
-                    <MudItem xs="5" md="2">
+                    <MudItem xs="12" sm="5" md="2">
                         <MudTimePicker Label="Uhrzeit" @bind-Time="_releasedTime" />
                     </MudItem>
                 </MudGrid>
@@ -118,13 +118,13 @@ else
                               Label="Notizen (optional)" Lines="2" HelperText="@MentionInput.Hint"
                               DraftKey='@DraftKeys.In(DraftScope, "notizen")' />
 
-                <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                <FormActions>
                     <MudButton Href="@(IsEdit ? $"/entfuehrungen/{Id}" : "/entfuehrungen")">Abbrechen</MudButton>
                     <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_saving"
                                StartIcon="@Icons.Material.Filled.Save">
                         @(IsEdit ? "Änderungen speichern" : "Entführung dokumentieren")
                     </MudButton>
-                </MudStack>
+                </FormActions>
             </MudStack>
         </MudForm>
     </MudPaper>

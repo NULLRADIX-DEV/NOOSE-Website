@@ -3,6 +3,7 @@
 @inject IWarrantService WarrantService
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@using NOOSE_Website.Models.Navigation
 
 <PageTitle>Anordnungen · FIB</PageTitle>
 
@@ -21,9 +22,14 @@
 <RecordSectionRail HideRailWhenSingle="true">
     <RecordSection Slug="uebersicht" Label="Übersicht" Icon="@Icons.Material.Filled.FormatListBulleted">
         <MudStack Spacing="3">
-            <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Class="flex-wrap">
+            <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Class="flex-wrap noose-filterleiste">
+                @* below 600px the status filter folds behind this button; from 600px up it is gone *@
+                <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList" Class="noose-nur-handy"
+                           OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@(_state is null ? 0 : 1))</MudButton>
+                <MobileColumnPicker ListKey="anordnungen" Columns="WarrantTable.PhoneColumns" Defaults="WarrantTable.PhoneDefaults"
+                                    VisibleChanged="@(v => _phoneColumns = v)" />
                 <MudSelect T="WarrantState?" Value="_state" ValueChanged="StateChangedAsync" Label="Status"
-                           Variant="Variant.Outlined" Dense="true" Style="min-width:200px; max-width:260px;">
+                           Variant="Variant.Outlined" Dense="true" Style="min-width:200px; max-width:260px;" Class="@FilterClass">
                     <MudSelectItem T="WarrantState?" Value="null">Alle</MudSelectItem>
                     @foreach (var state in WarrantStateDisplay.All)
                     {
@@ -33,7 +39,8 @@
                 <MudTextField T="string" Value="_text" ValueChanged="TextChangedAsync" Label="Suchen"
                               Placeholder="Aktenzeichen, Person oder Gegenstand" Variant="Variant.Outlined" Margin="Margin.Dense"
                               Immediate="true" DebounceInterval="250" Clearable="true"
-                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:360px;" />
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Style="max-width:360px;"
+                              Class="noose-filter-feld" />
             </MudStack>
 
             @if (_load)
@@ -47,7 +54,7 @@
             }
             else
             {
-                <WarrantTable Rows="Shown" />
+                <WarrantTable Rows="Shown" ColumnClass="Col" />
             }
         </MudStack>
     </RecordSection>
@@ -69,6 +76,18 @@
     private List<WarrantView> _rows = new();
     // only the newest load may write the rows
     private int _generation;
+
+    // the table's defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(
+        WarrantTable.PhoneColumns.Select(c => c.Key).ToList(), WarrantTable.PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    // below 600px the status filter starts folded behind "Filter (n)"; the class does nothing from 600px up
+    private bool _filtersOpen;
+
+    private string FilterClass => _filtersOpen ? "noose-filter-feld" : "noose-filter-feld noose-filter-zu";
 
     private IReadOnlyList<WarrantView> Shown => string.IsNullOrWhiteSpace(_text)
         ? _rows

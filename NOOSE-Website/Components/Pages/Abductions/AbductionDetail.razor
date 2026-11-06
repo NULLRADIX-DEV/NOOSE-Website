@@ -18,20 +18,34 @@ else
 {
     var a = _display.Abduction;
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* Record toolbar: from 960px up exactly the row it always was. Below 960px it wraps, "Bearbeiten" stays, print and
+       delete move into the ⋮ menu (HeaderMenu), each entry behind the same check as its button. The d-contents
+       wrappers add no box, so the buttons stay items of the row on wide screens. *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/entfuehrungen" aria-label="Zurück" />
         <MudText Typo="Typo.h5">Entführung @a.CaseNumber</MudText>
         <MudSpacer />
-        <MudTooltip Text="Druckansicht">
-            <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/entfuehrungen/{a.Id}/druck")" Target="_blank"
-                           aria-label="Druckansicht öffnen" />
-        </MudTooltip>
+        <div class="d-contents noose-schmal-aus">
+            <MudTooltip Text="Druckansicht">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/entfuehrungen/{a.Id}/druck")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+        </div>
         <AuthorizeView Policy="@Policies.WriteAccess" Context="edit">
             <MudButton Href="@($"/entfuehrungen/{a.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
-            <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
-                       OnClick="DeleteAsync">Löschen</MudButton>
+            <div class="d-contents noose-schmal-aus">
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteAsync">Löschen</MudButton>
+            </div>
         </AuthorizeView>
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/entfuehrungen/{a.Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="editMenu">
+                <MudDivider Class="my-1" />
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            </AuthorizeView>
+        </HeaderMenu>
     </MudStack>
 
     <MudPaper Class="pa-4 mb-4" Elevation="1">

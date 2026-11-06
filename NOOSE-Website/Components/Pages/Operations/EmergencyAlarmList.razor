@@ -5,6 +5,7 @@
 @inject EmergencyAlarmBroadcaster Broadcaster
 @inject IDialogService DialogService
 @inject NavigationManager Nav
+@using NOOSE_Website.Models.Navigation
 
 <PageTitle>Einsatzalarme · FIB</PageTitle>
 
@@ -25,31 +26,34 @@
 }
 else
 {
-    <MudTable T="EmergencyAlarmSummary" Items="_rows" Hover="true" Dense="true" Elevation="2"
+    @* the "Spalten" button shows below 600px only; from 600px up it renders nothing visible *@
+    <MobileColumnPicker ListKey="einsatzalarme" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                        VisibleChanged="@(v => _phoneColumns = v)" />
+    <MudTable T="EmergencyAlarmSummary" Items="_rows" Hover="true" Dense="true" Elevation="2" Breakpoint="Breakpoint.None"
               OnRowClick="@(args => Open(args.Item!))" RowStyle="cursor:pointer;">
         <HeaderContent>
-            <MudTh>Ausgelöst</MudTh>
-            <MudTh>Lage</MudTh>
-            <MudTh>Ziel</MudTh>
-            <MudTh>Auslöser</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Rückmeldung</MudTh>
-            <MudTh>Operation</MudTh>
+            <MudTh Class="@Col("ausgeloest")">Ausgelöst</MudTh>
+            <MudTh Class="@Col("lage")">Lage</MudTh>
+            <MudTh Class="@Col("ziel")">Ziel</MudTh>
+            <MudTh Class="@Col("ausloeser")">Auslöser</MudTh>
+            <MudTh Class="@Col("status")">Status</MudTh>
+            <MudTh Class="@Col("rueckmeldung")">Rückmeldung</MudTh>
+            <MudTh Class="@Col("operation")">Operation</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Ausgelöst">@context.TriggeredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="Lage">
+            <MudTd DataLabel="Ausgelöst" Class="@Col("ausgeloest")">@context.TriggeredAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Lage" Class="@Col("lage")">
                 <MudLink Href="@($"/einsatzalarme/{context.Id}")" @onclick:stopPropagation="true">@context.Situation</MudLink>
             </MudTd>
-            <MudTd DataLabel="Ziel">@EmergencyAlarmDisplay.Target(context.Target)</MudTd>
-            <MudTd DataLabel="Auslöser">
+            <MudTd DataLabel="Ziel" Class="@Col("ziel")">@EmergencyAlarmDisplay.Target(context.Target)</MudTd>
+            <MudTd DataLabel="Auslöser" Class="@Col("ausloeser")">
                 @context.TriggeredByName
                 @if (context.IsEmergency)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="ml-1">Gefahr im Verzug</MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="Status">
+            <MudTd DataLabel="Status" Class="@Col("status")">
                 @if (context.IsOpen)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Läuft</MudChip>
@@ -59,14 +63,14 @@ else
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Beendet</MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="Rückmeldung">
+            <MudTd DataLabel="Rückmeldung" Class="@Col("rueckmeldung")">
                 <MudText Typo="Typo.body2">
                     <span class="mud-success-text">@context.Coming kommen</span> ·
                     <span class="mud-error-text">@context.NotComing nicht</span> ·
                     <span class="mud-text-secondary">@context.Open offen</span>
                 </MudText>
             </MudTd>
-            <MudTd DataLabel="Operation">
+            <MudTd DataLabel="Operation" Class="@Col("operation")">
                 @if (context.OperationId is { } operationId)
                 {
                     <MudLink Href="@($"/operationen/{operationId}")" @onclick:stopPropagation="true">Zur Operation</MudLink>
@@ -92,6 +96,22 @@ else
     private bool _mayTrigger;
     private bool _triggers;
     private List<EmergencyAlarmSummary> _rows = new();
+
+    /// <summary>The table's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("ausgeloest", "Ausgelöst"), ("lage", "Lage"), ("ziel", "Ziel"), ("ausloeser", "Auslöser"), ("status", "Status"),
+        ("rueckmeldung", "Rückmeldung"), ("operation", "Operation"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the situation and whether the alarm still runs.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["lage", "status"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     protected override async Task OnInitializedAsync()
     {

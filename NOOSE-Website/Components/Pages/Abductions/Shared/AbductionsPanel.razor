@@ -1,4 +1,5 @@
-@* Embeddable abduction list: victim view (VictimAgentId) or perpetrator view (PerpetratorType + PerpetratorId). *@
+@* Embeddable abduction list: victim view (VictimAgentId) or perpetrator view (PerpetratorType + PerpetratorId).
+   Below 600px time and leak give way (noose-mobil-aus); file number, the other party, outcome and the marker stay. *@
 @inject IAbductionService AbductionService
 @inject NavigationManager Nav
 
@@ -27,9 +28,9 @@
                 <tr>
                     <th>Aktenzeichen</th>
                     <th>@(IsPerpetratorView ? "Opfer" : "Täter")</th>
-                    <th>Zeitpunkt</th>
+                    <th class="noose-mobil-aus">Zeitpunkt</th>
                     <th>Ausgang</th>
-                    <th>Leak</th>
+                    <th class="noose-mobil-aus">Leak</th>
                     <th></th>
                 </tr>
             </thead>
@@ -39,13 +40,13 @@
                     <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/entfuehrungen/{r.Abduction.Id}"))">
                         <td>@r.Abduction.CaseNumber</td>
                         <td>@(IsPerpetratorView ? r.VictimCodename : (r.PerpetratorName ?? "—"))</td>
-                        <td>@r.Abduction.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="noose-mobil-aus">@r.Abduction.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                         <td>
                             <MudChip T="string" Size="Size.Small" Color="@AbductionOutcomeDisplay.ChipColor(r.Abduction.Outcome)">
                                 @AbductionOutcomeDisplay.Name(r.Abduction.Outcome)
                             </MudChip>
                         </td>
-                        <td>
+                        <td class="noose-mobil-aus">
                             @if (r.Abduction.InformationLeaked)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="@LeakSeverityDisplay.ChipColor(r.Abduction.LeakSeverity)">

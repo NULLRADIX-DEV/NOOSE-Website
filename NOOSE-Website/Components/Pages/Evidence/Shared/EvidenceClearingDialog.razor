@@ -2,9 +2,10 @@
 @inject IEvidenceService Evidence
 @inject ISnackbar Snackbar
 
-<MudDialog>
+@* a long form: full screen below 600px (noose-dialog-lang); the min-width gives way there too *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
-        <MudStack Spacing="3" Style="min-width:520px;">
+        <MudStack Spacing="3" Style="min-width:520px;" Class="noose-min-breite-frei">
             @if (_load)
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
