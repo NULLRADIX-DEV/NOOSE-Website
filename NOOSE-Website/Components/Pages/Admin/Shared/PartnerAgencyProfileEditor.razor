@@ -36,7 +36,7 @@ else
             @foreach (var type in PartnerTabCatalog.All)
             {
                 <MudItem xs="12" md="6">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                         <MudSelect T="PartnerRuleScope?" Value="@_rules[type.TypeKey].Scope" ValueChanged="@(v => ScopeChanged(type.TypeKey, v))"
                                    Label="@type.DisplayName" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
                                    ReadOnly="@(!_mayEdit)" Style="min-width:220px;">

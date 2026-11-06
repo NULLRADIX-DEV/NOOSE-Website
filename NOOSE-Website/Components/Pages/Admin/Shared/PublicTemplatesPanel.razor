@@ -24,7 +24,7 @@ else
     @foreach (var kind in PublicTemplateKindDisplay.All)
     {
         var rows = _rows.Where(r => r.Kind == kind).ToList();
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4 mb-1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4 mb-1 noose-kopf-umbruch">
             <MudIcon Icon="@(PublicTemplateKindDisplay.IsAutomatic(kind)
                                ? Icons.Material.Filled.AutoMode
                                : Icons.Material.Filled.Drafts)"
@@ -53,10 +53,10 @@ else
         }
         else
         {
-            <MudTable Items="rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1" Dense="true" Class="mb-4">
+            <MudTable Items="rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="1" Dense="true" Class="mb-4">
                 <HeaderContent>
                     <MudTh>Titel</MudTh>
-                    <MudTh>Reihenfolge</MudTh>
+                    <MudTh Class="noose-mobil-aus">Reihenfolge</MudTh>
                     <MudTh>Aktiv</MudTh>
                     <MudTh Style="text-align:right;">Aktion</MudTh>
                 </HeaderContent>
@@ -65,7 +65,7 @@ else
                         <MudText Typo="Typo.body2">@context.Title</MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@Excerpt(context.Text)</MudText>
                     </MudTd>
-                    <MudTd DataLabel="Reihenfolge">
+                    <MudTd DataLabel="Reihenfolge" Class="noose-mobil-aus">
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@context.SortOrder</MudText>
                     </MudTd>
                     <MudTd DataLabel="Aktiv">

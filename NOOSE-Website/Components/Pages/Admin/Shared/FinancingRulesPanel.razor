@@ -17,12 +17,13 @@
     }
     else
     {
-        <MudTabs Elevation="0" Rounded="true" TabPanelsClass="pt-3" @bind-ActivePanelIndex="_tab">
+        <MudTabs Elevation="0" Rounded="true" TabPanelsClass="pt-3" @bind-ActivePanelIndex="_tab" Class="noose-reiter-handy">
             @foreach (var division in DivisionDisplay.All)
             {
                 var rows = _rows[division];
                 <MudTabPanel Text="@DivisionDisplay.Short(division)" Icon="@DivisionDisplay.Icon(division)">
-                    <MudSimpleTable Dense="true" Striped="true">
+                    @* every field is needed, so phones get one card per rank instead of fewer columns; both bind the same rows *@
+                    <MudSimpleTable Dense="true" Striped="true" Class="noose-mobil-aus">
                         <thead>
                             <tr>
                                 <th>Dienstgrad</th>
@@ -53,11 +54,31 @@
                             }
                         </tbody>
                     </MudSimpleTable>
+                    <MudStack Spacing="2" Class="noose-nur-handy">
+                        @foreach (var (rank, budget) in rows)
+                        {
+                            <MudPaper Outlined="true" Class="pa-3">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">@RankDisplay.Name(rank, division)</MudText>
+                                <MudStack Spacing="2">
+                                    <MudNumericField T="decimal" @bind-Value="budget.BaseMonthly" Min="0" Variant="Variant.Outlined"
+                                                     Margin="Margin.Dense" Adornment="Adornment.End" AdornmentText="$"
+                                                     HideSpinButtons="true" Label="Grundbudget ($)" />
+                                    <MudNumericField T="int" @bind-Value="budget.CarryOverPercent" Min="0" Max="100"
+                                                     Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                     Adornment="Adornment.End" AdornmentText="%" Label="Übertrag (%)" />
+                                    <MudText Typo="Typo.body2">
+                                        Maximal im Monat:
+                                        @Money.Format(budget.BaseMonthly + FinancingMath.CarryOut(budget.BaseMonthly, budget.CarryOverPercent))
+                                    </MudText>
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
                 </MudTabPanel>
             }
         </MudTabs>
 
-        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Class="noose-kopf-umbruch">
             <MudButton OnClick="ResetAsync" StartIcon="@Icons.Material.Filled.RestartAlt">Auf Standard zurücksetzen</MudButton>
             <AuthorizeView Policy="@Policies.Leadership" Context="save">
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save"

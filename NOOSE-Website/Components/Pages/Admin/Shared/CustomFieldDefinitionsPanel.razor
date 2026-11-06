@@ -16,7 +16,7 @@
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
     <MudSelect T="string" Label="Aktentyp-Filter" @bind-Value="_filterType" @bind-Value:after="StateHasChanged"
-               Variant="Variant.Outlined" Dense="true" Clearable="true" Style="max-width:280px;">
+               Variant="Variant.Outlined" Dense="true" Clearable="true" Style="max-width:280px;" Class="noose-filter-feld">
         <MudSelectItem T="string" Value="@("")">Alle Aktentypen</MudSelectItem>
         @foreach (var t in CustomFieldRecordTypes.All)
         {
@@ -31,13 +31,13 @@
 }
 else
 {
-    <MudTable Items="Filtered" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="Filtered" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => CustomFieldRecordTypes.Display(x.EntityType))">Aktentyp</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => x.Name)">Feld</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => CustomFieldTypeDisplay.Name(x.FieldType))">Typ</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => x.Mandatory)">Pflicht</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => x.IsActive)">Status</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => CustomFieldTypeDisplay.Name(x.FieldType))">Typ</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => x.Mandatory)">Pflicht</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="CustomFieldDefinition" SortBy="@(x => x.IsActive)">Status</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -45,10 +45,10 @@ else
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@CustomFieldRecordTypes.Display(context.EntityType)</MudChip>
             </MudTd>
             <MudTd DataLabel="Feld">@context.Name</MudTd>
-            <MudTd DataLabel="Typ">
+            <MudTd DataLabel="Typ" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@CustomFieldTypeDisplay.Name(context.FieldType)</MudChip>
             </MudTd>
-            <MudTd DataLabel="Pflicht">
+            <MudTd DataLabel="Pflicht" Class="noose-mobil-aus">
                 @if (context.Mandatory)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Pflicht</MudChip>
@@ -58,7 +58,7 @@ else
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">optional</MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="Status">
+            <MudTd DataLabel="Status" Class="noose-mobil-aus">
                 @if (context.IsActive)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">Aktiv</MudChip>

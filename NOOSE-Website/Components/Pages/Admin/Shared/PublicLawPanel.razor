@@ -16,17 +16,17 @@
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3 noose-filterleiste">
         <MudTextField @bind-Value="_filter" @bind-Value:after="StateHasChanged" Immediate="true"
                       Label="Suchen" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true"
-                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Class="noose-filter-feld" />
         <MudSpacer />
         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">
             @_rows.Count(r => r.IsPublic) von @_rows.Count freigegeben
         </MudChip>
     </MudStack>
 
-    <MudTable Items="Filtered()" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
+    <MudTable Items="Filtered()" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true"
               GroupBy="_grouping" T="LawReleaseRow">
         <HeaderContent>
             <MudTh>Paragraf</MudTh>

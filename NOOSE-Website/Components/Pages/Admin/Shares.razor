@@ -16,14 +16,13 @@
 
 <PageTitle>Freigaben · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.HowToReg" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Freigabe-Posteingang</MudText>
-</MudStack>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Hochstufungs- und Veröffentlichungs-Anträge sowie – für die Führung – Partner-Freigabe-Anträge, neu registrierte Discord-Konten,
-    beantragte Stammdatenänderungen, Taskforce- und Beförderungsanträge sowie Anordnungen warten hier auf Entscheidung.
-</MudText>
+@* no help button: the hand-built header this replaces had none, and the desktop stays as it was *@
+<PageHeader Icon="@Icons.Material.Filled.HowToReg" Title="Freigabe-Posteingang" ShowHelp="false">
+    <SubtitleContent>
+        Hochstufungs- und Veröffentlichungs-Anträge sowie – für die Führung – Partner-Freigabe-Anträge, neu registrierte Discord-Konten,
+        beantragte Stammdatenänderungen, Taskforce- und Beförderungsanträge sowie Anordnungen warten hier auf Entscheidung.
+    </SubtitleContent>
+</PageHeader>
 
 @if (_load)
 {
@@ -42,7 +41,7 @@ else
     }
     else
     {
-        <MudTable Items="_openUpgrades" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_openUpgrades" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.TargetDesignation)">Ziel-Akte</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.TargetClassification)">Gewünscht</MudTableSortLabel></MudTh>
@@ -183,7 +182,7 @@ else
     }
     else
     {
-        <MudTable Items="_pending" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_pending" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DisplayName(x))">Agent</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.DiscordUsername ?? x.DiscordId)">Discord</MudTableSortLabel></MudTh>
@@ -296,7 +295,7 @@ else
     }
     else
     {
-        <MudTable Items="_nameChanges" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_nameChanges" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DisplayName(x))">Agent</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.NameChangeRequestedAt)">Beantragt</MudTableSortLabel></MudTh>
@@ -345,7 +344,7 @@ else
     }
     else
     {
-        <MudTable Items="_avatars" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_avatars" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2">
             <HeaderContent>
                 <MudTh>Bild</MudTh>
                 <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => DisplayName(x))">Agent</MudTableSortLabel></MudTh>
@@ -389,7 +388,7 @@ else
     }
     else
     {
-        <MudTable Items="_requestedTaskforces" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_requestedTaskforces" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="Taskforce" SortBy="@(x => x.CaseNumber)">Aktenzeichen</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Taskforce" SortBy="@(x => x.Name)">Name</MudTableSortLabel></MudTh>
@@ -440,7 +439,7 @@ else
     }
     else
     {
-        <MudTable Items="_openPromotions" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_openPromotions" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="AgentPromotionRequest" SortBy="@(x => AgentName(x.AgentId))">Agent</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="AgentPromotionRequest" SortBy="@(x => x.TargetRank)">Ziel-Dienstgrad</MudTableSortLabel></MudTh>
@@ -495,7 +494,7 @@ else
     }
     else
     {
-        <MudTable Items="_openPartnerRequests" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_openPartnerRequests" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2">
             <HeaderContent>
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.TargetDesignation)">Akte</MudTableSortLabel></MudTh>
                 <MudTh><MudTableSortLabel T="Request" SortBy="@(x => x.FreigabeAgency)">Behörde</MudTableSortLabel></MudTh>

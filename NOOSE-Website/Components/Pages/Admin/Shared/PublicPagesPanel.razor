@@ -20,16 +20,17 @@
 }
 else if (_edit is not null)
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="CloseEditor" aria-label="Zurück zur Liste" />
-        <MudText Typo="Typo.h6">@(_isNew ? "Neue Seite" : _edit.Title)</MudText>
+        <MudText Typo="Typo.h6" Class="noose-eintrag-titel">@(_isNew ? "Neue Seite" : _edit.Title)</MudText>
         <MudSpacer />
         @if (!_isNew)
         {
             <MudButton Href="@($"{PublicFaq.PageHref(_savedSlug)}?vorschau=1")" Target="_blank" Variant="Variant.Text"
                        Color="Color.Default" StartIcon="@Icons.Material.Filled.Visibility">Vorschau</MudButton>
         }
-        <MudButton OnClick="SaveDraftAsync" Variant="Variant.Filled" Color="Color.Primary"
+        @* below 960px the same button pins to the foot of the form *@
+        <MudButton OnClick="SaveDraftAsync" Variant="Variant.Filled" Color="Color.Primary" Class="noose-schmal-aus"
                    StartIcon="@Icons.Material.Filled.Save" Disabled="_save">Entwurf speichern</MudButton>
     </MudStack>
 
@@ -77,6 +78,10 @@ else if (_edit is not null)
             @* keyed by row: switching pages must re-initialise Quill instead of keeping the previous content *@
             <RichTextEditor @ref="_editor" @key="_editorKey" Value="@_draftHtml" MinHeight="360px"
                             DraftKey='@(_edit is null ? null : $"oeffentliche-seite:{_edit.Id}")' />
+            <FormActions Class="noose-nur-schmal">
+                <MudButton OnClick="SaveDraftAsync" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Save" Disabled="_save">Entwurf speichern</MudButton>
+            </FormActions>
         </MudStack>
     </MudPaper>
 }
@@ -91,12 +96,12 @@ else
         }
     </MudStack>
 
-    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh>Titel</MudTh>
-            <MudTh>Adresse</MudTh>
+            <MudTh Class="noose-mobil-aus">Adresse</MudTh>
             <MudTh>Status</MudTh>
-            <MudTh>Zuletzt veröffentlicht</MudTh>
+            <MudTh Class="noose-mobil-aus">Zuletzt veröffentlicht</MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -110,7 +115,7 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Adresse"><code>@PublicFaq.PageHref(context.Slug)</code></MudTd>
+            <MudTd DataLabel="Adresse" Class="noose-mobil-aus"><code>@PublicFaq.PageHref(context.Slug)</code></MudTd>
             <MudTd DataLabel="Status">
                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                     @if (context.Status == PublicPageStatus.Veroeffentlicht)
@@ -130,7 +135,7 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Zuletzt veröffentlicht">
+            <MudTd DataLabel="Zuletzt veröffentlicht" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @(context.PublishedAt is { } at
                         ? $"{at.ToLocalTime():dd.MM.yyyy HH:mm}{(context.PublishedByName is { } who ? $" · {who}" : "")}"
@@ -138,7 +143,7 @@ else
                 </MudText>
             </MudTd>
             <MudTd DataLabel="Aktion" Style="text-align:right;">
-                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
+                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Class="noose-mobil-aus">
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Default"
                                    Href="@($"{PublicFaq.PageHref(context.Slug)}?vorschau=1")" Target="_blank" aria-label="Entwurf ansehen" />
                     @if (_mayEdit)
@@ -156,6 +161,22 @@ else
                                        OnClick="@(() => DeleteAsync(context))" aria-label="Seite löschen" />
                     }
                 </MudStack>
+                @* phones: the same actions under the same conditions in a ⋮ menu, deleting last after a line *@
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                         AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Visibility" Href="@($"{PublicFaq.PageHref(context.Slug)}?vorschau=1")" Target="_blank">Entwurf ansehen</MudMenuItem>
+                    @if (_mayEdit)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OpenEditorAsync(context))">Bearbeiten</MudMenuItem>
+                        @if (context.Status == PublicPageStatus.Veroeffentlicht)
+                        {
+                            <MudMenuItem Icon="@Icons.Material.Filled.CloudOff" IconColor="Color.Warning" OnClick="@(() => RetractAsync(context))">Zurückziehen</MudMenuItem>
+                        }
+                        <MudMenuItem Icon="@Icons.Material.Filled.CloudUpload" IconColor="Color.Success" OnClick="@(() => PublishAsync(context))">Veröffentlichen</MudMenuItem>
+                        <MudDivider Class="my-1" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => DeleteAsync(context))">Löschen</MudMenuItem>
+                    }
+                </MudMenu>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>

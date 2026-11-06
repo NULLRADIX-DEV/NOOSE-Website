@@ -33,7 +33,7 @@
 }
 else
 {
-    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" SortLabel="Sortieren" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="Row" SortBy="@(x => x.Display)">Aktentyp</MudTableSortLabel></MudTh>
             <MudTh Style="width:160px;"><MudTableSortLabel T="Row" SortBy="@(x => x.WarningDays)">Gelb ab (Tage)</MudTableSortLabel></MudTh>

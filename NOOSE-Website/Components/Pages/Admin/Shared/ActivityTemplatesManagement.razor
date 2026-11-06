@@ -3,13 +3,13 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudText Typo="Typo.h6">Aktivitäts-Vorlagen</MudText>
-    <MudSpacer />
-    <MudButton Href="/admin/vorlagen/aktivitaet-vorlage/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
-        Neue Vorlage
-    </MudButton>
-</MudStack>
+<SectionHeader Title="Aktivitäts-Vorlagen" Class="mb-1">
+    <Actions>
+        <MudButton Href="/admin/vorlagen/aktivitaet-vorlage/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+            Neue Vorlage
+        </MudButton>
+    </Actions>
+</SectionHeader>
 <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
     Neue Aktivitäten gibt es nicht mehr: Einsätze laufen über Operationen mit Einsatzbericht. Diese Vorlagen werden deshalb
     nirgends mehr angeboten und bleiben nur zum Nachlesen.
@@ -25,20 +25,20 @@
 }
 else
 {
-    <MudTable Items="_templates" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_templates" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="ActivityTemplate" SortBy="@(x => x.Name)">Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ActivityTemplate" SortBy="@(x => x.Description)">Beschreibung</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ActivityTemplate" SortBy="@(x => x.Kind)">Art</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="ActivityTemplate" SortBy="@(x => x.Description)">Beschreibung</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="ActivityTemplate" SortBy="@(x => x.Kind)">Art</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ActivityTemplate" SortBy="@(x => x.IsActive)">Status</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Beschreibung">
+            <MudTd DataLabel="Beschreibung" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@(string.IsNullOrWhiteSpace(context.Description) ? "—" : context.Description)</MudText>
             </MudTd>
-            <MudTd DataLabel="Art">
+            <MudTd DataLabel="Art" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@(string.IsNullOrWhiteSpace(context.Kind) ? "—" : context.Kind)</MudText>
             </MudTd>
             <MudTd DataLabel="Status">

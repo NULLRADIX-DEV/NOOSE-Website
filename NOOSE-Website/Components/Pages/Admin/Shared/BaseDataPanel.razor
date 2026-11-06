@@ -33,20 +33,22 @@ else
             var entries = _catalogs[type];
             <MudExpansionPanel>
                 <TitleContent>
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        <MudText Typo="Typo.h6">@SuggestionTypeDisplay.Name(type)</MudText>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@entries.Count</MudChip>
-                        <MudSpacer />
-                        @if (_mayWrite)
-                        {
-                            @* span stops the header toggle; the directive cannot sit on MudButton itself *@
-                            <span @onclick:stopPropagation="true">
-                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
-                                           StartIcon="@Icons.Material.Filled.Add"
-                                           OnClick="@(() => CreateAsync(type))">Neuer Wert</MudButton>
-                            </span>
-                        }
-                    </MudStack>
+                    <SectionHeader Title="@SuggestionTypeDisplay.Name(type)">
+                        <TitleContent>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@entries.Count</MudChip>
+                        </TitleContent>
+                        <Actions>
+                            @if (_mayWrite)
+                            {
+                                @* span stops the header toggle; the directive cannot sit on MudButton itself *@
+                                <span @onclick:stopPropagation="true">
+                                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary"
+                                               StartIcon="@Icons.Material.Filled.Add"
+                                               OnClick="@(() => CreateAsync(type))">Neuer Wert</MudButton>
+                                </span>
+                            }
+                        </Actions>
+                    </SectionHeader>
                 </TitleContent>
                 <ChildContent>
                     @if (entries.Count == 0)
@@ -56,16 +58,16 @@ else
                     else
                     {
                         @* long lists scroll internally with a sticky header *@
-                        <MudTable Items="entries" Dense="true" Hover="true" Elevation="0"
+                        <MudTable Breakpoint="Breakpoint.None" Items="entries" Dense="true" Hover="true" Elevation="0"
                                   Height="@(entries.Count > 10 ? "360px" : null)" FixedHeader="@(entries.Count > 10)">
                             <HeaderContent>
                                 <MudTh>Wert</MudTh>
-                                <MudTh Style="white-space:nowrap;">Verwendungen</MudTh>
+                                <MudTh Style="white-space:nowrap;" Class="noose-mobil-aus">Verwendungen</MudTh>
                                 <MudTh Style="text-align:right;">Aktion</MudTh>
                             </HeaderContent>
                             <RowTemplate>
                                 <MudTd DataLabel="Wert">@context.Value</MudTd>
-                                <MudTd DataLabel="Verwendungen">@context.UsageCount</MudTd>
+                                <MudTd DataLabel="Verwendungen" Class="noose-mobil-aus">@context.UsageCount</MudTd>
                                 <MudTd DataLabel="Aktion" Style="text-align:right; white-space:nowrap;">
                                     @if (_mayWrite)
                                     {
@@ -100,16 +102,16 @@ else
                 }
                 else
                 {
-                    <MudTable Items="_activityKinds" Dense="true" Hover="true" Elevation="0"
+                    <MudTable Breakpoint="Breakpoint.None" Items="_activityKinds" Dense="true" Hover="true" Elevation="0"
                               Height="@(_activityKinds.Count > 10 ? "360px" : null)" FixedHeader="@(_activityKinds.Count > 10)">
                         <HeaderContent>
                             <MudTh>Wert</MudTh>
-                            <MudTh Style="white-space:nowrap;">Verwendungen</MudTh>
+                            <MudTh Style="white-space:nowrap;" Class="noose-mobil-aus">Verwendungen</MudTh>
                             <MudTh Style="text-align:right;">Aktion</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="Wert">@context.Value</MudTd>
-                            <MudTd DataLabel="Verwendungen">@context.UsageCount</MudTd>
+                            <MudTd DataLabel="Verwendungen" Class="noose-mobil-aus">@context.UsageCount</MudTd>
                             <MudTd DataLabel="Aktion" Style="text-align:right; white-space:nowrap;">
                                 @if (_mayWrite)
                                 {
@@ -148,7 +150,7 @@ else
                     </MudStack>
                 </TitleContent>
                 <ChildContent>
-                    <MudTable Items="card.Rows" Dense="true" Hover="true" Elevation="0">
+                    <MudTable Breakpoint="Breakpoint.None" Items="card.Rows" Dense="true" Hover="true" Elevation="0">
                         <HeaderContent>
                             <MudTh>Wert</MudTh>
                             <MudTh Style="text-align:right;">Aktion</MudTh>

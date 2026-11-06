@@ -70,7 +70,7 @@ else
                 Wird allen Agenten oben auf jeder Seite angezeigt. Leer lassen, um das Banner auszublenden.
             </MudText>
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="flex-wrap">
-                <MudTextField @bind-Value="_input.BannerText" Label="Banner-Text" Variant="Variant.Outlined" Style="flex:1;min-width:260px;" />
+                <MudTextField @bind-Value="_input.BannerText" Label="Banner-Text" Variant="Variant.Outlined" Style="flex:1;min-width:260px;" Class="noose-min-breite-frei" />
                 <MudSelect T="string" @bind-Value="_input.BannerLevel" Label="Dringlichkeit" Variant="Variant.Outlined"
                            Dense="true" Style="max-width:200px;">
                     @foreach (var level in BannerLevels.All)
@@ -136,7 +136,7 @@ else
                     <MudColorPicker Label="@($"Primär (Standard {NooseTheme.DefaultPrimary})")" ShowAlpha="false"
                                     Variant="Variant.Outlined" Value="@AsColour(_input.ThemePrimary, NooseTheme.DefaultPrimary)"
                                     ValueChanged="@(c => _input.ThemePrimary = c.ToString(MudColorOutputFormats.Hex))"
-                                    Style="min-width:260px;" />
+                                    Style="min-width:260px;" Class="noose-min-breite-frei" />
                     <MudTooltip Text="Auf Standardfarbe zurücksetzen">
                         <MudIconButton Icon="@Icons.Material.Filled.RestartAlt" Size="Size.Small"
                                        OnClick="@(() => _input.ThemePrimary = null)" aria-label="Primärfarbe zurücksetzen" />
@@ -146,7 +146,7 @@ else
                     <MudColorPicker Label="@($"Sekundär (Standard {NooseTheme.DefaultSecondary})")" ShowAlpha="false"
                                     Variant="Variant.Outlined" Value="@AsColour(_input.ThemeSecondary, NooseTheme.DefaultSecondary)"
                                     ValueChanged="@(c => _input.ThemeSecondary = c.ToString(MudColorOutputFormats.Hex))"
-                                    Style="min-width:260px;" />
+                                    Style="min-width:260px;" Class="noose-min-breite-frei" />
                     <MudTooltip Text="Auf Standardfarbe zurücksetzen">
                         <MudIconButton Icon="@Icons.Material.Filled.RestartAlt" Size="Size.Small"
                                        OnClick="@(() => _input.ThemeSecondary = null)" aria-label="Sekundärfarbe zurücksetzen" />
@@ -156,7 +156,7 @@ else
                     <MudColorPicker Label="@($"Tertiär (Standard {NooseTheme.DefaultTertiary})")" ShowAlpha="false"
                                     Variant="Variant.Outlined" Value="@AsColour(_input.ThemeTertiary, NooseTheme.DefaultTertiary)"
                                     ValueChanged="@(c => _input.ThemeTertiary = c.ToString(MudColorOutputFormats.Hex))"
-                                    Style="min-width:260px;" />
+                                    Style="min-width:260px;" Class="noose-min-breite-frei" />
                     <MudTooltip Text="Auf Standardfarbe zurücksetzen">
                         <MudIconButton Icon="@Icons.Material.Filled.RestartAlt" Size="Size.Small"
                                        OnClick="@(() => _input.ThemeTertiary = null)" aria-label="Tertiärfarbe zurücksetzen" />

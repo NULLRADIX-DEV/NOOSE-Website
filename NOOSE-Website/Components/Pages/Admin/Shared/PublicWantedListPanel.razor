@@ -35,16 +35,16 @@ else if (_editId is not null)
 }
 else
 {
-    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh>Anzeigename</MudTh>
-            <MudTh>Art</MudTh>
-            <MudTh>Aktenzeichen</MudTh>
+            <MudTh Class="noose-mobil-aus">Art</MudTh>
+            <MudTh Class="noose-mobil-aus">Aktenzeichen</MudTh>
             <MudTh>Status</MudTh>
-            <MudTh>Stufe</MudTh>
-            <MudTh>Veröffentlicht</MudTh>
-            <MudTh>Kopfgeld</MudTh>
-            <MudTh>Aufrufe</MudTh>
+            <MudTh Class="noose-mobil-aus">Stufe</MudTh>
+            <MudTh Class="noose-mobil-aus">Veröffentlicht</MudTh>
+            <MudTh Class="noose-mobil-aus">Kopfgeld</MudTh>
+            <MudTh Class="noose-mobil-aus">Aufrufe</MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -60,12 +60,12 @@ else
             </MudTd>
             @* the list mixes person notices with vehicles and weapons; without this column a plate is only
                distinguishable by its name *@
-            <MudTd DataLabel="Art">
+            <MudTd DataLabel="Art" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
                     @PublicWantedKindDisplay.Name(context.Kind)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Aktenzeichen">
+            <MudTd DataLabel="Aktenzeichen" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @(context.CaseNumber ?? "—")
                     @if (context.PersonCaseNumber is { Length: > 0 } akte)
@@ -79,22 +79,22 @@ else
                     @PublicWantedStatusDisplay.Name(context.Status)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Stufe">
+            <MudTd DataLabel="Stufe" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption">@HazardLevelLogic.Name(context.HazardLevel)</MudText>
             </MudTd>
-            <MudTd DataLabel="Veröffentlicht">
+            <MudTd DataLabel="Veröffentlicht" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @(context.PublishedAt is { } published
                         ? $"{published.ToLocalTime():dd.MM.yyyy} · {context.PublishedByName ?? "—"}"
                         : "—")
                 </MudText>
             </MudTd>
-            <MudTd DataLabel="Kopfgeld">
+            <MudTd DataLabel="Kopfgeld" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @(context.Bounty > 0 ? $"{context.Bounty:N0} $" : "—")
                 </MudText>
             </MudTd>
-            <MudTd DataLabel="Aufrufe">
+            <MudTd DataLabel="Aufrufe" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.ViewCount</MudText>
             </MudTd>
             <MudTd DataLabel="Aktion" Style="text-align:right;">

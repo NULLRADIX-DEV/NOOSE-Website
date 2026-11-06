@@ -11,8 +11,13 @@
     mitgeschrieben — nur, welche Akten und Werkzeuge berührt wurden.
 </MudText>
 
+@* phones: full text on top, the other filters fold behind "Filter (n)"; from 600px up the grid stands as before *@
 <MudGrid Spacing="2" Class="mb-2">
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="12" Class="noose-nur-handy">
+        <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                   OnClick="@(() => _filtersOpen = !_filtersOpen)">Filter (@ActiveFilterCount)</MudButton>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3" Class="@FilterClass">
         <MudSelect T="string" @bind-Value="_filter.AgentId" Label="Agent" Clearable="true"
                    Variant="Variant.Outlined" Margin="Margin.Dense">
             @foreach (var agent in _options.Agents)
@@ -21,7 +26,7 @@
             }
         </MudSelect>
     </MudItem>
-    <MudItem xs="12" sm="6" md="2">
+    <MudItem xs="12" sm="6" md="2" Class="@FilterClass">
         <MudSelect T="LlmFeature?" @bind-Value="_filter.Feature" Label="Funktion" Clearable="true"
                    Variant="Variant.Outlined" Margin="Margin.Dense">
             @foreach (var feature in LlmFeatureDisplay.All)
@@ -30,26 +35,26 @@
             }
         </MudSelect>
     </MudItem>
-    <MudItem xs="12" sm="6" md="2">
+    <MudItem xs="12" sm="6" md="2" Class="@FilterClass">
         <MudSelect T="bool?" @bind-Value="_filter.Success" Label="Status" Clearable="true"
                    Variant="Variant.Outlined" Margin="Margin.Dense">
             <MudSelectItem T="bool?" Value="@true">Erfolgreich</MudSelectItem>
             <MudSelectItem T="bool?" Value="@false">Fehlgeschlagen</MudSelectItem>
         </MudSelect>
     </MudItem>
-    <MudItem xs="12" sm="6" md="2">
+    <MudItem xs="12" sm="6" md="2" Class="@FilterClass">
         <MudDatePicker @bind-Date="_from" Label="Von" Variant="Variant.Outlined" Margin="Margin.Dense" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="2">
+    <MudItem xs="12" sm="6" md="2" Class="@FilterClass">
         <MudDatePicker @bind-Date="_to" Label="Bis" Variant="Variant.Outlined" Margin="Margin.Dense" />
     </MudItem>
     <MudItem xs="12" sm="6" md="3">
         <MudTextField @bind-Value="_filter.Text" Label="Volltext" Variant="Variant.Outlined" Margin="Margin.Dense" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+    <MudItem xs="12" sm="6" md="3" Class="@($"d-flex align-center {FilterClass}")">
         <MudSwitch T="bool" @bind-Value="_filter.AnomalousOnly" Color="Color.Warning" Label="Nur Auffällige" />
     </MudItem>
-    <MudItem xs="12" md="6" Class="d-flex align-center justify-end" Style="gap:8px;">
+    <MudItem xs="12" md="6" Class="d-flex align-center justify-end noose-kopf-umbruch" Style="gap:8px;">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ApplyAsync" Disabled="_busy">Filtern</MudButton>
         <MudButton Variant="Variant.Text" OnClick="ResetAsync" Disabled="_busy">Zurücksetzen</MudButton>
     </MudItem>
@@ -72,39 +77,39 @@
     </MudAlert>
 }
 
-<MudTable Items="_page.Rows" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm" Elevation="0"
+<MudTable Items="_page.Rows" Hover="true" Dense="true" Breakpoint="Breakpoint.None" Elevation="0"
           Loading="_busy" OnRowClick="@((TableRowClickEventArgs<LlmRequestRow> e) => OpenAsync(e.Item))"
           RowStyle="cursor:pointer;">
     <HeaderContent>
         <MudTh>Zeitpunkt</MudTh>
         <MudTh>Agent</MudTh>
-        <MudTh>Funktion</MudTh>
-        <MudTh Style="text-align:right">Tokens</MudTh>
-        <MudTh Style="text-align:right">Kontingent</MudTh>
+        <MudTh Class="noose-mobil-aus">Funktion</MudTh>
+        <MudTh Style="text-align:right" Class="noose-mobil-aus">Tokens</MudTh>
+        <MudTh Style="text-align:right" Class="noose-mobil-aus">Kontingent</MudTh>
         @if (_maySeeCost)
         {
-            <MudTh Style="text-align:right">Kosten</MudTh>
+            <MudTh Style="text-align:right" Class="noose-mobil-aus">Kosten</MudTh>
         }
-        <MudTh Style="text-align:right">Dauer</MudTh>
+        <MudTh Style="text-align:right" Class="noose-mobil-aus">Dauer</MudTh>
         <MudTh>Status</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Zeitpunkt">@context.TimestampUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</MudTd>
         <MudTd DataLabel="Agent">@(context.AgentName ?? "—")</MudTd>
-        <MudTd DataLabel="Funktion">
+        <MudTd DataLabel="Funktion" Class="noose-mobil-aus">
             <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Icon="@LlmFeatureDisplay.Icon(context.Feature)">
                 @LlmFeatureDisplay.Name(context.Feature)
             </MudChip>
         </MudTd>
-        <MudTd DataLabel="Tokens" Style="text-align:right">
+        <MudTd DataLabel="Tokens" Style="text-align:right" Class="noose-mobil-aus">
             @context.PromptTokens.ToString("N0") / @context.CompletionTokens.ToString("N0")
         </MudTd>
-        <MudTd DataLabel="Kontingent" Style="text-align:right">@context.QuotaTokens.ToString("N0")</MudTd>
+        <MudTd DataLabel="Kontingent" Style="text-align:right" Class="noose-mobil-aus">@context.QuotaTokens.ToString("N0")</MudTd>
         @if (_maySeeCost)
         {
-            <MudTd DataLabel="Kosten" Style="text-align:right">@context.CostUsd.ToString("0.0000") $</MudTd>
+            <MudTd DataLabel="Kosten" Style="text-align:right" Class="noose-mobil-aus">@context.CostUsd.ToString("0.0000") $</MudTd>
         }
-        <MudTd DataLabel="Dauer" Style="text-align:right">@(context.DurationMs / 1000.0).ToString("0.0") s</MudTd>
+        <MudTd DataLabel="Dauer" Style="text-align:right" Class="noose-mobil-aus">@(context.DurationMs / 1000.0).ToString("0.0") s</MudTd>
         <MudTd DataLabel="Status">
             @if (!context.Success)
             {
@@ -135,6 +140,12 @@
     private DateTime? _from;
     private DateTime? _to;
     private bool _busy = true;
+
+    // phones only: whether the filters under the full-text field are unfolded
+    private bool _filtersOpen;
+    private int ActiveFilterCount => new object?[] { _filter.AgentId, _filter.Feature, _filter.Success, _from, _to }.Count(v => v is not null)
+                                     + (_filter.AnomalousOnly ? 1 : 0);
+    private string FilterClass => _filtersOpen ? "" : "noose-filter-zu";
 
     /// <summary>Real money is the AI owner's alone. Counter-intelligence reads this log for behaviour, and
     /// behaviour is fully described by tokens.</summary>

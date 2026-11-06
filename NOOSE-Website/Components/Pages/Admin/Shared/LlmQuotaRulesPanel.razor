@@ -33,7 +33,8 @@
 }
 else
 {
-    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+    @* every field is needed, so phones get one card per row instead of fewer columns; both bind the same rules *@
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="noose-mobil-aus">
         <thead>
             <tr>
                 <th>Dienstgrad</th>
@@ -84,13 +85,19 @@ else
             }
         </tbody>
     </MudSimpleTable>
+    <MudStack Spacing="2" Class="noose-nur-handy">
+        @foreach (var rank in RankDisplay.All)
+        {
+            @QuotaCard(RankDisplay.Name(rank), Rules(rank), true)
+        }
+    </MudStack>
 
     <MudText Typo="Typo.subtitle2" Class="mt-6 mb-1">Partnerbehörden</MudText>
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
         Gilt je Konto der Behörde, nur für die Rechtsauskunft und nur, wenn die Behörde FIBI freigeschaltet hat.
         0 heißt: kein Zugang.
     </MudText>
-    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="noose-mobil-aus">
         <thead>
             <tr>
                 <th>Behörde</th>
@@ -136,6 +143,12 @@ else
             }
         </tbody>
     </MudSimpleTable>
+    <MudStack Spacing="2" Class="noose-nur-handy">
+        @foreach (var agency in PartnerAgencyDisplay.All)
+        {
+            @QuotaCard(PartnerAgencyDisplay.Name(agency), Rules(agency), false)
+        }
+    </MudStack>
 
     <MudText Typo="Typo.subtitle2" Class="mt-6 mb-2">Auffälligkeiten</MudText>
     <MudGrid Spacing="2">
@@ -207,7 +220,7 @@ else
 
     @if (_mayEdit)
     {
-        <MudStack Row="true" Spacing="2" Class="mt-4">
+        <MudStack Row="true" Spacing="2" Class="mt-4 noose-kopf-umbruch">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
             <MudButton Variant="Variant.Text" OnClick="ResetAsync" Disabled="_busy">Auf Standard zurücksetzen</MudButton>
         </MudStack>
@@ -238,6 +251,41 @@ else
         }
         return quota;
     }
+
+    /// <summary>One row of a rules table as a card for phones: the same fields and figures, bound to the same rules.</summary>
+    private RenderFragment QuotaCard(string title, LlmRankQuota quota, bool withDaily) => __builder =>
+    {
+        <MudPaper Outlined="true" Class="pa-3">
+            <MudText Typo="Typo.subtitle2" Class="mb-2">@title</MudText>
+            <MudStack Spacing="2">
+                <MudNumericField T="long" @bind-Value="quota.BaseWeekly" Min="0" Step="1000" Label="Grundkontingent"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="!_mayEdit"
+                                 Adornment="Adornment.End" AdornmentText="Token" />
+                <MudNumericField T="int" @bind-Value="quota.CarryOverPercent" Min="0" Max="100" Label="Übertrag"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="!_mayEdit"
+                                 Adornment="Adornment.End" AdornmentText="%" />
+                <MudNumericField T="int" @bind-Value="quota.DailyPercent" Min="0" Max="100" Label="Tagesgrenze"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="!_mayEdit"
+                                 Adornment="Adornment.End" AdornmentText="%" />
+                <MudText Typo="Typo.body2">
+                    Max. in der Woche: @LlmQuotaMath.Ceiling(quota.BaseWeekly, quota.CarryOverPercent).ToString("N0")
+                </MudText>
+                @if (withDaily)
+                {
+                    var daily = LlmQuotaMath.DailyLimit(quota.BaseWeekly, quota.DailyPercent);
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        Max. am Tag: @(daily <= 0 ? "ohne Grenze" : daily.ToString("N0"))
+                    </MudText>
+                }
+                @if (_maySeeCost)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        ≈ Realkosten/Woche: @LlmQuotaMath.ToCost(LlmQuotaMath.Ceiling(quota.BaseWeekly, quota.CarryOverPercent)).ToString("0.00") $
+                    </MudText>
+                }
+            </MudStack>
+        </MudPaper>
+    };
 
     private LlmRankQuota Rules(Rank rank)
     {

@@ -194,8 +194,8 @@ else
                                                                         Value="@_editAnswer" MinHeight="240px"
                                                                         DraftKey='@($"faq:{entry.Id}")' />
                                                     </div>
-                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
+                                                        <MudText Typo="Typo.caption" Class="mud-text-secondary noose-eintrag-titel">
                                                             Adresse: <code>/faq?frage=@entry.Anchor</code>
                                                         </MudText>
                                                         <MudSpacer />
@@ -217,7 +217,7 @@ else
 
                             @if (_mayEdit)
                             {
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-3">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-3 noose-eintrag">
                                     <MudTextField @bind-Value="_newQuestion" Label="Neue Frage"
                                                   Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
                                                   MaxLength="@PublicFaqRules.MaxQuestion" />

@@ -17,18 +17,18 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             @if (_hasReference)
             {
-                <MudTh><MudTableSortLabel T="TrashItem" SortBy="@(x => x.Reference)">Aktenzeichen</MudTableSortLabel></MudTh>
+                <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="TrashItem" SortBy="@(x => x.Reference)">Aktenzeichen</MudTableSortLabel></MudTh>
             }
             <MudTh><MudTableSortLabel T="TrashItem" SortBy="@(x => x.Title)">Bezeichnung</MudTableSortLabel></MudTh>
             @if (_hasDetail)
             {
-                <MudTh>Details</MudTh>
+                <MudTh Class="noose-mobil-aus">Details</MudTh>
             }
-            <MudTh>
+            <MudTh Class="noose-mobil-aus">
                 <MudTableSortLabel T="TrashItem" SortBy="@(x => x.DeletedAt)" InitialDirection="SortDirection.Descending">
                     Gelöscht am
                 </MudTableSortLabel>
@@ -38,16 +38,16 @@ else
         <RowTemplate>
             @if (_hasReference)
             {
-                <MudTd DataLabel="Aktenzeichen"><MudText Typo="Typo.body2">@(context.Reference ?? "—")</MudText></MudTd>
+                <MudTd DataLabel="Aktenzeichen" Class="noose-mobil-aus"><MudText Typo="Typo.body2">@(context.Reference ?? "—")</MudText></MudTd>
             }
             <MudTd DataLabel="Bezeichnung"><MudText Typo="Typo.body2">@context.Title</MudText></MudTd>
             @if (_hasDetail)
             {
-                <MudTd DataLabel="Details">
+                <MudTd DataLabel="Details" Class="noose-mobil-aus">
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@(context.Detail ?? "—")</MudText>
                 </MudTd>
             }
-            <MudTd DataLabel="Gelöscht am">
+            <MudTd DataLabel="Gelöscht am" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @(context.DeletedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")
                 </MudText>
