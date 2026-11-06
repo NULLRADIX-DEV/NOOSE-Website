@@ -3,7 +3,8 @@
 @inject IFactionService FactionService
 @inject ISnackbar Snackbar
 
-<MudDialog>
+@* long form: full screen below 600px (noose-dialog-lang); the fixed min-widths give way there *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         @if (_stage == 1)
         {
@@ -34,7 +35,7 @@
         }
         else
         {
-            <MudStack Spacing="3" Style="min-width:480px;">
+            <MudStack Spacing="3" Style="min-width:480px;" Class="noose-min-breite-frei">
                 <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
                     <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled">@_countCreate neu</MudChip>
                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled">@_countAdd zuordnen</MudChip>
@@ -58,7 +59,7 @@
                         {
                             var otherFactions = OtherFactions(row);
                             <MudStack Spacing="0" Class="px-1 py-1">
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                                     <MudChip T="string" Size="Size.Small" Color="@KindColor(row.Kind)" Variant="Variant.Filled"
                                              Icon="@KindIcon(row.Kind)">@KindLabel(row.Kind)</MudChip>
                                     <MudText Typo="Typo.body2"><b>@row.Display</b></MudText>
@@ -66,7 +67,7 @@
                                     {
                                         <MudSpacer />
                                         <MudSelect T="string" Value="@AmbiguousValue(row)" ValueChanged="@(v => SetAmbiguous(row, v))"
-                                                   Label="Zuordnen" Dense="true" Variant="Variant.Outlined" Style="min-width:240px;">
+                                                   Label="Zuordnen" Dense="true" Variant="Variant.Outlined" Style="min-width:240px;" Class="noose-breite-frei">
                                             @foreach (var c in row.Candidates)
                                             {
                                                 <MudSelectItem Value="@c.Id">@c.Name (@c.CaseNumber)</MudSelectItem>
@@ -99,7 +100,7 @@
                 @if (_orphans.Count > 0)
                 {
                     <MudDivider />
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
                         <MudText Typo="Typo.subtitle2">Nicht in der Liste (@_orphans.Count)</MudText>
                         <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="ToggleAllOrphans">
                             @(_orphans.All(o => o.Remove) ? "Keine" : "Alle") auswählen
@@ -113,7 +114,7 @@
                             @foreach (var o in _orphans)
                             {
                                 <MudCheckBox T="bool" @bind-Value="o.Remove" Dense="true" Color="Color.Error">
-                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="noose-eintrag">
                                         <MudText Typo="Typo.body2">@o.Member.Person?.Name</MudText>
                                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@o.Member.Person?.CaseNumber</MudText>
                                         @if (o.Member.IsLead)

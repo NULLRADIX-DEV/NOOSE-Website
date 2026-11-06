@@ -3,7 +3,7 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Zugeteilte Agents (@_agents.Count)</MudText>
         @if (_canManage)
         {
@@ -26,8 +26,8 @@
         @foreach (var a in _agents)
         {
             <MudPaper Class="pa-3" Elevation="1">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                         <MudIcon Icon="@(a.IsInvestigationLead ? Icons.Material.Filled.LocalPolice : Icons.Material.Filled.Person)"
                                  Color="@(a.IsInvestigationLead ? Color.Warning : Color.Primary)" Size="Size.Small" />
                         <MudText Typo="Typo.body2"><b>@a.Agent?.Codename</b></MudText>

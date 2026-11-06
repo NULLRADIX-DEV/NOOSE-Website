@@ -1,0 +1,11 @@
+/* Compact identity card below 960px: the colour banner without a title image shrinks to the 64px square that
+   noose-steckbrief-bild gives a photo (app.css). Nothing here applies from 960px up or on paper. */
+@media screen and (max-width: 959.98px) {
+    .noose-steckbrief-bild .fraktion-banner {
+        height: 64px !important;
+    }
+
+    .noose-steckbrief-bild .fraktion-banner ::deep .mud-icon-root {
+        font-size: 2rem !important;
+    }
+}

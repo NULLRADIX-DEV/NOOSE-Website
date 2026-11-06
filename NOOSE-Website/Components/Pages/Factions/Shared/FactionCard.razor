@@ -1,21 +1,27 @@
-<MudPaper Class="pa-4" Elevation="2">
+@* Below 960px the card shrinks to a compact head (noose-steckbrief-* in app.css, banner size in FactionCard.razor.css):
+   64px picture beside the name, the markers in one wrapping row, the counts, and the rest behind "Details". The
+   wrappers repeat MudStack's gap-3 column, so from 960px up the card renders as before. *@
+<MudPaper Class="pa-4 noose-steckbrief" Elevation="2">
     <MudStack Spacing="3">
+        <div class="d-flex flex-column gap-3 noose-steckbrief-kopf">
         @if (!string.IsNullOrEmpty(TitleImagePhotoId))
         {
-            <div @onclick="OpenLightboxAsync" style="cursor:pointer;">
+            <div class="noose-steckbrief-bild" @onclick="OpenLightboxAsync" style="cursor:pointer;">
                 <MudImage Src="@RecordAvatar.Url(nameof(Faction), TitleImagePhotoId)" Alt="Titelbild"
                           Height="120" ObjectFit="ObjectFit.Cover" Class="rounded" Style="width:100%;" />
             </div>
         }
         else
         {
-            <div style="@BannerStyle()" class="rounded d-flex align-center justify-center">
-                <MudIcon Icon="@Icons.Material.Filled.Groups" Style="font-size:3rem;color:#fff;opacity:.85;" />
+            <div class="noose-steckbrief-bild">
+                <div style="@BannerStyle()" class="rounded d-flex align-center justify-center fraktion-banner">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Style="font-size:3rem;color:#fff;opacity:.85;" />
+                </div>
             </div>
         }
 
-        <div>
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <div class="noose-steckbrief-name">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="noose-steckbrief-kennzeichen">
                 <MudText Typo="Typo.h5">@Faction.Name</MudText>
                 @if (Faction.IsClassified)
                 {
@@ -37,8 +43,9 @@
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@Faction.Kind</MudText>
             }
         </div>
+        </div>
 
-        <MudStack Spacing="1">
+        <MudStack Spacing="1" Class="noose-steckbrief-kennzeichen">
             <ClassificationBadge Value="Faction.Classification" />
             @if (!string.IsNullOrWhiteSpace(Faction.RecognitionColor))
             {
@@ -49,6 +56,7 @@
             }
         </MudStack>
 
+        <div class="@RestClass">
         <InvestigationLeadDisplay Names="InvestigationLead" />
 
         <MudDivider />
@@ -73,6 +81,7 @@
                 <MudProgressLinear Color="Color.Primary" Value="@Percent()" Class="mt-1" Rounded="true" Size="Size.Medium" />
             </div>
         }
+        </div>
 
         <MudStack Row="true" Spacing="4" Class="flex-wrap">
             @foreach (var (value, label) in Metrics())
@@ -83,6 +92,11 @@
                 </MudStack>
             }
         </MudStack>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Class="noose-nur-schmal align-self-start"
+                   EndIcon="@(_details ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                   OnClick="@(() => _details = !_details)" aria-expanded="@(_details ? "true" : "false")">
+            @(_details ? "Weniger" : "Details")
+        </MudButton>
     </MudStack>
 </MudPaper>
 
@@ -98,6 +112,13 @@
     [Parameter] public EventCallback Changed { get; set; }
 
     [Inject] private IRecencyService Recency { get; set; } = default!;
+
+    // below 960px the lead, freshness and progress lines start folded; the class does nothing from 960px up
+    private bool _details;
+
+    private string RestClass => _details
+        ? "d-flex flex-column gap-3 noose-steckbrief-rest"
+        : "d-flex flex-column gap-3 noose-steckbrief-rest noose-steckbrief-zu";
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
 
