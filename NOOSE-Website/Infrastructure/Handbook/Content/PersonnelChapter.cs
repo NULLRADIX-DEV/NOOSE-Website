@@ -319,6 +319,9 @@ internal static class PersonnelChapter
                 <p>Wer zum FIB will, bewirbt sich über den öffentlichen Bereich. Die Bewerbung durchläuft
                 feste Stufen: <em>Eingereicht</em> → <em>Sicherheitsüberprüfung</em> → <em>Test</em> →
                 <em>Vorstellungsgespräch</em> → <em>Angenommen</em> oder <em>Abgelehnt</em>.</p>
+                <p>Abschicken kann eine Bewerbung nur, wer auf dem Discord-Server des FIB ist; wer es nicht ist, sieht
+                im Formular den Einladungslink, den Admins unter <em>Einstellungen → Discord-Direktnachrichten</em>
+                pflegen, und antwortet Discord nicht, geht die Bewerbung trotzdem durch.</p>
                 <p>Bearbeitet wird sie von der <strong>Administration Division</strong> und der Führung. Es gibt einen
                 Schriftwechsel mit dem Bewerber; er sieht dabei nie den Namen des Agenten, der ihm schreibt -
                 die Anschreiben sind so gebaut, dass der Name automatisch geschwärzt wird.</p>

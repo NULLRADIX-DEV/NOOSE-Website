@@ -3,17 +3,22 @@ using NOOSE_Website.Infrastructure.Discord;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>The two switches and whether the bot has a token; the switches read as off until an admin turns them on.</summary>
-public sealed record DiscordDmSettings(bool Personal, bool Applicants, bool BotConfigured);
+/// <summary>The two switches, whether the bot has a token, and the invite link to the Discord server; the switches read as off until an admin turns them on.</summary>
+public sealed record DiscordDmSettings(bool Personal, bool Applicants, bool BotConfigured, string InviteLink)
+{
+    /// <summary>Applied while no admin has set a link of their own.</summary>
+    public const string DefaultInviteLink = "https://discord.gg/9TeYjJyYxf";
+}
 
 /// <summary>Delivers direct messages through the bot and keeps the two switches that allow them.</summary>
 public interface IDiscordDmService
 {
-    /// <summary>Both switches (default off) and whether the bot has a token.</summary>
+    /// <summary>Both switches (default off), whether the bot has a token, and the invite link (the default while none is set).</summary>
     Task<DiscordDmSettings> GetSettingsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>Admin with write access (write guard first); stores both switches.</summary>
-    Task SaveSettingsAsync(bool personal, bool applicants, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Admin with write access (write guard first); stores both switches and the invite link in one go. A link must start with https://discord.gg/ or https://discord.com/invite/, else <see cref="InvalidOperationException"/>; empty or the default itself puts the default back.</summary>
+    Task SaveSettingsAsync(bool personal, bool applicants, string? inviteLink, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Personal pings and the digest go as direct messages: switch on and bot token present.</summary>
     Task<bool> PersonalActiveAsync(CancellationToken cancellationToken = default);

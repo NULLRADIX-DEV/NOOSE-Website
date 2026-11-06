@@ -264,8 +264,9 @@ public sealed class ApplicantDmTests
         var dm = Substitute.For<IApplicantDmNotifier>();
         var svc = new BewerbungService(ctx.Factory, caseNo, Substitute.For<ISourcesStorageService>(),
             new BewerbungBroadcaster(), Substitute.For<IBewerbungssperreService>(),
-            notifications ?? Substitute.For<INotificationService>(), dm, Substitute.For<IApplicationCaseService>(),
-            Substitute.For<ILogger<BewerbungService>>());
+            notifications ?? Substitute.For<INotificationService>(), dm,
+            FakeDiscordMembership.Always(DiscordMembership.Unknown), Substitute.For<IDiscordDmService>(),
+            Substitute.For<IApplicationCaseService>(), Substitute.For<ILogger<BewerbungService>>());
         return (svc, dm);
     }
 

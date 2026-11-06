@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Models.Common;
@@ -157,7 +158,7 @@ public class DiscordDmServiceTests
     {
         using var f = new Fixture();
 
-        await f.Service.SaveSettingsAsync(personal, applicants, Admin());
+        await f.Service.SaveSettingsAsync(personal, applicants, null, Admin());
 
         var settings = await f.Service.GetSettingsAsync();
         Assert.Equal(personal, settings.Personal);
@@ -168,9 +169,9 @@ public class DiscordDmServiceTests
     public async Task A_second_save_overwrites_the_first()
     {
         using var f = new Fixture();
-        await f.Service.SaveSettingsAsync(true, true, Admin());
+        await f.Service.SaveSettingsAsync(true, true, null, Admin());
 
-        await f.Service.SaveSettingsAsync(false, true, Admin());
+        await f.Service.SaveSettingsAsync(false, true, null, Admin());
 
         var settings = await f.Service.GetSettingsAsync();
         Assert.False(settings.Personal);
@@ -182,7 +183,7 @@ public class DiscordDmServiceTests
     {
         using var f = new Fixture();
 
-        await f.Service.SaveSettingsAsync(true, false, Admin());
+        await f.Service.SaveSettingsAsync(true, false, null, Admin());
 
         await using var db = f.Ctx.NewContext();
         var rows = await db.SystemSettings.AsNoTracking().ToDictionaryAsync(s => s.Key, s => s.Value);
@@ -205,12 +206,12 @@ public class DiscordDmServiceTests
         using var f = new Fixture();
 
         // leadership without admin
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, Leader()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, null, Leader()));
         // read-only supervision: team lead without admin
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true,
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, null,
             ClaimsPrincipalBuilder.Agent("ro").WithRank(Rank.Director).AsTeamLead().Build()));
         // an admin who may not write (demo session)
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true,
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, null,
             ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsAdmin().AsDemo().Build()));
 
         var settings = await f.Service.GetSettingsAsync();
@@ -225,11 +226,147 @@ public class DiscordDmServiceTests
 
         // a demo visitor is neither: the read-only message wins
         var demo = ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.SpecialAgent).AsDemo().Build();
-        var readOnly = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, demo));
-        var notAdmin = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, Leader()));
+        var readOnly = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, null, demo));
+        var notAdmin = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, null, Leader()));
 
         Assert.Contains("Nur-Lese-Modus", readOnly.Message);
         Assert.Contains("Admins vorbehalten", notAdmin.Message);
+    }
+
+    // ---------- invite link ----------
+
+    private const string DefaultLink = "https://discord.gg/9TeYjJyYxf";
+
+    private static async Task<string?> StoredLinkAsync(Fixture f)
+    {
+        await using var db = f.Ctx.NewContext();
+        return await db.SystemSettings.AsNoTracking().Where(s => s.Key == "DiscordEinladungslink")
+            .Select(s => s.Value).SingleOrDefaultAsync();
+    }
+
+    [Fact]
+    public async Task The_invite_link_defaults_to_the_servers_own()
+    {
+        using var f = new Fixture();
+
+        Assert.Equal(DefaultLink, (await f.Service.GetSettingsAsync()).InviteLink);
+        Assert.Equal(DefaultLink, DiscordDmSettings.DefaultInviteLink);
+    }
+
+    [Theory]
+    [InlineData("https://discord.gg/abc123")]
+    [InlineData("https://discord.com/invite/abc123")]
+    [InlineData("https://discord.gg/fib-hq_01")]
+    [InlineData("https://discord.gg/abc123?event=1234567890")]
+    public async Task A_saved_invite_link_reads_back_under_its_german_key(string link)
+    {
+        using var f = new Fixture();
+
+        await f.Service.SaveSettingsAsync(true, true, link, Admin());
+
+        Assert.Equal(link, (await f.Service.GetSettingsAsync()).InviteLink);
+        Assert.Equal(link, await StoredLinkAsync(f));
+    }
+
+    [Fact]
+    public async Task The_invite_link_is_trimmed()
+    {
+        using var f = new Fixture();
+
+        await f.Service.SaveSettingsAsync(true, true, "  https://discord.gg/abc123 \n", Admin());
+
+        Assert.Equal("https://discord.gg/abc123", (await f.Service.GetSettingsAsync()).InviteLink);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(DefaultLink)]
+    public async Task An_empty_link_or_the_default_itself_puts_the_default_back_and_stores_nothing(string? link)
+    {
+        using var f = new Fixture();
+        await f.Service.SaveSettingsAsync(true, true, "https://discord.gg/abc123", Admin());
+
+        await f.Service.SaveSettingsAsync(true, true, link, Admin());
+
+        Assert.Equal(DefaultLink, (await f.Service.GetSettingsAsync()).InviteLink);
+        Assert.Null(await StoredLinkAsync(f));
+    }
+
+    [Theory]
+    [InlineData("http://discord.gg/abc123")]
+    [InlineData("https://discord.gg/")]
+    [InlineData("https://discord.com/invite/")]
+    [InlineData("https://discord.gg.evil.example/abc123")]
+    [InlineData("https://evil.example/https://discord.gg/abc123")]
+    [InlineData("https://discord.com/channels/1/2")]
+    [InlineData("https://discord.gg@evil.example/abc123")]
+    [InlineData("https://discord.gg/abc 123")]
+    [InlineData("https://discord.gg/abc\"onclick=\"x")]
+    [InlineData("https://discord.gg/<script>")]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("discord.gg/abc123")]
+    public async Task A_link_that_is_not_a_discord_invite_is_refused_and_nothing_is_saved(string link)
+    {
+        using var f = new Fixture();
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.SaveSettingsAsync(true, true, link, Admin()));
+
+        Assert.Contains("https://discord.gg/", ex.Message);
+        Assert.Contains("https://discord.com/invite/", ex.Message);
+        Assert.Null(await StoredLinkAsync(f));
+        // one save: a bad link keeps the switches where they were
+        var settings = await f.Service.GetSettingsAsync();
+        Assert.False(settings.Personal);
+        Assert.False(settings.Applicants);
+    }
+
+    [Fact]
+    public async Task An_overlong_link_is_refused()
+    {
+        using var f = new Fixture();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Service.SaveSettingsAsync(true, true, "https://discord.gg/" + new string('a', 200), Admin()));
+    }
+
+    [Fact]
+    public async Task A_stored_value_that_is_no_invite_reads_as_the_default()
+    {
+        using var f = new Fixture();
+        await using (var db = f.Ctx.NewContext())
+        {
+            db.SystemSettings.Add(new SystemSetting { Key = "DiscordEinladungslink", Value = "javascript:alert(1)" });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(DefaultLink, (await f.Service.GetSettingsAsync()).InviteLink);
+    }
+
+    [Fact]
+    public async Task Saving_the_invite_link_needs_an_admin_who_may_write()
+    {
+        using var f = new Fixture();
+        const string link = "https://discord.gg/abc123";
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, link, Leader()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, link,
+            ClaimsPrincipalBuilder.Agent("ro").WithRank(Rank.Director).AsTeamLead().Build()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, link,
+            ClaimsPrincipalBuilder.Agent("demo").WithRank(Rank.Director).AsAdmin().AsDemo().Build()));
+
+        Assert.Null(await StoredLinkAsync(f));
+        Assert.Equal(DefaultLink, (await f.Service.GetSettingsAsync()).InviteLink);
+    }
+
+    [Fact]
+    public async Task The_invite_link_guard_runs_before_the_link_is_looked_at()
+    {
+        using var f = new Fixture();
+
+        // an invalid link from a non-admin is still a guard failure, not a hint about the format
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Service.SaveSettingsAsync(true, true, "kaputt", Leader()));
     }
 
     [Theory]
@@ -240,7 +377,7 @@ public class DiscordDmServiceTests
     public async Task Personal_is_active_only_with_the_switch_and_a_token(bool personal, bool applicants, bool expected)
     {
         using var f = new Fixture();
-        await f.Service.SaveSettingsAsync(personal, applicants, Admin());
+        await f.Service.SaveSettingsAsync(personal, applicants, null, Admin());
 
         Assert.Equal(expected, await f.Service.PersonalActiveAsync());
     }
@@ -253,7 +390,7 @@ public class DiscordDmServiceTests
     public async Task Applicants_is_active_only_with_the_switch_and_a_token(bool personal, bool applicants, bool expected)
     {
         using var f = new Fixture();
-        await f.Service.SaveSettingsAsync(personal, applicants, Admin());
+        await f.Service.SaveSettingsAsync(personal, applicants, null, Admin());
 
         Assert.Equal(expected, await f.Service.ApplicantsActiveAsync());
     }
@@ -262,7 +399,7 @@ public class DiscordDmServiceTests
     public async Task Without_a_token_nothing_is_active_however_the_switches_stand()
     {
         using var f = new Fixture();
-        await f.Service.SaveSettingsAsync(true, true, Admin());
+        await f.Service.SaveSettingsAsync(true, true, null, Admin());
         f.Bot.IsConfigured = false;
 
         Assert.False(await f.Service.PersonalActiveAsync());

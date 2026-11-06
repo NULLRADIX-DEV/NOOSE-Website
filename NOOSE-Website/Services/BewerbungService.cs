@@ -22,6 +22,8 @@ public class BewerbungService(
     IBewerbungssperreService sperren,
     INotificationService notifications,
     IApplicantDmNotifier applicantMessages,
+    IDiscordMembershipCheck discordMembership,
+    IDiscordDmService discordSettings,
     IApplicationCaseService applicationCases,
     ILogger<BewerbungService> logger) : IBewerbungService
 {
@@ -74,6 +76,14 @@ public class BewerbungService(
         if (ban is { BannedUntil: { } until })
         {
             throw new InvalidOperationException($"Du bist noch bis zum {until.ToLocalTime():dd.MM.yyyy} für Bewerbungen gesperrt.");
+        }
+
+        // before any copy or row: only Discord's clear "not on the server" stops an application, an outage never does
+        if (await discordMembership.CheckAsync(userId, cancellationToken) == DiscordMembership.NotMember)
+        {
+            var invite = (await discordSettings.GetSettingsAsync(cancellationToken)).InviteLink;
+            throw new InvalidOperationException("Bewerbungen nehmen wir nur von Mitgliedern unseres Discord-Servers an. "
+                + $"Tritt ihm bei und sende die Bewerbung dann erneut ab: {invite}");
         }
 
         string? fileNameSaved = null;

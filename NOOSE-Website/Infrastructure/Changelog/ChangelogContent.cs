@@ -698,6 +698,8 @@ public static class ChangelogContent
                 + "ihre Bewerbung eingegangen ist, ein Test ansteht, eine Nachricht für sie da ist oder sich ihr Stand "
                 + "ändert. Die Nachricht nennt nie einen Namen oder ein Ergebnis; ein Admin schaltet sie ein.",
                 "Bewerbungen"),
+            Neu("3.0.35-bewerbung-discord", "Bewerben kann sich jetzt nur, wer auf unserem Discord-Server ist; "
+                + "das Formular zeigt sonst gleich den Einladungslink.", "Bewerbungen"),
         ]),
     ];
 }

@@ -71,6 +71,9 @@ public static class SystemSettingKeys
     /// <summary>Switch for the applicant notices as direct messages; default off.</summary>
     public const string DiscordDmApplicants = "DiscordDmBewerber";
 
+    /// <summary>Invite link to the Discord server shown to applicants who are not on it; unset means the built-in default.</summary>
+    public const string DiscordInviteLink = "DiscordEinladungslink";
+
     // periodic top-3 agent announcement; the interval also drives its wording
     public const string BestAgentEnabled = "BesterAgentAktiv";
     public const string BestAgentIntervalDays = "BesterAgentIntervallTage";

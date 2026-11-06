@@ -1,4 +1,4 @@
-@* Discord direct messages: two switches that move personal pings and applicant notices into private messages. Admins edit, leadership and supervision read. *@
+@* Discord direct messages: two switches that move personal pings and applicant notices into private messages, plus the invite link applicants get. Admins edit, leadership and supervision read. *@
 @inject IDiscordDmService DirectMessages
 @inject ISnackbar Snackbar
 
@@ -50,6 +50,19 @@ else
             </MudText>
         </MudPaper>
 
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Einladung zum Discord-Server</MudText>
+            <MudTextField T="string" @bind-Value="_inviteLink" Label="Einladungslink" Variant="Variant.Outlined"
+                          Placeholder="@DiscordDmSettings.DefaultInviteLink" MaxLength="120" Disabled="@(!_mayEdit)"
+                          Class="mb-1" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                Bewerben kann sich nur, wer auf dem Discord-Server ist. Wer es nicht ist, bekommt im Bewerbungsformular
+                und in der Fehlermeldung diesen Link. Er muss mit https://discord.gg/ oder https://discord.com/invite/
+                beginnen; leer lassen setzt den Standardlink zurück. Ist Discord nicht erreichbar, bleibt das Bewerben
+                trotzdem möglich.
+            </MudText>
+        </MudPaper>
+
         @if (_mayEdit)
         {
             <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Wrap="Wrap.Wrap">
@@ -72,6 +85,7 @@ else
     private bool _personal;
     private bool _applicants;
     private bool _botConfigured;
+    private string? _inviteLink;
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,6 +104,7 @@ else
             _personal = settings.Personal;
             _applicants = settings.Applicants;
             _botConfigured = settings.BotConfigured;
+            _inviteLink = settings.InviteLink;
         }
         catch (Exception ex)
         {
@@ -112,9 +127,9 @@ else
         _busy = true;
         try
         {
-            await DirectMessages.SaveSettingsAsync(_personal, _applicants, _user);
+            await DirectMessages.SaveSettingsAsync(_personal, _applicants, _inviteLink, _user);
             Snackbar.Add("Direktnachrichten gespeichert.", Severity.Success);
-            // read back: the switches show what is stored
+            // read back: the switches and the link show what is stored
             await LoadAsync();
         }
         catch (Exception ex)

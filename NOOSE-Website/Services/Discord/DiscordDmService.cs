@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
@@ -10,13 +11,20 @@ using NOOSE_Website.Models.Enums;
 namespace NOOSE_Website.Services;
 
 /// <inheritdoc cref="IDiscordDmService" />
-public sealed class DiscordDmService(
+public sealed partial class DiscordDmService(
     IDbContextFactory<AppDbContext> dbFactory,
     IDiscordBotClient bot,
     IDiscordWebhookService webhook,
     ILogger<DiscordDmService> logger) : IDiscordDmService
 {
     private const string DigestRoute = "/benachrichtigungen";
+    private const int MaxInviteLinkChars = 120;
+
+    private static readonly string[] InvitePrefixes = ["https://discord.gg/", "https://discord.com/invite/"];
+
+    // the code, plus an optional query like ?event=...
+    [GeneratedRegex(@"\A[A-Za-z0-9_-]+(\?[A-Za-z0-9_=&%.-]*)?\z")]
+    private static partial Regex InviteTail();
 
     public async Task<DiscordDmSettings> GetSettingsAsync(CancellationToken cancellationToken = default)
     {
@@ -24,17 +32,33 @@ public sealed class DiscordDmService(
         return await ReadSettingsAsync(db, cancellationToken);
     }
 
-    public async Task SaveSettingsAsync(bool personal, bool applicants, ClaimsPrincipal actor,
+    public async Task SaveSettingsAsync(bool personal, bool applicants, string? inviteLink, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
         Permission.RequireWriteAccess(actor);
         Permission.RequireAdmin(actor);
 
+        var link = inviteLink?.Trim();
+        if (!string.IsNullOrEmpty(link) && !IsValidInviteLink(link))
+        {
+            throw new InvalidOperationException("Der Einladungslink muss mit https://discord.gg/ oder "
+                + "https://discord.com/invite/ beginnen und danach nur Buchstaben, Ziffern, - und _ enthalten.");
+        }
+
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        await SetAsync(db, SystemSettingKeys.DiscordDmPersonal, personal, cancellationToken);
-        await SetAsync(db, SystemSettingKeys.DiscordDmApplicants, applicants, cancellationToken);
+        await SetAsync(db, SystemSettingKeys.DiscordDmPersonal, personal ? "true" : "false", cancellationToken);
+        await SetAsync(db, SystemSettingKeys.DiscordDmApplicants, applicants ? "true" : "false", cancellationToken);
+        // nothing stored for the default, so a later change of it reaches everyone who never set their own
+        await SetAsync(db, SystemSettingKeys.DiscordInviteLink,
+            string.IsNullOrEmpty(link) || link == DiscordDmSettings.DefaultInviteLink ? null : link, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
+
+    /// <summary>An https invite to Discord and nothing else: the link ends up in an href and in a refusal text.</summary>
+    public static bool IsValidInviteLink(string? link)
+        => !string.IsNullOrWhiteSpace(link) && link.Length <= MaxInviteLinkChars
+            && InvitePrefixes.Any(prefix => link.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && InviteTail().IsMatch(link[prefix.Length..]));
 
     public async Task<bool> PersonalActiveAsync(CancellationToken cancellationToken = default)
         => await GetSettingsAsync(cancellationToken) is { Personal: true, BotConfigured: true };
@@ -142,22 +166,36 @@ public sealed class DiscordDmService(
 
     private async Task<DiscordDmSettings> ReadSettingsAsync(AppDbContext db, CancellationToken cancellationToken)
     {
-        string[] keys = [SystemSettingKeys.DiscordDmPersonal, SystemSettingKeys.DiscordDmApplicants];
+        string[] keys = [SystemSettingKeys.DiscordDmPersonal, SystemSettingKeys.DiscordDmApplicants,
+            SystemSettingKeys.DiscordInviteLink];
         var values = await db.SystemSettings.AsNoTracking()
             .Where(s => keys.Contains(s.Key))
             .ToDictionaryAsync(s => s.Key, s => s.Value, cancellationToken);
         return new DiscordDmSettings(IsOn(values, SystemSettingKeys.DiscordDmPersonal),
-            IsOn(values, SystemSettingKeys.DiscordDmApplicants), bot.IsConfigured);
+            IsOn(values, SystemSettingKeys.DiscordDmApplicants), bot.IsConfigured, ReadInviteLink(values));
     }
+
+    /// <summary>The stored link if it still passes the check, else the default; a value written around the service never reaches an href.</summary>
+    private static string ReadInviteLink(Dictionary<string, string?> values)
+        => values.GetValueOrDefault(SystemSettingKeys.DiscordInviteLink)?.Trim() is { Length: > 0 } link && IsValidInviteLink(link)
+            ? link
+            : DiscordDmSettings.DefaultInviteLink;
 
     private static bool IsOn(Dictionary<string, string?> values, string key)
         => string.Equals(values.GetValueOrDefault(key), "true", StringComparison.OrdinalIgnoreCase);
 
-    private static async Task SetAsync(AppDbContext db, string key, bool on, CancellationToken cancellationToken)
+    /// <summary>A null value removes the row.</summary>
+    private static async Task SetAsync(AppDbContext db, string key, string? value, CancellationToken cancellationToken)
     {
-        var value = on ? "true" : "false";
         var row = await db.SystemSettings.FirstOrDefaultAsync(e => e.Key == key, cancellationToken);
-        if (row is null)
+        if (value is null)
+        {
+            if (row is not null)
+            {
+                db.SystemSettings.Remove(row);
+            }
+        }
+        else if (row is null)
         {
             db.SystemSettings.Add(new SystemSetting { Key = key, Value = value });
         }
