@@ -30,8 +30,6 @@ public sealed class PageHeaderScanTests
     {
         "Components/Pages/Cases/CasesList.razor",
         "Components/Pages/Factions/FactionsList.razor",
-        "Components/Pages/Jobs/JobsList.razor",
-        "Components/Pages/Notifications/NotificationInbox.razor",
         "Components/Pages/Operations/OperationsList.razor",
     };
 

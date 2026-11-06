@@ -58,11 +58,11 @@ else
             {
                 var rows = _plan.Items.Where(i => i.Bucket == bucket).ToList();
                 <MudPaper Class="pa-4" Elevation="2">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                        <MudIcon Icon="@BucketIcon(bucket)" Color="@BucketColour(bucket)" />
-                        <MudText Typo="Typo.h6">@BucketName(bucket)</MudText>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@rows.Count</MudChip>
-                    </MudStack>
+                    <SectionHeader Title="@BucketName(bucket)" Icon="@BucketIcon(bucket)" IconColour="@BucketColour(bucket)" Class="mb-2">
+                        <TitleContent>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@rows.Count</MudChip>
+                        </TitleContent>
+                    </SectionHeader>
                     @if (rows.Count == 0)
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">@BucketEmpty(bucket)</MudText>
@@ -74,7 +74,7 @@ else
                             {
                                 <MudPaper Class="pa-3" Elevation="1">
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap">
-                                        <MudStack Spacing="0">
+                                        <MudStack Spacing="0" Class="noose-eintrag-titel">
                                             <MudText Typo="Typo.body2">
                                                 <b>@MeetingTime.Local(w.DueAt).ToString("dddd, dd.MM.yyyy")</b>
                                                 @if (w.Bucket == FollowupBucket.Overdue)
@@ -96,7 +96,7 @@ else
                                         </MudStack>
                                         @if (_mayWrite)
                                         {
-                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="noose-kopf-umbruch">
                                                 @foreach (var days in FollowupPlanRules.PostponeDays)
                                                 {
                                                     <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Disabled="_busy"

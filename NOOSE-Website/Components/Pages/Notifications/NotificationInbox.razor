@@ -13,17 +13,26 @@
 
 <PageHeader Icon="@Icons.Material.Filled.Notifications" Title="Benachrichtigungen"
             Subtitle="Alles, was dich persönlich erreicht hat – auch das, was aus der Glocke schon herausgefallen ist.">
-    <Actions>
+    @* all three are secondary: from 960px up the row stays exactly as it was, below 960px they sit in the ⋮ menu *@
+    <MoreActions>
         <SavedViewButton BaseRoute="/benachrichtigungen" Filters="FilterState" OnApply="ApplyViewAsync" />
         <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.DoneAll"
                    Disabled="@(_unread == 0)" OnClick="AllReadAsync">Alle als gelesen</MudButton>
         <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Tune"
                    Href="/profil#benachrichtigungen">Einstellen</MudButton>
-    </Actions>
+    </MoreActions>
+    <MoreActionsMenu>
+        <SavedViewButton AsMenuItem="true" BaseRoute="/benachrichtigungen" Filters="FilterState" OnApply="ApplyViewAsync" />
+        <MudMenuItem Icon="@Icons.Material.Filled.DoneAll" Disabled="@(_unread == 0)" OnClick="AllReadAsync">Alle als gelesen</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.Tune" Href="/profil#benachrichtigungen">Einstellen</MudMenuItem>
+    </MoreActionsMenu>
 </PageHeader>
 
 <MudPaper Outlined="true" Class="pa-3 mb-3">
-    <MudGrid Spacing="2" Class="align-center">
+    @* below 600px the filters fold behind this button; from 600px up it is gone and the grid stands as before *@
+    <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+               Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)">Filter (@ActiveFilters)</MudButton>
+    <MudGrid Spacing="2" Class="@($"align-center {FilterFold}")">
         <MudItem xs="12" md="4">
             <MudSelect T="NotificationType" MultiSelection="true" SelectedValues="_filter.Types"
                        SelectedValuesChanged="TypesChangedAsync" Label="Art" Variant="Variant.Outlined" Margin="Margin.Dense"
@@ -145,6 +154,11 @@ else
     private NotificationInboxPage _page = NotificationInboxPage.Empty;
     private List<NotificationTypeCount> _types = new();
     private int _unread;
+    private bool _filtersOpen;
+
+    private int ActiveFilters => (_filter.Types.Count > 0 ? 1 : 0) + (_filter.From is null ? 0 : 1)
+        + (_filter.To is null ? 0 : 1) + (_filter.OnlyUnread ? 1 : 0);
+    private string FilterFold => _filtersOpen ? string.Empty : "noose-filter-zu";
     private bool _loadFailed;
     // own writes signal this page too; their handler reloads already
     private int _ownWrites;

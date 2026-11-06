@@ -4,7 +4,7 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
         <MudText Typo="Typo.subtitle1">Teilnehmer (@_participant.Count)</MudText>
         @if (CanManage)
         {
@@ -28,7 +28,7 @@
         {
             <MudPaper Class="pa-3" Elevation="1">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag-titel">
                         <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Primary" Size="Size.Small" />
                         <MudText Typo="Typo.body2"><b>@z.Agent?.Codename</b></MudText>
                         <AgentRankChip Agent="z.Agent" />

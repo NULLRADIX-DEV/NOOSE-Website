@@ -102,6 +102,12 @@ function stilSicherstellen() {
 .fc .fc-h-event .fc-event-title, .fc .fc-event-title { font-weight: 600; }
 .fc .fc-list-event:hover td { background: var(--mud-palette-action-default-hover); }
 .noose-kal-hinfaellig { opacity: .6; text-decoration: line-through; }
+/* phones: the toolbars wrap instead of pushing the page wider than the screen */
+@media screen and (max-width: 599.98px) {
+    .fc .fc-toolbar { flex-wrap: wrap; gap: 6px; }
+    .fc .fc-toolbar.fc-footer-toolbar { justify-content: center; }
+    .fc .fc-toolbar-title { font-size: 1rem; }
+}
 /* scrollbar */
 .fc .fc-scroller::-webkit-scrollbar { width: 10px; height: 10px; }
 .fc .fc-scroller::-webkit-scrollbar-thumb { background: var(--mud-palette-lines-default); border-radius: 6px; }
@@ -151,17 +157,17 @@ export async function render(containerId, eintraege, dotnetRef, locale) {
     }
     zerstoere(containerId);
 
+    const handy = window.matchMedia(HANDY_ABFRAGE);
     const cal = new window.FullCalendar.Calendar(el, {
-        initialView: 'timeGridWeek',
+        initialView: handy.matches ? 'listWeek' : 'timeGridWeek',
+        ...ansichtOptionen(handy.matches),
         locale: locale || 'de',
         firstDay: 1,
         timeZone: 'local',
-        height: '78vh',
         nowIndicator: true,
         scrollTime: '07:00:00',
         slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
         eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
-        headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek' },
         // german labels
         buttonText: { today: 'Heute', month: 'Monat', week: 'Woche', day: 'Tag', list: 'Liste' },
         allDayText: 'Ganztägig',
@@ -185,7 +191,34 @@ export async function render(containerId, eintraege, dotnetRef, locale) {
         },
     });
     cal.render();
-    instanzen.set(containerId, { cal, dotnetRef });
+    // turning the phone or resizing the window across 600px switches between the list and the week grid
+    const wechsel = (e) => {
+        const o = ansichtOptionen(e.matches);
+        cal.setOption('height', o.height);
+        cal.setOption('headerToolbar', o.headerToolbar);
+        cal.setOption('footerToolbar', o.footerToolbar);
+        cal.changeView(e.matches ? 'listWeek' : 'timeGridWeek');
+    };
+    handy.addEventListener('change', wechsel);
+    instanzen.set(containerId, { cal, dotnetRef, handy, wechsel });
+}
+
+// the phone width of app.css ("Handy", below 600px): there the week grid has no room, the list shows the week instead
+const HANDY_ABFRAGE = 'screen and (max-width: 599.98px)';
+
+// toolbars and height per width; from 600px up exactly what the calendar always had
+function ansichtOptionen(handy) {
+    return handy
+        ? {
+            height: 'auto',
+            headerToolbar: { left: 'prev,next', center: 'title', right: 'today' },
+            footerToolbar: { left: '', center: 'listWeek,timeGridDay,dayGridMonth', right: '' },
+        }
+        : {
+            height: '78vh',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek' },
+            footerToolbar: false,
+        };
 }
 
 export function setzeEreignisse(containerId, eintraege) {
@@ -200,6 +233,7 @@ export function setzeEreignisse(containerId, eintraege) {
 export function zerstoere(containerId) {
     const inst = instanzen.get(containerId);
     if (inst) {
+        try { inst.handy.removeEventListener('change', inst.wechsel); } catch (e) { /* ignore */ }
         try { inst.cal.destroy(); } catch (e) { /* ignore */ }
         instanzen.delete(containerId);
     }

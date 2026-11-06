@@ -18,17 +18,18 @@ else if (_view is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/aktivitaeten" aria-label="Zurück" />
-        <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h4">@_view.Activity.Title</MudText>
-        <MudSpacer />
-        @if (_canManage)
-        {
-            <MudButton Href="@($"/aktivitaeten/{Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
-            <MudButton OnClick="DeleteAsync" Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
-        }
-    </MudStack>
+    @* Bearbeiten stays at every width; Löschen goes into the ⋮ menu below 960px. Both only for the creator or the
+       leadership, so without that right the header has neither the button nor the menu. *@
+    <PageHeader BackHref="/aktivitaeten" Icon="@Icons.Material.Filled.Bolt" Title="@_view.Activity.Title" ShowHelp="false"
+                MoreActionsLast="true"
+                MoreActions="@(_canManage ? DeleteButton : null)" MoreActionsMenu="@(_canManage ? DeleteMenu : null)">
+        <Actions>
+            @if (_canManage)
+            {
+                <MudButton Href="@($"/aktivitaeten/{Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
+            }
+        </Actions>
+    </PageHeader>
 
     <MudPaper Class="pa-4 mb-4" Elevation="1">
         <MudStack Row="true" Spacing="4" Class="flex-wrap">
@@ -86,6 +87,16 @@ else
     private AgentActivityDetailView? _view;
     private bool _load = true;
     private bool _canManage;
+
+    private RenderFragment DeleteButton => __builder =>
+    {
+        <MudButton OnClick="DeleteAsync" Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete">Löschen</MudButton>
+    };
+
+    private RenderFragment DeleteMenu => __builder =>
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+    };
     private string? _loadedId;
 
     protected override async Task OnParametersSetAsync()

@@ -4,7 +4,7 @@
 @inject IOperationService OperationService
 @inject NavigationManager Nav
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2 noose-kopf-umbruch">
     <MudText Typo="Typo.subtitle1">Einsätze@(_operations.Count > 0 ? $" ({_operations.Count})" : "")</MudText>
     <MudSpacer />
     @if (_mayWrite)
@@ -32,7 +32,7 @@ else
                 <MudListItem T="Operation" Icon="@Icons.Material.Filled.Radar"
                              OnClick="@(() => Nav.NavigateTo($"/operationen/{o.Id}"))" Style="cursor:pointer;">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-                        <MudText Typo="Typo.body1">@o.Title</MudText>
+                        <MudText Typo="Typo.body1" Class="noose-eintrag-titel">@o.Title</MudText>
                         @if (!string.IsNullOrWhiteSpace(o.Type))
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">@o.Type</MudChip>
@@ -55,7 +55,7 @@ else
                 <MudListItem T="AgentActivityListItem" Icon="@Icons.Material.Filled.Bolt"
                              OnClick="@(() => Nav.NavigateTo($"/aktivitaeten/{a.Id}"))" Style="cursor:pointer;">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-                        <MudText Typo="Typo.body1">@a.Title</MudText>
+                        <MudText Typo="Typo.body1" Class="noose-eintrag-titel">@a.Title</MudText>
                         @if (!string.IsNullOrWhiteSpace(a.Kind))
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@a.Kind</MudChip>
