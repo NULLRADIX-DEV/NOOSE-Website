@@ -38,7 +38,7 @@
             </MudPaper>
         }
 
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
             <MudText Typo="Typo.subtitle1">Letzte Anträge (@_requests.Count)</MudText>
             <MudSpacer />
             <MudButton Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ChevronRight"
@@ -54,9 +54,10 @@
             <MudSimpleTable Dense="true" Hover="true" Striped="true">
                 <thead>
                     <tr>
+                        @* phones keep month, consumption and the carry-over *@
                         <th>Monat</th>
-                        <th style="text-align:right">Grundbudget</th>
-                        <th style="text-align:right">Übertrag ein</th>
+                        <th style="text-align:right" class="noose-mobil-aus">Grundbudget</th>
+                        <th style="text-align:right" class="noose-mobil-aus">Übertrag ein</th>
                         <th style="text-align:right">Verbraucht</th>
                         <th style="text-align:right">Übertrag aus</th>
                     </tr>
@@ -66,8 +67,8 @@
                     {
                         <tr>
                             <td>@FinancingPeriod.Label(period.Year, period.Month)</td>
-                            <td style="text-align:right">@Money.Format(period.BaseBudget)</td>
-                            <td style="text-align:right">@Money.Format(period.CarryIn)</td>
+                            <td style="text-align:right" class="noose-mobil-aus">@Money.Format(period.BaseBudget)</td>
+                            <td style="text-align:right" class="noose-mobil-aus">@Money.Format(period.CarryIn)</td>
                             <td style="text-align:right">@Money.Format(period.Consumed)</td>
                             <td style="text-align:right">@Money.Format(period.CarryOut) (@period.CarryPercent %)</td>
                         </tr>

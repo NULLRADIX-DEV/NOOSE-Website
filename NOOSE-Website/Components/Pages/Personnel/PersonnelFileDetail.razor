@@ -19,50 +19,88 @@ else if (_agent is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* The h5 title row stays hand-built: PageHeader would draw an h4 and change the desktop. Below 960px it wraps and
+       the buttons give way to a ⋮ menu holding the same actions behind the same checks (HeaderMenu). *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/personal" aria-label="Zurück" />
         <MudText Typo="Typo.h5">Personalakte</MudText>
         @* the card has its own gate: the agent's own, leadership and the Administration Division *@
         <MudSpacer />
-        @if (ServiceIdRules.IsHolder(_agent) && ServiceIdRules.MayPrint(_user, _agent.Id))
-        {
-            <MudTooltip Text="Dienstausweis drucken">
-                <MudIconButton Icon="@Icons.Material.Filled.Badge" Color="Color.Default"
-                               Href="@($"/personal/{AgentId}/ausweis")" Target="_blank"
-                               aria-label="Dienstausweis öffnen" />
+        <div class="d-contents noose-schmal-aus">
+            @if (MayServiceId)
+            {
+                <MudTooltip Text="Dienstausweis drucken">
+                    <MudIconButton Icon="@Icons.Material.Filled.Badge" Color="Color.Default"
+                                   Href="@($"/personal/{AgentId}/ausweis")" Target="_blank"
+                                   aria-label="Dienstausweis öffnen" />
+                </MudTooltip>
+            }
+            @* Personnel files count as leadership-only content. *@
+            @if (_isLeadership)
+            {
+                <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
+                               Href="@($"/personal/{AgentId}/druck?tage={_supervisionDays}")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
             </MudTooltip>
-        }
-        @* Personnel files count as leadership-only content. *@
-        @if (_isLeadership)
+                <FollowButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" User="_user" />
+                <JobCreateButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" />
+                @if (_mayHandOver)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.MoveDown" Color="Color.Primary"
+                               Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => HandOverAsync(quietWhenEmpty: false))">
+                        Arbeit übergeben
+                    </MudButton>
+                }
+                @if (_agent.Status == AgentStatus.Terminated && _mayWrite)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.RestoreFromTrash" Color="Color.Success"
+                               Variant="Variant.Outlined" Size="Size.Small" OnClick="TerminationRevoke">
+                        Kündigung zurücknehmen
+                    </MudButton>
+                }
+                else if (_mayTerminate)
+                {
+                    <MudButton StartIcon="@Icons.Material.Filled.PersonRemove" Color="Color.Error"
+                               Variant="Variant.Outlined" Size="Size.Small" OnClick="Terminate">
+                        Kündigen
+                    </MudButton>
+                }
+            }
+        </div>
+        @if (MayServiceId || _isLeadership)
         {
-            <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
-            <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
-                           Href="@($"/personal/{AgentId}/druck?tage={_supervisionDays}")" Target="_blank"
-                           aria-label="Druckansicht öffnen" />
-        </MudTooltip>
-            <FollowButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" User="_user" />
-            <JobCreateButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" />
-            @if (_mayHandOver)
-            {
-                <MudButton StartIcon="@Icons.Material.Filled.MoveDown" Color="Color.Primary"
-                           Variant="Variant.Outlined" Size="Size.Small" OnClick="@(() => HandOverAsync(quietWhenEmpty: false))">
-                    Arbeit übergeben
-                </MudButton>
-            }
-            @if (_agent.Status == AgentStatus.Terminated && _mayWrite)
-            {
-                <MudButton StartIcon="@Icons.Material.Filled.RestoreFromTrash" Color="Color.Success"
-                           Variant="Variant.Outlined" Size="Size.Small" OnClick="TerminationRevoke">
-                    Kündigung zurücknehmen
-                </MudButton>
-            }
-            else if (_mayTerminate)
-            {
-                <MudButton StartIcon="@Icons.Material.Filled.PersonRemove" Color="Color.Error"
-                           Variant="Variant.Outlined" Size="Size.Small" OnClick="Terminate">
-                    Kündigen
-                </MudButton>
-            }
+            <HeaderMenu>
+                @if (MayServiceId)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.Badge" Href="@($"/personal/{AgentId}/ausweis")"
+                                 Target="_blank">Dienstausweis drucken</MudMenuItem>
+                }
+                @if (_isLeadership)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.Print" Target="_blank"
+                                 Href="@($"/personal/{AgentId}/druck?tage={_supervisionDays}")">Akte drucken</MudMenuItem>
+                    <FollowButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" User="_user" AsMenuItem="true" />
+                    <JobCreateButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" AsMenuItem="true" />
+                    @if (_mayHandOver)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.MoveDown"
+                                     OnClick="@(() => HandOverAsync(quietWhenEmpty: false))">Arbeit übergeben</MudMenuItem>
+                    }
+                    @if (_agent.Status == AgentStatus.Terminated && _mayWrite)
+                    {
+                        <MudDivider Class="my-1" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.RestoreFromTrash" IconColor="Color.Success"
+                                     OnClick="TerminationRevoke">Kündigung zurücknehmen</MudMenuItem>
+                    }
+                    else if (_mayTerminate)
+                    {
+                        <MudDivider Class="my-1" />
+                        <MudMenuItem Icon="@Icons.Material.Filled.PersonRemove" IconColor="Color.Error"
+                                     OnClick="Terminate">Kündigen</MudMenuItem>
+                    }
+                }
+            </HeaderMenu>
         }
     </MudStack>
 
@@ -109,7 +147,7 @@ else
         </MudItem>
 
         <MudItem xs="12" md="8" lg="9">
-            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4"
+            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4" Class="noose-reiter-handy"
                      @bind-ActivePanelIndex="_activeTab"
                      @bind-ActivePanelIndex:after="@(() => TabUrlState.WriteAsync(JS, Nav, _tabs, _activeTab))">
                 @if (_maySupervise)
@@ -139,19 +177,13 @@ else
                                   Changed="@(() => _probation?.ReloadAsync() ?? Task.CompletedTask)" />
                     @if (_isHrbOrLeadership)
                     {
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-6 mb-2">
-                            <MudIcon Icon="@Icons.Material.Filled.Quiz" Color="Color.Primary" />
-                            <MudText Typo="Typo.h6">Interne Tests</MudText>
-                        </MudStack>
+                        <SectionHeader Icon="@Icons.Material.Filled.Quiz" Title="Interne Tests" Class="mt-6 mb-2" />
                         <AgentTestHistoryPanel AgentId="@_agent.Id" />
                     }
                 </MudTabPanel>
                 <MudTabPanel Text="Auszeichnungen" Icon="@Icons.Material.Filled.EmojiEvents">
                     <DecorationsPanel Agent="_agent" />
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-6 mb-2">
-                        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Primary" />
-                        <MudText Typo="Typo.h6">Abzeichen</MudText>
-                    </MudStack>
+                    <SectionHeader Icon="@Icons.Material.Filled.EmojiEvents" Title="Abzeichen" Class="mt-6 mb-2" />
                     <AgentBadgesPanel AgentId="@_agent.Id" />
                 </MudTabPanel>
                 <MudTabPanel Text="Entführungen" Icon="@Icons.Material.Filled.PersonOff">
@@ -212,6 +244,9 @@ else
     }
 
     private bool _mayFirearmUse;
+
+    // the service ID card has its own gate: the agent's own, leadership and the Administration Division
+    private bool MayServiceId => _agent is not null && ServiceIdRules.IsHolder(_agent) && ServiceIdRules.MayPrint(_user, _agent.Id);
 
     // own-ness depends on the file shown, so this runs again when the page is reused for another agent
     private void BuildTabs()

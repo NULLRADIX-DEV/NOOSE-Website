@@ -20,7 +20,7 @@
 
 <MudPaper Elevation="2" Class="pa-4 mb-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-        <MudTextField @bind-Value="_newTitle" Label="Neuer Test" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:260px;" />
+        <MudTextField @bind-Value="_newTitle" Label="Neuer Test" Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:260px;" />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateAsync">Test anlegen</MudButton>
     </MudStack>
 </MudPaper>
@@ -35,19 +35,20 @@ else if (_tests.Count == 0)
 }
 else
 {
-    <MudTable Items="_tests" Dense="true" Hover="true">
+    @* a table on phones too: title, state and actions; time and usage are hidden below 600px *@
+    <MudTable Items="_tests" Dense="true" Hover="true" Breakpoint="Breakpoint.None">
         <HeaderContent>
-            <MudTh>Titel</MudTh><MudTh>Zeit</MudTh><MudTh>Verwendung</MudTh><MudTh>Status</MudTh><MudTh></MudTh>
+            <MudTh>Titel</MudTh><MudTh Class="noose-mobil-aus">Zeit</MudTh><MudTh Class="noose-mobil-aus">Verwendung</MudTh><MudTh>Status</MudTh><MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Titel">@context.Title</MudTd>
             @* a value, not a chip: the Aktiv chip sits in the next cell and two would compete *@
-            <MudTd DataLabel="Zeit">
+            <MudTd DataLabel="Zeit" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     @(context.TimeLimitMinutes is int m ? $"{m} Min" : "—")
                 </MudText>
             </MudTd>
-            <MudTd DataLabel="Verwendung">
+            <MudTd DataLabel="Verwendung" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@TestUsageDisplay.Name(context.Usage)</MudText>
             </MudTd>
             <MudTd DataLabel="Status">

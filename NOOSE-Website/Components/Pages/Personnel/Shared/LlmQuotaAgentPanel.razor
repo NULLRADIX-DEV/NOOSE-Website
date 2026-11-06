@@ -46,8 +46,8 @@ else
             <thead>
                 <tr>
                     <th>Woche</th>
-                    <th class="text-right">Grund</th>
-                    <th class="text-right">Übertrag ein</th>
+                    <th class="text-right noose-mobil-aus">Grund</th>
+                    <th class="text-right noose-mobil-aus">Übertrag ein</th>
                     <th class="text-right">Verbraucht</th>
                     <th class="text-right">Übertrag aus</th>
                 </tr>
@@ -57,8 +57,8 @@ else
                 {
                     <tr>
                         <td>@IsoWeekPeriod.Label(period.Year, period.Week)</td>
-                        <td class="text-right">@period.BaseWeekly.ToString("N0")</td>
-                        <td class="text-right">@period.CarryIn.ToString("N0")</td>
+                        <td class="text-right noose-mobil-aus">@period.BaseWeekly.ToString("N0")</td>
+                        <td class="text-right noose-mobil-aus">@period.CarryIn.ToString("N0")</td>
                         <td class="text-right">@period.Consumed.ToString("N0")</td>
                         <td class="text-right">@period.CarryOut.ToString("N0") (@period.CarryPercent %)</td>
                     </tr>
@@ -75,13 +75,14 @@ else
                 @foreach (var adjustment in _adjustments)
                 {
                     <tr>
-                        <td style="width:150px;">@adjustment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        @* phones keep week, tokens and reason *@
+                        <td style="width:150px;" class="noose-mobil-aus">@adjustment.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                         <td style="width:120px;">@IsoWeekPeriod.Label(adjustment.Year, adjustment.Week)</td>
                         <td style="width:120px;" class="text-right">
                             @(adjustment.Tokens > 0 ? "+" : string.Empty)@adjustment.Tokens.ToString("N0")
                         </td>
                         <td class="mud-text-secondary">@adjustment.Reason</td>
-                        <td class="mud-text-secondary" style="width:140px;">@adjustment.CreatedByName</td>
+                        <td class="mud-text-secondary noose-mobil-aus" style="width:140px;">@adjustment.CreatedByName</td>
                     </tr>
                 }
             </tbody>

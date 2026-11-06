@@ -5,16 +5,15 @@
 @inject IJSRuntime JS
 
 <MudStack Spacing="2">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudIcon Icon="@Icons.Material.Filled.MilitaryTech" Color="Color.Warning" />
-        <MudText Typo="Typo.h6">Ehrenzeichen</MudText>
-        <MudSpacer />
-        @if (MayAward)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AwardAsync"
-                       StartIcon="@Icons.Material.Filled.Add" Disabled="_busy">Ehrenzeichen verleihen</MudButton>
-        }
-    </MudStack>
+    <SectionHeader Icon="@Icons.Material.Filled.MilitaryTech" IconColour="Color.Warning" Title="Ehrenzeichen">
+        <Actions>
+            @if (MayAward)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="AwardAsync"
+                           StartIcon="@Icons.Material.Filled.Add" Disabled="_busy">Ehrenzeichen verleihen</MudButton>
+            }
+        </Actions>
+    </SectionHeader>
 
     @if (_load)
     {
@@ -45,8 +44,13 @@
                             </MudAlert>
                         }
                     </div>
-                    <MudStack Row="true" Spacing="0">
-                        @if (DecorationRules.MayPrint(_user, AgentId, a.IsRevoked))
+                    @{
+                        var mayPrint = DecorationRules.MayPrint(_user, AgentId, a.IsRevoked);
+                        // three icon buttons fold into a ⋮ menu below 600px, behind the same checks
+                        var folds = mayPrint && MayManage && !a.IsRevoked;
+                    }
+                    <MudStack Row="true" Spacing="0" Class="@(folds ? "noose-mobil-aus" : null)">
+                        @if (mayPrint)
                         {
                             <MudTooltip Text="Urkunde drucken">
                                 <MudIconButton Icon="@Icons.Material.Filled.WorkspacePremium" Size="Size.Small"
@@ -67,6 +71,18 @@
                             </MudTooltip>
                         }
                     </MudStack>
+                    @if (folds)
+                    {
+                        <HeaderMenu PhoneOnly="true">
+                            <MudMenuItem Icon="@Icons.Material.Filled.WorkspacePremium" Href="@($"/urkunden/ehrung/{a.Id}")"
+                                         Target="_blank">Urkunde drucken</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit" Disabled="_busy"
+                                         OnClick="@(() => EditAsync(a))">Korrigieren</MudMenuItem>
+                            <MudDivider Class="my-1" />
+                            <MudMenuItem Icon="@Icons.Material.Filled.RemoveCircleOutline" IconColor="Color.Error" Disabled="_busy"
+                                         OnClick="@(() => RevokeAsync(a))">Aberkennen</MudMenuItem>
+                        </HeaderMenu>
+                    }
                 </MudStack>
             </MudPaper>
         }

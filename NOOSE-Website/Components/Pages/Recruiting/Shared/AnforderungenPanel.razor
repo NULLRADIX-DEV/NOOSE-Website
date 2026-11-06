@@ -38,7 +38,8 @@
                         <MudTextField T="string" @bind-Value="item.Text" Label="Anforderung" Lines="2"
                                       Variant="Variant.Outlined" Margin="Margin.Dense"
                                       MaxLength="CareerRequirementsConfig.MaxTextLength" />
-                        <MudStack Row="true" Spacing="0" Style="flex:0 0 auto;">
+                        @* three icon buttons: below 600px they fold into a ⋮ menu with the same actions *@
+                        <MudStack Row="true" Spacing="0" Class="noose-mobil-aus" Style="flex:0 0 auto;">
                             <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" title="Nach oben"
                                            Disabled="@(index == 0)" OnClick="@(() => Move(index, -1))" />
                             <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" title="Nach unten"
@@ -46,6 +47,15 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                            title="Anforderung löschen" OnClick="@(() => _items.Remove(item))" />
                         </MudStack>
+                        <HeaderMenu PhoneOnly="true">
+                            <MudMenuItem Icon="@Icons.Material.Filled.ArrowUpward" Disabled="@(index == 0)"
+                                         OnClick="@(() => Move(index, -1))">Nach oben</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.ArrowDownward" Disabled="@(index == _items.Count - 1)"
+                                         OnClick="@(() => Move(index, 1))">Nach unten</MudMenuItem>
+                            <MudDivider Class="my-1" />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                         OnClick="@(() => _items.Remove(item))">Anforderung löschen</MudMenuItem>
+                        </HeaderMenu>
                     </MudStack>
 
                     @for (var a = 0; a < item.Alternatives.Count; a++)
@@ -76,7 +86,7 @@
             <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary"
                        Disabled="@(_items.Count >= CareerRequirementsConfig.MaxItems)"
                        OnClick="Add">Anforderung hinzufügen</MudButton>
-            <MudStack Row="true" Spacing="2">
+            <MudStack Row="true" Spacing="2" Class="noose-kopf-umbruch">
                 <MudButton OnClick="Reset" StartIcon="@Icons.Material.Filled.RestartAlt">Auf Standard zurücksetzen</MudButton>
                 <AuthorizeView Policy="@Policies.WriteAccess" Context="save">
                     <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save"

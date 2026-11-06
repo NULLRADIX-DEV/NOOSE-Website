@@ -46,25 +46,26 @@ else if (Current.Count == 0)
 }
 else
 {
+    @* a table on phones too, with name and status; the other columns are hidden below 600px *@
     <MudTable Items="Current" Hover="true" Dense="true" OnRowClick="@((TableRowClickEventArgs<Bewerbung> e) => Open(e.Item))"
-              Style="cursor:pointer;">
+              Breakpoint="Breakpoint.None" Style="cursor:pointer;">
         <HeaderContent>
-            <MudTh>Aktenzeichen</MudTh>
+            <MudTh Class="noose-mobil-aus">Aktenzeichen</MudTh>
             <MudTh>Name</MudTh>
             <MudTh>Status</MudTh>
-            <MudTh>Bearbeiter</MudTh>
-            <MudTh>Eingereicht</MudTh>
+            <MudTh Class="noose-mobil-aus">Bearbeiter</MudTh>
+            <MudTh Class="noose-mobil-aus">Eingereicht</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Aktenzeichen">@context.CaseNumber</MudTd>
+            <MudTd DataLabel="Aktenzeichen" Class="noose-mobil-aus">@context.CaseNumber</MudTd>
             <MudTd DataLabel="Name">@context.Name</MudTd>
             <MudTd DataLabel="Status">
                 <MudChip T="string" Size="Size.Small" Color="BewerbungStatusDisplay.ChipColor(context.Status)">
                     @BewerbungStatusDisplay.Name(context.Status)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Bearbeiter">@(string.IsNullOrWhiteSpace(context.AssignedAgentName) ? "—" : context.AssignedAgentName)</MudTd>
-            <MudTd DataLabel="Eingereicht">@context.SubmittedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Bearbeiter" Class="noose-mobil-aus">@(string.IsNullOrWhiteSpace(context.AssignedAgentName) ? "—" : context.AssignedAgentName)</MudTd>
+            <MudTd DataLabel="Eingereicht" Class="noose-mobil-aus">@context.SubmittedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
         </RowTemplate>
     </MudTable>
 }
