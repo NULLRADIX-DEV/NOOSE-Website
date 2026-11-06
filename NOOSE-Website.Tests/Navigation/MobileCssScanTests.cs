@@ -105,6 +105,23 @@ public sealed class MobileCssScanTests
         Assert.Empty(offenders);
     }
 
+    /// <summary>Classes the shared components set and later page migrations rely on, each with its rule in the section.</summary>
+    private static readonly string[] BuildingBlocks =
+    [
+        "noose-kachel", "noose-kachel-wert", "record-rail-leiste", "record-rail-anker", "noose-steckbrief-kopf",
+        "noose-steckbrief-bild", "noose-steckbrief-zu", "noose-formleiste", "noose-dialog-lang", "noose-filterleiste",
+        "noose-filter-feld", "noose-filter-zu", "noose-reiter-handy", "noose-eintrag", "noose-eintrag-titel",
+        "noose-eintrag-chips", "noose-breite-frei", "noose-min-breite-frei",
+    ];
+
+    [Fact]
+    public void Building_block_classes_have_rules()
+    {
+        var section = MobileSection();
+        var missing = BuildingBlocks.Where(c => !Regex.IsMatch(section, $@"\.{Regex.Escape(c)}(?![\w-])")).ToList();
+        Assert.Empty(missing);
+    }
+
     [Fact]
     public void Helper_classes_and_gutter_exist()
     {

@@ -2771,3 +2771,281 @@ div.vis-tooltip {
         padding: 8px 0;
     }
 }
+
+/* Building blocks for the page migrations (Tasks 12 to 16). Add the class in the markup; nothing here applies from
+   960px up, so a page that takes one on keeps its desktop look. One line per class:
+   noose-kachel              StatTile paper (StatTile sets it): denser below 600px; wrap tiles in MudItem xs="6" sm="6" md="3"
+   noose-kachel-kopf         StatTile icon and label row (StatTile sets it): label may wrap below 600px
+   noose-kachel-wert         StatTile number (StatTile sets it): h5 size below 600px
+   record-rail-anker         RecordSectionRail sets it: the spot a section switch scrolls to below 960px
+   record-rail-leiste        RecordSectionRail sets it: current section plus switch menu, pinned under the app bar below 960px
+   record-rail-leiste-knopf  RecordSectionRail sets it: the bar's full-width activator button
+   record-rail-leiste-titel  RecordSectionRail sets it: section name in that button, cut with an ellipsis
+   record-rail-leiste-aktiv  RecordSectionRail sets it: the current section in the switch menu
+   noose-steckbrief          identity card paper on a record detail page; compact below 960px (pattern: IdentityCard)
+   noose-steckbrief-kopf     wrapper "d-flex flex-column gap-3" around picture and name: side by side below 960px
+   noose-steckbrief-bild     wrapper of the photo or avatar: 64px below 960px
+   noose-steckbrief-name     name block beside the picture: may shrink and wrap
+   noose-steckbrief-kennzeichen  MudStack of status badges: one wrapping row below 960px
+   noose-steckbrief-rest     wrapper "d-flex flex-column gap-3" of the card's remaining lines (marker only)
+   noose-steckbrief-zu       added to that wrapper while folded: hidden below 960px; a C# bool toggles it from a
+                             "Details" button that carries noose-nur-schmal
+   noose-formleiste          FormActions row (FormActions sets it): pinned to the bottom of the screen below 960px
+   noose-dialog-lang         MudDialog Class of a long form dialog: full screen below 600px (every dialog: screen wide)
+   noose-filterleiste        flex row of search and filters, or Class of a MudDataGrid/MudTable: wraps below 960px
+   noose-filter-feld         one search or filter field: full row width below 600px, beats an inline max-width
+   noose-filter-zu           filter group while folded behind a "Filter (n)" button with noose-nur-handy: hidden below
+                             600px; a C# bool switches the class, never MudCollapse, which would fold desktop too
+   noose-reiter-handy        MudTabs Class: below 600px tabs shrink to their label and drop the icon beside the text
+   noose-eintrag             flex row of an entry (title, chips, icon buttons): wraps below 600px
+   noose-eintrag-titel       title of such a row: may shrink and break instead of pushing the row wider
+   noose-eintrag-chips       chip group of such a row: its own line under the title below 600px
+   noose-breite-frei         element with an inline width, max-width or min-width in px: full row width below 600px
+   noose-min-breite-frei     element with an inline min-width in px: no min-width below 600px, width as before
+   Fixed px widths: keep the inline style (desktop, 600 to 959px and paper stay as they are) and add noose-breite-frei
+   or noose-min-breite-frei; the !important below beats the inline style on phones only. */
+@media screen and (max-width: 959.98px) {
+    /* the anchor a section switch scrolls to; the margin leaves room for the app bar above the pinned bar */
+    .record-rail-anker {
+        scroll-margin-top: var(--mud-appbar-height);
+    }
+
+    .record-rail-leiste {
+        position: sticky;
+        top: var(--mud-appbar-height);
+        z-index: 5;
+        margin-bottom: 8px;
+    }
+
+    .record-rail-leiste .record-rail-leiste-knopf {
+        justify-content: flex-start;
+        text-transform: none;
+        letter-spacing: normal;
+        padding-inline: 16px;
+        min-height: 44px;
+    }
+
+    .record-rail-leiste .record-rail-leiste-knopf .mud-button-label {
+        min-width: 0;
+    }
+
+    .record-rail-leiste-titel {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-align: start;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .record-rail-leiste-aktiv {
+        color: var(--mud-palette-primary);
+        font-weight: 600;
+    }
+
+    .noose-steckbrief-kopf {
+        flex-direction: row !important;
+        align-items: center;
+    }
+
+    .noose-steckbrief-bild {
+        flex: none;
+        width: 64px;
+        padding: 0 !important;
+    }
+
+    .noose-steckbrief-bild :is(img, .mud-avatar) {
+        width: 64px !important;
+        height: 64px !important;
+        font-size: 1.5rem !important;
+    }
+
+    .noose-steckbrief-name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .noose-steckbrief-kennzeichen {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    .noose-steckbrief-zu {
+        display: none !important;
+    }
+
+    /* the bar sticks to the bottom while its form is on screen; the inset keeps it clear of the home bar */
+    .noose-formleiste {
+        position: sticky;
+        bottom: 0;
+        z-index: 4;
+        flex-wrap: wrap;
+        row-gap: 8px;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        background-color: var(--mud-palette-surface);
+        border-top: 1px solid var(--mud-palette-divider);
+    }
+
+    /* snackbars at the bottom rise above a form bar instead of covering its buttons */
+    body:has(.noose-formleiste) :is(.mud-snackbar-location-bottom-left, .mud-snackbar-location-bottom-center, .mud-snackbar-location-bottom-right) {
+        bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+
+    .noose-filterleiste:not(.mud-table, .mud-data-grid),
+    :is(.mud-table, .mud-data-grid).noose-filterleiste .mud-table-toolbar {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+
+    :is(.mud-table, .mud-data-grid).noose-filterleiste .mud-table-toolbar {
+        height: auto;
+        min-height: var(--mud-internal-toolbar-height);
+        padding-block: 8px;
+    }
+
+    .noose-eintrag-titel {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media screen and (max-width: 599.98px) {
+    /* MudBlazor draws the app bar at 7/8 of --mud-appbar-height on an upright phone */
+    .record-rail-anker {
+        scroll-margin-top: calc(var(--mud-appbar-height) - var(--mud-appbar-height) / 8);
+    }
+
+    .record-rail-leiste {
+        top: calc(var(--mud-appbar-height) - var(--mud-appbar-height) / 8);
+    }
+
+    .mud-paper.noose-kachel {
+        padding: 12px !important;
+    }
+
+    .noose-kachel .noose-kachel-kopf {
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .noose-kachel .noose-kachel-kopf .mud-typography-overline {
+        min-width: 0;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .noose-kachel .noose-kachel-wert {
+        margin-top: 4px !important;
+        font-size: var(--mud-typography-h5-size);
+        line-height: var(--mud-typography-h5-lineheight);
+    }
+
+    /* every dialog fits the screen with 8px to spare; MudBlazor fullscreen dialogs and the palette keep their own */
+    .mud-dialog:not(.mud-dialog-fullscreen, .noose-palette, .noose-dialog-lang) {
+        width: calc(100vw - 16px);
+        max-width: calc(100vw - 16px) !important;
+        max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
+    }
+
+    .mud-dialog-container.mud-dialog-topcenter {
+        padding-top: 8px;
+    }
+
+    .mud-dialog-container.mud-dialog-bottomcenter {
+        padding-bottom: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-centerleft, .mud-dialog-centerright) {
+        padding-inline: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-topleft, .mud-dialog-topright, .mud-dialog-bottomleft, .mud-dialog-bottomright) .mud-dialog:not(.noose-dialog-lang) {
+        left: 8px;
+        right: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-topleft, .mud-dialog-topright) .mud-dialog:not(.noose-dialog-lang) {
+        top: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-bottomleft, .mud-dialog-bottomright) .mud-dialog:not(.noose-dialog-lang) {
+        bottom: 8px;
+    }
+
+    .mud-dialog .mud-dialog-title {
+        padding: 12px 16px;
+    }
+
+    .mud-dialog .mud-dialog-title:has(.mud-button-close) {
+        padding-inline-end: 56px;
+    }
+
+    .mud-dialog .mud-dialog-content:not(.mud-dialog-no-side-padding) {
+        min-width: 0;
+        padding-inline: 16px;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        flex-wrap: wrap;
+    }
+
+    /* long forms get the whole screen, like MudBlazor's own FullScreen option */
+    .mud-dialog.noose-dialog-lang {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        max-width: 100% !important;
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .noose-filter-feld {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+
+    .noose-filter-zu {
+        display: none !important;
+    }
+
+    .noose-reiter-handy .mud-tab {
+        min-width: 0 !important;
+        padding-inline: 10px;
+    }
+
+    .noose-reiter-handy .mud-tab .mud-tab-icon-text {
+        display: none;
+    }
+
+    .noose-eintrag {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+
+    .noose-eintrag-titel {
+        flex: 1 1 0;
+    }
+
+    .noose-eintrag-chips {
+        order: 10;
+        flex: 1 0 100%;
+        flex-wrap: wrap;
+    }
+
+    .noose-breite-frei {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .noose-min-breite-frei {
+        min-width: 0 !important;
+    }
+}
