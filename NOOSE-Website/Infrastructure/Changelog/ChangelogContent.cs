@@ -711,7 +711,10 @@ public static class ChangelogContent
             Besser("3.0.39-bewerbungen-uebersicht", "Die Bewerbungsliste hat jetzt einen Reiter je Schritt, auch für "
                 + "ausstehende und absolvierte Tests. Eine Spalte zeigt den Stand des Tests, und du filterst danach, ob "
                 + "gestreamt werden darf.", "Bewerbungen"),
-            Besser("3.0.40-handy-abschnitte", "Auf dem Handy öffnet die Leiste über einer Akte wieder die Liste der "
+            Neu("3.0.40-anonym-korrigieren", "Abgegebene Eignungstests lassen sich jetzt anonym korrigieren. Du "
+                + "siehst nur die Antworten und ein Kürzel, wer den Test geschrieben hat, erfährst du erst nach der "
+                + "Korrektur.", "Bewerbungen"),
+            Besser("3.0.41-handy-abschnitte", "Auf dem Handy öffnet die Leiste über einer Akte wieder die Liste der "
                 + "Abschnitte, und die ganze Leiste ist der Knopf dafür.", "Bedienung"),
         ]),
     ];

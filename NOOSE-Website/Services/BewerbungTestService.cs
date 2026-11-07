@@ -404,6 +404,39 @@ public class BewerbungTestService(
         broadcaster.Report(bewerbungId);
     }
 
+    public async Task<List<BlindSubmission>> GetBlindQueueAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireHrbOrLeadership(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+
+        var rows = await db.BewerbungTestAssignments.AsNoTracking()
+            .Where(a => a.CompletedAt != null && a.GradedAt == null && a.Bewerbung != null)
+            .Select(a => new
+            {
+                a.Id,
+                a.CompletedAt,
+                a.TimedOut,
+                a.AttemptCount,
+                Status = a.Bewerbung!.Status,
+                Title = a.Test != null ? a.Test.Title : "Test",
+            })
+            .ToListAsync(cancellationToken);
+        // a decided application needs no grade anymore
+        return rows.Where(r => !BewerbungStatusDisplay.IsTerminal(r.Status))
+            .OrderBy(r => r.CompletedAt)
+            .Select(r => new BlindSubmission(r.Id, BlindGrading.CodeFor(r.Id), r.Title, r.CompletedAt!.Value,
+                r.TimedOut, r.AttemptCount))
+            .ToList();
+    }
+
+    public async Task<BewerbungTestAssignment?> GetAssignmentByIdAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireHrbOrLeadership(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await db.BewerbungTestAssignments.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken);
+    }
+
     /// <summary>Evaluation plus its assignment, for the two grading transitions; the guard is the caller's.</summary>
     private async Task<(BewerbungTestAssignment Assignment, TestEvaluation Report)?> GetEvaluationInternalAsync(
         string bewerbungId, CancellationToken cancellationToken)

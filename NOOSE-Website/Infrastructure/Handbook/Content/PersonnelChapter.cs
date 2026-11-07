@@ -371,6 +371,9 @@ internal static class PersonnelChapter
                 starten.</p>
                 <p>Ein <strong>Zurücksetzen</strong> löscht die bisherigen Antworten und startet die Zeit neu.
                 Es gibt pro Bewerbung nur einen laufenden Versuch - sei also sicher, bevor du zurücksetzt.</p>
+                <p>Über <strong>Anonym korrigieren</strong> in der Bewerbungsliste korrigierst du abgegebene Tests,
+                ohne zu sehen, von wem sie sind. Jede Abgabe trägt nur ein Kürzel; Name und Aktenzeichen
+                erscheinen erst, wenn du die Korrektur abgeschlossen hast.</p>
                 """),
 
             new Article("art-sperren", "bewerbungssperren", "Bewerbungssperren",
