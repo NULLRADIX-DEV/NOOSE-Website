@@ -8,6 +8,12 @@
     zugeordnet sind. Alles andere im Discord bleibt, wie es ist. Jeder Eintrag nimmt mehrere Rollen auf, dieselbe Rolle
     darf in mehreren Einträgen stehen. Ein leerer Eintrag heißt: Hier vergibt der Bot nichts.
 </MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+    Ein Agent bekommt alles, was auf ihn zutrifft: die Grundrollen, die Rollen seines Dienstgrads in allen Einheiten,
+    die seiner Abteilung und die seines Dienstgrads in genau dieser Abteilung. Eine Rolle, die nur ein Dienstgrad
+    einer Abteilung tragen soll, etwa Leading Operator im HRT, gehört deshalb in den Block dieser Abteilung und nicht
+    zu den Dienstgraden aller Einheiten.
+</MudText>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
     Der Bot braucht auf dem Server das Recht <b>Rollen verwalten</b>, und seine eigene Rolle muss im Discord
     <b>über</b> allen zugeordneten Rollen stehen. Zuordnung, Server-Id und Schalter ändern nur Admins, die Führung
@@ -83,6 +89,10 @@ else
             @foreach (var group in _entries.GroupBy(e => e.Group))
             {
                 <MudText Typo="Typo.subtitle1" Class="mt-4 mb-2">@group.Key</MudText>
+                @if (group.First().GroupHint is { } hint)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">@hint</MudText>
+                }
                 <MudGrid Spacing="2">
                     @foreach (var entry in group)
                     {
@@ -209,12 +219,13 @@ else
     private const string KeyTeamLead = "teamlead";
     private const string KeyResident = "resident";
 
-    private sealed class Entry(string key, string group, string label, string? help = null)
+    private sealed class Entry(string key, string group, string label, string? help = null, string? groupHint = null)
     {
         public string Key { get; } = key;
         public string Group { get; } = group;
         public string Label { get; } = label;
         public string? Help { get; } = help;
+        public string? GroupHint { get; } = groupHint;
         public List<string> Ids { get; set; } = [];
 
         // fallback field when Discord's role list is missing
@@ -324,23 +335,37 @@ else
 
     private static List<Entry> BuildEntries(DiscordRoleMapping map)
     {
-        const string ranks = "Dienstgrade", divisions = "Abteilungen", flags = "Kennzeichen";
+        const string ranks = "Dienstgrade in allen Einheiten", divisions = "Abteilungen", flags = "Kennzeichen";
+        const string ranksHint = "Gilt für den Dienstgrad in jeder Abteilung und im Board.";
+        const string divisionsHint = "Gilt für jeden in der Abteilung, egal mit welchem Dienstgrad.";
+        const string unitHint = "Nur für den Dienstgrad in dieser Abteilung, zusätzlich zu den Einträgen darüber. "
+                                + "Das Board bekommt diese Rollen nicht.";
         var entries = new List<Entry>
         {
             new(KeyBase, "Grundrollen", "Grundrollen FIB", "Bekommt jeder aktive Agent.") { Ids = Clean(map.Base) },
         };
         foreach (var rank in Enum.GetValues<Rank>())
         {
-            entries.Add(new Entry($"rank-{(int)rank}", ranks, RankDisplay.Name(rank)) { Ids = Clean(map.ByRank?.GetValueOrDefault(rank)) });
+            entries.Add(new Entry($"rank-{(int)rank}", ranks, RankDisplay.Name(rank), groupHint: ranksHint)
+                { Ids = Clean(map.ByRank?.GetValueOrDefault(rank)) });
         }
         foreach (var division in Enum.GetValues<Division>())
         {
-            entries.Add(new Entry($"division-{(int)division}", divisions, DivisionDisplay.Short(division))
+            entries.Add(new Entry($"division-{(int)division}", divisions, DivisionDisplay.Short(division), groupHint: divisionsHint)
                 { Ids = Clean(map.ByDivision?.GetValueOrDefault(division)) });
         }
         entries.Add(new Entry(KeyBoard, divisions, DivisionDisplay.BoardShort,
-            "Wer im Board sitzt, bekommt nur diese Rollen, nicht die seiner Heimat-Abteilung. Die Dienstgrad-Rollen bekommt er weiter.")
+            "Wer im Board sitzt, bekommt nur diese Rollen, nicht die seiner Heimat-Abteilung. Die Rollen seines Dienstgrads in allen Einheiten bekommt er weiter.")
             { Ids = Clean(map.Board) });
+        foreach (var division in Enum.GetValues<Division>())
+        {
+            var unitRanks = map.ByDivisionRank?.GetValueOrDefault(division);
+            foreach (var rank in Enum.GetValues<Rank>().Where(r => DiscordRoleRules.HasUnitRankEntry(division, r)))
+            {
+                entries.Add(new Entry(UnitKey(division, rank), $"Dienstgrade · {DivisionDisplay.Short(division)}",
+                    RankDisplay.Name(rank, division), groupHint: unitHint) { Ids = Clean(unitRanks?.GetValueOrDefault(rank)) });
+            }
+        }
         entries.Add(new Entry(KeyAdministration, flags, DepartmentRules.ColumnLabel) { Ids = Clean(map.Administration) });
         entries.Add(new Entry(KeyAdmin, flags, "Admin", "Leer lassen, wenn das eine Rolle des ganzen RP-Servers ist.")
             { Ids = Clean(map.Admin) });
@@ -355,7 +380,11 @@ else
         IdsOf(KeyBase),
         Enum.GetValues<Rank>().ToDictionary(r => r, r => IdsOf($"rank-{(int)r}")),
         Enum.GetValues<Division>().ToDictionary(d => d, d => IdsOf($"division-{(int)d}")),
-        IdsOf(KeyBoard), IdsOf(KeyAdministration), IdsOf(KeyAdmin), IdsOf(KeyTeamLead), IdsOf(KeyResident));
+        IdsOf(KeyBoard), IdsOf(KeyAdministration), IdsOf(KeyAdmin), IdsOf(KeyTeamLead), IdsOf(KeyResident),
+        Enum.GetValues<Division>().ToDictionary(d => d, d => (IReadOnlyDictionary<Rank, IReadOnlyList<string>>)Enum.GetValues<Rank>()
+            .Where(r => DiscordRoleRules.HasUnitRankEntry(d, r)).ToDictionary(r => r, r => IdsOf(UnitKey(d, r)))));
+
+    private static string UnitKey(Division division, Rank rank) => $"unit-{(int)division}-{(int)rank}";
 
     // a copy, so the saved record never shares a list with the form
     private IReadOnlyList<string> IdsOf(string key) => _entries.First(e => e.Key == key).Ids.ToList();

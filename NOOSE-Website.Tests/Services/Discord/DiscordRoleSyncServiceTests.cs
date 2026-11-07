@@ -1011,6 +1011,54 @@ public class DiscordRoleSyncServiceTests
     }
 
     [Fact]
+    public async Task Unit_rank_entries_survive_a_round_trip_and_impossible_ones_are_dropped()
+    {
+        using var f = new Fixture();
+        var hrtLeading = Role(10);
+        var map = Map() with
+        {
+            ByDivisionRank = new Dictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>>
+            {
+                [Division.Hrt] = new Dictionary<Rank, IReadOnlyList<string>>
+                {
+                    [Rank.SpecialAgentInCharge] = [hrtLeading, hrtLeading],
+                    [Rank.Trainee] = [Role(11)],
+                },
+                [Division.Cid] = new Dictionary<Rank, IReadOnlyList<string>> { [Rank.Director] = [Role(12)] },
+            },
+        };
+
+        await f.Service.SaveSettingsAsync(new DiscordRoleSyncSettings(true, Guild, map), Admin());
+        var saved = (await f.Service.GetSettingsAsync()).Mapping;
+
+        var unitRanks = Assert.Single(saved.ByDivisionRank!);
+        Assert.Equal(Division.Hrt, unitRanks.Key);
+        AssertRoles(Assert.Single(unitRanks.Value).Value, hrtLeading);
+        Assert.Contains(hrtLeading, saved.AllManaged);
+        Assert.DoesNotContain(Role(11), saved.AllManaged);
+        Assert.DoesNotContain(Role(12), saved.AllManaged);
+    }
+
+    [Fact]
+    public async Task A_mapping_saved_before_unit_ranks_still_reads()
+    {
+        using var f = await Fixture.CreateAsync();
+        await using (var db = f.Ctx.NewContext())
+        {
+            await db.SystemSettings.Where(s => s.Key == SystemSettingKeys.DiscordRoleMapping)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.Value,
+                    $"{{\"Base\":[\"{BaseRole}\"],\"ByRank\":{{\"SpecialAgent\":[\"{SpecialAgentRole}\"]}},\"ByDivision\":{{}},"
+                    + "\"Board\":[],\"Administration\":[],\"Admin\":[],\"TeamLead\":[],\"Resident\":[]}"));
+        }
+
+        var mapping = (await f.Service.GetSettingsAsync()).Mapping;
+
+        Assert.NotNull(mapping.ByDivisionRank);
+        Assert.Empty(mapping.ByDivisionRank);
+        Assert.True(mapping.AllManaged.SetEquals([BaseRole, SpecialAgentRole]));
+    }
+
+    [Fact]
     public async Task Save_requires_admin_and_write()
     {
         using var f = new Fixture();

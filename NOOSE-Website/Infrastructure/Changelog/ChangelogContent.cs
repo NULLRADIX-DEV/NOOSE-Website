@@ -705,6 +705,9 @@ public static class ChangelogContent
                 + "hinter deinem Profilbild.", "Bedienung"),
             Neu("3.0.37-handy-spalten", "In Listen wählst du auf dem Handy über „Spalten“, welche Spalten stehen bleiben. "
                 + "Die Wahl bleibt gespeichert, am Rechner siehst du weiter alle.", "Bedienung"),
+            Besser("3.0.38-discord-rollen-einheit", "Discord-Rollen lassen sich jetzt auch für einen Dienstgrad in "
+                + "einer einzelnen Abteilung festlegen. Ein Leading Operator im HRT bekommt so seine eigene Rolle statt "
+                + "der des Special Agent in Charge.", "Personal"),
         ]),
     ];
 }

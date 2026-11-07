@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Models.Common;
+using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services;
 
@@ -481,7 +482,30 @@ public sealed class DiscordRoleSyncService(
         Clean(map.Administration),
         Clean(map.Admin),
         Clean(map.TeamLead),
-        Clean(map.Resident));
+        Clean(map.Resident),
+        CleanUnitRanks(map.ByDivisionRank));
+
+    // drops combinations no agent can hold, so they never count as managed
+    private static Dictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>> CleanUnitRanks(
+        IReadOnlyDictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>>? entries)
+    {
+        var result = new Dictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>>();
+        foreach (var (division, ranks) in entries ?? new Dictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>>())
+        {
+            if (!Enum.IsDefined(division))
+            {
+                continue;
+            }
+            var clean = CleanEntries(ranks)
+                .Where(e => DiscordRoleRules.HasUnitRankEntry(division, e.Key))
+                .ToDictionary(e => e.Key, e => e.Value);
+            if (clean.Count > 0)
+            {
+                result[division] = clean;
+            }
+        }
+        return result;
+    }
 
     private static IReadOnlyList<string> Clean(IReadOnlyList<string>? ids)
         => DiscordRoleMapping.Ids(ids).Select(id => id.Trim()).Distinct(StringComparer.Ordinal).ToList();
