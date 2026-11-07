@@ -17,6 +17,7 @@ using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Presentations;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Timeline;
 using NOOSE_Website.Services.Public;
@@ -218,6 +219,16 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
             foreach (var (id, title) in presentations)
             {
                 map[(nameof(Presentation), id)] = new(title, false, $"/praesentationen/{id}");
+            }
+            // person and case decide
+            var warrantIds = refs.Where(r => r.Item1 == nameof(Warrant)).Select(r => r.Item2).ToList();
+            if (warrantIds.Count > 0)
+            {
+                foreach (var x in await db.Warrants.OnlyVisible(db, scope).Where(w => warrantIds.Contains(w.Id))
+                             .Select(w => new { w.Id, w.CaseNumber }).ToListAsync(cancellationToken))
+                {
+                    map[(nameof(Warrant), x.Id)] = new($"Anordnung {x.CaseNumber}", false, $"/anordnungen/{x.Id}");
+                }
             }
             foreach (var v in link)
             {

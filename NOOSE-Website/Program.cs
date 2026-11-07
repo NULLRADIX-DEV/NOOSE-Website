@@ -430,6 +430,7 @@ builder.Services.AddScoped<WatchlistFanout>();
 builder.Services.AddSingleton<WatchlistDispatcher>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
+builder.Services.AddScoped<IDirectiveService, DirectiveService>();
 builder.Services.AddHostedService<AcknowledgmentReminderWorker>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<IDemoDataService, DemoDataService>();

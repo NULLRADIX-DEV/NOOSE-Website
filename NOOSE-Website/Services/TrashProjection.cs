@@ -178,6 +178,11 @@ public static class TrashProjection
     public static TrashItem HandbookArticle(HandbookArticle x)
         => new("handbuch-artikel", x.Id, null, x.Title, x.Summary, x.DeletedAt);
 
+    // never the wording
+    public static TrashItem Directive(Data.Entities.Directives.Directive x)
+        => new("dienstanweisungen", x.Id, DirectiveRules.Label(x.Number), x.Title,
+            Join(x.Subject, DocumentClassificationDisplay.ChipLabel(x.Classification)), x.DeletedAt);
+
     // never the text: a paragraph body is HTML and may run for pages
     public static TrashItem Law(Law x)
         => new("gesetze", x.Id, null, $"{x.LawBook} {x.Paragraph} – {x.Title}", x.Section, x.DeletedAt);

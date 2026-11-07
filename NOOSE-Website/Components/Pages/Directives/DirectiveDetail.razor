@@ -1,0 +1,318 @@
+@page "/dienstanweisungen/{Id}"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@inject IDirectiveService DirectiveService
+@inject IAccessLogService AccessLog
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>@(_detail is null ? "Dienstanweisung" : $"{_detail.Row.Label} {_detail.Row.Title}") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_detail is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Dienstanweisung nicht gefunden oder nicht zugänglich.
+        <MudButton Href="/dienstanweisungen" Variant="Variant.Text" Color="Color.Primary" Class="ml-2">Zu den Dienstanweisungen</MudButton>
+    </MudAlert>
+}
+else
+{
+    var z = _detail.Row;
+    <PageHeader Icon="@Icons.Material.Filled.Rule" Title="@($"{z.Label} {z.Title}")" BackHref="/dienstanweisungen" Compact="true">
+        <Actions>
+            @if (_detail.MustAcknowledge && _detail.ShownVersion == z.CurrentVersion)
+            {
+                <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneOutline"
+                               OnClick="AcknowledgeAsync" Disabled="_acknowledging">Zur Kenntnis genommen</MudButton>
+                </AuthorizeView>
+            }
+            @if (_detail.MayManage && !z.IsRepealed)
+            {
+                <AuthorizeView Policy="@Policies.LeadershipWrite" Context="fuehrung">
+                    <MudButton Href="@($"/dienstanweisungen/{Id}/neue-fassung")" Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.NoteAdd">Neue Fassung</MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Block"
+                               OnClick="RepealAsync">Aufheben</MudButton>
+                </AuthorizeView>
+            }
+        </Actions>
+        <MoreActions>
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Print"
+                       Href="@($"/dienstanweisungen/{Id}/druck{PrintQuery}")" Target="_blank">Drucken</MudButton>
+            @if (_detail.MayManage)
+            {
+                <AuthorizeView Policy="@Policies.LeadershipWrite" Context="loeschenKnopf">
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="DeleteAsync">Löschen</MudButton>
+                </AuthorizeView>
+            }
+        </MoreActions>
+        <MoreActionsMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/dienstanweisungen/{Id}/druck{PrintQuery}")" Target="_blank">Drucken</MudMenuItem>
+            @if (_detail.MayManage)
+            {
+                <AuthorizeView Policy="@Policies.LeadershipWrite" Context="loeschenMenu">
+                    <MudDivider />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+                </AuthorizeView>
+            }
+        </MoreActionsMenu>
+    </PageHeader>
+
+    @* chips cannot sit in the header's subtitle, which is a paragraph *@
+    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-4 flex-wrap">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Fassung @_detail.ShownVersion · gültig ab @(ShownEntry?.ValidFrom.ToString("dd.MM.yyyy"))@(string.IsNullOrWhiteSpace(z.Subject) ? string.Empty : $" · {z.Subject}")
+        </MudText>
+        @if (z.Classification != DocumentClassification.None)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined"
+                     Icon="@Icons.Material.Filled.Lock">@DocumentClassificationDisplay.ChipLabel(z.Classification)</MudChip>
+        }
+        @if (z.IsRepealed)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">Aufgehoben</MudChip>
+        }
+    </MudStack>
+
+    @if (z.IsRepealed)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            <strong>Aufgehoben</strong>
+            @(z.RepealedAt is { } repealedAt ? $" am {repealedAt.ToLocalTime():dd.MM.yyyy HH:mm}" : string.Empty)@(string.IsNullOrWhiteSpace(_detail.RepealedByName) ? string.Empty : $" von {_detail.RepealedByName}").
+            Niemand schuldet sie mehr, die Nummer bleibt vergeben.
+            @if (!string.IsNullOrWhiteSpace(_detail.RepealReason))
+            {
+                <span style="white-space:pre-line;">Grund: @_detail.RepealReason</span>
+            }
+        </MudAlert>
+    }
+    @if (ShownIsFuture)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            Diese Fassung gilt ab @(ShownEntry?.ValidFrom.ToString("dd.MM.yyyy")).
+            @(z.ValidVersion is { } valid ? $"Derzeit gilt Fassung {valid}." : "Derzeit gilt noch keine Fassung.")
+        </MudAlert>
+    }
+    @if (Older && _detail.MustAcknowledge)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            <MudLink Href="@VersionHref(z.CurrentVersion)">Neue Fassung ab @z.ValidFrom.ToString("dd.MM.yyyy") – jetzt lesen</MudLink>
+        </MudAlert>
+    }
+    else if (Older && Version is not null)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            Du siehst eine ältere Fassung.
+            <MudLink Href="@VersionHref(z.CurrentVersion)" Class="ml-1">Zur aktuellen Fassung</MudLink>
+        </MudAlert>
+    }
+    else if (Older)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            Fassung @z.CurrentVersion gilt ab @(z.ValidFrom.ToString("dd.MM.yyyy")).
+            <MudLink Href="@VersionHref(z.CurrentVersion)" Class="ml-1">Ansehen</MudLink>
+        </MudAlert>
+    }
+
+    <RecordSectionRail>
+        <RecordSection Slug="anweisung" Label="Anweisung" Icon="@Icons.Material.Filled.Description">
+            <MudStack Spacing="3">
+                <RichHtml Html="@_detail.ShownHtml" User="@_user" Glossary="false" />
+                @if (_detail.MyAcknowledgedVersion is { } mine && _detail.MyAcknowledgedAt is { } mineAt)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Du hast Fassung @mine am @mineAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm") zur Kenntnis genommen.
+                    </MudText>
+                }
+            </MudStack>
+        </RecordSection>
+        <RecordSection Slug="fassungen" Label="Fassungen" Icon="@Icons.Material.Filled.History">
+            <MudStack Spacing="3">
+                @if (_detail.Versions.Count >= 2)
+                {
+                    <div>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Compare"
+                                   OnClick="CompareAsync">Fassungen vergleichen</MudButton>
+                    </div>
+                }
+                @foreach (var v in _detail.Versions)
+                {
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                            <MudStack Spacing="0" Class="noose-eintrag-titel">
+                                <MudLink Href="@VersionHref(v.Version)" Typo="Typo.subtitle2">
+                                    Fassung @v.Version @(v.Version == z.CurrentVersion ? "(neueste)" : string.Empty)
+                                </MudLink>
+                                <MudText Typo="Typo.body2">@v.ChangeNote</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    gültig ab @v.ValidFrom.ToString("dd.MM.yyyy") · @(string.IsNullOrWhiteSpace(v.PublishedByName) ? "—" : v.PublishedByName), @v.PublishedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                </MudText>
+                            </MudStack>
+                            @if (v.RequiresAcknowledgment)
+                            {
+                                <MudStack Row="true" Spacing="1" Class="noose-eintrag-chips">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">Kenntnisnahme nötig</MudChip>
+                                </MudStack>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                }
+            </MudStack>
+        </RecordSection>
+        @* nobody owes a repealed directive, so its quota would read 0 of 0 *@
+@if (_detail.MaySeeQuota && !_detail.Row.IsRepealed)
+        {
+            <AuthorizeView Policy="@Policies.LeadershipPage" Context="quote">
+                <RecordSection Slug="kenntnisnahme" Label="Kenntnisnahme" Icon="@Icons.Material.Filled.DoneAll">
+                    <DirectiveQuotaPanel DirectiveId="@Id" User="@_user" Revision="_revision" />
+                </RecordSection>
+            </AuthorizeView>
+        }
+        <RecordSection Slug="verknuepfungen" Label="Verknüpfungen" Icon="@Icons.Material.Filled.Link">
+            <RecordLinksPanel @key="Id" EntityType="@nameof(Directive)" EntityId="@Id" User="@_user" />
+        </RecordSection>
+    </RecordSectionRail>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = default!;
+
+    /// <summary>The version to read; without it the valid one shows.</summary>
+    [SupplyParameterFromQuery(Name = "fassung")] public int? Version { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _acknowledging;
+    private DirectiveView? _detail;
+    private string? _loadedId;
+    private int? _loadedVersion;
+    // quota panel reloads with every load of the page
+    private int _revision;
+
+    private static DateOnly Today => MeetingTime.Day(DateTime.UtcNow);
+
+    private DirectiveVersionView? ShownEntry
+        => _detail?.Versions.FirstOrDefault(v => v.Version == _detail.ShownVersion);
+
+    private bool ShownIsFuture => ShownEntry is { } entry && entry.ValidFrom > Today;
+
+    private bool Older => _detail is { } d && d.ShownVersion < d.Row.CurrentVersion;
+
+    private string VersionHref(int version) => $"/dienstanweisungen/{Id}?fassung={version}";
+
+    // the print page shows the version this page shows
+    private string PrintQuery => Version is { } version ? $"?fassung={version}" : string.Empty;
+
+    protected override async Task OnInitializedAsync() => _user = (await AuthStateTask).User;
+
+    // the page is reused across ids and versions, so loading follows the parameters
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id && _loadedVersion == Version)
+        {
+            return;
+        }
+        var firstOfId = _loadedId != Id;
+        _loadedId = Id;
+        _loadedVersion = Version;
+        _load = true;
+        await LoadAsync();
+        if (firstOfId && _detail is not null)
+        {
+            try
+            {
+                await AccessLog.LogViewAsync(nameof(Directive), Id);
+            }
+            catch
+            {
+                /* best effort */
+            }
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _detail = await DirectiveService.GetDetailAsync(Id, Version, _user);
+        _revision++;
+        _load = false;
+    }
+
+    private async Task AcknowledgeAsync()
+    {
+        if (_detail is null || _acknowledging)
+        {
+            return;
+        }
+        _acknowledging = true;
+        try
+        {
+            await DirectiveService.AcknowledgeAsync(Id, _detail.ShownVersion, _user);
+            Snackbar.Add("Zur Kenntnis genommen.", Severity.Success);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _acknowledging = false;
+        }
+        // also after a refusal: a newer version may be what the refusal is about
+        await LoadAsync();
+    }
+
+    private async Task RepealAsync()
+    {
+        var reason = await ReasonDialog.ShowAsync(DialogService, "Dienstanweisung aufheben?",
+            "Danach schuldet niemand mehr die Kenntnisnahme. Die Nummer bleibt, die Anweisung bleibt unter Aufgehoben lesbar.",
+            confirmText: "Aufheben", label: "Grund", mandatoryReason: true, colour: Color.Warning,
+            maxLength: CriticalChange.MaxReasonLength);
+        if (reason is null)
+        {
+            return;
+        }
+        try
+        {
+            await DirectiveService.RepealAsync(Id, reason, _user);
+            Snackbar.Add("Dienstanweisung aufgehoben.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Dienstanweisung löschen?",
+            "Die Dienstanweisung wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await DirectiveService.DeleteAsync(Id, _user);
+            Snackbar.Add("Dienstanweisung in den Papierkorb verschoben.", Severity.Success);
+            Nav.NavigateTo("/dienstanweisungen");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private Task CompareAsync()
+        => _detail is null
+            ? Task.CompletedTask
+            : DirectiveCompareDialog.ShowAsync(DialogService, Id, _detail.Row.Label, _detail.Versions, _user);
+}

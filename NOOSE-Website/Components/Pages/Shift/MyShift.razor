@@ -9,6 +9,7 @@
 @inject IFollowupService Followups
 @inject INotificationService Notifications
 @inject IAnnouncementService Announcements
+@inject IDirectiveService Directives
 @inject ITaskforceChatService TaskforceChat
 @inject IGlobalChronikService Chronik
 @inject INavPreferencesService NavPrefs
@@ -50,7 +51,8 @@ else
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.Campaign" Colour="Color.Warning" Label="Zu quittieren"
-                      Value="@_acks.Count.ToString()" Href="/brett" Hint="Einträge am Brett, die du noch bestätigen musst" />
+                      Value="@_ackRows.Count.ToString()" Href="@AcknowledgmentsHref"
+                      Hint="Brett-Einträge und Dienstanweisungen, die du noch bestätigen musst" />
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.Forum" Label="Taskforce-Chat" Value="@_taskforces.Sum(t => t.Count).ToString()"
@@ -147,22 +149,23 @@ else
                 </MudPaper>
 
                 <MudPaper Class="pa-4" Elevation="2">
-                    @Head(Icons.Material.Filled.Campaign, "Zu quittieren", "/brett", "Zum Brett")
-                    @if (_acks.Count == 0)
+                    @Head(Icons.Material.Filled.Campaign, "Zu quittieren", AcknowledgmentsHref,
+                        AcknowledgmentsHref == "/brett" ? "Zum Brett" : "Zu den Dienstanweisungen")
+                    @if (_ackRows.Count == 0)
                     {
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Am Brett wartet nichts auf deine Bestätigung.</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Nichts wartet auf deine Bestätigung.</MudText>
                     }
                     else
                     {
                         <MudList T="string" Dense="true">
-                            @foreach (var a in _acks.Take(ShiftRules.ListCap))
+                            @foreach (var a in _ackRows.Take(ShiftRules.ListCap))
                             {
-                                <MudListItem T="string" Href="@($"/brett/{a.AnnouncementId}")"
-                                             Icon="@(a.Important ? Icons.Material.Filled.PriorityHigh : Icons.Material.Filled.Campaign)"
-                                             IconColor="@(a.Important ? Color.Error : Color.Warning)">
+                                <MudListItem T="string" Href="@a.Href"
+                                             Icon="@AckIcon(a)"
+                                             IconColor="@(a.Important && !a.IsDirective ? Color.Error : Color.Warning)">
                                     <MudText Typo="Typo.body2"><b>@a.Title</b></MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                        seit @a.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                                        seit @a.Since.ToLocalTime().ToString("dd.MM.yyyy")
                                         @if (a.DueAt is { } due)
                                         {
                                             @if (AcknowledgmentRules.IsOverdue(due, DateTime.UtcNow))
@@ -178,7 +181,7 @@ else
                                 </MudListItem>
                             }
                         </MudList>
-                        @More(_acks.Count)
+                        @More(_ackRows.Count)
                     }
                 </MudPaper>
             </MudStack>
@@ -291,6 +294,8 @@ else
     private NotificationInboxPage _mentions = NotificationInboxPage.Empty;
     private NotificationInboxPage _watched = NotificationInboxPage.Empty;
     private List<OpenAcknowledgment> _acks = [];
+    private List<OpenDirective> _directives = [];
+    private IReadOnlyList<ShiftAcknowledgment> _ackRows = [];
     private List<TaskforceActivity> _taskforces = [];
 
     private bool _sinceLoading = true;
@@ -329,6 +334,8 @@ else
         _mentions = await UnreadAsync(NotificationType.Mention);
         _watched = await UnreadAsync(NotificationType.RecordModified);
         _acks = await Announcements.GetOpenAcknowledgmentsAsync(_user);
+        _directives = await Directives.GetOpenForMeAsync(_user);
+        _ackRows = ShiftRules.MergeAcknowledgments(_acks, _directives);
         _taskforces = await TaskforceChat.GetUnreadAsync(_user);
         _load = false;
         StateHasChanged();
@@ -354,7 +361,14 @@ else
             new NotificationInboxQuery([type], null, null, OnlyUnread: true, Page: 1, PageSize: ShiftRules.ListCap));
 
     private bool NothingOpen => _jobs.Count == 0 && _due.Count == 0 && _mentions.Total == 0 && _watched.Total == 0
-        && _acks.Count == 0 && _taskforces.Count == 0 && _tests.Count == 0;
+        && _ackRows.Count == 0 && _taskforces.Count == 0 && _tests.Count == 0;
+
+    // the tile and the section head read one rule, so they never lead to different places
+    private string AcknowledgmentsHref => ShiftRules.AcknowledgmentsHref(_acks.Count, _directives.Count);
+
+    private static string AckIcon(ShiftAcknowledgment a) => a.IsDirective
+        ? Icons.Material.Filled.Rule
+        : a.Important ? Icons.Material.Filled.PriorityHigh : Icons.Material.Filled.Campaign;
 
     private string SinceText => _window.Kind switch
     {

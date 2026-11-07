@@ -35,6 +35,7 @@ using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Financing;
 using NOOSE_Website.Data.Entities.Warrants;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Infrastructure.Audit;
@@ -155,6 +156,11 @@ public class AppDbContext : IdentityDbContext<Agent>
 
     // ---- warrants (search, seizure, arrest orders) ----
     public DbSet<Warrant> Warrants => Set<Warrant>();
+
+    // ---- service directives (numbered, versioned, acknowledged) ----
+    public DbSet<Directive> Directives => Set<Directive>();
+    public DbSet<DirectiveVersion> DirectiveVersions => Set<DirectiveVersion>();
+    public DbSet<DirectiveAcknowledgment> DirectiveAcknowledgments => Set<DirectiveAcknowledgment>();
 
     // ---- NOOSEI token quota (request log, weekly ledger, manual corrections) ----
     public DbSet<LlmRequestLog> LlmRequests => Set<LlmRequestLog>();
@@ -1243,6 +1249,45 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(x => x.Status);
             b.HasOne<Person>().WithMany().HasForeignKey(x => x.PersonId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne<Case>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ---- service directives ----
+        modelBuilder.Entity<Directive>(b =>
+        {
+            b.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            b.Property(x => x.Subject).HasMaxLength(100);
+            b.Property(x => x.RepealedById).HasMaxLength(255);
+            b.Property(x => x.RepealedByName).HasMaxLength(128);
+            b.Property(x => x.RepealReason).HasMaxLength(NOOSE_Website.Services.CriticalChange.MaxReasonLength);
+            // two publishers at once: the later save matches no row
+            b.Property(x => x.CurrentVersion).IsConcurrencyToken();
+            // a repeal or trash between load and publish makes the publish match no row
+            b.Property(x => x.RepealedAt).IsConcurrencyToken();
+            b.Property(x => x.IsDeleted).IsConcurrencyToken();
+            b.HasIndex(x => x.Number).IsUnique();
+            b.HasIndex(x => x.RepealedAt);
+            b.HasMany(d => d.Versions).WithOne(v => v.Directive!)
+                .HasForeignKey(v => v.DirectiveId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DirectiveVersion>(b =>
+        {
+            // ContentHtml stays unbounded (longtext)
+            b.Property(x => x.ChangeNote).HasMaxLength(300).IsRequired();
+            b.Property(x => x.PublishedById).HasMaxLength(255);
+            b.Property(x => x.PublishedByName).HasMaxLength(128);
+            b.HasIndex(x => new { x.DirectiveId, x.Version }).IsUnique();
+        });
+
+        modelBuilder.Entity<DirectiveAcknowledgment>(b =>
+        {
+            b.HasOne(a => a.Directive).WithMany()
+                .HasForeignKey(a => a.DirectiveId).OnDelete(DeleteBehavior.Cascade);
+            // Restrict FK to identity Agent (no cascade from the user table)
+            b.HasOne(a => a.Agent).WithMany()
+                .HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(a => new { a.DirectiveId, a.AgentId, a.Version }).IsUnique();
+            b.HasIndex(a => a.AgentId);
         });
 
         modelBuilder.Entity<FinancingRequestLine>(b =>

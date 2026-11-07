@@ -162,9 +162,10 @@ internal static class DutyChapter
             new Article("art-brett", "schwarzes-brett", "Das Schwarze Brett",
                 "Ankündigungen - und die, die du bestätigen musst.",
                 """
-                <p>Am <strong>Schwarzen Brett</strong> stehen behördliche Ankündigungen: Dienstanweisungen,
-                Hinweise, Termine, Personalien. Jede Ankündigung richtet sich an eine bestimmte Gruppe - alle,
-                nur die Führung, nur eine Einheit.</p>
+                <p>Am <strong>Schwarzen Brett</strong> stehen behördliche Ankündigungen: Hinweise, Termine,
+                Personalien. Jede Ankündigung richtet sich an eine bestimmte Gruppe - alle, nur die Führung, nur
+                eine Einheit. Verbindliche Dienstanweisungen mit Nummer und Fassung stehen nicht hier, sondern
+                unter <em>Dienstanweisungen</em>.</p>
                 <p>Manche Ankündigungen sind <strong>quittierungspflichtig</strong>. Dann steht ein Knopf
                 <em>Kenntnis nehmen</em> darunter, und die Zahl am Menüeintrag bleibt stehen, bis du
                 geklickt hast. Wer angekündigt hat, sieht, wer schon quittiert hat.</p>
@@ -175,10 +176,61 @@ internal static class DutyChapter
                 Die Führung sieht oben am Brett, bei welchen Ankündigungen die Frist abgelaufen ist und wer noch
                 fehlt. Wer die Zielgruppe inzwischen verlassen hat, etwa eine Taskforce, schuldet die Quittierung
                 nicht mehr.</p>
-                <p>Das ist kein Schikane-Werkzeug, sondern ein Nachweis: Bei einer Dienstanweisung muss die
-                Führung belegen können, dass sie jeden erreicht hat.</p>
+                <p>Das ist kein Schikane-Werkzeug, sondern ein Nachweis: Die Führung kann belegen, dass eine
+                wichtige Ankündigung jeden erreicht hat.</p>
                 """,
                 NavKey: "brett"),
+
+            new Article("art-dienstanweisungen", "dienstanweisungen", "Dienstanweisungen",
+                "Hausrecht mit Nummer, Fassung und Kenntnisnahme.",
+                """
+                <p>Eine <strong>Dienstanweisung</strong> ist Hausrecht: Sie regelt, wie das FIB intern arbeitet.
+                Was draußen gilt, steht im <em>Gesetzbuch</em>. Jede Dienstanweisung hat eine feste
+                <strong>Nummer</strong> (DA-01, DA-02 und so weiter), einen Titel und auf Wunsch ein Sachgebiet.
+                Die Nummer bleibt ihr, auch wenn sie aufgehoben oder gelöscht wird. Vergeben wird sie nie ein
+                zweites Mal.</p>
+                <p>Eine Dienstanweisung kann <strong>Fassungen</strong> haben. Jede trägt ein <em>gültig ab</em>
+                und eine kurze Änderungsnotiz und lässt sich nach dem Speichern nicht mehr ändern. Liegt das Datum
+                in der Zukunft, gilt bis dahin die vorige Fassung, und du kannst die neue schon vorab zur
+                Kenntnis nehmen. Ältere Fassungen liest du im Abschnitt <em>Fassungen</em>. Mit
+                <em>Fassungen vergleichen</em> siehst du Wort für Wort, was sich geändert hat.</p>
+                <p>Wer eine Dienstanweisung sehen darf, muss sie zur Kenntnis nehmen. Du liest sie und klickst
+                <em>Zur Kenntnis genommen</em>. Was du noch offen hast, zeigt die Zahl am Menüeintrag
+                <em>Dienstanweisungen</em>, und in <em>Meine Schicht</em> steht es unter <em>Zu quittieren</em>.
+                Kommt eine Dienstanweisung neu dazu, klingelt außerdem die Glocke; einen Discord-Ping gibt es
+                dafür nicht. Wer später ins FIB kommt oder die nötige Stufe später bekommt, schuldet die
+                Kenntnisnahme sofort. Wer die Stufe verliert, schuldet sie nicht mehr.</p>
+                <p>Eine neue Fassung verlangt meist, dass du sie erneut zur Kenntnis nimmst. Eine
+                <strong>Schreibkorrektur</strong> verlangt es nicht: Dann gilt deine frühere Kenntnisnahme
+                weiter, und es klingelt nichts. Ob eine Fassung Kenntnisnahme verlangt, steht im Abschnitt
+                <em>Fassungen</em> als <em>Kenntnisnahme nötig</em>.</p>
+                <p>Jede Dienstanweisung trägt eine <strong>VS-Stufe</strong>, genau wie ein Dokument in der
+                Bibliothek. Sie entscheidet darüber, wer die Dienstanweisung sieht und wer sie zur
+                Kenntnis nehmen muss. In Liste, Suche und Verknüpfungen taucht sie für alle ohne die Stufe
+                nicht auf. Erwähnst du eine eingestufte Dienstanweisung mit @, sehen alle unterhalb der
+                Führung dort und auf dem Zeitstrahl nur <em>Verschlusssache</em>. Wer nur lesen darf, etwa die Nur-Lese-Aufsicht, schuldet nichts und
+                kann nichts quittieren.</p>
+                <p>Die Führung legt Dienstanweisungen über <em>Neue Dienstanweisung</em> an, ändert sie über
+                <em>Neue Fassung</em> und nimmt sie mit <em>Aufheben</em> zurück. Dafür braucht sie eine
+                Begründung. Eine aufgehobene Dienstanweisung schuldet niemand mehr, sie bleibt aber unter
+                <em>Aufgehoben</em> lesbar, und ihre Nummer bleibt vergeben. Im Abschnitt <em>Kenntnisnahme</em>
+                sehen die Führung und die Nur-Lese-Aufsicht, wer sie schon zur Kenntnis genommen hat und wer
+                noch fehlt.</p>
+                <p>Unter <em>Verknüpfungen</em> hängst du eine Dienstanweisung mit <em>Akte verknüpfen</em> an
+                eine andere Akte, etwa einen Vorgang oder eine Anordnung. Umgekehrt wählst du an einer Akte oder
+                Anordnung beim Verknüpfen den Aktentyp <em>Dienstanweisung</em>. Im Text eines Kommentars oder
+                Dokuments zitierst du sie mit <strong>@</strong>.</p>
+                """,
+                NavKey: "dienstanweisungen",
+                Steps:
+                [
+                    new Step("Description", "Lesen",
+                        "Die Dienstanweisung öffnen. Ist eine neuere Fassung angekündigt, weist ein Hinweis darauf hin."),
+                    new Step("DoneOutline", "Zur Kenntnis nehmen",
+                        "Der Knopf steht oben und verschwindet, sobald du die Fassung quittiert hast."),
+                    new Step("Compare", "Fassungen vergleichen",
+                        "Im Abschnitt Fassungen zwei Fassungen wählen und die Änderungen ansehen."),
+                ]),
 
             new Article("art-aktivitaeten", "dienst-aktivitaeten", "Dienst-Aktivitäten (Archiv)",
                 "Die früheren Einsatzvermerke - neue Einsätze sind Operationen.",

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
@@ -209,6 +210,18 @@ public static class RecordsReference
                 map[(nameof(Document), x.Id)] = new(
                     string.IsNullOrWhiteSpace(x.Title) ? "Dokument" : x.Title,
                     x.Classified, SearchNavigation.For(nameof(Document), x.Id));
+            }
+        }
+
+        // no viewer: fail-closed
+        var directiveIds = OpenIds(nameof(Directive));
+        if (directiveIds.Count > 0)
+        {
+            foreach (var x in await db.Directives.Where(d => directiveIds.Contains(d.Id))
+                .Select(d => new { d.Id, d.Number, d.Title, d.Classification }).ToListAsync(ct))
+            {
+                map[(nameof(Directive), x.Id)] = new($"{DirectiveRules.Label(x.Number)} {x.Title}",
+                    x.Classification != DocumentClassification.None, SearchNavigation.For(nameof(Directive), x.Id));
             }
         }
 

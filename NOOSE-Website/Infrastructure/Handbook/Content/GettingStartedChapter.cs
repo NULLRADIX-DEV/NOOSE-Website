@@ -62,8 +62,8 @@ internal static class GettingStartedChapter
                 <p><em>Meine Schicht</em> im Bereich <em>Mein Dienst</em> sammelt auf einer Seite, was sonst auf
                 fünf verteilt ist: deine <strong>offenen Aufgaben</strong>, deine fälligen und in den nächsten sieben
                 Tagen anstehenden <strong>Wiedervorlagen</strong>, ungelesene <strong>Erwähnungen</strong>, Einträge
-                am Brett, die du noch <strong>quittieren</strong> musst, Änderungen an <strong>beobachteten
-                Akten</strong> und ungelesene Nachrichten anderer in deinen <strong>Taskforces</strong> - dieselbe
+                am Brett und Dienstanweisungen, die du noch <strong>quittieren</strong> musst, Änderungen an
+                <strong>beobachteten Akten</strong> und ungelesene Nachrichten anderer in deinen <strong>Taskforces</strong> - dieselbe
                 Zahl, die auch die Taskforce-Liste zeigt.</p>
                 <p>Ganz unten steht, was <strong>im Haus</strong> passiert ist, seit du zuletzt hier warst: wie viele
                 Akten sich geändert haben und die neuesten Einträge aus der Chronik. Deine eigenen Änderungen zählen

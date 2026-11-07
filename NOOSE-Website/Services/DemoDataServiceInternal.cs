@@ -3,6 +3,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Decorations;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
@@ -670,5 +671,83 @@ public partial class DemoDataService
             AwardedByName = "Behördenleitung",
         });
         return 1;
+    }
+
+    /// <summary>Two directives: one with a new version still open for the demo agent, one classified for leadership.</summary>
+    private static async Task<int> SeedDirectivesAsync(AppDbContext db, CancellationToken ct)
+    {
+        if (await db.Directives.IgnoreQueryFilters().AnyAsync(ct))
+        {
+            return 0;
+        }
+
+        var today = MeetingTime.Day(DateTime.UtcNow);
+        var now = DateTime.UtcNow;
+
+        DirectiveVersion NewVersion(string directiveId, int number, int validDaysAgo, int publishedDaysAgo, string note, string html)
+            => new()
+            {
+                DirectiveId = directiveId,
+                Version = number,
+                ContentHtml = html,
+                ValidFrom = today.AddDays(-validDaysAgo),
+                ChangeNote = note,
+                RequiresAcknowledgment = true,
+                PublishedById = DemoIdentity.AgentId,
+                PublishedByName = DemoIdentity.Codename,
+                PublishedAt = now.AddDays(-publishedDaysAgo),
+            };
+
+        var radio = new Directive
+        {
+            Number = 1,
+            Title = "Funkdisziplin im Einsatz",
+            Subject = "Einsatz",
+            Classification = DocumentClassification.None,
+            CurrentVersion = 2,
+            AcknowledgeFromVersion = 2,
+        };
+        db.Directives.Add(radio);
+        db.DirectiveVersions.Add(NewVersion(radio.Id, 1, 30, 31, "Erstfassung",
+            "<h2>Zweck</h2><p>Diese Dienstanweisung regelt die Funkdisziplin bei Einsätzen des FIB.</p>"
+            + "<h2>Grundsätze</h2><ul>"
+            + "<li>Der Funk ist kurz und sachlich. Lagemeldungen gehen vor allen anderen Meldungen.</li>"
+            + "<li>Namen von Personen, Adressen und Kennzeichen gehören nicht in den offenen Funk.</li></ul>"
+            + "<h2>Ablauf</h2><p>Die Einsatzleitung eröffnet den Einsatz auf dem vereinbarten Kanal und beendet ihn mit einer Abschlussmeldung.</p>"));
+        db.DirectiveVersions.Add(NewVersion(radio.Id, 2, 2, 3, "Rufnamen ergänzt",
+            "<h2>Zweck</h2><p>Diese Dienstanweisung regelt die Funkdisziplin bei Einsätzen des FIB.</p>"
+            + "<h2>Grundsätze</h2><ul>"
+            + "<li>Der Funk ist kurz und sachlich. Lagemeldungen gehen vor allen anderen Meldungen.</li>"
+            + "<li>Jede Einheit meldet sich mit ihrem Rufnamen. Die Einsatzleitung vergibt die Rufnamen vor dem Einsatz.</li>"
+            + "<li>Namen von Personen, Adressen und Kennzeichen gehören nicht in den offenen Funk.</li></ul>"
+            + "<h2>Ablauf</h2><p>Die Einsatzleitung eröffnet den Einsatz auf dem vereinbarten Kanal und beendet ihn mit einer Abschlussmeldung.</p>"));
+        // only the first version, so the new one reads as open
+        db.DirectiveAcknowledgments.Add(new DirectiveAcknowledgment
+        {
+            DirectiveId = radio.Id,
+            Version = 1,
+            AgentId = DemoIdentity.AgentId,
+            AcknowledgedAt = now.AddDays(-29),
+        });
+
+        var secrecy = new Directive
+        {
+            Number = 2,
+            Title = "Umgang mit Verschlusssachen",
+            Subject = "Innendienst",
+            Classification = DocumentClassification.Leadership,
+            CurrentVersion = 1,
+            AcknowledgeFromVersion = 1,
+        };
+        db.Directives.Add(secrecy);
+        db.DirectiveVersions.Add(NewVersion(secrecy.Id, 1, 10, 11, "Erstfassung",
+            "<h2>Zweck</h2><p>Verschlusssachen des FIB sind nur für Personen bestimmt, die ihre Stufe sehen dürfen. Diese Dienstanweisung regelt den Umgang damit im Innendienst.</p>"
+            + "<h2>Regeln</h2><ul>"
+            + "<li>Verschlusssachen gehen nie über offene Kanäle, in Bildschirmfotos oder in Gespräche mit Dritten.</li>"
+            + "<li>Eine Einstufung wird nur mit Begründung gelockert.</li>"
+            + "<li>Ein Verdacht auf Weitergabe geht sofort an die Führung.</li></ul>"));
+
+        // two heads, three versions, one acknowledgment
+        return 6;
     }
 }

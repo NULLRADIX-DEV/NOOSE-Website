@@ -1,3 +1,5 @@
+using NOOSE_Website.Models.Announcements;
+using NOOSE_Website.Models.Directives;
 using NOOSE_Website.Models.Navigation;
 using NOOSE_Website.Models.Shift;
 
@@ -54,4 +56,23 @@ public static class ShiftRules
             ? new ShiftWindow(floor, ShiftWindowKind.Capped)
             : new ShiftWindow(boundary, ShiftWindowKind.SinceLastVisit);
     }
+
+    /// <summary>Board entries and directives in one list: directives and important entries first, the longest waiting leading each group.</summary>
+    public static IReadOnlyList<ShiftAcknowledgment> MergeAcknowledgments(IReadOnlyList<OpenAcknowledgment> board, IReadOnlyList<OpenDirective> directives)
+    {
+        var rows = directives
+            .Select(d => new ShiftAcknowledgment($"/dienstanweisungen/{d.DirectiveId}", $"{d.Label} {d.Title}",
+                Important: true, IsDirective: true, d.Since, DueAt: null))
+            .Concat(board.Select(b => new ShiftAcknowledgment($"/brett/{b.AnnouncementId}", b.Title,
+                b.Important, IsDirective: false, b.CreatedAt, b.DueAt)));
+        // directives are listed first, so the stable sort keeps them ahead on equal waiting time
+        return rows
+            .OrderByDescending(r => r.IsDirective || r.Important)
+            .ThenBy(r => r.Since)
+            .ToList();
+    }
+
+    /// <summary>Where "Zu quittieren" leads: the directives when only they are open, else the board.</summary>
+    public static string AcknowledgmentsHref(int boardCount, int directiveCount)
+        => directiveCount > 0 && boardCount == 0 ? "/dienstanweisungen" : "/brett";
 }

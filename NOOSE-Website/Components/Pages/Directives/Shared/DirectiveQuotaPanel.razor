@@ -1,0 +1,85 @@
+@* Who has acknowledged a directive and who is still missing; leadership and supervision only, the service decides. *@
+@inject IDirectiveService DirectiveService
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_quota is null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+        Die Liste der Kenntnisnahmen ist für dich nicht sichtbar.
+    </MudAlert>
+}
+else
+{
+    <MudStack Spacing="3">
+        <div>
+            <MudText Typo="Typo.subtitle1">
+                @_quota.Acknowledged von @_quota.Total haben Fassung ab @_quota.AcknowledgeFromVersion zur Kenntnis genommen
+            </MudText>
+            <MudProgressLinear Value="@Percent" Color="@(_quota.Missing.Count == 0 ? Color.Success : Color.Primary)" Size="Size.Large"
+                               Class="my-2" aria-label="Anteil der Kenntnisnahmen" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Momentaufnahme: zählt alle Agenten, die die Anweisung heute sehen dürfen.
+            </MudText>
+        </div>
+        @AudienceList("Fehlt noch", _quota.Missing, "Alle haben die Anweisung zur Kenntnis genommen.")
+        @AudienceList("Zur Kenntnis genommen", _quota.Done, "Noch niemand hat die Anweisung zur Kenntnis genommen.")
+    </MudStack>
+}
+
+@code {
+    [Parameter, EditorRequired] public string DirectiveId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    /// <summary>Changes whenever the page reloads, so the numbers follow an acknowledgment.</summary>
+    [Parameter] public int Revision { get; set; }
+
+    private bool _load = true;
+    private DirectiveQuota? _quota;
+    private string? _loadedKey;
+
+    private double Percent => _quota is { Total: > 0 } q ? 100.0 * q.Acknowledged / q.Total : 0;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = $"{DirectiveId}:{Revision}";
+        if (_loadedKey == key)
+        {
+            return;
+        }
+        _loadedKey = key;
+        _quota = await DirectiveService.GetQuotaAsync(DirectiveId, User);
+        _load = false;
+    }
+
+    private RenderFragment AudienceList(string title, IReadOnlyList<DirectiveAudienceRow> rows, string emptyText) => __builder =>
+    {
+        <div>
+            <MudText Typo="Typo.subtitle2" Class="mb-1">@title (@rows.Count)</MudText>
+            @if (rows.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@emptyText</MudText>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                    <thead>
+                        <tr><th>Codename</th><th>Fassung</th><th>Zeitpunkt</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in rows)
+                        {
+                            <tr>
+                                <td>@row.Codename</td>
+                                <td>@(row.AcknowledgedVersion is { } version ? $"Fassung {version}" : "—")</td>
+                                <td>@(row.AcknowledgedAt is { } at ? at.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : "—")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </div>
+    };
+}
