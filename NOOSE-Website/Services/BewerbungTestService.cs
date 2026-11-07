@@ -226,6 +226,16 @@ public class BewerbungTestService(
             .FirstOrDefaultAsync(a => a.BewerbungId == bewerbungId, cancellationToken);
     }
 
+    public async Task<Dictionary<string, BewerbungTestAssignment>> GetAssignmentsByApplicationAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireHrbOrLeadership(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await db.BewerbungTestAssignments.AsNoTracking().ToListAsync(cancellationToken);
+        // one per application by rule; newest wins should old data ever hold two
+        return rows.GroupBy(a => a.BewerbungId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
+    }
+
     public async Task AssignAsync(string bewerbungId, string testId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadership(actor);
