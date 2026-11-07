@@ -69,6 +69,21 @@ public static class ApplicationOverview
     public static bool InTab(ApplicationListTab tab, BewerbungStatus status, ITestAttempt? attempt, DateTime now)
         => tab == ApplicationListTab.Alle || TabFor(status, attempt, now) == tab;
 
+    /// <summary>Same tab for an application holding several tests; "absolviert" only once every one is done.</summary>
+    public static ApplicationListTab TabForTests(BewerbungStatus status, IReadOnlyList<ITestAttempt>? attempts, DateTime now)
+        => status == BewerbungStatus.ImTest
+            ? attempts is { Count: > 0 } && attempts.All(a => IsDone(a, now))
+                ? ApplicationListTab.TestAbsolviert
+                : ApplicationListTab.TestAusstehend
+            : TabFor(status, null, now);
+
+    public static bool InTabTests(ApplicationListTab tab, BewerbungStatus status, IReadOnlyList<ITestAttempt>? attempts, DateTime now)
+        => tab == ApplicationListTab.Alle || TabForTests(status, attempts, now) == tab;
+
+    /// <summary>At least one handed-in test still waits for its grade.</summary>
+    public static bool AnyToGrade(IReadOnlyList<ITestAttempt>? attempts, DateTime now)
+        => attempts is not null && attempts.Any(a => TestStage(a, now) == ApplicationTestStage.ToGrade);
+
     public static string StreamFilterName(ApplicationStreamFilter filter) => filter switch
     {
         ApplicationStreamFilter.Erlaubt => "Stream erlaubt",

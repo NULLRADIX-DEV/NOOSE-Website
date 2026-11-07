@@ -11317,10 +11317,10 @@ namespace NOOSE_Website.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BewerbungId")
-                        .IsUnique();
-
                     b.HasIndex("TestId");
+
+                    b.HasIndex("BewerbungId", "TestId")
+                        .IsUnique();
 
                     b.HasIndex("CompletedAt", "DeadlineAt");
 

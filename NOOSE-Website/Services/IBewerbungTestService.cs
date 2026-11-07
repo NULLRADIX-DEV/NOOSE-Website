@@ -5,7 +5,7 @@ using NOOSE_Website.Models.Recruiting;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Recruiting tests: HRB builds reusable tests, assigns one to an application, the applicant fills it, HRB reviews.</summary>
+/// <summary>Recruiting tests: HRB builds reusable tests, assigns them to an application, the applicant fills them, HRB reviews.</summary>
 public interface IBewerbungTestService
 {
     // ---- builder (HRB/leadership) ----
@@ -26,14 +26,15 @@ public interface IBewerbungTestService
     Task DeleteOptionAsync(string optionId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     // ---- assignment + evaluation (HRB/leadership) ----
-    Task<BewerbungTestAssignment?> GetAssignmentAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-    /// <summary>Every application's test attempt, keyed by application id, for the list overview.</summary>
-    Task<Dictionary<string, BewerbungTestAssignment>> GetAssignmentsByApplicationAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>All tests of one application, oldest first, each with its test loaded.</summary>
+    Task<List<BewerbungTestAssignment>> GetAssignmentsAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Every application's test attempts, keyed by application id, oldest first, for the list overview.</summary>
+    Task<Dictionary<string, List<BewerbungTestAssignment>>> GetAssignmentsByApplicationAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task AssignAsync(string bewerbungId, string testId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-    Task<TestEvaluation?> GetEvaluationAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    Task<TestEvaluation?> GetEvaluationAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task SetAwardedPointsAsync(string assignmentId, string questionId, int? points, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-    Task CompleteGradingAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-    Task ReopenGradingAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    Task CompleteGradingAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    Task ReopenGradingAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     // ---- blind grading (HRB/leadership) ----
     /// <summary>Handed-in, ungraded tests of open applications, oldest first, without the applicant's name.</summary>
@@ -42,17 +43,17 @@ public interface IBewerbungTestService
     Task<BewerbungTestAssignment?> GetAssignmentByIdAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     // ---- attempt control (HRB/leadership, write guard first) ----
-    Task ExtendAttemptAsync(string bewerbungId, int minutes, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-    Task ResetAttemptAsync(string bewerbungId, string? testId, string? reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    Task ExtendAttemptAsync(string assignmentId, int minutes, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    Task ResetAttemptAsync(string assignmentId, string? testId, string? reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     // ---- applicant ----
-    /// <summary>Summary without questions; never stamps the clock, so the status page may call it.</summary>
-    Task<TestStatusView?> GetTestStatusForApplicantAsync(ClaimsPrincipal applicant, CancellationToken cancellationToken = default);
+    /// <summary>Summaries of every own test without questions; never stamps the clock, so the status page may call it.</summary>
+    Task<List<TestStatusView>> GetTestStatusesForApplicantAsync(ClaimsPrincipal applicant, CancellationToken cancellationToken = default);
 
     /// <summary>The questionnaire, and the only path that starts the attempt clock.</summary>
     /// <remarks>Starting is not a separate call on purpose: a patched client could simply never make one
     /// and would then hold the questions with no clock running.</remarks>
-    Task<TestView?> GetAssignedForApplicantAsync(ClaimsPrincipal applicant, CancellationToken cancellationToken = default);
+    Task<TestView?> GetAssignedForApplicantAsync(string assignmentId, ClaimsPrincipal applicant, CancellationToken cancellationToken = default);
     Task<TestDraftResult> SaveDraftAsync(string assignmentId, int attemptNumber, IReadOnlyList<TestAnswerInput> answers, ClaimsPrincipal applicant, CancellationToken cancellationToken = default);
     Task<TestSubmitOutcome> SubmitAnswersAsync(string assignmentId, int attemptNumber, IReadOnlyList<TestAnswerInput> answers, ClaimsPrincipal applicant, CancellationToken cancellationToken = default);
 }

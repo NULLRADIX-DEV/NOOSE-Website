@@ -585,40 +585,46 @@ public sealed class BewerbungTestServiceTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.DeleteOptionAsync("o1", NonHrb()));
     }
 
-    // ---------- GetAssignmentAsync ----------
+    // ---------- GetAssignmentsAsync ----------
 
     [Fact]
-    public async Task GetAssignmentAsync_ReturnsAssignment_WhenPresent()
+    public async Task GetAssignmentsAsync_ReturnsEveryTest_OldestFirst_WithItsTest()
     {
         using var ctx = new SqliteTestContext();
-        AddTest(ctx, "t1", "Test", sorting: 1);
+        AddTest(ctx, "t1", "Einstellungstest", sorting: 1);
+        AddTest(ctx, "t2", "Psychotest", sorting: 2);
         AddBewerbung(ctx, "b1", "userA");
+        AddAssignment(ctx, "as2", "b1", "t2");
         AddAssignment(ctx, "as1", "b1", "t1");
+        using (var db = ctx.NewContext())
+        {
+            db.BewerbungTestAssignments.Single(a => a.Id == "as2").CreatedAt = Ts.AddMinutes(5);
+            db.SaveChanges();
+        }
         var (svc, _, _) = Build(ctx);
 
-        var result = await svc.GetAssignmentAsync("b1", Hrb());
+        var result = await svc.GetAssignmentsAsync("b1", Hrb());
 
-        Assert.NotNull(result);
-        Assert.Equal("as1", result!.Id);
-        Assert.Equal("t1", result.TestId);
+        Assert.Equal(new[] { "as1", "as2" }, result.Select(a => a.Id).ToArray());
+        Assert.Equal("Psychotest", result[1].Test?.Title);
     }
 
     [Fact]
-    public async Task GetAssignmentAsync_ReturnsNull_WhenNone()
+    public async Task GetAssignmentsAsync_ReturnsEmpty_WhenNone()
     {
         using var ctx = new SqliteTestContext();
         var (svc, _, _) = Build(ctx);
 
-        Assert.Null(await svc.GetAssignmentAsync("b1", Hrb()));
+        Assert.Empty(await svc.GetAssignmentsAsync("b1", Hrb()));
     }
 
     [Fact]
-    public async Task GetAssignmentAsync_Throws_WhenNotHrbOrLeadership()
+    public async Task GetAssignmentsAsync_Throws_WhenNotHrbOrLeadership()
     {
         using var ctx = new SqliteTestContext();
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetAssignmentAsync("b1", NonHrb()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetAssignmentsAsync("b1", NonHrb()));
     }
 
     // ---------- AssignAsync ----------
@@ -642,7 +648,72 @@ public sealed class BewerbungTestServiceTests
         Assert.Equal(BewerbungStatus.ImTest, (await check.Bewerbungen.SingleAsync(b => b.Id == "b1")).Status);
         Assert.Contains("b1", fired);
         await notifications.Received(1).NotifyAsync("applicantUser", NotificationType.Recruiting,
-            Arg.Any<string>(), "/portal/test", Arg.Any<CancellationToken>());
+            Arg.Any<string>(), $"/portal/test/{assignment.Id}", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AssignAsync_AddsASecondTest_ToTheSameApplication()
+    {
+        using var ctx = new SqliteTestContext();
+        AddTest(ctx, "t1", "Einstellungstest", sorting: 1);
+        AddTest(ctx, "t2", "Psychotest", sorting: 2);
+        AddBewerbung(ctx, "b1", "userA", status: BewerbungStatus.ImTest);
+        AddAssignment(ctx, "as1", "b1", "t1", completedAt: Ts);
+        var (svc, _, _) = Build(ctx);
+
+        await svc.AssignAsync("b1", "t2", Hrb());
+
+        using var check = ctx.NewContext();
+        var tests = await check.BewerbungTestAssignments.Where(a => a.BewerbungId == "b1")
+            .Select(a => a.TestId).OrderBy(t => t).ToListAsync();
+        Assert.Equal(new[] { "t1", "t2" }, tests);
+    }
+
+    [Fact]
+    public async Task GradingOneTest_LeavesTheOtherUntouched()
+    {
+        using var ctx = new SqliteTestContext();
+        AddTest(ctx, "t1", "Einstellungstest", sorting: 1);
+        AddTest(ctx, "t2", "Psychotest", sorting: 2);
+        AddQuestion(ctx, "q1", "t1", TestQuestionType.YesNo, 1, correctYesNo: true);
+        AddQuestion(ctx, "q2", "t2", TestQuestionType.YesNo, 1, correctYesNo: true);
+        AddBewerbung(ctx, "b1", "userA", status: BewerbungStatus.ImTest);
+        AddAssignment(ctx, "as1", "b1", "t1", completedAt: Ts);
+        AddAssignment(ctx, "as2", "b1", "t2", completedAt: Ts);
+        AddAnswer(ctx, "an1", "as1", "q1", freeText: "Ja");
+        AddAnswer(ctx, "an2", "as2", "q2", freeText: "Ja");
+        var (svc, _, _) = Build(ctx);
+
+        await svc.CompleteGradingAsync("as2", Hrb());
+
+        using var check = ctx.NewContext();
+        Assert.Null((await check.BewerbungTestAssignments.SingleAsync(a => a.Id == "as1")).GradedAt);
+        Assert.NotNull((await check.BewerbungTestAssignments.SingleAsync(a => a.Id == "as2")).GradedAt);
+    }
+
+    [Fact]
+    public async Task GetEvaluationAsync_ZeroPointQuestion_NeedsNoGrade()
+    {
+        // a self-assessment item has nothing to award, so it must not hold the grading open
+        using var ctx = new SqliteTestContext();
+        AddTest(ctx, "t1", "Psychotest", sorting: 1);
+        AddQuestion(ctx, "q1", "t1", TestQuestionType.MultipleChoice, 1);
+        using (var db = ctx.NewContext())
+        {
+            // set after the insert: the column default would turn a 0 into 1
+            db.BewerbungTestQuestions.Single(q => q.Id == "q1").Points = 0;
+            db.SaveChanges();
+        }
+        AddOption(ctx, "o1", "q1", "1 = trifft gar nicht zu", isCorrect: false, sorting: 1);
+        AddBewerbung(ctx, "b1", "userA", status: BewerbungStatus.ImTest);
+        AddAssignment(ctx, "as1", "b1", "t1", completedAt: Ts);
+        AddAnswer(ctx, "an1", "as1", "q1", selectedOptionId: "o1");
+        var (svc, _, _) = Build(ctx);
+
+        var eval = await svc.GetEvaluationAsync("as1", Hrb());
+
+        Assert.Equal(0, eval!.OpenCount);
+        await svc.CompleteGradingAsync("as1", Hrb());
     }
 
     [Fact]
@@ -712,7 +783,7 @@ public sealed class BewerbungTestServiceTests
         AddAnswer(ctx, "an3", "as1", "q3", freeText: "Ich achte auf sicherheit");
         var (svc, _, _) = Build(ctx);
 
-        var eval = await svc.GetEvaluationAsync("b1", Hrb());
+        var eval = await svc.GetEvaluationAsync("as1", Hrb());
 
         Assert.NotNull(eval);
         Assert.Equal("Prüfung", eval!.Title);
@@ -736,7 +807,7 @@ public sealed class BewerbungTestServiceTests
         AddAnswer(ctx, "an1", "as1", "q1", selectedOptionId: "o1", manualCorrect: false);
         var (svc, _, _) = Build(ctx);
 
-        var eval = await svc.GetEvaluationAsync("b1", Hrb());
+        var eval = await svc.GetEvaluationAsync("as1", Hrb());
 
         Assert.NotNull(eval);
         var item = Assert.Single(eval!.Items);
@@ -753,7 +824,7 @@ public sealed class BewerbungTestServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _) = Build(ctx);
 
-        Assert.Null(await svc.GetEvaluationAsync("b1", Hrb()));
+        Assert.Null(await svc.GetEvaluationAsync("as1", Hrb()));
     }
 
     [Fact]
@@ -762,7 +833,7 @@ public sealed class BewerbungTestServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetEvaluationAsync("b1", NonHrb()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetEvaluationAsync("as1", NonHrb()));
     }
 
     // ---------- SetAwardedPointsAsync / grading transitions ----------
@@ -879,7 +950,7 @@ public sealed class BewerbungTestServiceTests
         var (svc, _, _) = Build(ctx);
 
         await svc.SetAwardedPointsAsync("as1", "q1", 2, Hrb());
-        var eval = await svc.GetEvaluationAsync("b1", Hrb());
+        var eval = await svc.GetEvaluationAsync("as1", Hrb());
 
         Assert.NotNull(eval);
         Assert.Equal(2, eval!.TotalPoints);
@@ -901,11 +972,11 @@ public sealed class BewerbungTestServiceTests
         AddAnswer(ctx, "an1", "as1", "q1", selectedOptionId: "o1");
         var (svc, _, _) = Build(ctx);
 
-        var eval = await svc.GetEvaluationAsync("b1", Hrb());
+        var eval = await svc.GetEvaluationAsync("as1", Hrb());
 
         Assert.NotNull(eval);
         Assert.Equal(1, eval!.OpenCount);
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CompleteGradingAsync("b1", Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CompleteGradingAsync("as1", Hrb()));
     }
 
     [Fact]
@@ -927,7 +998,7 @@ public sealed class BewerbungTestServiceTests
         await svc.UpdateQuestionAsync("q1", "Frage", required: true, points: 5, correctYesNo: null,
             keywords: null, minKeywordHits: null, keepOptionOrder: false, allowMultiple: false, Hrb());
 
-        var eval = await svc.GetEvaluationAsync("b1", Hrb());
+        var eval = await svc.GetEvaluationAsync("as1", Hrb());
 
         // graded on the answer that was actually given, not on whichever single option came first
         Assert.Equal(5, eval!.TotalPoints);
@@ -944,13 +1015,13 @@ public sealed class BewerbungTestServiceTests
         AddAnswer(ctx, "an1", "as1", "q1", freeText: "etwas");
         var (svc, _, _) = Build(ctx);
         await svc.SetAwardedPointsAsync("as1", "q1", 6, Hrb());
-        await svc.CompleteGradingAsync("b1", Hrb());
-        Assert.True((await svc.GetEvaluationAsync("b1", Hrb()))!.Passed);
+        await svc.CompleteGradingAsync("as1", Hrb());
+        Assert.True((await svc.GetEvaluationAsync("as1", Hrb()))!.Passed);
 
         await svc.UpdateTestAsync("t1", "Test", null, isActive: true, passPercent: 90, timeLimitMinutes: null, Hrb());
 
         // the applicant was already told the outcome; raising the bar afterwards must not turn it around
-        Assert.True((await svc.GetEvaluationAsync("b1", Hrb()))!.Passed);
+        Assert.True((await svc.GetEvaluationAsync("as1", Hrb()))!.Passed);
     }
 
     [Fact]
@@ -965,7 +1036,7 @@ public sealed class BewerbungTestServiceTests
         AddAnswer(ctx, "an1", "as1", "q1", freeText: "etwas");
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CompleteGradingAsync("b1", Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CompleteGradingAsync("as1", Hrb()));
     }
 
     [Fact]
@@ -980,7 +1051,7 @@ public sealed class BewerbungTestServiceTests
         var (svc, _, _) = Build(ctx);
         await svc.SetAwardedPointsAsync("as1", "q1", 3, Hrb());
 
-        await svc.CompleteGradingAsync("b1", Hrb());
+        await svc.CompleteGradingAsync("as1", Hrb());
 
         using var check = ctx.NewContext();
         var stored = await check.BewerbungTestAssignments.SingleAsync(a => a.Id == "as1");
@@ -1001,13 +1072,13 @@ public sealed class BewerbungTestServiceTests
         AddAnswer(ctx, "an1", "as1", "q1", freeText: "etwas");
         var (svc, _, _) = Build(ctx);
         await svc.SetAwardedPointsAsync("as1", "q1", 4, Hrb());
-        await svc.CompleteGradingAsync("b1", Hrb());
+        await svc.CompleteGradingAsync("as1", Hrb());
 
         await svc.UpdateQuestionAsync("q1", "Frage", required: true, points: 40,
             correctYesNo: null, keywords: null, minKeywordHits: null, keepOptionOrder: false,
             allowMultiple: false, Hrb());
 
-        var eval = await svc.GetEvaluationAsync("b1", Hrb());
+        var eval = await svc.GetEvaluationAsync("as1", Hrb());
 
         Assert.NotNull(eval);
         Assert.Equal(4, eval!.TotalPoints);
@@ -1025,12 +1096,12 @@ public sealed class BewerbungTestServiceTests
         AddAnswer(ctx, "an1", "as1", "q1", freeText: "etwas");
         var (svc, _, _) = Build(ctx);
         await svc.SetAwardedPointsAsync("as1", "q1", 1, Hrb());
-        await svc.CompleteGradingAsync("b1", Hrb());
+        await svc.CompleteGradingAsync("as1", Hrb());
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.SetAwardedPointsAsync("as1", "q1", 2, Hrb()));
 
-        await svc.ReopenGradingAsync("b1", Hrb());
+        await svc.ReopenGradingAsync("as1", Hrb());
         await svc.SetAwardedPointsAsync("as1", "q1", 2, Hrb());
 
         using var check = ctx.NewContext();
@@ -1046,7 +1117,7 @@ public sealed class BewerbungTestServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.CompleteGradingAsync("b1", NonHrb()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.CompleteGradingAsync("as1", NonHrb()));
     }
 
     [Fact]
@@ -1055,7 +1126,7 @@ public sealed class BewerbungTestServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ReopenGradingAsync("b1", NonHrb()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ReopenGradingAsync("as1", NonHrb()));
     }
 
     [Fact]
@@ -1108,7 +1179,7 @@ public sealed class BewerbungTestServiceTests
         AddOption(ctx, "o1", "q1", "A", isCorrect: true, sorting: 1);
         var (svc, _, _) = Build(ctx);
 
-        var view = await svc.GetAssignedForApplicantAsync(Applicant("app1"));
+        var view = await svc.GetAssignedForApplicantAsync("as1", Applicant("app1"));
 
         Assert.NotNull(view);
         Assert.Equal("as1", view!.AssignmentId);
@@ -1125,7 +1196,7 @@ public sealed class BewerbungTestServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _) = Build(ctx);
 
-        Assert.Null(await svc.GetAssignedForApplicantAsync(Applicant("app1")));
+        Assert.Null(await svc.GetAssignedForApplicantAsync("as1", Applicant("app1")));
     }
 
     [Fact]
@@ -1135,7 +1206,7 @@ public sealed class BewerbungTestServiceTests
         AddBewerbung(ctx, "b1", "app1");
         var (svc, _, _) = Build(ctx);
 
-        Assert.Null(await svc.GetAssignedForApplicantAsync(Applicant("app1")));
+        Assert.Null(await svc.GetAssignedForApplicantAsync("as1", Applicant("app1")));
     }
 
     [Fact]
@@ -1147,7 +1218,7 @@ public sealed class BewerbungTestServiceTests
         AddAssignment(ctx, "as1", "b1", "t1");
         var (svc, _, _) = Build(ctx);
 
-        var view = await svc.GetAssignedForApplicantAsync(Applicant("app1"));
+        var view = await svc.GetAssignedForApplicantAsync("as1", Applicant("app1"));
 
         Assert.Equal("FIB-B-2026-0042", view!.CaseNumber);
     }
@@ -1166,7 +1237,7 @@ public sealed class BewerbungTestServiceTests
         }
         var (svc, _, _) = Build(ctx);
 
-        var view = await svc.GetAssignedForApplicantAsync(Applicant("app1"));
+        var view = await svc.GetAssignedForApplicantAsync("as1", Applicant("app1"));
 
         Assert.Equal(new[] { "o1", "o2", "o3", "o4", "o5", "o6" },
             view!.Questions.Single().Options.Select(o => o.OptionId).ToArray());
@@ -1187,9 +1258,9 @@ public sealed class BewerbungTestServiceTests
         var (svc, _, _) = Build(ctx);
         var authored = new[] { "o1", "o2", "o3", "o4", "o5", "o6", "o7", "o8" };
 
-        var first = (await svc.GetAssignedForApplicantAsync(Applicant("app1")))!
+        var first = (await svc.GetAssignedForApplicantAsync("as1", Applicant("app1")))!
             .Questions.Single().Options.Select(o => o.OptionId).ToArray();
-        var second = (await svc.GetAssignedForApplicantAsync(Applicant("app1")))!
+        var second = (await svc.GetAssignedForApplicantAsync("as1", Applicant("app1")))!
             .Questions.Single().Options.Select(o => o.OptionId).ToArray();
 
         Assert.Equal(first, second);                          // the actual point: deterministic
@@ -1204,7 +1275,7 @@ public sealed class BewerbungTestServiceTests
         var (svc, _, _) = Build(ctx);
 
         // an active HRB agent is not an applicant
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetAssignedForApplicantAsync(Hrb()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.GetAssignedForApplicantAsync("as1", Hrb()));
     }
 
     // ---------- SubmitAnswersAsync ----------

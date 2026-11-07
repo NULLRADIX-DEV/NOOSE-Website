@@ -161,7 +161,7 @@ public sealed class BewerbungTestZeitTests
         var (svc, _, _) = Build(ctx);
 
         var before = DateTime.UtcNow;
-        await svc.GetAssignedForApplicantAsync(Applicant());
+        await svc.GetAssignedForApplicantAsync("a1", Applicant());
 
         var stored = Reload(ctx);
         Assert.NotNull(stored.StartedAt);
@@ -178,10 +178,10 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx);
         var (svc, _, _) = Build(ctx);
 
-        await svc.GetAssignedForApplicantAsync(Applicant());
+        await svc.GetAssignedForApplicantAsync("a1", Applicant());
         var first = Reload(ctx);
-        await svc.GetAssignedForApplicantAsync(Applicant());
-        await svc.GetAssignedForApplicantAsync(Applicant());
+        await svc.GetAssignedForApplicantAsync("a1", Applicant());
+        await svc.GetAssignedForApplicantAsync("a1", Applicant());
         var later = Reload(ctx);
 
         Assert.Equal(first.StartedAt, later.StartedAt);
@@ -195,7 +195,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, limit: null);
         var (svc, _, _) = Build(ctx);
 
-        await svc.GetAssignedForApplicantAsync(Applicant());
+        await svc.GetAssignedForApplicantAsync("a1", Applicant());
 
         var stored = Reload(ctx);
         Assert.NotNull(stored.StartedAt);
@@ -213,7 +213,7 @@ public sealed class BewerbungTestZeitTests
         AddAssignment(ctx, "a1", "b1", "t1", extraMinutes: 10);
         var (svc, _, _) = Build(ctx);
 
-        await svc.GetAssignedForApplicantAsync(Applicant());
+        await svc.GetAssignedForApplicantAsync("a1", Applicant());
 
         var stored = Reload(ctx);
         // the base stays frozen at 30 and the grant is added on top exactly once
@@ -228,7 +228,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, status: BewerbungStatus.Abgelehnt);
         var (svc, _, _) = Build(ctx);
 
-        var view = await svc.GetAssignedForApplicantAsync(Applicant());
+        var view = await svc.GetAssignedForApplicantAsync("a1", Applicant());
 
         Assert.Null(Reload(ctx).StartedAt);
         Assert.NotNull(view);
@@ -245,7 +245,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx);
         var (svc, _, _) = Build(ctx);
 
-        var status = await svc.GetTestStatusForApplicantAsync(Applicant());
+        var status = (await svc.GetTestStatusesForApplicantAsync(Applicant())).SingleOrDefault();
 
         Assert.NotNull(status);
         Assert.Null(status.StartedAt);
@@ -264,7 +264,7 @@ public sealed class BewerbungTestZeitTests
         var (svc, _, _) = Build(ctx);
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => svc.GetTestStatusForApplicantAsync(Hrb()));
+            () => svc.GetTestStatusesForApplicantAsync(Hrb()));
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public sealed class BewerbungTestZeitTests
         AddAnswer(ctx, "ans1", "a1", "q1", freeText: "mein Entwurf");
         var (svc, _, _) = Build(ctx);
 
-        var view = await svc.GetAssignedForApplicantAsync(Applicant());
+        var view = await svc.GetAssignedForApplicantAsync("a1", Applicant());
 
         var question = Assert.Single(view!.Questions);
         Assert.Equal("mein Entwurf", question.SavedFreeText);
@@ -289,7 +289,7 @@ public sealed class BewerbungTestZeitTests
         AddAnswer(ctx, "ans1", "a1", "q1", freeText: "so weit gekommen");
         var (svc, _, _) = Build(ctx);
 
-        var view = await svc.GetAssignedForApplicantAsync(Applicant());
+        var view = await svc.GetAssignedForApplicantAsync("a1", Applicant());
 
         var stored = Reload(ctx);
         Assert.NotNull(stored.CompletedAt);
@@ -315,7 +315,7 @@ public sealed class BewerbungTestZeitTests
         AddAssignment(ctx, "a1", "b1", "t1", startedAt: Ts, deadlineAt: DateTime.UtcNow.AddMinutes(10), timeLimitMinutes: 30);
         var (svc, _, _) = Build(ctx);
 
-        var first = (await svc.GetAssignedForApplicantAsync(Applicant()))!.Questions[0].Options.Select(o => o.OptionId).ToList();
+        var first = (await svc.GetAssignedForApplicantAsync("a1", Applicant()))!.Questions[0].Options.Select(o => o.OptionId).ToList();
 
         using (var db = ctx.NewContext())
         {
@@ -323,7 +323,7 @@ public sealed class BewerbungTestZeitTests
             a.AttemptCount = 2;
             db.SaveChanges();
         }
-        var second = (await svc.GetAssignedForApplicantAsync(Applicant()))!.Questions[0].Options.Select(o => o.OptionId).ToList();
+        var second = (await svc.GetAssignedForApplicantAsync("a1", Applicant()))!.Questions[0].Options.Select(o => o.OptionId).ToList();
 
         Assert.Equal(first.Order(StringComparer.Ordinal), second.Order(StringComparer.Ordinal));
         Assert.NotEqual(first, second);
@@ -828,7 +828,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, startedAt: Ts, deadlineAt: deadline, frozen: 30);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ExtendAttemptAsync("b1", 10, Hrb());
+        await svc.ExtendAttemptAsync("a1", 10, Hrb());
 
         var stored = Reload(ctx);
         Assert.Equal(deadline.AddMinutes(10), stored.DeadlineAt);
@@ -847,7 +847,7 @@ public sealed class BewerbungTestZeitTests
             completedAt: DateTime.UtcNow.AddHours(-3), timedOut: true);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ExtendAttemptAsync("b1", 10, Hrb());
+        await svc.ExtendAttemptAsync("a1", 10, Hrb());
 
         Assert.True(Reload(ctx).DeadlineAt > DateTime.UtcNow.AddMinutes(9));
     }
@@ -861,7 +861,7 @@ public sealed class BewerbungTestZeitTests
         AddAnswer(ctx, "ans1", "a1", "q1", freeText: "vorher");
         var (svc, _, _) = Build(ctx);
 
-        await svc.ExtendAttemptAsync("b1", 15, Hrb());
+        await svc.ExtendAttemptAsync("a1", 15, Hrb());
 
         var stored = Reload(ctx);
         Assert.Null(stored.CompletedAt);
@@ -879,7 +879,7 @@ public sealed class BewerbungTestZeitTests
         AddAnswer(ctx, "ans1", "a1", "q1", freeText: "x", manualPoints: 1, manualCorrect: true);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ExtendAttemptAsync("b1", 15, Hrb());
+        await svc.ExtendAttemptAsync("a1", 15, Hrb());
 
         var row = Assert.Single(Answers(ctx));
         Assert.Null(row.ManualPoints);
@@ -893,7 +893,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ExtendAttemptAsync("b1", 10, Hrb());
+        await svc.ExtendAttemptAsync("a1", 10, Hrb());
 
         var stored = Reload(ctx);
         Assert.Equal(10, stored.ExtraMinutes);
@@ -911,7 +911,7 @@ public sealed class BewerbungTestZeitTests
             completedAt: DateTime.UtcNow.AddMinutes(-1));
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("b1", 10, Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("a1", 10, Hrb()));
         var stored = Reload(ctx);
         Assert.NotNull(stored.CompletedAt);
         Assert.Equal(0, stored.ExtraMinutes);
@@ -924,7 +924,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, limit: null, startedAt: Ts);
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("b1", 10, Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("a1", 10, Hrb()));
     }
 
     [Fact]
@@ -940,7 +940,7 @@ public sealed class BewerbungTestZeitTests
         }
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("b1", 10, Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("a1", 10, Hrb()));
     }
 
     [Fact]
@@ -951,7 +951,7 @@ public sealed class BewerbungTestZeitTests
             status: BewerbungStatus.Geschlossen);
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("b1", 10, Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("a1", 10, Hrb()));
     }
 
     [Theory]
@@ -963,7 +963,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, startedAt: Ts, deadlineAt: DateTime.UtcNow.AddMinutes(5), frozen: 30);
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("b1", minutes, Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("a1", minutes, Hrb()));
     }
 
     [Fact]
@@ -975,7 +975,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, limit: 30, startedAt: Ts);
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("b1", 10, Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ExtendAttemptAsync("a1", 10, Hrb()));
         Assert.Equal(0, Reload(ctx).ExtraMinutes);
     }
 
@@ -990,7 +990,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, startedAt: Ts, deadlineAt: DateTime.UtcNow.AddMinutes(-1), frozen: 30, completedAt: Ts, timedOut: true);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ResetAttemptAsync("b1", null, "Nachweis", Hrb());
+        await svc.ResetAttemptAsync("a1", null, "Nachweis", Hrb());
 
         using var db = ctx.NewContext();
         Assert.Equal(1, db.BewerbungTestAssignments.IgnoreQueryFilters().Count(a => a.BewerbungId == "b1"));
@@ -1003,7 +1003,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, startedAt: Ts, deadlineAt: DateTime.UtcNow.AddMinutes(-1), frozen: 30, completedAt: Ts, timedOut: true);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ResetAttemptAsync("b1", null, "Nachweis", Hrb());
+        await svc.ResetAttemptAsync("a1", null, "Nachweis", Hrb());
 
         var stored = Reload(ctx);
         Assert.Null(stored.StartedAt);
@@ -1024,7 +1024,7 @@ public sealed class BewerbungTestZeitTests
         AddAnswer(ctx, "ans1", "a1", "q1", freeText: "alter Versuch");
         var (svc, _, _) = Build(ctx);
 
-        await svc.ResetAttemptAsync("b1", null, "Nachweis", Hrb());
+        await svc.ResetAttemptAsync("a1", null, "Nachweis", Hrb());
 
         Assert.Empty(Answers(ctx));
     }
@@ -1046,7 +1046,7 @@ public sealed class BewerbungTestZeitTests
         }
         var (svc, _, _) = Build(ctx);
 
-        await svc.ResetAttemptAsync("b1", null, "Nachweis", Hrb());
+        await svc.ResetAttemptAsync("a1", null, "Nachweis", Hrb());
 
         var stored = Reload(ctx);
         Assert.Null(stored.GradedAt);
@@ -1064,7 +1064,7 @@ public sealed class BewerbungTestZeitTests
             status: BewerbungStatus.Eingereicht);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ResetAttemptAsync("b1", null, "Nachweis", Hrb());
+        await svc.ResetAttemptAsync("a1", null, "Nachweis", Hrb());
 
         using var db = ctx.NewContext();
         Assert.Equal(BewerbungStatus.ImTest, db.Bewerbungen.AsNoTracking().Single(b => b.Id == "b1").Status);
@@ -1078,7 +1078,7 @@ public sealed class BewerbungTestZeitTests
         AddTest(ctx, "t2", 45);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ResetAttemptAsync("b1", "t2", "Nachweis", Hrb());
+        await svc.ResetAttemptAsync("a1", "t2", "Nachweis", Hrb());
 
         Assert.Equal("t2", Reload(ctx).TestId);
     }
@@ -1093,7 +1093,7 @@ public sealed class BewerbungTestZeitTests
         AddTest(ctx, "t2", 45, isActive: false);
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ResetAttemptAsync("b1", "t2", "Nachweis", Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ResetAttemptAsync("a1", "t2", "Nachweis", Hrb()));
     }
 
     [Fact]
@@ -1104,7 +1104,7 @@ public sealed class BewerbungTestZeitTests
             status: BewerbungStatus.Angenommen);
         var (svc, _, _) = Build(ctx);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ResetAttemptAsync("b1", null, "Nachweis", Hrb()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.ResetAttemptAsync("a1", null, "Nachweis", Hrb()));
     }
 
     [Fact]
@@ -1115,7 +1115,7 @@ public sealed class BewerbungTestZeitTests
         Scenario(ctx, startedAt: Ts, deadlineAt: Ts, frozen: 30, completedAt: Ts);
         var (svc, _, _) = Build(ctx);
 
-        await svc.ResetAttemptAsync("b1", null, "Technischer Abbruch", Hrb());
+        await svc.ResetAttemptAsync("a1", null, "Technischer Abbruch", Hrb());
 
         using var db = ctx.NewContext();
         var rows = db.AuditLogs.AsNoTracking()
@@ -1138,7 +1138,7 @@ public sealed class BewerbungTestZeitTests
         var (svc, _, _) = Build(ctx);
         var actor = kind == "reader" ? OnlyReader() : Demo();
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ExtendAttemptAsync("b1", 10, actor));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ExtendAttemptAsync("a1", 10, actor));
         Assert.Equal(0, Reload(ctx).ExtraMinutes);
     }
 
@@ -1151,7 +1151,7 @@ public sealed class BewerbungTestZeitTests
         var (svc, _, _) = Build(ctx);
         var actor = kind == "reader" ? OnlyReader() : Demo();
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ResetAttemptAsync("b1", null, "Nachweis", actor));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.ResetAttemptAsync("a1", null, "Nachweis", actor));
         Assert.NotNull(Reload(ctx).CompletedAt);
     }
 
@@ -1250,7 +1250,7 @@ public sealed class BewerbungTestZeitTests
         AddAnswer(ctx, "ans1", "a1", "q1", freeText: "im Entstehen");
         var (svc, _, _) = Build(ctx);
 
-        Assert.Null(await svc.GetEvaluationAsync("b1", Hrb()));
+        Assert.Null(await svc.GetEvaluationAsync("a1", Hrb()));
     }
 
     [Fact]
@@ -1262,7 +1262,7 @@ public sealed class BewerbungTestZeitTests
         AddAnswer(ctx, "ans-a", "a1", "q1", freeText: "älter", createdAt: Ts);
         var (svc, _, _) = Build(ctx);
 
-        var report = await svc.GetEvaluationAsync("b1", Hrb());
+        var report = await svc.GetEvaluationAsync("a1", Hrb());
 
         Assert.Equal("älter", Assert.Single(report!.Items).AnswerText);
     }

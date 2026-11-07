@@ -1,0 +1,172 @@
+@inject IBewerbungTestService TestService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<div class="mb-4">
+    <MudText Typo="Typo.subtitle1" Class="mb-2"><b>@(Assignment.Test?.Title ?? "Test")</b></MudText>
+
+    @if (Assignment.CompletedAt is null)
+    {
+        @if (Assignment.StartedAt is null)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                Test wurde zugewiesen und wartet auf die Beantwortung durch den Bewerber.
+            </MudAlert>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">@Zeitbudget</MudText>
+        }
+        else if (!Ueberfaellig)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                Der Bewerber bearbeitet den Test seit
+                @Assignment.StartedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")@Restzeittext@Zusatztext
+            </MudAlert>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                Zeit abgelaufen. Die Abgabe wird gerade abgeschlossen; die Auswertung erscheint in Kürze.
+            </MudAlert>
+        }
+    }
+    else if (_eval is not null)
+    {
+        <TestGradingView Evaluation="_eval" Attempt="Assignment" CanWrite="CanWrite" Busy="_busy"
+                         OnSetPoints="@(p => SetPointsAsync(p.QuestionId, p.Points))"
+                         OnComplete="CompleteAsync" OnReopen="ReopenAsync" />
+    }
+
+    @if (CanWrite)
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="mt-3">
+            @if (Assignment.GradedAt is null && Verlaengerbar)
+            {
+                @* additive and in the applicant's favour, so no confirmation; fixed steps beat a free field
+                   that invites a typo'd 100 *@
+                <MudMenu Label="Zeit verlängern" Icon="@Icons.Material.Filled.MoreTime" Dense="true"
+                         Variant="Variant.Outlined" Size="Size.Small" Disabled="_busy">
+                    <MudMenuItem OnClick="@(() => ExtendAsync(5))">+ 5 Minuten</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => ExtendAsync(10))">+ 10 Minuten</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => ExtendAsync(15))">+ 15 Minuten</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => ExtendAsync(30))">+ 30 Minuten</MudMenuItem>
+                </MudMenu>
+            }
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.RestartAlt" OnClick="ResetAsync"
+                       Disabled="@(_busy || Assignment.GradedAt is not null)">
+                Test neu freigeben
+            </MudButton>
+            @if (Assignment.GradedAt is not null)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Korrektur zuerst wieder öffnen.</MudText>
+            }
+        </MudStack>
+    }
+</div>
+
+@code {
+    /// <summary>One attempt with its test attached; the parent reloads it on every broadcast.</summary>
+    [Parameter, EditorRequired] public BewerbungTestAssignment Assignment { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public bool CanWrite { get; set; }
+    /// <summary>Changes with every reload of the parent, so the evaluation is read again.</summary>
+    [Parameter] public int Version { get; set; }
+
+    private bool _busy;
+    private TestEvaluation? _eval;
+    private int _loadedVersion = -1;
+
+    private int? TestMinutes => Assignment.Test?.TimeLimitMinutes;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedVersion == Version)
+        {
+            return;
+        }
+        _loadedVersion = Version;
+        // dropped first: an extension reopens the attempt, and a stale report would keep rendering
+        _eval = Assignment.CompletedAt is not null
+            ? await TestService.GetEvaluationAsync(Assignment.Id, User)
+            : null;
+    }
+
+    // no reload here: the service broadcasts and the parent reloads once
+    private Task SetPointsAsync(string questionId, int? points)
+        => RunAsync(() => TestService.SetAwardedPointsAsync(Assignment.Id, questionId, points, User));
+
+    private Task CompleteAsync() => RunAsync(() => TestService.CompleteGradingAsync(Assignment.Id, User));
+
+    private Task ReopenAsync() => RunAsync(() => TestService.ReopenGradingAsync(Assignment.Id, User));
+
+    private Task ExtendAsync(int minutes) => RunAsync(async () =>
+    {
+        await TestService.ExtendAttemptAsync(Assignment.Id, minutes, User);
+        Snackbar.Add($"Bearbeitungszeit um {minutes} Minuten verlängert.", Severity.Success);
+    });
+
+    private async Task ResetAsync()
+    {
+        // destructive but scoped and repeatable, so a mandatory reason rather than a type-the-name dialog:
+        // it produces a useful audit line instead of pure friction
+        var reason = await ReasonDialog.ShowAsync(DialogService, "Test neu freigeben?",
+            "Die bisherigen Antworten und der Zwischenstand dieses Bewerbers in diesem Test werden verworfen. "
+            + "Der Test gilt wieder als nicht begonnen; die Bearbeitungszeit startet erneut, sobald der Bewerber "
+            + "ihn startet. Eine bereits erfolgte Korrektur wird verworfen.",
+            confirmText: "Neu freigeben", label: "Begründung", mandatoryReason: true, colour: Color.Warning);
+        if (reason is null)
+        {
+            return;
+        }
+        await RunAsync(() => TestService.ResetAttemptAsync(Assignment.Id, null, reason, User));
+    }
+
+    /// <summary>Time can be granted while the attempt is open, and as a rescue once the clock closed it.</summary>
+    /// <remarks>Never after a hand-in that beat the clock: that attempt is finished, and reopening it would
+    /// let the applicant edit answers they already submitted.</remarks>
+    private bool Verlaengerbar => TestDeadline.AllowedMinutes(Assignment, TestMinutes) is not null
+        && Assignment is not { CompletedAt: not null, TimedOut: false };
+
+    /// <summary>Derived from the deadline, not only from the flag: it can pass while the applicant is offline.</summary>
+    private bool Ueberfaellig => Assignment is { CompletedAt: null }
+        && TestDeadline.IsExpired(Assignment.DeadlineAt, DateTime.UtcNow);
+
+    private string Zeitbudget
+    {
+        get
+        {
+            var minutes = TestDeadline.AllowedMinutes(Assignment, TestMinutes);
+            if (minutes is null)
+            {
+                return "Bearbeitungszeit: unbegrenzt.";
+            }
+            var extra = Assignment.ExtraMinutes > 0 ? $" Verlängert um {Assignment.ExtraMinutes} Min." : "";
+            return $"Bearbeitungszeit: {minutes} Minuten. Die Uhr startet, sobald der Bewerber den Test startet.{extra}";
+        }
+    }
+
+    /// <summary>"ca." on purpose: the panel reloads on a broadcast, not on a ticker.</summary>
+    private string Restzeittext => TestAttemptLogic.RemainingMinutes(Assignment.DeadlineAt, DateTime.UtcNow) is { } left
+        ? $" · Restzeit ca. {left} Min"
+        : Assignment.DeadlineAt is null ? " (ohne Bearbeitungszeit)" : string.Empty;
+
+    private string Zusatztext => Assignment is { ExtraMinutes: > 0 }
+        ? $" · verlängert um {Assignment.ExtraMinutes} Min"
+        : string.Empty;
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

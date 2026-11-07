@@ -59,8 +59,8 @@ else
     <MudPaper Elevation="2" Class="pa-4">
         <TestGradingView Evaluation="_eval" Attempt="_assignment" CanWrite="_canWrite" Busy="_busy"
                          OnSetPoints="@(p => RunAsync(() => TestService.SetAwardedPointsAsync(_assignment.Id, p.QuestionId, p.Points, _user)))"
-                         OnComplete="@(() => RunAsync(() => TestService.CompleteGradingAsync(_assignment.BewerbungId, _user)))"
-                         OnReopen="@(() => RunAsync(() => TestService.ReopenGradingAsync(_assignment.BewerbungId, _user)))" />
+                         OnComplete="@(() => RunAsync(() => TestService.CompleteGradingAsync(_assignment.Id, _user)))"
+                         OnReopen="@(() => RunAsync(() => TestService.ReopenGradingAsync(_assignment.Id, _user)))" />
 
         <MudDivider Class="my-3" />
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
@@ -132,7 +132,7 @@ else
         {
             _assignment = await TestService.GetAssignmentByIdAsync(AssignmentId, _user);
             // a running attempt has no evaluation, so it never shows up here
-            _eval = _assignment is null ? null : await TestService.GetEvaluationAsync(_assignment.BewerbungId, _user);
+            _eval = _assignment is null ? null : await TestService.GetEvaluationAsync(_assignment.Id, _user);
         }
         _nextId = BlindGrading.NextAfter(_queue, AssignmentId);
         _first = false;

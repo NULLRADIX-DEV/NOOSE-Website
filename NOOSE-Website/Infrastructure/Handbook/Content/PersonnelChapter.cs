@@ -365,12 +365,16 @@ internal static class PersonnelChapter
                 """
                 <p>Der <strong>Eignungstest</strong> ist ein Fragebogen, den ein Bewerber im Rahmen seiner
                 Bewerbung ausfüllt. Die Fragen pflegt die Administration Division; es gibt Auswahlfragen und Freitextfragen.</p>
+                <p>Eine Bewerbung kann <strong>mehrere Tests</strong> bekommen, etwa den Einstellungstest und den
+                psychologischen Eignungstest, jeden aber nur einmal. Jeder Test hat eine eigene Uhr, eine eigene
+                Korrektur und einen eigenen Knopf im Portal des Bewerbers. Eine Frage mit 0 Punkten, zum Beispiel
+                eine Selbsteinschätzung, musst du nicht bewerten.</p>
                 <p>Der Test hat eine <strong>Bearbeitungszeit</strong>. Sie beginnt in dem Moment, in dem der
                 Bewerber die Fragen zum ersten Mal abruft - nicht, wenn du ihn freigibst. Braucht jemand aus
                 gutem Grund länger, kannst du <strong>Zusatzminuten</strong> gewähren, ohne den Test neu zu
                 starten.</p>
-                <p>Ein <strong>Zurücksetzen</strong> löscht die bisherigen Antworten und startet die Zeit neu.
-                Es gibt pro Bewerbung nur einen laufenden Versuch - sei also sicher, bevor du zurücksetzt.</p>
+                <p>Ein <strong>Zurücksetzen</strong> löscht die bisherigen Antworten dieses einen Tests und startet
+                seine Zeit neu. Es gibt je Test nur einen laufenden Versuch - sei also sicher, bevor du zurücksetzt.</p>
                 <p>Über <strong>Anonym korrigieren</strong> in der Bewerbungsliste korrigierst du abgegebene Tests,
                 ohne zu sehen, von wem sie sind. Jede Abgabe trägt nur ein Kürzel; Name und Aktenzeichen
                 erscheinen erst, wenn du die Korrektur abgeschlossen hast.</p>

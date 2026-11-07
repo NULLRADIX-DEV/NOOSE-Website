@@ -627,7 +627,7 @@ public sealed class ApplicantDmTests
         SeedAttempt(ctx, startedAt: Ts, deadlineAt: Ts.AddMinutes(30));
         var (svc, dm) = BuildTests(ctx);
 
-        await svc.ResetAttemptAsync("b1", null, "Technischer Abbruch", TestHrb());
+        await svc.ResetAttemptAsync("a1", null, "Technischer Abbruch", TestHrb());
 
         await AssertAskedOnlyFor(dm, ApplicantDmEvent.TestAssigned);
     }
@@ -640,7 +640,7 @@ public sealed class ApplicantDmTests
         var (svc, dm) = BuildTests(ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => svc.ResetAttemptAsync("b1", null, "Technischer Abbruch", TestHrb()));
+            () => svc.ResetAttemptAsync("a1", null, "Technischer Abbruch", TestHrb()));
 
         AssertSilent(dm);
     }
