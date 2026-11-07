@@ -17,12 +17,12 @@
 {
     @* the bill: what the week can cost at worst, and what it is actually trending at *@
     <MudGrid Spacing="2" Class="mb-3">
-        <MudItem xs="12" sm="6">
+        <MudItem xs="6" sm="6">
             <StatTile Icon="@Icons.Material.Filled.Savings" Label="Maximalkosten pro Woche" Colour="Color.Warning"
                       Value="@($"{LlmQuotaMath.ToCost(_maxTokens):0.00} $")"
                       Hint="@($"{_maxTokens:N0} Token über {_rows.Count} Agenten, restlos verbraucht")" />
         </MudItem>
-        <MudItem xs="12" sm="6">
+        <MudItem xs="6" sm="6">
             <StatTile Icon="@Icons.Material.Filled.TrendingUp" Label="Erwartete Kosten pro Woche" Colour="Color.Info"
                       Value="@(_expected is { } e ? $"{e.CostUsd:0.00} $" : "—")"
                       Hint="@(_expected is { } h
@@ -59,7 +59,7 @@
     </MudPaper>
 }
 
-<div class="d-flex align-center justify-space-between mb-2">
+<div class="d-flex align-center justify-space-between mb-2 noose-kopf-umbruch">
     <MudText Typo="Typo.body2" Class="mud-text-secondary">
         @_periodLabel@(_nextReset is { } reset ? $" · Zurücksetzung am {reset:dd.MM.yyyy HH:mm} Uhr" : string.Empty)
     </MudText>
@@ -69,50 +69,63 @@
     }
 </div>
 
-<MudTable Items="_rows" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm" Elevation="0" Loading="_busy">
+<MudTable Items="_rows" Hover="true" Dense="true" Breakpoint="Breakpoint.None" Elevation="0" Loading="_busy">
     <HeaderContent>
         <MudTh>Agent</MudTh>
-        <MudTh>Dienstgrad</MudTh>
-        <MudTh Style="text-align:right">Grundkontingent</MudTh>
-        <MudTh Style="text-align:right">Übertrag</MudTh>
-        <MudTh Style="text-align:right">Verbraucht</MudTh>
+        <MudTh Class="noose-mobil-aus">Dienstgrad</MudTh>
+        <MudTh Style="text-align:right" Class="noose-mobil-aus">Grundkontingent</MudTh>
+        <MudTh Style="text-align:right" Class="noose-mobil-aus">Übertrag</MudTh>
+        <MudTh Style="text-align:right" Class="noose-mobil-aus">Verbraucht</MudTh>
         <MudTh Style="text-align:right">Rest</MudTh>
-        <MudTh Style="width:140px;">Auslastung</MudTh>
+        <MudTh Style="width:140px;" Class="noose-mobil-aus">Auslastung</MudTh>
         <MudTh Style="width:130px;"></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Agent">@context.Codename</MudTd>
-        <MudTd DataLabel="Dienstgrad">@(context.Rank is { } r ? RankDisplay.Name(r) : "—")</MudTd>
-        <MudTd DataLabel="Grundkontingent" Style="text-align:right">
+        <MudTd DataLabel="Dienstgrad" Class="noose-mobil-aus">@(context.Rank is { } r ? RankDisplay.Name(r) : "—")</MudTd>
+        <MudTd DataLabel="Grundkontingent" Style="text-align:right" Class="noose-mobil-aus">
             @context.BaseWeekly.ToString("N0")
             @if (context.IsOverride)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Class="ml-1">individuell</MudChip>
             }
         </MudTd>
-        <MudTd DataLabel="Übertrag" Style="text-align:right">@context.CarryIn.ToString("N0")</MudTd>
-        <MudTd DataLabel="Verbraucht" Style="text-align:right">@context.Consumed.ToString("N0")</MudTd>
+        <MudTd DataLabel="Übertrag" Style="text-align:right" Class="noose-mobil-aus">@context.CarryIn.ToString("N0")</MudTd>
+        <MudTd DataLabel="Verbraucht" Style="text-align:right" Class="noose-mobil-aus">@context.Consumed.ToString("N0")</MudTd>
         <MudTd DataLabel="Rest" Style="text-align:right">
             <MudText Typo="Typo.body2" Color="@(context.IsBlocked ? Color.Error : Color.Success)">
                 @context.Remaining.ToString("N0")
             </MudText>
         </MudTd>
-        <MudTd DataLabel="Auslastung">
+        <MudTd DataLabel="Auslastung" Class="noose-mobil-aus">
             <MudProgressLinear Value="@(context.UsedShare * 100)" Size="Size.Small"
                                Color="@(context.UsedShare >= 0.9 ? Color.Error : context.UsedShare >= 0.7 ? Color.Warning : Color.Success)" />
         </MudTd>
         <MudTd>
-            @if (_mayManage)
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Title="Kontingent anpassen"
-                               OnClick="() => OverrideAsync(context)" />
-                <MudIconButton Icon="@Icons.Material.Filled.AddCard" Size="Size.Small" Title="Aufstocken"
-                               OnClick="() => TopUpAsync(context)" />
-                <MudIconButton Icon="@Icons.Material.Filled.RestartAlt" Size="Size.Small" Title="Woche zurücksetzen"
-                               OnClick="() => ResetAsync(context)" />
-            }
-            <MudIconButton Icon="@Icons.Material.Filled.Person" Size="Size.Small" Title="Personalakte"
-                           Href="@($"/personal/{context.AgentId}")" />
+            <span class="noose-mobil-aus">
+                @if (_mayManage)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small" Title="Kontingent anpassen"
+                                   OnClick="() => OverrideAsync(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.AddCard" Size="Size.Small" Title="Aufstocken"
+                                   OnClick="() => TopUpAsync(context)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.RestartAlt" Size="Size.Small" Title="Woche zurücksetzen"
+                                   OnClick="() => ResetAsync(context)" />
+                }
+                <MudIconButton Icon="@Icons.Material.Filled.Person" Size="Size.Small" Title="Personalakte"
+                               Href="@($"/personal/{context.AgentId}")" />
+            </span>
+            @* phones: the same actions behind the same _mayManage in a ⋮ menu *@
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                     AriaLabel="Aktionen" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                @if (_mayManage)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.Tune" OnClick="() => OverrideAsync(context)">Kontingent anpassen</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.AddCard" OnClick="() => TopUpAsync(context)">Aufstocken</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.RestartAlt" OnClick="() => ResetAsync(context)">Woche zurücksetzen</MudMenuItem>
+                }
+                <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="@($"/personal/{context.AgentId}")">Personalakte</MudMenuItem>
+            </MudMenu>
         </MudTd>
     </RowTemplate>
     <NoRecordsContent>

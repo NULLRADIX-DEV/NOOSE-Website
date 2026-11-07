@@ -1,25 +1,32 @@
 @page "/parteien"
+@using NOOSE_Website.Models.Navigation
 @inject IPartyService PartyService
 @inject IRecencyService Recency
 @inject NavigationManager Nav
 
 <PageTitle>Parteien · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Parteien</MudText>
-    <MudSpacer />
-    <ListExportButton T="PartyRow" RecordType="@nameof(Party)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
-    <AuthorizeView Policy="@Policies.Leadership">
-        <MudButton Href="/papierkorb?tab=parteien" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
-    </AuthorizeView>
-    <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
-        <MudButton Href="/parteien/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Partei</MudButton>
-    </AuthorizeView>
-</MudStack>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Politische Organisationen mit Leitung, Mitgliedern, Einstufung und zugeteilten Special Agents.
-</MudText>
+@* no help button: the list never had one, and from 960px up the header keeps its old buttons *@
+<PageHeader Icon="@Icons.Material.Filled.AccountBalance" Title="Parteien" ShowHelp="false"
+            Subtitle="Politische Organisationen mit Leitung, Mitgliedern, Einstufung und zugeteilten Special Agents.">
+    <MoreActions>
+        <ListExportButton T="PartyRow" RecordType="@nameof(Party)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudButton Href="/papierkorb?tab=parteien" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
+        </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <ListExportButton AsMenuItem="true" T="PartyRow" RecordType="@nameof(Party)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=parteien">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
+        <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
+            <MudButton Href="/parteien/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Partei</MudButton>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
 
 @if (_load)
 {
@@ -28,21 +35,25 @@
 else
 {
     <MudDataGrid @ref="_grid" T="PartyRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
-                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" Class="noose-filterleiste">
         <ToolBarContent>
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Name, Aktenzeichen)…" Immediate="true"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0 noose-filter-feld" />
             <MudSpacer />
+            @* a single filter needs no "Filter (n)" fold: on phones it takes its own row under the search *@
             <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
-                       Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-2">
+                       Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-sm-2 noose-filter-feld">
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
             </MudSelect>
+            <MobileColumnPicker ListKey="parteien" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" />
-            <TemplateColumn Sortable="true" Title="Name" SortBy="x => x.Name">
+            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" HeaderClass="@Col("aktenzeichen")" CellClass="@Col("aktenzeichen")" />
+            <TemplateColumn Sortable="true" Title="Name" HeaderClass="@Col("name")" CellClass="@Col("name")" SortBy="x => x.Name">
                 <CellTemplate>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                         @if (!string.IsNullOrEmpty(context.Item.TitleImagePhotoId))
@@ -63,13 +74,13 @@ else
                     </MudStack>
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.MemberCount" Title="Mitglieder" />
-            <TemplateColumn Sortable="true" Title="Einstufung" SortBy="x => x.Classification">
+            <PropertyColumn Property="x => x.MemberCount" Title="Mitglieder" HeaderClass="@Col("mitglieder")" CellClass="@Col("mitglieder")" />
+            <TemplateColumn Sortable="true" Title="Einstufung" HeaderClass="@Col("einstufung")" CellClass="@Col("einstufung")" SortBy="x => x.Classification">
                 <CellTemplate>
                     <ClassificationBadge Value="context.Item.Classification" />
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Verschluss" SortBy="x => x.IsClassified">
+            <TemplateColumn Sortable="true" Title="Verschluss" HeaderClass="@Col("verschluss")" CellClass="@Col("verschluss")" SortBy="x => x.IsClassified">
                 <CellTemplate>
                     @if (context.Item.IsClassified)
                     {
@@ -77,12 +88,12 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Aktualität" SortBy="x => x.Level">
+            <TemplateColumn Sortable="true" Title="Aktualität" HeaderClass="@Col("aktualitaet")" CellClass="@Col("aktualitaet")" SortBy="x => x.Level">
                 <CellTemplate>
                     <RecencyIndicator Level="context.Item.Level" ReferenceDateUtc="context.Item.RefreshedUtc" />
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" Format="dd.MM.yyyy HH:mm" />
+            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" HeaderClass="@Col("zuletzt")" CellClass="@Col("zuletzt")" Format="dd.MM.yyyy HH:mm" />
         </Columns>
         <NoRecordsContent>
             <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
@@ -101,7 +112,7 @@ else
             </MudStack>
         </NoRecordsContent>
         <PagerContent>
-            <MudDataGridPager T="PartyRow" />
+            <MudDataGridPager Class="noose-pager-handy" T="PartyRow" />
         </PagerContent>
     </MudDataGrid>
 }
@@ -123,6 +134,22 @@ else
         new("Aktualität", r => RecencyLevelDisplay.Name(r.Level)),
         new("Zuletzt", r => ExportText.Stamp(r.Refreshed)),
     ];
+
+    /// <summary>The grid's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("name", "Name"), ("mitglieder", "Mitglieder"), ("einstufung", "Einstufung"),
+        ("verschluss", "Verschluss"), ("aktualitaet", "Aktualität"), ("zuletzt", "Zuletzt"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the name and the classification, the record's weight.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["name", "einstufung"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     private bool _load = true;
     private ArchiveFilter _archive = ArchiveFilter.Active;

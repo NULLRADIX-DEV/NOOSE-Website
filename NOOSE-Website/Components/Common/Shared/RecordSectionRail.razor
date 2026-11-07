@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject IScrollManager Scroll
 
 @* instantiates the RecordSection children so they can register; they render no markup of their own *@
 <CascadingValue Value="this" IsFixed="true">
@@ -15,8 +16,44 @@
 }
 else
 {
+@* Below 960px the rail is a bar pinned under the app bar: the current section, and a menu to switch, reachable
+   anywhere down a long section. From 960px up both stay hidden and the rail stands beside the content as before.
+   The anchor in front of the bar is where a switch scrolls to, so the new section starts at its top. *@
+<div id="@_anchorId" class="record-rail-anker noose-nur-schmal"></div>
+<MudPaper Elevation="2" Class="record-rail-leiste noose-nur-schmal">
+    <MudMenu FullWidth="true" RelativeWidth="DropdownWidth.Relative" MaxHeight="420" Dense="true"
+             AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" AriaLabel="Abschnitt wechseln">
+        <ActivatorContent>
+            <MudButton FullWidth="true" Variant="Variant.Text" Class="record-rail-leiste-knopf"
+                       StartIcon="@Active?.Icon" EndIcon="@Icons.Material.Filled.UnfoldMore">
+                <span class="record-rail-leiste-titel">@Active?.Label</span>
+            </MudButton>
+        </ActivatorContent>
+        <ChildContent>
+            @foreach (var group in Grouped())
+            {
+                @if (!string.IsNullOrWhiteSpace(group.Key))
+                {
+                    <MudText Typo="Typo.overline" Class="px-4 pt-2 mud-text-secondary d-block">@group.Key</MudText>
+                }
+                @foreach (var entry in group)
+                {
+                    <MudMenuItem Icon="@entry.Icon" OnClick="@(() => SwitchAsync(entry.Slug))"
+                                 Class="@(IsActive(entry) ? "record-rail-leiste-aktiv" : null)"
+                                 aria-current="@(IsActive(entry) ? "true" : null)">
+                        @entry.Label
+                        @if (entry.Badge is > 0)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Class="ml-2 my-0">@entry.Badge</MudChip>
+                        }
+                    </MudMenuItem>
+                }
+            }
+        </ChildContent>
+    </MudMenu>
+</MudPaper>
 <MudPaper Elevation="2" Class="d-flex flex-column flex-md-row record-rail-shell">
-    <nav class="record-rail" aria-label="Abschnitte">
+    <nav class="record-rail noose-schmal-aus" aria-label="Abschnitte">
         @foreach (var group in Grouped())
         {
             @if (!string.IsNullOrWhiteSpace(group.Key))
@@ -58,6 +95,7 @@ else
     [Parameter] public bool HideRailWhenSingle { get; set; }
 
     private readonly List<RecordSection> _sections = [];
+    private readonly string _anchorId = $"abschnitt-{Guid.NewGuid():N}";
     private string? _activeSlug;
     private bool _redraw;
 
@@ -121,5 +159,12 @@ else
     {
         _activeSlug = slug;
         await QueryState.WriteAsync(JS, Nav, ("tab", slug));
+    }
+
+    // the bar is only on screen below 960px, where a long section leaves the reader far down the page
+    private async Task SwitchAsync(string slug)
+    {
+        await ActivateAsync(slug);
+        await Scroll.ScrollIntoViewAsync($"#{_anchorId}", ScrollBehavior.Auto);
     }
 }

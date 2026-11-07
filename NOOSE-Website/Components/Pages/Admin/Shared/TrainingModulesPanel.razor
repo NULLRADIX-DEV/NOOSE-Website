@@ -43,18 +43,18 @@
 }
 else
 {
-    <MudTable Items="_modules" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_modules" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="TrainingModule" SortBy="@(x => x.Sorting)">#</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="TrainingModule" SortBy="@(x => x.Sorting)">#</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="TrainingModule" SortBy="@(x => x.Name)">Modul</MudTableSortLabel></MudTh>
-            <MudTh>Beschreibung</MudTh>
+            <MudTh Class="noose-mobil-aus">Beschreibung</MudTh>
             <MudTh><MudTableSortLabel T="TrainingModule" SortBy="@(x => x.IsActive)">Status</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="#">@context.Sorting</MudTd>
+            <MudTd DataLabel="#" Class="noose-mobil-aus">@context.Sorting</MudTd>
             <MudTd DataLabel="Modul"><MudText Typo="Typo.body2">@context.Name</MudText></MudTd>
-            <MudTd DataLabel="Beschreibung">
+            <MudTd DataLabel="Beschreibung" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-wrap;">@context.Description</MudText>
             </MudTd>
             <MudTd DataLabel="Status">

@@ -23,7 +23,7 @@
 }
 else
 {
-    <MudTable T="PersonDocDisplay" Items="_docs" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
+    <MudTable T="PersonDocDisplay" Items="_docs" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true"
               Filter="Filter" RowClass="cursor-pointer" OnRowClick="@(args => Open(args.Item))">
         <ToolBarContent>
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Name, Aktenzeichen)…" Immediate="true"
@@ -31,12 +31,12 @@ else
         </ToolBarContent>
         <HeaderContent>
             <MudTh><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.Doc.Person?.Name)">Person</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.Doc.Person?.CaseNumber)">Aktenzeichen</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.Doc.Person?.CaseNumber)">Aktenzeichen</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.Doc.Timestamp)" InitialDirection="SortDirection.Descending">Zeitpunkt</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.CreatedByCodename)">Agent</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => MeasureOutcomeDisplay.Name(x.Doc.Outcome))">Ausgang</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.OrgName ?? x.Doc.Faction)">Fraktion</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.Doc.Reason)">Grund</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.CreatedByCodename)">Agent</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => MeasureOutcomeDisplay.Name(x.Doc.Outcome))">Ausgang</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.OrgName ?? x.Doc.Faction)">Fraktion</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="PersonDocDisplay" SortBy="@(x => x.Doc.Reason)">Grund</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Person">
@@ -48,19 +48,19 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Aktenzeichen">
+            <MudTd DataLabel="Aktenzeichen" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Doc.Person?.CaseNumber</MudText>
             </MudTd>
             <MudTd DataLabel="Zeitpunkt">
                 <MudText Typo="Typo.body2">@context.Doc.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
             </MudTd>
-            <MudTd DataLabel="Agent">
+            <MudTd DataLabel="Agent" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.CreatedByCodename ?? "—")</MudText>
             </MudTd>
-            <MudTd DataLabel="Ausgang">
+            <MudTd DataLabel="Ausgang" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2">@MeasureOutcomeDisplay.Name(context.Doc.Outcome)</MudText>
             </MudTd>
-            <MudTd DataLabel="Fraktion">
+            <MudTd DataLabel="Fraktion" Class="noose-mobil-aus">
                 @* link stops row click from opening the dialog *@
                 @if (context.OrgRoute is not null)
                 {
@@ -75,7 +75,7 @@ else
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="Grund">
+            <MudTd DataLabel="Grund" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary"
                          Style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                     @if (string.IsNullOrWhiteSpace(context.Doc.Reason))

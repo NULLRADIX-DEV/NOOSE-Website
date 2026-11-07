@@ -4,29 +4,34 @@
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@using NOOSE_Website.Models.Navigation
 
 <PageTitle>Dokumenten-Bibliothek · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Dokumenten-Bibliothek</MudText>
-    <MudSpacer />
-    @if (_mayImport)
-    {
-        <MudButton OnClick="ImportAsync" Variant="Variant.Outlined" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.CloudDownload">Aus Google Docs</MudButton>
-    }
-    <AuthorizeView Policy="@Policies.DocumentAuthor" Context="schreib">
-        <MudButton Href="/dokumente/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neues Dokument</MudButton>
-    </AuthorizeView>
-</MudStack>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Zentrale Bibliothek formatierter Dokumente und hochgeladener Dateien (Formulare, SOPs, Vorlagen).
-    Ein Dokument kann an beliebig viele Akten als Quelle angehängt werden. Verschlusssachen sind je
-    nach Stufe nur der Führung, dem HRT oder der Administration Division sichtbar.
-</MudText>
+@* ShowHelp off: the hand-built header this replaces had no help button, and the desktop stays as it was *@
+<PageHeader Icon="@Icons.Material.Filled.MenuBook" Title="Dokumenten-Bibliothek" ShowHelp="false"
+            Subtitle="Zentrale Bibliothek formatierter Dokumente und hochgeladener Dateien (Formulare, SOPs, Vorlagen). Ein Dokument kann an beliebig viele Akten als Quelle angehängt werden. Verschlusssachen sind je nach Stufe nur der Führung, dem HRT oder der Administration Division sichtbar.">
+    <MoreActions>
+        @if (_mayImport)
+        {
+            <MudButton OnClick="ImportAsync" Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudDownload">Aus Google Docs</MudButton>
+        }
+    </MoreActions>
+    <MoreActionsMenu>
+        @if (_mayImport)
+        {
+            <MudMenuItem Icon="@Icons.Material.Filled.CloudDownload" OnClick="ImportAsync">Aus Google Docs</MudMenuItem>
+        }
+    </MoreActionsMenu>
+    <Actions>
+        <AuthorizeView Policy="@Policies.DocumentAuthor" Context="schreib">
+            <MudButton Href="/dokumente/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neues Dokument</MudButton>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
 
-<MudTabs Elevation="0" Rounded="true" Class="mb-3">
+<MudTabs Elevation="0" Rounded="true" Class="mb-3 noose-reiter-handy">
 <MudTabPanel Icon="@Icons.Material.Filled.Article" Text="Dokumente">
 
 @if (_load)
@@ -45,9 +50,9 @@ else
             <MudStack Spacing="1">
                 @foreach (var p in _pinned)
                 {
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                         <MudIcon Icon="@Icons.Material.Filled.Article" Color="Color.Default" Size="Size.Small" />
-                        <MudLink Href="@($"/dokumente/{p.Id}")">@p.Title</MudLink>
+                        <MudLink Href="@($"/dokumente/{p.Id}")" Class="noose-eintrag-titel">@p.Title</MudLink>
                         @if (!string.IsNullOrWhiteSpace(p.Category))
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Category</MudText>
@@ -72,15 +77,18 @@ else
     }
 
     <MudDataGrid T="DocumentListItem" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
-                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" Class="noose-filterleiste">
         <ToolBarContent>
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Titel, Kategorie)…" Immediate="true"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0 noose-filter-feld" />
+            <MobileColumnPicker ListKey="dokumente" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
         </ToolBarContent>
         <Columns>
             @if (_isLeadership)
             {
-                <TemplateColumn Title="" Sortable="false">
+                <TemplateColumn Title="" Sortable="false" HeaderClass="@Col("anpinnen")" CellClass="@Col("anpinnen")">
                     <CellTemplate>
                         @* Stop propagation so the pin click doesn't also open the row. *@
                         <span @onclick:stopPropagation="true">
@@ -93,18 +101,18 @@ else
                     </CellTemplate>
                 </TemplateColumn>
             }
-            <TemplateColumn Sortable="true" Title="Titel" SortBy="x => x.Title">
+            <TemplateColumn Sortable="true" Title="Titel" SortBy="x => x.Title" HeaderClass="@Col("titel")" CellClass="@Col("titel")">
                 <CellTemplate>
                     @* Real link: middle/Ctrl-click opens a new tab; keyboard/screen-reader reachable. *@
                     <MudLink Href="@($"/dokumente/{context.Item.Id}")" @onclick:stopPropagation="true">@context.Item.Title</MudLink>
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Kategorie" SortBy="x => x.Category">
+            <TemplateColumn Sortable="true" Title="Kategorie" SortBy="x => x.Category" HeaderClass="@Col("kategorie")" CellClass="@Col("kategorie")">
                 <CellTemplate>
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">@(string.IsNullOrWhiteSpace(context.Item.Category) ? "—" : context.Item.Category)</MudText>
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Verschluss" SortBy="x => x.Classification">
+            <TemplateColumn Sortable="true" Title="Verschluss" SortBy="x => x.Classification" HeaderClass="@Col("verschluss")" CellClass="@Col("verschluss")">
                 <CellTemplate>
                     @if (context.Item.IsRestricted)
                     {
@@ -113,7 +121,7 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" Format="dd.MM.yyyy HH:mm" />
+            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" Format="dd.MM.yyyy HH:mm" HeaderClass="@Col("zuletzt")" CellClass="@Col("zuletzt")" />
         </Columns>
         <NoRecordsContent>
             <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
@@ -132,7 +140,7 @@ else
             </MudStack>
         </NoRecordsContent>
         <PagerContent>
-            <MudDataGridPager T="DocumentListItem" />
+            <MudDataGridPager Class="noose-pager-handy" T="DocumentListItem" />
         </PagerContent>
     </MudDataGrid>
 }
@@ -156,6 +164,26 @@ else
     private string _search = string.Empty;
     private ClaimsPrincipal _user = default!;
     private bool _mayImport;
+
+    /// <summary>The grid's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> AllPhoneColumns =
+    [
+        ("anpinnen", "Anpinnen"), ("titel", "Titel"), ("kategorie", "Kategorie"), ("verschluss", "Verschluss"),
+        ("zuletzt", "Zuletzt"),
+    ];
+
+    // the pin column exists for leadership only, so only leadership gets to choose it
+    private IReadOnlyList<(string Key, string Label)> PhoneColumns
+        => _isLeadership ? AllPhoneColumns : AllPhoneColumns.Where(c => c.Key != "anpinnen").ToList();
+
+    /// <summary>What a phone shows until the agent chooses: the title and when it last changed.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["titel", "zuletzt"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(AllPhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     private async Task ImportAsync()
     {

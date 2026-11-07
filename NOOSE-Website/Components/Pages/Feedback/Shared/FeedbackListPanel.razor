@@ -13,18 +13,19 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudTable T="FeedbackRow" Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1"
+    @* a table on phones too: status and report; kind, page, agent and date are hidden below 600px *@
+    <MudTable T="FeedbackRow" Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="1"
               RowClass="cursor-pointer" OnRowClick="@(args => OpenAsync(args.Item))">
         <HeaderContent>
-            <MudTh>Art</MudTh>
+            <MudTh Class="noose-mobil-aus">Art</MudTh>
             <MudTh>Status</MudTh>
             <MudTh>Meldung</MudTh>
-            <MudTh>Seite</MudTh>
-            <MudTh>Agent</MudTh>
-            <MudTh>Gemeldet</MudTh>
+            <MudTh Class="noose-mobil-aus">Seite</MudTh>
+            <MudTh Class="noose-mobil-aus">Agent</MudTh>
+            <MudTh Class="noose-mobil-aus">Gemeldet</MudTh>
         </HeaderContent>
         <RowTemplate Context="row">
-            <MudTd DataLabel="Art">
+            <MudTd DataLabel="Art" Class="noose-mobil-aus">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudIcon Icon="@FeedbackKindDisplay.Icon(row.Kind)" Size="Size.Small" Color="Color.Primary" />
                     <MudText Typo="Typo.body2">@FeedbackKindDisplay.Name(row.Kind)</MudText>
@@ -38,7 +39,7 @@ else
             <MudTd DataLabel="Meldung">
                 <MudText Typo="Typo.body2">@Snippet(row.Text)</MudText>
             </MudTd>
-            <MudTd DataLabel="Seite">
+            <MudTd DataLabel="Seite" Class="noose-mobil-aus">
                 @* link stops row click from opening the dialog *@
                 @if (row.PageRoute is { } route)
                 {
@@ -52,8 +53,8 @@ else
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">—</MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="Agent">@row.AgentCodename</MudTd>
-            <MudTd DataLabel="Gemeldet">@row.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Agent" Class="noose-mobil-aus">@row.AgentCodename</MudTd>
+            <MudTd DataLabel="Gemeldet" Class="noose-mobil-aus">@row.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
         </RowTemplate>
     </MudTable>
 }

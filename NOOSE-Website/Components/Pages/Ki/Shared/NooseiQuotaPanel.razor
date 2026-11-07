@@ -59,18 +59,25 @@ else
     }
 
     <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Meine letzten Anfragen</MudText>
-    <MudTable Items="_recent" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm">
+    @* a table on phones too, with fixed phone columns: the error mark rides along in the time column there *@
+    <MudTable Items="_recent" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.None">
         <HeaderContent>
             <MudTh>Zeitpunkt</MudTh>
             <MudTh>Funktion</MudTh>
             <MudTh Style="text-align:right">Kontingent</MudTh>
-            <MudTh>Status</MudTh>
+            <MudTh Class="noose-mobil-aus">Status</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Zeitpunkt">@context.TimestampUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Zeitpunkt">
+                @context.TimestampUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                @if (!context.Success)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text" Class="noose-nur-handy">Fehler</MudChip>
+                }
+            </MudTd>
             <MudTd DataLabel="Funktion">@LlmFeatureDisplay.Name(context.Feature)</MudTd>
             <MudTd DataLabel="Kontingent" Style="text-align:right">@context.QuotaTokens.ToString("N0")</MudTd>
-            <MudTd DataLabel="Status">
+            <MudTd DataLabel="Status" Class="noose-mobil-aus">
                 @if (!context.Success)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">Fehler</MudChip>

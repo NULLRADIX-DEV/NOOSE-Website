@@ -18,7 +18,7 @@ else
     <MudGrid Class="mb-2">
         @foreach (var s in _summaries)
         {
-            <MudItem xs="12" sm="6">
+            <MudItem xs="6" sm="6">
                 <StatTile Icon="@KassenKontoDisplay.Icon(s.Account)" Colour="@KassenKontoDisplay.Colour(s.Account)"
                           Label="@KassenKontoDisplay.Name(s.Account)" Value="@Money.Format(s.Balance)"
                           Hint="@Hint(s)" />

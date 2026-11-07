@@ -8,7 +8,7 @@
     <MudMenu Icon="@(_unread > 0 ? Icons.Material.Filled.Notifications : Icons.Material.Filled.NotificationsNone)"
              Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
              Dense="true" aria-label="Benachrichtigungen" title="Benachrichtigungen">
-        <div style="min-width:320px;max-width:380px;">
+        <div style="min-width:min(320px, calc(100vw - 24px));max-width:min(380px, calc(100vw - 24px));">
             <MudStack Row="true" AlignItems="AlignItems.Center" Class="px-3 py-2">
                 <MudText Typo="Typo.subtitle2">Benachrichtigungen</MudText>
                 <MudSpacer />

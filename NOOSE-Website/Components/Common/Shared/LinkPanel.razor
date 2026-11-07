@@ -13,7 +13,7 @@
     }
 
     <MudStack Spacing="3">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
             <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@_manual.Count)</MudText>
             @if (_mayWrite)
             {
@@ -36,8 +36,8 @@
             @foreach (var v in _manual)
             {
                 <MudPaper Class="pa-3" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap noose-eintrag-titel">
                             <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" Size="Size.Small" />
                             <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@TypeDisplay(v.OtherType)</MudChip>
                             @if (v.Href is not null)
@@ -67,7 +67,7 @@
     <MudDivider />
 
     <MudStack Spacing="3">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
             <MudText Typo="Typo.subtitle1">Beziehungen (@(_relations.Count + _colleagues.Count))</MudText>
             @if (_mayWrite)
             {
@@ -90,8 +90,8 @@
             @foreach (var b in _relations)
             {
                 <MudPaper Class="pa-3" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                             <MudChip T="string" Size="Size.Small" Color="@TypeColour(b.Type)" Variant="Variant.Filled">@RelationTypeDisplay.Name(b.Type)</MudChip>
                             <MudLink Href="@($"/personen/{b.OtherPersonId}")" Typo="Typo.body2">
                                 <b>@b.OtherPersonName</b>
@@ -116,8 +116,8 @@
             @foreach (var k in _colleagues)
             {
                 <MudPaper Class="pa-3" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
                             <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@k.Label</MudChip>
                             @if (k.Href is not null)
                             {
@@ -154,8 +154,8 @@
             {
                 var allied = a.Kind == LinkKind.Alliance;
                 <MudPaper Class="pa-3" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap noose-eintrag-titel">
                             <MudIcon Icon="@(allied ? Icons.Material.Filled.Handshake : Icons.Material.Filled.Bolt)"
                                      Color="@(allied ? Color.Success : Color.Error)" Size="Size.Small" />
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="@(allied ? Color.Success : Color.Error)">

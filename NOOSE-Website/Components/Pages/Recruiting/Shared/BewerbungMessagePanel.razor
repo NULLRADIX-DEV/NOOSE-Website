@@ -19,7 +19,7 @@
                 <div style="@(own ? "align-self:flex-end;" : "align-self:flex-start;")max-width:85%;">
                     <MudPaper Class="pa-2" Elevation="@(own ? 0 : 1)" Outlined="@(!own)"
                               Style="@(own ? "background-color:var(--mud-palette-primary-hover);" : "")">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="noose-kopf-umbruch">
                             <MudText Typo="Typo.caption"><b>@AuthorLabel(m)</b></MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">· @m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
                             @if (m.ModifiedAt is not null)
@@ -82,7 +82,7 @@
         <div>
             @if (ShowTemplates && _templates.Count > 0)
             {
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 noose-kopf-umbruch">
                     <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Color="Color.Default" />
                     <MudMenu Label="Vorlage einfügen" Variant="Variant.Outlined" Size="Size.Small"
                              EndIcon="@Icons.Material.Filled.ArrowDropDown">
@@ -102,14 +102,15 @@
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">Termin der Vorlage:</MudText>
                         @if (_needsDate)
                         {
-                            <div style="width:160px; max-width:100%;">
+                            @* below 600px date and time stand one under the other, each the full row *@
+                            <div style="width:160px; max-width:100%;" class="noose-breite-frei">
                                 <MudDatePicker @bind-Date="_pickDate" Label="Datum" DateFormat="dd.MM.yyyy" ShowToolbar="false"
                                                Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </div>
                         }
                         @if (_needsTime)
                         {
-                            <div style="width:140px; max-width:100%;">
+                            <div style="width:140px; max-width:100%;" class="noose-breite-frei">
                                 <MudTimePicker @bind-Time="_pickTime" Label="Uhrzeit" AmPm="false" ShowToolbar="false"
                                                Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </div>

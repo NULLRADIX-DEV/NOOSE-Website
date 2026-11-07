@@ -1,15 +1,24 @@
 @inject NavigationManager Nav
 
 <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
-    <MudTooltip Text="Aufgabe zu dieser Akte anlegen">
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddTask"
-                   OnClick="Create">Aufgabe</MudButton>
-    </MudTooltip>
+    @if (AsMenuItem)
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.AddTask" OnClick="Create">Aufgabe zu dieser Akte anlegen</MudMenuItem>
+    }
+    else
+    {
+        <MudTooltip Text="Aufgabe zu dieser Akte anlegen">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddTask"
+                       OnClick="Create">Aufgabe</MudButton>
+        </MudTooltip>
+    }
 </AuthorizeView>
 
 @code {
     [Parameter, EditorRequired] public string EntityType { get; set; } = default!;
     [Parameter, EditorRequired] public string EntityId { get; set; } = default!;
+    /// <summary>Renders the action as a menu entry (the ⋮ menu of a narrow page header), behind the same check.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
 
     private void Create()
         => Nav.NavigateTo($"/aufgaben/neu?bezugTyp={Uri.EscapeDataString(EntityType)}&bezugId={Uri.EscapeDataString(EntityId)}");

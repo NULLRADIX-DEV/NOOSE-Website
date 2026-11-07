@@ -18,12 +18,12 @@
             @foreach (var st in _states)
             {
                 <MudPaper Class="pa-3 mb-2" Outlined="true">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <div>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <div class="noose-eintrag-titel">
                             <MudText Typo="Typo.subtitle2">@PartnerAgencyDisplay.Name(st.Agency)</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@PartnerAgencyDisplay.LongName(st.Agency)</MudText>
                         </div>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="noose-eintrag">
                             <MudSwitch T="bool" Value="st.Released" ValueChanged="@(v => ReleasedChanged(st, v))"
                                        Color="Color.Primary" Label="Freigegeben" />
                             <MudCheckBox T="bool" Value="st.IncludesChildren" ValueChanged="@(v => ChildrenChanged(st, v))"
@@ -55,8 +55,8 @@
             @foreach (var ind in _individual)
             {
                 <MudPaper Class="pa-3 mb-2" Outlined="true">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <div>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <div class="noose-eintrag-titel">
                             <MudText Typo="Typo.subtitle2">@ind.Codename</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@PartnerRankDisplay.Full(ind.Agency, ind.Rank)</MudText>
                         </div>

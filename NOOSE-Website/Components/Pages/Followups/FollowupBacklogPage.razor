@@ -1,4 +1,5 @@
 @page "/wiedervorlagen/rueckstand"
+@using NOOSE_Website.Models.Navigation
 @attribute [Authorize(Policy = Policies.LeadershipPage)]
 @inject IFollowupService Followups
 @inject IMentionService MentionService
@@ -41,8 +42,10 @@ else
         </MudItem>
     </MudGrid>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2 noose-filterleiste">
         <MudSwitch T="bool" @bind-Value="_onlyOverdue" @bind-Value:after="ApplyFilter" Color="Color.Primary" Label="Nur überfällige" />
+        <MobileColumnPicker ListKey="wiedervorlagen-rueckstand" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                            VisibleChanged="@(v => _phoneColumns = v)" />
     </MudStack>
 
     @if (_rows.Count == 0)
@@ -54,34 +57,36 @@ else
     }
     else
     {
-        <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true" T="FollowupBacklogItem"
+        @* a table on phones too: fewer columns (the agent's choice) instead of stacked cards; the action column is
+           not part of the choice, so "Umhängen" never leaves the phone *@
+        <MudTable Items="_rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true" T="FollowupBacklogItem"
                   RowsPerPage="50">
             <HeaderContent>
-                <MudTh><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.ResponsibleCodename ?? string.Empty)">Zuständig</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.DaysOverdue)" InitialDirection="SortDirection.Descending">Alter</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.Display ?? "￿")">Akte</MudTableSortLabel></MudTh>
-                <MudTh>Notiz</MudTh>
-                <MudTh>Stand</MudTh>
+                <MudTh Class="@Col("zustaendig")"><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.ResponsibleCodename ?? string.Empty)">Zuständig</MudTableSortLabel></MudTh>
+                <MudTh Class="@Col("alter")"><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.DaysOverdue)" InitialDirection="SortDirection.Descending">Alter</MudTableSortLabel></MudTh>
+                <MudTh Class="@Col("akte")"><MudTableSortLabel T="FollowupBacklogItem" SortBy="@(x => x.Display ?? "￿")">Akte</MudTableSortLabel></MudTh>
+                <MudTh Class="@Col("notiz")">Notiz</MudTh>
+                <MudTh Class="@Col("stand")">Stand</MudTh>
                 @if (_mayWrite)
                 {
                     <MudTh Style="text-align:right;">Aktion</MudTh>
                 }
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Zuständig">
+                <MudTd DataLabel="Zuständig" Class="@Col("zustaendig")">
                     @(context.ResponsibleCodename ?? "—")
                     @if (!context.ResponsibleSelectable)
                     {
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info">nicht zuteilbar</MudChip>
                     }
                 </MudTd>
-                <MudTd DataLabel="Alter">
+                <MudTd DataLabel="Alter" Class="@Col("alter")">
                     <b>@MeetingTime.Local(context.DueAt).ToString("dd.MM.yyyy")</b>
                     <MudText Typo="Typo.caption" Class="@(context.DaysOverdue > 0 ? "mud-error-text d-block" : "mud-text-secondary d-block")">
                         @AgeText(context.DaysOverdue)
                     </MudText>
                 </MudTd>
-                <MudTd DataLabel="Akte">
+                <MudTd DataLabel="Akte" Class="@Col("akte")">
                     @if (!context.RecordVisible)
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary"><i>Akte nicht einsehbar</i></MudText>
@@ -99,13 +104,13 @@ else
                         <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.RecordLabel</MudText>
                     }
                 </MudTd>
-                <MudTd DataLabel="Notiz">
+                <MudTd DataLabel="Notiz" Class="@Col("notiz")">
                     @if (!string.IsNullOrWhiteSpace(context.Note))
                     {
                         <MudText Typo="Typo.body2"><MentionText Segments="Segments(context)" /></MudText>
                     }
                 </MudTd>
-                <MudTd DataLabel="Stand">
+                <MudTd DataLabel="Stand" Class="@Col("stand")">
                     @if (context.EscalatedAt is { } escalated)
                     {
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning">
@@ -125,7 +130,7 @@ else
                 }
             </RowTemplate>
             <PagerContent>
-                <MudTablePager />
+                <MudTablePager Class="noose-pager-handy" />
             </PagerContent>
         </MudTable>
     }
@@ -145,6 +150,21 @@ else
     private bool _load = true;
     private bool _busy;
     private bool _mayWrite;
+
+    /// <summary>The table's columns for the phone column picker, in table order; the action column always shows.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("zustaendig", "Zuständig"), ("alter", "Alter"), ("akte", "Akte"), ("notiz", "Notiz"), ("stand", "Stand"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the record and how long it is overdue.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["akte", "alter"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
     private bool _onlyOverdue = true;
     private string? _error;
     private FollowupBacklog _backlog = new([], false);

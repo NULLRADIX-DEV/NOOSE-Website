@@ -1,19 +1,27 @@
-﻿@inject ITipService Tips
+﻿@using NOOSE_Website.Models.Navigation
+@inject ITipService Tips
 @inject TipsBroadcaster Broadcaster
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @implements IDisposable
 
-<MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4">
+<MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4 noose-filterleiste">
     <MudTextField T="string" @bind-Value="_search" Label="Suche" Placeholder="Aktenzeichen oder Text"
                   Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="300"
-                  OnDebounceIntervalElapsed="ReloadAsync" Style="max-width:340px;" />
-    <MudSwitch T="bool" @bind-Value="_onlyMine" Color="Color.Primary" Label="Nur meine"
-               @bind-Value:after="ReloadAsync" />
-    <MudSwitch T="bool" @bind-Value="_collapse" Color="Color.Primary" Label="Dubletten zusammenfassen" />
-    <MudSwitch T="bool" @bind-Value="_onlyCaptures" Color="Color.Error"
-               Label="Nur Ergreifungen" />
+                  OnDebounceIntervalElapsed="ReloadAsync" Style="max-width:340px;" Class="noose-filter-feld" />
+    @* phones: the switches fold behind "Filter (n)"; from 600px up the button is gone and they stand as before *@
+    <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+               Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)">Filter (@ActiveFilters)</MudButton>
+    <MobileColumnPicker ListKey="hinweise" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                        VisibleChanged="@(v => _phoneColumns = v)" />
+    <div class="@($"d-contents{(_filtersOpen ? "" : " noose-filter-zu")}")">
+        <MudSwitch T="bool" @bind-Value="_onlyMine" Color="Color.Primary" Label="Nur meine"
+                   @bind-Value:after="ReloadAsync" />
+        <MudSwitch T="bool" @bind-Value="_collapse" Color="Color.Primary" Label="Dubletten zusammenfassen" />
+        <MudSwitch T="bool" @bind-Value="_onlyCaptures" Color="Color.Error"
+                   Label="Nur Ergreifungen" />
+    </div>
 </MudStack>
 
 @if (_load)
@@ -27,23 +35,23 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudTable Items="Displayed" Hover="true" Dense="true" Style="cursor:pointer;"
+    <MudTable Items="Displayed" Hover="true" Dense="true" Style="cursor:pointer;" Breakpoint="Breakpoint.None"
               OnRowClick="@((TableRowClickEventArgs<TipRow> e) => Open(e.Item))">
         <HeaderContent>
-            <MudTh>Prio</MudTh>
-            <MudTh>Aktenzeichen</MudTh>
-            <MudTh>Hinweisgeber</MudTh>
-            <MudTh>Bezug</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Bearbeiter</MudTh>
-            <MudTh>Eingegangen</MudTh>
+            <MudTh Class="@Col("prio")">Prio</MudTh>
+            <MudTh Class="@Col("aktenzeichen")">Aktenzeichen</MudTh>
+            <MudTh Class="@Col("hinweisgeber")">Hinweisgeber</MudTh>
+            <MudTh Class="@Col("bezug")">Bezug</MudTh>
+            <MudTh Class="@Col("status")">Status</MudTh>
+            <MudTh Class="@Col("bearbeiter")">Bearbeiter</MudTh>
+            <MudTh Class="@Col("eingegangen")">Eingegangen</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Prio">
+            <MudTd DataLabel="Prio" Class="@Col("prio")">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                          Color="@PriorityColour(context.Priority)">@context.Priority</MudChip>
             </MudTd>
-            <MudTd DataLabel="Aktenzeichen">
+            <MudTd DataLabel="Aktenzeichen" Class="@Col("aktenzeichen")">
                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                     @context.CaseNumber
                     @if (context.Kind == TipKind.Ergreifung)
@@ -77,7 +85,7 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Hinweisgeber">
+            <MudTd DataLabel="Hinweisgeber" Class="@Col("hinweisgeber")">
                 @if (context.IsAnonymous)
                 {
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
@@ -90,14 +98,14 @@ else
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
                          Class="ml-1">@TipTrust.Label(context.TrustTier)</MudChip>
             </MudTd>
-            <MudTd DataLabel="Bezug">@(context.WantedCaseNumber is null ? "—" : $"{context.WantedDisplayName} ({context.WantedCaseNumber})")</MudTd>
-            <MudTd DataLabel="Status">
+            <MudTd DataLabel="Bezug" Class="@Col("bezug")">@(context.WantedCaseNumber is null ? "—" : $"{context.WantedDisplayName} ({context.WantedCaseNumber})")</MudTd>
+            <MudTd DataLabel="Status" Class="@Col("status")">
                 <MudChip T="string" Size="Size.Small" Color="@StatusColour(context.Status)">
                     @TipStatusDisplay.Name(context.Status)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Bearbeiter">@(string.IsNullOrWhiteSpace(context.HandlerCodename) ? "—" : context.HandlerCodename)</MudTd>
-            <MudTd DataLabel="Eingegangen">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Bearbeiter" Class="@Col("bearbeiter")">@(string.IsNullOrWhiteSpace(context.HandlerCodename) ? "—" : context.HandlerCodename)</MudTd>
+            <MudTd DataLabel="Eingegangen" Class="@Col("eingegangen")">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -118,6 +126,24 @@ else
     // client-side, on the rows already loaded: a second axis next to the status tabs, not a fourth tab
     private bool _onlyCaptures;
     private bool _load = true;
+    private bool _filtersOpen;
+
+    private int ActiveFilters => (_onlyMine ? 1 : 0) + (_collapse ? 1 : 0) + (_onlyCaptures ? 1 : 0);
+
+    /// <summary>The table's columns for the phone column picker, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("prio", "Prio"), ("aktenzeichen", "Aktenzeichen"), ("hinweisgeber", "Hinweisgeber"), ("bezug", "Bezug"),
+        ("status", "Status"), ("bearbeiter", "Bearbeiter"), ("eingegangen", "Eingegangen"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the case number with its chips, and the status.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["aktenzeichen", "status"];
+
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     // collapsing is client-side over the rows already fetched: the group is a display decision, and the service
     // order (priority, then age) already decides which row speaks for its group

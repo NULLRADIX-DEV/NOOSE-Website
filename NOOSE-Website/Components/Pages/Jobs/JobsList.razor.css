@@ -1,0 +1,11 @@
+/* Board below 960px: one status column at a time, picked with the toggle group above the board (Bauplan Task 18).
+   From 960px up all four columns stand side by side as before; nothing here applies there. */
+@media screen and (max-width: 959.98px) {
+    .aufgaben-spalte {
+        min-width: 0;
+    }
+
+    .aufgaben-spalte-zu {
+        display: none;
+    }
+}

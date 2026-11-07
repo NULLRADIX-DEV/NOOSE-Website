@@ -14,8 +14,10 @@
 <PageTitle>Dashboard · FIB</PageTitle>
 
 <div class="dashboard-seite">
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" Size="Size.Large" />
+@* Own title row instead of PageHeader: the line under it is body1, PageHeader's is body2, and the desktop comparison
+   holds this page pixel for pixel. Below 600px the large icon goes, as in PageHeader. *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 noose-kopf-umbruch">
+    <MudIcon Icon="@Icons.Material.Filled.Shield" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
     <MudText Typo="Typo.h4">Lagezentrum</MudText>
 </MudStack>
 <MudText Typo="Typo.body1" Class="mud-text-secondary mb-6">
@@ -32,10 +34,7 @@
 @if (_isPartner)
 {
     <MudPaper Class="pa-6" Elevation="2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-            <MudIcon Icon="@Icons.Material.Filled.Lock" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">Partner-Lesezugriff</MudText>
-        </MudStack>
+        <SectionHeader Title="Partner-Lesezugriff" Icon="@Icons.Material.Filled.Lock" Class="mb-2" />
         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
             Willkommen. Sie sehen ausschließlich die für Ihre Behörde freigegebenen Akten – schreibgeschützt.
         </MudText>
@@ -50,39 +49,39 @@
 else
 {
 <MudGrid>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.Badge" Label="Personen-Akten" Value="@Number(k => k.People)"
                   Href="/personen" Hint="Alle für dich sichtbaren Personen-Akten" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.Groups" Label="Organisationen" Value="@Number(k => k.FactionsAndGroups)"
                   Href="/fraktionen" Hint="Fraktionen und Personengruppen zusammen" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.Radar" Label="Operationen" Value="@Number(k => k.Operations)"
                   Href="/operationen" Hint="Erfasste Einsätze" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.FolderSpecial" Label="Offene Vorgänge" Value="@Number(k => k.OpenCases)"
                   Href="/vorgaenge" Hint="Ermittlungsakten, die noch nicht abgeschlossen sind" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.Inbox" Colour="Color.Warning" Label="Offene Anträge" Value="@Number(k => k.OpenRequests)"
                   Href="@(_mayShares ? "/admin/freigaben" : null)" Hint="Anträge und Registrierungen im Posteingang" />
     </MudItem>
     @* Classified count is itself classified; leadership-only tile. *@
     @if (_isLeadership)
     {
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="6" sm="6" md="3">
             <StatTile Icon="@Icons.Material.Filled.Lock" Colour="Color.Error" Label="Verschlusssachen" Value="@Number(k => k.Classified)"
                       Hint="Als Verschlusssache eingestufte Akten" />
         </MudItem>
     }
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.Timelapse" Colour="Color.Warning" Label="Veraltete Akten" Value="@Number(k => k.StaleRecords)"
                   Hint="Akten jenseits der Aktualitäts-Schwelle" />
     </MudItem>
-    <MudItem xs="12" sm="6" md="3">
+    <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.EventRepeat" Colour="Color.Info" Label="Fällige Wiedervorlagen"
                   Value="@(_load ? "…" : _myDue.Count.ToString())" Href="@FollowupPlanRules.Route"
                   Hint="Deine Wiedervorlagen, die heute oder früher fällig sind" />
@@ -130,10 +129,7 @@ else if (_distributions is { } v)
         </MudItem>
         <MudItem xs="12" md="6" Class="d-flex">
             <MudPaper Class="pa-4 flex-grow-1 d-flex flex-column" Elevation="2">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-                    <MudIcon Icon="@Icons.Material.Filled.QueryStats" Color="Color.Primary" />
-                    <MudText Typo="Typo.h6">Statistik & Auswertungen</MudText>
-                </MudStack>
+                <SectionHeader Title="Statistik & Auswertungen" Icon="@Icons.Material.Filled.QueryStats" Class="mb-2" />
                 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                     Verteilungen über Einstufung, Gefährdung, Lebensstatus, Maßnahmen und Vorgänge,
                     der 12-Monats-Verlauf und die gefährlichsten Akten – mit CSV- und Druck-Export.
@@ -148,10 +144,7 @@ else if (_distributions is { } v)
 @if (!_load && _myDue.Count > 0)
 {
     <MudPaper Class="pa-4 mt-6" Elevation="2">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-            <MudIcon Icon="@Icons.Material.Filled.EventRepeat" Color="Color.Info" />
-            <MudText Typo="Typo.h6">Meine fälligen Wiedervorlagen</MudText>
-        </MudStack>
+        <SectionHeader Title="Meine fälligen Wiedervorlagen" Icon="@Icons.Material.Filled.EventRepeat" IconColour="Color.Info" Class="mb-3" />
         <MudList T="string" Dense="true">
             @foreach (var w in _myDue)
             {
@@ -170,13 +163,12 @@ else if (_distributions is { } v)
 
 @if (!_load && _distributions is { } va)
 {
+    @* Below 960px the three columns stand one under the other: no fixed 28rem height (Home.razor.css), five entries
+       each; the rest behind "Alle anzeigen" or the link to the chronicle *@
     <MudGrid Class="mt-1">
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4" Elevation="2" Style="height:28rem;display:flex;flex-direction:column;">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-                    <MudIcon Icon="@Icons.Material.Filled.Timelapse" Color="Color.Warning" />
-                    <MudText Typo="Typo.h6">Aktualisierungsbedarf</MudText>
-                </MudStack>
+            <MudPaper Class="pa-4 dashboard-spalte" Elevation="2" Style="height:28rem;display:flex;flex-direction:column;">
+                <SectionHeader Title="Aktualisierungsbedarf" Icon="@Icons.Material.Filled.Timelapse" IconColour="Color.Warning" Class="mb-1" />
                 @if (_updateNeed.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">Alles aktuell – kein Aktualisierungsbedarf.</MudText>
@@ -185,9 +177,10 @@ else if (_distributions is { } v)
                 {
                     <div class="dashboard-spalte-body">
                         <MudList T="string" Dense="true">
-                            @foreach (var a in _updateNeed)
+                            @foreach (var (a, i) in _updateNeed.Select((a, i) => (a, i)))
                             {
-                                <MudListItem T="string" OnClick="@(() => OpenRecord(a.Href))" Style="cursor:pointer;">
+                                <MudListItem T="string" OnClick="@(() => OpenRecord(a.Href))" Style="cursor:pointer;"
+                                             Class="@(i >= NarrowCap && !_allUpdateNeed ? "dashboard-mehr" : null)">
                                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                                         <RecencyIndicator Level="a.Level" ReferenceDateUtc="a.ReferenceUtc" />
                                         <div>
@@ -200,6 +193,11 @@ else if (_distributions is { } v)
                                 </MudListItem>
                             }
                         </MudList>
+                        @if (_updateNeed.Count > NarrowCap && !_allUpdateNeed)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="noose-nur-schmal"
+                                       OnClick="@(() => _allUpdateNeed = true)">Alle anzeigen (@_updateNeed.Count)</MudButton>
+                        }
                         @if (_updateNeed.Count >= 30)
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">… weitere vorhanden (älteste 30 angezeigt).</MudText>
@@ -209,20 +207,19 @@ else if (_distributions is { } v)
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4" Elevation="2" Style="height:28rem;display:flex;flex-direction:column;">
+            <MudPaper Class="pa-4 dashboard-spalte" Elevation="2" Style="height:28rem;display:flex;flex-direction:column;">
                 <div class="dashboard-spalte-body d-flex flex-column justify-center">
                     <DistributionChart Bare="true" Height="240px" Title="Offene Anträge nach Art" Segments="@va.OpenRequestsByKind" Colours="_coloursRequests" />
                 </div>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4" Elevation="2" Style="height:28rem;display:flex;flex-direction:column;">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
-                    <MudIcon Icon="@Icons.Material.Filled.History" Color="Color.Primary" />
-                    <MudText Typo="Typo.h6">Letzte Änderungen</MudText>
-                    <MudSpacer />
-                    <MudLink Href="/nachweis?tab=chronik" Typo="Typo.caption">Zur Chronik</MudLink>
-                </MudStack>
+            <MudPaper Class="pa-4 dashboard-spalte" Elevation="2" Style="height:28rem;display:flex;flex-direction:column;">
+                <SectionHeader Title="Letzte Änderungen" Icon="@Icons.Material.Filled.History" Class="mb-3">
+                    <Actions>
+                        <MudLink Href="/nachweis?tab=chronik" Typo="Typo.caption">Zur Chronik</MudLink>
+                    </Actions>
+                </SectionHeader>
                 @if (_chronik.Count == 0)
                 {
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Änderungen erfasst.</MudText>
@@ -231,9 +228,11 @@ else if (_distributions is { } v)
                 {
                     <div class="dashboard-spalte-body">
                         <MudTimeline TimelinePosition="TimelinePosition.Start" Class="mt-2">
-                            @foreach (var x in _chronik)
+                            @foreach (var (x, i) in _chronik.Select((x, i) => (x, i)))
                             {
-                                <MudTimelineItem Color="@TimelineCategoryDisplay.Colour(x.Category)" Size="Size.Small">
+                                @* below 960px five; the rest is one tap away under "Zur Chronik" *@
+                                <MudTimelineItem Color="@TimelineCategoryDisplay.Colour(x.Category)" Size="Size.Small"
+                                                 Class="@(i >= NarrowCap ? "dashboard-mehr" : null)">
                                     <MudText Typo="Typo.body2">
                                         <b>@RecordTypeDisplay.Name(x.EntityType)</b>
                                         @if (x.RecordDeleted || string.IsNullOrEmpty(x.Href))
@@ -273,6 +272,10 @@ else if (_distributions is { } v)
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _load = true;
+
+    // below 960px the three bottom columns show this many entries each
+    private const int NarrowCap = 5;
+    private bool _allUpdateNeed;
     private bool _isLeadership;
     private bool _isPartner;
     private IReadOnlyList<NavEntry> _partnerEntries = [];

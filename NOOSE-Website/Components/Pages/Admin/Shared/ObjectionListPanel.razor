@@ -7,21 +7,20 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-        <MudIcon Icon="@Icons.Material.Filled.Balance" Color="Color.Primary" />
-        <MudText Typo="Typo.h6">Einsprüche</MudText>
-        <MudSpacer />
-        @* only for someone allowed to know them: "Offen (0)" to a rank-2 agent states a fact they may not read *@
-        @if (_mayRead)
-        {
-            <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
-                <MudButton Color="@(_onlyOpen ? Color.Primary : Color.Default)"
-                           OnClick="@(() => SwitchAsync(true))">Offen (@_counts.Open)</MudButton>
-                <MudButton Color="@(_onlyOpen ? Color.Default : Color.Primary)"
-                           OnClick="@(() => SwitchAsync(false))">Entschieden (@_counts.Decided)</MudButton>
-            </MudButtonGroup>
-        }
-    </MudStack>
+    <SectionHeader Title="Einsprüche" Icon="@Icons.Material.Filled.Balance" Wrap="Wrap.Wrap">
+        <Actions>
+            @* only for someone allowed to know them: "Offen (0)" to a rank-2 agent states a fact they may not read *@
+            @if (_mayRead)
+            {
+                <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small">
+                    <MudButton Color="@(_onlyOpen ? Color.Primary : Color.Default)"
+                               OnClick="@(() => SwitchAsync(true))">Offen (@_counts.Open)</MudButton>
+                    <MudButton Color="@(_onlyOpen ? Color.Default : Color.Primary)"
+                               OnClick="@(() => SwitchAsync(false))">Entschieden (@_counts.Decided)</MudButton>
+                </MudButtonGroup>
+            }
+        </Actions>
+    </SectionHeader>
     <MudText Typo="Typo.body2" Class="mud-text-secondary">
         Ein Einspruch bestreitet, was die Behörde veröffentlicht hat. Stattgeben lässt sich ihm erst, wenn die
         Ausschreibung zurückgezogen ist — mit einem Grund, den ein Mensch gewählt hat.

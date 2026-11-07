@@ -1,4 +1,5 @@
-@* Per-account navigation customizer: hide/show, drag-reorder, favorites, saved views, start page. *@
+@* Per-account navigation customizer: hide/show, drag-reorder, favorites, saved views, start page.
+   On phones the dialog fills the screen and up/down buttons stand in for dragging, which a touch screen cannot do. *@
 @using NOOSE_Website.Navigation
 @using NOOSE_Website.Models.Navigation
 @inject INavPreferencesService NavPrefs
@@ -7,7 +8,7 @@
 @inject IAuthorizationService Authorization
 @inject ISnackbar Snackbar
 
-<MudDialog>
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         @if (_load)
         {
@@ -15,7 +16,7 @@
         }
         else
         {
-            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-1">
+            <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-1 noose-reiter-handy">
                 <MudTabPanel Text="Menü" Icon="@Icons.Material.Filled.Reorder">
                     <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                         Blende nicht genutzte Einträge mit dem Auge aus, ziehe Einträge in deine Wunsch-Reihenfolge
@@ -34,9 +35,9 @@
                         </ChildContent>
                         <ItemRenderer>
                             <MudPaper Class="d-flex align-center pa-2 mb-1" Elevation="1" Style="@(IsHidden(context) ? "opacity:.45;" : null)">
-                                <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Class="mr-2 mud-text-secondary" Size="Size.Small" />
+                                <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Class="mr-2 mud-text-secondary noose-mobil-aus" Size="Size.Small" />
                                 <MudIcon Icon="@context.Icon" Class="mr-2" Size="Size.Small" />
-                                <div class="d-flex flex-column">
+                                <div class="d-flex flex-column noose-eintrag-titel">
                                     <MudText Typo="Typo.body2">@context.Label</MudText>
                                     @if (!string.IsNullOrWhiteSpace(context.Description))
                                     {
@@ -44,6 +45,14 @@
                                     }
                                 </div>
                                 <MudSpacer />
+                                <div class="d-flex noose-nur-handy">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                   Disabled="@(!CanMove(context, -1))" OnClick="@(() => MoveMenuAsync(context, -1))"
+                                                   aria-label="Nach oben" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                                   Disabled="@(!CanMove(context, 1))" OnClick="@(() => MoveMenuAsync(context, 1))"
+                                                   aria-label="Nach unten" />
+                                </div>
                                 <MudIconButton Icon="@(IsFavorite(context) ? Icons.Material.Filled.Star : Icons.Material.Filled.StarBorder)"
                                                Color="@(IsFavorite(context) ? Color.Warning : Color.Default)" Size="Size.Small"
                                                OnClick="@(() => ToggleFavoriteAsync(context))" aria-label="Als Favorit markieren" />
@@ -71,10 +80,18 @@
                             </ChildContent>
                             <ItemRenderer>
                                 <MudPaper Class="d-flex align-center pa-2 mb-1" Elevation="1">
-                                    <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Class="mr-2 mud-text-secondary" Size="Size.Small" />
+                                    <MudIcon Icon="@Icons.Material.Filled.DragIndicator" Class="mr-2 mud-text-secondary noose-mobil-aus" Size="Size.Small" />
                                     <MudIcon Icon="@context.Icon" Class="mr-2" Size="Size.Small" />
-                                    <MudText Typo="Typo.body2">@context.Label</MudText>
+                                    <MudText Typo="Typo.body2" Class="noose-eintrag-titel">@context.Label</MudText>
                                     <MudSpacer />
+                                    <div class="d-flex noose-nur-handy">
+                                        <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                                       Disabled="@(!CanMove(context, -1))" OnClick="@(() => MoveFavoriteAsync(context, -1))"
+                                                       aria-label="Nach oben" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                                       Disabled="@(!CanMove(context, 1))" OnClick="@(() => MoveFavoriteAsync(context, 1))"
+                                                       aria-label="Nach unten" />
+                                    </div>
                                     <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
                                                    OnClick="@(() => RemoveFavoriteAsync(context))" aria-label="Favorit entfernen" />
                                 </MudPaper>
@@ -103,7 +120,7 @@
                             {
                                 <MudPaper Class="d-flex align-center pa-2 mb-1" Elevation="1">
                                     <MudIcon Icon="@view.Icon" Class="mr-2" Size="Size.Small" />
-                                    <MudText Typo="Typo.body2">@view.Label</MudText>
+                                    <MudText Typo="Typo.body2" Class="noose-eintrag-titel">@view.Label</MudText>
                                     @if (NavCatalog.ByRoute(view.Route) is { } list)
                                     {
                                         <MudText Typo="Typo.caption" Class="ml-2 mud-text-secondary">@list.Label</MudText>
@@ -253,15 +270,39 @@
     private Task OnStartRouteChangedAsync(string route)
         => RunAsync(() => NavPrefs.SetStartRouteAsync(_agentId, route == "/dashboard" ? null : route));
 
-    private async Task OnMenuDropAsync(MudItemDropInfo<NavEntry> info)
+    private Task OnMenuDropAsync(MudItemDropInfo<NavEntry> info)
+        => info.Item is { } item ? MoveMenuToAsync(item, info.IndexInZone) : Task.CompletedTask;
+
+    private Task OnFavoriteDropAsync(MudItemDropInfo<NavFavorite> info)
+        => info.Item is { } item ? MoveFavoriteToAsync(item, info.IndexInZone) : Task.CompletedTask;
+
+    // the phone's up/down buttons: one step within the entry's own area, the same save path as a drop
+    private bool CanMove(NavEntry entry, int step)
     {
-        if (info.Item is not { } item)
-        {
-            return;
-        }
+        var areaItems = _menuItems.Where(e => e.Area == entry.Area).ToList();
+        var to = areaItems.IndexOf(entry) + step;
+        return to >= 0 && to < areaItems.Count;
+    }
+
+    private bool CanMove(NavFavorite favorite, int step)
+    {
+        var to = _favItems.IndexOf(favorite) + step;
+        return to >= 0 && to < _favItems.Count;
+    }
+
+    private Task MoveMenuAsync(NavEntry entry, int step)
+        => CanMove(entry, step)
+            ? MoveMenuToAsync(entry, _menuItems.Where(e => e.Area == entry.Area).ToList().IndexOf(entry) + step)
+            : Task.CompletedTask;
+
+    private Task MoveFavoriteAsync(NavFavorite favorite, int step)
+        => CanMove(favorite, step) ? MoveFavoriteToAsync(favorite, _favItems.IndexOf(favorite) + step) : Task.CompletedTask;
+
+    private async Task MoveMenuToAsync(NavEntry item, int index)
+    {
         var areaItems = _menuItems.Where(e => e.Area == item.Area).ToList();
         areaItems.Remove(item);
-        areaItems.Insert(Math.Clamp(info.IndexInZone, 0, areaItems.Count), item);
+        areaItems.Insert(Math.Clamp(index, 0, areaItems.Count), item);
 
         var ordered = new List<string>();
         foreach (var area in _zones)
@@ -272,15 +313,11 @@
         await RunAsync(() => NavPrefs.SetOrderAsync(_agentId, ordered));
     }
 
-    private async Task OnFavoriteDropAsync(MudItemDropInfo<NavFavorite> info)
+    private async Task MoveFavoriteToAsync(NavFavorite item, int index)
     {
-        if (info.Item is not { } item)
-        {
-            return;
-        }
         var ordered = _favItems.ToList();
         ordered.Remove(item);
-        ordered.Insert(Math.Clamp(info.IndexInZone, 0, ordered.Count), item);
+        ordered.Insert(Math.Clamp(index, 0, ordered.Count), item);
         await RunAsync(() => NavPrefs.ReorderFavoritesAsync(_agentId, ordered.Select(INavPreferencesService.FavoriteId).ToList()));
     }
 

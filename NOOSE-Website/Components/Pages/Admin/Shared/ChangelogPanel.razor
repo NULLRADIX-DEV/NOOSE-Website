@@ -66,16 +66,16 @@ else
                 {
                     <MudDivider Class="my-2" />
                     <MudTable Items="lines" Dense="true" Hover="true" Elevation="0" T="ChangelogEntry"
-                              Breakpoint="Breakpoint.Sm">
+                              Breakpoint="Breakpoint.None">
                         <HeaderContent>
-                            <MudTh Style="width:130px;">Art</MudTh>
+                            <MudTh Style="width:130px;" Class="noose-mobil-aus">Art</MudTh>
                             <MudTh>Eintrag</MudTh>
-                            <MudTh Style="width:140px;">Bereich</MudTh>
-                            <MudTh Style="width:120px;">Herkunft</MudTh>
+                            <MudTh Style="width:140px;" Class="noose-mobil-aus">Bereich</MudTh>
+                            <MudTh Style="width:120px;" Class="noose-mobil-aus">Herkunft</MudTh>
                             <MudTh Style="text-align:right;width:110px;">Aktion</MudTh>
                         </HeaderContent>
                         <RowTemplate>
-                            <MudTd DataLabel="Art">
+                            <MudTd DataLabel="Art" Class="noose-mobil-aus">
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                                          Color="@ChangelogKindDisplay.Colour(context.Kind)"
                                          Icon="@ChangelogKindDisplay.Icon(context.Kind)">
@@ -90,10 +90,10 @@ else
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">ausgeblendet</MudText>
                                 }
                             </MudTd>
-                            <MudTd DataLabel="Bereich">
+                            <MudTd DataLabel="Bereich" Class="noose-mobil-aus">
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Area</MudText>
                             </MudTd>
-                            <MudTd DataLabel="Herkunft">
+                            <MudTd DataLabel="Herkunft" Class="noose-mobil-aus">
                                 <MudTooltip Text="@OriginHint(context)">
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@OriginText(context)</MudText>
                                 </MudTooltip>

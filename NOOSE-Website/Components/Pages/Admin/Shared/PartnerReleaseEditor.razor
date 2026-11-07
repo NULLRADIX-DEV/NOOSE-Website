@@ -23,8 +23,8 @@ else
         {
             <MudItem xs="12" md="6">
                 <MudPaper Class="pa-4" Elevation="1">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <div>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <div class="noose-eintrag-titel">
                             <MudText Typo="Typo.subtitle1">@t.DisplayName</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 @t.SharedRecords von @t.TotalRecords für @PartnerAgencyDisplay.Name(Agency) freigegeben
@@ -40,7 +40,7 @@ else
                                      ValueChanged="@(v => _wholeRecord[t.TypeKey] = v)" Dense="true"
                                      Color="Color.Primary" Label="Ganze Akte" />
                     </MudStack>
-                    <MudStack Row="true" Spacing="2" Class="mt-3">
+                    <MudStack Row="true" Spacing="2" Class="mt-3 noose-eintrag">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.LockOpen" Disabled="@(_busy || t.TotalRecords == 0)"
                                    OnClick="@(() => ReleaseAsync(t.TypeKey, true))">Alle freigeben</MudButton>

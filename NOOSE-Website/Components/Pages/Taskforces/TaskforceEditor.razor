@@ -20,11 +20,8 @@ else if (_input is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref" aria-label="Zurück" />
-        <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Groups2)" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h4">@(IsEdit ? "Taskforce bearbeiten" : "Neue Taskforce anlegen")</MudText>
-    </MudStack>
+    @* the shared page header; no handbook link, as the hand-built title it replaces had none *@
+    <PageHeader Compact="true" BackTooltip="false" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Groups2)" Title="@(IsEdit ? "Taskforce bearbeiten" : "Neue Taskforce anlegen")" BackHref="@BackHref" ShowHelp="false" />
 
     <MudForm @ref="_form">
         <TaskforceForm DraftScope="@DraftScope" @key="_loadedId" Input="_input" IsLeadership="_isLeadership" />
@@ -42,11 +39,11 @@ else
         </MudText>
     }
 
-    <MudStack Row="true" Spacing="2" Class="mt-4">
+    <FormActions Justify="Justify.FlexStart" Class="mt-4">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
                    OnClick="SaveAsync" Disabled="_saves">@(IsEdit ? "Speichern" : "Anlegen")</MudButton>
         <MudButton Variant="Variant.Text" Href="@BackHref">Abbrechen</MudButton>
-    </MudStack>
+    </FormActions>
 }
 
 @code {

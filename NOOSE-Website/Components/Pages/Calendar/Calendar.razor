@@ -9,14 +9,25 @@
 <PageTitle>Kalender · FIB</PageTitle>
 
 <MudStack Spacing="3">
+    @* page title with the h5 it always had (PageHeader would make it h4 on desktop). Below 960px the bin gives way to
+       the ⋮ menu behind the same check; below 600px the large icon goes and the two calendars are a select *@
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Primary" Size="Size.Large" />
-        <div>
+        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
+        <div class="noose-eintrag-titel">
             <MudText Typo="Typo.h5">Kalender</MudText>
             <MudText Typo="Typo.body2" Class="mud-text-secondary">@SubtitleText</MudText>
         </div>
 
-        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small" OverrideStyles="false" Class="ml-2">
+        @* the wrapper is the row item: MudSelect puts Class on its inner control, so the outer .mud-select
+           (flex-grow 1) would stay in the desktop row and push the button group away from the title *@
+        <div class="noose-nur-handy noose-filter-feld">
+            <MudSelect T="CalendarMode" Value="_mode" ValueChanged="ModeSetAsync" Label="Ansicht" Dense="true"
+                       Variant="Variant.Outlined" Margin="Margin.Dense">
+                <MudSelectItem T="CalendarMode" Value="CalendarMode.My">Mein Kalender</MudSelectItem>
+                <MudSelectItem T="CalendarMode" Value="CalendarMode.Authority">Behörden-Kalender</MudSelectItem>
+            </MudSelect>
+        </div>
+        <MudButtonGroup Variant="Variant.Outlined" Size="Size.Small" OverrideStyles="false" Class="ml-2 noose-mobil-aus">
             <MudButton Variant="@(_mode == CalendarMode.My ? Variant.Filled : Variant.Outlined)"
                        Color="@(_mode == CalendarMode.My ? Color.Primary : Color.Default)"
                        StartIcon="@Icons.Material.Filled.Person" OnClick="@(() => ModeSetAsync(CalendarMode.My))">Mein Kalender</MudButton>
@@ -26,13 +37,20 @@
         </MudButtonGroup>
 
         <MudSpacer />
-        <AuthorizeView Policy="@Policies.LeadershipPage" Context="fuehrung">
-            <MudTooltip Text="Papierkorb (gelöschte Termine)">
-                <MudIconButton Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=kalender" aria-label="Papierkorb" />
-            </MudTooltip>
-        </AuthorizeView>
+        <div class="d-contents noose-schmal-aus">
+            <AuthorizeView Policy="@Policies.LeadershipPage" Context="fuehrung">
+                <MudTooltip Text="Papierkorb (gelöschte Termine)">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=kalender" aria-label="Papierkorb" />
+                </MudTooltip>
+            </AuthorizeView>
+        </div>
         <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
             <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Filled" Color="Color.Primary" Href="/kalender/neu">Neuer Termin</MudButton>
+        </AuthorizeView>
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="fuehrung">
+            <HeaderMenu>
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=kalender">Papierkorb</MudMenuItem>
+            </HeaderMenu>
         </AuthorizeView>
     </MudStack>
 
@@ -121,7 +139,7 @@
         try
         {
             // Bump ?v= when kalender.js changes
-            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/kalender.js?v=9");
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/kalender.js?v=10");
             _ref = DotNetObjectReference.Create(this);
             _ready = true;
             // Render empty; FullCalendar reports its range (datesSet) and data loads then

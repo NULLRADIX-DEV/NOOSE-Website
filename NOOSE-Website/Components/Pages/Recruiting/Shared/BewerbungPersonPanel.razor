@@ -18,7 +18,7 @@
             </MudStack>
             @if (_linked.ThreatScore is { } score)
             {
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
                     <MudChip T="string" Color="ScoreColor(score)" Variant="Variant.Filled">EHK-Score: @score</MudChip>
                     @if (_linked.ThreatConfidence is { } conf)
                     {
@@ -53,9 +53,9 @@
         }
         @if (_canWrite)
         {
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-filterleiste">
                 <MudTextField @bind-Value="_search" Label="Person suchen" Variant="Variant.Outlined" Margin="Margin.Dense"
-                              Immediate="true" OnKeyUp="OnKey" Style="min-width:240px;" />
+                              Immediate="true" OnKeyUp="OnKey" Class="noose-filter-feld" Style="min-width:240px;" />
                 <MudButton Variant="Variant.Outlined" OnClick="SearchAsync" StartIcon="@Icons.Material.Filled.Search">Suchen</MudButton>
             </MudStack>
             @if (_results.Count > 0)

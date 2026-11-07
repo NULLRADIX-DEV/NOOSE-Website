@@ -5,7 +5,8 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+@* the row may wrap below 960px instead of pushing the page wider than the screen *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
     <MudSpacer />
     <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Restore"
                OnClick="RestoreDefaultsAsync">
@@ -35,12 +36,13 @@ else if (_load)
 }
 else
 {
-    <MudTable Items="_rules" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    @* a table on phones too: rule, switch and actions; severity, conditions and hits from 600px up *@
+    <MudTable Items="_rules" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh>Regel</MudTh>
-            <MudTh>Schweregrad</MudTh>
-            <MudTh>Bedingungen</MudTh>
-            <MudTh Style="text-align:right;">Treffer</MudTh>
+            <MudTh Class="noose-mobil-aus">Schweregrad</MudTh>
+            <MudTh Class="noose-mobil-aus">Bedingungen</MudTh>
+            <MudTh Style="text-align:right;" Class="noose-mobil-aus">Treffer</MudTh>
             <MudTh>Status</MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
@@ -68,16 +70,16 @@ else
                     <MudText Typo="Typo.caption" Class="mud-text-secondary"><MentionDisplay Text="@context.Description" /></MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="Schweregrad">
+            <MudTd DataLabel="Schweregrad" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Color="@CounterIntelSeverityDisplay.Colour(context.Severity)"
                          Variant="@(context.Severity == CounterIntelSeverity.Critical ? Variant.Filled : Variant.Outlined)">
                     @CounterIntelSeverityDisplay.Name(context.Severity)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Bedingungen">
+            <MudTd DataLabel="Bedingungen" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@CounterIntelRuleDisplay.Summary(context.Definition)</MudText>
             </MudTd>
-            <MudTd DataLabel="Treffer" Style="text-align:right;">
+            <MudTd DataLabel="Treffer" Style="text-align:right;" Class="noose-mobil-aus">
                 @if (_hits.TryGetValue(context.Id, out var hits) && hits > 0)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">@hits</MudChip>
@@ -96,7 +98,7 @@ else
                            ValueChanged="@((bool v) => ToggleAsync(context, v))" />
             </MudTd>
             <MudTd DataLabel="Aktion" Style="text-align:right;">
-                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center">
+                <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd" AlignItems="AlignItems.Center" Class="noose-mobil-aus">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary"
                                    OnClick="@(() => EditAsync(context))" aria-label="Regel bearbeiten" />
                     <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
@@ -104,6 +106,14 @@ else
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                    OnClick="@(() => DeleteAsync(context))" aria-label="Regel löschen" />
                 </MudStack>
+                @* three icons are too many for a phone row: the same actions as a ⋮ menu there *@
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                         AriaLabel="Aktionen der Regel" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditAsync(context))">Bearbeiten</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.ContentCopy" OnClick="@(() => DuplicateAsync(context))">Duplizieren</MudMenuItem>
+                    <MudDivider Class="my-1" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="@(() => DeleteAsync(context))">Löschen</MudMenuItem>
+                </MudMenu>
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>

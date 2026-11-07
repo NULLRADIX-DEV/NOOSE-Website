@@ -1,0 +1,7 @@
+/* Attendance table on phones: the status and marking columns drop the fixed widths they have from 600px up, so the
+   table fits the screen once the reason column is hidden and the four marking buttons sit in a ⋮ menu. */
+@media screen and (max-width: 599.98px) {
+    .anwesenheit-tabelle ::deep .anwesenheit-feste-breite {
+        width: auto !important;
+    }
+}

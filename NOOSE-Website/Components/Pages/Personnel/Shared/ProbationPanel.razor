@@ -7,7 +7,7 @@
 @if (_view is not null || (_mayManage && MayStart))
 {
     <MudPaper Class="pa-4 mb-4" Elevation="1">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2 noose-kopf-umbruch">
             <MudIcon Icon="@Icons.Material.Filled.Flag" Color="Color.Primary" />
             <MudText Typo="Typo.subtitle1">Einarbeitung</MudText>
             @if (_view is not null)
@@ -41,14 +41,14 @@
         {
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
                 <MudSelect T="string" @bind-Value="_mentorId" Label="Pate" Variant="Variant.Outlined" Margin="Margin.Dense"
-                           Clearable="true" Style="min-width:200px;">
+                           Clearable="true" Class="noose-breite-frei" Style="min-width:200px;">
                     @foreach (var mentor in _mentors.Where(m => m.Id != AgentId))
                     {
                         <MudSelectItem T="string" Value="@mentor.Id">@mentor.Codename</MudSelectItem>
                     }
                 </MudSelect>
                 <MudDatePicker @bind-Date="_endsAt" Label="Probezeit bis" Variant="Variant.Outlined" Margin="Margin.Dense"
-                               MinDate="DateTime.Today.AddDays(1)" DateFormat="dd.MM.yyyy" Style="max-width:180px;" />
+                               MinDate="DateTime.Today.AddDays(1)" DateFormat="dd.MM.yyyy" Class="noose-breite-frei" Style="max-width:180px;" />
                 <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy"
                            OnClick="SaveEditAsync">Speichern</MudButton>
                 <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => _editing = false)">Abbrechen</MudButton>

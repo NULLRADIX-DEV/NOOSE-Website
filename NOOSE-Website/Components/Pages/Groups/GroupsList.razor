@@ -1,25 +1,32 @@
 @page "/personengruppen"
+@using NOOSE_Website.Models.Navigation
 @inject IPersonGroupService GroupService
 @inject IRecencyService Recency
 @inject NavigationManager Nav
 
 <PageTitle>Personengruppen · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.Diversity3" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Personengruppen</MudText>
-    <MudSpacer />
-    <ListExportButton T="GroupRow" RecordType="@nameof(PersonGroup)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
-    <AuthorizeView Policy="@Policies.Leadership">
-        <MudButton Href="/papierkorb?tab=personengruppen" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
-    </AuthorizeView>
-    <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
-        <MudButton Href="/personengruppen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Gruppe</MudButton>
-    </AuthorizeView>
-</MudStack>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Lose Zusammenschlüsse von Personen mit Einstufung, zugeteilten Agents und Erfassungsfortschritt.
-</MudText>
+@* no help button: the list never had one, and from 960px up the header keeps its old buttons *@
+<PageHeader Icon="@Icons.Material.Filled.Diversity3" Title="Personengruppen" ShowHelp="false"
+            Subtitle="Lose Zusammenschlüsse von Personen mit Einstufung, zugeteilten Agents und Erfassungsfortschritt.">
+    <MoreActions>
+        <ListExportButton T="GroupRow" RecordType="@nameof(PersonGroup)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudButton Href="/papierkorb?tab=personengruppen" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
+        </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <ListExportButton AsMenuItem="true" T="GroupRow" RecordType="@nameof(PersonGroup)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=personengruppen">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
+        <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
+            <MudButton Href="/personengruppen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Gruppe</MudButton>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
 
 @if (_load)
 {
@@ -28,28 +35,36 @@
 else
 {
     <MudDataGrid @ref="_grid" T="GroupRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
-                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" Class="noose-filterleiste">
         <ToolBarContent>
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Name, Aktenzeichen)…" Immediate="true"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0 noose-filter-feld" />
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList" Class="noose-nur-handy"
+                       OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@ActiveFilterCount)</MudButton>
             <MudSpacer />
-            <MudSelect T="GroupsKind?" @bind-Value="_kindFilter" Clearable="true" Dense="true" Margin="Margin.Dense"
-                       Label="Kategorie" Variant="Variant.Outlined" Class="mt-0" Style="max-width:240px;">
-                @foreach (var a in GroupsKindDisplay.All)
-                {
-                    <MudSelectItem T="GroupsKind?" Value="@((GroupsKind?)a)">@GroupsKindDisplay.Name(a)</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
-                       Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-2">
-                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
-                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
-                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
-            </MudSelect>
+            @* d-contents: the filters stay items of the toolbar row; on phones they fold behind the button above *@
+            <div class="@(_filtersOpen ? "d-contents" : "d-contents noose-filter-zu")">
+                <MudSelect T="GroupsKind?" @bind-Value="_kindFilter" Clearable="true" Dense="true" Margin="Margin.Dense"
+                           Label="Kategorie" Variant="Variant.Outlined" Class="mt-0 noose-filter-feld" Style="max-width:240px;">
+                    @foreach (var a in GroupsKindDisplay.All)
+                    {
+                        <MudSelectItem T="GroupsKind?" Value="@((GroupsKind?)a)">@GroupsKindDisplay.Name(a)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
+                           Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-sm-2 noose-filter-feld">
+                    <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
+                    <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
+                    <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
+                </MudSelect>
+            </div>
+            <MobileColumnPicker ListKey="personengruppen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" />
-            <TemplateColumn Sortable="true" Title="Name" SortBy="x => x.Name">
+            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" HeaderClass="@Col("aktenzeichen")" CellClass="@Col("aktenzeichen")" />
+            <TemplateColumn Sortable="true" Title="Name" HeaderClass="@Col("name")" CellClass="@Col("name")" SortBy="x => x.Name">
                 <CellTemplate>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                         @if (!string.IsNullOrEmpty(context.Item.TitleImagePhotoId))
@@ -70,18 +85,18 @@ else
                     </MudStack>
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Kategorie" SortBy="x => x.Kind">
+            <TemplateColumn Sortable="true" Title="Kategorie" HeaderClass="@Col("kategorie")" CellClass="@Col("kategorie")" SortBy="x => x.Kind">
                 <CellTemplate>
                     <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Outlined">@GroupsKindDisplay.Name(context.Item.Kind)</MudChip>
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.MemberCount" Title="Mitglieder" />
-            <TemplateColumn Sortable="true" Title="Einstufung" SortBy="x => x.Classification">
+            <PropertyColumn Property="x => x.MemberCount" Title="Mitglieder" HeaderClass="@Col("mitglieder")" CellClass="@Col("mitglieder")" />
+            <TemplateColumn Sortable="true" Title="Einstufung" HeaderClass="@Col("einstufung")" CellClass="@Col("einstufung")" SortBy="x => x.Classification">
                 <CellTemplate>
                     <ClassificationBadge Value="context.Item.Classification" />
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Verschluss" SortBy="x => x.IsClassified">
+            <TemplateColumn Sortable="true" Title="Verschluss" HeaderClass="@Col("verschluss")" CellClass="@Col("verschluss")" SortBy="x => x.IsClassified">
                 <CellTemplate>
                     @if (context.Item.IsClassified)
                     {
@@ -89,12 +104,12 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Aktualität" SortBy="x => x.Level">
+            <TemplateColumn Sortable="true" Title="Aktualität" HeaderClass="@Col("aktualitaet")" CellClass="@Col("aktualitaet")" SortBy="x => x.Level">
                 <CellTemplate>
                     <RecencyIndicator Level="context.Item.Level" ReferenceDateUtc="context.Item.RefreshedUtc" />
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" Format="dd.MM.yyyy HH:mm" />
+            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" HeaderClass="@Col("zuletzt")" CellClass="@Col("zuletzt")" Format="dd.MM.yyyy HH:mm" />
         </Columns>
         <NoRecordsContent>
             <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
@@ -113,7 +128,7 @@ else
             </MudStack>
         </NoRecordsContent>
         <PagerContent>
-            <MudDataGridPager T="GroupRow" />
+            <MudDataGridPager Class="noose-pager-handy" T="GroupRow" />
         </PagerContent>
     </MudDataGrid>
 }
@@ -136,6 +151,27 @@ else
         new("Aktualität", r => RecencyLevelDisplay.Name(r.Level)),
         new("Zuletzt", r => ExportText.Stamp(r.Refreshed)),
     ];
+
+    /// <summary>The grid's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("name", "Name"), ("kategorie", "Kategorie"), ("mitglieder", "Mitglieder"),
+        ("einstufung", "Einstufung"), ("verschluss", "Verschluss"), ("aktualitaet", "Aktualität"), ("zuletzt", "Zuletzt"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the name and the classification, the record's weight.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["name", "einstufung"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    // the filters behind "Filter (n)" on phones; from 600px up they always stand in the toolbar
+    private bool _filtersOpen;
+
+    private int ActiveFilterCount => (_kindFilter is null ? 0 : 1) + (_archive == ArchiveFilter.Active ? 0 : 1);
 
     private bool _load = true;
     private ArchiveFilter _archive = ArchiveFilter.Active;

@@ -22,14 +22,15 @@
 }
 else
 {
-    <MudTable Items="Radar.Rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true" T="InactivityRow">
+    @* a table on phones too: codename, days and the actions stay, the rest is hidden below 600px *@
+    <MudTable Items="Radar.Rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true" T="InactivityRow">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.Codename)">Codename</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.LastTraceAt)">Letztes Lebenszeichen</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.LastTraceAt)">Letztes Lebenszeichen</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="InactivityRow" SortBy="@(x => x.InactiveDays)" InitialDirection="SortDirection.Descending">Tage</MudTableSortLabel></MudTh>
-            <MudTh>Stufe</MudTh>
-            <MudTh>Stand</MudTh>
+            <MudTh Class="noose-mobil-aus">Stufe</MudTh>
+            <MudTh Class="noose-mobil-aus">Stand</MudTh>
             @if (_mayWrite)
             {
                 <MudTh Style="text-align:right;">Aktion</MudTh>
@@ -43,8 +44,8 @@ else
                     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@context.RealName</MudText>
                 }
             </MudTd>
-            <MudTd DataLabel="Dienstgrad">@RankDisplay.Name(context.Rank)</MudTd>
-            <MudTd DataLabel="Letztes Lebenszeichen">
+            <MudTd DataLabel="Dienstgrad" Class="noose-mobil-aus">@RankDisplay.Name(context.Rank)</MudTd>
+            <MudTd DataLabel="Letztes Lebenszeichen" Class="noose-mobil-aus">
                 <MudTooltip>
                     <ChildContent>
                         @context.LastTraceAt.ToLocalTime().ToString("dd.MM.yyyy")
@@ -66,11 +67,11 @@ else
                     }
                 </MudTooltip>
             </MudTd>
-            <MudTd DataLabel="Stufe">
+            <MudTd DataLabel="Stufe" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                          Color="@InactivityDisplay.TierColour(context.Tier)">@InactivityDisplay.Tier(context.Tier)</MudChip>
             </MudTd>
-            <MudTd DataLabel="Stand">
+            <MudTd DataLabel="Stand" Class="noose-mobil-aus">
                 @if (context.AbsentUntil is { } until)
                 {
                     <MudText Typo="Typo.caption" Class="d-block">Abgemeldet bis @until.ToString("dd.MM.yyyy")</MudText>
@@ -119,7 +120,7 @@ else
             }
         </RowTemplate>
         <PagerContent>
-            <MudTablePager />
+            <MudTablePager Class="noose-pager-handy" />
         </PagerContent>
     </MudTable>
 }

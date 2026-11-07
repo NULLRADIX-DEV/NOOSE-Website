@@ -700,6 +700,11 @@ public static class ChangelogContent
                 "Bewerbungen"),
             Neu("3.0.35-bewerbung-discord", "Bewerben kann sich jetzt nur, wer auf unserem Discord-Server ist; "
                 + "das Formular zeigt sonst gleich den Einladungslink.", "Bewerbungen"),
+            Besser("3.0.36-handy-ansicht", "Jede Seite passt jetzt auf das Handy, ohne seitlich zu scrollen. Knöpfe, "
+                + "die nicht in die Zeile passen, stehen hinter den drei Punkten; Profil, Schnellerfassung und Abmelden "
+                + "hinter deinem Profilbild.", "Bedienung"),
+            Neu("3.0.37-handy-spalten", "In Listen wählst du auf dem Handy über „Spalten“, welche Spalten stehen bleiben. "
+                + "Die Wahl bleibt gespeichert, am Rechner siehst du weiter alle.", "Bedienung"),
         ]),
     ];
 }

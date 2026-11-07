@@ -20,11 +20,9 @@ else if (_input is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref" aria-label="Zurück" />
-        <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.AccountBalance)" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h4">@(IsEdit ? "Partei bearbeiten" : "Neue Partei anlegen")</MudText>
-    </MudStack>
+    @* no help button: the editor never had one *@
+    <PageHeader Compact="true" BackTooltip="false" BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.AccountBalance)"
+                Title="@(IsEdit ? "Partei bearbeiten" : "Neue Partei anlegen")" ShowHelp="false" />
 
     <MudForm @ref="_form">
         <PartyForm DraftScope="@DraftScope" @key="_loadedId" Input="_input" ShowClassification="@(!IsEdit)" MayHighest="_mayHighest"
@@ -37,11 +35,12 @@ else
         </MudText>
     }
 
-    <MudStack Row="true" Spacing="2" Class="mt-4">
+    @* pinned to the bottom of the screen below 960px; from 960px up the left-aligned row as before *@
+    <FormActions Justify="Justify.FlexStart" Class="mt-4">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
                    OnClick="SaveAsync" Disabled="_saves">@(IsEdit ? "Speichern" : "Anlegen")</MudButton>
         <MudButton Variant="Variant.Text" Href="@BackHref">Abbrechen</MudButton>
-    </MudStack>
+    </FormActions>
 }
 
 @code {

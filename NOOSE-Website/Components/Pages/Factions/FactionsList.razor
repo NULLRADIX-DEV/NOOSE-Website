@@ -1,4 +1,5 @@
 @page "/fraktionen"
+@using NOOSE_Website.Models.Navigation
 @inject IFactionService FactionService
 @inject IRecencyService Recency
 @inject IThreatTrendService Trends
@@ -9,12 +10,21 @@
 
 <PageHeader Icon="@Icons.Material.Filled.Groups" Title="Fraktionen"
             Subtitle="Organisationen (Gangs, Konzerne, …) mit Mitgliedern, Beständen, Rängen und Konflikten.">
-    <Actions>
+    <MoreActions>
         <SavedViewButton BaseRoute="/fraktionen" Filters="FilterState" OnApply="ApplyViewAsync" />
         <ListExportButton T="FactionRow" RecordType="@nameof(Faction)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
         <AuthorizeView Policy="@Policies.Leadership">
             <MudButton Href="/papierkorb?tab=fraktionen" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
         </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <SavedViewButton AsMenuItem="true" BaseRoute="/fraktionen" Filters="FilterState" OnApply="ApplyViewAsync" />
+        <ListExportButton AsMenuItem="true" T="FactionRow" RecordType="@nameof(Faction)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=fraktionen">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
         <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
             <MudButton Href="/fraktionen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Fraktion</MudButton>
         </AuthorizeView>
@@ -28,38 +38,46 @@
 else
 {
     <MudDataGrid @ref="_grid" T="FactionRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
-                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" Class="noose-filterleiste">
         <ToolBarContent>
             <MudTextField Value="_search" ValueChanged="@((string v) => SearchChangedAsync(v))" Placeholder="Suchen (Name, Aktenzeichen, Art)…" Immediate="true"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0 noose-filter-feld" />
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList" Class="noose-nur-handy"
+                       OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@ActiveFilterCount)</MudButton>
             <MudSpacer />
-            <MudSwitch T="bool" Value="_onlyBad" ValueChanged="OnlyBadSelectedAsync" Color="Color.Error" Label="Nur Badfraks" Class="mr-2" />
-            <MudSelect T="Classification?" Value="_classification" ValueChanged="ClassificationSelectedAsync" Label="Einstufung" Dense="true"
-                       Clearable="true" Variant="Variant.Outlined" Style="max-width:220px;" Margin="Margin.Dense">
-                <MudSelectItem T="Classification?" Value="@(null)">Alle</MudSelectItem>
-                @foreach (var e in ClassificationDisplay.All)
-                {
-                    <MudSelectItem T="Classification?" Value="@e">@ClassificationDisplay.Name(e)</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="RecencyLevel?" Value="_recency" ValueChanged="RecencySelectedAsync" Label="Aktualität" Dense="true"
-                       Clearable="true" Variant="Variant.Outlined" Style="max-width:180px;" Margin="Margin.Dense" Class="ml-2">
-                <MudSelectItem T="RecencyLevel?" Value="@(null)">Alle</MudSelectItem>
-                @foreach (var e in Enum.GetValues<RecencyLevel>())
-                {
-                    <MudSelectItem T="RecencyLevel?" Value="@e">@RecencyLevelDisplay.Name(e)</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
-                       Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-2">
-                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
-                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
-                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
-            </MudSelect>
+            @* d-contents: the filters stay items of the toolbar row; on phones they fold behind the button above *@
+            <div class="@(_filtersOpen ? "d-contents" : "d-contents noose-filter-zu")">
+                <MudSwitch T="bool" Value="_onlyBad" ValueChanged="OnlyBadSelectedAsync" Color="Color.Error" Label="Nur Badfraks" Class="mr-2" />
+                <MudSelect T="Classification?" Value="_classification" ValueChanged="ClassificationSelectedAsync" Label="Einstufung" Dense="true"
+                           Clearable="true" Variant="Variant.Outlined" Style="max-width:220px;" Margin="Margin.Dense" Class="noose-filter-feld">
+                    <MudSelectItem T="Classification?" Value="@(null)">Alle</MudSelectItem>
+                    @foreach (var e in ClassificationDisplay.All)
+                    {
+                        <MudSelectItem T="Classification?" Value="@e">@ClassificationDisplay.Name(e)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="RecencyLevel?" Value="_recency" ValueChanged="RecencySelectedAsync" Label="Aktualität" Dense="true"
+                           Clearable="true" Variant="Variant.Outlined" Style="max-width:180px;" Margin="Margin.Dense" Class="ml-sm-2 noose-filter-feld">
+                    <MudSelectItem T="RecencyLevel?" Value="@(null)">Alle</MudSelectItem>
+                    @foreach (var e in Enum.GetValues<RecencyLevel>())
+                    {
+                        <MudSelectItem T="RecencyLevel?" Value="@e">@RecencyLevelDisplay.Name(e)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
+                           Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-sm-2 noose-filter-feld">
+                    <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
+                    <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
+                    <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
+                </MudSelect>
+            </div>
+            <MobileColumnPicker ListKey="fraktionen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
         </ToolBarContent>
         <Columns>
-            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" />
-            <TemplateColumn Sortable="true" Title="Name" SortBy="x => x.Name">
+            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" HeaderClass="@Col("aktenzeichen")" CellClass="@Col("aktenzeichen")" />
+            <TemplateColumn Sortable="true" Title="Name" HeaderClass="@Col("name")" CellClass="@Col("name")" SortBy="x => x.Name">
                 <CellTemplate>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                         @if (!string.IsNullOrEmpty(context.Item.TitleImagePhotoId))
@@ -80,14 +98,14 @@ else
                     </MudStack>
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.Kind" Title="Art" />
-            <PropertyColumn Property="x => x.MemberCount" Title="Mitglieder" />
-            <TemplateColumn Sortable="true" Title="Einstufung" SortBy="x => x.Classification">
+            <PropertyColumn Property="x => x.Kind" Title="Art" HeaderClass="@Col("art")" CellClass="@Col("art")" />
+            <PropertyColumn Property="x => x.MemberCount" Title="Mitglieder" HeaderClass="@Col("mitglieder")" CellClass="@Col("mitglieder")" />
+            <TemplateColumn Sortable="true" Title="Einstufung" HeaderClass="@Col("einstufung")" CellClass="@Col("einstufung")" SortBy="x => x.Classification">
                 <CellTemplate>
                     <ClassificationBadge Value="context.Item.Classification" />
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Gefährdung" SortBy="x => x.ThreatScore ?? -1" InitialDirection="SortDirection.Descending">
+            <TemplateColumn Sortable="true" Title="Gefährdung" HeaderClass="@Col("gefaehrdung")" CellClass="@Col("gefaehrdung")" SortBy="x => x.ThreatScore ?? -1" InitialDirection="SortDirection.Descending">
                 <CellTemplate>
                     @if (context.Item.ThreatScore is { } gscore)
                     {
@@ -108,7 +126,7 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Verschluss" SortBy="x => x.IsClassified">
+            <TemplateColumn Sortable="true" Title="Verschluss" HeaderClass="@Col("verschluss")" CellClass="@Col("verschluss")" SortBy="x => x.IsClassified">
                 <CellTemplate>
                     @if (context.Item.IsClassified)
                     {
@@ -116,14 +134,14 @@ else
                     }
                 </CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Aktualität" SortBy="x => x.Level">
+            <TemplateColumn Sortable="true" Title="Aktualität" HeaderClass="@Col("aktualitaet")" CellClass="@Col("aktualitaet")" SortBy="x => x.Level">
                 <CellTemplate>
                     <RecencyIndicator Level="context.Item.Level" ReferenceDateUtc="context.Item.RefreshedUtc"
                                       ReferenceName="@FactionRecencyFacetDisplay.Name(context.Item.OldestFacet)" />
                 </CellTemplate>
             </TemplateColumn>
             @* the light follows the longest-neglected of the four sections, so name it here *@
-            <TemplateColumn Sortable="true" Title="Ältester Stand" SortBy="x => x.RefreshedUtc">
+            <TemplateColumn Sortable="true" Title="Ältester Stand" HeaderClass="@Col("aeltesterstand")" CellClass="@Col("aeltesterstand")" SortBy="x => x.RefreshedUtc">
                 <CellTemplate>
                     <MudStack Spacing="0">
                         <MudText Typo="Typo.body2">@context.Item.Refreshed.ToString("dd.MM.yyyy HH:mm")</MudText>
@@ -163,7 +181,7 @@ else
             }
         </NoRecordsContent>
         <PagerContent>
-            <MudDataGridPager T="FactionRow" />
+            <MudDataGridPager Class="noose-pager-handy" T="FactionRow" />
         </PagerContent>
     </MudDataGrid>
 }
@@ -188,6 +206,29 @@ else
         new("Ältester Stand", r => ExportText.Stamp(r.Refreshed)),
         new("Ältester Bereich", r => FactionRecencyFacetDisplay.Name(r.OldestFacet)),
     ];
+
+    /// <summary>The grid's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("name", "Name"), ("art", "Art"), ("mitglieder", "Mitglieder"),
+        ("einstufung", "Einstufung"), ("gefaehrdung", "Gefährdung"), ("verschluss", "Verschluss"),
+        ("aktualitaet", "Aktualität"), ("aeltesterstand", "Ältester Stand"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: name and threat.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["name", "gefaehrdung"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    // the filters behind "Filter (n)" on phones; from 600px up they always stand in the toolbar
+    private bool _filtersOpen;
+
+    private int ActiveFilterCount => (_onlyBad ? 1 : 0) + (_classification is null ? 0 : 1) + (_recency is null ? 0 : 1)
+        + (_archive == ArchiveFilter.Active ? 0 : 1);
 
     private bool _load = true;
     private int _loadGeneration;

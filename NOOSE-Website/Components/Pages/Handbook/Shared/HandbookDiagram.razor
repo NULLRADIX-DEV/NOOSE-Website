@@ -1,5 +1,8 @@
-@* Picks a drawing by its key. An unknown key renders nothing rather than throwing - the key is data. *@
+@* Picks a drawing by its key. An unknown key renders nothing rather than throwing - the key is data.
+   The frame lets a wide drawing keep a readable size on phones and scroll sideways inside it (HandbookDiagram.razor.css);
+   from 600px up it is a plain block around the drawing. *@
 
+<div class="handbuch-diagramm-rahmen">
 @switch (DiagramKey)
 {
     case "oberflaeche":
@@ -48,6 +51,7 @@
         <ClearanceLaddersDiagram />
         break;
 }
+</div>
 
 @code {
     [Parameter] public string? DiagramKey { get; set; }

@@ -20,14 +20,17 @@ else if (_edit && !_found)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel" aria-label="Zurück" />
-        <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h4">@(_edit ? "Personal-Vorlage bearbeiten" : "Neue Personal-Vorlage")</MudText>
-        <MudSpacer />
-        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
-        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
-    </MudStack>
+    @* no help button: the hand-built header this replaces had none *@
+    <PageHeader Compact="true" BackTooltip="false" Icon="@Icons.Material.Filled.Badge" Title="@(_edit ? "Personal-Vorlage bearbeiten" : "Neue Personal-Vorlage")"
+                BackHref="/einstellungen?tab=vorlagen-personal" ShowHelp="false">
+        <Actions>
+            @* from 960px up in the title row as before; below, the same buttons pin to the foot of the form *@
+            <div class="d-contents noose-schmal-aus">
+                <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
+                <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
+            </div>
+        </Actions>
+    </PageHeader>
 
     <MudPaper Class="pa-4" Elevation="2">
         <MudStack Spacing="3">
@@ -73,6 +76,10 @@ else
             <MudText Typo="Typo.subtitle2">Vorlagen-Inhalt</MudText>
             <RichTextEditor @ref="_editor" Value="@_contentHtml" MinHeight="360px" Ai="TextAssistContext.PersonnelTemplate" Mentions="true"
                             DraftKey='@(_edit ? $"vorlage-personal:{Id}" : "vorlage-personal:neu")' />
+            <FormActions Class="noose-nur-schmal">
+                <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
+                <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
+            </FormActions>
         </MudStack>
     </MudPaper>
 }

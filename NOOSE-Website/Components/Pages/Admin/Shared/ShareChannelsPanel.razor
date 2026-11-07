@@ -43,7 +43,7 @@
             }
             @if (_mayEdit)
             {
-                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
                     <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
                                Disabled="@(_rows.Count >= ChannelShareRules.MaxChannels)" OnClick="Add">Kanal hinzufügen</MudButton>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"

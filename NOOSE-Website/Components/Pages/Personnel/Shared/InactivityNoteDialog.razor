@@ -1,7 +1,8 @@
 @* Personnel note suggested by the inactivity radar: kind and text prefilled, the caller saves. *@
-<MudDialog>
+@* a form with an editor: full screen below 600px (noose-dialog-lang), where the minimum width gives way too *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
-        <MudStack Spacing="3" Style="min-width:420px;">
+        <MudStack Spacing="3" Class="noose-min-breite-frei" Style="min-width:420px;">
             <MudText Typo="Typo.body2" Class="mud-text-secondary">
                 Vermerk in der Personalakte von <b>@Codename</b>. Wie jeder Vermerk wird er auf Discord bekanntgegeben
                 und pingt den Agenten.

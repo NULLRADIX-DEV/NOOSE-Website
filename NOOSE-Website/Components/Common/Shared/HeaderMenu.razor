@@ -1,0 +1,35 @@
+@* The ⋮ menu of a page header below 960px: the secondary actions the wide header shows as buttons, as menu entries.
+   Hidden from 960px up (noose-nur-schmal), where those buttons stand in the row themselves.
+   An interactive page gets a MudMenu, already during prerender, so the first paint shows the same button the circuit
+   later drives. A statically rendered page (no render mode, [ExcludeFromInteractiveRouting]) has no circuit to open a
+   MudMenu, so it gets a native <details>/<summary> that opens without any script. *@
+
+@if (AssignedRenderMode is not null)
+{
+    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Color="Color.Default" AriaLabel="Weitere Aktionen"
+             Class="@($"{VisibleClass} noose-kopfmenue-knopf")" Dense="true"
+             AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+        @ChildContent
+    </MudMenu>
+}
+else
+{
+    <details class="@($"{VisibleClass} noose-kopfmenue")">
+        <summary aria-label="Weitere Aktionen" title="Weitere Aktionen">⋮</summary>
+        <div class="noose-kopfmenue-liste mud-paper mud-elevation-8">
+            @ChildContent
+        </div>
+    </details>
+}
+
+@code {
+    /// <summary>The menu entries: <c>MudMenuItem</c>s, the header buttons with <c>AsMenuItem</c>, dividers.</summary>
+    [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>
+    /// Shows the menu only below 600px instead of below 960px: a section header keeps its buttons down to phone width.
+    /// </summary>
+    [Parameter] public bool PhoneOnly { get; set; }
+
+    private string VisibleClass => PhoneOnly ? "noose-nur-handy" : "noose-nur-schmal";
+}

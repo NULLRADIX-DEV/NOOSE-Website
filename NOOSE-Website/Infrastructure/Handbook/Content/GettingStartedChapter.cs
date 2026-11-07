@@ -42,6 +42,14 @@ internal static class GettingStartedChapter
                 darauf <em>wechselt nur die Liste daneben</em>; er springt nicht auf eine Seite.</p>
                 <p>Daneben steht die eigentliche Liste der Seiten des gewählten Bereichs. Oben rechts findest
                 du die Suche, die Glocke für Benachrichtigungen und dein Konto.</p>
+                <p>Auf dem <strong>Handy</strong> ist das Menü eingeklappt: Der Knopf oben links klappt es auf, nach
+                einem Tipp auf eine Seite geht es wieder zu. Oben rechts bleiben Suche, Glocke und dein Profilbild.
+                Ein Tipp auf das Profilbild öffnet dein Profil, die Schnellerfassung, den Schusswaffengebrauch und
+                <em>Abmelden</em>.</p>
+                <p>Passen die Knöpfe einer Seite nicht in die Zeile, stehen sie hinter den <strong>drei Punkten</strong>
+                im Seitenkopf (<em>Weitere Aktionen</em>). Es fehlt keiner: Was nicht in der Zeile steht, steht im
+                Menü, und auch dort nur, wofür deine Rechte reichen. In Listen wählst du auf dem Handy über <em>Spalten</em>, welche Spalten
+                stehen bleiben; die Wahl merkt sich die Seite für dich, am Rechner siehst du weiter alle.</p>
                 <p>Was du im Menü nicht siehst, darfst du meistens auch nicht öffnen: die Leiste zeigt nur,
                 wofür deine Rechte reichen.</p>
                 """,
@@ -226,7 +234,7 @@ internal static class GettingStartedChapter
                 """
                 <p>Oben in der Kopfzeile sitzt ein <strong>Plus-Knopf</strong>. Er öffnet die
                 <em>Schnellerfassung</em>, und die hat drei Reiter: <em>Neue Akte</em>, <em>Vermerk</em> und
-                <em>Aktivität</em>.</p>
+                <em>Aktivität</em>. Auf dem Handy steht sie im Menü hinter deinem Profilbild.</p>
                 <p>Unter <em>Neue Akte</em> wählst du den Aktentyp, tippst die Bezeichnung, fertig. Danach
                 stehst du auf der neuen Akte und füllst sie in Ruhe aus.</p>
                 <p>Unter <em>Vermerk</em> hängst du einen Kommentar an eine Akte, ohne sie zu öffnen. Erst

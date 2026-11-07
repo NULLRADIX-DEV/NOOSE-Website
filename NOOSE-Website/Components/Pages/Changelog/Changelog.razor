@@ -25,7 +25,7 @@ else if (_releases.Count == 0)
 }
 else
 {
-    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Class="mb-6">
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Class="mb-6 noose-filterleiste">
         <MudChipSet T="string" SelectedValue="@_kindFilter" SelectedValueChanged="SetKindAsync"
                     SelectionMode="SelectionMode.SingleSelection" CheckMark="true">
             <MudChip T="string" Value="@AllKinds" Variant="Variant.Outlined">Alle</MudChip>
@@ -42,7 +42,7 @@ else
         @if (_areas.Count > 0)
         {
             <MudSelect T="string" Value="@_areaFilter" ValueChanged="SetAreaAsync" Dense="true"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:260px;"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:260px;" Class="noose-filter-feld"
                        Label="Bereich" Clearable="true">
                 <MudSelectItem T="string" Value="@AllAreas">Alle Bereiche</MudSelectItem>
                 @foreach (var a in _areas)

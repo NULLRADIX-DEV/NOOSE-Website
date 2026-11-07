@@ -31,24 +31,25 @@ else
         </MudAlert>
     }
 
-    <MudTable Items="_page.Rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Dense="true"
+    @* a table on phones too: when, who and which record; action and field changes from 600px up *@
+    <MudTable Items="_page.Rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="0" Dense="true"
               Loading="_busy" LoadingProgressColor="Color.Primary">
         <HeaderContent>
             <MudTh>Zeitpunkt</MudTh>
             <MudTh>Agent</MudTh>
             <MudTh>Objekt</MudTh>
-            <MudTh>Aktion</MudTh>
-            <MudTh>Änderungen</MudTh>
+            <MudTh Class="noose-mobil-aus">Aktion</MudTh>
+            <MudTh Class="noose-mobil-aus">Änderungen</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Zeitpunkt">@context.TimestampUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</MudTd>
             <MudTd DataLabel="Agent">@(string.IsNullOrWhiteSpace(context.AgentName) ? "System" : context.AgentName)</MudTd>
             <MudTd DataLabel="Objekt">@RecordLink(context.EntityType, context.EntityId)</MudTd>
-            <MudTd DataLabel="Aktion">
+            <MudTd DataLabel="Aktion" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Color="@AuditActionDisplay.Colour(context.Action)"
                          Variant="Variant.Filled">@AuditActionDisplay.Name(context.Action)</MudChip>
             </MudTd>
-            <MudTd DataLabel="Änderungen">
+            <MudTd DataLabel="Änderungen" Class="noose-mobil-aus">
                 @{
                     @* the type decides the enum: Category alone is an absence reason, a ticket concern and an
                        appointment kind at once *@
@@ -73,7 +74,7 @@ else
             <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Keine Änderungen für diesen Filter.</MudText>
         </NoRecordsContent>
         <PagerContent>
-            <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+            <MudTablePager Class="noose-pager-handy" PageSizeOptions="new[] { 25, 50, 100 }" />
         </PagerContent>
     </MudTable>
 }

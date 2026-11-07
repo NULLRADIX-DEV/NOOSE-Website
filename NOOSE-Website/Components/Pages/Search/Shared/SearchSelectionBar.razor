@@ -40,10 +40,19 @@
         <MudSpacer />
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Link"
                    Disabled="@(_busy || LinkCount == 0)" OnClick="LinkAsync">Verknüpfen … (@LinkCount)</MudButton>
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Label"
-                   Disabled="@(_busy || TagCount == 0)" OnClick="TagAsync">Stichwort … (@TagCount)</MudButton>
-        <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.StarBorder"
-                   Disabled="@(_busy || FollowCount == 0)" OnClick="FollowAsync">Beobachten (@FollowCount)</MudButton>
+        @* below 600px the two secondary actions sit in a ⋮ menu, so the pinned bar stays one row high; d-contents:
+           no box of its own, so from 600px up the buttons are items of the row as before *@
+        <div class="d-contents noose-mobil-aus">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Label"
+                       Disabled="@(_busy || TagCount == 0)" OnClick="TagAsync">Stichwort … (@TagCount)</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.StarBorder"
+                       Disabled="@(_busy || FollowCount == 0)" OnClick="FollowAsync">Beobachten (@FollowCount)</MudButton>
+        </div>
+        <HeaderMenu PhoneOnly="true">
+            <MudMenuItem Icon="@Icons.Material.Filled.Label" Disabled="@(_busy || TagCount == 0)" OnClick="TagAsync">Stichwort … (@TagCount)</MudMenuItem>
+            <MudMenuItem Icon="@Icons.Material.Filled.StarBorder" IconColor="Color.Warning" Disabled="@(_busy || FollowCount == 0)"
+                         OnClick="FollowAsync">Beobachten (@FollowCount)</MudMenuItem>
+        </HeaderMenu>
     </MudStack>
 </MudPaper>
 

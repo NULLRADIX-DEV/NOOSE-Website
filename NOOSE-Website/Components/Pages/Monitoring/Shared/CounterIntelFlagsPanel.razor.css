@@ -1,0 +1,6 @@
+/* Phone only: the agent column gives up its fixed 14rem and takes what the name needs, so the finding keeps room. */
+@media screen and (max-width: 599.98px) {
+    .ci-agent-spalte {
+        width: auto !important;
+    }
+}

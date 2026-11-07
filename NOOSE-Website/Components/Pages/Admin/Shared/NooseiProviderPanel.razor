@@ -44,7 +44,8 @@ else
         }
     </MudSelect>
 
-    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+    @* every field is needed, so phones get one card per provider instead of fewer columns; both set the same boost *@
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0" Class="noose-mobil-aus">
         <thead>
             <tr>
                 <th>Anbieter</th>
@@ -80,6 +81,32 @@ else
             }
         </tbody>
     </MudSimpleTable>
+    <MudStack Spacing="2" Class="noose-nur-handy">
+        @foreach (var provider in LlmProviderDisplay.All)
+        {
+            var boost = _settings.BoostFor(provider);
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap" Class="mb-2">
+                    <MudIcon Icon="@LlmProviderDisplay.Icon(provider)" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle2">@LlmProviderDisplay.Name(provider)</MudText>
+                    @if (_choice == provider)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary">aktiv</MudChip>
+                    }
+                </MudStack>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                    Einsatzbereit: @(o.IsConfiguredFor(provider) ? "Ja" : "Schlüssel/Modell fehlt")
+                </MudText>
+                <MudNumericField T="int" Value="boost" ValueChanged="@(v => SetBoost(provider, v))" Label="Kontingent-Aufschlag"
+                                 Min="0" Max="@LlmProviderSettings.MaxBoostPercent" Step="10"
+                                 Variant="Variant.Outlined" Margin="Margin.Dense" Disabled="!_mayEdit"
+                                 Adornment="Adornment.End" AdornmentText="%" />
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                    Wochenkontingent dann: @($"×{(100 + boost) / 100m:0.00}")
+                </MudText>
+            </MudPaper>
+        }
+    </MudStack>
 
     @if (!o.IsConfigured)
     {

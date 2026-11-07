@@ -20,7 +20,10 @@ else if (_appointment is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* Record toolbar with the h5 title it always had (PageHeader would make it h4 on desktop). Below 960px the row wraps,
+       Bearbeiten stays and Löschen gives way to the ⋮ menu behind the same check; the d-contents wrapper adds no box,
+       so from 960px up the row is the one it was. *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/kalender" aria-label="Zurück" />
         <MudIcon Icon="@CategoryIcon(_appointment.Category)" Color="Color.Primary" />
         <MudText Typo="Typo.h5">@_appointment.Title</MudText>
@@ -37,7 +40,12 @@ else
             <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
                 <MudButton Href="@($"/kalender/{_appointment.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
             </AuthorizeView>
-            <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+            <div class="d-contents noose-schmal-aus">
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+            </div>
+            <HeaderMenu>
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            </HeaderMenu>
         }
     </MudStack>
 
@@ -104,7 +112,7 @@ else
         </MudItem>
 
         <MudItem xs="12" md="8" lg="9">
-            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4"
+            <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4" Class="noose-reiter-handy"
                      @bind-ActivePanelIndex="_activeTab"
                      @bind-ActivePanelIndex:after="@(() => TabUrlState.WriteAsync(JS, Nav, _tabs, _activeTab))">
                 <MudTabPanel Text="Stammdaten" Icon="@Icons.Material.Filled.Info">

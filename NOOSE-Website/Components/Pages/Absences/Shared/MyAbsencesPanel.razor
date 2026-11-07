@@ -3,7 +3,7 @@
 @inject ISnackbar Snackbar
 
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 noose-kopf-umbruch">
     <MudText Typo="Typo.body2" Class="mud-text-secondary">
         Für einen Zeitraum abmelden. Wer abgemeldet ist, gilt bei Besprechungen automatisch als entschuldigt.
     </MudText>
@@ -13,7 +13,7 @@
     </AuthorizeView>
 </MudStack>
 
-<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="false" Class="mb-3"
+<MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="false" Class="mb-3 noose-reiter-handy"
          ActivePanelIndex="_tab" ActivePanelIndexChanged="TabChangedAsync">
     <MudTabPanel Icon="@Icons.Material.Filled.EventBusy" IconColor="Color.Primary" Text="Meine Abmeldungen" />
     <MudTabPanel Icon="@Icons.Material.Filled.Groups" IconColor="Color.Info" Text="Team" />
@@ -33,13 +33,14 @@
     }
     else
     {
-        <MudTable Items="_list" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1">
+        @* a table on phones too: period, reason and the actions stay below 600px *@
+        <MudTable Items="_list" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="1">
             <HeaderContent>
                 <MudTh>Zeitraum</MudTh>
-                <MudTh>Tage</MudTh>
+                <MudTh Class="noose-mobil-aus">Tage</MudTh>
                 <MudTh>Grund</MudTh>
-                <MudTh>Anmerkung</MudTh>
-                <MudTh>Kenntnisnahme</MudTh>
+                <MudTh Class="noose-mobil-aus">Anmerkung</MudTh>
+                <MudTh Class="noose-mobil-aus">Kenntnisnahme</MudTh>
                 <MudTh Style="width:110px;"></MudTh>
             </HeaderContent>
             <RowTemplate>
@@ -50,9 +51,9 @@
                         <text> – <b>@context.ToDate.ToString("dd.MM.yyyy")</b></text>
                     }
                 </MudTd>
-                <MudTd DataLabel="Tage">@context.Days</MudTd>
+                <MudTd DataLabel="Tage" Class="noose-mobil-aus">@context.Days</MudTd>
                 <MudTd DataLabel="Grund"><AbsenceCategoryChip Category="@context.Category" /></MudTd>
-                <MudTd DataLabel="Anmerkung">
+                <MudTd DataLabel="Anmerkung" Class="noose-mobil-aus">
                     <MudText Typo="Typo.body2" Class="mud-text-secondary">
                         @if (context.Reason is null)
                         {
@@ -64,7 +65,7 @@
                         }
                     </MudText>
                 </MudTd>
-                <MudTd DataLabel="Kenntnisnahme">
+                <MudTd DataLabel="Kenntnisnahme" Class="noose-mobil-aus">
                     @if (context.AcknowledgedAt is { } at)
                     {
                         <MudTooltip Text="@($"Durch {context.AcknowledgedByName ?? "die Führung"} am {at.ToLocalTime():dd.MM.yyyy HH:mm}")">
@@ -126,12 +127,13 @@ else
     }
     else
     {
-        <MudTable Items="_team" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1" T="AbsenceRow">
+        @* a table on phones too: agent and period; days and reason are hidden below 600px *@
+        <MudTable Items="_team" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="1" T="AbsenceRow">
             <HeaderContent>
                 <MudTh>Agent</MudTh>
                 <MudTh>Zeitraum</MudTh>
-                <MudTh>Tage</MudTh>
-                <MudTh>Grund</MudTh>
+                <MudTh Class="noose-mobil-aus">Tage</MudTh>
+                <MudTh Class="noose-mobil-aus">Grund</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Agent"><b>@context.Codename</b></MudTd>
@@ -142,8 +144,8 @@ else
                         <text> – @context.ToDate.ToString("dd.MM.yyyy")</text>
                     }
                 </MudTd>
-                <MudTd DataLabel="Tage">@context.Days</MudTd>
-                <MudTd DataLabel="Grund"><AbsenceCategoryChip Category="@context.Category" /></MudTd>
+                <MudTd DataLabel="Tage" Class="noose-mobil-aus">@context.Days</MudTd>
+                <MudTd DataLabel="Grund" Class="noose-mobil-aus"><AbsenceCategoryChip Category="@context.Category" /></MudTd>
             </RowTemplate>
         </MudTable>
     }

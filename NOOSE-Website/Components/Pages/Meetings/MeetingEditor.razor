@@ -25,7 +25,7 @@ else
     <MudPaper Class="pa-4" Elevation="1" Style="max-width:820px;">
         <MeetingForm @key="_loadedId" Input="_input" ShowStatus="@IsEdit" />
 
-        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Class="mt-4">
+        <FormActions Class="mt-4">
             <MudButton Href="@BackHref">Abbrechen</MudButton>
             <AuthorizeView Policy="@Policies.WriteAccess">
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
@@ -33,7 +33,7 @@ else
                     @(IsEdit ? "Speichern" : "Anlegen")
                 </MudButton>
             </AuthorizeView>
-        </MudStack>
+        </FormActions>
     </MudPaper>
 }
 

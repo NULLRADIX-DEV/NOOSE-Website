@@ -1,18 +1,32 @@
-@* Top-bar button that opens the firearm-use report; shown to in-house accounts that may write. *@
+@* Top-bar button that opens the firearm-use report; shown to in-house accounts that may write.
+   AsMenuItem renders the same action as a menu entry (the phone's avatar menu), behind the same policy. *@
 @inject IDialogService DialogService
 @inject IFirearmUseService FirearmUses
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 
 <AuthorizeView Policy="@Policies.FirearmUseReport" Context="melden">
-    <MudTooltip Text="Schusswaffengebrauch melden">
-        <MudIconButton Icon="@Icons.Material.Filled.GpsFixed" Color="Color.Inherit"
-                       OnClick="ReportAsync" aria-label="Schusswaffengebrauch melden" />
-    </MudTooltip>
+    @if (AsMenuItem)
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.GpsFixed" OnClick="ReportAsync">Schusswaffengebrauch melden</MudMenuItem>
+    }
+    else
+    {
+        <MudTooltip Text="Schusswaffengebrauch melden" RootClass="@Class">
+            <MudIconButton Icon="@Icons.Material.Filled.GpsFixed" Color="Color.Inherit"
+                           OnClick="ReportAsync" aria-label="Schusswaffengebrauch melden" />
+        </MudTooltip>
+    }
 </AuthorizeView>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    /// <summary>Renders a menu entry instead of the icon button, for a <c>MudMenu</c>.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
+
+    /// <summary>Classes on the button's outer element, e.g. a helper class that hides it on phones.</summary>
+    [Parameter] public string? Class { get; set; }
 
     private async Task ReportAsync()
     {

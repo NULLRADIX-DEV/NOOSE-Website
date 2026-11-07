@@ -1,16 +1,17 @@
 @* Approve a funding request: cut quantities per line, note the decision, justify a budget overrun. *@
 
-<MudDialog>
+@* a long form: full screen below 600px (noose-dialog-lang); the table keeps position and both quantities there *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         <MudStack Spacing="3">
             <MudSimpleTable Dense="true" Striped="true">
                 <thead>
                     <tr>
                         <th>Position</th>
-                        <th style="text-align:right">Einzelpreis</th>
+                        <th class="noose-mobil-aus" style="text-align:right">Einzelpreis</th>
                         <th style="text-align:right">Beantragt</th>
                         <th style="text-align:right">Genehmigt</th>
-                        <th style="text-align:right">Zuschuss</th>
+                        <th class="noose-mobil-aus" style="text-align:right">Zuschuss</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -19,14 +20,14 @@
                         var lineId = line.Id;
                         <tr>
                             <td>@line.ItemName <MudText Typo="Typo.caption" Class="mud-text-secondary">(@line.SubsidyPercent %)</MudText></td>
-                            <td style="text-align:right">@Money.Format(line.UnitPrice)</td>
+                            <td class="noose-mobil-aus" style="text-align:right">@Money.Format(line.UnitPrice)</td>
                             <td style="text-align:right">@line.Quantity</td>
                             <td style="text-align:right; width:120px">
                                 <MudNumericField T="int" Value="@_quantities[lineId]" Min="0" Max="@line.Quantity"
                                                  ValueChanged="@(v => SetQuantity(lineId, v))"
                                                  Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </td>
-                            <td style="text-align:right">
+                            <td class="noose-mobil-aus" style="text-align:right">
                                 @Money.Format(FinancingMath.Subsidy(line.UnitPrice, _quantities[lineId], line.SubsidyPercent))
                             </td>
                         </tr>

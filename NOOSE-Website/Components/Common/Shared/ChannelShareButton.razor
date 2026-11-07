@@ -2,7 +2,18 @@
 @inject IDialogService DialogService
 
 @* writers only, once a channel exists *@
-@if (_channels.Count > 0)
+@if (_channels.Count > 0 && AsMenuItem)
+{
+    @if (Restricted)
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.Send" Disabled="true">Teilen gesperrt (Verschlusssache)</MudMenuItem>
+    }
+    else
+    {
+        <MudMenuItem Icon="@Icons.Material.Filled.Send" OnClick="OpenAsync">In Discord teilen</MudMenuItem>
+    }
+}
+else if (_channels.Count > 0)
 {
     @if (Restricted)
     {
@@ -26,6 +37,8 @@
 
     /// <summary>Record carries a secrecy level: button shown locked.</summary>
     [Parameter] public bool Restricted { get; set; }
+    /// <summary>Renders the action as a menu entry (the ⋮ menu of a narrow page header), behind the same check.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
 
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 

@@ -1,7 +1,8 @@
 @* Award a decoration, or correct a standing award; the announcement switches only exist for a new one. *@
 @inject IPlaceholderService Placeholder
 
-<MudDialog>
+@* a long form: full screen below 600px (noose-dialog-lang) *@
+<MudDialog Class="noose-dialog-lang">
     <DialogContent>
         <MudForm @ref="_form">
             <MudStack Spacing="3">

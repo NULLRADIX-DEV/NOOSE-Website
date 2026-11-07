@@ -17,8 +17,8 @@
             @foreach (var st in _states)
             {
                 <MudPaper Class="pa-3 mb-2" Outlined="true">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                        <div>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <div class="noose-eintrag-titel">
                             <MudText Typo="Typo.subtitle2">@PartnerAgencyDisplay.Name(st.Agency)</MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@PartnerAgencyDisplay.LongName(st.Agency)</MudText>
                         </div>

@@ -1,0 +1,198 @@
+name: Handy-Tests
+
+# Unit tests plus the browser tests of NOOSE-Website.E2E: every route at 375 px must fit without sideways scrolling
+# (job "handy"), and at 1280 px the branch must render like master (job "desktop"). Own workflow next to image.yml so
+# it never blocks the image build. All three jobs are hard checks.
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: handy-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Unit tests
+        run: dotnet test NOOSE-Website.Tests/NOOSE-Website.Tests.csproj
+
+  handy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          # throwaway database of this job: random root password, app user with a per-run value (no secrets)
+          MARIADB_RANDOM_ROOT_PASSWORD: "1"
+          MARIADB_DATABASE: noose_e2e
+          MARIADB_USER: noose
+          MARIADB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-e2e
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      APP_URL: http://127.0.0.1:5080
+      DB_CONNECTION: Server=127.0.0.1;Port=3306;Database=noose_e2e;User ID=noose;Password=${{ github.run_id }}-${{ github.run_attempt }}-e2e;SslMode=None;
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish app
+        run: dotnet publish NOOSE-Website/NOOSE-Website.csproj -c Release -o "$RUNNER_TEMP/app"
+      - name: Start app in demo mode
+        working-directory: ${{ runner.temp }}/app
+        env:
+          ConnectionStrings__DefaultConnection: ${{ env.DB_CONNECTION }}
+          Demo__AutoSetup: "true"
+          ASPNETCORE_URLS: ${{ env.APP_URL }}
+        run: nohup dotnet NOOSE-Website.dll > "$RUNNER_TEMP/app.log" 2>&1 &
+      - name: Build browser tests
+        run: dotnet build NOOSE-Website.E2E/NOOSE-Website.E2E.csproj -c Release
+      - name: Install Chromium
+        run: pwsh NOOSE-Website.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Wait for /health
+        run: |
+          for _ in $(seq 1 90); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL/health")" = "200" ]; then exit 0; fi
+            sleep 2
+          done
+          echo "app did not become healthy"
+          tail -60 "$RUNNER_TEMP/app.log"
+          exit 1
+      - name: Browser tests
+        env:
+          NOOSE_E2E_BASEURL: ${{ env.APP_URL }}
+          NOOSE_E2E_ARTIFACTS: ${{ runner.temp }}/e2e-artifacts
+        run: >-
+          dotnet test NOOSE-Website.E2E/NOOSE-Website.E2E.csproj -c Release --no-build
+          --filter "FullyQualifiedName!~DesktopBaselineTests"
+          --logger "trx;LogFileName=handy.trx" --results-directory "$RUNNER_TEMP/e2e-results"
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: handy-tests
+          path: |
+            ${{ runner.temp }}/e2e-results
+            ${{ runner.temp }}/e2e-artifacts
+            ${{ runner.temp }}/app.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          # throwaway server of this job with two databases (master and branch); per-run root value, no secrets
+          MARIADB_ROOT_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-desktop
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      APP_URL: http://127.0.0.1:5080
+      BASE_URL: http://127.0.0.1:5081
+      DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-desktop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check out master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          path: baseline
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Create databases
+        run: >-
+          docker exec ${{ job.services.mariadb.id }} mariadb -uroot -p"$DB_PASSWORD"
+          -e "CREATE DATABASE noose_base CHARACTER SET utf8mb4; CREATE DATABASE noose_head CHARACTER SET utf8mb4;"
+      - name: Publish master and branch
+        run: |
+          dotnet publish baseline/NOOSE-Website/NOOSE-Website.csproj -c Release -o "$RUNNER_TEMP/app-base"
+          dotnet publish NOOSE-Website/NOOSE-Website.csproj -c Release -o "$RUNNER_TEMP/app-head"
+      - name: Start both apps in demo mode
+        env:
+          Demo__AutoSetup: "true"
+        run: |
+          cd "$RUNNER_TEMP/app-base"
+          ConnectionStrings__DefaultConnection="Server=127.0.0.1;Port=3306;Database=noose_base;User ID=root;Password=$DB_PASSWORD;SslMode=None;" \
+            ASPNETCORE_URLS="$BASE_URL" nohup dotnet NOOSE-Website.dll > "$RUNNER_TEMP/app-base.log" 2>&1 &
+          cd "$RUNNER_TEMP/app-head"
+          ConnectionStrings__DefaultConnection="Server=127.0.0.1;Port=3306;Database=noose_head;User ID=root;Password=$DB_PASSWORD;SslMode=None;" \
+            ASPNETCORE_URLS="$APP_URL" nohup dotnet NOOSE-Website.dll > "$RUNNER_TEMP/app-head.log" 2>&1 &
+      - name: Build browser tests
+        run: dotnet build NOOSE-Website.E2E/NOOSE-Website.E2E.csproj -c Release
+      - name: Install Chromium
+        run: pwsh NOOSE-Website.E2E/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+      - name: Wait for /health
+        run: |
+          for url in "$BASE_URL" "$APP_URL"; do
+            ok=
+            for _ in $(seq 1 90); do
+              if [ "$(curl -s -o /dev/null -w '%{http_code}' "$url/health")" = "200" ]; then ok=1; break; fi
+              sleep 2
+            done
+            if [ -z "$ok" ]; then
+              echo "$url did not become healthy"
+              tail -60 "$RUNNER_TEMP/app-base.log" "$RUNNER_TEMP/app-head.log"
+              exit 1
+            fi
+          done
+      - name: Desktop comparison
+        env:
+          NOOSE_E2E_BASEURL: ${{ env.APP_URL }}
+          NOOSE_E2E_BASELINE_URL: ${{ env.BASE_URL }}
+          NOOSE_E2E_ARTIFACTS: ${{ runner.temp }}/e2e-artifacts
+        run: >-
+          dotnet test NOOSE-Website.E2E/NOOSE-Website.E2E.csproj -c Release --no-build
+          --filter "FullyQualifiedName~DesktopBaselineTests"
+          --logger "trx;LogFileName=desktop.trx" --results-directory "$RUNNER_TEMP/e2e-results"
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-tests
+          path: |
+            ${{ runner.temp }}/e2e-results
+            ${{ runner.temp }}/e2e-artifacts
+            ${{ runner.temp }}/app-base.log
+            ${{ runner.temp }}/app-head.log
+          if-no-files-found: ignore
+          retention-days: 14

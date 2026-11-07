@@ -1,13 +1,17 @@
-@* Person identity card: mugshot and core data at a glance. *@
+@* Person identity card: mugshot and core data at a glance.
+   Below 960px it shrinks to a compact head (noose-steckbrief-* in app.css): 64px picture beside the name, the markers
+   in one wrapping row, the counts, and the rest behind "Details". The wrappers repeat MudStack's gap-3 column, so
+   from 960px up the card renders as before. *@
 @using NOOSE_Website.Models.Informants
 @{
     var photo = Person.Photos.OrderByDescending(f => f.CreatedAt).FirstOrDefault();
 }
-<MudPaper Class="pa-4" Elevation="2">
+<MudPaper Class="pa-4 noose-steckbrief" Elevation="2">
     <MudStack Spacing="3">
+        <div class="d-flex flex-column gap-3 noose-steckbrief-kopf">
         @if (photo is not null)
         {
-            <div @onclick="@(() => OpenLightboxAsync(photo))" style="cursor:pointer;">
+            <div class="noose-steckbrief-bild" @onclick="@(() => OpenLightboxAsync(photo))" style="cursor:pointer;">
                 <MudImage Src="@($"/dateien/personen/foto/{photo.Id}")" Alt="@Person.Name"
                           Height="220" ObjectFit="ObjectFit.Cover" Class="rounded"
                           Style="@($"width:100%; object-position:{photo.FocalPointX}% {photo.FocalPointY}%")" />
@@ -15,14 +19,14 @@
         }
         else
         {
-            <MudStack AlignItems="AlignItems.Center" Class="py-4">
+            <MudStack AlignItems="AlignItems.Center" Class="py-4 noose-steckbrief-bild">
                 <MudAvatar Color="Color.Primary" Rounded="true" Style="height:140px;width:140px;font-size:3rem;">
                     @Initials(Person.Name)
                 </MudAvatar>
             </MudStack>
         }
 
-        <div>
+        <div class="noose-steckbrief-name">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                 <MudText Typo="Typo.h5">@Person.Name</MudText>
                 @if (Person.IsClassified)
@@ -41,12 +45,14 @@
             </MudStack>
             <MudText Typo="Typo.body2" Class="mud-text-secondary">@Person.CaseNumber</MudText>
         </div>
+        </div>
 
-        <MudStack Spacing="1">
+        <MudStack Spacing="1" Class="noose-steckbrief-kennzeichen">
             <LifeStatusBadge Status="Person.LifeStatus" DeadUntil="Person.DeadUntil" />
             <ClassificationBadge Value="Person.Classification" />
         </MudStack>
 
+        <div class="@RestClass">
         @if (Affiliations.Count > 0)
         {
             <div>
@@ -80,6 +86,7 @@
                            Color="Color.Info" Size="Size.Small" Label="Veralterung deaktiviert" />
             </AuthorizeView>
         </MudStack>
+        </div>
         <MudStack Row="true" Spacing="4" Class="flex-wrap">
             @foreach (var (value, label) in Metrics())
             {
@@ -89,6 +96,11 @@
                 </MudStack>
             }
         </MudStack>
+        <MudButton Variant="Variant.Text" Size="Size.Small" Class="noose-nur-schmal align-self-start"
+                   EndIcon="@(_details ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                   OnClick="@(() => _details = !_details)" aria-expanded="@(_details ? "true" : "false")">
+            @(_details ? "Weniger" : "Details")
+        </MudButton>
     </MudStack>
 </MudPaper>
 
@@ -106,6 +118,13 @@
     [Inject] private IInformantService Informants { get; set; } = default!;
 
     private InformantPersonMarker? _informant;
+
+    // below 960px the affiliations, aging and recency lines start folded; the class does nothing from 960px up
+    private bool _details;
+
+    private string RestClass => _details
+        ? "d-flex flex-column gap-3 noose-steckbrief-rest"
+        : "d-flex flex-column gap-3 noose-steckbrief-rest noose-steckbrief-zu";
     private string _markerFor = string.Empty;
 
     protected override async Task OnParametersSetAsync()

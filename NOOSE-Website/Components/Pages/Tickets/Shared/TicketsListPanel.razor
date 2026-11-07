@@ -1,27 +1,35 @@
-﻿@inject ITicketService Tickets
+﻿@using NOOSE_Website.Models.Navigation
+@inject ITicketService Tickets
 @inject TicketBroadcaster Broadcaster
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
 @implements IDisposable
 
-<MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4">
+<MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-4 noose-filterleiste">
     <MudTextField T="string" @bind-Value="_search" Label="Suche" Placeholder="Aktenzeichen, Betreff oder Name"
                   Variant="Variant.Outlined" Margin="Margin.Dense" Adornment="Adornment.Start"
                   AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="300"
-                  OnDebounceIntervalElapsed="ReloadAsync" Style="max-width:340px;" />
-    <MudSelect T="TicketKategorie?" @bind-Value="_category" Label="Kategorie" Clearable="true"
-               Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:220px;"
-               ToStringFunc="@(c => c is { } v ? TicketKategorieDisplay.Name(v) : "Alle")"
-               @bind-Value:after="ReloadAsync">
-        @foreach (var option in TicketKategorieDisplay.All)
-        {
-            <MudSelectItem T="TicketKategorie?" Value="@option">@TicketKategorieDisplay.Name(option)</MudSelectItem>
-        }
-    </MudSelect>
-    <MudSwitch T="bool" @bind-Value="_onlyMine" Color="Color.Primary" Label="Nur meine"
-               @bind-Value:after="ReloadAsync" />
-    <MudSwitch T="bool" @bind-Value="_byPriority" Color="Color.Primary" Label="Nach Priorität"
-               @bind-Value:after="ReloadAsync" />
+                  OnDebounceIntervalElapsed="ReloadAsync" Style="max-width:340px;" Class="noose-filter-feld" />
+    @* phones: the filters fold behind "Filter (n)"; from 600px up the button is gone and they stand as before *@
+    <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+               Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)">Filter (@ActiveFilters)</MudButton>
+    <MobileColumnPicker ListKey="tickets" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                        VisibleChanged="@(v => _phoneColumns = v)" />
+    <div class="@($"d-contents{(_filtersOpen ? "" : " noose-filter-zu")}")">
+        <MudSelect T="TicketKategorie?" @bind-Value="_category" Label="Kategorie" Clearable="true"
+                   Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:220px;" Class="noose-filter-feld"
+                   ToStringFunc="@(c => c is { } v ? TicketKategorieDisplay.Name(v) : "Alle")"
+                   @bind-Value:after="ReloadAsync">
+            @foreach (var option in TicketKategorieDisplay.All)
+            {
+                <MudSelectItem T="TicketKategorie?" Value="@option">@TicketKategorieDisplay.Name(option)</MudSelectItem>
+            }
+        </MudSelect>
+        <MudSwitch T="bool" @bind-Value="_onlyMine" Color="Color.Primary" Label="Nur meine"
+                   @bind-Value:after="ReloadAsync" />
+        <MudSwitch T="bool" @bind-Value="_byPriority" Color="Color.Primary" Label="Nach Priorität"
+                   @bind-Value:after="ReloadAsync" />
+    </div>
 </MudStack>
 
 @if (_load)
@@ -35,23 +43,23 @@ else if (_rows.Count == 0)
 }
 else
 {
-    @* Breakpoint like the equally wide notice list: nine columns stack into their DataLabels on a tablet
-       instead of scrolling the table container sideways *@
-    <MudTable Items="_rows" Hover="true" Dense="true" Style="cursor:pointer;" Breakpoint="Breakpoint.Sm"
+    @* Breakpoint.None: a table at every width; a phone shows the columns the agent picked instead of stacking nine
+       columns into cards *@
+    <MudTable Items="_rows" Hover="true" Dense="true" Style="cursor:pointer;" Breakpoint="Breakpoint.None"
               OnRowClick="@((TableRowClickEventArgs<TicketRow> e) => Open(e.Item))">
         <HeaderContent>
-            <MudTh>Aktenzeichen</MudTh>
-            <MudTh>Betreff</MudTh>
-            <MudTh>Bürger</MudTh>
-            <MudTh>Kategorie</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Bearbeiter</MudTh>
-            <MudTh>Priorität</MudTh>
-            <MudTh>Wartet seit</MudTh>
-            <MudTh>Letzte Aktivität</MudTh>
+            <MudTh Class="@Col("aktenzeichen")">Aktenzeichen</MudTh>
+            <MudTh Class="@Col("betreff")">Betreff</MudTh>
+            <MudTh Class="@Col("buerger")">Bürger</MudTh>
+            <MudTh Class="@Col("kategorie")">Kategorie</MudTh>
+            <MudTh Class="@Col("status")">Status</MudTh>
+            <MudTh Class="@Col("bearbeiter")">Bearbeiter</MudTh>
+            <MudTh Class="@Col("prioritaet")">Priorität</MudTh>
+            <MudTh Class="@Col("wartet")">Wartet seit</MudTh>
+            <MudTh Class="@Col("aktivitaet")">Letzte Aktivität</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Aktenzeichen">
+            <MudTd DataLabel="Aktenzeichen" Class="@Col("aktenzeichen")">
                 <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                     @context.CaseNumber
                     @if (context.AwaitingAnswer)
@@ -66,20 +74,20 @@ else
                     }
                 </MudStack>
             </MudTd>
-            <MudTd DataLabel="Betreff">@context.Subject</MudTd>
-            <MudTd DataLabel="Bürger">@context.CitizenName</MudTd>
-            <MudTd DataLabel="Kategorie">
+            <MudTd DataLabel="Betreff" Class="@Col("betreff")">@context.Subject</MudTd>
+            <MudTd DataLabel="Bürger" Class="@Col("buerger")">@context.CitizenName</MudTd>
+            <MudTd DataLabel="Kategorie" Class="@Col("kategorie")">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
                     @TicketKategorieDisplay.Name(context.Category)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Status">
+            <MudTd DataLabel="Status" Class="@Col("status")">
                 <MudChip T="string" Size="Size.Small" Color="@StatusColour(context.Status)">
                     @TicketStatusDisplay.Name(context.Status)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Bearbeiter">@(string.IsNullOrWhiteSpace(context.HandlerCodename) ? "—" : context.HandlerCodename)</MudTd>
-            <MudTd DataLabel="Priorität">
+            <MudTd DataLabel="Bearbeiter" Class="@Col("bearbeiter")">@(string.IsNullOrWhiteSpace(context.HandlerCodename) ? "—" : context.HandlerCodename)</MudTd>
+            <MudTd DataLabel="Priorität" Class="@Col("prioritaet")">
                 <MudTooltip Text="@(context.PriorityIsManual
                                     ? "Von Hand gesetzt; die automatische Reihenfolge greift hier nicht."
                                     : "Automatisch aus Kategorie, Wartezeit und Vertrauen des Kontos.")">
@@ -90,7 +98,7 @@ else
                     </MudChip>
                 </MudTooltip>
             </MudTd>
-            <MudTd DataLabel="Wartet seit">
+            <MudTd DataLabel="Wartet seit" Class="@Col("wartet")">
                 @{
                     var reaction = TicketRules.Reaction(context.Status, context.WaitingSince, DateTime.UtcNow);
                 }
@@ -108,7 +116,7 @@ else
                     </MudTooltip>
                 }
             </MudTd>
-            <MudTd DataLabel="Letzte Aktivität">@context.LastActivityAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Letzte Aktivität" Class="@Col("aktivitaet")">@context.LastActivityAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -128,6 +136,25 @@ else
     private bool _onlyMine;
     private bool _byPriority;
     private bool _load = true;
+    private bool _filtersOpen;
+
+    private int ActiveFilters => (_category is null ? 0 : 1) + (_onlyMine ? 1 : 0) + (_byPriority ? 1 : 0);
+
+    /// <summary>The table's columns for the phone column picker, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("betreff", "Betreff"), ("buerger", "Bürger"), ("kategorie", "Kategorie"),
+        ("status", "Status"), ("bearbeiter", "Bearbeiter"), ("prioritaet", "Priorität"), ("wartet", "Wartet seit"),
+        ("aktivitaet", "Letzte Aktivität"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the subject and the status.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["betreff", "status"];
+
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     protected override async Task OnInitializedAsync()
     {

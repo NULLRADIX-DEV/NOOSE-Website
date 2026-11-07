@@ -47,7 +47,7 @@ else
         @* three panels instead of one column: the flat stack put a 7-field grid, two bounty tables and a
            240px editor under each other. KeepPanelsAlive for two reasons — unsaved typing must survive a tab
            change, and richtext.js keeps its clipboard fallback on the DOM element, which a rebuild would drop *@
-        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pt-4"
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" TabPanelsClass="pt-4" Class="noose-reiter-handy"
                  KeepPanelsAlive="true" ActivePanelIndex="_tab" ActivePanelIndexChanged="TabChanged">
             <MudTabPanel Text="Steckbrief" Icon="@Icons.Material.Filled.Badge">
                 <MudStack Spacing="3">
@@ -189,7 +189,8 @@ else
         }
         else
         {
-        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+        @* FormActions repeats the row's look (align-center, flex-wrap, start); below 960px it pins to the bottom *@
+        <FormActions Justify="Justify.FlexStart" Class="align-center flex-wrap">
             <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" Disabled="_busy"
                        StartIcon="@Icons.Material.Filled.Save">Speichern</MudButton>
 
@@ -243,7 +244,7 @@ else
                     }
                 </MudMenu>
             }
-        </MudStack>
+        </FormActions>
         }
     </MudStack>
 }

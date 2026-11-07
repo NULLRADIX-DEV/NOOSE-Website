@@ -25,17 +25,21 @@ else if (_edit && !_found)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* hand-built title row (its back button runs Cancel, which PageHeader's link cannot); from 960px up it holds
+       Abbrechen and Speichern as before, below 960px they move to the form bar at the end of the form *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel" aria-label="Zurück" />
-        <MudIcon Icon="@Icons.Material.Filled.Article" Color="Color.Primary" Size="Size.Large" />
+        <MudIcon Icon="@Icons.Material.Filled.Article" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
         <MudText Typo="Typo.h4">@(_edit ? "Dokument bearbeiten" : "Neues Dokument")</MudText>
         <MudSpacer />
-        <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
-        @* edit-mode save is for writers or a partner editing their own document; create-mode stays open *@
-        @if (!_edit || _user.MayWrite() || _mayEditOwn)
-        {
-            <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
-        }
+        <div class="d-contents noose-schmal-aus">
+            <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
+            @* edit-mode save is for writers or a partner editing their own document; create-mode stays open *@
+            @if (!_edit || _user.MayWrite() || _mayEditOwn)
+            {
+                <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
+            }
+        </div>
     </MudStack>
 
     <MudPaper Class="pa-4" Elevation="2">
@@ -120,6 +124,14 @@ else
                                 OnSaveRequested="SaveAsync"
                                 DraftKey='@(_edit ? $"dokument:{Id}" : $"dokument:neu:{_entityType}:{_entityId}")' />
             }
+            @* the same two buttons as the title row, pinned to the bottom below 960px; gone from 960px up *@
+            <FormActions Class="noose-nur-schmal">
+                <MudButton OnClick="Cancel" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
+                @if (!_edit || _user.MayWrite() || _mayEditOwn)
+                {
+                    <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
+                }
+            </FormActions>
         </MudStack>
     </MudPaper>
 }

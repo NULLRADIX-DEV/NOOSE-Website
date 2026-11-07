@@ -1,33 +1,42 @@
-@* Ledger of all deposits/withdrawals. *@
+@* Ledger of all deposits/withdrawals: the entries table of /asservatenkammer, with its phone column picker.
+   Below 600px the two filters fold behind "Filter (n)". *@
+@using NOOSE_Website.Models.Navigation
 @inject IEvidenceService Evidence
 @inject IProfileSuggestionService SuggestionService
 @inject NavigationManager Nav
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
-        <MudText Typo="Typo.h6">Ein- & Auslagerungen</MudText>
-        <MudSpacer />
-        <MudSelect T="EvidenceEntryType?" Value="_type" ValueChanged="OnTypeChanged" Clearable="true" Dense="true"
-                   Placeholder="Alle Arten" Style="max-width:220px" Variant="Variant.Outlined">
-            @foreach (var t in EvidenceEntryTypeDisplay.All)
-            {
-                <MudSelectItem T="EvidenceEntryType?" Value="@t">@EvidenceEntryTypeDisplay.Name(t)</MudSelectItem>
-            }
-        </MudSelect>
-        <MudSelect T="string" Value="_category" ValueChanged="OnCategoryChanged" Clearable="true" Dense="true"
-                   Placeholder="Alle Kategorien" Style="min-width:180px;max-width:220px" Variant="Variant.Outlined"
-                   ToStringFunc="@(c => c is null ? string.Empty : EvidenceCategories.Label(c))">
-            @foreach (var c in _categories)
-            {
-                <MudSelectItem T="string" Value="@c">@c</MudSelectItem>
-            }
-            <MudSelectItem T="string" Value="@EvidenceCategories.None">Ohne Kategorie</MudSelectItem>
-        </MudSelect>
-        <AuthorizeView Policy="@Policies.WriteAccess">
-            <MudButton Href="/asservatenkammer/eintrag/neu" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add">Neuer Eintrag</MudButton>
-        </AuthorizeView>
-    </MudStack>
+    <SectionHeader Title="Ein- & Auslagerungen" Wrap="Wrap.Wrap" Class="noose-filterleiste">
+        <Actions>
+            @* below 600px the filters fold behind this button; from 600px up it is gone and the selects stand as before *@
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList" Class="noose-nur-handy"
+                       OnClick="@(() => _filtersOpen = !_filtersOpen)" aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@ActiveFilters)</MudButton>
+            <MobileColumnPicker ListKey="asservate-eintraege" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
+            <div class="@FilterGroupClass">
+                <MudSelect T="EvidenceEntryType?" Value="_type" ValueChanged="OnTypeChanged" Clearable="true" Dense="true"
+                           Placeholder="Alle Arten" Style="max-width:220px" Variant="Variant.Outlined" Class="noose-filter-feld">
+                    @foreach (var t in EvidenceEntryTypeDisplay.All)
+                    {
+                        <MudSelectItem T="EvidenceEntryType?" Value="@t">@EvidenceEntryTypeDisplay.Name(t)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudSelect T="string" Value="_category" ValueChanged="OnCategoryChanged" Clearable="true" Dense="true"
+                           Placeholder="Alle Kategorien" Style="min-width:180px;max-width:220px" Variant="Variant.Outlined"
+                           ToStringFunc="@(c => c is null ? string.Empty : EvidenceCategories.Label(c))" Class="noose-filter-feld">
+                    @foreach (var c in _categories)
+                    {
+                        <MudSelectItem T="string" Value="@c">@c</MudSelectItem>
+                    }
+                    <MudSelectItem T="string" Value="@EvidenceCategories.None">Ohne Kategorie</MudSelectItem>
+                </MudSelect>
+            </div>
+            <AuthorizeView Policy="@Policies.WriteAccess">
+                <MudButton Href="/asservatenkammer/eintrag/neu" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add">Neuer Eintrag</MudButton>
+            </AuthorizeView>
+        </Actions>
+    </SectionHeader>
 
     @if (_load)
     {
@@ -45,33 +54,33 @@
         <MudSimpleTable Dense="true" Hover="true" Striped="true">
             <thead>
                 <tr>
-                    <th>Aktenzeichen</th>
-                    <th>Art</th>
-                    <th>Gegenstände</th>
-                    <th>Besitzer</th>
-                    <th>Bearbeiter</th>
-                    <th>Datum</th>
+                    <th class="@Col("aktenzeichen")">Aktenzeichen</th>
+                    <th class="@Col("art")">Art</th>
+                    <th class="@Col("gegenstaende")">Gegenstände</th>
+                    <th class="@Col("besitzer")">Besitzer</th>
+                    <th class="@Col("bearbeiter")">Bearbeiter</th>
+                    <th class="@Col("datum")">Datum</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var r in _rows)
                 {
                     <tr style="cursor:pointer" @onclick="@(() => Nav.NavigateTo($"/asservatenkammer/eintrag/{r.Entry.Id}"))">
-                        <td>@r.Entry.CaseNumber</td>
-                        <td>
+                        <td class="@Col("aktenzeichen")">@r.Entry.CaseNumber</td>
+                        <td class="@Col("art")">
                             <MudChip T="string" Size="Size.Small" Color="@EvidenceEntryTypeDisplay.ChipColor(r.Entry.Type)"
                                      Icon="@EvidenceEntryTypeDisplay.Icon(r.Entry.Type)">
                                 @EvidenceEntryTypeDisplay.Name(r.Entry.Type)
                             </MudChip>
                         </td>
-                        <td style="max-width:360px">
+                        <td style="max-width:360px" class="@Col("gegenstaende")">
                             <MudTooltip Text="@EvidenceDisplay.ItemsFull(r)">
                                 <span>@EvidenceDisplay.ItemsSummary(r)</span>
                             </MudTooltip>
                         </td>
-                        <td>@r.OwnerDisplay</td>
-                        <td>@r.HandlerCodename</td>
-                        <td>@r.Entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="@Col("besitzer")">@r.OwnerDisplay</td>
+                        <td class="@Col("bearbeiter")">@r.HandlerCodename</td>
+                        <td class="@Col("datum")">@r.Entry.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                     </tr>
                 }
             </tbody>
@@ -85,6 +94,29 @@
     private string? _category;
     private List<EvidenceEntryDisplay> _rows = new();
     private IReadOnlyList<string> _categories = Array.Empty<string>();
+
+    /// <summary>The table's columns for the phone column picker, in table order; keys in lower case without umlauts.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("art", "Art"), ("gegenstaende", "Gegenstände"), ("besitzer", "Besitzer"),
+        ("bearbeiter", "Bearbeiter"), ("datum", "Datum"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: file number and the items booked.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["aktenzeichen", "gegenstaende"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    // below 600px the filter selects start folded behind "Filter (n)"; the class does nothing from 600px up
+    private bool _filtersOpen;
+
+    private string FilterGroupClass => _filtersOpen ? "d-contents" : "d-contents noose-filter-zu";
+
+    private int ActiveFilters => (_type is null ? 0 : 1) + (_category is null ? 0 : 1);
 
     protected override async Task OnInitializedAsync()
     {

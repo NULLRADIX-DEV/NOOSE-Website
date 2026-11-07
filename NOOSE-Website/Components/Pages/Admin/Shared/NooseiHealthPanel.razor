@@ -73,10 +73,11 @@ else
                 <th>Funktion</th>
                 <th class="text-right">Anfragen</th>
                 <th class="text-right">Erfolg</th>
-                <th class="text-right">Median</th>
-                <th class="text-right">p95</th>
-                <th class="text-right">davon Werkzeuge</th>
-                <th class="text-right">Kontingent-Token</th>
+                @* phones keep function, requests and success; the timings and tokens stay on wider screens *@
+                <th class="text-right noose-mobil-aus">Median</th>
+                <th class="text-right noose-mobil-aus">p95</th>
+                <th class="text-right noose-mobil-aus">davon Werkzeuge</th>
+                <th class="text-right noose-mobil-aus">Kontingent-Token</th>
             </tr>
         </thead>
         <tbody>
@@ -90,11 +91,11 @@ else
                             @stat.SuccessShare.ToString("P0")
                         </MudText>
                     </td>
-                    <td class="text-right">@Seconds(stat.MedianMs)</td>
-                    <td class="text-right">@Seconds(stat.P95Ms)</td>
+                    <td class="text-right noose-mobil-aus">@Seconds(stat.MedianMs)</td>
+                    <td class="text-right noose-mobil-aus">@Seconds(stat.P95Ms)</td>
                     @* duration minus time inside the endpoint: says whether a slow answer was the model or the database *@
-                    <td class="text-right mud-text-secondary">@(stat.MedianToolMs > 0 ? Seconds(stat.MedianToolMs) : "—")</td>
-                    <td class="text-right">@stat.QuotaTokens.ToString("N0")</td>
+                    <td class="text-right mud-text-secondary noose-mobil-aus">@(stat.MedianToolMs > 0 ? Seconds(stat.MedianToolMs) : "—")</td>
+                    <td class="text-right noose-mobil-aus">@stat.QuotaTokens.ToString("N0")</td>
                 </tr>
             }
         </tbody>

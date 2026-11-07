@@ -23,19 +23,43 @@ else
     var w = _view.Warrant;
     <PageHeader Icon="@WarrantTypeDisplay.Icon(w.Type)" Title="@($"{WarrantTypeDisplay.Name(w.Type)} {w.CaseNumber}")"
                 BackHref="/anordnungen">
+        @* The decision (sign, refuse, cancel) is the main action and stays at every width. Print and delete keep their
+           places between and after it from 960px up; below 960px they move into the ⋮ menu, under the same conditions
+           as their buttons. The d-contents wrappers add no box, so the wide row is the one it always was. *@
         <Actions>
             @if (WarrantRules.WasSigned(w))
             {
-                <MudTooltip Text="Druckansicht zum Vorzeigen">
-                    <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/anordnungen/{w.Id}/druck")" Target="_blank"
-                                   aria-label="Druckansicht öffnen" />
-                </MudTooltip>
+                <div class="d-contents noose-schmal-aus">
+                    <MudTooltip Text="Druckansicht zum Vorzeigen">
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/anordnungen/{w.Id}/druck")" Target="_blank"
+                                       aria-label="Druckansicht öffnen" />
+                    </MudTooltip>
+                </div>
             }
             <WarrantDecisionButtons View="_view" User="_user" Changed="ReloadAsync" />
             @if (MayDelete)
             {
-                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
-                           OnClick="DeleteAsync">Löschen</MudButton>
+                <div class="d-contents noose-schmal-aus">
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete"
+                               OnClick="DeleteAsync">Löschen</MudButton>
+                </div>
+            }
+            @if (WarrantRules.WasSigned(w) || MayDelete)
+            {
+                <HeaderMenu>
+                    @if (WarrantRules.WasSigned(w))
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/anordnungen/{w.Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+                    }
+                    @if (MayDelete)
+                    {
+                        @if (WarrantRules.WasSigned(w))
+                        {
+                            <MudDivider Class="my-1" />
+                        }
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+                    }
+                </HeaderMenu>
             }
         </Actions>
     </PageHeader>

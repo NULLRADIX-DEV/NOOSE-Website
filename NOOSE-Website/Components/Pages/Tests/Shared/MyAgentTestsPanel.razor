@@ -13,9 +13,10 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm">
+    @* a table on phones too: due date and result are hidden below 600px *@
+    <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.None">
         <HeaderContent>
-            <MudTh>Test</MudTh><MudTh>Fällig</MudTh><MudTh>Stand</MudTh><MudTh>Ergebnis</MudTh><MudTh></MudTh>
+            <MudTh>Test</MudTh><MudTh Class="noose-mobil-aus">Fällig</MudTh><MudTh>Stand</MudTh><MudTh Class="noose-mobil-aus">Ergebnis</MudTh><MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Test">
@@ -24,7 +25,7 @@ else
                     zugewiesen am @context.AssignedAt.ToLocalTime().ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(context.AssignedByName) ? "" : " von " + context.AssignedByName)
                 </MudText>
             </MudTd>
-            <MudTd DataLabel="Fällig">
+            <MudTd DataLabel="Fällig" Class="noose-mobil-aus">
                 @if (context.DueAt is { } due)
                 {
                     <MudText Typo="Typo.body2" Color="@(context.IsOverdue(_now) ? Color.Error : Color.Default)">
@@ -37,7 +38,7 @@ else
                 }
             </MudTd>
             <MudTd DataLabel="Stand"><AgentTestStateChip Row="context" Now="_now" /></MudTd>
-            <MudTd DataLabel="Ergebnis">
+            <MudTd DataLabel="Ergebnis" Class="noose-mobil-aus">
                 @if (context.State == AgentTestState.Korrigiert)
                 {
                     <MudText Typo="Typo.body2">

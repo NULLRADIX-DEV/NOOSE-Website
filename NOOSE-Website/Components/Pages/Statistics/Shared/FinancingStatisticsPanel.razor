@@ -13,19 +13,19 @@
     else
     {
         <MudGrid>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <StatTile Icon="@Icons.Material.Filled.Check" Colour="Color.Success"
                           Label="Genehmigt (Zeitraum)" Value="@Money.Format(_data.ApprovedSubsidy)" Href="/finanzierungen" />
             </MudItem>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <StatTile Icon="@Icons.Material.Filled.Payments" Colour="Color.Primary"
                           Label="Ausgezahlt (Zeitraum)" Value="@Money.Format(_data.PaidSubsidy)" Href="/kasse" />
             </MudItem>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 <StatTile Icon="@Icons.Material.Filled.HourglassEmpty" Colour="Color.Info"
                           Label="Offene Anträge" Value="@_data.OpenCount.ToString()" Href="/finanzierungen?tab=alle" />
             </MudItem>
-            <MudItem xs="12" sm="6" md="3">
+            <MudItem xs="6" sm="6" md="3">
                 @* hint must use the same denominator as the rate: decided, not all requests *@
                 <StatTile Icon="@Icons.Material.Filled.Close" Colour="Color.Warning"
                           Label="Ablehnungsquote" Value="@_data.RejectionRate.ToString("P0")"

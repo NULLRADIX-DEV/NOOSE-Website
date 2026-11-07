@@ -7,6 +7,8 @@
 
 <div class="dashboard-seite">
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap" Class="mb-4">
+        @* the five CSV downloads stand as buttons from 960px up; below they are one export menu beside the print button *@
+        <div class="d-contents noose-schmal-aus">
         <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Download"
                    Href="/statistik/export/verteilungen.csv" Target="_blank">Verteilungen (CSV)</MudButton>
         <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Download"
@@ -20,6 +22,15 @@
                    Target="_blank">Bedrohung (CSV)</MudButton>
         <MudButton Variant="Variant.Outlined" Color="Color.Default" StartIcon="@Icons.Material.Filled.Download"
                    Href="/statistik/export/personen.csv" Target="_blank">Personen (CSV)</MudButton>
+        </div>
+        <MudMenu Label="Export (CSV)" StartIcon="@Icons.Material.Filled.Download" EndIcon="@Icons.Material.Filled.ArrowDropDown"
+                 Variant="Variant.Outlined" Color="Color.Default" Dense="true" Class="noose-nur-schmal">
+            <MudMenuItem Href="/statistik/export/verteilungen.csv" Target="_blank">Verteilungen</MudMenuItem>
+            <MudMenuItem Href="@($"/statistik/export/bestand.csv?range={StatisticsRangeDisplay.Token(Scope.Range)}")" Target="_blank">Bestand</MudMenuItem>
+            <MudMenuItem Href="@($"/statistik/export/durchlauf.csv?range={StatisticsRangeDisplay.Token(Scope.Range)}")" Target="_blank">Durchlauf</MudMenuItem>
+            <MudMenuItem Href="@($"/statistik/export/bedrohung.csv?range={StatisticsRangeDisplay.Token(Scope.Range)}")" Target="_blank">Bedrohung</MudMenuItem>
+            <MudMenuItem Href="/statistik/export/personen.csv" Target="_blank">Personen</MudMenuItem>
+        </MudMenu>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print"
                    Href="/statistik/druck" Target="_blank">Druck / PDF</MudButton>
     </MudStack>

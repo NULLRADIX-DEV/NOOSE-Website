@@ -1,18 +1,15 @@
 @page "/personal"
 @using NOOSE_Website.Models.Personnel
+@using NOOSE_Website.Models.Navigation
 @inject IAgentManagementService AgentService
 @inject IInactivityRadarService RadarService
 @inject NavigationManager Nav
 
 <PageTitle>Personal · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Personal</MudText>
-</MudStack>
-<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Personalakten aller FIB-Agenten: Dienstgrad-Verlauf, Belobigungen, Disziplinarisches und Beförderungen.
-</MudText>
+@* no help button: the page never had one, and the desktop stays as it was *@
+<PageHeader Icon="@Icons.Material.Filled.Badge" Title="Personal" ShowHelp="false"
+            Subtitle="Personalakten aller FIB-Agenten: Dienstgrad-Verlauf, Belobigungen, Disziplinarisches und Beförderungen." />
 
 @if (_load)
 {
@@ -21,7 +18,7 @@
 else
 {
     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="false"
-             @bind-ActivePanelIndex="_tab" Class="mb-3">
+             @bind-ActivePanelIndex="_tab" Class="mb-3 noose-reiter-handy">
         <MudTabPanel Icon="@Icons.Material.Filled.Badge" IconColor="Color.Primary"
                      Text="@($"FIB ({CountInternal})")" />
         <MudTabPanel Icon="@Icons.Material.Filled.Handshake" IconColor="Color.Info"
@@ -48,15 +45,19 @@ else
     }
     else
     {
-        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-3 noose-filterleiste" Wrap="Wrap.Wrap">
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Codename, Dienstnummer)…" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" Style="min-width:220px;" />
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1 noose-filter-feld" Style="min-width:220px;" />
             @if (_tab == TabPartner)
             {
+                @* below 600px the two selects fold behind this button; from 600px up it is gone and they stand as before *@
+                <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                           Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)"
+                           aria-expanded="@(_filtersOpen ? "true" : "false")">Filter (@ActiveFilters)</MudButton>
                 <MudSelect T="PartnerAgency?" Value="_agencyFilter" ValueChanged="@(v => _agencyFilter = v)"
                            Label="Behörde" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                           Style="min-width:160px;">
+                           Class="@FilterClass" Style="min-width:160px;">
                     <MudSelectItem T="PartnerAgency?" Value="@((PartnerAgency?)null)">Alle Behörden</MudSelectItem>
                     @foreach (var ag in PartnerAgencyDisplay.All)
                     {
@@ -65,7 +66,7 @@ else
                 </MudSelect>
                 <MudSelect T="PartnerRank?" Value="_rankFilter" ValueChanged="@(v => _rankFilter = v)"
                            Label="Rang" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                           Style="min-width:160px;">
+                           Class="@FilterClass" Style="min-width:160px;">
                     <MudSelectItem T="PartnerRank?" Value="@((PartnerRank?)null)">Alle Ränge</MudSelectItem>
                     @foreach (var pr in PartnerRankDisplay.All)
                     {
@@ -73,55 +74,58 @@ else
                     }
                 </MudSelect>
             }
+            <MobileColumnPicker ListKey="personal" Columns="_phoneColumnSet" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
         </MudStack>
 
-        <MudTable Items="_filtered" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true"
+        @* Breakpoint.None: on phones the list stays a table with fewer columns instead of stacked cards *@
+        <MudTable Items="_filtered" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true"
                   OnRowClick="@((TableRowClickEventArgs<Agent> e) => Open(e.Item))" T="Agent">
             <HeaderContent>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Codename)">Codename</MudTableSortLabel></MudTh>
-                <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.BadgeNumber)">Dienstnummer</MudTableSortLabel></MudTh>
+                <MudTh Class="@Col("codename")"><MudTableSortLabel T="Agent" SortBy="@(x => x.Codename)">Codename</MudTableSortLabel></MudTh>
+                <MudTh Class="@Col("dienstnummer")"><MudTableSortLabel T="Agent" SortBy="@(x => x.BadgeNumber)">Dienstnummer</MudTableSortLabel></MudTh>
                 @if (_mayRealName)
                 {
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.RealName)">Klarname</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("klarname")"><MudTableSortLabel T="Agent" SortBy="@(x => x.RealName)">Klarname</MudTableSortLabel></MudTh>
                 }
                 @if (_tab == TabTerminated)
                 {
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Letzter Dienstgrad</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedAt)" InitialDirection="SortDirection.Descending">Gekündigt am</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedByName)">Gekündigt von</MudTableSortLabel></MudTh>
-                    <MudTh>Grund</MudTh>
+                    <MudTh Class="@Col("dienstgrad")"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Letzter Dienstgrad</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("gekuendigtam")"><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedAt)" InitialDirection="SortDirection.Descending">Gekündigt am</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("gekuendigtvon")"><MudTableSortLabel T="Agent" SortBy="@(x => x.TerminatedByName)">Gekündigt von</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("grund")">Grund</MudTh>
                 }
                 else if (_tab == TabPartner)
                 {
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerAgency)">Behörde</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerRank)">Partner-Rang</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("behoerde")"><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerAgency)">Behörde</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("partnerrang")"><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerRank)">Partner-Rang</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("status")"><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
                 }
                 else
                 {
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => UnitLabel(x))">Abteilung</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("dienstgrad")"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("status")"><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("abteilung")"><MudTableSortLabel T="Agent" SortBy="@(x => UnitLabel(x))">Abteilung</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("hrb")"><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
                 }
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Codename">
+                <MudTd DataLabel="Codename" Class="@Col("codename")">
                     <MudLink Href="@($"/personal/{context.Id}")" @onclick:stopPropagation="true">
                         @(string.IsNullOrWhiteSpace(context.Codename) ? "Unbenannter Agent" : context.Codename)
                     </MudLink>
                 </MudTd>
-                <MudTd DataLabel="Dienstnummer"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.BadgeNumber ?? "—")</MudText></MudTd>
+                <MudTd DataLabel="Dienstnummer" Class="@Col("dienstnummer")"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.BadgeNumber ?? "—")</MudText></MudTd>
                 @if (_mayRealName)
                 {
-                    <MudTd DataLabel="Klarname"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.RealName ?? "—")</MudText></MudTd>
+                    <MudTd DataLabel="Klarname" Class="@Col("klarname")"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.RealName ?? "—")</MudText></MudTd>
                 }
                 @if (_tab == TabTerminated)
                 {
-                    <MudTd DataLabel="Letzter Dienstgrad">@DivisionRules.RankName(context)</MudTd>
-                    <MudTd DataLabel="Gekündigt am">@(context.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</MudTd>
-                    <MudTd DataLabel="Gekündigt von">@(context.TerminatedByName ?? "—")</MudTd>
-                    <MudTd DataLabel="Grund">
+                    <MudTd DataLabel="Letzter Dienstgrad" Class="@Col("dienstgrad")">@DivisionRules.RankName(context)</MudTd>
+                    <MudTd DataLabel="Gekündigt am" Class="@Col("gekuendigtam")">@(context.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</MudTd>
+                    <MudTd DataLabel="Gekündigt von" Class="@Col("gekuendigtvon")">@(context.TerminatedByName ?? "—")</MudTd>
+                    <MudTd DataLabel="Grund" Class="@Col("grund")">
                         <MudTooltip Text="@context.TerminationReason">
                             <MudText Typo="Typo.body2" Class="mud-text-secondary">@Shorten(context.TerminationReason)</MudText>
                         </MudTooltip>
@@ -129,23 +133,23 @@ else
                 }
                 else if (_tab == TabPartner)
                 {
-                    <MudTd DataLabel="Behörde">@PartnerAgencyDisplay.Name(context.PartnerAgency)</MudTd>
-                    <MudTd DataLabel="Partner-Rang">@PartnerRankDisplay.Full(context.PartnerAgency, context.PartnerRank)</MudTd>
-                    <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
+                    <MudTd DataLabel="Behörde" Class="@Col("behoerde")">@PartnerAgencyDisplay.Name(context.PartnerAgency)</MudTd>
+                    <MudTd DataLabel="Partner-Rang" Class="@Col("partnerrang")">@PartnerRankDisplay.Full(context.PartnerAgency, context.PartnerRank)</MudTd>
+                    <MudTd DataLabel="Status" Class="@Col("status")">@AgentStatusDisplay.Name(context.Status)</MudTd>
                 }
                 else
                 {
-                    <MudTd DataLabel="Dienstgrad">@DivisionRules.RankName(context)</MudTd>
-                    <MudTd DataLabel="Status">@AgentStatusDisplay.Name(context.Status)</MudTd>
-                    <MudTd DataLabel="Abteilung">@UnitLabel(context)</MudTd>
-                    <MudTd DataLabel="@DepartmentRules.ColumnLabel">@(context.IsHRB ? "Ja" : "")</MudTd>
+                    <MudTd DataLabel="Dienstgrad" Class="@Col("dienstgrad")">@DivisionRules.RankName(context)</MudTd>
+                    <MudTd DataLabel="Status" Class="@Col("status")">@AgentStatusDisplay.Name(context.Status)</MudTd>
+                    <MudTd DataLabel="Abteilung" Class="@Col("abteilung")">@UnitLabel(context)</MudTd>
+                    <MudTd DataLabel="@DepartmentRules.ColumnLabel" Class="@Col("hrb")">@(context.IsHRB ? "Ja" : "")</MudTd>
                 }
             </RowTemplate>
             <NoRecordsContent>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Keine Agenten gefunden.</MudText>
             </NoRecordsContent>
             <PagerContent>
-                <MudTablePager />
+                <MudTablePager Class="noose-pager-handy" />
             </PagerContent>
         </MudTable>
     }
@@ -169,6 +173,32 @@ else
     private List<Agent> _agents = new();
     private InactivityRadar? _radar;
     private ClaimsPrincipal _user = default!;
+    private bool _filtersOpen;
+
+    /// <summary>Every column the three agent tabs can show, in table order; the real name only for who may see it.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("codename", "Codename"), ("dienstnummer", "Dienstnummer"), ("klarname", "Klarname"),
+        ("dienstgrad", "Dienstgrad"), ("gekuendigtam", "Gekündigt am"), ("gekuendigtvon", "Gekündigt von"),
+        ("grund", "Grund"), ("behoerde", "Behörde"), ("partnerrang", "Partner-Rang"), ("status", "Status"),
+        ("abteilung", "Abteilung"), ("hrb", DepartmentRules.ColumnLabel),
+    ];
+
+    /// <summary>Codename plus the rank: the FIB rank, the last rank of a terminated agent or the partner rank.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["codename", "dienstgrad", "partnerrang"];
+
+    private IReadOnlyList<(string Key, string Label)> _phoneColumnSet = PhoneColumns;
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    private int ActiveFilters => (_agencyFilter is null ? 0 : 1) + (_rankFilter is null ? 0 : 1);
+
+    // folded only below 600px (noose-filter-zu); from 600px up the selects stand in the row as before
+    private string FilterClass => _filtersOpen ? "noose-filter-feld" : "noose-filter-feld noose-filter-zu";
 
     private IEnumerable<Agent> _filtered
     {
@@ -211,6 +241,7 @@ else
         _user = (await AuthStateTask).User;
         _mayRealName = _user.MayRealNameSee();
         _isLeadership = _user.IsLeadership();
+        _phoneColumnSet = _mayRealName ? PhoneColumns : PhoneColumns.Where(c => c.Key != "klarname").ToList();
         await LoadAsync();
         _load = false;
     }

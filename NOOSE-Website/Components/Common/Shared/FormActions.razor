@@ -1,0 +1,27 @@
+@* Save and cancel row at the end of a form page.
+   From 960px up it is the plain button row the editor pages draw today: a MudStack row, right-aligned by default,
+   so a page that switches to it keeps its look when Justify and Class repeat what it had. Below 960px the row
+   (noose-formleiste in app.css) pins to the bottom of the screen while its form is on it, clear of the phone's home
+   bar, and snackbars rise above it. It sticks inside its parent, so place it as the last child of the form's outer
+   container (the page's MudStack or MudPaper), not inside the title row. *@
+
+<MudStack Row="true" Justify="@Justify" Spacing="@Spacing" Class="@CssClass" Style="@Style">
+    @ChildContent
+</MudStack>
+
+@code {
+    /// <summary>The buttons, primary action last, as the pages have them today.</summary>
+    [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = default!;
+
+    /// <summary>Alignment of the row; FlexStart for the left-aligned rows some editors have.</summary>
+    [Parameter] public Justify Justify { get; set; } = Justify.FlexEnd;
+
+    [Parameter] public int Spacing { get; set; } = 2;
+
+    /// <summary>Extra classes for the row, e.g. the <c>mt-4</c> a page had on its own row.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    [Parameter] public string? Style { get; set; }
+
+    private string CssClass => string.IsNullOrWhiteSpace(Class) ? "noose-formleiste" : $"noose-formleiste {Class}";
+}

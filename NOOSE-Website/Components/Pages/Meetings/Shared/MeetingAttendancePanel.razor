@@ -12,7 +12,7 @@ else
     {
         <MudPaper Class="pa-3 mb-4" Elevation="2">
             <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
                     <MudText Typo="Typo.subtitle2">Dein Status:</MudText>
                     <AttendanceStateChip Status="@own.Status" Origin="@own.Origin" />
                     @if (own.From is { } f && own.To is { } t)
@@ -62,7 +62,7 @@ else
         </MudStack>
         @if (CanManage && !Closed)
         {
-            <MudStack Row="true" Spacing="2">
+            <MudStack Row="true" Spacing="2" Class="noose-kopf-umbruch">
                 <MudButton Size="Size.Small" Variant="Variant.Outlined"
                            StartIcon="@Icons.Material.Filled.DoneAll" OnClick="AllRemainingPresentAsync">
                     Alle Übrigen als anwesend
@@ -95,14 +95,17 @@ else
     }
     else if (CanManage || _mayReason)
     {
-        <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="1" T="MeetingAttendanceRow">
+        @* a table on phones too, with fixed columns: status, agent and the marking; the reason column goes, the four
+           marking buttons fold into a ⋮ menu and the fixed widths give way (MeetingAttendancePanel.razor.css) *@
+        <div class="anwesenheit-tabelle">
+        <MudTable Items="_rows" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="1" T="MeetingAttendanceRow">
             <HeaderContent>
-                <MudTh Style="width:150px;">Status</MudTh>
+                <MudTh Style="width:150px;" Class="anwesenheit-feste-breite">Status</MudTh>
                 <MudTh>Agent</MudTh>
-                <MudTh>Grund</MudTh>
+                <MudTh Class="noose-mobil-aus">Grund</MudTh>
                 @if (CanManage && !Closed)
                 {
-                    <MudTh Style="width:190px;"></MudTh>
+                    <MudTh Style="width:190px;" Class="anwesenheit-feste-breite"></MudTh>
                 }
             </HeaderContent>
             <RowTemplate>
@@ -114,7 +117,7 @@ else
                         <MudText Typo="Typo.caption" Class="mud-text-secondary ml-2">@RankDisplay.Name(r)</MudText>
                     }
                 </MudTd>
-                <MudTd DataLabel="Grund">
+                <MudTd DataLabel="Grund" Class="noose-mobil-aus">
                     @if (context.From is { } f && context.To is { } t)
                     {
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
@@ -131,7 +134,18 @@ else
                 @if (CanManage && !Closed)
                 {
                     <MudTd>
-                        <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined">
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" Class="noose-nur-handy"
+                                 AriaLabel="Anwesenheit markieren" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                            <MudMenuItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success"
+                                         OnClick="@(() => SetAsync(context.AgentId, MeetingAttendanceStatus.Present))">Als anwesend markieren</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.EventBusy" IconColor="Color.Info"
+                                         OnClick="@(() => SetAsync(context.AgentId, MeetingAttendanceStatus.SignedOff))">Als abgemeldet markieren</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Cancel" IconColor="Color.Error"
+                                         OnClick="@(() => SetAsync(context.AgentId, MeetingAttendanceStatus.Missing))">Als fehlend markieren</MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Undo"
+                                         OnClick="@(() => SetAsync(context.AgentId, MeetingAttendanceStatus.Open))">Markierung zurücksetzen</MudMenuItem>
+                        </MudMenu>
+                        <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined" Class="noose-mobil-aus">
                             <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"
                                            OnClick="@(() => SetAsync(context.AgentId, MeetingAttendanceStatus.Present))"
                                            aria-label="Als anwesend markieren" />
@@ -150,6 +164,7 @@ else
                 }
             </RowTemplate>
         </MudTable>
+        </div>
     }
     else
     {

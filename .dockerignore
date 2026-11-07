@@ -10,6 +10,7 @@ scripts/
 docs/
 TestResults/
 NOOSE-Website.Tests/
+NOOSE-Website.E2E/
 # Laufzeitdaten (Uploads, Data-Protection-Keys) kommen per Volume, nie ins Image
 NOOSE-Website/App_Data/
 NOOSE-Website/appsettings.json

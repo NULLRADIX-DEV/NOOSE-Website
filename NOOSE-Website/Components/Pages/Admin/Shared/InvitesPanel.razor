@@ -15,9 +15,9 @@
     <MudPaper Elevation="2" Class="pa-4 mb-6">
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
             <MudTextField @bind-Value="_label" Label="Bezeichnung (optional)" Variant="Variant.Outlined"
-                          Margin="Margin.Dense" Style="min-width:240px;" />
+                          Margin="Margin.Dense" Style="min-width:240px;" Class="noose-breite-frei" />
             <MudNumericField @bind-Value="_expiryDays" Label="Gültig (Tage, 0 = unbegrenzt)" Variant="Variant.Outlined"
-                             Margin="Margin.Dense" Min="0" Max="365" Style="max-width:200px;" />
+                             Margin="Margin.Dense" Min="0" Max="365" Style="max-width:200px;" Class="noose-breite-frei" />
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                        OnClick="CreateAsync">Einladungslink erzeugen</MudButton>
         </MudStack>
@@ -45,19 +45,19 @@ else if (_invites.Count == 0)
 }
 else
 {
-    <MudTable Items="_invites" Dense="true" Hover="true">
+    <MudTable Breakpoint="Breakpoint.None" Items="_invites" Dense="true" Hover="true">
         <HeaderContent>
             <MudTh>Bezeichnung</MudTh>
-            <MudTh>Erstellt</MudTh>
-            <MudTh>Läuft ab</MudTh>
+            <MudTh Class="noose-mobil-aus">Erstellt</MudTh>
+            <MudTh Class="noose-mobil-aus">Läuft ab</MudTh>
             <MudTh>Status</MudTh>
             <MudTh>Link</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Bezeichnung">@(string.IsNullOrWhiteSpace(context.Label) ? "—" : context.Label)</MudTd>
-            <MudTd DataLabel="Erstellt">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-            <MudTd DataLabel="Läuft ab">@(context.ExpiresAt is { } e ? e.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : "—")</MudTd>
+            <MudTd DataLabel="Erstellt" Class="noose-mobil-aus">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Läuft ab" Class="noose-mobil-aus">@(context.ExpiresAt is { } e ? e.ToLocalTime().ToString("dd.MM.yyyy HH:mm") : "—")</MudTd>
             <MudTd DataLabel="Status">
                 <MudChip T="string" Size="Size.Small" Color="StatusColor(context)">@StatusText(context)</MudChip>
             </MudTd>

@@ -2,8 +2,60 @@
 @inject NavigationManager Nav
 @inject IPublicModuleService ModuleService
 
-@* Two rows: the public modules, and — for a signed-in visitor — their own area. Both come from a catalog. *@
-<MudStack Spacing="1">
+@* Two rows: the public modules, and — for a signed-in visitor — their own area. Both come from a catalog.
+   Below 600px both rows fold behind a menu button with the current area beside it (noose-nur-handy). It is a native
+   <details>: the start page and most outward pages render statically and have no circuit to open a MudMenu.
+   The key changes with every navigation, so an interactive shell that survives it shows the menu folded again. *@
+<details class="noose-nur-handy oeffentlich-menue" @key="_navigations">
+    <summary>
+        <MudIcon Icon="@Icons.Material.Filled.Menu" />
+        <AuthorizeView>
+            <Authorized Context="labelCtx">
+                <span class="oeffentlich-menue-aktuell">@CurrentLabel(CitizenNav.For(labelCtx.User))</span>
+            </Authorized>
+            <NotAuthorized>
+                <span class="oeffentlich-menue-aktuell">@CurrentLabel([])</span>
+            </NotAuthorized>
+        </AuthorizeView>
+        <MudIcon Icon="@Icons.Material.Filled.ExpandMore" Class="oeffentlich-menue-pfeil" />
+    </summary>
+    <nav class="oeffentlich-menue-liste" aria-label="Bereiche">
+        @foreach (var tab in _tabs)
+        {
+            var active = IsActive(tab.Href);
+            <MudButton Href="@tab.Href" FullWidth="true" Class="justify-start"
+                       Variant="@(active ? Variant.Filled : Variant.Text)"
+                       Color="@(active ? Color.Primary : Color.Default)"
+                       StartIcon="@tab.Icon">
+                @tab.Label
+            </MudButton>
+        }
+        @* the same rule as the personal row below: never rendered for an anonymous visitor *@
+        <AuthorizeView>
+            <Authorized Context="menuCtx">
+                @{
+                    var mineInMenu = CitizenNav.For(menuCtx.User);
+                }
+                @if (mineInMenu.Count > 0)
+                {
+                    <MudText Typo="Typo.overline" Class="mud-text-secondary oeffentlich-menue-titel">Mein Bereich</MudText>
+                    @foreach (var entry in mineInMenu)
+                    {
+                        var active = IsActive(entry.Href);
+                        <MudButton Href="@entry.Href" FullWidth="true" Class="justify-start"
+                                   Variant="@(active ? Variant.Filled : Variant.Text)"
+                                   Color="@(active ? Color.Secondary : Color.Default)"
+                                   StartIcon="@entry.Icon">
+                            @entry.Label
+                        </MudButton>
+                    }
+                }
+            </Authorized>
+        </AuthorizeView>
+    </nav>
+</details>
+
+<MudStack Spacing="1" Class="noose-mobil-aus">
     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
         @{
             var previousGroup = StartGroup;
@@ -81,8 +133,21 @@
         }
     }
 
+    // bumped on every navigation: the phone menu is keyed on it and comes back folded
+    private int _navigations;
+
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
-        => _ = InvokeAsync(StateHasChanged);
+        => _ = InvokeAsync(() =>
+        {
+            _navigations++;
+            StateHasChanged();
+        });
+
+    /// <summary>The area the phone menu button names: the lit tab or personal entry, else just "Menü".</summary>
+    private string CurrentLabel(IReadOnlyList<CitizenNavEntry> mine)
+        => _tabs.FirstOrDefault(t => IsActive(t.Href))?.Label
+           ?? mine.FirstOrDefault(e => IsActive(e.Href))?.Label
+           ?? "Menü";
 
     public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
 

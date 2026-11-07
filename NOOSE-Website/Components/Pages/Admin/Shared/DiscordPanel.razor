@@ -61,9 +61,10 @@ else
             <MudStack Spacing="3">
                 @foreach (var type in _types)
                 {
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    @* phones: one block per category, name on top, the fields under it at full width (measured 504px wide) *@
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                         <MudIcon Icon="@NotificationTypeDisplay.Icon(type)" Color="Color.Default" />
-                        <div style="min-width:190px;">
+                        <div style="min-width:190px;" class="noose-eintrag-titel noose-min-breite-frei">
                             <MudText Typo="Typo.body2">@NotificationTypeDisplay.Name(type)</MudText>
                             @if (IsInternal(type))
                             {
@@ -74,19 +75,19 @@ else
                             }
                         </div>
                         <MudTextField @bind-Value="_webhooks[type]" Placeholder="https://discord.com/api/webhooks/…"
-                                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" />
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1 noose-breite-frei" />
                         @if (type == NotificationType.FactionThreatBoard)
                         {
                             <MudNumericField T="int" @bind-Value="_input.ThreatBoardThreshold" Label="Score über"
                                              Min="DiscordWebhookConfig.MinThreatBoardThreshold"
                                              Max="DiscordWebhookConfig.MaxThreatBoardThreshold"
-                                             Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:130px;"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:130px;" Class="noose-breite-frei"
                                              HelperText="Schwelle der Liste." />
                         }
                         @if (DiscordRouting.PingsRole(type))
                         {
                             <MudTextField @bind-Value="_roles[type]" Label="Rollen-ID" Placeholder="@DiscordRouting.DefaultRole(type)"
-                                          Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:220px;"
+                                          Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:220px;" Class="noose-breite-frei"
                                           HelperText="Rolle, die bei diesem Ereignis gepingt wird." />
                         }
                         else if (DiscordRouting.PingsNobody(type))

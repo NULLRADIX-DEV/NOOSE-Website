@@ -17,24 +17,34 @@ else if (_law is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 no-print">
+    @* hand-built record bar (PageHeader would add space under it on the desktop); below 960px it wraps, print and
+       partner share move into the ⋮ menu, each entry behind its button's check *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 no-print noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"{LawsList.BookHref(_law.LawBook)}?p={_law.Id}")"
                        aria-label="Zurück zum Gesetzbuch" />
-        <MudIcon Icon="@Icons.Material.Filled.Gavel" Color="Color.Primary" Size="Size.Large" />
+        <MudIcon Icon="@Icons.Material.Filled.Gavel" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
         <MudText Typo="Typo.h4">@_law.Paragraph @_law.Title</MudText>
         <MudSpacer />
-        <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
-            <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
-                           Href="@($"/gesetze/{Id}/druck")" Target="_blank"
-                           aria-label="Druckansicht öffnen" />
-        </MudTooltip>
-        <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
-            <PartnerShareButton EntityType="@nameof(Law)" EntityId="@_law.Id" />
-        </AuthorizeView>
+        <div class="d-contents noose-schmal-aus">
+            <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
+                               Href="@($"/gesetze/{Id}/druck")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
+                <PartnerShareButton EntityType="@nameof(Law)" EntityId="@_law.Id" />
+            </AuthorizeView>
+        </div>
         <AuthorizeView Policy="@Policies.LeadershipWrite" Context="fuehrung">
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
                        OnClick="EditAsync">Bearbeiten</MudButton>
         </AuthorizeView>
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/gesetze/{Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabeMenu">
+                <PartnerShareButton AsMenuItem="true" EntityType="@nameof(Law)" EntityId="@_law.Id" />
+            </AuthorizeView>
+        </HeaderMenu>
     </MudStack>
 
     <MudPaper Class="pa-4 mb-4" Elevation="2">
@@ -64,7 +74,7 @@ else
     {
     <MudPaper Class="pa-4" Elevation="2">
         <MudStack Spacing="3">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
                 <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@_links.Count)</MudText>
                 <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLink"
@@ -83,8 +93,8 @@ else
                 @foreach (var v in _links)
                 {
                     <MudPaper Class="pa-3" Elevation="1">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap noose-eintrag-titel">
                                 <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" Size="Size.Small" />
                                 <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@RecordTypeDisplay.Name(v.OtherType)</MudChip>
                                 @if (v.Href is not null)

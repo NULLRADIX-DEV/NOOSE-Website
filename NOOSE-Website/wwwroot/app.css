@@ -2592,3 +2592,506 @@ div.vis-tooltip {
 .picker-dialog {
     z-index: 2001 !important;
 }
+
+/* === Handy-Ansicht === */
+/* Phone and narrow rules only. "schmal" is below 960px, "Handy" below 600px; at 960px and up nothing here applies, and
+   print never sees a screen rule. Every rule in this section sits in one of these wrappers, checked by
+   MobileCssScanTests. Measured sheets stay untouched: print pages (.druck-seite), certificates (.urkunde, with the
+   signature line) and the presentation stage (.praesentation-buehne).
+   Switch between variants with the four helper classes, never with a width check in C#:
+   noose-mobil-aus   hidden below 600px          noose-nur-handy   shown only below 600px
+   noose-schmal-aus  hidden below 960px          noose-nur-schmal  shown only below 960px */
+
+/* desktop and the paper show the wide variant; the gutter is page padding for later components */
+@media screen and (min-width: 960px) {
+    :root {
+        --noose-gutter: 24px;
+    }
+
+    .noose-nur-schmal {
+        display: none !important;
+    }
+}
+
+@media screen and (min-width: 600px) {
+    .noose-nur-handy {
+        display: none !important;
+    }
+}
+
+@media print {
+    .noose-nur-schmal,
+    .noose-nur-handy {
+        display: none !important;
+    }
+}
+
+@media screen and (max-width: 959.98px) {
+    :root {
+        --noose-gutter: 16px;
+    }
+
+    .noose-schmal-aus {
+        display: none !important;
+    }
+}
+
+@media screen and (max-width: 599.98px) {
+    /* html:root outranks the :root block MudThemeProvider writes into the body after this sheet */
+    html:root {
+        --noose-gutter: 12px;
+        --mud-typography-h3-size: 1.75rem;
+        --mud-typography-h4-size: 1.375rem;
+        --mud-typography-h5-size: 1.15rem;
+        --mud-typography-h6-size: 1.05rem;
+    }
+
+    .noose-mobil-aus {
+        display: none !important;
+    }
+
+    /* a long word in a title breaks instead of pushing the page wider than the screen */
+    :is(h1, h2, h3, h4, h5, h6, .mud-typography-h1, .mud-typography-h2, .mud-typography-h3,
+        .mud-typography-h4, .mud-typography-h5, .mud-typography-h6):not(.druck-seite *, .urkunde *, .praesentation-buehne *) {
+        overflow-wrap: anywhere;
+    }
+
+    /* denser cards */
+    .mud-main-content .mud-paper.pa-4:not(.druck-seite *, .urkunde, .urkunde *, .praesentation-buehne, .praesentation-buehne *) {
+        padding: 12px !important;
+    }
+
+    .mud-main-content .mud-paper:is(.pa-6, .pa-8):not(.druck-seite *, .urkunde, .urkunde *, .praesentation-buehne, .praesentation-buehne *) {
+        padding: 16px !important;
+    }
+
+    /* MudGrid Spacing 4 and 6 shrink to 8px between items */
+    :is(.mud-grid-spacing-xs-4, .mud-grid-spacing-xs-6):not(.druck-seite *, .urkunde *, .praesentation-buehne *) {
+        width: calc(100% + 8px);
+        margin-left: -8px;
+        margin-top: -8px;
+    }
+
+    :is(.mud-grid-spacing-xs-4, .mud-grid-spacing-xs-6):not(.druck-seite *, .urkunde *, .praesentation-buehne *) > .mud-grid-item {
+        padding-left: 8px;
+        padding-top: 8px;
+    }
+
+    .mb-6:not(.druck-seite *, .urkunde *, .praesentation-buehne *) {
+        margin-bottom: 16px !important;
+    }
+}
+
+/* App bar and drawer, below 960px.
+   Measured on master at 375x812 with phone emulation: the drawer is position:fixed already (MudBlazor), and on a page
+   without sideways overflow (/dashboard) it stays put. On a page wider than the screen (/personen, 478px) the phone
+   browser widens the layout viewport to 478x1033 while the screen still shows 375x812. Fixed boxes size against the
+   layout viewport, so MudBlazor's height:calc(100% - app bar) made the drawer 981px tall: its lower 221px lay below the
+   screen, rail and panel never had anything to scroll (scrollHeight = clientHeight), and while the finger scrolled,
+   the screen slid down inside the taller layout viewport and took the top of the drawer, the area rail, out of view.
+   Viewport units follow the screen (100dvh = 812 there, 100% = 1033), so the drawer ends at the screen's bottom edge
+   and rail and panel scroll in themselves. The top stays MudBlazor's: it follows the app bar's own height, which is
+   lower than --mud-appbar-height on phones (52.5px upright, 45px on its side). Pages that fit the screen, the goal of
+   the whole phone work, also keep the top of the drawer on screen while scrolling. */
+@media screen and (max-width: 959.98px) {
+    .mud-drawer.mud-drawer-fixed.mud-drawer-responsive.noose-drawer {
+        height: auto;
+        bottom: calc(100% - 100vh);
+        bottom: calc(100% - 100dvh);
+    }
+
+    /* a swipe at the end of the list stays in the drawer instead of scrolling the page behind it */
+    .noose-drawer .noose-nav-rail,
+    .noose-drawer .noose-nav-panel {
+        overscroll-behavior: contain;
+    }
+}
+
+/* App bar on phones: crest, search, bell and the avatar menu; the rest moves into that menu (MainLayout). */
+@media screen and (max-width: 599.98px) {
+    .mud-appbar .noose-appbar-aktionen {
+        gap: 4px;
+    }
+
+    /* the command palette fills the screen, like MudBlazor's own full-screen dialog */
+    .mud-dialog.noose-palette {
+        width: 100%;
+        max-width: 100%;
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+    }
+}
+
+/* Page header below 960px (PageHeader, HeaderMenu): the row wraps instead of pushing the page wider than the screen,
+   the secondary actions sit in the ⋮ menu. On statically rendered pages that menu is a native <details>, laid out here
+   like MudBlazor's own popover list; interactive pages use MudMenu and need nothing from this block. */
+@media screen and (max-width: 959.98px) {
+    .noose-kopf-umbruch {
+        flex-wrap: wrap;
+    }
+
+    details.noose-kopfmenue {
+        position: relative;
+    }
+
+    details.noose-kopfmenue > summary {
+        list-style: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.5rem;
+        line-height: 1;
+        color: var(--mud-palette-action-default);
+        user-select: none;
+    }
+
+    details.noose-kopfmenue > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    details.noose-kopfmenue > summary:hover,
+    details.noose-kopfmenue[open] > summary {
+        background-color: var(--mud-palette-action-default-hover);
+    }
+
+    details.noose-kopfmenue > .noose-kopfmenue-liste {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        z-index: var(--mud-zindex-popover);
+        min-width: 200px;
+        max-width: calc(100vw - 2 * var(--noose-gutter));
+        padding: 8px 0;
+    }
+}
+
+/* Building blocks for the page migrations (Tasks 12 to 16). Add the class in the markup; nothing here applies from
+   960px up, so a page that takes one on keeps its desktop look. One line per class:
+   noose-kachel              StatTile paper (StatTile sets it): denser below 600px; wrap tiles in MudItem xs="6" sm="6" md="3"
+   noose-kachel-kopf         StatTile icon and label row (StatTile sets it): label may wrap below 600px
+   noose-kachel-wert         StatTile number (StatTile sets it): h5 size below 600px
+   record-rail-anker         RecordSectionRail sets it: the spot a section switch scrolls to below 960px
+   record-rail-leiste        RecordSectionRail sets it: current section plus switch menu, pinned under the app bar below 960px
+   record-rail-leiste-knopf  RecordSectionRail sets it: the bar's full-width activator button
+   record-rail-leiste-titel  RecordSectionRail sets it: section name in that button, cut with an ellipsis
+   record-rail-leiste-aktiv  RecordSectionRail sets it: the current section in the switch menu
+   noose-steckbrief          identity card paper on a record detail page; compact below 960px (pattern: IdentityCard)
+   noose-steckbrief-kopf     wrapper "d-flex flex-column gap-3" around picture and name: side by side below 960px
+   noose-steckbrief-bild     wrapper of the photo or avatar: 64px below 960px
+   noose-steckbrief-name     name block beside the picture: may shrink and wrap
+   noose-steckbrief-kennzeichen  MudStack of status badges: one wrapping row below 960px
+   noose-steckbrief-rest     wrapper "d-flex flex-column gap-3" of the card's remaining lines (marker only)
+   noose-steckbrief-zu       added to that wrapper while folded: hidden below 960px; a C# bool toggles it from a
+                             "Details" button that carries noose-nur-schmal
+   noose-formleiste          FormActions row (FormActions sets it): pinned to the bottom of the screen below 960px
+   noose-dialog-lang         MudDialog Class of a long form dialog: full screen below 600px (every dialog: screen wide)
+   noose-filterleiste        flex row of search and filters, or Class of a MudDataGrid/MudTable: wraps below 960px
+   noose-filter-feld         one search or filter field: full row width below 600px, beats an inline max-width
+   noose-filter-zu           filter group while folded behind a "Filter (n)" button with noose-nur-handy: hidden below
+                             600px; a C# bool switches the class, never MudCollapse, which would fold desktop too
+   noose-reiter-handy        MudTabs Class: below 600px tabs shrink to their label and drop the icon beside the text
+   noose-eintrag             flex row of an entry (title, chips, icon buttons): wraps below 600px
+   noose-eintrag-titel       title of such a row: may shrink and break instead of pushing the row wider
+   noose-eintrag-chips       chip group of such a row: its own line under the title below 600px
+   noose-breite-frei         element with an inline width, max-width or min-width in px: full row width below 600px
+   noose-min-breite-frei     element with an inline min-width in px: no min-width below 600px, width as before
+   noose-pager-handy         MudDataGridPager/MudTablePager Class: rows-per-page caption and selector hidden below 600px;
+                             PageSizeSelector stays true, so desktop keeps it
+   noose-chip-umbruch        MudChip with a long text (a sentence, a penalty): the text breaks onto more lines below 600px
+   Fixed px widths: keep the inline style (desktop, 600 to 959px and paper stay as they are) and add noose-breite-frei
+   or noose-min-breite-frei; the !important below beats the inline style on phones only. */
+@media screen and (max-width: 959.98px) {
+    /* the anchor a section switch scrolls to; the margin leaves room for the app bar above the pinned bar */
+    .record-rail-anker {
+        scroll-margin-top: var(--mud-appbar-height);
+    }
+
+    .record-rail-leiste {
+        position: sticky;
+        top: var(--mud-appbar-height);
+        z-index: 5;
+        margin-bottom: 8px;
+    }
+
+    .record-rail-leiste .record-rail-leiste-knopf {
+        justify-content: flex-start;
+        text-transform: none;
+        letter-spacing: normal;
+        padding-inline: 16px;
+        min-height: 44px;
+    }
+
+    .record-rail-leiste .record-rail-leiste-knopf .mud-button-label {
+        min-width: 0;
+    }
+
+    .record-rail-leiste-titel {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-align: start;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .record-rail-leiste-aktiv {
+        color: var(--mud-palette-primary);
+        font-weight: 600;
+    }
+
+    .noose-steckbrief-kopf {
+        flex-direction: row !important;
+        align-items: center;
+    }
+
+    .noose-steckbrief-bild {
+        flex: none;
+        width: 64px;
+        padding: 0 !important;
+    }
+
+    .noose-steckbrief-bild :is(img, .mud-avatar) {
+        width: 64px !important;
+        height: 64px !important;
+        font-size: 1.5rem !important;
+    }
+
+    .noose-steckbrief-name {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .noose-steckbrief-kennzeichen {
+        flex-direction: row !important;
+        flex-wrap: wrap;
+    }
+
+    .noose-steckbrief-zu {
+        display: none !important;
+    }
+
+    /* the bar sticks to the bottom while its form is on screen; the inset keeps it clear of the home bar */
+    .noose-formleiste {
+        position: sticky;
+        bottom: 0;
+        z-index: 4;
+        flex-wrap: wrap;
+        row-gap: 8px;
+        padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+        background-color: var(--mud-palette-surface);
+        border-top: 1px solid var(--mud-palette-divider);
+    }
+
+    /* snackbars at the bottom rise above a form bar instead of covering its buttons */
+    body:has(.noose-formleiste) :is(.mud-snackbar-location-bottom-left, .mud-snackbar-location-bottom-center, .mud-snackbar-location-bottom-right) {
+        bottom: calc(72px + env(safe-area-inset-bottom));
+    }
+
+    .noose-filterleiste:not(.mud-table, .mud-data-grid),
+    :is(.mud-table, .mud-data-grid).noose-filterleiste .mud-table-toolbar {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+
+    :is(.mud-table, .mud-data-grid).noose-filterleiste .mud-table-toolbar {
+        height: auto;
+        min-height: var(--mud-internal-toolbar-height);
+        padding-block: 8px;
+    }
+
+    .noose-eintrag-titel {
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+}
+
+@media screen and (max-width: 599.98px) {
+    /* MudBlazor draws the app bar at 7/8 of --mud-appbar-height on an upright phone */
+    .record-rail-anker {
+        scroll-margin-top: calc(var(--mud-appbar-height) - var(--mud-appbar-height) / 8);
+    }
+
+    .record-rail-leiste {
+        top: calc(var(--mud-appbar-height) - var(--mud-appbar-height) / 8);
+    }
+
+    .mud-paper.noose-kachel {
+        padding: 12px !important;
+    }
+
+    .noose-kachel .noose-kachel-kopf {
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .noose-kachel .noose-kachel-kopf .mud-typography-overline {
+        min-width: 0;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+
+    .noose-kachel .noose-kachel-wert {
+        margin-top: 4px !important;
+        font-size: var(--mud-typography-h5-size);
+        line-height: var(--mud-typography-h5-lineheight);
+    }
+
+    /* every dialog fits the screen with 8px to spare; MudBlazor fullscreen dialogs and the palette keep their own */
+    .mud-dialog:not(.mud-dialog-fullscreen, .noose-palette, .noose-dialog-lang) {
+        width: calc(100vw - 16px);
+        max-width: calc(100vw - 16px) !important;
+        max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
+    }
+
+    .mud-dialog-container.mud-dialog-topcenter {
+        padding-top: 8px;
+    }
+
+    .mud-dialog-container.mud-dialog-bottomcenter {
+        padding-bottom: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-centerleft, .mud-dialog-centerright) {
+        padding-inline: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-topleft, .mud-dialog-topright, .mud-dialog-bottomleft, .mud-dialog-bottomright) .mud-dialog:not(.noose-dialog-lang) {
+        left: 8px;
+        right: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-topleft, .mud-dialog-topright) .mud-dialog:not(.noose-dialog-lang) {
+        top: 8px;
+    }
+
+    .mud-dialog-container:is(.mud-dialog-bottomleft, .mud-dialog-bottomright) .mud-dialog:not(.noose-dialog-lang) {
+        bottom: 8px;
+    }
+
+    .mud-dialog .mud-dialog-title {
+        padding: 12px 16px;
+    }
+
+    .mud-dialog .mud-dialog-title:has(.mud-button-close) {
+        padding-inline-end: 56px;
+    }
+
+    .mud-dialog .mud-dialog-content:not(.mud-dialog-no-side-padding) {
+        min-width: 0;
+        padding-inline: 16px;
+    }
+
+    .mud-dialog .mud-dialog-actions {
+        flex-wrap: wrap;
+    }
+
+    /* long forms get the whole screen, like MudBlazor's own FullScreen option */
+    .mud-dialog.noose-dialog-lang {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        max-width: 100% !important;
+        height: 100vh;
+        height: 100dvh;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+    }
+
+    .noose-filter-feld {
+        flex: 1 1 100% !important;
+        width: 100% !important;
+        max-width: none !important;
+        min-width: 0 !important;
+    }
+
+    .noose-filter-zu {
+        display: none !important;
+    }
+
+    .noose-reiter-handy .mud-tab {
+        min-width: 0 !important;
+        padding-inline: 10px;
+    }
+
+    .noose-reiter-handy .mud-tab .mud-tab-icon-text {
+        display: none;
+    }
+
+    .noose-eintrag {
+        flex-wrap: wrap;
+        row-gap: 4px;
+    }
+
+    .noose-eintrag-titel {
+        flex: 1 1 0;
+    }
+
+    .noose-eintrag-chips {
+        order: 10;
+        flex: 1 0 100%;
+        flex-wrap: wrap;
+    }
+
+    .noose-breite-frei {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .noose-min-breite-frei {
+        min-width: 0 !important;
+    }
+
+    /* the caption is a div after the spacer div, so :first-of-type would miss it; it is the one right before the select */
+    .noose-pager-handy .mud-table-pagination-select,
+    .noose-pager-handy .mud-table-pagination-caption:has(+ .mud-table-pagination-select) {
+        display: none !important;
+    }
+
+    .mud-chip.noose-chip-umbruch {
+        height: auto;
+        min-height: 24px;
+        max-width: 100%;
+    }
+
+    .mud-chip.noose-chip-umbruch .mud-chip-content {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        padding-block: 2px;
+    }
+
+    /* an expansion panel's title may shrink, so a long title wraps instead of pushing the arrow off the screen */
+    .mud-expand-panel-header .mud-expand-panel-text {
+        min-width: 0;
+    }
+
+    /* Glossary bubble: hung from the term it is 14rem wide and runs off the right edge even while hidden, which widens
+       the page. On a phone it sits fixed above the bottom edge across the screen instead, and is not laid out at all
+       until the term is tapped (focus) or hovered. */
+    .dokument-html .glossar::after {
+        display: none;
+        position: fixed;
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+        min-width: 0;
+        max-width: none;
+        margin-bottom: 0;
+    }
+
+    .dokument-html .glossar:hover::after,
+    .dokument-html .glossar:focus::after,
+    .dokument-html .glossar:focus-visible::after {
+        display: block;
+    }
+}

@@ -3,13 +3,13 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudText Typo="Typo.h6">Dok-Vorlagen</MudText>
-    <MudSpacer />
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync">
-        Neue Vorlage
-    </MudButton>
-</MudStack>
+<SectionHeader Title="Dok-Vorlagen" Class="mb-1">
+    <Actions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync">
+            Neue Vorlage
+        </MudButton>
+    </Actions>
+</SectionHeader>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
     Vorlagen (Erfassungsmasken) geben Standard-Werte für neue Personen-Doks vor. Beim Anlegen eines Doks
     kann eine aktive Vorlage gewählt werden – das Formular wird vorbefüllt und bleibt frei editierbar.
@@ -21,20 +21,20 @@
 }
 else
 {
-    <MudTable Items="_templates" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_templates" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="DocTemplate" SortBy="@(x => x.Name)">Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="DocTemplate" SortBy="@(x => x.Description)">Beschreibung</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="DocTemplate" SortBy="@(x => MeasureOutcomeDisplay.Name(x.DefaultOutcome))">Standard-Ausgang</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="DocTemplate" SortBy="@(x => x.Description)">Beschreibung</MudTableSortLabel></MudTh>
+            <MudTh Class="noose-mobil-aus"><MudTableSortLabel T="DocTemplate" SortBy="@(x => MeasureOutcomeDisplay.Name(x.DefaultOutcome))">Standard-Ausgang</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="DocTemplate" SortBy="@(x => x.IsActive)">Status</MudTableSortLabel></MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Beschreibung">
+            <MudTd DataLabel="Beschreibung" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@(string.IsNullOrWhiteSpace(context.Description) ? "—" : context.Description)</MudText>
             </MudTd>
-            <MudTd DataLabel="Standard-Ausgang">
+            <MudTd DataLabel="Standard-Ausgang" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">@MeasureOutcomeDisplay.Name(context.DefaultOutcome)</MudChip>
             </MudTd>
             <MudTd DataLabel="Status">

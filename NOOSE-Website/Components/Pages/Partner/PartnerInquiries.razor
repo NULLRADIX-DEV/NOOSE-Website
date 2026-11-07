@@ -1,5 +1,6 @@
 @* A partner agency asks for records it cannot see yet and follows the answers. *@
 @page "/anfragen"
+@using NOOSE_Website.Models.Navigation
 @inject IPartnerShareService Shares
 @inject ISnackbar Snackbar
 
@@ -25,26 +26,29 @@ else
     </MudPaper>
 
     <MudText Typo="Typo.h6" Class="mb-2">Eure Anfragen</MudText>
+    @* phones only: which columns of the list stay visible *@
+    <MobileColumnPicker ListKey="freigabe-anfragen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                        VisibleChanged="@(v => _phoneColumns = v)" />
     @if (_mine.Count == 0)
     {
         <EmptyState Icon="@Icons.Material.Filled.RequestPage" Title="Noch keine Anfragen" />
     }
     else
     {
-        <MudTable Items="_mine" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm" Elevation="2">
+        <MudTable Items="_mine" Hover="true" Dense="true" Breakpoint="Breakpoint.None" Elevation="2">
             <HeaderContent>
-                <MudTh>Anfrage</MudTh>
-                <MudTh>Gestellt</MudTh>
-                <MudTh>Stand</MudTh>
-                <MudTh>Antwort</MudTh>
+                <MudTh Class="@Col("anfrage")">Anfrage</MudTh>
+                <MudTh Class="@Col("gestellt")">Gestellt</MudTh>
+                <MudTh Class="@Col("stand")">Stand</MudTh>
+                <MudTh Class="@Col("antwort")">Antwort</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Anfrage">@context.TargetDesignation</MudTd>
-                <MudTd DataLabel="Gestellt">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
-                <MudTd DataLabel="Stand">
+                <MudTd DataLabel="Anfrage" Class="@Col("anfrage")">@context.TargetDesignation</MudTd>
+                <MudTd DataLabel="Gestellt" Class="@Col("gestellt")">@context.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+                <MudTd DataLabel="Stand" Class="@Col("stand")">
                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@StatusColour(context.Status)">@StatusName(context.Status)</MudChip>
                 </MudTd>
-                <MudTd DataLabel="Antwort">
+                <MudTd DataLabel="Antwort" Class="@Col("antwort")">
                     @if (context.Status == RequestStatus.Approved && SearchNavigation.For(context.TargetType, context.TargetId) is { } href)
                     {
                         <MudLink Href="@href">Zur freigegebenen Akte</MudLink>
@@ -68,6 +72,21 @@ else
     private string? _target;
     private string? _justification;
     private List<Request> _mine = new();
+
+    /// <summary>The list's columns for the phone column picker, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("anfrage", "Anfrage"), ("gestellt", "Gestellt"), ("stand", "Stand"), ("antwort", "Antwort"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: the request, its state and the way to the record.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["anfrage", "stand", "antwort"];
+
+    // the defaults until the picker reports the stored choice, so the first paint is already narrow
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     protected override async Task OnInitializedAsync()
     {

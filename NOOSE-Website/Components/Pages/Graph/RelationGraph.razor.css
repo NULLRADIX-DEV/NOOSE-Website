@@ -1,0 +1,46 @@
+/* Below 960px only; from 960px up the graph page is exactly as before.
+   The canvas is lower, so the controls above and the legend below stay in reach, and a cover keeps the finger from
+   panning the graph while it only wants to scroll the page; "Bedienen" lifts the cover. The dossier of a selected node
+   becomes a sheet from the bottom of the screen instead of a 340px panel over a narrow canvas. */
+@media screen and (max-width: 959.98px) {
+    .graph-leinwand {
+        height: 55vh !important;
+        height: 55dvh !important;
+    }
+
+    .graph-bedienschutz {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 16px;
+        touch-action: pan-y;
+        background: rgba(21, 21, 21, 0.2);
+    }
+
+    .graph-bedienen-fertig {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 5;
+    }
+
+    .graph-dossier {
+        position: fixed !important;
+        top: auto !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: auto !important;
+        height: 70vh;
+        height: 70dvh;
+        z-index: var(--mud-zindex-drawer) !important;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .graph-dossier ::deep > .mud-paper {
+        border-radius: 12px 12px 0 0;
+    }
+}

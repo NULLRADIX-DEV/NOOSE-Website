@@ -27,12 +27,12 @@
 }
 else
 {
-    <MudTable Items="_entries" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="2" Dense="true">
+    <MudTable Items="_entries" Hover="true" Breakpoint="Breakpoint.None" Elevation="2" Dense="true">
         <HeaderContent>
             <MudTh>Bezeichnung</MudTh>
-            <MudTh>Reihenfolge</MudTh>
+            <MudTh Class="noose-mobil-aus">Reihenfolge</MudTh>
             <MudTh>Aktiv</MudTh>
-            <MudTh>Verwendungen</MudTh>
+            <MudTh Class="noose-mobil-aus">Verwendungen</MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -40,7 +40,7 @@ else
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
                          Color="@WarnhinweisColours.Resolve(context.Hinweis.Colour)">@context.Hinweis.Name</MudChip>
             </MudTd>
-            <MudTd DataLabel="Reihenfolge">
+            <MudTd DataLabel="Reihenfolge" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">@context.Hinweis.SortOrder</MudText>
             </MudTd>
             <MudTd DataLabel="Aktiv">
@@ -53,7 +53,7 @@ else
                     <MudIcon Icon="@Icons.Material.Filled.RemoveCircleOutline" Color="Color.Default" Size="Size.Small" />
                 }
             </MudTd>
-            <MudTd DataLabel="Verwendungen">
+            <MudTd DataLabel="Verwendungen" Class="noose-mobil-aus">
                 <MudText Typo="Typo.body2">@context.Count</MudText>
             </MudTd>
             <MudTd DataLabel="Aktion" Style="text-align:right;">

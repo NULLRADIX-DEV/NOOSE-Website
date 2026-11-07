@@ -26,23 +26,35 @@ else
     <PageHeader Icon="@Icons.Material.Filled.VisibilityOff"
                 Title="@Label"
                 Subtitle="@($"{_detail.CaseNumber} · V-Person · {InformantEnumDisplay.Status(_detail.Status)}")"
-                BackHref="/informanten">
+                BackHref="/informanten" MoreActionsLast="true">
         <Actions>
             @if (_detail.MayEdit)
             {
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
                            Href="@($"/informanten/{Id}/bearbeiten")">Bearbeiten</MudButton>
+            }
+        </Actions>
+        @* deleting is behind the same MayEdit check as a button and as a menu entry *@
+        <MoreActions>
+            @if (_detail.MayEdit)
+            {
                 <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
                            OnClick="DeleteAsync">Löschen</MudButton>
             }
-        </Actions>
+        </MoreActions>
+        <MoreActionsMenu>
+            @if (_detail.MayEdit)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            }
+        </MoreActionsMenu>
     </PageHeader>
 
     <RecordSectionRail>
         <RecordSection Slug="uebersicht" Label="Übersicht" Icon="@Icons.Material.Filled.Info">
             <MudSimpleTable Dense="true" Elevation="0">
                 <tbody>
-                    <tr><td style="width:12rem;">Status</td><td>@InformantEnumDisplay.Status(_detail.Status)</td></tr>
+                    <tr><td class="informant-feld" style="width:12rem;">Status</td><td>@InformantEnumDisplay.Status(_detail.Status)</td></tr>
                     <tr><td>Zuverlässigkeit</td><td>@InformantEnumDisplay.Reliability(_detail.Reliability)</td></tr>
                     <tr><td>Führungsagent</td><td>@(_detail.HandlerName ?? "—")</td></tr>
                     <tr>

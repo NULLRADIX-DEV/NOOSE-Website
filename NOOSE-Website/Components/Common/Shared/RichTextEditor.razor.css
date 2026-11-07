@@ -1,0 +1,25 @@
+/* Editor on narrow screens. app.css turns the toolbar into one scrolling strip below 960px, yet /dokumente/neu
+   measured 690px wide at 375px. A strip only scrolls while something limits its width: its intrinsic width is still
+   every button side by side, so a flex or grid ancestor without min-width:0 grows to it and takes the page along.
+   width:0 takes the toolbar out of that measurement, min-width:100% gives it the editor's width back. */
+@media screen and (max-width: 959.98px) {
+    .noose-rte-huelle ::deep .ql-toolbar.ql-snow {
+        width: 0;
+        min-width: 100%;
+    }
+}
+
+/* Phones: a lower editor (only where the page set no height of its own) and a mention picker as wide as the editor,
+   instead of a 280px box at the caret that runs off the right edge. */
+@media screen and (max-width: 599.98px) {
+    .noose-rte-huelle ::deep .ql-editor:not([style*="min-height"]) {
+        min-height: 200px;
+    }
+
+    .noose-rte-huelle ::deep .noose-rte-erwaehnung {
+        left: 0 !important;
+        right: 0;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+}

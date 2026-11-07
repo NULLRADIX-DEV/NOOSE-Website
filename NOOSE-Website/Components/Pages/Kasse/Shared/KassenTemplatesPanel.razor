@@ -4,14 +4,14 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudText Typo="Typo.h6">Buchungs-Vorlagen</MudText>
-        <MudSpacer />
-        <AuthorizeView Policy="@Policies.Leadership" Context="add">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="@(() => StartEdit(null))">Neue Vorlage</MudButton>
-        </AuthorizeView>
-    </MudStack>
+    <SectionHeader Title="Buchungs-Vorlagen">
+        <Actions>
+            <AuthorizeView Policy="@Policies.Leadership" Context="add">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => StartEdit(null))">Neue Vorlage</MudButton>
+            </AuthorizeView>
+        </Actions>
+    </SectionHeader>
 
     @if (_editing is not null)
     {
@@ -72,11 +72,11 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Kasse</th>
-                    <th>Art</th>
+                    <th class="noose-mobil-aus">Kasse</th>
+                    <th class="noose-mobil-aus">Art</th>
                     <th style="text-align:right">Betrag</th>
-                    <th>Grund</th>
-                    <th>Aktiv</th>
+                    <th class="noose-mobil-aus">Grund</th>
+                    <th class="noose-mobil-aus">Aktiv</th>
                     <th></th>
                 </tr>
             </thead>
@@ -85,11 +85,11 @@
                 {
                     <tr>
                         <td>@v.Name</td>
-                        <td>@KassenKontoDisplay.Name(v.Account)</td>
-                        <td>@KassenBuchungArtDisplay.Name(v.Kind)</td>
+                        <td class="noose-mobil-aus">@KassenKontoDisplay.Name(v.Account)</td>
+                        <td class="noose-mobil-aus">@KassenBuchungArtDisplay.Name(v.Kind)</td>
                         <td style="text-align:right">@Money.Format(v.Amount)</td>
-                        <td>@(string.IsNullOrWhiteSpace(v.Reason) ? "—" : v.Reason)</td>
-                        <td>@(v.IsActive ? "Ja" : "Nein")</td>
+                        <td class="noose-mobil-aus">@(string.IsNullOrWhiteSpace(v.Reason) ? "—" : v.Reason)</td>
+                        <td class="noose-mobil-aus">@(v.IsActive ? "Ja" : "Nein")</td>
                         <td style="text-align:right; white-space:nowrap">
                             <AuthorizeView Policy="@Policies.Leadership" Context="rowActions">
                                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"

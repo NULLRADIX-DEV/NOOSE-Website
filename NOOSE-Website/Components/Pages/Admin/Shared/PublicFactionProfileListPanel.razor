@@ -22,22 +22,22 @@ else if (_load)
 }
 else
 {
-    <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+    <MudTable Items="_rows" Dense="true" Hover="true" Striped="true" Breakpoint="Breakpoint.None">
         <HeaderContent>
             <MudTh>Organisation</MudTh>
-            <MudTh>Aktenzeichen</MudTh>
-            <MudTh>Einordnung</MudTh>
+            <MudTh Class="noose-mobil-aus">Aktenzeichen</MudTh>
+            <MudTh Class="noose-mobil-aus">Einordnung</MudTh>
             <MudTh>Status</MudTh>
-            <MudTh>Stufe</MudTh>
-            <MudTh>Veröffentlicht</MudTh>
+            <MudTh Class="noose-mobil-aus">Stufe</MudTh>
+            <MudTh Class="noose-mobil-aus">Veröffentlicht</MudTh>
             <MudTh Style="text-align:right;">Aktion</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Organisation">@context.DisplayName</MudTd>
-            <MudTd DataLabel="Aktenzeichen">
+            <MudTd DataLabel="Aktenzeichen" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@(context.FactionCaseNumber ?? "—")</MudText>
             </MudTd>
-            <MudTd DataLabel="Einordnung">
+            <MudTd DataLabel="Einordnung" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                          Color="@(context.Standing == PublicFactionStanding.Verboten ? Color.Error : Color.Warning)">
                     @PublicFactionStandingDisplay.Name(context.Standing)
@@ -48,10 +48,10 @@ else
                     @PublicProfileStatusDisplay.Name(context.Status)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Stufe">
+            <MudTd DataLabel="Stufe" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption">@HazardLevelLogic.Name(context.HazardLevel)</MudText>
             </MudTd>
-            <MudTd DataLabel="Veröffentlicht">
+            <MudTd DataLabel="Veröffentlicht" Class="noose-mobil-aus">
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @(context.PublishedAt is { } published
                         ? $"{published.ToLocalTime():dd.MM.yyyy} · {context.PublishedByName ?? "—"}"

@@ -5,15 +5,24 @@
 
 <PageTitle>Schwarzes Brett · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.Campaign" Color="Color.Primary" Size="Size.Large" />
+@* hand-built like PageHeader, but with its own spacing to the text below (mb-4), which PageHeader would widen on the
+   desktop; below 960px the row wraps and the bin moves into the ⋮ menu behind the same check *@
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1 noose-kopf-umbruch">
+    <MudIcon Icon="@Icons.Material.Filled.Campaign" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
     <MudText Typo="Typo.h4">Schwarzes Brett</MudText>
     <MudSpacer />
-    <AuthorizeView Policy="@Policies.Leadership">
-        <MudButton Href="/papierkorb?tab=brett" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
-    </AuthorizeView>
+    <div class="d-contents noose-schmal-aus">
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudButton Href="/papierkorb?tab=brett" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
+        </AuthorizeView>
+    </div>
     <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
         <MudButton Href="/brett/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Ankündigung</MudButton>
+    </AuthorizeView>
+    <AuthorizeView Policy="@Policies.Leadership" Context="fuehrungMenu">
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=brett">Papierkorb</MudMenuItem>
+        </HeaderMenu>
     </AuthorizeView>
 </MudStack>
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">

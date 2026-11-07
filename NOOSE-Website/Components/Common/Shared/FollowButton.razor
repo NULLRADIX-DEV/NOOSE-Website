@@ -2,7 +2,15 @@
 @inject ISnackbar Snackbar
 
 @* hide for read-only supervisors: follow is a mutation *@
-@if (_mayWrite)
+@if (_mayWrite && AsMenuItem)
+{
+    <MudMenuItem Icon="@(_followed ? Icons.Material.Filled.Star : Icons.Material.Filled.StarBorder)"
+                 IconColor="@(_followed ? Color.Warning : Color.Default)"
+                 OnClick="ToggleAsync" Disabled="_busy">
+        @(_followed ? "Nicht mehr folgen" : "Dieser Akte folgen")
+    </MudMenuItem>
+}
+else if (_mayWrite)
 {
     <MudButton Variant="@(_followed ? Variant.Filled : Variant.Outlined)"
                Color="@(_followed ? Color.Warning : Color.Default)"
@@ -17,6 +25,8 @@
     [Parameter, EditorRequired] public string EntityType { get; set; } = default!;
     [Parameter, EditorRequired] public string EntityId { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    /// <summary>Renders the action as a menu entry (the ⋮ menu of a narrow page header), behind the same check.</summary>
+    [Parameter] public bool AsMenuItem { get; set; }
 
     private bool _followed;
     private bool _busy;

@@ -1,0 +1,6 @@
+/* Phone only: the time column gives up its fixed 11rem and takes what the date needs. */
+@media screen and (max-width: 599.98px) {
+    .ci-zeit-spalte {
+        width: auto !important;
+    }
+}

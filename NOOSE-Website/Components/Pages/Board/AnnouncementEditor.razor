@@ -24,9 +24,9 @@ else if (_input is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref" aria-label="Zurück" />
-        <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Campaign)" Color="Color.Primary" Size="Size.Large" />
+        <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Campaign)" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
         <MudText Typo="Typo.h4">@(IsEdit ? "Ankündigung bearbeiten" : "Neue Ankündigung")</MudText>
     </MudStack>
 
@@ -40,10 +40,10 @@ else
         </MudText>
     }
 
-    <MudStack Row="true" Spacing="2" Class="mt-4">
+    <FormActions Justify="Justify.FlexStart" Class="mt-4">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveAsync" Disabled="_saves">@(IsEdit ? "Speichern" : "Veröffentlichen")</MudButton>
         <MudButton Variant="Variant.Text" Href="@BackHref">Abbrechen</MudButton>
-    </MudStack>
+    </FormActions>
 }
 
 @code {

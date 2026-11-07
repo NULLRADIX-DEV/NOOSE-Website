@@ -12,7 +12,8 @@
 @inject Microsoft.Extensions.Logging.ILogger<CommandPalette> Logger
 @implements IAsyncDisposable
 
-<MudDialog @bind-Visible="_open" Options="_options">
+@* noose-palette: full screen on phones (app.css); the search field takes the focus either way *@
+<MudDialog @bind-Visible="_open" Options="_options" Class="noose-palette">
     <TitleContent>
         <MudText Typo="Typo.subtitle1">
             <MudIcon Icon="@Icons.Material.Filled.Bolt" Size="Size.Small" Class="mr-1" />Schnellzugriff

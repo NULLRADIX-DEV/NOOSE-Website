@@ -10,14 +10,21 @@
 
 <PageHeader Icon="@Icons.Material.Filled.Gavel" Title="Gesetze"
             Subtitle="Die Gesetzbücher als Rechtsgrundlage der Ermittlungsarbeit. Paragrafen lassen sich mit Vorgängen, Doks und anderen Akten verknüpfen und tauchen in der globalen Suche auf.">
-    <Actions>
+    <MoreActions>
         <AuthorizeView Policy="@Policies.LeadershipWrite" Context="fuehrung">
-            <MudStack Row="true" Spacing="2">
-                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LibraryAdd"
-                           OnClick="NewBookAsync">Neues Gesetzbuch</MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
-                           OnClick="NewParagraphAsync">Neuer Paragraf</MudButton>
-            </MudStack>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.LibraryAdd"
+                       OnClick="NewBookAsync">Neues Gesetzbuch</MudButton>
+        </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <AuthorizeView Policy="@Policies.LeadershipWrite" Context="fuehrungMenu">
+            <MudMenuItem Icon="@Icons.Material.Filled.LibraryAdd" OnClick="NewBookAsync">Neues Gesetzbuch</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
+        <AuthorizeView Policy="@Policies.LeadershipWrite" Context="fuehrungNeu">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="NewParagraphAsync">Neuer Paragraf</MudButton>
         </AuthorizeView>
     </Actions>
 </PageHeader>

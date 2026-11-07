@@ -1,15 +1,16 @@
-@* Cross-cutting view of every record compromised by an abduction, with the re-classify action. *@
+@* Cross-cutting view of every record compromised by an abduction, with the re-classify action.
+   Below 600px type, source and note give way (noose-mobil-aus); record, status and the action stay. *@
 @inject IAbductionService AbductionService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 
 <MudStack Spacing="3">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-        <MudText Typo="Typo.h6">Kompromittierte Akten</MudText>
-        <MudSpacer />
-        <MudSwitch T="bool" @bind-Value="_showCleared" Color="Color.Primary" Label="Auch bereinigte anzeigen"
-                   @bind-Value:after="LoadAsync" />
-    </MudStack>
+    <SectionHeader Title="Kompromittierte Akten">
+        <Actions>
+            <MudSwitch T="bool" @bind-Value="_showCleared" Color="Color.Primary" Label="Auch bereinigte anzeigen"
+                       @bind-Value:after="LoadAsync" />
+        </Actions>
+    </SectionHeader>
 
     @if (_load)
     {
@@ -26,10 +27,10 @@
             <thead>
                 <tr>
                     <th>Betroffene Akte</th>
-                    <th>Typ</th>
-                    <th>Quelle</th>
+                    <th class="noose-mobil-aus">Typ</th>
+                    <th class="noose-mobil-aus">Quelle</th>
                     <th>Status</th>
-                    <th>Notiz</th>
+                    <th class="noose-mobil-aus">Notiz</th>
                     <th></th>
                 </tr>
             </thead>
@@ -47,14 +48,14 @@
                                 @r.TargetDisplay
                             }
                         </td>
-                        <td>@TypeLabel(r.TargetType)</td>
-                        <td><MudLink Href="@($"/entfuehrungen/{r.AbductionId}")">@r.AbductionCaseNumber</MudLink></td>
+                        <td class="noose-mobil-aus">@TypeLabel(r.TargetType)</td>
+                        <td class="noose-mobil-aus"><MudLink Href="@($"/entfuehrungen/{r.AbductionId}")">@r.AbductionCaseNumber</MudLink></td>
                         <td>
                             <MudChip T="string" Size="Size.Small" Color="@CompromiseStatusDisplay.ChipColor(r.Status)">
                                 @CompromiseStatusDisplay.Name(r.Status)
                             </MudChip>
                         </td>
-                        <td><MudText Typo="Typo.caption">@r.Note</MudText></td>
+                        <td class="noose-mobil-aus"><MudText Typo="Typo.caption">@r.Note</MudText></td>
                         <td>
                             <AuthorizeView Policy="@Policies.WriteAccess">
                                 @if (r.Status == CompromiseStatus.Compromised)

@@ -1,21 +1,28 @@
 @* Everyone's activities, newest first; filter by text, date range, agent and kind. *@
 @page "/aktivitaeten"
+@using NOOSE_Website.Models.Navigation
 @inject IAgentActivityService ActivityService
 @inject NavigationManager Nav
 
 <PageTitle>Dienst-Aktivitäten · FIB</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-    <MudIcon Icon="@Icons.Material.Filled.Bolt" Color="Color.Primary" Size="Size.Large" />
-    <MudText Typo="Typo.h4">Dienst-Aktivitäten</MudText>
-    <MudSpacer />
-    <AuthorizeView Policy="@Policies.Leadership">
-        <MudButton Href="/papierkorb?tab=aktivitaeten" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
-    </AuthorizeView>
-    <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
-        <MudButton Href="/operationen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Radar">Neuer Einsatz</MudButton>
-    </AuthorizeView>
-</MudStack>
+<PageHeader Icon="@Icons.Material.Filled.Bolt" Title="Dienst-Aktivitäten" ShowHelp="false">
+    <MoreActions>
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudButton Href="/papierkorb?tab=aktivitaeten" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
+        </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=aktivitaeten">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
+        <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
+            <MudButton Href="/operationen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Radar">Neuer Einsatz</MudButton>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
 <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
     Einsätze erfasst du jetzt als <MudLink Href="/operationen">Operation</MudLink> mit Einsatztagebuch und Einsatzbericht.
     Die Aktivitäten hier bleiben lesbar und zählen weiter für die Fraktionen; neue kommen nicht mehr dazu.
@@ -30,18 +37,28 @@
 }
 else
 {
+    @* a table on phones too (Breakpoint.None): fewer columns, the agent's choice. Below 600px the search takes the
+       row and the four filters fold behind "Filter (n)"; ml-sm-2 keeps the 8px gap from 600px up only, where the
+       filters stand side by side *@
     <MudDataGrid T="AgentActivityListItem" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
-                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true">
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" ToolBarWrapContent="true" Class="noose-filterleiste">
         <ToolBarContent>
             <MudTextField @bind-Value="_search" Placeholder="Suchen (Titel, Art, Agent, Inhalt)…" Immediate="true"
-                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" />
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0 noose-filter-feld" />
+            <MudButton Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.FilterList"
+                       Class="noose-nur-handy" OnClick="@(() => _filtersOpen = !_filtersOpen)">Filter (@ActiveFilters)</MudButton>
+            <MobileColumnPicker ListKey="aktivitaeten" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
             <MudSpacer />
             <MudDatePicker Date="_from" DateChanged="FromChanged" Label="Von" Editable="true" Clearable="true"
-                           DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Style="max-width:150px;" Margin="Margin.Dense" />
+                           DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Style="max-width:150px;" Margin="Margin.Dense"
+                           Class="@($"noose-filter-feld {FilterFold}")" />
             <MudDatePicker Date="_to" DateChanged="ToChanged" Label="Bis" Editable="true" Clearable="true"
-                           DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Style="max-width:150px;" Margin="Margin.Dense" Class="ml-2" />
+                           DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Style="max-width:150px;" Margin="Margin.Dense"
+                           Class="@($"ml-sm-2 noose-filter-feld {FilterFold}")" />
             <MudSelect T="string" Value="_agentFilter" ValueChanged="AgentSelected" Label="Agent" Dense="true"
-                       Clearable="true" Variant="Variant.Outlined" Style="max-width:200px;" Class="ml-2">
+                       Clearable="true" Variant="Variant.Outlined" Style="max-width:200px;" Class="@($"ml-sm-2 noose-filter-feld {FilterFold}")">
                 <MudSelectItem T="string" Value="@("")">Alle</MudSelectItem>
                 @foreach (var a in _agents)
                 {
@@ -49,7 +66,7 @@ else
                 }
             </MudSelect>
             <MudSelect T="string" Value="_kindFilter" ValueChanged="KindSelected" Label="Art" Dense="true"
-                       Clearable="true" Variant="Variant.Outlined" Style="max-width:180px;" Class="ml-2">
+                       Clearable="true" Variant="Variant.Outlined" Style="max-width:180px;" Class="@($"ml-sm-2 noose-filter-feld {FilterFold}")">
                 <MudSelectItem T="string" Value="@("")">Alle</MudSelectItem>
                 @foreach (var k in _kinds)
                 {
@@ -58,17 +75,17 @@ else
             </MudSelect>
         </ToolBarContent>
         <Columns>
-            <TemplateColumn Title="Datum" Sortable="true" SortBy="x => x.ActivityDate">
+            <TemplateColumn Title="Datum" Sortable="true" SortBy="x => x.ActivityDate" HeaderClass="@Col("datum")" CellClass="@Col("datum")">
                 <CellTemplate>@context.Item.ActivityDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</CellTemplate>
             </TemplateColumn>
-            <TemplateColumn Sortable="true" Title="Titel" SortBy="x => x.Title">
+            <TemplateColumn Sortable="true" Title="Titel" SortBy="x => x.Title" HeaderClass="@Col("titel")" CellClass="@Col("titel")">
                 <CellTemplate>
                     <MudLink Href="@($"/aktivitaeten/{context.Item.Id}")" @onclick:stopPropagation="true">@context.Item.Title</MudLink>
                 </CellTemplate>
             </TemplateColumn>
-            <PropertyColumn Property="x => x.Kind" Title="Art" />
-            <PropertyColumn Property="x => x.OwnerName" Title="Agent" />
-            <TemplateColumn Sortable="false" Title="Verknüpft">
+            <PropertyColumn Property="x => x.Kind" Title="Art" HeaderClass="@Col("art")" CellClass="@Col("art")" />
+            <PropertyColumn Property="x => x.OwnerName" Title="Agent" HeaderClass="@Col("agent")" CellClass="@Col("agent")" />
+            <TemplateColumn Sortable="false" Title="Verknüpft" HeaderClass="@Col("verknuepft")" CellClass="@Col("verknuepft")">
                 <CellTemplate>
                     <MudStack Row="true" Spacing="1" Class="flex-wrap">
                         @foreach (var org in context.Item.Orgs)
@@ -87,7 +104,7 @@ else
             </MudStack>
         </NoRecordsContent>
         <PagerContent>
-            <MudDataGridPager T="AgentActivityListItem" />
+            <MudDataGridPager Class="noose-pager-handy" T="AgentActivityListItem" />
         </PagerContent>
     </MudDataGrid>
 }
@@ -105,6 +122,26 @@ else
     private List<AgentActivityListItem> _rows = new();
     private List<(string Id, string Name)> _agents = new();
     private List<string> _kinds = new();
+    private bool _filtersOpen;
+
+    private int ActiveFilters => (_from is null ? 0 : 1) + (_to is null ? 0 : 1)
+        + (string.IsNullOrEmpty(_agentFilter) ? 0 : 1) + (string.IsNullOrEmpty(_kindFilter) ? 0 : 1);
+    private string FilterFold => _filtersOpen ? string.Empty : "noose-filter-zu";
+
+    /// <summary>The grid's columns for the phone column picker, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("datum", "Datum"), ("titel", "Titel"), ("art", "Art"), ("agent", "Agent"), ("verknuepft", "Verknüpft"),
+    ];
+
+    /// <summary>What a phone shows until the agent chooses: kind and date (Bauplan Task 10).</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["art", "datum"];
+
+    // the defaults until the picker reports the stored choice, so even the first paint is narrow on a phone
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows, as before
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
     protected override async Task OnInitializedAsync()
     {

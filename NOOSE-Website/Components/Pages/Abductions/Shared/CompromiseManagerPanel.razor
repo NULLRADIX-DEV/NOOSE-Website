@@ -1,4 +1,5 @@
-@* Manages the records compromised by one abduction: add via record search, re-classify, remove. *@
+@* Manages the records compromised by one abduction: add via record search, re-classify, remove.
+   Below 600px type and note give way (noose-mobil-aus); record, status and the actions stay. *@
 @inject IAbductionService AbductionService
 @inject ISearchService SearchService
 @inject IAgentManagementService Agents
@@ -42,7 +43,7 @@
     {
         <MudSimpleTable Dense="true" Hover="true">
             <thead>
-                <tr><th>Betroffene Akte</th><th>Typ</th><th>Status</th><th>Notiz</th><th></th></tr>
+                <tr><th>Betroffene Akte</th><th class="noose-mobil-aus">Typ</th><th>Status</th><th class="noose-mobil-aus">Notiz</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var r in _rows)
@@ -58,13 +59,13 @@
                                 @r.TargetDisplay
                             }
                         </td>
-                        <td>@r.TargetType</td>
+                        <td class="noose-mobil-aus">@r.TargetType</td>
                         <td>
                             <MudChip T="string" Size="Size.Small" Color="@CompromiseStatusDisplay.ChipColor(r.Status)">
                                 @CompromiseStatusDisplay.Name(r.Status)
                             </MudChip>
                         </td>
-                        <td><MudText Typo="Typo.caption">@r.Note</MudText></td>
+                        <td class="noose-mobil-aus"><MudText Typo="Typo.caption">@r.Note</MudText></td>
                         <td>
                             <AuthorizeView Policy="@Policies.WriteAccess">
                                 <MudStack Row="true" Spacing="1">

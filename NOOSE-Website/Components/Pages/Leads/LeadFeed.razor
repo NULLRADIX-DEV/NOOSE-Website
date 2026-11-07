@@ -55,7 +55,7 @@ else
                                             }
                                         </MudText>
                                     </div>
-                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="noose-eintrag">
                                         @* fallback button only when the name isn't already a link inside the sentence *@
                                         @if (!string.IsNullOrWhiteSpace(lead.PrimaryHref) && !segments.Any(s => s.Href == lead.PrimaryHref))
                                         {

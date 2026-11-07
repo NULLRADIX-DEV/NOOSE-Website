@@ -17,7 +17,7 @@
         {
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
                 <MudSelect T="string" @bind-Value="_selectedTestId" Label="Test auswählen" Variant="Variant.Outlined"
-                           Margin="Margin.Dense" Style="min-width:240px;">
+                           Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:240px;">
                     @foreach (var t in _tests)
                     {
                         <MudSelectItem T="string" Value="@t.Id">@t.Title@(t.TimeLimitMinutes is int m ? $" · {m} Min" : "")</MudSelectItem>

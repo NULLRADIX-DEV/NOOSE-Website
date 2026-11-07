@@ -14,24 +14,23 @@
 @* Centred column; MainLayout already supplies the horizontal gutter. *@
 <MudContainer MaxWidth="MaxWidth.Large" Class="px-0">
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
-        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Primary" Size="Size.Large" />
-        <MudText Typo="Typo.h4">Mein Profil</MudText>
-    </MudStack>
-    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-        @if (!_mayWrite)
-        {
-            <span>Hier siehst du deine Stammdaten. Änderungen sind in deiner Rolle nicht möglich.</span>
-        }
-        else if (_isLeadership)
-        {
-            <span>Hier änderst du deine eigenen Stammdaten. Als Führungskraft greifen deine Änderungen <b>sofort</b>.</span>
-        }
-        else
-        {
-            <span>Hier änderst du deine eigenen Stammdaten. Deine Änderungen müssen von der Führung <b>freigegeben</b> werden, bevor sie wirksam werden.</span>
-        }
-    </MudText>
+    @* no help button: the hand-built title had none, and the desktop keeps its look *@
+    <PageHeader Icon="@Icons.Material.Filled.AccountCircle" Title="Mein Profil" ShowHelp="false">
+        <SubtitleContent>
+            @if (!_mayWrite)
+            {
+                <span>Hier siehst du deine Stammdaten. Änderungen sind in deiner Rolle nicht möglich.</span>
+            }
+            else if (_isLeadership)
+            {
+                <span>Hier änderst du deine eigenen Stammdaten. Als Führungskraft greifen deine Änderungen <b>sofort</b>.</span>
+            }
+            else
+            {
+                <span>Hier änderst du deine eigenen Stammdaten. Deine Änderungen müssen von der Führung <b>freigegeben</b> werden, bevor sie wirksam werden.</span>
+            }
+        </SubtitleContent>
+    </PageHeader>
 
     @if (_load)
     {
@@ -162,12 +161,12 @@
 
                             @if (_mayWrite)
                             {
-                                <MudStack Row="true" Justify="Justify.FlexEnd">
+                                <FormActions Spacing="3">
                                     <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync"
                                                Disabled="_save" StartIcon="@(_isLeadership ? Icons.Material.Filled.Save : Icons.Material.Filled.Send)">
                                         @(_isLeadership ? "Speichern" : "Zur Freigabe einreichen")
                                     </MudButton>
-                                </MudStack>
+                                </FormActions>
                             }
                         </MudStack>
                     </MudForm>
@@ -236,9 +235,9 @@
                         <MudStack Spacing="2">
                             @foreach (var a in _myRequests)
                             {
-                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                                     <MudChip T="string" Size="Size.Small" Color="@StatusColour(a.Status)" Variant="Variant.Filled">@RequestStatusDisplay.Name(a.Status)</MudChip>
-                                    <MudText Typo="Typo.body2">@a.TargetDesignation</MudText>
+                                    <MudText Typo="Typo.body2" Class="noose-eintrag-titel">@a.TargetDesignation</MudText>
                                     <MudSpacer />
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@a.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
                                 </MudStack>

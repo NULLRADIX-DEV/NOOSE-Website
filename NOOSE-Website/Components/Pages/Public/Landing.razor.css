@@ -1,0 +1,23 @@
+/* Phones only; from 600px up the start page stays as it is. */
+@media screen and (max-width: 599.98px) {
+    /* the four figures two by two instead of one per row (the row's gap is 12px, Spacing 3) */
+    .landing-kachel {
+        flex: 1 1 calc(50% - 6px) !important;
+        min-width: 0;
+    }
+
+    /* the latest notices as a strip to swipe through; it scrolls in itself, the page stays as wide as the screen */
+    .landing ::deep .landing-streifen {
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        overscroll-behavior-x: contain;
+        padding-bottom: 4px;
+    }
+
+    .landing ::deep .landing-streifen > .mud-paper {
+        flex: 0 0 75% !important;
+        min-width: 0;
+        scroll-snap-align: start;
+    }
+}

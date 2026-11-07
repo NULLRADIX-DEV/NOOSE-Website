@@ -21,7 +21,8 @@
                 <div style="@(own ? "align-self:flex-end;" : "align-self:flex-start;")max-width:80%;">
                     <MudPaper Class="pa-2" Elevation="@(own ? 0 : 1)" Outlined="@(!own)"
                               Style="@(own ? "background-color:var(--mud-palette-primary-hover);" : "")">
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        @* noose-eintrag: below 600px the date wraps under a long name inside the narrow bubble *@
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="noose-eintrag">
                             <MudText Typo="Typo.caption"><b>@(string.IsNullOrWhiteSpace(e.Msg.AuthorName) ? "Unbekannt" : e.Msg.AuthorName)</b></MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">· @e.Msg.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
                             @if (_mayWrite && (own || _isLeadership))

@@ -1,0 +1,105 @@
+@* "Spalten" for a list on phones: which columns stay visible below 600px. The button exists only there
+   (noose-nur-handy); from 600px up neither the button nor its choice shows, every column is there as before.
+   The page asks ClassFor(key) for each column's HeaderClass and CellClass, so the switch is CSS and the first paint
+   already shows the narrow table. The choice is kept per agent and list in NavPreferences.MobileColumns; without an
+   agent account (citizen, applicant, anonymous) there is no button and the list's defaults apply. *@
+@using NOOSE_Website.Models.Navigation
+@inject INavPreferencesService NavPrefs
+@inject ILogger<MobileColumnPicker> Logger
+
+@if (!string.IsNullOrEmpty(_agentId))
+{
+    <MudMenu Label="Spalten" StartIcon="@Icons.Material.Filled.ViewColumn" Variant="Variant.Text" Color="Color.Default"
+             Dense="true" Class="noose-nur-handy" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+        <div class="px-3 py-1">
+            <MudText Typo="Typo.caption" Class="d-block mud-text-secondary pb-1">Auf dem Handy anzeigen</MudText>
+            @foreach (var column in Columns)
+            {
+                var shown = _visible.Contains(column.Key);
+                @* the last visible column cannot be switched off: a table without a column shows nothing *@
+                <MudCheckBox T="bool" Value="shown" ValueChanged="@(v => ToggleAsync(column.Key, v))" Dense="true"
+                             Color="Color.Primary" Label="@column.Label" Disabled="@(shown && _visible.Count == 1)" />
+            }
+        </div>
+    </MudMenu>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    /// <summary>The list's key under <see cref="NavPreferences.MobileColumns"/>, e.g. "personen".</summary>
+    [Parameter, EditorRequired] public string ListKey { get; set; } = string.Empty;
+
+    /// <summary>Every column of the list in table order: its key (lower case, no umlauts) and its German title.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<(string Key, string Label)> Columns { get; set; } = [];
+
+    /// <summary>The columns a phone shows when the agent chose nothing.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<string> Defaults { get; set; } = [];
+
+    /// <summary>Raised whenever the visible set changes, also once the stored choice is loaded; the page re-renders.</summary>
+    [Parameter] public EventCallback<IReadOnlySet<string>> VisibleChanged { get; set; }
+
+    private string? _agentId;
+    private IReadOnlySet<string> _visible = new HashSet<string>();
+
+    private IReadOnlyList<string> Keys => Columns.Select(c => c.Key).ToList();
+
+    /// <summary>The columns visible on phones right now.</summary>
+    public IReadOnlySet<string> Visible => _visible;
+
+    /// <summary>The class for one column's header and cells: empty, or the one that hides it below 600px.</summary>
+    public string ClassFor(string key) => MobileColumnSet.ClassFor(_visible, key);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // the defaults first, so a page that renders before the stored choice arrives is already narrow
+        _visible = MobileColumnSet.Resolve(Keys, Defaults, null);
+        if (AuthStateTask is not null)
+        {
+            _agentId = (await AuthStateTask).User.GetAgentId();
+        }
+        if (!string.IsNullOrEmpty(_agentId))
+        {
+            try
+            {
+                var prefs = await NavPrefs.GetAsync(_agentId);
+                _visible = MobileColumnSet.Resolve(Keys, Defaults, prefs.MobileColumns.GetValueOrDefault(ListKey));
+            }
+            catch (Exception ex)
+            {
+                // a column choice must never cost the list below it: the defaults stay
+                Logger.LogDebug(ex, "Spaltenwahl für {List} konnte nicht geladen werden.", ListKey);
+            }
+        }
+        await VisibleChanged.InvokeAsync(_visible);
+    }
+
+    private async Task ToggleAsync(string key, bool show)
+    {
+        var next = new HashSet<string>(_visible, StringComparer.Ordinal);
+        if (show)
+        {
+            next.Add(key);
+        }
+        else
+        {
+            next.Remove(key);
+        }
+        if (next.Count == 0 || string.IsNullOrEmpty(_agentId))
+        {
+            return;
+        }
+        _visible = next;
+        await VisibleChanged.InvokeAsync(_visible);
+        try
+        {
+            // stored in table order, so the blob reads like the list
+            await NavPrefs.SetMobileColumnsAsync(_agentId, ListKey, Keys.Where(next.Contains).ToList());
+        }
+        catch (Exception ex)
+        {
+            // the choice still holds for this visit; only the next one starts from the old choice
+            Logger.LogWarning(ex, "Spaltenwahl für {List} konnte nicht gespeichert werden.", ListKey);
+        }
+    }
+}

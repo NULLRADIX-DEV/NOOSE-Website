@@ -32,7 +32,7 @@ else
         </MudAlert>
     }
 
-    <MudTable Items="_page.Rows" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Dense="true"
+    <MudTable Items="_page.Rows" Hover="true" Breakpoint="Breakpoint.None" Elevation="0" Dense="true"
               Loading="_busy" LoadingProgressColor="Color.Primary">
         <HeaderContent>
             <MudTh>Zeitpunkt</MudTh>
@@ -48,7 +48,7 @@ else
             <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Keine Zugriffe für diesen Filter.</MudText>
         </NoRecordsContent>
         <PagerContent>
-            <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }" />
+            <MudTablePager Class="noose-pager-handy" PageSizeOptions="new[] { 25, 50, 100 }" />
         </PagerContent>
     </MudTable>
 }

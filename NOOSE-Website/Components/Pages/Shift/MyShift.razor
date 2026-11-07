@@ -418,15 +418,14 @@ else
 
     private RenderFragment Head(string icon, string title, string? href, string? linkText) => __builder =>
     {
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
-            <MudIcon Icon="@icon" Color="Color.Primary" />
-            <MudText Typo="Typo.h6">@title</MudText>
-            <MudSpacer />
-            @if (href is not null && linkText is not null)
-            {
-                <MudLink Href="@href" Typo="Typo.caption">@linkText</MudLink>
-            }
-        </MudStack>
+        <SectionHeader Title="@title" Icon="@icon" Class="mb-2">
+            <Actions>
+                @if (href is not null && linkText is not null)
+                {
+                    <MudLink Href="@href" Typo="Typo.caption">@linkText</MudLink>
+                }
+            </Actions>
+        </SectionHeader>
     };
 
     private RenderFragment More(int total) => __builder =>

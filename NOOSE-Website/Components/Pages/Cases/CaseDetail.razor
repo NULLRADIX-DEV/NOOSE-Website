@@ -24,7 +24,7 @@ else
     @if (_case.IsArchived)
     {
         <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
                 <div>
                     <MudText Typo="Typo.body2">
                         Archiviert am @(_case.ArchivedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—") —
@@ -54,38 +54,74 @@ else
         </AuthorizeView>
     }
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    @* Record toolbar: from 960px up exactly the row it always was. Below 960px it wraps, "Bearbeiten" stays, everything
+       else moves into the ⋮ menu (HeaderMenu): each entry behind the same check as its button, archive and delete last
+       after a line. The d-contents wrappers add no box, so the buttons stay items of the row on wide screens. *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/vorgaenge" aria-label="Zurück" />
         <MudSpacer />
-        <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
-            <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
-                           Href="@($"/vorgaenge/{Id}/druck")" Target="_blank"
-                           aria-label="Druckansicht öffnen" />
-        </MudTooltip>
-        <DossierExportButton EntityType="@nameof(Case)" EntityId="@Id" />
-        @if (!_isPartner)
-        {
-            <FollowButton EntityType="@nameof(Case)" EntityId="@_case.Id" User="_user" />
-            <JobCreateButton EntityType="@nameof(Case)" EntityId="@_case.Id" />
-            <ChannelShareButton EntityType="@nameof(Case)" EntityId="@_case.Id"
-                                Restricted="@ChannelShareRules.IsRestricted(_case)" />
-        }
-        <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
-            <PartnerShareButton EntityType="@nameof(Case)" EntityId="@_case.Id" />
-        </AuthorizeView>
+        <div class="d-contents noose-schmal-aus">
+            <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
+                               Href="@($"/vorgaenge/{Id}/druck")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+            <DossierExportButton EntityType="@nameof(Case)" EntityId="@Id" />
+            @if (!_isPartner)
+            {
+                <FollowButton EntityType="@nameof(Case)" EntityId="@_case.Id" User="_user" />
+                <JobCreateButton EntityType="@nameof(Case)" EntityId="@_case.Id" />
+                <ChannelShareButton EntityType="@nameof(Case)" EntityId="@_case.Id"
+                                    Restricted="@ChannelShareRules.IsRestricted(_case)" />
+            }
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
+                <PartnerShareButton EntityType="@nameof(Case)" EntityId="@_case.Id" />
+            </AuthorizeView>
+        </div>
         <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
             <MudButton Href="@($"/vorgaenge/{_case.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
         </AuthorizeView>
-        <AuthorizeView Policy="@Policies.WriteAccess" Context="ablegen">
-            @if (!_case.IsArchived)
+        <div class="d-contents noose-schmal-aus">
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="ablegen">
+                @if (!_case.IsArchived)
+                {
+                    <MudButton Color="Color.Default" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Archive"
+                               OnClick="ArchiveAsync">Archivieren</MudButton>
+                }
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.Leadership">
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+            </AuthorizeView>
+        </div>
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/vorgaenge/{Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+            <DossierExportButton AsMenuItem="true" EntityType="@nameof(Case)" EntityId="@Id" />
+            @if (!_isPartner)
             {
-                <MudButton Color="Color.Default" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Archive"
-                           OnClick="ArchiveAsync">Archivieren</MudButton>
+                <FollowButton AsMenuItem="true" EntityType="@nameof(Case)" EntityId="@_case.Id" User="_user" />
+                <JobCreateButton AsMenuItem="true" EntityType="@nameof(Case)" EntityId="@_case.Id" />
+                <ChannelShareButton AsMenuItem="true" EntityType="@nameof(Case)" EntityId="@_case.Id"
+                                    Restricted="@ChannelShareRules.IsRestricted(_case)" />
             }
-        </AuthorizeView>
-        <AuthorizeView Policy="@Policies.Leadership">
-            <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
-        </AuthorizeView>
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabeMenu">
+                <PartnerShareButton AsMenuItem="true" EntityType="@nameof(Case)" EntityId="@_case.Id" />
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="ablegenMenu">
+                @if (!_case.IsArchived)
+                {
+                    <MudDivider Class="my-1" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Archive" OnClick="ArchiveAsync">Archivieren</MudMenuItem>
+                }
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.Leadership" Context="loeschenMenu">
+                @* one line before the destructive pair: here only when no archive entry drew it already *@
+                @if (_case.IsArchived || !_user.MayWrite())
+                {
+                    <MudDivider Class="my-1" />
+                }
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            </AuthorizeView>
+        </HeaderMenu>
     </MudStack>
 
     @if (!_isPartner)

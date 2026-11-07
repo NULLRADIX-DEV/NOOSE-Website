@@ -1,13 +1,14 @@
-@* Dashboard KPI tile; navigates to the matching list when Href is set. *@
+@* Dashboard KPI tile; navigates to the matching list when Href is set.
+   Below 600px it packs denser (noose-kachel in app.css); put it in MudItem xs="6", so two stand side by side there. *@
 @inject NavigationManager Nav
 
 <MudPaper Class="@PaperClass" Elevation="2" @onclick="Activate" role="@(Href is null ? null : "link")"
           tabindex="@(Href is null ? null : "0")" @onkeydown="OnKeyDown" title="@Hint">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kachel-kopf">
         <MudIcon Icon="@Icon" Color="@Colour" />
         <MudText Typo="Typo.overline" Class="mud-text-secondary">@Label</MudText>
     </MudStack>
-    <MudText Typo="Typo.h4" Class="mt-2">@Value</MudText>
+    <MudText Typo="Typo.h4" Class="mt-2 noose-kachel-wert">@Value</MudText>
 </MudPaper>
 
 @code {
@@ -22,7 +23,7 @@
     /// <summary>Native tooltip explaining what the number counts.</summary>
     [Parameter] public string? Hint { get; set; }
 
-    private string PaperClass => Href is null ? "pa-4" : "pa-4 cursor-pointer";
+    private string PaperClass => Href is null ? "pa-4 noose-kachel" : "pa-4 noose-kachel cursor-pointer";
 
     private void Activate()
     {

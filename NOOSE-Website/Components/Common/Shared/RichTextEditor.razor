@@ -21,11 +21,11 @@
     </MudAlert>
 }
 @* relative: the mention picker is placed at the caret, in coordinates JS measures against this wrapper *@
-<div style="position:relative;">
+<div style="position:relative;" class="noose-rte-huelle">
     <div @ref="_element" class="noose-rte"></div>
     @if (_mentionsOpen && _candidates.Count > 0)
     {
-        <MentionPicker Candidates="_candidates" ActiveIndex="_active" OnPick="InsertMentionAsync"
+        <MentionPicker Candidates="_candidates" ActiveIndex="_active" OnPick="InsertMentionAsync" Class="noose-rte-erwaehnung"
                        Style="@($"position:absolute;z-index:10;min-width:280px;max-width:420px;top:{_mentionTop}px;left:{_mentionLeft}px;")" />
     }
 </div>

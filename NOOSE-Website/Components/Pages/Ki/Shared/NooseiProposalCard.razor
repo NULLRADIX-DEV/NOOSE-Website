@@ -22,7 +22,7 @@
     @foreach (var line in Proposal.Lines)
     {
         <div class="d-flex mt-1" style="gap:8px;">
-            <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="min-width:110px;">@line.Label</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary noose-min-breite-frei" Style="min-width:110px;">@line.Label</MudText>
             <MudText Typo="Typo.body2"><MentionDisplay Text="@line.Value" /></MudText>
         </div>
     }
@@ -32,7 +32,7 @@
     }
     @if (Proposal.IsOpen)
     {
-        <div class="d-flex align-center mt-2" style="gap:8px;">
+        <div class="d-flex align-center mt-2 noose-eintrag" style="gap:8px;">
             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Check" Disabled="Busy" OnClick="OnExecute">Ausführen</MudButton>
             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
