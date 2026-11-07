@@ -27,6 +27,8 @@ public interface IBewerbungTestService
 
     // ---- assignment + evaluation (HRB/leadership) ----
     Task<BewerbungTestAssignment?> GetAssignmentAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Every application's test attempt, keyed by application id, for the list overview.</summary>
+    Task<Dictionary<string, BewerbungTestAssignment>> GetAssignmentsByApplicationAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task AssignAsync(string bewerbungId, string testId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<TestEvaluation?> GetEvaluationAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task SetAwardedPointsAsync(string assignmentId, string questionId, int? points, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
