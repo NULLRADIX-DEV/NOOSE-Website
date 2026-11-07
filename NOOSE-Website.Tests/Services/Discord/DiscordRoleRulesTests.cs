@@ -38,8 +38,14 @@ public class DiscordRoleRulesTests
             [Division.Hrt] = ["hrt"],
         };
 
+        public Dictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>> ByDivisionRank = new()
+        {
+            [Division.Cid] = new Dictionary<Rank, IReadOnlyList<string>> { [Rank.SpecialAgentInCharge] = ["saic"] },
+            [Division.Hrt] = new Dictionary<Rank, IReadOnlyList<string>> { [Rank.SpecialAgentInCharge] = ["leading-op"] },
+        };
+
         public DiscordRoleMapping Build()
-            => new(Base, ByRank, ByDivision, Board, Administration, Admin, TeamLead, Resident);
+            => new(Base, ByRank, ByDivision, Board, Administration, Admin, TeamLead, Resident, ByDivisionRank);
     }
 
     private static void AssertSet(IReadOnlySet<string> actual, params string[] expected)
@@ -372,6 +378,85 @@ public class DiscordRoleRulesTests
 
         Assert.NotNull(DiscordRoleRules.Validate(inRank));
         Assert.NotNull(DiscordRoleRules.Validate(inDivision));
+    }
+
+    [Fact]
+    public void Rank_inside_a_unit_goes_only_to_that_unit()
+    {
+        var map = Map();
+        var leadingOperator = Seed.Agent("a", Rank.SpecialAgentInCharge, configure: a => a.Division = Division.Hrt);
+        var cidAgent = Seed.Agent("b", Rank.SpecialAgentInCharge, configure: a => a.Division = Division.Cid);
+        var ctdAgent = Seed.Agent("c", Rank.SpecialAgentInCharge, configure: a => a.Division = Division.Ctd);
+
+        AssertSet(DiscordRoleRules.Target(leadingOperator, map)!.Desired, "base", "hrt", "leading-op");
+        AssertSet(DiscordRoleRules.Target(cidAgent, map)!.Desired, "base", "cid", "saic");
+        AssertSet(DiscordRoleRules.Target(ctdAgent, map)!.Desired, "base", "ctd");
+    }
+
+    [Fact]
+    public void Rank_inside_a_unit_adds_to_rank_in_every_unit()
+    {
+        var map = Map(b => b.ByRank = new() { [Rank.SpecialAgentInCharge] = ["r4"] });
+        var agent = Seed.Agent("a", Rank.SpecialAgentInCharge, configure: a => a.Division = Division.Hrt);
+
+        AssertSet(DiscordRoleRules.Target(agent, map)!.Desired, "base", "r4", "hrt", "leading-op");
+    }
+
+    [Fact]
+    public void Unit_rank_roles_are_managed_and_taken_away_after_a_transfer()
+    {
+        var map = Map();
+        Assert.Contains("leading-op", map.AllManaged);
+
+        var movedToCid = Seed.Agent("a", Rank.SpecialAgentInCharge, configure: a => a.Division = Division.Cid);
+        var diff = DiscordRoleRules.Diff(DiscordRoleRules.Target(movedToCid, map)!, ["base", "hrt", "leading-op"]);
+
+        Assert.Equal(["cid", "saic"], diff.Add);
+        Assert.Equal(["hrt", "leading-op"], diff.Remove);
+    }
+
+    [Fact]
+    public void Board_member_gets_no_unit_rank_roles()
+    {
+        var map = Map(b => b.ByDivisionRank = new()
+        {
+            [Division.Cid] = new Dictionary<Rank, IReadOnlyList<string>> { [Rank.AssistantDirector] = ["cid-ad"] },
+        });
+        var agent = Seed.Agent("a", Rank.AssistantDirector, configure: a => a.Division = Division.Cid);
+
+        Assert.DoesNotContain("cid-ad", DiscordRoleRules.Target(agent, map)!.Desired);
+    }
+
+    [Fact]
+    public void Mapping_without_unit_ranks_still_works()
+    {
+        var map = Map(b => b.ByDivisionRank = null!);
+        var agent = Seed.Agent("a", Rank.SpecialAgent, configure: a => a.Division = Division.Cid);
+
+        AssertSet(DiscordRoleRules.Target(agent, map)!.Desired, "base", "r2", "cid");
+        Assert.Null(DiscordRoleRules.Validate(map));
+    }
+
+    [Theory]
+    [InlineData(Division.Hrt, Rank.Trainee, false)]
+    [InlineData(Division.Hrt, Rank.SpecialAgent, true)]
+    [InlineData(Division.Hrt, Rank.SectionChief, true)]
+    [InlineData(Division.Cid, Rank.Trainee, true)]
+    [InlineData(Division.Ctd, Rank.SectionChief, true)]
+    [InlineData(Division.Cid, Rank.AssistantDirector, false)]
+    [InlineData(Division.Ctd, Rank.Director, false)]
+    public void Unit_rank_entries_exist_only_where_the_rank_can_be_held(Division division, Rank rank, bool expected)
+        => Assert.Equal(expected, DiscordRoleRules.HasUnitRankEntry(division, rank));
+
+    [Fact]
+    public void Validate_rejects_resident_in_a_unit_rank_entry()
+    {
+        var map = Map(b => b.ByDivisionRank = new()
+        {
+            [Division.Hrt] = new Dictionary<Rank, IReadOnlyList<string>> { [Rank.SectionChief] = ["bewohner"] },
+        });
+
+        Assert.Contains("HRT · Commanding Operator", DiscordRoleRules.Validate(map));
     }
 
     [Fact]

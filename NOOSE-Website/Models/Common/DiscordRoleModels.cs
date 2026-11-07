@@ -4,6 +4,9 @@ using NOOSE_Website.Models.Enums;
 namespace NOOSE_Website.Models.Common;
 
 /// <summary>Discord role ids per entry; one entry may hold several roles, one role may sit in several entries.</summary>
+/// <param name="ByRank">Per rank in every unit.</param>
+/// <param name="ByDivision">Per unit, every rank in it.</param>
+/// <param name="ByDivisionRank">Per rank inside one unit, below the Board; missing in mappings saved before it existed.</param>
 public sealed record DiscordRoleMapping(
     IReadOnlyList<string> Base,
     IReadOnlyDictionary<Rank, IReadOnlyList<string>> ByRank,
@@ -12,14 +15,16 @@ public sealed record DiscordRoleMapping(
     IReadOnlyList<string> Administration,
     IReadOnlyList<string> Admin,
     IReadOnlyList<string> TeamLead,
-    IReadOnlyList<string> Resident)
+    IReadOnlyList<string> Resident,
+    IReadOnlyDictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>>? ByDivisionRank = null)
 {
     /// <summary>Nothing mapped, so the bot assigns and removes nothing.</summary>
     public static DiscordRoleMapping Empty { get; } = new(
         [],
         new Dictionary<Rank, IReadOnlyList<string>>(),
         new Dictionary<Division, IReadOnlyList<string>>(),
-        [], [], [], [], []);
+        [], [], [], [], [],
+        new Dictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>>());
 
     /// <summary>Every mapped role id; the bot touches nothing else.</summary>
     [JsonIgnore]
@@ -50,6 +55,13 @@ public sealed record DiscordRoleMapping(
         foreach (var list in ByDivision?.Values ?? [])
         {
             yield return list;
+        }
+        foreach (var ranks in ByDivisionRank?.Values ?? [])
+        {
+            foreach (var list in ranks?.Values ?? [])
+            {
+                yield return list;
+            }
         }
         yield return Board;
         yield return Administration;

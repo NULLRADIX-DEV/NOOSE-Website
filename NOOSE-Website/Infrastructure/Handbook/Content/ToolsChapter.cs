@@ -187,6 +187,11 @@ internal static class ToolsChapter
                 wieder weg. Maßgeblich ist immer die Seite. Der Bot überträgt nur von hier nach Discord, nie zurück,
                 und fasst nur Rollen an, die hier zugeordnet sind. Alles andere im Discord bleibt, wie es ist.
                 Markier eine Teamleitung schon vor der Freigabe, sonst tauchen ihre Dienstgrad-Rollen kurz im Discord auf.</p>
+                <p>Ein Agent bekommt alle Einträge, die auf ihn passen: die Grundrollen, die Rollen seines Dienstgrads
+                in allen Einheiten, die seiner Abteilung und die seines Dienstgrads in genau dieser Abteilung. Soll eine
+                Rolle nur ein Dienstgrad einer Abteilung tragen, etwa der Leading Operator im HRT, trag sie im Block
+                dieser Abteilung ein und nicht bei den Dienstgraden aller Einheiten. Sonst bekommt sie jeder mit diesem
+                Dienstgrad, auch in CID und CTD.</p>
                 <p>Damit das klappt, braucht der Bot auf dem Discord-Server das Recht <strong>Rollen verwalten</strong>,
                 und seine eigene Rolle muss in der Rollenliste <strong>über</strong> allen zugeordneten Rollen stehen.
                 Sonst lehnt Discord ab, und der Agent steht mit einem Fehler in der Liste. Schalte den Abgleich nie

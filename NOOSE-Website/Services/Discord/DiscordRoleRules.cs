@@ -47,6 +47,10 @@ public static class DiscordRoleRules
     /// <summary>Released at some point and not a partner, so a terminated or blocked account is still a former agent.</summary>
     public static bool CountsAsFormerAgent(Agent agent) => agent.Rank != null && agent.PartnerAgency == null;
 
+    /// <summary>A rank inside a unit gets its own entry only where it can occur: below the Board, HRT from Special Agent.</summary>
+    public static bool HasUnitRankEntry(Division division, Rank rank)
+        => DivisionRules.MayHold(division, rank) && !DivisionRules.IsBoard(rank);
+
     /// <summary>Add what is missing, remove managed roles that should not be there; unmapped roles stay.</summary>
     public static DiscordRoleDiff Diff(DiscordRoleTarget target, IReadOnlyCollection<string> current)
     {
@@ -91,6 +95,11 @@ public static class DiscordRoleRules
         else if (unit.Home is { } home)
         {
             desired.UnionWith(Lookup(map.ByDivision, home));
+            if (agent.Rank is { } unitRank && map.ByDivisionRank is not null
+                && map.ByDivisionRank.TryGetValue(home, out var ranks))
+            {
+                desired.UnionWith(Lookup(ranks, unitRank));
+            }
         }
         if (agent.IsHRB)
         {
@@ -133,6 +142,15 @@ public static class DiscordRoleRules
         foreach (var (division, ids) in map.ByDivision ?? new Dictionary<Division, IReadOnlyList<string>>())
         {
             yield return (DivisionDisplay.Short(division), ids);
+        }
+        foreach (var (division, ranks) in map.ByDivisionRank
+                     ?? new Dictionary<Division, IReadOnlyDictionary<Rank, IReadOnlyList<string>>>())
+        {
+            foreach (var (rank, ids) in ranks ?? new Dictionary<Rank, IReadOnlyList<string>>())
+            {
+                var title = division == Division.Hrt && RankDisplay.HrtTitle(rank) is { } hrt ? hrt : RankDisplay.DefaultName(rank);
+                yield return ($"{DivisionDisplay.Short(division)} · {title}", ids);
+            }
         }
         yield return ("Board", map.Board);
         yield return ("Administration", map.Administration);
