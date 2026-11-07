@@ -34,18 +34,22 @@
     }
 </MudTabs>
 
-<div class="d-flex flex-wrap gap-3 mb-3">
-    <MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="200" Clearable="true"
-                  Placeholder="Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber" Adornment="Adornment.Start"
-                  AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense"
-                  Style="flex: 1 1 260px; min-width: 0;" Class="noose-filter-feld" />
-    <MudSelect T="ApplicationStreamFilter" @bind-Value="_stream" Label="Stream" Variant="Variant.Outlined"
-               Margin="Margin.Dense" Dense="true" Style="flex: 0 1 220px; min-width: 0;" Class="noose-filter-feld">
-        @foreach (var f in Enum.GetValues<ApplicationStreamFilter>())
-        {
-            <MudSelectItem T="ApplicationStreamFilter" Value="f">@ApplicationOverview.StreamFilterName(f)</MudSelectItem>
-        }
-    </MudSelect>
+@* MudBlazor puts Style on the inner input, so the flex sizing sits on wrappers *@
+<div class="d-flex flex-wrap align-center gap-3 mb-3">
+    <div class="noose-filter-feld" style="flex: 1 1 260px; min-width: 0;">
+        <MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="200" Clearable="true"
+                      Placeholder="Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber" Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense" />
+    </div>
+    <div class="noose-filter-feld" style="flex: 0 0 220px; min-width: 0;">
+        <MudSelect T="ApplicationStreamFilter" @bind-Value="_stream" Label="Stream" Variant="Variant.Outlined"
+                   Margin="Margin.Dense" Dense="true">
+            @foreach (var f in Enum.GetValues<ApplicationStreamFilter>())
+            {
+                <MudSelectItem T="ApplicationStreamFilter" Value="f">@ApplicationOverview.StreamFilterName(f)</MudSelectItem>
+            }
+        </MudSelect>
+    </div>
 </div>
 <MobileColumnPicker ListKey="bewerbungen" Columns="PhoneColumns" Defaults="PhoneDefaults"
                     VisibleChanged="@(v => _phoneColumns = v)" />
