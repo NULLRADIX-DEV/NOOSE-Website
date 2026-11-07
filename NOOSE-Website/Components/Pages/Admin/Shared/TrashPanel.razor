@@ -55,9 +55,12 @@ else
             <MudTd DataLabel="Aktion" Style="text-align:right;">
                 @* LeadershipPage admits read-only supervision, for whom RestoreAsync throws *@
                 <AuthorizeView Policy="@Policies.WriteAccess" Context="restore">
-                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
-                               StartIcon="@Icons.Material.Filled.Restore"
-                               OnClick="@(() => RestoreAsync(context))">Wiederherstellen</MudButton>
+                    @if (CanRestore?.Invoke(context) ?? true)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.Restore"
+                                   OnClick="@(() => RestoreAsync(context))">Wiederherstellen</MudButton>
+                    }
                 </AuthorizeView>
             </MudTd>
         </RowTemplate>
@@ -69,6 +72,9 @@ else
 
     /// <summary>Trash kind key, e.g. "personen"; matches ITrashService.Kinds.</summary>
     [Parameter, EditorRequired] public string Kind { get; set; } = string.Empty;
+
+    /// <summary>Row-level mirror of a finer service gate; without it every row offers the restore.</summary>
+    [Parameter] public Func<TrashItem, bool>? CanRestore { get; set; }
 
     private bool _load = true;
     private string? _loadedKind;

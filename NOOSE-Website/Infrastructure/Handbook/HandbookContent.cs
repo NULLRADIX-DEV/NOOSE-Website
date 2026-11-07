@@ -23,7 +23,7 @@ namespace NOOSE_Website.Infrastructure.Handbook;
 public static class HandbookContent
 {
     /// <summary>Revision of the shipped text. Raise it after rewording an existing article, chapter or term.</summary>
-    public const int Revision = 73;
+    public const int Revision = 74;
 
     public sealed record SeededStep(string Icon, string Title, string Text);
 
@@ -66,7 +66,6 @@ public static class HandbookContent
         PersonnelChapter.Chapter,
         ToolsChapter.Chapter,
         DutyRegulationChapter.Chapter,
-        EquipmentChapter.Chapter,
     ];
 
     /// <summary>The glossary, alphabetical on the page rather than here.</summary>

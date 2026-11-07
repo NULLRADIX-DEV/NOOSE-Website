@@ -11,9 +11,9 @@ using NOOSE_Website.Infrastructure.Announcements;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.Chat;
 using NOOSE_Website.Models.Announcements;
-using NOOSE_Website.Models.Directives;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Navigation;
+using NOOSE_Website.Models.Regulation;
 using NOOSE_Website.Models.Shift;
 using NOOSE_Website.Models.Timeline;
 using NOOSE_Website.Services;
@@ -268,51 +268,52 @@ public sealed class MyShiftTests
     private static OpenAcknowledgment OpenEntry(string id, int day, bool important = false, DateTime? due = null)
         => new(id, "Eintrag " + id, important, new DateTime(2026, 10, day, 0, 0, 0, DateTimeKind.Utc), due);
 
-    private static OpenDirective OpenDirectiveAt(string id, int number, int day)
-        => new(id, DirectiveRules.Label(number), "Anweisung " + id, 1, new DateTime(2026, 10, day, 0, 0, 0, DateTimeKind.Utc));
+    private static OpenRegulationParagraph OpenParagraphAt(string id, int section, int day)
+        => new(id, "s" + section, RegulationRules.ParagraphLabel(section, "Absatz " + id), "Absatz " + id, 1,
+            new DateTime(2026, 10, day, 0, 0, 0, DateTimeKind.Utc));
 
     [Fact]
-    public void Open_directives_and_board_entries_share_one_list_directives_first()
+    public void Open_paragraphs_and_board_entries_share_one_list_paragraphs_first()
     {
         var board = new[] { OpenEntry("old", 1), OpenEntry("urgent", 9, important: true), OpenEntry("new", 5) };
-        var directives = new[] { OpenDirectiveAt("d2", 2, 7), OpenDirectiveAt("d1", 1, 3) };
+        var paragraphs = new[] { OpenParagraphAt("p2", 2, 7), OpenParagraphAt("p1", 1, 3) };
 
-        var rows = ShiftRules.MergeAcknowledgments(board, directives);
+        var rows = ShiftRules.MergeAcknowledgments(board, paragraphs);
 
-        // directives and important entries lead, the longest waiting first; the rest follows oldest first
+        // paragraphs and important entries lead, the longest waiting first; the rest follows oldest first
         Assert.Equal(
-            ["/dienstanweisungen/d1", "/dienstanweisungen/d2", "/brett/urgent", "/brett/old", "/brett/new"],
+            ["/dienstverordnung/absatz/p1", "/dienstverordnung/absatz/p2", "/brett/urgent", "/brett/old", "/brett/new"],
             rows.Select(r => r.Href).ToArray());
         var first = rows[0];
-        Assert.True(first.IsDirective);
+        Assert.True(first.IsRegulation);
         Assert.True(first.Important);
-        Assert.Equal("DA-01 Anweisung d1", first.Title);
+        Assert.Equal("DVO Abschnitt 1 · Absatz p1", first.Title);
         Assert.Null(first.DueAt);
-        Assert.All(rows.Skip(2), r => Assert.False(r.IsDirective));
+        Assert.All(rows.Skip(2), r => Assert.False(r.IsRegulation));
     }
 
     [Fact]
-    public void A_board_entry_keeps_its_deadline_and_a_directive_wins_a_tie()
+    public void A_board_entry_keeps_its_deadline_and_a_paragraph_wins_a_tie()
     {
         var due = new DateTime(2026, 10, 20, 12, 0, 0, DateTimeKind.Utc);
         var board = new[] { OpenEntry("entry", 3, important: true, due: due) };
-        var directives = new[] { OpenDirectiveAt("dir", 1, 3) };
+        var paragraphs = new[] { OpenParagraphAt("par", 1, 3) };
 
-        var rows = ShiftRules.MergeAcknowledgments(board, directives);
+        var rows = ShiftRules.MergeAcknowledgments(board, paragraphs);
 
-        Assert.Equal(["/dienstanweisungen/dir", "/brett/entry"], rows.Select(r => r.Href).ToArray());
+        Assert.Equal(["/dienstverordnung/absatz/par", "/brett/entry"], rows.Select(r => r.Href).ToArray());
         Assert.Equal(due, rows[1].DueAt);
         Assert.Empty(ShiftRules.MergeAcknowledgments([], []));
     }
 
     [Fact]
-    public void The_tile_leads_to_the_directives_when_only_they_are_open()
+    public void The_tile_leads_to_the_regulation_when_only_it_is_open()
     {
         // the tile and the section head both read this one rule
-        Assert.Equal("/dienstanweisungen", ShiftRules.AcknowledgmentsHref(boardCount: 0, directiveCount: 2));
-        Assert.Equal("/brett", ShiftRules.AcknowledgmentsHref(boardCount: 1, directiveCount: 2));
-        Assert.Equal("/brett", ShiftRules.AcknowledgmentsHref(boardCount: 3, directiveCount: 0));
-        Assert.Equal("/brett", ShiftRules.AcknowledgmentsHref(boardCount: 0, directiveCount: 0));
+        Assert.Equal("/dienstverordnung", ShiftRules.AcknowledgmentsHref(boardCount: 0, paragraphCount: 2));
+        Assert.Equal("/brett", ShiftRules.AcknowledgmentsHref(boardCount: 1, paragraphCount: 2));
+        Assert.Equal("/brett", ShiftRules.AcknowledgmentsHref(boardCount: 3, paragraphCount: 0));
+        Assert.Equal("/brett", ShiftRules.AcknowledgmentsHref(boardCount: 0, paragraphCount: 0));
     }
 
     // ---------- taskforce chat ----------

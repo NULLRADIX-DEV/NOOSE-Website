@@ -82,7 +82,7 @@
         <MentionInput Text="@(Input.Legitimation ?? string.Empty)" TextChanged="@(v => Input.Legitimation = v)"
                       DraftKey='@DraftKeys.In(DraftScope, "legitimation")'
                       Label="Legitimation" Lines="2" MaxLength="2000"
-                      HelperText="Begründung zur Teilnahme. Pflicht nach §4.6.2, wenn das FIB an der Einsatzlage einer anderen Behörde teilnimmt." />
+                      HelperText="Begründung zur Teilnahme an der Einsatzlage einer anderen Behörde. Wann sie Pflicht ist, regelt die Dienstverordnung." />
     </MudItem>
     <MudItem xs="12">
         <MentionInput Text="@(Input.Expiry ?? string.Empty)" TextChanged="@(v => Input.Expiry = v)"

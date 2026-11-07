@@ -2,27 +2,28 @@ using NOOSE_Website.Models.Abstractions;
 using NOOSE_Website.Models.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace NOOSE_Website.Data.Entities.Directives;
+namespace NOOSE_Website.Data.Entities.Regulation;
 
-/// <summary>A numbered service directive issued by leadership; its wording lives in immutable versions.</summary>
-[Table("Dienstanweisungen")]
-public class Directive : IAuditable, ISoftDelete
+/// <summary>One paragraph of the service regulation; its wording lives in immutable versions, its audience owes the acknowledgment.</summary>
+[Table("DvoAbsaetze")]
+public class RegulationParagraph : IAuditable, ISoftDelete
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
-    /// <summary>Permanent number, never reissued; shown as DA-01.</summary>
-    [Column("Nummer")]
-    public int Number { get; set; }
+    [Column("AbschnittId")]
+    public string SectionId { get; set; } = string.Empty;
+    public RegulationSection? Section { get; set; }
 
+    /// <summary>Heading of the current version, such as "Funkdisziplin"; the versions keep their own snapshot.</summary>
     [Column("Titel")]
-    public string Title { get; set; } = string.Empty;
+    public string Heading { get; set; } = string.Empty;
 
-    [Column("Sachgebiet")]
-    public string? Subject { get; set; }
+    [Column("Reihenfolge")]
+    public int SortOrder { get; set; }
 
-    /// <summary>Who may see it, and so who owes the acknowledgment.</summary>
-    [Column("Einstufung")]
-    public DocumentClassification Classification { get; set; }
+    /// <summary>Who owes the acknowledgment; every internal agent reads every paragraph.</summary>
+    [Column("Zielgruppe")]
+    public RegulationAudience Audience { get; set; }
 
     /// <summary>Latest version number; the concurrency token that keeps two publishers apart.</summary>
     [Column("AktuelleFassung")]
@@ -45,7 +46,7 @@ public class Directive : IAuditable, ISoftDelete
     [Column("Aufhebungsgrund")]
     public string? RepealReason { get; set; }
 
-    public ICollection<DirectiveVersion> Versions { get; set; } = new List<DirectiveVersion>();
+    public ICollection<RegulationParagraphVersion> Versions { get; set; } = new List<RegulationParagraphVersion>();
 
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }

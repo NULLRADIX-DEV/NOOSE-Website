@@ -1,0 +1,64 @@
+@* Print view of the whole service regulation in the version each paragraph shows to the reader. *@
+@page "/dienstverordnung/druck"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@layout PrintLayout
+@inject IRegulationService RegulationService
+
+<PageTitle>Dienstverordnung · Druckansicht · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_doc is null || _doc.Sections.Count == 0)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Die Dienstverordnung ist leer oder nicht sichtbar.</MudAlert>
+}
+else
+{
+    <PrintFrame Title="Dienstverordnung des FIB" BackHref="/dienstverordnung" BackText="Zurück zur Dienstverordnung"
+                PrintedBy="@_printBy" IsClassified="false"
+                Footer="@Footer">
+        @foreach (var section in _doc.Sections.Where(s => s.Paragraphs.Count > 0))
+        {
+            <section>
+                <h2>@section.Caption</h2>
+                @foreach (var p in section.Paragraphs)
+                {
+                    <h3>
+                        @p.Heading
+                        @if (p.Audience != RegulationAudience.Bureau)
+                        {
+                            <small> (Zielgruppe: @RegulationAudienceDisplay.Label(p.Audience))</small>
+                        }
+                    </h3>
+                    @if (p.ShownValidFrom > MeetingTime.Day(DateTime.UtcNow))
+                    {
+                        <p><em>Fassung @p.ShownVersion, gilt ab @p.ShownValidFrom.ToString("dd.MM.yyyy"). @(p.ValidVersion is { } valid ? $"Bis dahin gilt Fassung {valid}." : "Bis dahin gilt keine Fassung.")</em></p>
+                    }
+                    <RichHtml Html="@p.ShownHtml" Plain="true" />
+                }
+            </section>
+        }
+    </PrintFrame>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private string? _printBy;
+    private RegulationDocument? _doc;
+
+    private string Footer => _doc?.LastChangedAt is { } at
+        ? $"FIB-interne Dienstverordnung · Stand {at.ToLocalTime():dd.MM.yyyy} · Weitergabe nur nach Freigabe durch die Führung."
+        : "FIB-interne Dienstverordnung · Weitergabe nur nach Freigabe durch die Führung.";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _printBy = user.GetCodename();
+        _doc = await RegulationService.GetDocumentAsync(user);
+        _load = false;
+    }
+}

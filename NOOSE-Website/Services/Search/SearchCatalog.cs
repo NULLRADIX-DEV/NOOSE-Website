@@ -7,7 +7,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.CounterIntel;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Feedback;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Personnel;
@@ -419,11 +419,11 @@ public static class SearchCatalog
             Icons.Material.Filled.Approval, SearchHitShape.Record,
             SearchTraits.None,
             "/anordnungen/{0}"),
-        // number and title
-        new(nameof(Directive), "Dienstanweisung", "Dienstanweisungen", SearchGroup.Content,
-            Icons.Material.Filled.Rule, SearchHitShape.Record,
+        // heading, section and current wording
+        new(nameof(RegulationParagraph), "Absatz der Dienstverordnung", "Dienstverordnung", SearchGroup.Content,
+            Icons.Material.Filled.Gavel, SearchHitShape.Record,
             SearchTraits.Quick,
-            "/dienstanweisungen/{0}"),
+            "/dienstverordnung/absatz/{0}"),
     ];
 
     /// <summary>Entities deliberately left out of the search, each with the reason.</summary>
@@ -463,8 +463,9 @@ public static class SearchCatalog
             ["JobAssignment"] = "Zuteilung ohne Text; wäre ein Zuteilungs-Orakel über eingeschränkte Aufgaben.",
             ["AppointmentAssignment"] = "Zuteilung ohne Text; wäre ein Zuteilungs-Orakel.",
             ["AnnouncementAcknowledgment"] = "Quittierung ohne Text.",
-            ["DirectiveVersion"] = "Fassungstext einer Dienstanweisung; gefunden wird die Anweisung über Nummer und Titel.",
-            ["DirectiveAcknowledgment"] = "Kenntnisnahme ohne Text.",
+            ["RegulationParagraphVersion"] = "Fassungstext; gefunden wird der Absatz über seine aktuelle Fassung.",
+            ["RegulationSection"] = "Abschnitt ohne eigenen Text; gefunden wird er über seine Absätze.",
+            ["RegulationAcknowledgment"] = "Kenntnisnahme ohne Text.",
             ["MeetingSignOff"] = "Kein Freitext; wäre ein Anwesenheits-Orakel über Agenten.",
             ["MeetingAttendance"] = "Kein Freitext; wäre ein Anwesenheits-Orakel über Agenten.",
             ["MeetingMeasure"] = "Zeiger ohne Text; Aufgabe und Wiedervorlage dahinter sind selbst durchsuchbar.",

@@ -63,10 +63,11 @@ internal static class InvestigationChapter
                 zugeteilten Agenten, das HRT und die Führung. Ist die Operation beendet, gehen neue Zeilen als
                 <em>Nachtrag</em> hinein. Mit <em>In Ablauf übernehmen</em> landet das Protokoll im Feld
                 <em>Ablauf</em>; steht dort schon Text, wählst du anhängen oder ersetzen.</p>
-                <p>Die Operation ist auch der <strong>Einsatzbericht</strong> nach §4.6.2. Pflicht sind wer, wann,
-                wo, warum, was passiert ist und wie es ausging: Beginn mit Uhrzeit, Leitung und beteiligte Agents,
-                bei der Lage einer anderen Behörde die <em>Legitimation</em>, der Sachverhalt im <em>Ablauf</em> und
-                der Abschlussvermerk im <em>Ergebnis</em>. Beteiligte Behörden, Beweismittel, Fahrzeuge oder
+                <p>Die Operation ist auch der <strong>Einsatzbericht</strong>, auch für die Lage einer anderen
+                Behörde. Wann einer fällig ist, regelt die <em>Dienstverordnung</em> (Menü <em>Wissen</em>). Auf
+                der Seite gehören hinein: Beginn mit Uhrzeit, Leitung und beteiligte Agents, bei der Lage einer
+                anderen Behörde die <em>Legitimation</em>, der Sachverhalt im <em>Ablauf</em> und der
+                Abschlussvermerk im <em>Ergebnis</em>. Beteiligte Behörden, Beweismittel, Fahrzeuge oder
                 Forderungen trägst du ein, wenn es sie gibt.</p>
                 <p>Unter <em>Beteiligte / Beziehungen</em> hängst du die Gruppierung an und die Personen mit ihrer
                 Rolle: <em>Beschuldigter</em>, <em>Geisel</em>, <em>Opfer</em>, <em>Zeuge</em> und so weiter. Eine
@@ -145,6 +146,9 @@ internal static class InvestigationChapter
                 überbehördliche Taskforce ist die Form, in der mit LSPD, DoJ oder LSMD zusammengearbeitet
                 wird; Partnerkonten können dort mitlesen und schreiben, aber die Agentenliste bleibt
                 intern.</p>
+                <p>Wer in einer Taskforce die <strong>Einsatzleitung</strong> hat, kennt die Seite nicht: Sie
+                kennt nur Dienstgrade und Zuteilungen. Schreib die Leitung deshalb in die Beschreibung der
+                Taskforce.</p>
                 """,
                 NavKey: "taskforces"),
 
@@ -342,9 +346,8 @@ internal static class InvestigationChapter
                 dein Dienstgrad).</p>
                 <p>Jedes Dokument trägt eine <strong>VS-Stufe</strong>. Sie entscheidet allein darüber, wer es
                 sieht - Verknüpfungen und Suche richten sich danach.</p>
-                <p>Hier liegt auch die <strong>Dienstverordnung</strong> selbst. Das Kapitel
-                <em>Dienstvorschrift</em> in diesem Handbuch ist nur ihre Kurzfassung - im Zweifel gilt das
-                Dokument.</p>
+                <p>Die <strong>Dienstverordnung</strong> liegt nicht hier, sondern auf ihrer eigenen Seite
+                <em>Dienstverordnung</em> im Menü <em>Wissen</em>. Nur dort steht ihr geltender Wortlaut.</p>
                 <p>Ein Dokument aus <strong>Google Docs</strong> holst du mit <em>Aus Google Docs</em>: per
                 Freigabe-Link (in Google auf „Jeder mit dem Link“ stellen), über die <strong>Google-Anmeldung</strong>
                 oder als hochgeladene Datei (<em>Datei → Herunterladen → Webseite (.html, gezippt)</em>). Bei der

@@ -1,17 +1,17 @@
 using NOOSE_Website.Models.Abstractions;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace NOOSE_Website.Data.Entities.Directives;
+namespace NOOSE_Website.Data.Entities.Regulation;
 
-/// <summary>An agent's acknowledgment of one version of a directive. FK to Agent is Restrict; FK to Directive is Cascade.</summary>
-[Table("DienstanweisungKenntnisnahmen")]
-public class DirectiveAcknowledgment : IAuditable
+/// <summary>An agent's acknowledgment of one version of a paragraph. FK to Agent is Restrict; FK to the paragraph is Cascade.</summary>
+[Table("DvoKenntnisnahmen")]
+public class RegulationAcknowledgment : IAuditable
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
-    [Column("DienstanweisungId")]
-    public string DirectiveId { get; set; } = string.Empty;
-    public Directive? Directive { get; set; }
+    [Column("AbsatzId")]
+    public string ParagraphId { get; set; } = string.Empty;
+    public RegulationParagraph? Paragraph { get; set; }
 
     [Column("Fassung")]
     public int Version { get; set; }

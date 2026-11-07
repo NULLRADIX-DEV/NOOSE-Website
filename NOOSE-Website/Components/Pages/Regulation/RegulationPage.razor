@@ -1,0 +1,332 @@
+@page "/dienstverordnung"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@inject IRegulationService RegulationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject ILogger<RegulationPage> Logger
+
+<PageTitle>Dienstverordnung · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.Gavel"
+            Title="Dienstverordnung"
+            Subtitle="@Subtitle">
+    <Actions>
+        <MudButton Href="/dienstverordnung/druck" Target="_blank" Variant="Variant.Outlined" Color="Color.Default"
+                   StartIcon="@Icons.Material.Filled.Print">Drucken</MudButton>
+        @if (_doc?.MayManageSections == true)
+        {
+            <AuthorizeView Policy="@Policies.LeadershipWrite" Context="write">
+                <MudButton OnClick="AddSectionAsync" Variant="Variant.Outlined" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.PlaylistAdd">Neuer Abschnitt</MudButton>
+            </AuthorizeView>
+        }
+    </Actions>
+</PageHeader>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_doc is null || (_doc.Sections.Count == 0 && _doc.Repealed.Count == 0))
+{
+    <EmptyState Icon="@Icons.Material.Filled.Gavel" Title="Die Dienstverordnung ist noch leer"
+                Text="Das Board legt Abschnitte über „Neuer Abschnitt“ an, die Führung füllt sie mit Absätzen." />
+}
+else
+{
+    @if (_doc.OpenCount > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap" Spacing="2">
+                <span>
+                    @(_doc.OpenCount == 1 ? "1 Absatz ist neu oder geändert und wartet" : $"{_doc.OpenCount} Absätze sind neu oder geändert und warten") auf deine Kenntnisnahme.
+                    Sie sind unten markiert, die Reiter zeigen, wo.
+                </span>
+                <AuthorizeView Policy="@Policies.WriteAccess" Context="ack">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.DoneAll"
+                               OnClick="AcknowledgeAllAsync" Disabled="_acknowledging">Alle gelesen</MudButton>
+                </AuthorizeView>
+            </MudStack>
+        </MudAlert>
+    }
+
+    <RecordSectionRail>
+        @foreach (var section in _doc.Sections)
+        {
+            <RecordSection Slug="@SlugOf(section.Id)" Label="@SectionRailLabel(section)" Icon="@(section.IsPreamble ? Icons.Material.Filled.MenuBook : Icons.Material.Filled.Article)"
+                           Group="Dienstverordnung" Badge="@(section.OpenCount > 0 ? section.OpenCount : null)">
+                @SectionBody(section)
+            </RecordSection>
+        }
+        @if (_doc.Repealed.Count > 0)
+        {
+            <RecordSection Slug="aufgehoben" Label="Aufgehoben" Icon="@Icons.Material.Filled.Block" Group="Weiteres">
+                <MudStack Spacing="3">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        Aufgehobene Absätze gelten nicht mehr. Niemand muss sie zur Kenntnis nehmen, sie bleiben zum Nachlesen hier.
+                    </MudText>
+                    @foreach (var p in _doc.Repealed)
+                    {
+                        @ParagraphBlock(p, null, 0, 0)
+                    }
+                </MudStack>
+            </RecordSection>
+        }
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="trash">
+            <RecordSection Slug="papierkorb" Label="Papierkorb" Icon="@Icons.Material.Filled.Delete" Group="Weiteres">
+                <TrashPanel Kind="dienstverordnung" CanRestore="@(item => _restorable.Contains(item.Id))" />
+            </RecordSection>
+        </AuthorizeView>
+    </RecordSectionRail>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _acknowledging;
+    private bool _busy;
+    private RegulationDocument? _doc;
+    // trash rows this reader may restore; the service decides, the button only mirrors it
+    private HashSet<string> _restorable = new();
+
+    /// <summary>Rail slug of a section; the paragraph page and My Shift link back with it.</summary>
+    public static string SlugOf(string sectionId) => "a-" + sectionId[..Math.Min(8, sectionId.Length)];
+
+    private string Subtitle => _doc?.LastChangedAt is { } at
+        ? $"Wie das FIB intern arbeitet · Stand {at.ToLocalTime():dd.MM.yyyy}"
+        : "Wie das FIB intern arbeitet";
+
+    private static string SectionRailLabel(RegulationSectionView section)
+        => section.IsPreamble ? section.Title : $"{section.Number}. {section.Title}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _doc = await RegulationService.GetDocumentAsync(_user);
+        if (RegulationRules.MayManage(_user))
+        {
+            var standing = RegulationStanding.Of(_user);
+            _restorable = (await RegulationService.GetTrashAsync())
+                .Where(r => r.IsSection
+                    ? RegulationRules.MayManageSections(standing)
+                    : r.Audience is { } audience && RegulationRules.MayEditParagraph(standing, audience))
+                .Select(r => r.Id).ToHashSet();
+        }
+        _load = false;
+    }
+
+    private RenderFragment SectionBody(RegulationSectionView section) => __builder =>
+    {
+        <MudStack Spacing="4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap" Spacing="2">
+                <MudText Typo="Typo.h5">@section.Caption</MudText>
+                <AuthorizeView Policy="@Policies.LeadershipWrite" Context="sectionWrite">
+                    <MudStack Row="true" Spacing="1">
+                        @if (_doc!.MayAddParagraphs)
+                        {
+                            <MudButton Href="@($"/dienstverordnung/absatz/neu?abschnitt={section.Id}")" Size="Size.Small"
+                                       Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Absatz</MudButton>
+                        }
+                        @if (_doc.MayManageSections)
+                        {
+                            <MudTooltip Text="Abschnitt umbenennen">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Disabled="_busy"
+                                               OnClick="@(() => RenameSectionAsync(section))" aria-label="Abschnitt umbenennen" />
+                            </MudTooltip>
+                            @if (!section.IsPreamble)
+                            {
+                                var numbered = _doc.Sections.Where(s => !s.IsPreamble).ToList();
+                                var at = numbered.FindIndex(s => s.Id == section.Id);
+                                <MudTooltip Text="Abschnitt nach oben">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(_busy || at <= 0)"
+                                                   OnClick="@(() => MoveSectionAsync(section, -1))" aria-label="Abschnitt nach oben" />
+                                </MudTooltip>
+                                <MudTooltip Text="Abschnitt nach unten">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(_busy || at >= numbered.Count - 1)"
+                                                   OnClick="@(() => MoveSectionAsync(section, 1))" aria-label="Abschnitt nach unten" />
+                                </MudTooltip>
+                            }
+                            @if (section.Paragraphs.Count == 0 && !_doc.Repealed.Any(r => r.SectionId == section.Id))
+                            {
+                                <MudTooltip Text="Leeren Abschnitt löschen">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" Disabled="_busy"
+                                                   OnClick="@(() => DeleteSectionAsync(section))" aria-label="Abschnitt löschen" />
+                                </MudTooltip>
+                            }
+                        }
+                    </MudStack>
+                </AuthorizeView>
+            </MudStack>
+            @if (section.Paragraphs.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Dieser Abschnitt hat noch keine Absätze.</MudText>
+            }
+            @for (var i = 0; i < section.Paragraphs.Count; i++)
+            {
+                @ParagraphBlock(section.Paragraphs[i], section, i, section.Paragraphs.Count)
+            }
+        </MudStack>
+    };
+
+    private RenderFragment ParagraphBlock(RegulationParagraphRow p, RegulationSectionView? section, int index, int count) => __builder =>
+    {
+        <MudPaper Outlined="true" Class="@(p.MustAcknowledge ? "pa-4 dvo-absatz dvo-absatz-offen" : "pa-4 dvo-absatz")"
+                  Style="@(p.MustAcknowledge ? "border-left: 4px solid var(--mud-palette-warning);" : null)">
+            <MudStack Spacing="2">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap" Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                        <MudText Typo="Typo.h6">@p.Heading</MudText>
+                        <RegulationAudienceChip Audience="@p.Audience" />
+                        @if (p.MustAcknowledge)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled">Neu für dich</MudChip>
+                        }
+                    </MudStack>
+                    @if (p.MayEdit && section is not null)
+                    {
+                        <AuthorizeView Policy="@Policies.LeadershipWrite" Context="paragraphWrite">
+                            <MudStack Row="true" Spacing="1">
+                                <MudTooltip Text="Neue Fassung">
+                                    <MudIconButton Icon="@Icons.Material.Filled.NoteAdd" Size="Size.Small" Href="@($"/dienstverordnung/absatz/{p.Id}/neue-fassung")"
+                                                   aria-label="Neue Fassung" />
+                                </MudTooltip>
+                                <MudTooltip Text="Nach oben">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(_busy || index == 0)"
+                                                   OnClick="@(() => MoveParagraphAsync(p, -1))" aria-label="Absatz nach oben" />
+                                </MudTooltip>
+                                <MudTooltip Text="Nach unten">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(_busy || index >= count - 1)"
+                                                   OnClick="@(() => MoveParagraphAsync(p, 1))" aria-label="Absatz nach unten" />
+                                </MudTooltip>
+                            </MudStack>
+                        </AuthorizeView>
+                    }
+                </MudStack>
+                @if (p.ShownValidFrom > MeetingTime.Day(DateTime.UtcNow))
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                        Diese Fassung gilt ab @p.ShownValidFrom.ToString("dd.MM.yyyy").
+                        @(p.ValidVersion is { } valid ? $"Bis dahin gilt Fassung {valid}." : "Bis dahin gilt keine Fassung.")
+                    </MudAlert>
+                }
+                @if (p.IsRepealed && !string.IsNullOrWhiteSpace(p.RepealReason))
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;">
+                        Aufgehoben@(p.RepealedAt is { } r ? $" am {r.ToLocalTime():dd.MM.yyyy}" : string.Empty): @p.RepealReason
+                    </MudText>
+                }
+                <RichHtml Html="@p.ShownHtml" User="@_user" Glossary="false" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    <MudLink Href="@($"/dienstverordnung/absatz/{p.Id}")" Typo="Typo.caption">
+                        Fassung @p.ShownVersion · gültig ab @p.ShownValidFrom.ToString("dd.MM.yyyy") · Verlauf und Vergleich
+                    </MudLink>
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    };
+
+    private async Task AcknowledgeAllAsync()
+    {
+        if (_doc is null || _acknowledging)
+        {
+            return;
+        }
+        _acknowledging = true;
+        try
+        {
+            var result = await RegulationService.AcknowledgeAllAsync(_doc.OpenSeen, _user);
+            Snackbar.Add(result.Changed > 0
+                    ? $"Zur Kenntnis genommen. {result.Changed} Absatz/Absätze wurde(n) inzwischen geändert und bleiben offen."
+                    : "Alle angezeigten Absätze zur Kenntnis genommen.",
+                result.Changed > 0 ? Severity.Warning : Severity.Success);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _acknowledging = false;
+        }
+        await LoadAsync();
+    }
+
+    private Task MoveParagraphAsync(RegulationParagraphRow p, int delta)
+        => RunAsync(() => RegulationService.MoveParagraphAsync(p.Id, delta, _user), null);
+
+    private Task MoveSectionAsync(RegulationSectionView section, int delta)
+        => RunAsync(() => RegulationService.MoveSectionAsync(section.Id, delta, _user), null);
+
+    private async Task AddSectionAsync()
+    {
+        var title = await ValueNameDialog.ShowAsync(DialogService, "Neuer Abschnitt",
+            "Der Abschnitt wird ans Ende gestellt und bekommt seine Nummer aus der Reihenfolge.",
+            label: "Titel", confirmText: "Anlegen", maxLength: RegulationRules.MaxSectionTitle);
+        if (title is null)
+        {
+            return;
+        }
+        await RunAsync(() => RegulationService.CreateSectionAsync(title, false, _user), "Abschnitt angelegt.");
+    }
+
+    private async Task RenameSectionAsync(RegulationSectionView section)
+    {
+        var title = await ValueNameDialog.ShowAsync(DialogService, "Abschnitt umbenennen", null, section.Title,
+            label: "Titel", maxLength: RegulationRules.MaxSectionTitle);
+        if (title is null || title == section.Title)
+        {
+            return;
+        }
+        await RunAsync(() => RegulationService.RenameSectionAsync(section.Id, title, _user), "Abschnitt umbenannt.");
+    }
+
+    private async Task DeleteSectionAsync(RegulationSectionView section)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Abschnitt löschen?",
+            $"„{section.Title}“ wird in den Papierkorb verschoben. Die folgenden Abschnitte rücken in der Nummerierung nach.");
+        if (!ok)
+        {
+            return;
+        }
+        await RunAsync(() => RegulationService.DeleteSectionAsync(section.Id, _user), "Abschnitt in den Papierkorb verschoben.");
+    }
+
+    private async Task RunAsync(Func<Task> action, string? success)
+    {
+        if (_busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await action();
+            if (success is not null)
+            {
+                Snackbar.Add(success, Severity.Success);
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Changing the service regulation failed");
+            Snackbar.Add("Das hat nicht geklappt. Bitte lade die Seite neu.", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+        await LoadAsync();
+    }
+}

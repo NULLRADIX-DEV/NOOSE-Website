@@ -1,7 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 using NOOSE_Website.Data.Entities.Appointments;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Public;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Tests.Services;
@@ -448,40 +449,40 @@ public class AuditDisplayTests
         Assert.Empty(AuditDisplay.Parse("""{"NudgedAt":[null,"2026-09-07T10:00:00Z"]}"""));
     }
 
-    // ---- directives ----------------------------------------------------------
+    // ---- service regulation -------------------------------------------------
 
     [Fact]
-    public void A_directive_classification_reads_as_a_document_level()
+    public void A_paragraph_audience_reads_as_its_unit()
     {
-        // unqualified, the same column would read as a person's level
-        var change = Assert.Single(AuditDisplay.Parse("""{"Classification":[0,2]}""", entityType: nameof(Directive)));
+        // unqualified, a bare number
+        var change = Assert.Single(AuditDisplay.Parse("""{"Audience":[0,3]}""", entityType: nameof(RegulationParagraph)));
 
-        Assert.Equal("Einstufung", change.Field);
-        Assert.Equal("Keine Verschlusssache", change.Alt);
-        Assert.Equal("Verschlusssache nur für HRT", change.New);
+        Assert.Equal("Zielgruppe", change.Field);
+        Assert.Equal("Ganzes FIB", change.Alt);
+        Assert.Equal(RegulationAudienceDisplay.Label(RegulationAudience.Ctd), change.New);
     }
 
     [Fact]
-    public void A_directive_reads_its_own_field_labels()
+    public void A_paragraph_reads_its_own_field_labels()
     {
         var changes = AuditDisplay.Parse(
-            """{"AcknowledgeFromVersion":[1,2],"Subject":["a","b"],"RepealedById":[null,"x"],"RepealedByName":[null,"Falke"]}""",
-            entityType: nameof(Directive));
+            """{"AcknowledgeFromVersion":[1,2],"Heading":["a","b"],"RepealedById":[null,"x"],"RepealedByName":[null,"Falke"],"SectionId":["s1","s2"]}""",
+            entityType: nameof(RegulationParagraph));
 
         Assert.Equal("1", changes.Single(c => c.Field == "Kenntnisnahme ab Fassung").Alt);
-        Assert.Equal("b", changes.Single(c => c.Field == "Sachgebiet").New);
+        Assert.Equal("b", changes.Single(c => c.Field == "Überschrift").New);
         Assert.Equal("Falke", changes.Single(c => c.Field == "Aufgehoben von").New);
-        // the name stands beside it, the id says nothing
-        Assert.DoesNotContain(changes, c => c.New == "x");
+        // the name stands beside it, the ids say nothing
+        Assert.DoesNotContain(changes, c => c.New is "x" or "s2");
         Assert.Equal(3, changes.Count);
     }
 
     [Fact]
-    public void A_directive_version_reads_in_german_with_a_calendar_day()
+    public void A_paragraph_version_reads_in_german_with_a_calendar_day()
     {
         var changes = AuditDisplay.Parse(
-            """{"ChangeNote":[null,"Erstfassung"],"Version":[null,2],"ValidFrom":[null,"2026-11-07"],"DirectiveId":[null,"d1"],"PublishedById":[null,"p1"],"PublishedByName":[null,"Falke"]}""",
-            entityType: nameof(DirectiveVersion));
+            """{"ChangeNote":[null,"Erstfassung"],"Version":[null,2],"ValidFrom":[null,"2026-11-07"],"ParagraphId":[null,"d1"],"PublishedById":[null,"p1"],"PublishedByName":[null,"Falke"]}""",
+            entityType: nameof(RegulationParagraphVersion));
 
         Assert.Equal("Erstfassung", changes.Single(c => c.Field == "Änderungsnotiz").New);
         Assert.Equal("2", changes.Single(c => c.Field == "Fassung").New);
@@ -489,6 +490,15 @@ public class AuditDisplayTests
         Assert.Equal("Falke", changes.Single(c => c.Field == "Veröffentlicht von").New);
         Assert.DoesNotContain(changes, c => c.New is "d1" or "p1");
         Assert.Equal(4, changes.Count);
+    }
+
+    [Fact]
+    public void A_section_reads_its_foreword_flag()
+    {
+        var change = Assert.Single(AuditDisplay.Parse("""{"IsPreamble":[false,true]}""", entityType: nameof(RegulationSection)));
+
+        Assert.Equal("Vorwort", change.Field);
+        Assert.Equal("Ja", change.New);
     }
 
     // ---- FieldChange record shape ------------------------------------------

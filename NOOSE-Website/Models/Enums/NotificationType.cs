@@ -188,8 +188,8 @@ public enum NotificationType
     /// situation, never the reason.</summary>
     EmergencyAlarmByAgent = 54,
 
-    /// <summary>A directive or a new version asks for acknowledgment. Bell only: a shared channel would reveal its classification.</summary>
-    DirectiveIssued = 55,
+    /// <summary>A paragraph of the service regulation is new or changed and asks for acknowledgment. Bell only: the regulation never leaves the house.</summary>
+    RegulationChanged = 55,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -252,7 +252,7 @@ public static class NotificationTypeDisplay
         NotificationType.FollowupEscalated => "Wiedervorlagen-Rückstand",
         NotificationType.EmergencyAlarm => "Einsatzalarm",
         NotificationType.EmergencyAlarmByAgent => "Einsatzalarm (Gefahr im Verzug)",
-        NotificationType.DirectiveIssued => "Neue Dienstanweisung",
+        NotificationType.RegulationChanged => "Dienstverordnung geändert",
         _ => "Benachrichtigung",
     };
 
@@ -314,7 +314,7 @@ public static class NotificationTypeDisplay
         NotificationType.FollowupEscalated => Icons.Material.Filled.PendingActions,
         NotificationType.EmergencyAlarm => Icons.Material.Filled.Emergency,
         NotificationType.EmergencyAlarmByAgent => Icons.Material.Filled.NotificationImportant,
-        NotificationType.DirectiveIssued => Icons.Material.Filled.Rule,
+        NotificationType.RegulationChanged => Icons.Material.Filled.Rule,
         _ => Icons.Material.Filled.Notifications,
     };
 }

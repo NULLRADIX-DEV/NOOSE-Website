@@ -179,9 +179,8 @@ public static class TrashProjection
         => new("handbuch-artikel", x.Id, null, x.Title, x.Summary, x.DeletedAt);
 
     // never the wording
-    public static TrashItem Directive(Data.Entities.Directives.Directive x)
-        => new("dienstanweisungen", x.Id, DirectiveRules.Label(x.Number), x.Title,
-            Join(x.Subject, DocumentClassificationDisplay.ChipLabel(x.Classification)), x.DeletedAt);
+    public static TrashItem Regulation(Models.Regulation.RegulationTrashRow x)
+        => new("dienstverordnung", x.Id, x.IsSection ? "Abschnitt" : "Absatz", x.Title, x.IsSection ? null : x.Detail, x.DeletedAt);
 
     // never the text: a paragraph body is HTML and may run for pages
     public static TrashItem Law(Law x)

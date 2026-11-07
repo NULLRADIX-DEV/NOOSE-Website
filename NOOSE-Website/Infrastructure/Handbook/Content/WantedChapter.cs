@@ -207,8 +207,8 @@ internal static class WantedChapter
                 Zahl.</p>
                 <p>Angezeigt wird sie als <strong>DEFCON</strong> in fünf Stufen: DEFCON 5 (Niedrig), DEFCON 4
                 (Erhöht), DEFCON 3 (Hoch), DEFCON 2 (Schwer) und DEFCON 1 (Kritisch). Je niedriger die Zahl,
-                desto ernster die Lage. Welche Fahrzeuge das Konzept für welche Stufe nennt, steht unter
-                <em>Ausrüstung &amp; Einrichtungen → Dienstfahrzeuge</em>.</p>
+                desto ernster die Lage. Was eine Stufe im Dienst ändert, regelt die <em>Dienstverordnung</em>
+                (Menü <em>Wissen</em>).</p>
                 <p>Daneben stehen <strong>öffentliche Zahlen</strong> - wie viele Fahndungen laufen, wie viele
                 Hinweise eingegangen sind. Sie sind bewusst grob: aus ihnen darf sich nichts über einzelne
                 Akten ableiten lassen.</p>

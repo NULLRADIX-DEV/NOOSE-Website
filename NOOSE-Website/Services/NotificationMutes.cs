@@ -69,7 +69,7 @@ public static class NotificationMutes
         [
             NotificationType.Announcement,
             NotificationType.AcknowledgmentReminder,
-            NotificationType.DirectiveIssued,
+            NotificationType.RegulationChanged,
             NotificationType.SituationReport,
             NotificationType.AbsenceFiled,
             NotificationType.AbductionFiled,

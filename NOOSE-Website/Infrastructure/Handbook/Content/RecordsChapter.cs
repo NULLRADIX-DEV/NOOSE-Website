@@ -123,9 +123,10 @@ internal static class RecordsChapter
                 Sache nur ein, wenn es einen Grund gibt, den du benennen kannst. Umgekehrt gilt dasselbe: wer
                 die Verschlusssache einer Akte aufhebt oder sie für mehr Agenten öffnet, gibt einen Grund an.</p>
                 <p>Verwechsle diese vier Stufen nicht mit den <strong>Sicherheitsfreigaben</strong> der
-                Dienstverordnung - Confidential, Secret, Top Secret und das Special Access Program. Das ist eine
-                zweite, rein nach Dienstgrad gestaffelte Leiter; wie beide zusammenhängen, steht unter
-                <em>Dienstvorschrift → Sicherheitsfreigaben</em>.</p>
+                Dienstverordnung. Die VS-Stufen der Seite sind Sichtbarkeiten, keine Freigabestufen: Sie richten
+                sich nach Dienstgrad <em>und</em> Abteilung, und die Seite rechnet keine Freigabe in eine VS-Stufe
+                um. Welche Freigaben es gibt und wem sie zustehen, regelt die <em>Dienstverordnung</em> (Menü
+                <em>Wissen</em>).</p>
                 """,
                 DiagramKey: "vs-stufen"),
 

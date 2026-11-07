@@ -1,20 +1,29 @@
 using NOOSE_Website.Models.Abstractions;
+using NOOSE_Website.Models.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace NOOSE_Website.Data.Entities.Directives;
+namespace NOOSE_Website.Data.Entities.Regulation;
 
-/// <summary>One wording of a directive; written once and never changed afterwards.</summary>
-[Table("DienstanweisungFassungen")]
-public class DirectiveVersion : IAuditable
+/// <summary>One wording of a paragraph; written once and never changed afterwards.</summary>
+[Table("DvoAbsatzFassungen")]
+public class RegulationParagraphVersion : IAuditable
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
 
-    [Column("DienstanweisungId")]
-    public string DirectiveId { get; set; } = string.Empty;
-    public Directive? Directive { get; set; }
+    [Column("AbsatzId")]
+    public string ParagraphId { get; set; } = string.Empty;
+    public RegulationParagraph? Paragraph { get; set; }
 
     [Column("Fassung")]
     public int Version { get; set; }
+
+    /// <summary>Heading as published with this version.</summary>
+    [Column("Titel")]
+    public string Heading { get; set; } = string.Empty;
+
+    /// <summary>Audience as published with this version.</summary>
+    [Column("Zielgruppe")]
+    public RegulationAudience Audience { get; set; }
 
     [Column("InhaltHtml")]
     public string ContentHtml { get; set; } = string.Empty;

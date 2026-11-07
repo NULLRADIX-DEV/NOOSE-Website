@@ -1342,10 +1342,10 @@ public sealed class MySqlTranslationTests : IDisposable
     }
 
     [Fact]
-    public void The_directive_debt_translates_without_an_apply()
+    public void The_regulation_debt_translates_without_an_apply()
     {
         // MariaDB has no APPLY
-        var sql = DirectiveDebt.Owed(_db).Where(r => r.AgentId == "a").ToQueryString();
+        var sql = RegulationDebt.Owed(_db).Where(r => r.AgentId == "a").ToQueryString();
 
         Assert.Contains("NOT EXISTS", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
@@ -1353,21 +1353,23 @@ public sealed class MySqlTranslationTests : IDisposable
     }
 
     [Fact]
-    public void The_directive_audience_count_translates()
+    public void The_regulation_audience_count_translates()
     {
         // Count would execute
-        var sql = DirectiveDebt.Audience(_db).Where(r => r.DirectiveId == "d1").ToQueryString();
+        var sql = RegulationDebt.Audience(_db).Where(r => r.ParagraphId == "p1").ToQueryString();
 
         Assert.Contains("WHERE", sql, StringComparison.Ordinal);
+        // the trashed section drops out through the join's soft-delete filter
+        Assert.Contains("JOIN", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("LATERAL", sql, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void The_open_directives_with_their_since_translate_without_an_apply()
+    public void The_open_paragraphs_with_their_since_translate_without_an_apply()
     {
         // the join the shift list reads; MariaDB has no APPLY
-        var sql = DirectiveDebt.OpenFor(_db, "a").ToQueryString();
+        var sql = RegulationDebt.OpenFor(_db, "a").ToQueryString();
 
         Assert.Contains("JOIN", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("NOT EXISTS", sql, StringComparison.Ordinal);
@@ -1376,12 +1378,23 @@ public sealed class MySqlTranslationTests : IDisposable
     }
 
     [Fact]
-    public void The_quota_acknowledgment_lookup_translates_without_an_apply()
+    public void The_regulation_quota_acknowledgment_lookup_translates_without_an_apply()
     {
         // the flat read the quota groups in memory
-        var sql = DirectiveDebt.AcknowledgmentsOf(_db, "d1").ToQueryString();
+        var sql = RegulationDebt.AcknowledgmentsOf(_db, "p1").ToQueryString();
 
         Assert.Contains("WHERE", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LATERAL", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void The_regulation_search_match_translates_without_an_apply()
+    {
+        // heading, section title and current wording in one WHERE
+        var sql = RegulationService.Matching(_db, _db.RegulationParagraphs, "Funk").ToQueryString();
+
+        Assert.Contains("EXISTS", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("LATERAL", sql, StringComparison.OrdinalIgnoreCase);
     }

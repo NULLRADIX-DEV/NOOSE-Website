@@ -6,7 +6,7 @@ using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Activities;
 using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.CounterIntel;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -81,9 +81,9 @@ public static class Visibility
             return await DocumentVisibility.IsVisibleAsync(db, entityId, scope.AsDocumentScope(), cancellationToken);
         }
         // tail says visible
-        if (entityType == nameof(Directive))
+        if (entityType == nameof(RegulationParagraph))
         {
-            return await DirectiveVisibility.IsVisibleAsync(db, entityId, scope, cancellationToken);
+            return await RegulationVisibility.IsVisibleAsync(db, entityId, scope, cancellationToken);
         }
 
         SecrecyRow? row = entityType switch

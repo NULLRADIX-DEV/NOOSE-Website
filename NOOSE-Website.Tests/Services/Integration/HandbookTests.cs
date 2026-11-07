@@ -535,37 +535,39 @@ public sealed class HandbookTests
         Assert.All(written, w => Assert.Contains("<p>", w.ContentHtml!, StringComparison.Ordinal));
     }
 
-    /// <summary>The service-regulation chapters are mostly lookup tables; a stripped table empties them silently.</summary>
+    /// <summary>A table in seeded text must survive the sanitizer; a stripped one empties an article silently.</summary>
     /// <remarks>
-    /// They are the only tables in the shipped book, so nothing else would notice if the sanitizer's allowlist
-    /// lost an entry. Asserted per article rather than globally: a table that survives somewhere else is no proof.
+    /// The shipped book currently has no table - the lookup tables went with the retold service regulation - so the
+    /// test brings its own. An editor or a later article can still write one, and nothing else would notice if the
+    /// sanitizer's allowlist lost an entry.
     /// </remarks>
     [Fact]
     public async Task The_shipped_tables_survive_the_filter()
     {
-        var expected = HandbookContent.Chapters
-            .SelectMany(c => c.Articles)
-            .Where(a => a.ContentHtml.Contains("<table>", StringComparison.Ordinal))
-            .Select(a => a.Key)
-            .ToList();
-        Assert.NotEmpty(expected);
+        HandbookContent.SeededChapter[] withTable =
+        [
+            new("kap-a", "erste-schritte", "Erste Schritte", "Wie du anfängst.", "Start",
+            [
+                new("art-a", "anmelden", "Anmelden", "Wie du hereinkommst.",
+                    """
+                    <p>Die Kanäle im Überblick:</p>
+                    <table>
+                    <thead><tr><th>Kanal</th><th>Zweck</th></tr></thead>
+                    <tbody><tr><td>1</td><td>Allgemein</td></tr></tbody>
+                    </table>
+                    """),
+            ]),
+        ];
 
         using var ctx = new SqliteTestContext();
-        await SeedAsync(ctx, HandbookContent.Chapters, HandbookContent.Terms, HandbookContent.Revision);
+        await SeedAsync(ctx, withTable, [], 1);
 
         await using var check = ctx.NewContext();
-        var written = await check.HandbuchArtikel
-            .Where(a => expected.Contains(a.SeedKey!))
-            .Select(a => new { a.SeedKey, a.ContentHtml })
-            .ToListAsync();
+        var html = (await check.HandbuchArtikel.SingleAsync(a => a.SeedKey == "art-a")).ContentHtml!;
 
-        Assert.Equal(expected.Count, written.Count);
-        Assert.All(written, w =>
-        {
-            Assert.Contains("<table>", w.ContentHtml!, StringComparison.Ordinal);
-            Assert.Contains("<th>", w.ContentHtml!, StringComparison.Ordinal);
-            Assert.Contains("<td>", w.ContentHtml!, StringComparison.Ordinal);
-        });
+        Assert.Contains("<table>", html, StringComparison.Ordinal);
+        Assert.Contains("<th>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>", html, StringComparison.Ordinal);
     }
 
     /// <summary>The term itself is uniquely indexed, so a duplicate would break the very first start.</summary>

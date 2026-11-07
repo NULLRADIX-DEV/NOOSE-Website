@@ -4,7 +4,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Jobs;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -38,7 +38,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         nameof(Operation), nameof(Taskforce), nameof(Case), nameof(Agent),
         nameof(PersonDoc), nameof(Observation), nameof(Job), nameof(Law), nameof(Document),
         nameof(Bewerbung), nameof(Meeting), nameof(MeetingAgendaItem), nameof(Hinweis), nameof(Ticket),
-        nameof(Presentation), nameof(Warrant), nameof(Directive),
+        nameof(Presentation), nameof(Warrant), nameof(RegulationParagraph),
     ];
 
     /// <summary>Known types the scope-free <see cref="RecordsReference"/> also names, for mentions and compromises.</summary>
@@ -268,14 +268,15 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
             targets[(nameof(Presentation), id)] = (title, false, $"/praesentationen/{id}");
         }
 
-        // exact level
-        var directiveIds = pairs.Where(p => p.OtherType == nameof(Directive)).Select(p => p.OtherId).Distinct().ToList();
-        if (directiveIds.Count > 0)
+        // every internal agent, never a partner
+        var paragraphIds = pairs.Where(p => p.OtherType == nameof(RegulationParagraph)).Select(p => p.OtherId).Distinct().ToList();
+        if (paragraphIds.Count > 0)
         {
-            foreach (var x in await db.Directives.OnlyVisible(scope).Where(d => directiveIds.Contains(d.Id))
-                         .Select(d => new { d.Id, d.Number, d.Title }).ToListAsync(cancellationToken))
+            var visible = await db.RegulationParagraphs.OnlyVisible(db, scope).Where(p => paragraphIds.Contains(p.Id))
+                .Select(p => p.Id).ToListAsync(cancellationToken);
+            foreach (var (id, label) in await RegulationVisibility.LabelsAsync(db, visible, cancellationToken))
             {
-                targets[(nameof(Directive), x.Id)] = ($"{DirectiveRules.Label(x.Number)} {x.Title}", false, $"/dienstanweisungen/{x.Id}");
+                targets[(nameof(RegulationParagraph), id)] = (label, false, $"/dienstverordnung/absatz/{id}");
             }
         }
 
@@ -356,7 +357,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         if (targetType is nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party)
                 or nameof(Operation) or nameof(Taskforce) or nameof(Job) or nameof(Case) or nameof(Document) or nameof(Bewerbung)
                 or nameof(Meeting) or nameof(MeetingAgendaItem) or nameof(Hinweis) or nameof(Ticket)
-                or nameof(Presentation) or nameof(Warrant) or nameof(Directive)
+                or nameof(Presentation) or nameof(Warrant) or nameof(RegulationParagraph)
             && !await Visibility.IsRecordVisibleAsync(db, targetType, targetId, ViewerScope.From(actor), cancellationToken))
         {
             throw new UnauthorizedAccessException("Auf diese Akte darfst du nicht verlinken (Verschlusssache oder nicht vorhanden).");

@@ -35,7 +35,7 @@ using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Financing;
 using NOOSE_Website.Data.Entities.Warrants;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Infrastructure.Audit;
@@ -158,9 +158,10 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<Warrant> Warrants => Set<Warrant>();
 
     // ---- service directives (numbered, versioned, acknowledged) ----
-    public DbSet<Directive> Directives => Set<Directive>();
-    public DbSet<DirectiveVersion> DirectiveVersions => Set<DirectiveVersion>();
-    public DbSet<DirectiveAcknowledgment> DirectiveAcknowledgments => Set<DirectiveAcknowledgment>();
+    public DbSet<RegulationSection> RegulationSections => Set<RegulationSection>();
+    public DbSet<RegulationParagraph> RegulationParagraphs => Set<RegulationParagraph>();
+    public DbSet<RegulationParagraphVersion> RegulationVersions => Set<RegulationParagraphVersion>();
+    public DbSet<RegulationAcknowledgment> RegulationAcknowledgments => Set<RegulationAcknowledgment>();
 
     // ---- NOOSEI token quota (request log, weekly ledger, manual corrections) ----
     public DbSet<LlmRequestLog> LlmRequests => Set<LlmRequestLog>();
@@ -1251,11 +1252,20 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasOne<Case>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ---- service directives ----
-        modelBuilder.Entity<Directive>(b =>
+        // ---- service regulation ----
+        modelBuilder.Entity<RegulationSection>(b =>
         {
             b.Property(x => x.Title).HasMaxLength(200).IsRequired();
-            b.Property(x => x.Subject).HasMaxLength(100);
+            // a paragraph write touches its section, so a section trash and a paragraph add cannot both win
+            b.Property(x => x.ModifiedAt).IsConcurrencyToken();
+            b.Property(x => x.IsDeleted).IsConcurrencyToken();
+            b.HasMany(x => x.Paragraphs).WithOne(p => p.Section!)
+                .HasForeignKey(p => p.SectionId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RegulationParagraph>(b =>
+        {
+            b.Property(x => x.Heading).HasMaxLength(200).IsRequired();
             b.Property(x => x.RepealedById).HasMaxLength(255);
             b.Property(x => x.RepealedByName).HasMaxLength(128);
             b.Property(x => x.RepealReason).HasMaxLength(NOOSE_Website.Services.CriticalChange.MaxReasonLength);
@@ -1264,29 +1274,30 @@ public class AppDbContext : IdentityDbContext<Agent>
             // a repeal or trash between load and publish makes the publish match no row
             b.Property(x => x.RepealedAt).IsConcurrencyToken();
             b.Property(x => x.IsDeleted).IsConcurrencyToken();
-            b.HasIndex(x => x.Number).IsUnique();
+            b.HasIndex(x => new { x.SectionId, x.SortOrder });
             b.HasIndex(x => x.RepealedAt);
-            b.HasMany(d => d.Versions).WithOne(v => v.Directive!)
-                .HasForeignKey(v => v.DirectiveId).OnDelete(DeleteBehavior.Cascade);
+            b.HasMany(p => p.Versions).WithOne(v => v.Paragraph!)
+                .HasForeignKey(v => v.ParagraphId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<DirectiveVersion>(b =>
+        modelBuilder.Entity<RegulationParagraphVersion>(b =>
         {
             // ContentHtml stays unbounded (longtext)
+            b.Property(x => x.Heading).HasMaxLength(200).IsRequired();
             b.Property(x => x.ChangeNote).HasMaxLength(300).IsRequired();
             b.Property(x => x.PublishedById).HasMaxLength(255);
             b.Property(x => x.PublishedByName).HasMaxLength(128);
-            b.HasIndex(x => new { x.DirectiveId, x.Version }).IsUnique();
+            b.HasIndex(x => new { x.ParagraphId, x.Version }).IsUnique();
         });
 
-        modelBuilder.Entity<DirectiveAcknowledgment>(b =>
+        modelBuilder.Entity<RegulationAcknowledgment>(b =>
         {
-            b.HasOne(a => a.Directive).WithMany()
-                .HasForeignKey(a => a.DirectiveId).OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(a => a.Paragraph).WithMany()
+                .HasForeignKey(a => a.ParagraphId).OnDelete(DeleteBehavior.Cascade);
             // Restrict FK to identity Agent (no cascade from the user table)
             b.HasOne(a => a.Agent).WithMany()
                 .HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
-            b.HasIndex(a => new { a.DirectiveId, a.AgentId, a.Version }).IsUnique();
+            b.HasIndex(a => new { a.ParagraphId, a.AgentId, a.Version }).IsUnique();
             b.HasIndex(a => a.AgentId);
         });
 

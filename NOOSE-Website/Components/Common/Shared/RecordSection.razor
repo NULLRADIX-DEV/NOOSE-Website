@@ -19,19 +19,25 @@
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private int? _shownBadge;
+    private string _shownSlug = string.Empty;
+    private string _shownLabel = string.Empty;
 
     protected override void OnInitialized()
     {
         _shownBadge = Badge;
+        _shownSlug = Slug;
+        _shownLabel = Label;
         Rail?.Register(this);
     }
 
-    // the rail draws the badge, so it has to hear about a change
+    // the rail draws badge, slug and label, so it has to hear about a change (sections renamed or reordered)
     protected override void OnParametersSet()
     {
-        if (_shownBadge != Badge)
+        if (_shownBadge != Badge || _shownSlug != Slug || _shownLabel != Label)
         {
             _shownBadge = Badge;
+            _shownSlug = Slug;
+            _shownLabel = Label;
             Rail?.Redraw();
         }
     }
