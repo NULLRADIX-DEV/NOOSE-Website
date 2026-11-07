@@ -43,7 +43,8 @@ public sealed class TrashService(
     IHandbookService handbook,
     ILawService laws,
     IPresentationService presentations,
-    IFirearmUseService firearmUses) : ITrashService
+    IFirearmUseService firearmUses,
+    IDirectiveService directives) : ITrashService
 {
     /// <summary>Loading and restoring for one record type; Restore stays a domain-service call.</summary>
     private sealed record TrashSource(
@@ -147,6 +148,8 @@ public sealed class TrashService(
             laws.GetBookTrashAsync, TrashProjection.LawBook, laws.RestoreBookAsync),
         Source(new TrashKind("gesetze", "Gesetze", Icons.Material.Filled.Gavel, "/gesetze"),
             laws.GetTrashAsync, TrashProjection.Law, laws.RestoreAsync),
+        Source(new TrashKind("dienstanweisungen", "Dienstanweisungen", Icons.Material.Filled.Rule, "/dienstanweisungen"),
+            directives.GetTrashAsync, TrashProjection.Directive, directives.RestoreAsync),
     ];
 
     public IReadOnlyList<TrashKind> Kinds => _sources.Select(s => s.Kind).ToList();

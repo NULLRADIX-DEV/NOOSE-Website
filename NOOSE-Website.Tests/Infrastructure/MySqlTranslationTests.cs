@@ -1341,6 +1341,51 @@ public sealed class MySqlTranslationTests : IDisposable
         Assert.Contains("IN (", targets, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_directive_debt_translates_without_an_apply()
+    {
+        // MariaDB has no APPLY
+        var sql = DirectiveDebt.Owed(_db).Where(r => r.AgentId == "a").ToQueryString();
+
+        Assert.Contains("NOT EXISTS", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LATERAL", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void The_directive_audience_count_translates()
+    {
+        // Count would execute
+        var sql = DirectiveDebt.Audience(_db).Where(r => r.DirectiveId == "d1").ToQueryString();
+
+        Assert.Contains("WHERE", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LATERAL", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void The_open_directives_with_their_since_translate_without_an_apply()
+    {
+        // the join the shift list reads; MariaDB has no APPLY
+        var sql = DirectiveDebt.OpenFor(_db, "a").ToQueryString();
+
+        Assert.Contains("JOIN", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("NOT EXISTS", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LATERAL", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void The_quota_acknowledgment_lookup_translates_without_an_apply()
+    {
+        // the flat read the quota groups in memory
+        var sql = DirectiveDebt.AcknowledgmentsOf(_db, "d1").ToQueryString();
+
+        Assert.Contains("WHERE", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("APPLY", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("LATERAL", sql, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static int Occurrences(string text, string needle)
     {
         var count = 0;

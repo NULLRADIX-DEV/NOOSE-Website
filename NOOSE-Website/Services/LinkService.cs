@@ -4,6 +4,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Jobs;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -16,6 +17,7 @@ using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Presentations;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Services.Public;
@@ -36,14 +38,15 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         nameof(Operation), nameof(Taskforce), nameof(Case), nameof(Agent),
         nameof(PersonDoc), nameof(Observation), nameof(Job), nameof(Law), nameof(Document),
         nameof(Bewerbung), nameof(Meeting), nameof(MeetingAgendaItem), nameof(Hinweis), nameof(Ticket),
-        nameof(Presentation),
+        nameof(Presentation), nameof(Warrant), nameof(Directive),
     ];
 
     /// <summary>Known types the scope-free <see cref="RecordsReference"/> also names, for mentions and compromises.</summary>
     /// <remarks>A presentation is left out: who sees one depends on groups and invites, which that resolver is
-    /// never handed, so a reference to it would never resolve.</remarks>
+    /// never handed, so a reference to it would never resolve. A warrant is left out for the same reason: it is
+    /// as visible as its person and case, which that resolver does not know either.</remarks>
     public static readonly IReadOnlyList<string> ReferenceTypes =
-        KnownTypes.Where(t => t != nameof(Presentation)).ToList();
+        KnownTypes.Where(t => t is not (nameof(Presentation) or nameof(Warrant))).ToList();
 
     /// <summary>What an operation or taskforce lists as involved: people and organisations, nothing else.</summary>
     public static readonly IReadOnlyList<string> InvolvedTypes =
@@ -265,6 +268,28 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
             targets[(nameof(Presentation), id)] = (title, false, $"/praesentationen/{id}");
         }
 
+        // exact level
+        var directiveIds = pairs.Where(p => p.OtherType == nameof(Directive)).Select(p => p.OtherId).Distinct().ToList();
+        if (directiveIds.Count > 0)
+        {
+            foreach (var x in await db.Directives.OnlyVisible(scope).Where(d => directiveIds.Contains(d.Id))
+                         .Select(d => new { d.Id, d.Number, d.Title }).ToListAsync(cancellationToken))
+            {
+                targets[(nameof(Directive), x.Id)] = ($"{DirectiveRules.Label(x.Number)} {x.Title}", false, $"/dienstanweisungen/{x.Id}");
+            }
+        }
+
+        // person and case
+        var warrantIds = pairs.Where(p => p.OtherType == nameof(Warrant)).Select(p => p.OtherId).Distinct().ToList();
+        if (warrantIds.Count > 0)
+        {
+            foreach (var x in await db.Warrants.OnlyVisible(db, scope).Where(w => warrantIds.Contains(w.Id))
+                         .Select(w => new { w.Id, w.CaseNumber, w.Type }).ToListAsync(cancellationToken))
+            {
+                targets[(nameof(Warrant), x.Id)] = ($"{WarrantTypeDisplay.Name(x.Type)} {x.CaseNumber}", false, $"/anordnungen/{x.Id}");
+            }
+        }
+
         // partners: only links to released, releasable-type records
         HashSet<(string, string)>? releasedTargets = null;
         if (scope.PartnerAgency is { } agency)
@@ -331,7 +356,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         if (targetType is nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party)
                 or nameof(Operation) or nameof(Taskforce) or nameof(Job) or nameof(Case) or nameof(Document) or nameof(Bewerbung)
                 or nameof(Meeting) or nameof(MeetingAgendaItem) or nameof(Hinweis) or nameof(Ticket)
-                or nameof(Presentation)
+                or nameof(Presentation) or nameof(Warrant) or nameof(Directive)
             && !await Visibility.IsRecordVisibleAsync(db, targetType, targetId, ViewerScope.From(actor), cancellationToken))
         {
             throw new UnauthorizedAccessException("Auf diese Akte darfst du nicht verlinken (Verschlusssache oder nicht vorhanden).");

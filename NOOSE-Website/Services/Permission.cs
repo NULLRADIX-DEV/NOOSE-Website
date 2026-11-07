@@ -212,6 +212,17 @@ public static class Permission
         }
     }
 
+    /// <summary>Require the right to issue, replace, repeal, trash or restore a directive; write guard ahead of the rank guard.</summary>
+    public static void RequireDirectiveWrite(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!DirectiveRules.MayManage(actor))
+        {
+            throw new UnauthorizedAccessException(
+                "Dienstanweisungen gibt nur die Führung (ab Section Chief) oder ein Admin heraus.");
+        }
+    }
+
     /// <summary>Require highest classification right.</summary>
     public static void RequireHighestClassification(ClaimsPrincipal actor)
     {

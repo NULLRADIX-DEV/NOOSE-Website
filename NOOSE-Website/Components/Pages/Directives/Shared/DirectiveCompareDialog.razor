@@ -1,0 +1,146 @@
+@* Word comparison of two versions of a directive; the text shows the newer one with the changes marked. *@
+@inject IDirectiveService DirectiveService
+
+<MudDialog Class="noose-dialog-lang">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Value="_from" ValueChanged="FromChangedAsync" Label="Von Fassung" Variant="Variant.Outlined">
+                        @foreach (var version in Versions)
+                        {
+                            <MudSelectItem T="int" Value="@version.Version">@Describe(version)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="int" Value="_to" ValueChanged="ToChangedAsync" Label="Bis Fassung" Variant="Variant.Outlined">
+                        @foreach (var version in Versions)
+                        {
+                            <MudSelectItem T="int" Value="@version.Version">@Describe(version)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            @if (_load)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+            }
+            else if (_comparison is not { } cmp)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    Der Vergleich ist nicht möglich: Die Dienstanweisung oder eine der Fassungen ist nicht zugänglich.
+                </MudAlert>
+            }
+            else
+            {
+                @if (cmp.Diff.StructureChanged)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                        Auch Reihenfolge oder Gliederung haben sich geändert. Der Wortvergleich zeigt nur den Text.
+                    </MudAlert>
+                }
+                @if (cmp.Diff.Degraded)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                        Zu viele Änderungen für einen Wortvergleich. Der geänderte Teil steht als ein Block da.
+                    </MudAlert>
+                }
+                @if (cmp.Diff.Unchanged)
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true">
+                        Der Text ist in beiden Fassungen gleich.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Fassung @cmp.FromVersion gegen Fassung @cmp.ToVersion
+                    </MudText>
+                    <div class="d-flex align-center" style="gap:16px;flex-wrap:wrap;">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            <span class="noosei-legende noosei-legende-neu"></span> hinzugefügt
+                            <span class="noosei-legende noosei-legende-weg ml-3"></span> entfernt
+                        </MudText>
+                    </div>
+                    <div class="dokument-html noosei-diff">@((MarkupString)cmp.Diff.Html)</div>
+                }
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Schließen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public string DirectiveId { get; set; } = string.Empty;
+
+    /// <summary>Every version, newest first.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<DirectiveVersionView> Versions { get; set; } = [];
+
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private int _from;
+    private int _to;
+    private bool _load = true;
+    private DirectiveComparison? _comparison;
+    // only the newest comparison may write the result
+    private int _generation;
+
+    private static string Describe(DirectiveVersionView version)
+        => $"Fassung {version.Version} · gültig ab {version.ValidFrom:dd.MM.yyyy}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // the one before the newest against the newest
+        _to = Versions.Count > 0 ? Versions[0].Version : 0;
+        _from = Versions.Count > 1 ? Versions[1].Version : _to;
+        await CompareAsync();
+    }
+
+    private async Task FromChangedAsync(int version)
+    {
+        _from = version;
+        await CompareAsync();
+    }
+
+    private async Task ToChangedAsync(int version)
+    {
+        _to = version;
+        await CompareAsync();
+    }
+
+    private async Task CompareAsync()
+    {
+        var generation = ++_generation;
+        _load = true;
+        var comparison = await DirectiveService.CompareAsync(DirectiveId, _from, _to, User);
+        if (generation != _generation)
+        {
+            return;
+        }
+        _comparison = comparison;
+        _load = false;
+    }
+
+    private void Close() => MudDialog.Close();
+
+    /// <summary>Opens the dialog for a directive's versions; returns when it is closed.</summary>
+    public static async Task ShowAsync(IDialogService dialog, string directiveId, string label,
+        IReadOnlyList<DirectiveVersionView> versions, ClaimsPrincipal user)
+    {
+        var parameters = new DialogParameters<DirectiveCompareDialog>
+        {
+            { x => x.DirectiveId, directiveId },
+            { x => x.Versions, versions },
+            { x => x.User, user },
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true };
+        var reference = await dialog.ShowAsync<DirectiveCompareDialog>($"{label}: Fassungen vergleichen", parameters, options);
+        await reference.Result;
+    }
+}

@@ -84,6 +84,9 @@ public static class AuditEntityDisplay
         "PresentationSlide" => "Folie",
         "PresentationInvite" => "Einladung (Präsentation)",
         "PresentationFile" => "Google-Import (Präsentation)",
+        "Directive" => "Dienstanweisung",
+        "DirectiveVersion" => "Fassung (Dienstanweisung)",
+        "DirectiveAcknowledgment" => "Kenntnisnahme (Dienstanweisung)",
         _ => type,
     };
 
@@ -120,6 +123,7 @@ public static class AuditEntityDisplay
         "KassenBuchung" => $"/kasse/buchung/{id}",
         "FinancingRequest" => $"/finanzierungen/{id}",
         "Warrant" => $"/anordnungen/{id}",
+        "Directive" => $"/dienstanweisungen/{id}",
         // catalog positions and config have no own page; point at the section that edits them
         "FinancingItem" => "/finanzierungen?tab=katalog",
         "FinancingBudgetConfig" => "/einstellungen?tab=finanzierung",

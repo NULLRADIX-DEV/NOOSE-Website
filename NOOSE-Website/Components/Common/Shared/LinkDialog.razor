@@ -16,6 +16,8 @@
 @inject ITipService TipService
 @inject ITicketService TicketService
 @inject IPresentationService PresentationService
+@inject IDirectiveService DirectiveService
+@inject IWarrantService WarrantService
 
 <MudDialog>
     <DialogContent>
@@ -339,6 +341,38 @@
                         </ItemTemplate>
                     </MudAutocomplete>
                     break;
+
+                case nameof(Directive):
+                    <MudAutocomplete T="DirectivePick" Label="Dienstanweisung" @bind-Value="_directive" AutoFocus="true"
+                                     SearchFunc="@SearchDirectives" ToStringFunc="@DirectiveText"
+                                     Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
+                                     ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Rule">
+                        <ItemTemplate Context="p">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.Rule" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.body2">@p.Label</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Title</MudText>
+                            </MudStack>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                    break;
+
+                case nameof(Warrant):
+                    <MudAutocomplete T="WarrantView" Label="Anordnung" @bind-Value="_warrant" AutoFocus="true"
+                                     SearchFunc="@SearchWarrants" ToStringFunc="@WarrantText"
+                                     Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
+                                     ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Approval">
+                        <ItemTemplate Context="w">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.Approval" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.body2">@WarrantText(w)</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@w.PersonName</MudText>
+                            </MudStack>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                    break;
             }
 
             @if (RoleContext)
@@ -389,6 +423,8 @@
     private bool _mayTip;
     private bool _mayTicket;
     private bool _mayPresentation;
+    private bool _mayDirective;
+    private bool _mayWarrant;
     private DocumentViewerScope _docScope;
     private ViewerScope _scope;
 
@@ -405,6 +441,8 @@
             _mayTip = user.IsInternalAgent();
             _mayTicket = user.IsInternalAgent() && user.MayClassifiedRead();
             _mayPresentation = user.IsInternalAgent();
+            _mayDirective = user.IsInternalAgent();
+            _mayWarrant = user.IsInternalAgent();
             _docScope = DocumentViewerScope.From(user);
             _scope = ViewerScope.From(user);
         }
@@ -433,8 +471,8 @@
         new(nameof(Meeting), "Besprechung"),
     };
 
-    // four types are offered by audience rather than to everyone: applications are HRB/leadership-only, a citizen
-    // tip and a presentation are for internal agents only, and a ticket picker is the desk's — the search
+    // six types are offered by audience rather than to everyone: applications are HRB/leadership-only, a citizen
+    // tip, a presentation, a directive and a warrant are for internal agents only, and a ticket picker is the desk's — the search
     // behind it carries RequireTicketRead. An agent attached to a single ticket therefore cannot pick one here,
     // while an existing link to their own ticket still resolves for them (LinkService asks per row).
     private IEnumerable<TypeOption> ShownTypes
@@ -457,6 +495,14 @@
             if (_mayPresentation)
             {
                 shown = shown.Append(new(nameof(Presentation), "Präsentation"));
+            }
+            if (_mayDirective)
+            {
+                shown = shown.Append(new(nameof(Directive), "Dienstanweisung"));
+            }
+            if (_mayWarrant)
+            {
+                shown = shown.Append(new(nameof(Warrant), "Anordnung"));
             }
             if (AllowedTypes is not null)
             {
@@ -501,6 +547,8 @@
     private TipPickRow? _tip;
     private TicketPickRow? _ticket;
     private PresentationListItem? _presentation;
+    private DirectivePick? _directive;
+    private WarrantView? _warrant;
 
     // loaded on demand for client-side search
     private List<Agent>? _allAgents;
@@ -508,6 +556,7 @@
     private List<ObservationDisplay>? _allObservations;
     private List<Bewerbung>? _allBewerbungen;
     private List<PresentationListItem>? _allPresentations;
+    private List<WarrantView>? _allWarrants;
 
     private string? CurrentTargetId => _targetType switch
     {
@@ -529,6 +578,8 @@
         nameof(Hinweis) => _tip?.Id,
         nameof(Ticket) => _ticket?.Id,
         nameof(Presentation) => _presentation?.Id,
+        nameof(Directive) => _directive?.Id,
+        nameof(Warrant) => _warrant?.Warrant.Id,
         _ => null,
     };
 
@@ -537,6 +588,7 @@
         _person = null; _faction = null; _group = null; _party = null; _operation = null; _taskforce = null;
         _case = null; _job = null; _agent = null; _doc = null; _observation = null; _law = null; _document = null;
         _bewerbung = null; _meeting = null; _tip = null; _ticket = null; _presentation = null;
+        _directive = null; _warrant = null;
         if (_targetType == nameof(Agent) && _allAgents is null)
         {
             // TeamLeads are never selectable
@@ -557,6 +609,10 @@
         if (_targetType == nameof(Presentation) && _allPresentations is null && _user is not null)
         {
             _allPresentations = await PresentationService.GetListAsync(_user);
+        }
+        if (_targetType == nameof(Warrant) && _allWarrants is null && _user is not null)
+        {
+            _allWarrants = await WarrantService.GetListAsync(null, _user);
         }
     }
 
@@ -642,6 +698,33 @@
         return Task.FromResult(Allowed(nameof(Presentation), all, p => p.Id).Take(20));
     }
 
+    // the service answers only what the viewer may see; the label is the number and the title, never the wording
+    private async Task<IEnumerable<DirectivePick>> SearchDirectives(string value, CancellationToken token)
+    {
+        if (_user is null)
+        {
+            return [];
+        }
+        return Allowed(nameof(Directive), await DirectiveService.SearchAsync(value, _user, 20, token), p => p.Id);
+    }
+
+    private Task<IEnumerable<WarrantView>> SearchWarrants(string value, CancellationToken token)
+    {
+        var all = (IEnumerable<WarrantView>?)_allWarrants ?? Array.Empty<WarrantView>();
+        var s = value?.Trim();
+        if (!string.IsNullOrWhiteSpace(s))
+        {
+            all = all.Where(w => w.Warrant.CaseNumber.Contains(s, StringComparison.OrdinalIgnoreCase)
+                                || w.Warrant.Subject.Contains(s, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult(Allowed(nameof(Warrant), all, w => w.Warrant.Id).Take(20));
+    }
+
+    private static string DirectiveText(DirectivePick? p) => p is null ? string.Empty : $"{p.Label} {p.Title}";
+
+    private static string WarrantText(WarrantView? w)
+        => w is null ? string.Empty : $"{WarrantTypeDisplay.Name(w.Warrant.Type)} {w.Warrant.CaseNumber}";
+
     private Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
     {
         var all = (IEnumerable<Agent>?)_allAgents ?? Array.Empty<Agent>();
@@ -705,6 +788,8 @@
         nameof(Hinweis) => _tip is null ? null : TipText(_tip),
         nameof(Ticket) => _ticket is null ? null : TicketText(_ticket),
         nameof(Presentation) => _presentation?.Title,
+        nameof(Directive) => _directive is null ? null : DirectiveText(_directive),
+        nameof(Warrant) => _warrant is null ? null : WarrantText(_warrant),
         _ => null,
     };
 

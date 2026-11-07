@@ -48,6 +48,7 @@ public class AgentHandoverCoverageTests
         ["BuergerProfil.BlockedById"] = History,
         ["BuergerProfil.UserId"] = Own,
         ["DecorationAward.AgentId"] = Own,
+        ["DirectiveAcknowledgment.AgentId"] = Own,
         ["DocumentAccessExclusion.AgentId"] = Own,
         ["EmergencyAlarmRecipient.AgentId"] = "ein Alarm läuft nur 30 Minuten; die Antwort gehört dem gerufenen Agenten und ist nichts für einen Nachfolger",
         ["EvidenceEntry.HandlerAgentId"] = History,

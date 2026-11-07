@@ -34,6 +34,9 @@ public class AuditEntityDisplayTests
     [InlineData("OeffentlicheSeite", "Öffentliche Seite")]
     [InlineData("OeffentlicheFahndung", "Öffentliche Ausschreibung")]
     [InlineData("PublicArea", "Öffentlicher Bereich")]
+    [InlineData("Directive", "Dienstanweisung")]
+    [InlineData("DirectiveVersion", "Fassung (Dienstanweisung)")]
+    [InlineData("DirectiveAcknowledgment", "Kenntnisnahme (Dienstanweisung)")]
     public void Label_KnownType_ReturnsGermanLabel(string type, string expected)
     {
         Assert.Equal(expected, AuditEntityDisplay.Label(type));
@@ -85,6 +88,7 @@ public class AuditEntityDisplayTests
     [InlineData("Law", "abc", "/gesetze/abc")]
     [InlineData("Agent", "abc", "/personal/abc")]
     [InlineData("Meeting", "abc", "/besprechungen/abc")]
+    [InlineData("Directive", "abc", "/dienstanweisungen/abc")]
     public void Route_KnownRoutableType_ReturnsDeepLinkWithId(string type, string id, string expected)
     {
         Assert.Equal(expected, AuditEntityDisplay.Route(type, id));
@@ -113,6 +117,8 @@ public class AuditEntityDisplayTests
     [InlineData("MeetingAgendaItem")]
     [InlineData("MeetingAttendance")]
     [InlineData("MeetingSignOff")]
+    [InlineData("DirectiveVersion")]
+    [InlineData("DirectiveAcknowledgment")]
     [InlineData("Unknown")]
     [InlineData("")]
     [InlineData("person")]

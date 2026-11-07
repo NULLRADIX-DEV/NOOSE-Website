@@ -2,6 +2,7 @@ using System.Text.Json;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Presentations;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -367,6 +368,6 @@ public sealed class PresentationLinkTests
         Assert.Contains(nameof(Presentation), RecordBatch.Linkable);
         Assert.Contains(nameof(Presentation), RecordBatch.LinkAnchors);
         // mentions and compromised-record rows resolve through the scope-free resolver
-        Assert.Equal(LinkService.KnownTypes.Where(t => t != nameof(Presentation)), LinkService.ReferenceTypes);
+        Assert.Equal(LinkService.KnownTypes.Where(t => t is not (nameof(Presentation) or nameof(Warrant))), LinkService.ReferenceTypes);
     }
 }

@@ -2,8 +2,10 @@
 using NSubstitute;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Personnel;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Navigation;
 using NOOSE_Website.Services;
 using NOOSE_Website.Services.Changelog;
@@ -20,6 +22,7 @@ public class TrashServiceTests
     private readonly IChangelogService _changelog = Substitute.For<IChangelogService>();
     private readonly IHandbookService _handbook = Substitute.For<IHandbookService>();
     private readonly IFirearmUseService _firearmUses = Substitute.For<IFirearmUseService>();
+    private readonly IDirectiveService _directives = Substitute.For<IDirectiveService>();
 
     private TrashService Build() => new(
         _people,
@@ -56,7 +59,8 @@ public class TrashServiceTests
         _handbook,
         Substitute.For<ILawService>(),
         Substitute.For<IPresentationService>(),
-        _firearmUses);
+        _firearmUses,
+        _directives);
 
     [Fact]
     public void Kind_keys_are_unique()
@@ -164,6 +168,35 @@ public class TrashServiceTests
         // the reason stays out of the bin: it is a list the whole leadership reads
         Assert.DoesNotContain("geheim", row.Title + row.Detail, StringComparison.Ordinal);
         await _firearmUses.Received(1).RestoreAsync("w1", actor, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task The_directive_kind_shows_number_title_and_level_and_restores_through_its_own_service()
+    {
+        var actor = new ClaimsPrincipal();
+        _directives.GetTrashAsync(Arg.Any<CancellationToken>()).Returns(
+        [
+            new Directive
+            {
+                Id = "d1", Number = 7, Title = "Funkdisziplin", Subject = "Einsatz",
+                Classification = DocumentClassification.Tru, DeletedAt = new DateTime(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc),
+            },
+            new Directive
+            {
+                Id = "d2", Number = 8, Title = "Ohne Stufe", Classification = DocumentClassification.None,
+                DeletedAt = new DateTime(2026, 11, 2, 8, 0, 0, DateTimeKind.Utc),
+            },
+        ]);
+
+        var rows = await Build().GetAsync("dienstanweisungen");
+        await Build().RestoreAsync("dienstanweisungen", "d1", actor);
+
+        Assert.Equal(["d2", "d1"], rows.Select(r => r.Id));
+        Assert.Equal("DA-07", rows[1].Reference);
+        Assert.Equal("Einsatz · VS – HRT", rows[1].Detail);
+        // no level and no area: nothing to show beside the title
+        Assert.Null(rows[0].Detail);
+        await _directives.Received(1).RestoreAsync("d1", actor, Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using NOOSE_Website.Data.Entities.Appointments;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Services;
 
@@ -445,6 +446,49 @@ public class AuditDisplayTests
     {
         // hourly worker bookkeeping, exactly like NotifiedAt on a followup
         Assert.Empty(AuditDisplay.Parse("""{"NudgedAt":[null,"2026-09-07T10:00:00Z"]}"""));
+    }
+
+    // ---- directives ----------------------------------------------------------
+
+    [Fact]
+    public void A_directive_classification_reads_as_a_document_level()
+    {
+        // unqualified, the same column would read as a person's level
+        var change = Assert.Single(AuditDisplay.Parse("""{"Classification":[0,2]}""", entityType: nameof(Directive)));
+
+        Assert.Equal("Einstufung", change.Field);
+        Assert.Equal("Keine Verschlusssache", change.Alt);
+        Assert.Equal("Verschlusssache nur für HRT", change.New);
+    }
+
+    [Fact]
+    public void A_directive_reads_its_own_field_labels()
+    {
+        var changes = AuditDisplay.Parse(
+            """{"AcknowledgeFromVersion":[1,2],"Subject":["a","b"],"RepealedById":[null,"x"],"RepealedByName":[null,"Falke"]}""",
+            entityType: nameof(Directive));
+
+        Assert.Equal("1", changes.Single(c => c.Field == "Kenntnisnahme ab Fassung").Alt);
+        Assert.Equal("b", changes.Single(c => c.Field == "Sachgebiet").New);
+        Assert.Equal("Falke", changes.Single(c => c.Field == "Aufgehoben von").New);
+        // the name stands beside it, the id says nothing
+        Assert.DoesNotContain(changes, c => c.New == "x");
+        Assert.Equal(3, changes.Count);
+    }
+
+    [Fact]
+    public void A_directive_version_reads_in_german_with_a_calendar_day()
+    {
+        var changes = AuditDisplay.Parse(
+            """{"ChangeNote":[null,"Erstfassung"],"Version":[null,2],"ValidFrom":[null,"2026-11-07"],"DirectiveId":[null,"d1"],"PublishedById":[null,"p1"],"PublishedByName":[null,"Falke"]}""",
+            entityType: nameof(DirectiveVersion));
+
+        Assert.Equal("Erstfassung", changes.Single(c => c.Field == "Änderungsnotiz").New);
+        Assert.Equal("2", changes.Single(c => c.Field == "Fassung").New);
+        Assert.Equal("07.11.2026", changes.Single(c => c.Field == "Gültig ab").New);
+        Assert.Equal("Falke", changes.Single(c => c.Field == "Veröffentlicht von").New);
+        Assert.DoesNotContain(changes, c => c.New is "d1" or "p1");
+        Assert.Equal(4, changes.Count);
     }
 
     // ---- FieldChange record shape ------------------------------------------

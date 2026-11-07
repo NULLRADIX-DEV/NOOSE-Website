@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
@@ -22,6 +23,7 @@ using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Taskforces;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Authorization;
 
 namespace NOOSE_Website.Services.Search;
@@ -319,6 +321,26 @@ public static class SearchParentResolver
             foreach (var (id, title) in await PresentationVisibility.VisibleTitlesAsync(db, presentationIds, scope, cancellationToken))
             {
                 Put(nameof(Presentation), id, title, null);
+            }
+        }
+
+        // link endpoints too
+        if (!viewer.IsPartner && Ids(nameof(Directive)) is { Count: > 0 } directiveIds)
+        {
+            foreach (var x in await db.Directives.OnlyVisible(scope)
+                         .Where(d => directiveIds.Contains(d.Id))
+                         .Select(d => new { d.Id, d.Number, d.Title }).ToListAsync(cancellationToken))
+            {
+                Put(nameof(Directive), x.Id, x.Title, DirectiveRules.Label(x.Number));
+            }
+        }
+        if (!viewer.IsPartner && Ids(nameof(Warrant)) is { Count: > 0 } warrantIds)
+        {
+            foreach (var x in await db.Warrants.OnlyVisible(db, scope)
+                         .Where(w => warrantIds.Contains(w.Id))
+                         .Select(w => new { w.Id, w.Subject, w.CaseNumber }).ToListAsync(cancellationToken))
+            {
+                Put(nameof(Warrant), x.Id, x.Subject, x.CaseNumber);
             }
         }
 

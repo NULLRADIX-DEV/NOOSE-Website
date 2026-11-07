@@ -719,6 +719,9 @@ public static class ChangelogContent
                 + "korrigiert.", "Bewerbungen"),
             Besser("3.0.42-handy-abschnitte", "Auf dem Handy öffnet die Leiste über einer Akte wieder die Liste der "
                 + "Abschnitte, und die ganze Leiste ist der Knopf dafür.", "Bedienung"),
+            Neu("3.0.43-dienstanweisungen", "Dienstanweisungen haben jetzt einen eigenen Bereich: jede mit fester "
+                + "Nummer, Fassungen und einem Datum, ab dem sie gilt. Was du noch zur Kenntnis nehmen musst, zeigen "
+                + "das Menü und Meine Schicht.", "Dienstbetrieb"),
         ]),
     ];
 }

@@ -2,6 +2,7 @@
 using System.Text.Json;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Appointments;
+using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Data.Entities.Warrants;
@@ -144,8 +145,24 @@ public static class AuditDisplay
         "ValidFrom", "ValidUntil", "CancelledAt",
     };
 
+    // qualified: directive tables
+    private static readonly HashSet<string> DirectiveInstantFields = new(StringComparer.Ordinal)
+    {
+        "RepealedAt", "PublishedAt",
+    };
+
+    // all three tables
+    private static bool IsDirectiveType(string? t)
+        => t is nameof(Directive) or nameof(DirectiveVersion) or nameof(DirectiveAcknowledgment);
+
     private static bool IsInstant(string field, string? entityType)
-        => InstantFields.Contains(field) || (entityType == nameof(Warrant) && WarrantInstantFields.Contains(field));
+        => InstantFields.Contains(field)
+           || (entityType == nameof(Warrant) && WarrantInstantFields.Contains(field))
+           || (IsDirectiveType(entityType) && DirectiveInstantFields.Contains(field));
+
+    // qualified: a version's day
+    private static bool IsDay(string field, string? entityType)
+        => DayOnlyFields.Contains(field) || (entityType == nameof(DirectiveVersion) && field == "ValidFrom");
 
     // qualified: a ticket's Subject is its title, not what an order covers
     private static readonly Dictionary<string, string> WarrantLabels = new(StringComparer.Ordinal)
@@ -153,14 +170,33 @@ public static class AuditDisplay
         ["Subject"] = "Gegenstand", ["Justification"] = "Begründung", ["RequesterName"] = "Beantragt von",
     };
 
+    // qualified: own wording
+    private static readonly Dictionary<string, string> DirectiveLabels = new(StringComparer.Ordinal)
+    {
+        ["Number"] = "Nummer", ["Subject"] = "Sachgebiet", ["CurrentVersion"] = "Aktuelle Fassung",
+        ["AcknowledgeFromVersion"] = "Kenntnisnahme ab Fassung",
+        ["RepealedAt"] = "Aufgehoben am", ["RepealedByName"] = "Aufgehoben von", ["RepealReason"] = "Aufhebungsgrund",
+        ["Version"] = "Fassung", ["ChangeNote"] = "Änderungsnotiz", ["RequiresAcknowledgment"] = "Kenntnisnahme nötig",
+        ["PublishedByName"] = "Veröffentlicht von", ["PublishedAt"] = "Veröffentlicht am",
+        ["AcknowledgedAt"] = "Zur Kenntnis genommen am",
+    };
+
     private static string LabelOf(string field, string? entityType)
-        => entityType == nameof(Warrant) && WarrantLabels.TryGetValue(field, out var label)
+    {
+        if (IsDirectiveType(entityType) && DirectiveLabels.TryGetValue(field, out var directiveLabel))
+        {
+            return directiveLabel;
+        }
+        return entityType == nameof(Warrant) && WarrantLabels.TryGetValue(field, out var label)
             ? label
             : Labels.GetValueOrDefault(field, field);
+    }
 
     // a warrant's case is an id like its person; the page links both
     private static bool IsHiddenFor(string field, string? entityType)
-        => entityType == nameof(Warrant) && field == "CaseId";
+        => (entityType == nameof(Warrant) && field == "CaseId")
+           // names stand beside ids
+           || (IsDirectiveType(entityType) && field is "RepealedById" or "DirectiveId" or "PublishedById");
 
     /// <summary>Parses JSON into field changes; empty on null/invalid.
     /// <paramref name="maxValueLength"/> above zero clips long values — for feeds, not for the audit log itself.
@@ -221,13 +257,13 @@ public static class AuditDisplay
                 {
                     return "—";
                 }
-                if (DayOnlyFields.Contains(field)
+                if (IsDay(field, entityType)
                     && DateOnly.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day))
                 {
                     return day.ToString("dd.MM.yyyy");
                 }
                 // a calendar day kept in a DateTime column serializes with midnight attached
-                if (DayOnlyFields.Contains(field)
+                if (IsDay(field, entityType)
                     && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dayTime))
                 {
                     return dayTime.ToString("dd.MM.yyyy");
@@ -246,6 +282,8 @@ public static class AuditDisplay
     // enum to string; both the legacy German field names and the CLR names written today
     private static string FormatEnum(string field, int n, string? entityType) => field switch
     {
+        // before the generic arm: else a person's level
+        "Classification" when entityType == nameof(Directive) => DocumentClassificationDisplay.Label((DocumentClassification)n),
         "Einstufung" or "Classification" => ClassificationDisplay.Name((Classification)n),
         "SecrecyLevel" => DocumentClassificationDisplay.Label((DocumentClassification)n),
         "Lebensstatus" or "LifeStatus" => LifeStatusDisplay.Name((LifeStatus)n),

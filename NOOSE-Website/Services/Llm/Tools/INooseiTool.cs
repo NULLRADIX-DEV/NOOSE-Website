@@ -348,6 +348,7 @@ public static class NooseiRecordTypes
             // open: whether an assistant answer may cite a signed paper is the owner's call, not a default
             ["Warrant"] = "eine Anordnung ist ein unterzeichnetes Papier mit eigener Sicht über Person und Vorgang; "
                 + "ob FIBI sie lesen soll, ist noch nicht entschieden",
+            ["Directive"] = "Dienstanweisungen liest FIBI vorerst nicht; ob eine Antwort aus Hausrecht zitieren darf, entscheidet der Eigentümer",
         };
 
     /// <summary>The enum values offered where a type must be openable as a record.</summary>
