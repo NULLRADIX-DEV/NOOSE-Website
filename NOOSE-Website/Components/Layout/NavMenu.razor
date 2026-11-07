@@ -130,7 +130,7 @@
     [Inject] private NOOSE_Website.Services.Public.IPublicWantedService PublicWanted { get; set; } = default!;
     [Inject] private NOOSE_Website.Services.Public.IBountyService Bounty { get; set; } = default!;
     [Inject] private IAnnouncementService BoardService { get; set; } = default!;
-    [Inject] private IDirectiveService DirectiveService { get; set; } = default!;
+    [Inject] private IRegulationService RegulationService { get; set; } = default!;
     [Inject] private SharesBroadcaster SharesBroadcaster { get; set; } = default!;
     [Inject] private AcknowledgmentBroadcaster AcknowledgmentBroadcaster { get; set; } = default!;
     [Inject] private FinancingBroadcaster FinancingBroadcaster { get; set; } = default!;
@@ -147,7 +147,7 @@
     private NavPreferences _prefs = new();
     private int _openShares;
     private int _openAcknowledgments;
-    private int _openDirectives;
+    private int _openRegulation;
     private int _openFinancing;
     private int _openTips;
     private IReadOnlySet<string>? _allowedPartnerTypes;
@@ -223,9 +223,9 @@
         {
             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ml-2">@_openAcknowledgments</MudChip>
         }
-        @if (entry.BadgeKey == "directives" && _openDirectives > 0)
+        @if (entry.BadgeKey == "regulation" && _openRegulation > 0)
         {
-            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ml-2">@_openDirectives</MudChip>
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ml-2">@_openRegulation</MudChip>
         }
         @if (entry.BadgeKey == "shares" && _openShares > 0)
         {
@@ -439,7 +439,7 @@
         }
         await LoadSharesAsync();
         await LoadAcknowledgmentsAsync();
-        await LoadDirectivesAsync();
+        await LoadRegulationAsync();
         await LoadFinancingAsync();
         await LoadTipsAsync();
     }
@@ -506,7 +506,7 @@
     }
 
     // decorative badge as well: the directive count must not tear the circuit
-    private async Task LoadDirectivesAsync()
+    private async Task LoadRegulationAsync()
     {
         if (_user is null)
         {
@@ -514,11 +514,11 @@
         }
         try
         {
-            _openDirectives = await DirectiveService.GetOpenCountAsync(_user);
+            _openRegulation = await RegulationService.GetOpenCountAsync(_user);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Dienstanweisungs-Badge konnte nicht geladen werden.");
+            Logger.LogWarning(ex, "Badge der Dienstverordnung konnte nicht geladen werden.");
         }
     }
 
@@ -655,7 +655,7 @@
             _ = InvokeAsync(async () =>
             {
                 await LoadAcknowledgmentsAsync();
-                await LoadDirectivesAsync();
+                await LoadRegulationAsync();
                 StateHasChanged();
             });
         }

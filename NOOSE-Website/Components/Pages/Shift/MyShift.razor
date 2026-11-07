@@ -9,7 +9,7 @@
 @inject IFollowupService Followups
 @inject INotificationService Notifications
 @inject IAnnouncementService Announcements
-@inject IDirectiveService Directives
+@inject IRegulationService Regulation
 @inject ITaskforceChatService TaskforceChat
 @inject IGlobalChronikService Chronik
 @inject INavPreferencesService NavPrefs
@@ -52,7 +52,7 @@ else
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.Campaign" Colour="Color.Warning" Label="Zu quittieren"
                       Value="@_ackRows.Count.ToString()" Href="@AcknowledgmentsHref"
-                      Hint="Brett-Einträge und Dienstanweisungen, die du noch bestätigen musst" />
+                      Hint="Brett-Einträge und Absätze der Dienstverordnung, die du noch bestätigen musst" />
         </MudItem>
         <MudItem xs="6" sm="4" md="2">
             <StatTile Icon="@Icons.Material.Filled.Forum" Label="Taskforce-Chat" Value="@_taskforces.Sum(t => t.Count).ToString()"
@@ -150,7 +150,7 @@ else
 
                 <MudPaper Class="pa-4" Elevation="2">
                     @Head(Icons.Material.Filled.Campaign, "Zu quittieren", AcknowledgmentsHref,
-                        AcknowledgmentsHref == "/brett" ? "Zum Brett" : "Zu den Dienstanweisungen")
+                        AcknowledgmentsHref == "/brett" ? "Zum Brett" : "Zur Dienstverordnung")
                     @if (_ackRows.Count == 0)
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">Nichts wartet auf deine Bestätigung.</MudText>
@@ -162,7 +162,7 @@ else
                             {
                                 <MudListItem T="string" Href="@a.Href"
                                              Icon="@AckIcon(a)"
-                                             IconColor="@(a.Important && !a.IsDirective ? Color.Error : Color.Warning)">
+                                             IconColor="@(a.Important && !a.IsRegulation ? Color.Error : Color.Warning)">
                                     <MudText Typo="Typo.body2"><b>@a.Title</b></MudText>
                                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         seit @a.Since.ToLocalTime().ToString("dd.MM.yyyy")
@@ -294,7 +294,7 @@ else
     private NotificationInboxPage _mentions = NotificationInboxPage.Empty;
     private NotificationInboxPage _watched = NotificationInboxPage.Empty;
     private List<OpenAcknowledgment> _acks = [];
-    private List<OpenDirective> _directives = [];
+    private List<OpenRegulationParagraph> _regulation = [];
     private IReadOnlyList<ShiftAcknowledgment> _ackRows = [];
     private List<TaskforceActivity> _taskforces = [];
 
@@ -334,8 +334,8 @@ else
         _mentions = await UnreadAsync(NotificationType.Mention);
         _watched = await UnreadAsync(NotificationType.RecordModified);
         _acks = await Announcements.GetOpenAcknowledgmentsAsync(_user);
-        _directives = await Directives.GetOpenForMeAsync(_user);
-        _ackRows = ShiftRules.MergeAcknowledgments(_acks, _directives);
+        _regulation = await Regulation.GetOpenForMeAsync(_user);
+        _ackRows = ShiftRules.MergeAcknowledgments(_acks, _regulation);
         _taskforces = await TaskforceChat.GetUnreadAsync(_user);
         _load = false;
         StateHasChanged();
@@ -364,10 +364,10 @@ else
         && _ackRows.Count == 0 && _taskforces.Count == 0 && _tests.Count == 0;
 
     // the tile and the section head read one rule, so they never lead to different places
-    private string AcknowledgmentsHref => ShiftRules.AcknowledgmentsHref(_acks.Count, _directives.Count);
+    private string AcknowledgmentsHref => ShiftRules.AcknowledgmentsHref(_acks.Count, _regulation.Count);
 
-    private static string AckIcon(ShiftAcknowledgment a) => a.IsDirective
-        ? Icons.Material.Filled.Rule
+    private static string AckIcon(ShiftAcknowledgment a) => a.IsRegulation
+        ? Icons.Material.Filled.Gavel
         : a.Important ? Icons.Material.Filled.PriorityHigh : Icons.Material.Filled.Campaign;
 
     private string SinceText => _window.Kind switch

@@ -95,6 +95,8 @@ public static class NooseiPrompts
         • Fragen zur Bedienung der Seite, zu einem Ablauf oder zu einem Fachwort („wie mache ich …",
           „was bedeutet …", „wer darf …") → „schlage_nach". Es liest Handbuch und Glossar; rate so eine
           Antwort nie, und erfinde keine Schaltfläche.
+        • Fragen nach einer Regel des FIB („was sagt die DVO zu …", „wer darf … tragen", Dienstgrade, Funk, Ausrüstung,
+          Disziplinarwesen) → „schlage_dvo_nach". Es liest die Dienstverordnung im geltenden Wortlaut; zitiere den Absatz.
         • Der Agent will etwas ändern lassen („setz mir eine Wiedervorlage", „beobachte die Akte", „verknüpf X mit
           Y", „leg eine Aufgabe an", „gib X das Stichwort Y") → das passende „vorschlag_"-Werkzeug. Lies die Akte
           vorher, damit du ihre id hast. Schlage nur vor, worum der Agent bittet oder was sich aus seiner Frage

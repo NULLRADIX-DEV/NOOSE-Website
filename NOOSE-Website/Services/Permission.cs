@@ -212,14 +212,15 @@ public static class Permission
         }
     }
 
-    /// <summary>Require the right to issue, replace, repeal, trash or restore a directive; write guard ahead of the rank guard.</summary>
-    public static void RequireDirectiveWrite(ClaimsPrincipal actor)
+    /// <summary>Require the coarse right to change the service regulation; write guard ahead of the rank guard.</summary>
+    /// <remarks>The fine gate per paragraph and for sections is <see cref="RegulationRules.MayEditParagraph"/> in the service.</remarks>
+    public static void RequireRegulationWrite(ClaimsPrincipal actor)
     {
         RequireWriteAccess(actor);
-        if (!DirectiveRules.MayManage(actor))
+        if (!RegulationRules.MayManage(actor))
         {
             throw new UnauthorizedAccessException(
-                "Dienstanweisungen gibt nur die Führung (ab Section Chief) oder ein Admin heraus.");
+                "Die Dienstverordnung ändert nur die Führung (ab Section Chief) oder ein Admin.");
         }
     }
 

@@ -1,5 +1,5 @@
-@* Who has acknowledged a directive and who is still missing; leadership and supervision only, the service decides. *@
-@inject IDirectiveService DirectiveService
+@* Who has acknowledged a paragraph and who is still missing; leadership and supervision only, the service decides. *@
+@inject IRegulationService RegulationService
 
 @if (_load)
 {
@@ -21,40 +21,40 @@ else
             <MudProgressLinear Value="@Percent" Color="@(_quota.Missing.Count == 0 ? Color.Success : Color.Primary)" Size="Size.Large"
                                Class="my-2" aria-label="Anteil der Kenntnisnahmen" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                Momentaufnahme: zählt alle Agenten, die die Anweisung heute sehen dürfen.
+                Momentaufnahme: zählt alle Agenten, die heute zur Zielgruppe des Absatzes gehören.
             </MudText>
         </div>
-        @AudienceList("Fehlt noch", _quota.Missing, "Alle haben die Anweisung zur Kenntnis genommen.")
-        @AudienceList("Zur Kenntnis genommen", _quota.Done, "Noch niemand hat die Anweisung zur Kenntnis genommen.")
+        @AudienceList("Fehlt noch", _quota.Missing, "Alle haben den Absatz zur Kenntnis genommen.")
+        @AudienceList("Zur Kenntnis genommen", _quota.Done, "Noch niemand hat den Absatz zur Kenntnis genommen.")
     </MudStack>
 }
 
 @code {
-    [Parameter, EditorRequired] public string DirectiveId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ParagraphId { get; set; } = string.Empty;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
     /// <summary>Changes whenever the page reloads, so the numbers follow an acknowledgment.</summary>
     [Parameter] public int Revision { get; set; }
 
     private bool _load = true;
-    private DirectiveQuota? _quota;
+    private RegulationQuota? _quota;
     private string? _loadedKey;
 
     private double Percent => _quota is { Total: > 0 } q ? 100.0 * q.Acknowledged / q.Total : 0;
 
     protected override async Task OnParametersSetAsync()
     {
-        var key = $"{DirectiveId}:{Revision}";
+        var key = $"{ParagraphId}:{Revision}";
         if (_loadedKey == key)
         {
             return;
         }
         _loadedKey = key;
-        _quota = await DirectiveService.GetQuotaAsync(DirectiveId, User);
+        _quota = await RegulationService.GetQuotaAsync(ParagraphId, User);
         _load = false;
     }
 
-    private RenderFragment AudienceList(string title, IReadOnlyList<DirectiveAudienceRow> rows, string emptyText) => __builder =>
+    private RenderFragment AudienceList(string title, IReadOnlyList<RegulationAudienceRow> rows, string emptyText) => __builder =>
     {
         <div>
             <MudText Typo="Typo.subtitle2" Class="mb-1">@title (@rows.Count)</MudText>

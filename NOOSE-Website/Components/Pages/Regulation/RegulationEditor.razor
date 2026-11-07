@@ -1,0 +1,271 @@
+@page "/dienstverordnung/absatz/neu"
+@page "/dienstverordnung/absatz/{Id}/neue-fassung"
+@attribute [Authorize(Policy = Policies.LeadershipPage)]
+@inject IRegulationService RegulationService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject ILogger<RegulationEditor> Logger
+
+<PageTitle>@(IsVersion ? "Neue Fassung" : "Neuer Absatz") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_missing is not null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        @_missing
+        <MudButton Href="@BackHref" Variant="Variant.Text" Color="Color.Primary" Class="ml-2">Zurück</MudButton>
+    </MudAlert>
+}
+else
+{
+    <PageHeader Icon="@Icons.Material.Filled.Gavel"
+                Title="@(IsVersion ? $"Neue Fassung: {_current!.Row.Heading}" : $"Neuer Absatz in {_sectionCaption}")"
+                BackHref="@BackHref" />
+
+    <MudPaper Class="pa-4" Elevation="2">
+        <MudStack Spacing="3">
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_heading" Label="Überschrift" Variant="Variant.Outlined" Required="true"
+                                  RequiredError="Bitte eine Überschrift angeben." AutoFocus="true" Immediate="true"
+                                  MaxLength="RegulationRules.MaxHeading" Counter="RegulationRules.MaxHeading" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="RegulationAudience" @bind-Value="_audience" Label="Zur Kenntnis nehmen muss"
+                               Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Groups"
+                               HelperText="Lesen dürfen alle Agenten. Die Zielgruppe bestimmt, wer quittieren muss.">
+                        @foreach (var option in _audienceOptions)
+                        {
+                            <MudSelectItem T="RegulationAudience" Value="@option">@RegulationAudienceDisplay.Label(option)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudDatePicker @bind-Date="_validFrom" Label="Gültig ab" Variant="Variant.Outlined" DateFormat="dd.MM.yyyy"
+                                   MinDate="_minDate" Required="true" RequiredError="Bitte ein Datum wählen."
+                                   HelperText="Liegt der Tag in der Zukunft, gilt bis dahin die vorige Fassung." />
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_changeNote" Label="Änderungsnotiz" Variant="Variant.Outlined" Required="true"
+                                  RequiredError="Bitte eine kurze Änderungsnotiz angeben." Immediate="true"
+                                  MaxLength="RegulationRules.MaxChangeNote" Counter="RegulationRules.MaxChangeNote"
+                                  HelperText="Eine Zeile: was ist neu oder anders?" />
+                </MudItem>
+            </MudGrid>
+
+            @if (IsVersion)
+            {
+                <div>
+                    <MudSwitch T="bool" @bind-Value="_requiresAcknowledgment" Color="Color.Primary" Label="Verlangt erneute Kenntnisnahme" />
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                        Für eine reine Schreibkorrektur ausschalten. Wer durch eine neue Zielgruppe dazukommt, muss den Absatz trotzdem zur Kenntnis nehmen.
+                    </MudText>
+                </div>
+            }
+
+            <RichTextEditor @ref="_editor" @key="_editorRevision" Value="@_html" DraftKey="@TextKey" MinHeight="360px" />
+
+            <FormActions>
+                <MudButton Href="@BackHref" Variant="Variant.Text" Color="Color.Default">Abbrechen</MudButton>
+                <AuthorizeView Policy="@Policies.LeadershipWrite" Context="write">
+                    @if (RegulationRules.MayManage(write.User) && _audienceOptions.Count > 0)
+                    {
+                        <MudButton OnClick="SaveAsync" Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Save" Disabled="_saves">Speichern</MudButton>
+                    }
+                </AuthorizeView>
+            </FormActions>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+
+    /// <summary>The section a new paragraph goes into.</summary>
+    [SupplyParameterFromQuery(Name = "abschnitt")] public string? SectionId { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private RichTextEditor? _editor;
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _saves;
+    private string? _loadedKey;
+    private string? _missing;
+    private RegulationParagraphView? _current;
+    private string _sectionCaption = string.Empty;
+
+    private string _heading = string.Empty;
+    private RegulationAudience _audience;
+    private List<RegulationAudience> _audienceOptions = new();
+    private DateTime? _validFrom;
+    private DateTime? _minDate;
+    private string _changeNote = string.Empty;
+    private bool _requiresAcknowledgment = true;
+    // the version the editor opened on; a newer one in the meantime refuses the save
+    private int _expectedVersion;
+    private string? _html;
+    private int _editorRevision;
+
+    private bool IsVersion => !string.IsNullOrEmpty(Id);
+
+    private string TextKey => $"dienstverordnung:{(Id ?? "neu:" + SectionId)}:text";
+
+    private string BackHref => IsVersion
+        ? $"/dienstverordnung/absatz/{Id}"
+        : SectionId is { Length: > 0 } s ? $"/dienstverordnung?tab={RegulationPage.SlugOf(s)}" : "/dienstverordnung";
+
+    protected override async Task OnInitializedAsync() => _user = (await AuthStateTask).User;
+
+    // both routes bind this component, so a switch between them reloads here
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = Id ?? "neu:" + SectionId;
+        if (_loadedKey == key)
+        {
+            return;
+        }
+        _loadedKey = key;
+        _load = true;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var today = MeetingTime.Day(DateTime.UtcNow);
+        var standing = RegulationStanding.Of(_user);
+        _audienceOptions = RegulationRules.EditableAudiences(standing).ToList();
+        _missing = null;
+        _current = null;
+        _heading = string.Empty;
+        _audience = _audienceOptions.FirstOrDefault();
+        _html = null;
+        _minDate = null;
+        _validFrom = today.ToDateTime(TimeOnly.MinValue);
+        _changeNote = "Erstfassung";
+        _requiresAcknowledgment = true;
+
+        if (IsVersion)
+        {
+            // the newest version, not the valid one: it is what the new wording builds on
+            var view = await RegulationService.GetParagraphAsync(Id!, null, _user);
+            if (view is not null && view.ShownVersion != view.Row.CurrentVersion)
+            {
+                view = await RegulationService.GetParagraphAsync(Id!, view.Row.CurrentVersion, _user);
+            }
+            _current = view;
+            if (view is null)
+            {
+                _missing = "Absatz nicht gefunden oder nicht zugänglich.";
+            }
+            else if (view.Row.IsRepealed)
+            {
+                _missing = "Ein aufgehobener Absatz bekommt keine neue Fassung.";
+            }
+            else if (!view.Row.MayEdit)
+            {
+                _missing = RegulationRules.EditRefusal(view.Row.Audience);
+            }
+            else
+            {
+                var row = view.Row;
+                var shown = view.Versions.First(v => v.Version == row.CurrentVersion);
+                _heading = row.Heading;
+                _audience = row.Audience;
+                _html = view.ShownHtml;
+                _expectedVersion = row.CurrentVersion;
+                // a version may not start before the one it replaces
+                _minDate = shown.ValidFrom.ToDateTime(TimeOnly.MinValue);
+                _validFrom = (shown.ValidFrom > today ? shown.ValidFrom : today).ToDateTime(TimeOnly.MinValue);
+                _changeNote = string.Empty;
+            }
+        }
+        else
+        {
+            var doc = await RegulationService.GetDocumentAsync(_user);
+            var section = doc.Sections.FirstOrDefault(s => s.Id == SectionId);
+            if (section is null)
+            {
+                _missing = "Abschnitt nicht gefunden.";
+            }
+            else if (_audienceOptions.Count == 0)
+            {
+                _missing = "Du darfst keine Absätze anlegen.";
+            }
+            else
+            {
+                _sectionCaption = section.Caption;
+            }
+        }
+
+        _editorRevision++;
+        _load = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saves)
+        {
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_heading))
+        {
+            Snackbar.Add("Bitte eine Überschrift angeben.", Severity.Warning);
+            return;
+        }
+        if (_validFrom is null)
+        {
+            Snackbar.Add("Bitte „Gültig ab“ wählen.", Severity.Warning);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_changeNote))
+        {
+            Snackbar.Add("Bitte eine kurze Änderungsnotiz angeben.", Severity.Warning);
+            return;
+        }
+
+        _saves = true;
+        try
+        {
+            var html = _editor is null ? _html ?? string.Empty : await _editor.GetHtmlAsync();
+            var validFrom = DateOnly.FromDateTime(_validFrom.Value);
+            string id;
+            if (IsVersion)
+            {
+                id = Id!;
+                await RegulationService.PublishVersionAsync(id, new RegulationVersionInput(
+                    _heading, _audience, html, validFrom, _changeNote, _requiresAcknowledgment, _expectedVersion), _user);
+            }
+            else
+            {
+                id = await RegulationService.CreateParagraphAsync(SectionId!,
+                    new RegulationParagraphInput(_heading, _audience, html, validFrom, _changeNote), _user);
+            }
+
+            // stored from here on, so the browser drops the draft
+            if (_editor is not null)
+            {
+                await _editor.MarkSavedAsync();
+            }
+            Snackbar.Add(IsVersion ? "Neue Fassung gespeichert." : "Absatz gespeichert.", Severity.Success);
+            Nav.NavigateTo($"/dienstverordnung/absatz/{id}");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Saving a regulation paragraph failed (paragraph={ParagraphId})", Id);
+            Snackbar.Add("Das Speichern ist fehlgeschlagen. Der Entwurf bleibt erhalten.", Severity.Error);
+        }
+        finally
+        {
+            _saves = false;
+        }
+    }
+}

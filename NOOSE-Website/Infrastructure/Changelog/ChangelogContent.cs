@@ -722,6 +722,9 @@ public static class ChangelogContent
             Neu("3.0.43-dienstanweisungen", "Dienstanweisungen haben jetzt einen eigenen Bereich: jede mit fester "
                 + "Nummer, Fassungen und einem Datum, ab dem sie gilt. Was du noch zur Kenntnis nehmen musst, zeigen "
                 + "das Menü und Meine Schicht.", "Dienstbetrieb"),
+            Neu("3.0.44-dienstverordnung", "Die Dienstverordnung ersetzt die Dienstanweisungen: Abschnitte und Absätze unter "
+                + "Wissen, jeder Absatz mit vergleichbaren Fassungen. Geänderte Absätze nimmst du mit „Alle gelesen“ zur "
+                + "Kenntnis; Menü und Meine Schicht zeigen, was offen ist. Das Handbuch erzählt die Regeln nicht mehr nach.", "Dienstbetrieb"),
         ]),
     ];
 }

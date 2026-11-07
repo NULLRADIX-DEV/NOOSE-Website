@@ -71,8 +71,8 @@ public class DiscordWebhookModelsTests
         NotificationType.FollowupEscalated,
         // the leadership bell for an alarm raised on an agent's own word; the reason must not reach a channel
         NotificationType.EmergencyAlarmByAgent,
-        // level stays hidden
-        NotificationType.DirectiveIssued,
+        // the regulation never leaves the house
+        NotificationType.RegulationChanged,
     };
 
     // ----- IsRoutable: true branch -----

@@ -312,6 +312,7 @@ builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_W
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ExplainThreatScoreTool>();
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.MyRecordsTool>();
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.HandbookLookupTool>();
+builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.RegulationLookupTool>();
 // propose only; the executor writes
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ProposeFollowupTool>();
 builder.Services.AddScoped<NOOSE_Website.Services.Llm.Tools.INooseiTool, NOOSE_Website.Services.Llm.Tools.ProposeTagTool>();
@@ -430,7 +431,7 @@ builder.Services.AddScoped<WatchlistFanout>();
 builder.Services.AddSingleton<WatchlistDispatcher>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<IAnnouncementService, AnnouncementService>();
-builder.Services.AddScoped<IDirectiveService, DirectiveService>();
+builder.Services.AddScoped<IRegulationService, RegulationService>();
 builder.Services.AddHostedService<AcknowledgmentReminderWorker>();
 builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<IDemoDataService, DemoDataService>();

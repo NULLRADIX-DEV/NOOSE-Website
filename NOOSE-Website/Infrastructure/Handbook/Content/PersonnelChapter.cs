@@ -20,10 +20,11 @@ internal static class PersonnelChapter
                 <p>Die Personalakte ist etwas anderes als die Personenakte. Die Personenakte beschreibt jemanden,
                 über den wir ermitteln; die Personalakte beschreibt einen von uns.</p>
                 <p>Der Abschnitt <em>Vermerke</em> ist dabei mehr als ein Notizzettel: Hier werden
-                <strong>Belobigungen</strong> festgehalten - und die <strong>Disziplinarmaßnahmen</strong> nach
-                §3.7 der Dienstverordnung. Ein Verweis nach Stufe 1 ist genau das: ein neutraler oder negativer
-                Vermerk in dieser Akte. Welche Stufe ab welchem Dienstgrad verhängt werden darf, steht unter
-                <em>Dienstvorschrift → Sanktionsstufen</em>.</p>
+                <strong>Belobigungen</strong> festgehalten - und die <strong>Disziplinarmaßnahmen</strong>. Ein
+                Verweis ist hier ein Vermerk der Art <em>Negativer Vermerk</em>; die Bezeichnung lässt sich
+                überschreiben, wenn <em>Verweis</em> oder <em>Ermahnung</em> genauer trifft. Welche Maßnahme wer
+                verhängen darf, prüft die Seite nicht - das regelt die <em>Dienstverordnung</em> (Menü
+                <em>Wissen</em>).</p>
                 <p>Die Akte ist in <strong>Reiter</strong> gegliedert: <em>Dienstaufsicht</em> (vorn, für die
                 Führung), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beförderungen</em>,
                 <em>Finanzierung</em>, <em>KI-Kontingent</em>, <em>Module</em>, <em>Auszeichnungen</em>,
@@ -169,13 +170,12 @@ internal static class PersonnelChapter
                 <p>Mit der Entscheidung wird der Dienstgrad gesetzt und im Verlauf festgehalten. Der Betroffene
                 wird einmal abgemeldet und muss sich neu anmelden, damit die neuen Rechte greifen.</p>
                 <p>Die Seite prüft <strong>nicht</strong>, ob der Zielgrad der nächsthöhere ist - sie lässt auch
-                einen Sprung oder eine Herabstufung zu. Das ist Absicht: nach §2.4.4 darf die Behördenleitung
-                jeden Agenten in jeden Dienstgrad setzen. Ein Section Chief darf das nur innerhalb der Grenze
-                von oben.</p>
-                <p>Was die Dienstverordnung für den regulären Weg verlangt - Ausbildungen, Aktivität, aktive
-                Mitarbeit in der Abteilung, eine abgeschlossene Infiltration - steht unter
-                <em>Dienstvorschrift → Beförderungskriterien</em>. Diese Voraussetzungen prüft ein Mensch, nicht
-                die Seite; die Begründung des Antrags ist der Ort, an dem sie belegt werden.</p>
+                einen Sprung oder eine Herabstufung zu. Das ist Absicht, denn die Behördenleitung darf einen
+                Agenten auch außer der Reihe einstufen. Ein Section Chief darf das nur innerhalb der Grenze von
+                oben.</p>
+                <p>Welche Voraussetzungen für einen Dienstgrad gelten, regelt die <em>Dienstverordnung</em> (Menü
+                <em>Wissen</em>). Diese Voraussetzungen prüft ein Mensch, nicht die Seite; die Begründung des
+                Antrags ist der Ort, an dem sie belegt werden.</p>
                 """,
                 DiagramKey: "befoerderung"),
 
@@ -229,11 +229,8 @@ internal static class PersonnelChapter
                 <p>Die <strong>Liste der Module</strong> selbst ist etwas anderes: sie anzulegen, zu ändern oder
                 zu löschen bleibt der Führung vorbehalten. Ein gelöschtes Modul nimmt die Haken aller Agenten mit.</p>
                 <p>Die Liste wird <strong>leer ausgeliefert</strong>. Welche Module es gibt, entscheidet die
-                Führung - die Dienstverordnung nennt in §2.3 Grundeinweisung, Tarnausbildung, „(Erweiterte)
-                Verhörmethoden“, die Drohnenausbildung sowie die Ausbildungen für das HRT und die
-                Administration Division. Was davon
-                Voraussetzung für welche Beförderung ist, steht unter
-                <em>Dienstvorschrift → Aus- und Fortbildungen</em>.</p>
+                Führung, damit sie zur geltenden Fassung der <em>Dienstverordnung</em> passt (Menü
+                <em>Wissen</em>). Dort steht auch, welche Ausbildung Voraussetzung wofür ist.</p>
                 <p>Für den Agenten selbst ist die Liste vor allem eine Orientierung: sie sagt, was von ihm
                 erwartet wird, bevor ihn jemand danach fragt.</p>
                 """),
@@ -300,9 +297,9 @@ internal static class PersonnelChapter
                 Admins; das Board selbst ergibt sich aus dem Dienstgrad. Kennzeichen sind Admin, die
                 Administration Division und die Nur-Lese-Aufsicht. Sie sind keine Dienstgrade - ein Deputy
                 Director muss nicht in der Administration Division sein, und ein Special Agent kann es sein.</p>
-                <p>Für <strong>HRT und Administration Division</strong> gilt dabei eine Schwelle aus der
-                Dienstverordnung: beides gibt es erst ab dem Dienstgrad <strong>Special Agent</strong> (§2.4.1).
-                Bei einem Trainee sind die beiden Auswahlen deshalb gesperrt. Wird jemand unter diese Schwelle
+                <p>Für <strong>HRT und Administration Division</strong> gilt dabei eine Schwelle: beides lässt
+                sich erst ab dem Dienstgrad <strong>Special Agent</strong> setzen. Bei einem Trainee sind die
+                beiden Auswahlen deshalb gesperrt. Wird jemand unter diese Schwelle
                 herabgestuft, wechselt er aus dem HRT in die CID und verliert die Administration Division; das
                 kommt ins Protokoll.</p>
                 <p>Die Abteilungen haben <strong>Platzgrenzen</strong>: Board 4, HRT 9, CID 21, CTD 6. Ist eine
@@ -480,12 +477,12 @@ internal static class PersonnelChapter
                 die Auszahlung bucht es ab. Deinen Stand siehst du auf derselben Seite. Wie hoch das Budget ist
                 und welche Positionen du beantragen kannst, hängt an deiner Abteilung und deinem Dienstgrad; das
                 Board richtet sich nach seiner Heimatabteilung.</p>
-                <p>Was die Fraktionskasse in der Regel übernimmt, legt §8.0 der Dienstverordnung fest - vom
-                Jailbreak-Handy über Dienstwaffen bis zu den chemischen Produkten, jeweils mit Höchstmengen. Die
-                vollständige Liste steht unter
-                <em>Ausrüstung &amp; Einrichtungen → Erstattungsfähige Dienstmittel</em>. Für laufende
-                Infiltrationen und große Einsätze kann die Führungsebene darüber hinausgehen; das ist dann im
-                Einzelfall zu dokumentieren.</p>
+                <p>Was du beantragen kannst, steht im <em>Katalog</em> auf dieser Seite. Er wird nicht
+                mitgeliefert, sondern von der Führung gepflegt, mit Preis, Zuschussanteil und Mindestdienstgrad
+                je Position. Was die Fraktionskasse übernimmt und in welcher Menge, regelt die
+                <em>Dienstverordnung</em> (Menü <em>Wissen</em>).</p>
+                <p>Mit dem <strong>Gehalt</strong> hat das Monatsbudget nichts zu tun: Es ist ein Rahmen für
+                Anträge, kein Lohn. Gehalt zahlt die Seite nicht aus.</p>
                 <p>Begründe den Antrag so, dass er ohne Rückfrage entschieden werden kann. Ein Antrag ohne
                 Zweck bleibt liegen.</p>
                 """,

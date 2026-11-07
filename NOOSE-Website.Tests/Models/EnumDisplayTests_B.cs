@@ -38,7 +38,7 @@ public class EnumDisplayTests_B
     [InlineData(NotificationType.FactionThreatBoard, "Gefahrenlage (Fraktionen)")]
     [InlineData(NotificationType.EmergencyAlarm, "Einsatzalarm")]
     [InlineData(NotificationType.EmergencyAlarmByAgent, "Einsatzalarm (Gefahr im Verzug)")]
-    [InlineData(NotificationType.DirectiveIssued, "Neue Dienstanweisung")]
+    [InlineData(NotificationType.RegulationChanged, "Dienstverordnung geändert")]
     public void NotificationTypeName_definedValue_mapsToLabel(NotificationType type, string expected)
         => Assert.Equal(expected, NotificationTypeDisplay.Name(type));
 
@@ -68,7 +68,7 @@ public class EnumDisplayTests_B
         Assert.Equal(Icons.Material.Filled.PersonSearch, NotificationTypeDisplay.Icon(NotificationType.PublicWantedPublished));
         Assert.Equal(Icons.Material.Filled.QuestionAnswer, NotificationTypeDisplay.Icon(NotificationType.PublicTicketCreated));
         Assert.Equal(Icons.Material.Filled.TimerOff, NotificationTypeDisplay.Icon(NotificationType.PublicWantedExpired));
-        Assert.Equal(Icons.Material.Filled.Rule, NotificationTypeDisplay.Icon(NotificationType.DirectiveIssued));
+        Assert.Equal(Icons.Material.Filled.Rule, NotificationTypeDisplay.Icon(NotificationType.RegulationChanged));
     }
 
     [Fact]

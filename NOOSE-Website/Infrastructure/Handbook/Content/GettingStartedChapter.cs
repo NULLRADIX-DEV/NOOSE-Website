@@ -62,7 +62,7 @@ internal static class GettingStartedChapter
                 <p><em>Meine Schicht</em> im Bereich <em>Mein Dienst</em> sammelt auf einer Seite, was sonst auf
                 fünf verteilt ist: deine <strong>offenen Aufgaben</strong>, deine fälligen und in den nächsten sieben
                 Tagen anstehenden <strong>Wiedervorlagen</strong>, ungelesene <strong>Erwähnungen</strong>, Einträge
-                am Brett und Dienstanweisungen, die du noch <strong>quittieren</strong> musst, Änderungen an
+                am Brett und Absätze der Dienstverordnung, die du noch <strong>quittieren</strong> musst, Änderungen an
                 <strong>beobachteten Akten</strong> und ungelesene Nachrichten anderer in deinen <strong>Taskforces</strong> - dieselbe
                 Zahl, die auch die Taskforce-Liste zeigt.</p>
                 <p>Ganz unten steht, was <strong>im Haus</strong> passiert ist, seit du zuletzt hier warst: wie viele
@@ -171,9 +171,9 @@ internal static class GettingStartedChapter
                 <strong>Abteilung</strong>: CID, CTD oder HRT, und ab Assistant Director das Board of Directors.
                 Drittens deine <strong>Kennzeichen</strong>: Admin und Administration Division.</p>
                 <p>Ein Kennzeichen ist <strong>technisch</strong> nichts anderes als ein eigenes Feld am Konto;
-                es entsteht nicht aus deinem Dienstgrad. Die Dienstverordnung zieht trotzdem eine Schwelle:
-                <strong>HRT und Administration Division gibt es erst ab Special Agent</strong> (§2.4.1). Die
-                Seite hält sich daran - darunter lässt sich beides gar nicht erst setzen.</p>
+                es entsteht nicht aus deinem Dienstgrad. Eine Schwelle gibt es trotzdem: <strong>HRT und
+                Administration Division lassen sich erst ab Special Agent setzen</strong>, darunter lehnt die
+                Seite beides ab.</p>
                 <p>Ab <strong>Section Chief</strong> (im HRT <strong>Commanding Operator</strong>) zählst du zur <strong>Führung</strong>. Das
                 ist die Schwelle, ab der Verschlusssachen, Klarnamen und die meisten Entscheidungen sichtbar
                 werden. Das Kennzeichen <strong>Admin</strong> überspringt jede Rangprüfung - ein Admin gilt

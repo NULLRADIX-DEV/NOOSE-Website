@@ -9,7 +9,7 @@ internal static class DutyChapter
 {
     internal static readonly Chapter Chapter = new(
         "kap-dienstbetrieb", "dienstbetrieb", "Dienstbetrieb",
-        "Aufgaben, Kalender, Besprechungen, Abmeldungen, Brett und Benachrichtigungen.", "EventNote",
+        "Aufgaben, Kalender, Besprechungen, Abmeldungen, Brett, Dienstverordnung und Benachrichtigungen.", "EventNote",
         [
             new Article("art-aufgaben", "aufgaben", "Das Aufgaben-Board",
                 "To-dos der Dienststelle als Tafel - sichtbar für alle.",
@@ -164,8 +164,8 @@ internal static class DutyChapter
                 """
                 <p>Am <strong>Schwarzen Brett</strong> stehen behördliche Ankündigungen: Hinweise, Termine,
                 Personalien. Jede Ankündigung richtet sich an eine bestimmte Gruppe - alle, nur die Führung, nur
-                eine Einheit. Verbindliche Dienstanweisungen mit Nummer und Fassung stehen nicht hier, sondern
-                unter <em>Dienstanweisungen</em>.</p>
+                eine Einheit. Die Absätze der Dienstverordnung stehen nicht hier, sondern auf der Seite
+                <em>Dienstverordnung</em>.</p>
                 <p>Manche Ankündigungen sind <strong>quittierungspflichtig</strong>. Dann steht ein Knopf
                 <em>Kenntnis nehmen</em> darunter, und die Zahl am Menüeintrag bleibt stehen, bis du
                 geklickt hast. Wer angekündigt hat, sieht, wer schon quittiert hat.</p>
@@ -181,55 +181,84 @@ internal static class DutyChapter
                 """,
                 NavKey: "brett"),
 
-            new Article("art-dienstanweisungen", "dienstanweisungen", "Dienstanweisungen",
-                "Hausrecht mit Nummer, Fassung und Kenntnisnahme.",
+            new Article("art-dienstverordnung", "dienstverordnung", "Dienstverordnung",
+                "Die geltende Fassung lesen, zur Kenntnis nehmen und pflegen.",
                 """
-                <p>Eine <strong>Dienstanweisung</strong> ist Hausrecht: Sie regelt, wie das FIB intern arbeitet.
-                Was draußen gilt, steht im <em>Gesetzbuch</em>. Jede Dienstanweisung hat eine feste
-                <strong>Nummer</strong> (DA-01, DA-02 und so weiter), einen Titel und auf Wunsch ein Sachgebiet.
-                Die Nummer bleibt ihr, auch wenn sie aufgehoben oder gelöscht wird. Vergeben wird sie nie ein
-                zweites Mal.</p>
-                <p>Eine Dienstanweisung kann <strong>Fassungen</strong> haben. Jede trägt ein <em>gültig ab</em>
-                und eine kurze Änderungsnotiz und lässt sich nach dem Speichern nicht mehr ändern. Liegt das Datum
-                in der Zukunft, gilt bis dahin die vorige Fassung, und du kannst die neue schon vorab zur
-                Kenntnis nehmen. Ältere Fassungen liest du im Abschnitt <em>Fassungen</em>. Mit
-                <em>Fassungen vergleichen</em> siehst du Wort für Wort, was sich geändert hat.</p>
-                <p>Wer eine Dienstanweisung sehen darf, muss sie zur Kenntnis nehmen. Du liest sie und klickst
-                <em>Zur Kenntnis genommen</em>. Was du noch offen hast, zeigt die Zahl am Menüeintrag
-                <em>Dienstanweisungen</em>, und in <em>Meine Schicht</em> steht es unter <em>Zu quittieren</em>.
-                Kommt eine Dienstanweisung neu dazu, klingelt außerdem die Glocke; einen Discord-Ping gibt es
-                dafür nicht. Wer später ins FIB kommt oder die nötige Stufe später bekommt, schuldet die
-                Kenntnisnahme sofort. Wer die Stufe verliert, schuldet sie nicht mehr.</p>
-                <p>Eine neue Fassung verlangt meist, dass du sie erneut zur Kenntnis nimmst. Eine
-                <strong>Schreibkorrektur</strong> verlangt es nicht: Dann gilt deine frühere Kenntnisnahme
-                weiter, und es klingelt nichts. Ob eine Fassung Kenntnisnahme verlangt, steht im Abschnitt
-                <em>Fassungen</em> als <em>Kenntnisnahme nötig</em>.</p>
-                <p>Jede Dienstanweisung trägt eine <strong>VS-Stufe</strong>, genau wie ein Dokument in der
-                Bibliothek. Sie entscheidet darüber, wer die Dienstanweisung sieht und wer sie zur
-                Kenntnis nehmen muss. In Liste, Suche und Verknüpfungen taucht sie für alle ohne die Stufe
-                nicht auf. Erwähnst du eine eingestufte Dienstanweisung mit @, sehen alle unterhalb der
-                Führung dort und auf dem Zeitstrahl nur <em>Verschlusssache</em>. Wer nur lesen darf, etwa die Nur-Lese-Aufsicht, schuldet nichts und
-                kann nichts quittieren.</p>
-                <p>Die Führung legt Dienstanweisungen über <em>Neue Dienstanweisung</em> an, ändert sie über
-                <em>Neue Fassung</em> und nimmt sie mit <em>Aufheben</em> zurück. Dafür braucht sie eine
-                Begründung. Eine aufgehobene Dienstanweisung schuldet niemand mehr, sie bleibt aber unter
-                <em>Aufgehoben</em> lesbar, und ihre Nummer bleibt vergeben. Im Abschnitt <em>Kenntnisnahme</em>
-                sehen die Führung und die Nur-Lese-Aufsicht, wer sie schon zur Kenntnis genommen hat und wer
-                noch fehlt.</p>
-                <p>Unter <em>Verknüpfungen</em> hängst du eine Dienstanweisung mit <em>Akte verknüpfen</em> an
-                eine andere Akte, etwa einen Vorgang oder eine Anordnung. Umgekehrt wählst du an einer Akte oder
-                Anordnung beim Verknüpfen den Aktentyp <em>Dienstanweisung</em>. Im Text eines Kommentars oder
-                Dokuments zitierst du sie mit <strong>@</strong>.</p>
+                <p>Die <strong>Dienstverordnung</strong> hat eine eigene Seite im Menü <em>Wissen</em>. Nur dort
+                steht ihr geltender Wortlaut. Dieses Handbuch gibt ihn nicht wieder, es erklärt nur, wie die
+                Seite funktioniert.</p>
+                <p>Die Dienstverordnung ist in <strong>Abschnitte</strong> gegliedert, jeder Abschnitt in
+                <strong>Absätze</strong>. Die Abschnitte stehen in der Leiste neben dem Text, ein Klick springt
+                hin. Gilt ein Absatz nur für eine Einheit, trägt er einen Chip: <em>Administration</em>,
+                <em>CID</em>, <em>CTD</em> oder <em>HRT</em>. Ohne Chip gilt er für das ganze FIB. Unter jedem
+                Absatz steht, welche Fassung gilt und ab wann, etwa <em>Fassung 3 ·
+                gültig ab …</em>.</p>
+                <p>Jeder Absatz hat eine <strong>Zielgruppe</strong>: das ganze FIB, die Administration
+                Division, die CID, die CTD oder das HRT. Wer dazugehört, muss den Absatz zur Kenntnis nehmen.
+                Was du noch offen hast, ist auf der Seite markiert und steht als Zahl am Menüeintrag und in
+                <em>Meine Schicht</em>. <em>Alle gelesen</em> nimmt genau die Absätze zur Kenntnis, die dir
+                gerade als offen angezeigt werden, und keinen weiteren. Bekommt ein Absatz eine neue Fassung,
+                ist er für seine Zielgruppe wieder offen. Eine reine <strong>Schreibkorrektur</strong> fragt
+                niemanden erneut.</p>
+                <p>Ein Klick auf diese Zeile öffnet die eigene Seite des Absatzes. Dort stehen alle
+                <strong>Fassungen</strong> mit ihrer Änderungsnotiz und der Vergleich zweier Fassungen Wort für
+                Wort. Die Führung sieht dort außerdem die Quote, wie viele aus der Zielgruppe die geltende Fassung
+                schon zur Kenntnis genommen haben. Die ganze Dienstverordnung druckst du über die Druckansicht.</p>
+                <p>Absätze pflegt die <strong>Führung</strong>: eine neue Fassung mit Änderungsnotiz, die
+                Zielgruppe, die Reihenfolge im Abschnitt (nach oben, nach unten), das Aufheben und das Löschen in
+                den <em>Papierkorb</em>. Ein Section Chief bearbeitet nur Absätze, deren Zielgruppe seine
+                eigene Abteilung ist. Abschnitte anlegen, ändern und ordnen dürfen nur das Board und Admins.</p>
                 """,
-                NavKey: "dienstanweisungen",
+                NavKey: "dienstverordnung",
                 Steps:
                 [
                     new Step("Description", "Lesen",
-                        "Die Dienstanweisung öffnen. Ist eine neuere Fassung angekündigt, weist ein Hinweis darauf hin."),
-                    new Step("DoneOutline", "Zur Kenntnis nehmen",
-                        "Der Knopf steht oben und verschwindet, sobald du die Fassung quittiert hast."),
+                        "Abschnitt in der Leiste wählen. Ein Chip zeigt, für welche Einheit ein Absatz gilt."),
+                    new Step("DoneOutline", "Alle gelesen",
+                        "Nimmt genau die Absätze zur Kenntnis, die als offen angezeigt werden. Die Zahl im Menü geht auf null."),
                     new Step("Compare", "Fassungen vergleichen",
-                        "Im Abschnitt Fassungen zwei Fassungen wählen und die Änderungen ansehen."),
+                        "Den Absatz öffnen, zwei Fassungen wählen und die Änderungen Wort für Wort ansehen."),
+                    new Step("Edit", "Pflegen (Führung)",
+                        "Neue Fassung mit Änderungsnotiz, Zielgruppe, Reihenfolge, Aufheben oder Papierkorb."),
+                ]),
+
+            new Article("art-dvo-schusswaffengebrauch", "schusswaffengebrauch", "Schusswaffengebrauch melden",
+                "Wie der Knopf funktioniert und wer die Meldungen sieht.",
+                """
+                <p>Den Gebrauch einer Schusswaffe in einer Einsatzlage hältst du auf dieser Seite fest. Wer dazu
+                verpflichtet ist, regelt die <em>Dienstverordnung</em> (Menü <em>Wissen</em>). Melden kann jeder
+                interne Agent.</p>
+                <p>In der Kopfzeile sitzt neben der <em>Schnellerfassung</em> ein eigener Knopf für den
+                Schusswaffengebrauch. Ein Klick öffnet einen kleinen Dialog mit einem Feld für die
+                <strong>Begründung</strong>. Zwei, drei Sätze genügen: wie war die Lage, warum war der Gebrauch
+                nötig, was ist daraus geworden. Gespeichert werden dein Name, der Zeitpunkt und die Begründung.
+                Ein angefangener Text bleibt als Entwurf erhalten, falls du den Dialog schließt, und verschwindet
+                nach dem Speichern.</p>
+                <p>Trag die Meldung ein, sobald die Lage vorbei ist, solange du dich noch genau erinnerst.</p>
+                <p>Wer die Meldungen sieht, ist bewusst eng gefasst:</p>
+                <ul>
+                <li>Die Übersicht <em>Schusswaffengebrauch</em> unter <em>Verwaltung · Führung</em> zeigt alle
+                Meldungen der Führung und der Aufsicht, filterbar nach Agent, Abteilung und Zeitraum.</li>
+                <li>Deine eigenen Meldungen stehen in einem eigenen Abschnitt deiner Personalakte. Bei anderen
+                Agenten zeigt die Akte den Abschnitt nur der Führung.</li>
+                <li>Bei einer neuen Meldung bekommen die Führung deiner Abteilung (ab Section Chief)
+                und das Board eine Nachricht in der Glocke, ohne den Text deiner Begründung.</li>
+                <li>Nach außen geht nichts. Partnerbehörden sehen keine Meldung, und sie erscheint auf keiner
+                öffentlichen Seite.</li>
+                </ul>
+                <p>Eine Meldung löschen darf nur die Führung, nie dein eigener Eintrag; sie landet im
+                <em>Papierkorb</em> und lässt sich von dort zurückholen. Wer eine Meldung vergessen hat, trägt sie
+                nach - mit der Begründung, warum erst jetzt.</p>
+                """,
+                NavKey: "schusswaffengebrauch",
+                Steps:
+                [
+                    new Step("Add", "Knopf in der Kopfzeile",
+                        "Neben der Schnellerfassung auf den Knopf für den Schusswaffengebrauch klicken."),
+                    new Step("Edit", "Begründung schreiben",
+                        "Lage, Anlass und Ergebnis in zwei, drei Sätzen. Der Zeitpunkt wird mit gespeichert."),
+                    new Step("Save", "Speichern",
+                        "Die Meldung steht danach in deiner Personalakte und in der Übersicht der Führung."),
                 ]),
 
             new Article("art-aktivitaeten", "dienst-aktivitaeten", "Dienst-Aktivitäten (Archiv)",

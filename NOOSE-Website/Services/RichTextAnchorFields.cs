@@ -1,5 +1,5 @@
 using NOOSE_Website.Data.Entities.Common;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Handbook;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Data.Entities.Public;
@@ -42,7 +42,7 @@ public static class RichTextAnchorFields
         // public carrier, so never in the image list
         [typeof(Law)] = ["Text"],
         // inline images stay
-        [typeof(DirectiveVersion)] = ["ContentHtml"],
+        [typeof(RegulationParagraphVersion)] = ["ContentHtml"],
     };
 
     /// <summary>The registered carrier types, for the invariants that hold the table against the model.</summary>

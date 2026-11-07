@@ -2,7 +2,7 @@
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Decorations;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Requests;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Notifications;
@@ -87,9 +87,10 @@ public static class WatchlistRecordRollup
             case JobAssignment:
             case Announcement:
             case AnnouncementAcknowledgment:
-            case Directive:
-            case DirectiveVersion:
-            case DirectiveAcknowledgment:
+            case RegulationSection:
+            case RegulationParagraph:
+            case RegulationParagraphVersion:
+            case RegulationAcknowledgment:
             case Request:
             case Tag:
             case Notification:

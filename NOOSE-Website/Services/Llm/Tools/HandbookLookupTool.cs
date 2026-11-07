@@ -177,7 +177,7 @@ public sealed class HandbookLookupTool(IHandbookService handbook) : INooseiTool
     /// glossary's own abbreviations - TRU, HRB, VS, Dok - could never be asked about at all. A two-letter
     /// word survives only when it was written in capitals, which is what an abbreviation looks like.
     /// </remarks>
-    private static List<string> Tokens(string question)
+    internal static List<string> Tokens(string question)
         => question
             .Split([' ', '\t', '\n', '\r', ',', '.', ';', ':', '?', '!', '"', '\u201e', '\u201c', '(', ')', '/'],
                 StringSplitOptions.RemoveEmptyEntries)
@@ -212,7 +212,7 @@ public sealed class HandbookLookupTool(IHandbookService handbook) : INooseiTool
     };
 
     /// <summary>Points for every token the field contains; a longer field is not worth more.</summary>
-    private static int Score(IReadOnlyList<string> tokens, string? field, int weight)
+    internal static int Score(IReadOnlyList<string> tokens, string? field, int weight)
     {
         if (string.IsNullOrWhiteSpace(field))
         {

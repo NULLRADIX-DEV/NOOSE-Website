@@ -45,7 +45,7 @@ public static class RouteCatalog
         ("/asservatenkammer", "/asservatenkammer/item/"),
         ("/bewerbungen", "/bewerbungen/"),
         ("/einsatzalarme", "/einsatzalarme/"),
-        ("/dienstanweisungen", "/dienstanweisungen/"),
+        ("/dienstverordnung", "/dienstverordnung/absatz/"),
         ("/handbuch", "/handbuch/"),
         ("/gesucht", "/gesucht/"),
         ("/presse", "/presse/"),

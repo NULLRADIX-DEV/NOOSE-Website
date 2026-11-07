@@ -3448,217 +3448,6 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("Ehrungen");
                 });
 
-            modelBuilder.Entity("NOOSE_Website.Data.Entities.Directives.Directive", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<int>("AcknowledgeFromVersion")
-                        .HasColumnType("int")
-                        .HasColumnName("KenntnisnahmeAbFassung");
-
-                    b.Property<int>("Classification")
-                        .HasColumnType("int")
-                        .HasColumnName("Einstufung");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("ErstelltAm");
-
-                    b.Property<string>("CreatedById")
-                        .HasColumnType("longtext")
-                        .HasColumnName("ErstelltVonId");
-
-                    b.Property<int>("CurrentVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int")
-                        .HasColumnName("AktuelleFassung");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("GeloeschtAm");
-
-                    b.Property<string>("DeletedById")
-                        .HasColumnType("longtext")
-                        .HasColumnName("GeloeschtVonId");
-
-                    b.Property<bool>("IsDeleted")
-                        .IsConcurrencyToken()
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("IstGeloescht");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("GeaendertAm");
-
-                    b.Property<string>("ModifiedById")
-                        .HasColumnType("longtext")
-                        .HasColumnName("GeaendertVonId");
-
-                    b.Property<int>("Number")
-                        .HasColumnType("int")
-                        .HasColumnName("Nummer");
-
-                    b.Property<string>("RepealReason")
-                        .HasMaxLength(1000)
-                        .HasColumnType("varchar(1000)")
-                        .HasColumnName("Aufhebungsgrund");
-
-                    b.Property<DateTime?>("RepealedAt")
-                        .IsConcurrencyToken()
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("AufgehobenAm");
-
-                    b.Property<string>("RepealedById")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("AufgehobenVonId");
-
-                    b.Property<string>("RepealedByName")
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar(128)")
-                        .HasColumnName("AufgehobenVonName");
-
-                    b.Property<string>("Subject")
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)")
-                        .HasColumnName("Sachgebiet");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .HasColumnName("Titel");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Number")
-                        .IsUnique();
-
-                    b.HasIndex("RepealedAt");
-
-                    b.ToTable("Dienstanweisungen");
-                });
-
-            modelBuilder.Entity("NOOSE_Website.Data.Entities.Directives.DirectiveAcknowledgment", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<DateTime>("AcknowledgedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("KenntnisGenommenAm");
-
-                    b.Property<string>("AgentId")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("ErstelltAm");
-
-                    b.Property<string>("CreatedById")
-                        .HasColumnType("longtext")
-                        .HasColumnName("ErstelltVonId");
-
-                    b.Property<string>("DirectiveId")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("DienstanweisungId");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("GeaendertAm");
-
-                    b.Property<string>("ModifiedById")
-                        .HasColumnType("longtext")
-                        .HasColumnName("GeaendertVonId");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int")
-                        .HasColumnName("Fassung");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AgentId");
-
-                    b.HasIndex("DirectiveId", "AgentId", "Version")
-                        .IsUnique();
-
-                    b.ToTable("DienstanweisungKenntnisnahmen");
-                });
-
-            modelBuilder.Entity("NOOSE_Website.Data.Entities.Directives.DirectiveVersion", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("ChangeNote")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("varchar(300)")
-                        .HasColumnName("Aenderungsnotiz");
-
-                    b.Property<string>("ContentHtml")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .HasColumnName("InhaltHtml");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("ErstelltAm");
-
-                    b.Property<string>("CreatedById")
-                        .HasColumnType("longtext")
-                        .HasColumnName("ErstelltVonId");
-
-                    b.Property<string>("DirectiveId")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("DienstanweisungId");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("GeaendertAm");
-
-                    b.Property<string>("ModifiedById")
-                        .HasColumnType("longtext")
-                        .HasColumnName("GeaendertVonId");
-
-                    b.Property<DateTime>("PublishedAt")
-                        .HasColumnType("datetime(6)")
-                        .HasColumnName("VeroeffentlichtAm");
-
-                    b.Property<string>("PublishedById")
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)")
-                        .HasColumnName("VeroeffentlichtVonId");
-
-                    b.Property<string>("PublishedByName")
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar(128)")
-                        .HasColumnName("VeroeffentlichtVonName");
-
-                    b.Property<bool>("RequiresAcknowledgment")
-                        .HasColumnType("tinyint(1)")
-                        .HasColumnName("KenntnisnahmeNoetig");
-
-                    b.Property<DateOnly>("ValidFrom")
-                        .HasColumnType("date")
-                        .HasColumnName("GueltigAb");
-
-                    b.Property<int>("Version")
-                        .HasColumnType("int")
-                        .HasColumnName("Fassung");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DirectiveId", "Version")
-                        .IsUnique();
-
-                    b.ToTable("DienstanweisungFassungen");
-                });
-
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>
                 {
                     b.Property<string>("Id")
@@ -11763,6 +11552,280 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("Bewerbungssperren");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationAcknowledgment", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("AcknowledgedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("KenntnisGenommenAm");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("ParagraphId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AbsatzId");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int")
+                        .HasColumnName("Fassung");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId");
+
+                    b.HasIndex("ParagraphId", "AgentId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("DvoKenntnisnahmen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationParagraph", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("AcknowledgeFromVersion")
+                        .HasColumnType("int")
+                        .HasColumnName("KenntnisnahmeAbFassung");
+
+                    b.Property<int>("Audience")
+                        .HasColumnType("int")
+                        .HasColumnName("Zielgruppe");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<int>("CurrentVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int")
+                        .HasColumnName("AktuelleFassung");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("Heading")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Titel");
+
+                    b.Property<bool>("IsDeleted")
+                        .IsConcurrencyToken()
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("RepealReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Aufhebungsgrund");
+
+                    b.Property<DateTime?>("RepealedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AufgehobenAm");
+
+                    b.Property<string>("RepealedById")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AufgehobenVonId");
+
+                    b.Property<string>("RepealedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AufgehobenVonName");
+
+                    b.Property<string>("SectionId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AbschnittId");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("Reihenfolge");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RepealedAt");
+
+                    b.HasIndex("SectionId", "SortOrder");
+
+                    b.ToTable("DvoAbsaetze");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationParagraphVersion", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Audience")
+                        .HasColumnType("int")
+                        .HasColumnName("Zielgruppe");
+
+                    b.Property<string>("ChangeNote")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("Aenderungsnotiz");
+
+                    b.Property<string>("ContentHtml")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("InhaltHtml");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<string>("Heading")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Titel");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("ParagraphId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AbsatzId");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("VeroeffentlichtAm");
+
+                    b.Property<string>("PublishedById")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("VeroeffentlichtVonId");
+
+                    b.Property<string>("PublishedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("VeroeffentlichtVonName");
+
+                    b.Property<bool>("RequiresAcknowledgment")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("KenntnisnahmeNoetig");
+
+                    b.Property<DateOnly>("ValidFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("GueltigAb");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int")
+                        .HasColumnName("Fassung");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParagraphId", "Version")
+                        .IsUnique();
+
+                    b.ToTable("DvoAbsatzFassungen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationSection", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<bool>("IsDeleted")
+                        .IsConcurrencyToken()
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<bool>("IsPreamble")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstVorwort");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .IsConcurrencyToken()
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("Reihenfolge");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Titel");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DvoAbschnitte");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Requests.Request", b =>
                 {
                     b.Property<string>("Id")
@@ -12713,36 +12776,6 @@ namespace NOOSE_Website.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Decoration");
-                });
-
-            modelBuilder.Entity("NOOSE_Website.Data.Entities.Directives.DirectiveAcknowledgment", b =>
-                {
-                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
-                        .WithMany()
-                        .HasForeignKey("AgentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("NOOSE_Website.Data.Entities.Directives.Directive", "Directive")
-                        .WithMany()
-                        .HasForeignKey("DirectiveId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Agent");
-
-                    b.Navigation("Directive");
-                });
-
-            modelBuilder.Entity("NOOSE_Website.Data.Entities.Directives.DirectiveVersion", b =>
-                {
-                    b.HasOne("NOOSE_Website.Data.Entities.Directives.Directive", "Directive")
-                        .WithMany("Versions")
-                        .HasForeignKey("DirectiveId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Directive");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>
@@ -14011,6 +14044,47 @@ namespace NOOSE_Website.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationAcknowledgment", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Regulation.RegulationParagraph", "Paragraph")
+                        .WithMany()
+                        .HasForeignKey("ParagraphId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Agent");
+
+                    b.Navigation("Paragraph");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationParagraph", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Regulation.RegulationSection", "Section")
+                        .WithMany("Paragraphs")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationParagraphVersion", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Regulation.RegulationParagraph", "Paragraph")
+                        .WithMany("Versions")
+                        .HasForeignKey("ParagraphId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Paragraph");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Taskforces.TaskforceAgent", b =>
                 {
                     b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
@@ -14092,11 +14166,6 @@ namespace NOOSE_Website.Data.Migrations
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Changelog.ChangelogRelease", b =>
                 {
                     b.Navigation("Entries");
-                });
-
-            modelBuilder.Entity("NOOSE_Website.Data.Entities.Directives.Directive", b =>
-                {
-                    b.Navigation("Versions");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>
@@ -14210,6 +14279,16 @@ namespace NOOSE_Website.Data.Migrations
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Public.OeffentlicheFaqRubrik", b =>
                 {
                     b.Navigation("Entries");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationParagraph", b =>
+                {
+                    b.Navigation("Versions");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Regulation.RegulationSection", b =>
+                {
+                    b.Navigation("Paragraphs");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Taskforces.Taskforce", b =>

@@ -3,7 +3,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -49,7 +49,7 @@ public static class RecordBatch
     {
         nameof(Case), nameof(Operation), nameof(Taskforce), nameof(Job),
         nameof(Person), nameof(Meeting), nameof(Law), nameof(Bewerbung), nameof(Presentation),
-        nameof(Warrant), nameof(Directive),
+        nameof(Warrant), nameof(RegulationParagraph),
     };
 
     private static readonly IReadOnlySet<string> Involved = LinkService.InvolvedTypes.ToHashSet(StringComparer.Ordinal);

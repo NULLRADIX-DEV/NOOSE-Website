@@ -2,10 +2,10 @@
 using NSubstitute;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
-using NOOSE_Website.Data.Entities.Directives;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Models.Regulation;
 using NOOSE_Website.Navigation;
 using NOOSE_Website.Services;
 using NOOSE_Website.Services.Changelog;
@@ -22,7 +22,7 @@ public class TrashServiceTests
     private readonly IChangelogService _changelog = Substitute.For<IChangelogService>();
     private readonly IHandbookService _handbook = Substitute.For<IHandbookService>();
     private readonly IFirearmUseService _firearmUses = Substitute.For<IFirearmUseService>();
-    private readonly IDirectiveService _directives = Substitute.For<IDirectiveService>();
+    private readonly IRegulationService _regulation = Substitute.For<IRegulationService>();
 
     private TrashService Build() => new(
         _people,
@@ -60,7 +60,7 @@ public class TrashServiceTests
         Substitute.For<ILawService>(),
         Substitute.For<IPresentationService>(),
         _firearmUses,
-        _directives);
+        _regulation);
 
     [Fact]
     public void Kind_keys_are_unique()
@@ -171,32 +171,28 @@ public class TrashServiceTests
     }
 
     [Fact]
-    public async Task The_directive_kind_shows_number_title_and_level_and_restores_through_its_own_service()
+    public async Task The_regulation_kind_shows_sections_and_paragraphs_and_restores_through_its_own_service()
     {
         var actor = new ClaimsPrincipal();
-        _directives.GetTrashAsync(Arg.Any<CancellationToken>()).Returns(
+        _regulation.GetTrashAsync(Arg.Any<CancellationToken>()).Returns(
         [
-            new Directive
-            {
-                Id = "d1", Number = 7, Title = "Funkdisziplin", Subject = "Einsatz",
-                Classification = DocumentClassification.Tru, DeletedAt = new DateTime(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc),
-            },
-            new Directive
-            {
-                Id = "d2", Number = 8, Title = "Ohne Stufe", Classification = DocumentClassification.None,
-                DeletedAt = new DateTime(2026, 11, 2, 8, 0, 0, DateTimeKind.Utc),
-            },
+            new RegulationTrashRow("p1", false, "Funkdisziplin", "Handlungsvorschriften",
+                new DateTime(2026, 11, 2, 8, 0, 0, DateTimeKind.Utc), RegulationAudience.Bureau),
+            new RegulationTrashRow("s1", true, "Leerer Abschnitt", "Abschnitt",
+                new DateTime(2026, 11, 1, 8, 0, 0, DateTimeKind.Utc), null),
         ]);
 
-        var rows = await Build().GetAsync("dienstanweisungen");
-        await Build().RestoreAsync("dienstanweisungen", "d1", actor);
+        var rows = await Build().GetAsync("dienstverordnung");
+        await Build().RestoreAsync("dienstverordnung", "p1", actor);
 
-        Assert.Equal(["d2", "d1"], rows.Select(r => r.Id));
-        Assert.Equal("DA-07", rows[1].Reference);
-        Assert.Equal("Einsatz · VS – HRT", rows[1].Detail);
-        // no level and no area: nothing to show beside the title
-        Assert.Null(rows[0].Detail);
-        await _directives.Received(1).RestoreAsync("d1", actor, Arg.Any<CancellationToken>());
+        Assert.Equal(["p1", "s1"], rows.Select(r => r.Id));
+        Assert.Equal("Absatz", rows[0].Reference);
+        Assert.Equal("Funkdisziplin", rows[0].Title);
+        // a paragraph names its section, a section nothing beside its title
+        Assert.Equal("Handlungsvorschriften", rows[0].Detail);
+        Assert.Equal("Abschnitt", rows[1].Reference);
+        Assert.Null(rows[1].Detail);
+        await _regulation.Received(1).RestoreAsync("p1", actor, Arg.Any<CancellationToken>());
     }
 
     [Fact]

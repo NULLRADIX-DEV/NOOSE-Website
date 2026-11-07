@@ -16,7 +16,7 @@
 @inject ITipService TipService
 @inject ITicketService TicketService
 @inject IPresentationService PresentationService
-@inject IDirectiveService DirectiveService
+@inject IRegulationService RegulationService
 @inject IWarrantService WarrantService
 
 <MudDialog>
@@ -342,17 +342,16 @@
                     </MudAutocomplete>
                     break;
 
-                case nameof(Directive):
-                    <MudAutocomplete T="DirectivePick" Label="Dienstanweisung" @bind-Value="_directive" AutoFocus="true"
-                                     SearchFunc="@SearchDirectives" ToStringFunc="@DirectiveText"
+                case nameof(RegulationParagraph):
+                    <MudAutocomplete T="RegulationPick" Label="Absatz der Dienstverordnung" @bind-Value="_regulation" AutoFocus="true"
+                                     SearchFunc="@SearchRegulation" ToStringFunc="@RegulationText"
                                      Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
                                      ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
-                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Rule">
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Gavel">
                         <ItemTemplate Context="p">
                             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                                <MudIcon Icon="@Icons.Material.Filled.Rule" Size="Size.Small" Color="Color.Primary" />
+                                <MudIcon Icon="@Icons.Material.Filled.Gavel" Size="Size.Small" Color="Color.Primary" />
                                 <MudText Typo="Typo.body2">@p.Label</MudText>
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Title</MudText>
                             </MudStack>
                         </ItemTemplate>
                     </MudAutocomplete>
@@ -423,7 +422,7 @@
     private bool _mayTip;
     private bool _mayTicket;
     private bool _mayPresentation;
-    private bool _mayDirective;
+    private bool _mayRegulation;
     private bool _mayWarrant;
     private DocumentViewerScope _docScope;
     private ViewerScope _scope;
@@ -441,7 +440,7 @@
             _mayTip = user.IsInternalAgent();
             _mayTicket = user.IsInternalAgent() && user.MayClassifiedRead();
             _mayPresentation = user.IsInternalAgent();
-            _mayDirective = user.IsInternalAgent();
+            _mayRegulation = user.IsInternalAgent();
             _mayWarrant = user.IsInternalAgent();
             _docScope = DocumentViewerScope.From(user);
             _scope = ViewerScope.From(user);
@@ -496,9 +495,9 @@
             {
                 shown = shown.Append(new(nameof(Presentation), "Präsentation"));
             }
-            if (_mayDirective)
+            if (_mayRegulation)
             {
-                shown = shown.Append(new(nameof(Directive), "Dienstanweisung"));
+                shown = shown.Append(new(nameof(RegulationParagraph), "Dienstverordnung"));
             }
             if (_mayWarrant)
             {
@@ -547,7 +546,7 @@
     private TipPickRow? _tip;
     private TicketPickRow? _ticket;
     private PresentationListItem? _presentation;
-    private DirectivePick? _directive;
+    private RegulationPick? _regulation;
     private WarrantView? _warrant;
 
     // loaded on demand for client-side search
@@ -578,7 +577,7 @@
         nameof(Hinweis) => _tip?.Id,
         nameof(Ticket) => _ticket?.Id,
         nameof(Presentation) => _presentation?.Id,
-        nameof(Directive) => _directive?.Id,
+        nameof(RegulationParagraph) => _regulation?.Id,
         nameof(Warrant) => _warrant?.Warrant.Id,
         _ => null,
     };
@@ -588,7 +587,7 @@
         _person = null; _faction = null; _group = null; _party = null; _operation = null; _taskforce = null;
         _case = null; _job = null; _agent = null; _doc = null; _observation = null; _law = null; _document = null;
         _bewerbung = null; _meeting = null; _tip = null; _ticket = null; _presentation = null;
-        _directive = null; _warrant = null;
+        _regulation = null; _warrant = null;
         if (_targetType == nameof(Agent) && _allAgents is null)
         {
             // TeamLeads are never selectable
@@ -698,14 +697,14 @@
         return Task.FromResult(Allowed(nameof(Presentation), all, p => p.Id).Take(20));
     }
 
-    // the service answers only what the viewer may see; the label is the number and the title, never the wording
-    private async Task<IEnumerable<DirectivePick>> SearchDirectives(string value, CancellationToken token)
+    // the service answers only what the viewer may see; the label names section and heading, never the wording
+    private async Task<IEnumerable<RegulationPick>> SearchRegulation(string value, CancellationToken token)
     {
         if (_user is null)
         {
             return [];
         }
-        return Allowed(nameof(Directive), await DirectiveService.SearchAsync(value, _user, 20, token), p => p.Id);
+        return Allowed(nameof(RegulationParagraph), await RegulationService.SearchAsync(value, _user, 20, token), p => p.Id);
     }
 
     private Task<IEnumerable<WarrantView>> SearchWarrants(string value, CancellationToken token)
@@ -720,7 +719,7 @@
         return Task.FromResult(Allowed(nameof(Warrant), all, w => w.Warrant.Id).Take(20));
     }
 
-    private static string DirectiveText(DirectivePick? p) => p is null ? string.Empty : $"{p.Label} {p.Title}";
+    private static string RegulationText(RegulationPick? p) => p is null ? string.Empty : p.Label;
 
     private static string WarrantText(WarrantView? w)
         => w is null ? string.Empty : $"{WarrantTypeDisplay.Name(w.Warrant.Type)} {w.Warrant.CaseNumber}";
@@ -788,7 +787,7 @@
         nameof(Hinweis) => _tip is null ? null : TipText(_tip),
         nameof(Ticket) => _ticket is null ? null : TicketText(_ticket),
         nameof(Presentation) => _presentation?.Title,
-        nameof(Directive) => _directive is null ? null : DirectiveText(_directive),
+        nameof(RegulationParagraph) => _regulation is null ? null : RegulationText(_regulation),
         nameof(Warrant) => _warrant is null ? null : WarrantText(_warrant),
         _ => null,
     };

@@ -1,0 +1,20 @@
+@* Chip naming who owes a paragraph; the whole bureau shows none unless asked. *@
+
+@if (Audience != RegulationAudience.Bureau || ShowBureau)
+{
+    <MudTooltip Text="@($"Zur Kenntnis nehmen muss: {RegulationAudienceDisplay.Label(Audience)}")">
+        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@Colour"
+                 Icon="@Icons.Material.Filled.Groups">@RegulationAudienceDisplay.Short(Audience)</MudChip>
+    </MudTooltip>
+}
+
+@code {
+    [Parameter, EditorRequired] public RegulationAudience Audience { get; set; }
+
+    /// <summary>Also show a chip for the whole bureau, for the paragraph page.</summary>
+    [Parameter] public bool ShowBureau { get; set; }
+
+    private Color Colour => RegulationAudienceDisplay.DivisionOf(Audience) is { } division
+        ? DivisionDisplay.Colour(division)
+        : Audience == RegulationAudience.Administration ? Color.Secondary : Color.Default;
+}

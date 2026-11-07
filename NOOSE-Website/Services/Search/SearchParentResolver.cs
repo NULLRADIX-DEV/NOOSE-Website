@@ -7,7 +7,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
@@ -325,13 +325,15 @@ public static class SearchParentResolver
         }
 
         // link endpoints too
-        if (!viewer.IsPartner && Ids(nameof(Directive)) is { Count: > 0 } directiveIds)
+        if (!viewer.IsPartner && Ids(nameof(RegulationParagraph)) is { Count: > 0 } paragraphIds)
         {
-            foreach (var x in await db.Directives.OnlyVisible(scope)
-                         .Where(d => directiveIds.Contains(d.Id))
-                         .Select(d => new { d.Id, d.Number, d.Title }).ToListAsync(cancellationToken))
+            var visible = await db.RegulationParagraphs.OnlyVisible(db, scope)
+                .Where(p => paragraphIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.Heading }).ToListAsync(cancellationToken);
+            var labels = await RegulationVisibility.LabelsAsync(db, visible.Select(p => p.Id).ToList(), cancellationToken);
+            foreach (var x in visible)
             {
-                Put(nameof(Directive), x.Id, x.Title, DirectiveRules.Label(x.Number));
+                Put(nameof(RegulationParagraph), x.Id, x.Heading, labels.GetValueOrDefault(x.Id) ?? "DVO");
             }
         }
         if (!viewer.IsPartner && Ids(nameof(Warrant)) is { Count: > 0 } warrantIds)

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
@@ -213,15 +213,18 @@ public static class RecordsReference
             }
         }
 
-        // no viewer: fail-closed
-        var directiveIds = OpenIds(nameof(Directive));
-        if (directiveIds.Count > 0)
+        // no classification: every internal reader sees the same paragraph
+        var paragraphIds = OpenIds(nameof(RegulationParagraph));
+        if (paragraphIds.Count > 0)
         {
-            foreach (var x in await db.Directives.Where(d => directiveIds.Contains(d.Id))
-                .Select(d => new { d.Id, d.Number, d.Title, d.Classification }).ToListAsync(ct))
+            // repealed ones stay readable, a trashed paragraph or section does not
+            var live = await (from p in db.RegulationParagraphs
+                              where paragraphIds.Contains(p.Id)
+                              join s in db.RegulationSections on p.SectionId equals s.Id
+                              select p.Id).ToListAsync(ct);
+            foreach (var (id, label) in await RegulationVisibility.LabelsAsync(db, live, ct))
             {
-                map[(nameof(Directive), x.Id)] = new($"{DirectiveRules.Label(x.Number)} {x.Title}",
-                    x.Classification != DocumentClassification.None, SearchNavigation.For(nameof(Directive), x.Id));
+                map[(nameof(RegulationParagraph), id)] = new(label, false, SearchNavigation.For(nameof(RegulationParagraph), id));
             }
         }
 

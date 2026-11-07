@@ -2,7 +2,7 @@
 using System.Text.Json;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Appointments;
-using NOOSE_Website.Data.Entities.Directives;
+using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Data.Entities.Warrants;
@@ -145,24 +145,25 @@ public static class AuditDisplay
         "ValidFrom", "ValidUntil", "CancelledAt",
     };
 
-    // qualified: directive tables
-    private static readonly HashSet<string> DirectiveInstantFields = new(StringComparer.Ordinal)
+    // qualified: regulation tables
+    private static readonly HashSet<string> RegulationInstantFields = new(StringComparer.Ordinal)
     {
         "RepealedAt", "PublishedAt",
     };
 
-    // all three tables
-    private static bool IsDirectiveType(string? t)
-        => t is nameof(Directive) or nameof(DirectiveVersion) or nameof(DirectiveAcknowledgment);
+    // all four tables
+    private static bool IsRegulationType(string? t)
+        => t is nameof(RegulationSection) or nameof(RegulationParagraph) or nameof(RegulationParagraphVersion)
+            or nameof(RegulationAcknowledgment);
 
     private static bool IsInstant(string field, string? entityType)
         => InstantFields.Contains(field)
            || (entityType == nameof(Warrant) && WarrantInstantFields.Contains(field))
-           || (IsDirectiveType(entityType) && DirectiveInstantFields.Contains(field));
+           || (IsRegulationType(entityType) && RegulationInstantFields.Contains(field));
 
     // qualified: a version's day
     private static bool IsDay(string field, string? entityType)
-        => DayOnlyFields.Contains(field) || (entityType == nameof(DirectiveVersion) && field == "ValidFrom");
+        => DayOnlyFields.Contains(field) || (entityType == nameof(RegulationParagraphVersion) && field == "ValidFrom");
 
     // qualified: a ticket's Subject is its title, not what an order covers
     private static readonly Dictionary<string, string> WarrantLabels = new(StringComparer.Ordinal)
@@ -171,9 +172,10 @@ public static class AuditDisplay
     };
 
     // qualified: own wording
-    private static readonly Dictionary<string, string> DirectiveLabels = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> RegulationLabels = new(StringComparer.Ordinal)
     {
-        ["Number"] = "Nummer", ["Subject"] = "Sachgebiet", ["CurrentVersion"] = "Aktuelle Fassung",
+        ["Heading"] = "Überschrift", ["Audience"] = "Zielgruppe", ["IsPreamble"] = "Vorwort",
+        ["CurrentVersion"] = "Aktuelle Fassung",
         ["AcknowledgeFromVersion"] = "Kenntnisnahme ab Fassung",
         ["RepealedAt"] = "Aufgehoben am", ["RepealedByName"] = "Aufgehoben von", ["RepealReason"] = "Aufhebungsgrund",
         ["Version"] = "Fassung", ["ChangeNote"] = "Änderungsnotiz", ["RequiresAcknowledgment"] = "Kenntnisnahme nötig",
@@ -183,9 +185,9 @@ public static class AuditDisplay
 
     private static string LabelOf(string field, string? entityType)
     {
-        if (IsDirectiveType(entityType) && DirectiveLabels.TryGetValue(field, out var directiveLabel))
+        if (IsRegulationType(entityType) && RegulationLabels.TryGetValue(field, out var regulationLabel))
         {
-            return directiveLabel;
+            return regulationLabel;
         }
         return entityType == nameof(Warrant) && WarrantLabels.TryGetValue(field, out var label)
             ? label
@@ -196,7 +198,7 @@ public static class AuditDisplay
     private static bool IsHiddenFor(string field, string? entityType)
         => (entityType == nameof(Warrant) && field == "CaseId")
            // names stand beside ids
-           || (IsDirectiveType(entityType) && field is "RepealedById" or "DirectiveId" or "PublishedById");
+           || (IsRegulationType(entityType) && field is "RepealedById" or "SectionId" or "ParagraphId" or "PublishedById");
 
     /// <summary>Parses JSON into field changes; empty on null/invalid.
     /// <paramref name="maxValueLength"/> above zero clips long values — for feeds, not for the audit log itself.
@@ -283,7 +285,7 @@ public static class AuditDisplay
     private static string FormatEnum(string field, int n, string? entityType) => field switch
     {
         // before the generic arm: else a person's level
-        "Classification" when entityType == nameof(Directive) => DocumentClassificationDisplay.Label((DocumentClassification)n),
+        "Audience" when IsRegulationType(entityType) => RegulationAudienceDisplay.Label((RegulationAudience)n),
         "Einstufung" or "Classification" => ClassificationDisplay.Name((Classification)n),
         "SecrecyLevel" => DocumentClassificationDisplay.Label((DocumentClassification)n),
         "Lebensstatus" or "LifeStatus" => LifeStatusDisplay.Name((LifeStatus)n),

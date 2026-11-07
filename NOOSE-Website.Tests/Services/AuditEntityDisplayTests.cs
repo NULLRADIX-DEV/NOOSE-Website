@@ -34,9 +34,10 @@ public class AuditEntityDisplayTests
     [InlineData("OeffentlicheSeite", "Öffentliche Seite")]
     [InlineData("OeffentlicheFahndung", "Öffentliche Ausschreibung")]
     [InlineData("PublicArea", "Öffentlicher Bereich")]
-    [InlineData("Directive", "Dienstanweisung")]
-    [InlineData("DirectiveVersion", "Fassung (Dienstanweisung)")]
-    [InlineData("DirectiveAcknowledgment", "Kenntnisnahme (Dienstanweisung)")]
+    [InlineData("RegulationSection", "Abschnitt (Dienstverordnung)")]
+    [InlineData("RegulationParagraph", "Absatz (Dienstverordnung)")]
+    [InlineData("RegulationParagraphVersion", "Fassung (Dienstverordnung)")]
+    [InlineData("RegulationAcknowledgment", "Kenntnisnahme (Dienstverordnung)")]
     public void Label_KnownType_ReturnsGermanLabel(string type, string expected)
     {
         Assert.Equal(expected, AuditEntityDisplay.Label(type));
@@ -88,7 +89,7 @@ public class AuditEntityDisplayTests
     [InlineData("Law", "abc", "/gesetze/abc")]
     [InlineData("Agent", "abc", "/personal/abc")]
     [InlineData("Meeting", "abc", "/besprechungen/abc")]
-    [InlineData("Directive", "abc", "/dienstanweisungen/abc")]
+    [InlineData("RegulationParagraph", "abc", "/dienstverordnung/absatz/abc")]
     public void Route_KnownRoutableType_ReturnsDeepLinkWithId(string type, string id, string expected)
     {
         Assert.Equal(expected, AuditEntityDisplay.Route(type, id));
@@ -100,6 +101,10 @@ public class AuditEntityDisplayTests
         Assert.Equal("/abmeldungen/uebersicht", AuditEntityDisplay.Route("Absence", "any-id"));
         Assert.Equal("/abmeldungen/uebersicht", AuditEntityDisplay.Route("Absence", string.Empty));
     }
+
+    [Fact]
+    public void Route_RegulationSection_ReturnsTheRegulationIgnoringId()
+        => Assert.Equal("/dienstverordnung", AuditEntityDisplay.Route("RegulationSection", "any-id"));
 
     [Fact]
     public void Route_FirearmUse_ReturnsTheOverviewIgnoringId()
@@ -117,8 +122,8 @@ public class AuditEntityDisplayTests
     [InlineData("MeetingAgendaItem")]
     [InlineData("MeetingAttendance")]
     [InlineData("MeetingSignOff")]
-    [InlineData("DirectiveVersion")]
-    [InlineData("DirectiveAcknowledgment")]
+    [InlineData("RegulationParagraphVersion")]
+    [InlineData("RegulationAcknowledgment")]
     [InlineData("Unknown")]
     [InlineData("")]
     [InlineData("person")]

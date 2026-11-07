@@ -1,5 +1,5 @@
-@* Word comparison of two versions of a directive; the text shows the newer one with the changes marked. *@
-@inject IDirectiveService DirectiveService
+@* Word comparison of two versions of a regulation paragraph; the text shows the newer one with the changes marked. *@
+@inject IRegulationService RegulationService
 
 <MudDialog Class="noose-dialog-lang">
     <DialogContent>
@@ -30,7 +30,7 @@
             else if (_comparison is not { } cmp)
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
-                    Der Vergleich ist nicht möglich: Die Dienstanweisung oder eine der Fassungen ist nicht zugänglich.
+                    Der Vergleich ist nicht möglich: Der Absatz oder eine der Fassungen ist nicht zugänglich.
                 </MudAlert>
             }
             else
@@ -77,21 +77,21 @@
 @code {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    [Parameter, EditorRequired] public string DirectiveId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string ParagraphId { get; set; } = string.Empty;
 
     /// <summary>Every version, newest first.</summary>
-    [Parameter, EditorRequired] public IReadOnlyList<DirectiveVersionView> Versions { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<RegulationVersionView> Versions { get; set; } = [];
 
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
     private int _from;
     private int _to;
     private bool _load = true;
-    private DirectiveComparison? _comparison;
+    private RegulationComparison? _comparison;
     // only the newest comparison may write the result
     private int _generation;
 
-    private static string Describe(DirectiveVersionView version)
+    private static string Describe(RegulationVersionView version)
         => $"Fassung {version.Version} · gültig ab {version.ValidFrom:dd.MM.yyyy}";
 
     protected override async Task OnInitializedAsync()
@@ -118,7 +118,7 @@
     {
         var generation = ++_generation;
         _load = true;
-        var comparison = await DirectiveService.CompareAsync(DirectiveId, _from, _to, User);
+        var comparison = await RegulationService.CompareAsync(ParagraphId, _from, _to, User);
         if (generation != _generation)
         {
             return;
@@ -129,18 +129,18 @@
 
     private void Close() => MudDialog.Close();
 
-    /// <summary>Opens the dialog for a directive's versions; returns when it is closed.</summary>
-    public static async Task ShowAsync(IDialogService dialog, string directiveId, string label,
-        IReadOnlyList<DirectiveVersionView> versions, ClaimsPrincipal user)
+    /// <summary>Opens the dialog for a paragraph's versions; returns when it is closed.</summary>
+    public static async Task ShowAsync(IDialogService dialog, string paragraphId, string label,
+        IReadOnlyList<RegulationVersionView> versions, ClaimsPrincipal user)
     {
-        var parameters = new DialogParameters<DirectiveCompareDialog>
+        var parameters = new DialogParameters<RegulationCompareDialog>
         {
-            { x => x.DirectiveId, directiveId },
+            { x => x.ParagraphId, paragraphId },
             { x => x.Versions, versions },
             { x => x.User, user },
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Large, FullWidth = true, CloseOnEscapeKey = true };
-        var reference = await dialog.ShowAsync<DirectiveCompareDialog>($"{label}: Fassungen vergleichen", parameters, options);
+        var reference = await dialog.ShowAsync<RegulationCompareDialog>($"{label}: Fassungen vergleichen", parameters, options);
         await reference.Result;
     }
 }
