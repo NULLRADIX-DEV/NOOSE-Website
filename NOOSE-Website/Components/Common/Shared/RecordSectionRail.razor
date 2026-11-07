@@ -24,7 +24,8 @@ else
     <MudMenu FullWidth="true" RelativeWidth="DropdownWidth.Relative" MaxHeight="420" Dense="true"
              AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" AriaLabel="Abschnitt wechseln">
         <ActivatorContent>
-            <MudButton FullWidth="true" Variant="Variant.Text" Class="record-rail-leiste-knopf"
+            @* the button keeps the click to itself, so it has to open the menu; the activator never sees the click *@
+            <MudButton FullWidth="true" Variant="Variant.Text" Class="record-rail-leiste-knopf" OnClick="@context.ToggleAsync"
                        StartIcon="@Active?.Icon" EndIcon="@Icons.Material.Filled.UnfoldMore">
                 <span class="record-rail-leiste-titel">@Active?.Label</span>
             </MudButton>
