@@ -2820,6 +2820,13 @@ div.vis-tooltip {
         margin-bottom: 8px;
     }
 
+    /* the menu and its activator size to their content; stretched, the whole bar is the switch and the list as wide */
+    .record-rail-leiste .mud-menu,
+    .record-rail-leiste .mud-menu-activator {
+        display: block;
+        width: 100%;
+    }
+
     .record-rail-leiste .record-rail-leiste-knopf {
         justify-content: flex-start;
         text-transform: none;

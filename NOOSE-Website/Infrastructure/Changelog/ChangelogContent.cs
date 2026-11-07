@@ -714,6 +714,8 @@ public static class ChangelogContent
             Neu("3.0.40-anonym-korrigieren", "Abgegebene Eignungstests lassen sich jetzt anonym korrigieren. Du "
                 + "siehst nur die Antworten und ein Kürzel, wer den Test geschrieben hat, erfährst du erst nach der "
                 + "Korrektur.", "Bewerbungen"),
+            Besser("3.0.41-handy-abschnitte", "Auf dem Handy öffnet die Leiste über einer Akte wieder die Liste der "
+                + "Abschnitte, und die ganze Leiste ist der Knopf dafür.", "Bedienung"),
         ]),
     ];
 }
