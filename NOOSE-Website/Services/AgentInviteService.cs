@@ -75,7 +75,8 @@ public class AgentInviteService(IDbContextFactory<AppDbContext> dbFactory, UserM
         // would silently lose its partner access.
         bool partnerJoining = agent.Status == AgentStatus.Active && agent.PartnerAgency is not null
             && await HasApplicationAsync(userId, cancellationToken);
-        if (agent.Status != AgentStatus.Applicant && !partnerJoining)
+        // a citizen account carries no agency rights, so the invite alone is enough to move it to Pending
+        if (agent.Status is not (AgentStatus.Applicant or AgentStatus.Civilian) && !partnerJoining)
         {
             return false;
         }
