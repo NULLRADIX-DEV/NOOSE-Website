@@ -1,4 +1,6 @@
+@using NOOSE_Website.Models.Navigation
 @inject IBewerbungService BewerbungService
+@inject IBewerbungTestService TestService
 @inject BewerbungBroadcaster Broadcaster
 @inject NavigationManager Nav
 @implements IDisposable
@@ -24,15 +26,29 @@
     </MudStack>
 </MudPaper>
 
+@* no URL sync here: TabUrlState's "tab" would collide with the section rail *@
 <MudTabs Elevation="0" Rounded="true" Class="mb-2" @bind-ActivePanelIndex="_tab">
-    <MudTabPanel Text="@($"Offen ({_open.Count})")" />
-    <MudTabPanel Text="@($"Archiv ({_archived.Count})")" />
-    <MudTabPanel Text="@($"Alle ({_all.Count})")" />
+    @foreach (var tab in ApplicationOverview.Tabs)
+    {
+        <MudTabPanel Text="@($"{ApplicationOverview.TabName(tab)} ({InTab(tab).Count()})")" />
+    }
 </MudTabs>
 
-<MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="200" Clearable="true"
-              Placeholder="Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber" Adornment="Adornment.Start"
-              AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+<div class="d-flex flex-wrap gap-3 mb-3">
+    <MudTextField T="string" @bind-Value="_search" Immediate="true" DebounceInterval="200" Clearable="true"
+                  Placeholder="Suche nach Name, Aktenzeichen, Bearbeiter oder Arbeitgeber" Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Style="flex: 1 1 260px; min-width: 0;" Class="noose-filter-feld" />
+    <MudSelect T="ApplicationStreamFilter" @bind-Value="_stream" Label="Stream" Variant="Variant.Outlined"
+               Margin="Margin.Dense" Dense="true" Style="flex: 0 1 220px; min-width: 0;" Class="noose-filter-feld">
+        @foreach (var f in Enum.GetValues<ApplicationStreamFilter>())
+        {
+            <MudSelectItem T="ApplicationStreamFilter" Value="f">@ApplicationOverview.StreamFilterName(f)</MudSelectItem>
+        }
+    </MudSelect>
+</div>
+<MobileColumnPicker ListKey="bewerbungen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                    VisibleChanged="@(v => _phoneColumns = v)" />
 
 @if (_load)
 {
@@ -41,31 +57,47 @@
 else if (Current.Count == 0)
 {
     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-        @(string.IsNullOrWhiteSpace(_search) ? "Keine Bewerbungen in dieser Ansicht." : "Keine Bewerbung passt zur Suche.")
+        @(string.IsNullOrWhiteSpace(_search) && _stream == ApplicationStreamFilter.Alle ? "Keine Bewerbungen in dieser Ansicht." : "Keine Bewerbung passt zur Suche.")
     </MudAlert>
 }
 else
 {
-    @* a table on phones too, with name and status; the other columns are hidden below 600px *@
     <MudTable Items="Current" Hover="true" Dense="true" OnRowClick="@((TableRowClickEventArgs<Bewerbung> e) => Open(e.Item))"
               Breakpoint="Breakpoint.None" Style="cursor:pointer;">
         <HeaderContent>
-            <MudTh Class="noose-mobil-aus">Aktenzeichen</MudTh>
-            <MudTh>Name</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh Class="noose-mobil-aus">Bearbeiter</MudTh>
-            <MudTh Class="noose-mobil-aus">Eingereicht</MudTh>
+            <MudTh Class="@Col("aktenzeichen")">Aktenzeichen</MudTh>
+            <MudTh Class="@Col("name")">Name</MudTh>
+            <MudTh Class="@Col("status")">Status</MudTh>
+            <MudTh Class="@Col("test")">Test</MudTh>
+            <MudTh Class="@Col("bearbeiter")">Bearbeiter</MudTh>
+            <MudTh Class="@Col("eingereicht")">Eingereicht</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Aktenzeichen" Class="noose-mobil-aus">@context.CaseNumber</MudTd>
-            <MudTd DataLabel="Name">@context.Name</MudTd>
-            <MudTd DataLabel="Status">
+            <MudTd DataLabel="Aktenzeichen" Class="@Col("aktenzeichen")">@context.CaseNumber</MudTd>
+            <MudTd DataLabel="Name" Class="@Col("name")">
+                @context.Name
+                @if (context.StreamConsent is { } stream)
+                {
+                    <MudTooltip Text="@(stream ? "Darf gestreamt werden" : "Darf nicht gestreamt werden")">
+                        <MudIcon Icon="@(stream ? Icons.Material.Filled.Videocam : Icons.Material.Filled.VideocamOff)"
+                                 Size="Size.Small" Color="@(stream ? Color.Success : Color.Error)" Class="ml-1" Style="vertical-align: middle;" />
+                    </MudTooltip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Status" Class="@Col("status")">
                 <MudChip T="string" Size="Size.Small" Color="BewerbungStatusDisplay.ChipColor(context.Status)">
                     @BewerbungStatusDisplay.Name(context.Status)
                 </MudChip>
             </MudTd>
-            <MudTd DataLabel="Bearbeiter" Class="noose-mobil-aus">@(string.IsNullOrWhiteSpace(context.AssignedAgentName) ? "—" : context.AssignedAgentName)</MudTd>
-            <MudTd DataLabel="Eingereicht" Class="noose-mobil-aus">@context.SubmittedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Test" Class="@Col("test")">
+                @{ var attempt = _tests.GetValueOrDefault(context.Id); }
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                         Color="ApplicationOverview.TestColor(ApplicationOverview.TestStage(attempt, _now))">
+                    @ApplicationOverview.TestLabel(attempt, _now)
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Bearbeiter" Class="@Col("bearbeiter")">@(string.IsNullOrWhiteSpace(context.AssignedAgentName) ? "—" : context.AssignedAgentName)</MudTd>
+            <MudTd DataLabel="Eingereicht" Class="@Col("eingereicht")">@context.SubmittedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
         </RowTemplate>
     </MudTable>
 }
@@ -78,13 +110,31 @@ else
     private bool _load = true;
     private int _tab;
     private List<Bewerbung> _all = new();
-    private List<Bewerbung> _open = new();
-    private List<Bewerbung> _archived = new();
+    private Dictionary<string, BewerbungTestAssignment> _tests = new();
+    private DateTime _now = DateTime.UtcNow;
 
     private string? _search;
 
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("name", "Name"), ("status", "Status"), ("test", "Test"),
+        ("bearbeiter", "Bearbeiter"), ("eingereicht", "Eingereicht"),
+    ];
+
+    // the tab already names the step, so a phone shows the test first
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["name", "test"];
+
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+    private ApplicationStreamFilter _stream;
+
     private List<Bewerbung> Current
-        => BewerbungSearch.Filter(_tab switch { 1 => _archived, 2 => _all, _ => _open }, _search);
+        => BewerbungSearch.Filter(InTab(ApplicationOverview.Tabs[_tab]).ToList(), _search);
+
+    private IEnumerable<Bewerbung> InTab(ApplicationListTab tab)
+        => _all.Where(b => ApplicationOverview.MatchesStream(_stream, b.StreamConsent)
+            && ApplicationOverview.InTab(tab, b.Status, _tests.GetValueOrDefault(b.Id), _now));
 
     private int RejectedCount => _all.Count(b => b.Status == BewerbungStatus.Abgelehnt);
     private int TotalCount => _all.Count;
@@ -101,8 +151,8 @@ else
     {
         _load = true;
         _all = await BewerbungService.ListAsync(_user);
-        _open = _all.Where(b => !BewerbungStatusDisplay.IsTerminal(b.Status)).ToList();
-        _archived = _all.Where(b => BewerbungStatusDisplay.IsTerminal(b.Status)).ToList();
+        _tests = await TestService.GetAssignmentsByApplicationAsync(_user);
+        _now = DateTime.UtcNow;
         _load = false;
     }
 
