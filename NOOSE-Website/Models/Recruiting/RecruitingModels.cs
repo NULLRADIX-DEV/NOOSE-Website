@@ -155,7 +155,8 @@ public record TestEvaluationItem(
     IReadOnlyList<string> MissedKeywords)
 {
     /// <summary>Decided by the machine or by hand; an undecidable question stays open until someone awards points.</summary>
-    public bool IsGraded => ManualPoints is not null || EffectiveCorrect is not null;
+    /// <remarks>A question worth nothing has nothing to award, so a self-assessment item never blocks closing.</remarks>
+    public bool IsGraded => Points == 0 || ManualPoints is not null || EffectiveCorrect is not null;
 }
 
 /// <summary>HRB test-builder model: a test with its questions and their options.</summary>

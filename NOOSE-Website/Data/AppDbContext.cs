@@ -1921,7 +1921,8 @@ public class AppDbContext : IdentityDbContext<Agent>
         {
             b.Property(a => a.AssignedByName).HasMaxLength(128);
             b.Property(a => a.GradedByName).HasMaxLength(128);
-            b.HasIndex(a => a.BewerbungId).IsUnique();
+            // several tests per application, but each test only once
+            b.HasIndex(a => new { a.BewerbungId, a.TestId }).IsUnique();
             // the expiry sweep's predicate, null-check first and the range last
             b.HasIndex(a => new { a.CompletedAt, a.DeadlineAt });
             b.Property(a => a.AttemptCount).HasDefaultValue(1);

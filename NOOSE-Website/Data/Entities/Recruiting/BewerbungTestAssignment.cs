@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace NOOSE_Website.Data.Entities.Recruiting;
 
-/// <summary>Assigns one test to one application; the applicant fills it in the portal.</summary>
+/// <summary>Assigns one test to one application; an application may hold several, each test once.</summary>
 [Table("BewerbungTestZuweisungen")]
 public class BewerbungTestAssignment : IAuditable, ISoftDelete, ITestAttempt
 {

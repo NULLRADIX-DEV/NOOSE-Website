@@ -98,11 +98,25 @@ else
                 </MudChip>
             </MudTd>
             <MudTd DataLabel="Test" Class="@Col("test")">
-                @{ var attempt = _tests.GetValueOrDefault(context.Id); }
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                         Color="ApplicationOverview.TestColor(ApplicationOverview.TestStage(attempt, _now))">
-                    @ApplicationOverview.TestLabel(attempt, _now)
-                </MudChip>
+                @{ var attempts = _tests.GetValueOrDefault(context.Id); }
+                @if (attempts is not { Count: > 0 })
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">
+                        @ApplicationOverview.TestLabel(null, _now)
+                    </MudChip>
+                }
+                else
+                {
+                    @foreach (var attempt in attempts)
+                    {
+                        <MudTooltip Text="@(attempt.Test?.Title ?? "Test")">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Color="ApplicationOverview.TestColor(ApplicationOverview.TestStage(attempt, _now))">
+                                @ApplicationOverview.TestLabel(attempt, _now)
+                            </MudChip>
+                        </MudTooltip>
+                    }
+                }
             </MudTd>
             <MudTd DataLabel="Bearbeiter" Class="@Col("bearbeiter")">@(string.IsNullOrWhiteSpace(context.AssignedAgentName) ? "—" : context.AssignedAgentName)</MudTd>
             <MudTd DataLabel="Eingereicht" Class="@Col("eingereicht")">@context.SubmittedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudTd>
@@ -118,7 +132,7 @@ else
     private bool _load = true;
     private int _tab;
     private List<Bewerbung> _all = new();
-    private Dictionary<string, BewerbungTestAssignment> _tests = new();
+    private Dictionary<string, List<BewerbungTestAssignment>> _tests = new();
     private DateTime _now = DateTime.UtcNow;
 
     private string? _search;
@@ -142,11 +156,11 @@ else
 
     private IEnumerable<Bewerbung> InTab(ApplicationListTab tab)
         => _all.Where(b => ApplicationOverview.MatchesStream(_stream, b.StreamConsent)
-            && ApplicationOverview.InTab(tab, b.Status, _tests.GetValueOrDefault(b.Id), _now));
+            && ApplicationOverview.InTabTests(tab, b.Status, _tests.GetValueOrDefault(b.Id), _now));
 
     // same rule as the blind queue: handed in, ungraded, application still open
     private int ToGradeCount => _all.Count(b => !BewerbungStatusDisplay.IsTerminal(b.Status)
-        && ApplicationOverview.TestStage(_tests.GetValueOrDefault(b.Id), _now) == ApplicationTestStage.ToGrade);
+        && ApplicationOverview.AnyToGrade(_tests.GetValueOrDefault(b.Id), _now));
 
     private int RejectedCount => _all.Count(b => b.Status == BewerbungStatus.Abgelehnt);
     private int TotalCount => _all.Count;

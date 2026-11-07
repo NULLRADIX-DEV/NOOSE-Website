@@ -26,21 +26,23 @@
                     </MudStack>
                 </MudStack>
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                    @* merged stage, so the button does not vanish when HRB advances past the test *@
-                    @if (_test is { Completed: false } && !Ueberfaellig
-                         && BewerbungStatusDisplay.ApplicantStep(_bewerbung.Status) == BewerbungStatus.ImTest)
+                    @* merged stage, so the buttons do not vanish when HRB advances past the test *@
+                    @if (BewerbungStatusDisplay.ApplicantStep(_bewerbung.Status) == BewerbungStatus.ImTest)
                     {
-                        <MudStack Spacing="0" AlignItems="AlignItems.End">
-                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
-                                       StartIcon="@(_test.StartedAt is null ? Icons.Material.Filled.Quiz : Icons.Material.Filled.PlayArrow)"
-                                       Href="/portal/test">
-                                @(_test.StartedAt is null ? "Eignungstest ausfüllen" : "Test fortsetzen")
-                            </MudButton>
-                            @if (Zeithinweis is { Length: > 0 } hinweis)
-                            {
-                                <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">@hinweis</MudText>
-                            }
-                        </MudStack>
+                        @foreach (var test in _tests.Where(t => !t.Completed && !Ueberfaellig(t)))
+                        {
+                            <MudStack Spacing="0" AlignItems="AlignItems.End">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
+                                           StartIcon="@(test.StartedAt is null ? Icons.Material.Filled.Quiz : Icons.Material.Filled.PlayArrow)"
+                                           Href="@($"/portal/test/{test.AssignmentId}")">
+                                    @(test.StartedAt is null ? $"{test.Title} ausfüllen" : $"{test.Title} fortsetzen")
+                                </MudButton>
+                                @if (Zeithinweis(test) is { Length: > 0 } hinweis)
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">@hinweis</MudText>
+                                }
+                            </MudStack>
+                        }
                     }
                     @if (_bewerbung.Status != BewerbungStatus.Abgelehnt && _bewerbung.Status != BewerbungStatus.Geschlossen)
                     {
@@ -53,25 +55,28 @@
 
             @* in the bar, not folded away behind "Details": this is the only confirmation the applicant gets
                after submitting, and it took the place the questionnaire button just vacated *@
-            @if (_test is { Completed: true, TimedOut: true })
+            @foreach (var test in _tests)
             {
-                @* Info, not Warning: a timeout is a neutral fact, and a louder colour would read as a verdict *@
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-3">
-                    Die Bearbeitungszeit ist abgelaufen. Deine bis dahin eingetragenen Antworten wurden
-                    übermittelt. Wir melden uns.
-                </MudAlert>
-            }
-            else if (_test is { Completed: true })
-            {
-                <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true" Class="mt-3">
-                    Dein Eignungstest wurde übermittelt. Wir melden uns.
-                </MudAlert>
-            }
-            else if (Ueberfaellig)
-            {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-3">
-                    Die Bearbeitungszeit ist abgelaufen. Deine Antworten werden abgeschlossen.
-                </MudAlert>
+                @if (test is { Completed: true, TimedOut: true })
+                {
+                    @* Info, not Warning: a timeout is a neutral fact, and a louder colour would read as a verdict *@
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                        @test.Title: Die Bearbeitungszeit ist abgelaufen. Deine bis dahin eingetragenen Antworten
+                        wurden übermittelt. Wir melden uns.
+                    </MudAlert>
+                }
+                else if (test.Completed)
+                {
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                        @test.Title wurde übermittelt. Wir melden uns.
+                    </MudAlert>
+                }
+                else if (Ueberfaellig(test))
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                        @test.Title: Die Bearbeitungszeit ist abgelaufen. Deine Antworten werden abgeschlossen.
+                    </MudAlert>
+                }
             }
 
             @if (_bewerbung.AttachmentFileNameSaved is not null)
@@ -165,7 +170,7 @@
     private bool _ready;
     private bool _detailsOpen;
     private Bewerbung _bewerbung = default!;
-    private TestStatusView? _test;
+    private List<TestStatusView> _tests = new();
     private BewerbungssperreInfo? _ban;
 
     protected override async Task OnInitializedAsync()
@@ -188,38 +193,31 @@
             _ban = await SperreService.GetActiveAsync(_user.GetAgentId() ?? string.Empty);
         }
         // the summary, never the questionnaire: opening this page must not start the attempt clock
-        _test = await TestService.GetTestStatusForApplicantAsync(_user);
+        _tests = await TestService.GetTestStatusesForApplicantAsync(_user);
         _ready = true;
     }
 
     private bool StepReached(BewerbungStatus step) => (int)_bewerbung.Status >= (int)step;
 
     /// <summary>Deadline gone but nothing closed it yet; offering to continue would be a broken promise.</summary>
-    private bool Ueberfaellig => _test is { Completed: false }
-        && TestDeadline.IsExpired(_test.DeadlineAt, DateTime.UtcNow);
+    private static bool Ueberfaellig(TestStatusView test) => !test.Completed
+        && TestDeadline.IsExpired(test.DeadlineAt, DateTime.UtcNow);
 
     /// <summary>"ca." on purpose: this page has no ticker, and one would re-render the chat beneath it.</summary>
-    private string Zeithinweis
+    private static string Zeithinweis(TestStatusView test)
     {
-        get
+        if (test.StartedAt is null)
         {
-            if (_test is null)
-            {
-                return string.Empty;
-            }
-            if (_test.StartedAt is null)
-            {
-                return _test.TimeLimitMinutes is { } limit
-                    ? $"Bearbeitungszeit: {limit} Minuten. Die Zeit läuft erst, wenn du den Test startest."
-                    : string.Empty;
-            }
-            return TestAttemptLogic.RemainingMinutes(_test.DeadlineAt, DateTime.UtcNow) switch
-            {
-                null => string.Empty,
-                1 => "Weniger als eine Minute.",
-                var minutes => $"Restzeit noch ca. {minutes} Minuten.",
-            };
+            return test.TimeLimitMinutes is { } limit
+                ? $"Bearbeitungszeit: {limit} Minuten. Die Zeit läuft erst, wenn du den Test startest."
+                : string.Empty;
         }
+        return TestAttemptLogic.RemainingMinutes(test.DeadlineAt, DateTime.UtcNow) switch
+        {
+            null => string.Empty,
+            1 => "Weniger als eine Minute.",
+            var minutes => $"Restzeit noch ca. {minutes} Minuten.",
+        };
     }
 
     private static bool IsImage(string? contentType)

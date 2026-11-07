@@ -714,6 +714,9 @@ public static class ChangelogContent
             Neu("3.0.40-anonym-korrigieren", "Abgegebene Eignungstests lassen sich jetzt anonym korrigieren. Du "
                 + "siehst nur die Antworten und ein Kürzel, wer den Test geschrieben hat, erfährst du erst nach der "
                 + "Korrektur.", "Bewerbungen"),
+            Neu("3.0.41-mehrere-tests", "Eine Bewerbung kann jetzt mehrere Tests bekommen, zum Beispiel den "
+                + "Einstellungstest und den psychologischen Eignungstest. Jeder Test wird für sich bearbeitet und "
+                + "korrigiert.", "Bewerbungen"),
         ]),
     ];
 }

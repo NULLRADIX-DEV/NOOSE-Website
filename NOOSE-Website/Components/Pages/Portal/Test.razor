@@ -1,4 +1,5 @@
 @page "/portal/test"
+@page "/portal/test/{AssignmentId}"
 @layout ApplicantPortalLayout
 @attribute [AllowAnonymous]
 @inject IBewerbungTestService TestService
@@ -104,6 +105,9 @@
     [CascadingParameter]
     private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
+    /// <summary>Which of the own tests; without it the first unfinished one opens, so old links still work.</summary>
+    [Parameter] public string? AssignmentId { get; set; }
+
     private ClaimsPrincipal _user = default!;
     private bool _ready;
     private bool _busy;
@@ -138,7 +142,7 @@
             return;
         }
         // the summary first, because it starts nothing: only the questionnaire call stamps the clock
-        _status = await TestService.GetTestStatusForApplicantAsync(_user);
+        _status = await LoadStatusAsync();
         if (_status is null)
         {
             Nav.NavigateTo("/portal/status");
@@ -158,9 +162,19 @@
         _ready = true;
     }
 
+    /// <summary>The summary of this page's test; never starts the clock.</summary>
+    private async Task<TestStatusView?> LoadStatusAsync()
+    {
+        var all = await TestService.GetTestStatusesForApplicantAsync(_user);
+        var id = AssignmentId ?? _status?.AssignmentId;
+        return id is not null
+            ? all.FirstOrDefault(s => s.AssignmentId == id)
+            : all.FirstOrDefault(s => !s.Completed) ?? all.FirstOrDefault();
+    }
+
     private async Task LoadTestAsync()
     {
-        _test = await TestService.GetAssignedForApplicantAsync(_user);
+        _test = _status is null ? null : await TestService.GetAssignedForApplicantAsync(_status.AssignmentId, _user);
         if (_test is null)
         {
             return;
@@ -322,7 +336,7 @@
         {
             // kept when the read comes back empty: overwriting with null would drop the page into a branch
             // that knows nothing about the attempt
-            _status = await TestService.GetTestStatusForApplicantAsync(_user) ?? _status;
+            _status = await LoadStatusAsync() ?? _status;
             _test = null;
         }
         catch { /* best effort */ }

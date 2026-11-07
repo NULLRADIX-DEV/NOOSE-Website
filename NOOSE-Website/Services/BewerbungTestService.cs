@@ -218,22 +218,45 @@ public class BewerbungTestService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task<BewerbungTestAssignment?> GetAssignmentAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task<List<BewerbungTestAssignment>> GetAssignmentsAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return await db.BewerbungTestAssignments.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.BewerbungId == bewerbungId, cancellationToken);
+        var rows = await db.BewerbungTestAssignments.AsNoTracking()
+            .Where(a => a.BewerbungId == bewerbungId)
+            .OrderBy(a => a.CreatedAt).ThenBy(a => a.Id)
+            .ToListAsync(cancellationToken);
+        await AttachTestsAsync(db, rows, cancellationToken);
+        return rows;
     }
 
-    public async Task<Dictionary<string, BewerbungTestAssignment>> GetAssignmentsByApplicationAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, List<BewerbungTestAssignment>>> GetAssignmentsByApplicationAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var rows = await db.BewerbungTestAssignments.AsNoTracking().ToListAsync(cancellationToken);
-        // one per application by rule; newest wins should old data ever hold two
+        await AttachTestsAsync(db, rows, cancellationToken);
         return rows.GroupBy(a => a.BewerbungId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.CreatedAt).First());
+            .ToDictionary(g => g.Key, g => g.OrderBy(a => a.CreatedAt).ThenBy(a => a.Id).ToList());
+    }
+
+    /// <summary>Hangs each attempt's test on it, deleted ones included, so old attempts keep their title.</summary>
+    /// <remarks>Not an Include: the soft-delete filter on a required navigation would drop the attempt itself.</remarks>
+    private static async Task AttachTestsAsync(AppDbContext db, List<BewerbungTestAssignment> rows,
+        CancellationToken cancellationToken)
+    {
+        var ids = rows.Select(a => a.TestId).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+        var tests = await db.BewerbungTests.AsNoTracking().IgnoreQueryFilters()
+            .Where(t => ids.Contains(t.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
+        foreach (var row in rows)
+        {
+            row.Test = tests.GetValueOrDefault(row.TestId);
+        }
     }
 
     public async Task AssignAsync(string bewerbungId, string testId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -243,21 +266,23 @@ public class BewerbungTestService(
 
         var bewerbung = await db.Bewerbungen.FirstOrDefaultAsync(b => b.Id == bewerbungId, cancellationToken)
             ?? throw new InvalidOperationException("Bewerbung nicht gefunden.");
-        if (await db.BewerbungTestAssignments.AnyAsync(a => a.BewerbungId == bewerbungId, cancellationToken))
+        if (await db.BewerbungTestAssignments
+                .AnyAsync(a => a.BewerbungId == bewerbungId && a.TestId == testId, cancellationToken))
         {
-            throw new InvalidOperationException("Dieser Bewerbung ist bereits ein Test zugewiesen.");
+            throw new InvalidOperationException("Dieser Test ist der Bewerbung bereits zugewiesen.");
         }
         if (!await db.BewerbungTests.AnyAsync(t => t.Id == testId && t.Usage != TestUsage.Intern, cancellationToken))
         {
             throw new InvalidOperationException("Test nicht gefunden oder nur für interne Tests freigegeben.");
         }
 
-        db.BewerbungTestAssignments.Add(new BewerbungTestAssignment
+        var assignment = new BewerbungTestAssignment
         {
             BewerbungId = bewerbungId,
             TestId = testId,
             AssignedByName = actor.GetCodename(),
-        });
+        };
+        db.BewerbungTestAssignments.Add(assignment);
 
         // entering the test phase
         if (bewerbung.Status is BewerbungStatus.Eingereicht or BewerbungStatus.InSicherheitspruefung)
@@ -270,19 +295,19 @@ public class BewerbungTestService(
         try
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                "Dir wurde ein Test zugewiesen.", "/portal/test", cancellationToken);
+                "Dir wurde ein Test zugewiesen.", $"/portal/test/{assignment.Id}", cancellationToken);
             await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.TestAssigned, cancellationToken);
         }
         catch { /* best effort */ }
     }
 
-    public async Task<TestEvaluation?> GetEvaluationAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task<TestEvaluation?> GetEvaluationAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         var assignment = await db.BewerbungTestAssignments.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.BewerbungId == bewerbungId, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken);
         // an open attempt has draft answers in those rows: reading them would let HRB watch the applicant type,
         // and would let a grade be frozen mid-attempt
         return assignment is { CompletedAt: not null }
@@ -339,11 +364,11 @@ public class BewerbungTestService(
         broadcaster.Report(assignment.BewerbungId);
     }
 
-    public async Task CompleteGradingAsync(string bewerbungId, ClaimsPrincipal actor,
+    public async Task CompleteGradingAsync(string assignmentId, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadership(actor);
-        var evaluation = await GetEvaluationInternalAsync(bewerbungId, cancellationToken)
+        var evaluation = await GetEvaluationInternalAsync(assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Kein Test zugewiesen.");
         if (evaluation.Assignment.CompletedAt is null)
         {
@@ -366,6 +391,7 @@ public class BewerbungTestService(
         assignment.FinalPassPercent = evaluation.Report.PassPercent;
         await db.SaveChangesAsync(cancellationToken);
 
+        var bewerbungId = assignment.BewerbungId;
         broadcaster.Report(bewerbungId);
 
         try
@@ -381,13 +407,13 @@ public class BewerbungTestService(
         catch { /* best effort */ }
     }
 
-    public async Task ReopenGradingAsync(string bewerbungId, ClaimsPrincipal actor,
+    public async Task ReopenGradingAsync(string assignmentId, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadership(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var assignment = await db.BewerbungTestAssignments
-            .FirstOrDefaultAsync(a => a.BewerbungId == bewerbungId, cancellationToken)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
         if (assignment.GradedAt is null)
         {
@@ -401,7 +427,7 @@ public class BewerbungTestService(
         assignment.FinalPassPercent = null;
         await db.SaveChangesAsync(cancellationToken);
 
-        broadcaster.Report(bewerbungId);
+        broadcaster.Report(assignment.BewerbungId);
     }
 
     public async Task<List<BlindSubmission>> GetBlindQueueAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -439,11 +465,11 @@ public class BewerbungTestService(
 
     /// <summary>Evaluation plus its assignment, for the two grading transitions; the guard is the caller's.</summary>
     private async Task<(BewerbungTestAssignment Assignment, TestEvaluation Report)?> GetEvaluationInternalAsync(
-        string bewerbungId, CancellationToken cancellationToken)
+        string assignmentId, CancellationToken cancellationToken)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var assignment = await db.BewerbungTestAssignments.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.BewerbungId == bewerbungId, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken);
         if (assignment is null)
         {
             return null;
@@ -452,34 +478,39 @@ public class BewerbungTestService(
         return (assignment, report);
     }
 
-    public async Task<TestStatusView?> GetTestStatusForApplicantAsync(ClaimsPrincipal applicant, CancellationToken cancellationToken = default)
+    public async Task<List<TestStatusView>> GetTestStatusesForApplicantAsync(ClaimsPrincipal applicant, CancellationToken cancellationToken = default)
     {
         Permission.RequireApplicant(applicant);
         var userId = applicant.GetAgentId();
         if (string.IsNullOrEmpty(userId))
         {
-            return null;
+            return [];
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
-        var (bewerbung, assignment) = await FindOwnAssignmentAsync(db, userId, cancellationToken);
-        if (bewerbung is null || assignment is null)
+        var (bewerbung, assignments) = await FindOwnAssignmentsAsync(db, userId, cancellationToken);
+        if (bewerbung is null || assignments.Count == 0)
         {
-            return null;
+            return [];
         }
-        var test = await db.BewerbungTests.AsNoTracking()
-            .FirstOrDefaultAsync(x => x.Id == assignment.TestId, cancellationToken);
-        if (test is null)
-        {
-            return null;
-        }
+        var testIds = assignments.Select(a => a.TestId).Distinct().ToList();
+        var tests = await db.BewerbungTests.AsNoTracking()
+            .Where(x => testIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
         // never stamps anything: the status page reads this, and reading a status must not start the clock
-        return new TestStatusView(assignment.Id, test.Title, test.Description,
-            assignment.CompletedAt is not null, assignment.StartedAt, assignment.DeadlineAt,
-            assignment.TimedOut, TestDeadline.AllowedMinutes(assignment, test.TimeLimitMinutes));
+        return assignments
+            .Where(a => tests.ContainsKey(a.TestId))
+            .Select(a =>
+            {
+                var test = tests[a.TestId];
+                return new TestStatusView(a.Id, test.Title, test.Description,
+                    a.CompletedAt is not null, a.StartedAt, a.DeadlineAt,
+                    a.TimedOut, TestDeadline.AllowedMinutes(a, test.TimeLimitMinutes));
+            })
+            .ToList();
     }
 
-    public async Task<TestView?> GetAssignedForApplicantAsync(ClaimsPrincipal applicant, CancellationToken cancellationToken = default)
+    public async Task<TestView?> GetAssignedForApplicantAsync(string assignmentId, ClaimsPrincipal applicant, CancellationToken cancellationToken = default)
     {
         Permission.RequireApplicant(applicant);
         var now = DateTime.UtcNow;
@@ -490,7 +521,9 @@ public class BewerbungTestService(
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
-        var (bewerbung, assignment) = await FindOwnAssignmentAsync(db, userId, cancellationToken);
+        var (bewerbung, assignments) = await FindOwnAssignmentsAsync(db, userId, cancellationToken);
+        // only an attempt of the newest own application; someone else's id simply finds nothing
+        var assignment = assignments.FirstOrDefault(a => a.Id == assignmentId);
         if (bewerbung is null || assignment is null)
         {
             return null;
@@ -653,7 +686,7 @@ public class BewerbungTestService(
         return TestSubmitOutcome.Submitted;
     }
 
-    public async Task ExtendAttemptAsync(string bewerbungId, int minutes, ClaimsPrincipal actor,
+    public async Task ExtendAttemptAsync(string assignmentId, int minutes, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
         Permission.RequireTestAttemptWrite(actor);
@@ -663,8 +696,9 @@ public class BewerbungTestService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         var assignment = await db.BewerbungTestAssignments
-            .FirstOrDefaultAsync(a => a.BewerbungId == bewerbungId, cancellationToken)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
+        var bewerbungId = assignment.BewerbungId;
         var bewerbung = await db.Bewerbungen.AsNoTracking()
             .FirstOrDefaultAsync(b => b.Id == bewerbungId, cancellationToken)
             ?? throw new InvalidOperationException("Bewerbung nicht gefunden.");
@@ -726,20 +760,21 @@ public class BewerbungTestService(
         try
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                "Deine Bearbeitungszeit wurde verlängert.", "/portal/test", cancellationToken);
+                "Deine Bearbeitungszeit wurde verlängert.", $"/portal/test/{assignment.Id}", cancellationToken);
         }
         catch { /* best effort */ }
     }
 
-    public async Task ResetAttemptAsync(string bewerbungId, string? testId, string? reason, ClaimsPrincipal actor,
+    public async Task ResetAttemptAsync(string assignmentId, string? testId, string? reason, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
         Permission.RequireTestAttemptWrite(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         var assignment = await db.BewerbungTestAssignments
-            .FirstOrDefaultAsync(a => a.BewerbungId == bewerbungId, cancellationToken)
+            .FirstOrDefaultAsync(a => a.Id == assignmentId, cancellationToken)
             ?? throw new InvalidOperationException("Testzuweisung nicht gefunden.");
+        var bewerbungId = assignment.BewerbungId;
         var bewerbung = await db.Bewerbungen.FirstOrDefaultAsync(b => b.Id == bewerbungId, cancellationToken)
             ?? throw new InvalidOperationException("Bewerbung nicht gefunden.");
         if (BewerbungStatusDisplay.IsTerminal(bewerbung.Status))
@@ -752,6 +787,11 @@ public class BewerbungTestService(
         {
             throw new InvalidOperationException("Der Test ist nicht mehr aktiv oder wurde gelöscht.");
         }
+        if (target != assignment.TestId && await db.BewerbungTestAssignments
+                .AnyAsync(a => a.BewerbungId == bewerbungId && a.TestId == target, cancellationToken))
+        {
+            throw new InvalidOperationException("Dieser Test ist der Bewerbung bereits zugewiesen.");
+        }
 
         // soft-deleted, not overwritten: the interceptor keeps the old values in the audit log, so the
         // previous attempt stays readable. A hard delete would destroy exactly that.
@@ -759,8 +799,8 @@ public class BewerbungTestService(
             .Where(a => a.AssignmentId == assignment.Id).ToListAsync(cancellationToken);
         db.BewerbungTestAnswers.RemoveRange(answers);
 
-        // in place on this one row: the unique index on BewerbungId is still held by a soft-deleted row, and
-        // the global filter would hide it from the pre-check, so delete-and-recreate fails with a raw 1062
+        // in place on this one row: the unique index on BewerbungId and TestId is still held by a soft-deleted
+        // row, and the global filter would hide it from the pre-check, so delete-and-recreate fails with a raw 1062
         assignment.TestId = target;
         assignment.StartedAt = null;
         assignment.DeadlineAt = null;
@@ -793,14 +833,14 @@ public class BewerbungTestService(
         try
         {
             await notifications.NotifyAsync(bewerbung.ApplicantUserId, NotificationType.Recruiting,
-                "Dein Test wurde neu freigegeben.", "/portal/test", cancellationToken);
+                "Dein Test wurde neu freigegeben.", $"/portal/test/{assignment.Id}", cancellationToken);
             await applicantMessages.NotifyAsync(bewerbung.ApplicantUserId, ApplicantDmEvent.TestAssigned, cancellationToken);
         }
         catch { /* best effort */ }
     }
 
-    /// <summary>The newest own application and its single assignment; read-only, stamps nothing.</summary>
-    private static async Task<(Bewerbung? Bewerbung, BewerbungTestAssignment? Assignment)> FindOwnAssignmentAsync(
+    /// <summary>The newest own application and its assignments, oldest first; read-only, stamps nothing.</summary>
+    private static async Task<(Bewerbung? Bewerbung, List<BewerbungTestAssignment> Assignments)> FindOwnAssignmentsAsync(
         AppDbContext db, string userId, CancellationToken cancellationToken)
     {
         var bewerbung = await db.Bewerbungen.AsNoTracking()
@@ -809,11 +849,13 @@ public class BewerbungTestService(
             .FirstOrDefaultAsync(cancellationToken);
         if (bewerbung is null)
         {
-            return (null, null);
+            return (null, []);
         }
-        var assignment = await db.BewerbungTestAssignments.AsNoTracking()
-            .FirstOrDefaultAsync(a => a.BewerbungId == bewerbung.Id, cancellationToken);
-        return (bewerbung, assignment);
+        var assignments = await db.BewerbungTestAssignments.AsNoTracking()
+            .Where(a => a.BewerbungId == bewerbung.Id)
+            .OrderBy(a => a.CreatedAt).ThenBy(a => a.Id)
+            .ToListAsync(cancellationToken);
+        return (bewerbung, assignments);
     }
 
     /// <summary>Loads a tracked attempt and proves it belongs to this applicant and is still decidable.</summary>

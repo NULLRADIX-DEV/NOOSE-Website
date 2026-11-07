@@ -325,7 +325,7 @@ public class RecruitingTestVisibilityTests
         var text = File.ReadAllText(path);
 
         string[] applicantMembers =
-            ["GetAssignedForApplicantAsync", "GetTestStatusForApplicantAsync", "SaveDraftAsync", "SubmitAnswersAsync"];
+            ["GetAssignedForApplicantAsync", "GetTestStatusesForApplicantAsync", "SaveDraftAsync", "SubmitAnswersAsync"];
         // extending or resetting a running attempt writes via ExecuteUpdateAsync, which the read-only barrier
         // never sees, so the rank check alone would let the read-only supervision and the demo principal
         // through. One combined guard, because every member may carry exactly one.
