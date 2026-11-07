@@ -717,6 +717,8 @@ public static class ChangelogContent
             Neu("3.0.41-mehrere-tests", "Eine Bewerbung kann jetzt mehrere Tests bekommen, zum Beispiel den "
                 + "Einstellungstest und den psychologischen Eignungstest. Jeder Test wird für sich bearbeitet und "
                 + "korrigiert.", "Bewerbungen"),
+            Besser("3.0.42-handy-abschnitte", "Auf dem Handy öffnet die Leiste über einer Akte wieder die Liste der "
+                + "Abschnitte, und die ganze Leiste ist der Knopf dafür.", "Bedienung"),
         ]),
     ];
 }
