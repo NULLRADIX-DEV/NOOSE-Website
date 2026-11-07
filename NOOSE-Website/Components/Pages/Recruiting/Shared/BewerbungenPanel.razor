@@ -50,6 +50,10 @@
             }
         </MudSelect>
     </div>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.VisibilityOff"
+               Href="/bewerbungen/korrektur">
+        Anonym korrigieren (@ToGradeCount)
+    </MudButton>
 </div>
 <MobileColumnPicker ListKey="bewerbungen" Columns="PhoneColumns" Defaults="PhoneDefaults"
                     VisibleChanged="@(v => _phoneColumns = v)" />
@@ -139,6 +143,10 @@ else
     private IEnumerable<Bewerbung> InTab(ApplicationListTab tab)
         => _all.Where(b => ApplicationOverview.MatchesStream(_stream, b.StreamConsent)
             && ApplicationOverview.InTab(tab, b.Status, _tests.GetValueOrDefault(b.Id), _now));
+
+    // same rule as the blind queue: handed in, ungraded, application still open
+    private int ToGradeCount => _all.Count(b => !BewerbungStatusDisplay.IsTerminal(b.Status)
+        && ApplicationOverview.TestStage(_tests.GetValueOrDefault(b.Id), _now) == ApplicationTestStage.ToGrade);
 
     private int RejectedCount => _all.Count(b => b.Status == BewerbungStatus.Abgelehnt);
     private int TotalCount => _all.Count;

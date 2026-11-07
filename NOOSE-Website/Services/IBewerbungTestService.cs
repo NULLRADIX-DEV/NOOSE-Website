@@ -35,6 +35,12 @@ public interface IBewerbungTestService
     Task CompleteGradingAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task ReopenGradingAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    // ---- blind grading (HRB/leadership) ----
+    /// <summary>Handed-in, ungraded tests of open applications, oldest first, without the applicant's name.</summary>
+    Task<List<BlindSubmission>> GetBlindQueueAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>One attempt by its own id, for the blind grading page.</summary>
+    Task<BewerbungTestAssignment?> GetAssignmentByIdAsync(string assignmentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     // ---- attempt control (HRB/leadership, write guard first) ----
     Task ExtendAttemptAsync(string bewerbungId, int minutes, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task ResetAttemptAsync(string bewerbungId, string? testId, string? reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);

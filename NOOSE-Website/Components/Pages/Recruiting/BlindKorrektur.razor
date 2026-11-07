@@ -1,0 +1,171 @@
+@page "/bewerbungen/korrektur"
+@page "/bewerbungen/korrektur/{AssignmentId}"
+@attribute [Authorize(Policy = Policies.HrbOrLeadership)]
+@implements IDisposable
+@inject IBewerbungTestService TestService
+@inject BewerbungBroadcaster Broadcaster
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Anonyme Korrektur · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.VisibilityOff" Title="Anonyme Korrektur" Subtitle="@Subtitle"
+            BackHref="@(string.IsNullOrEmpty(AssignmentId) ? "/bewerbungen" : "/bewerbungen/korrektur")" />
+
+@if (_first)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (string.IsNullOrEmpty(AssignmentId))
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+        Abgegebene Tests offener Bewerbungen, die noch korrigiert werden müssen. Name und Aktenzeichen bleiben
+        verborgen, bis die Korrektur abgeschlossen ist, damit du nur die Antworten bewertest.
+    </MudText>
+
+    @if (_queue.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.TaskAlt" Title="Nichts zu korrigieren" />
+    }
+    else
+    {
+        <MudTable Items="_queue" Hover="true" Dense="true" Breakpoint="Breakpoint.None" Style="cursor:pointer;"
+                  OnRowClick="@((TableRowClickEventArgs<BlindSubmission> e) => Open(e.Item))">
+            <HeaderContent>
+                <MudTh>Abgabe</MudTh>
+                <MudTh>Test</MudTh>
+                <MudTh>Abgegeben</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Abgabe">
+                    @BlindGrading.Label(context.Code)
+                    @if (context.TimedOut)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Class="ml-1">Zeit abgelaufen</MudChip>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Test">@context.TestTitle</MudTd>
+                <MudTd DataLabel="Abgegeben">@context.CompletedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+}
+else if (_assignment is null || _eval is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Quiz" Title="Abgabe nicht gefunden" />
+}
+else
+{
+    <MudPaper Elevation="2" Class="pa-4">
+        <TestGradingView Evaluation="_eval" Attempt="_assignment" CanWrite="_canWrite" Busy="_busy"
+                         OnSetPoints="@(p => RunAsync(() => TestService.SetAwardedPointsAsync(_assignment.Id, p.QuestionId, p.Points, _user)))"
+                         OnComplete="@(() => RunAsync(() => TestService.CompleteGradingAsync(_assignment.BewerbungId, _user)))"
+                         OnReopen="@(() => RunAsync(() => TestService.ReopenGradingAsync(_assignment.BewerbungId, _user)))" />
+
+        <MudDivider Class="my-3" />
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+            @if (_nextId is not null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                           EndIcon="@Icons.Material.Filled.SkipNext" Href="@($"/bewerbungen/korrektur/{_nextId}")">
+                    Nächste Abgabe
+                </MudButton>
+            }
+            @if (_assignment.GradedAt is not null)
+            {
+                @* only once the grade is fixed, otherwise the name would sway it after all *@
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility"
+                           Href="@($"/bewerbungen/{_assignment.BewerbungId}")">
+                    Bewerbung aufdecken
+                </MudButton>
+            }
+            else
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Wer die Abgabe geschrieben hat, siehst du nach dem Abschluss der Korrektur.
+                </MudText>
+            }
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string? AssignmentId { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private string? _loadedId = "\0";
+    private bool _first = true;
+    private bool _busy;
+    private bool _canWrite;
+    private List<BlindSubmission> _queue = new();
+    private BewerbungTestAssignment? _assignment;
+    private TestEvaluation? _eval;
+    private string? _nextId;
+
+    private string Subtitle => _assignment is null
+        ? "Tests korrigieren, ohne zu wissen, von wem sie sind."
+        : $"{BlindGrading.Label(BlindGrading.CodeFor(_assignment.Id))} · {_eval?.Title}";
+
+    protected override void OnInitialized() => Broadcaster.Modified += OnModified;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == AssignmentId)
+        {
+            return;
+        }
+        _loadedId = AssignmentId;
+        _user = (await AuthStateTask).User;
+        _canWrite = _user.MayWrite();
+        _first = true;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _queue = await TestService.GetBlindQueueAsync(_user);
+        _assignment = null;
+        _eval = null;
+        if (!string.IsNullOrEmpty(AssignmentId))
+        {
+            _assignment = await TestService.GetAssignmentByIdAsync(AssignmentId, _user);
+            // a running attempt has no evaluation, so it never shows up here
+            _eval = _assignment is null ? null : await TestService.GetEvaluationAsync(_assignment.BewerbungId, _user);
+        }
+        _nextId = BlindGrading.NextAfter(_queue, AssignmentId);
+        _first = false;
+    }
+
+    private void Open(BlindSubmission? s)
+    {
+        if (s is not null)
+        {
+            Nav.NavigateTo($"/bewerbungen/korrektur/{s.AssignmentId}");
+        }
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    // any application may change the queue, so every broadcast reloads
+    private void OnModified(string bewerbungId)
+        => _ = InvokeAsync(async () => { await LoadAsync(); StateHasChanged(); });
+
+    public void Dispose() => Broadcaster.Modified -= OnModified;
+}
