@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 
 namespace NOOSE_Website.E2E;
@@ -33,7 +34,7 @@ public sealed class SectionBarTests(E2EFixture fixture)
             await page.Locator(Bar).ClickAsync();
 
             var items = page.Locator(OpenItems);
-            await items.First.WaitForAsync(new LocatorWaitForOptions { Timeout = 5_000 });
+            await items.First.WaitForAsync(new LocatorWaitForOptions { Timeout = 15_000 });
             Assert.True(await items.CountAsync() > 1, $"{detail}: die Abschnittsleiste öffnet keine Liste");
 
             // the first section that is not the current one
@@ -41,8 +42,10 @@ public sealed class SectionBarTests(E2EFixture fixture)
             var wanted = (await target.InnerTextAsync()).Trim();
             await target.ClickAsync();
 
-            await page.WaitForURLAsync(url => url.Contains("tab=", StringComparison.Ordinal), new PageWaitForURLOptions { Timeout = 5_000 });
-            await Assertions.Expect(page.Locator(Title)).Not.ToHaveTextAsync(before);
+            // the switch rewrites the address with replaceState, which is no navigation: poll the bar and the address
+            // instead of waiting for a load event, and give a slow CI runner time for the circuit round trip
+            await Assertions.Expect(page.Locator(Title)).Not.ToHaveTextAsync(before, new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex("[?&]tab="), new PageAssertionsToHaveURLOptions { Timeout = 15_000 });
             // the menu item may carry a count chip after its label; the bar shows the label alone
             var now = (await page.Locator(Title).InnerTextAsync()).Trim();
             Assert.StartsWith(now, wanted, StringComparison.Ordinal);
