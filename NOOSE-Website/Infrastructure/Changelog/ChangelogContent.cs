@@ -705,6 +705,9 @@ public static class ChangelogContent
                 + "hinter deinem Profilbild.", "Bedienung"),
             Neu("3.0.37-handy-spalten", "In Listen wählst du auf dem Handy über „Spalten“, welche Spalten stehen bleiben. "
                 + "Die Wahl bleibt gespeichert, am Rechner siehst du weiter alle.", "Bedienung"),
+            Besser("3.0.38-bewerbungen-uebersicht", "Die Bewerbungsliste hat jetzt einen Reiter je Schritt, auch für "
+                + "ausstehende und absolvierte Tests. Eine Spalte zeigt den Stand des Tests, und du filterst danach, ob "
+                + "gestreamt werden darf.", "Bewerbungen"),
         ]),
     ];
 }
