@@ -103,7 +103,7 @@ else
                 }
                 else
                 {
-                    <MudTh Class="@Col("dienstgrad")"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)">Dienstgrad</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("dienstgrad")"><MudTableSortLabel T="Agent" SortBy="@(x => x.Rank)" InitialDirection="SortDirection.Descending">Dienstgrad</MudTableSortLabel></MudTh>
                     <MudTh Class="@Col("status")"><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
                     <MudTh Class="@Col("abteilung")"><MudTableSortLabel T="Agent" SortBy="@(x => UnitLabel(x))">Abteilung</MudTableSortLabel></MudTh>
                     <MudTh Class="@Col("hrb")"><MudTableSortLabel T="Agent" SortBy="@(x => x.IsHRB)">@DepartmentRules.ColumnLabel</MudTableSortLabel></MudTh>
