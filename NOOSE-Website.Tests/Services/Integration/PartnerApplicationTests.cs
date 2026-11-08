@@ -144,4 +144,28 @@ public sealed class PartnerApplicationTests
         Assert.Equal(AgentStatus.Active, untouched.Status);
         Assert.Equal(PartnerAgency.DoJ, untouched.PartnerAgency);
     }
+
+    /// <summary>A citizen account holds no agency rights, so an invite alone turns it into a pending agent.</summary>
+    [Fact]
+    public async Task Redeeming_an_invite_converts_a_citizen_into_a_pending_agent()
+    {
+        using var ctx = new SqliteTestContext();
+        await using var db = ctx.NewContext();
+        db.Users.Add(Seed.Agent("citizen-1", Rank.Trainee, configure: a => a.Status = AgentStatus.Civilian));
+        db.AgentInvites.Add(new NOOSE_Website.Data.Entities.Recruiting.AgentInvite
+        {
+            Token = "token-1",
+            ExpiresAt = DateTime.UtcNow.AddDays(1),
+            CreatedByName = "HRB",
+        });
+        await db.SaveChangesAsync();
+
+        var svc = new AgentInviteService(ctx.Factory, BuildUserManager(db));
+        Assert.True(await svc.RedeemForExistingAsync("token-1", "citizen-1"));
+
+        var converted = await ctx.NewContext().Users.SingleAsync(u => u.Id == "citizen-1");
+        Assert.Equal(AgentStatus.Pending, converted.Status);
+        var invite = await ctx.NewContext().AgentInvites.SingleAsync();
+        Assert.Equal("citizen-1", invite.UsedByUserId);
+    }
 }
