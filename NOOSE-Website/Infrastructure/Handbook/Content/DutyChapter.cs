@@ -193,6 +193,11 @@ internal static class DutyChapter
                 <em>CID</em>, <em>CTD</em> oder <em>HRT</em>. Ohne Chip gilt er für das ganze FIB. Unter jedem
                 Absatz steht, welche Fassung gilt und ab wann, etwa <em>Fassung 3 ·
                 gültig ab …</em>.</p>
+                <p>Über der Leiste steht das <strong>Suchfeld</strong>. Ab zwei Zeichen zeigt die Seite statt der
+                Leiste alle Absätze, die passen, nach Abschnitten geordnet, und hebt die Fundstellen hervor.
+                Gesucht wird in Überschriften, Abschnittstiteln und im Text. Jedes Wort muss vorkommen,
+                Groß- und Kleinschreibung und Umlaute spielen keine Rolle. <em>Im Abschnitt zeigen</em> springt
+                zum Absatz an seiner Stelle, der Link dahin lässt sich teilen.</p>
                 <p>Jeder Absatz hat eine <strong>Zielgruppe</strong>: das ganze FIB, die Administration
                 Division, die CID, die CTD oder das HRT. Wer dazugehört, muss den Absatz zur Kenntnis nehmen.
                 Was du noch offen hast, ist auf der Seite markiert und steht als Zahl am Menüeintrag und in
@@ -214,6 +219,8 @@ internal static class DutyChapter
                 [
                     new Step("Description", "Lesen",
                         "Abschnitt in der Leiste wählen. Ein Chip zeigt, für welche Einheit ein Absatz gilt."),
+                    new Step("Search", "Suchen",
+                        "Begriff ins Suchfeld tippen. „Im Abschnitt zeigen“ springt zum Absatz an seiner Stelle."),
                     new Step("DoneOutline", "Alle gelesen",
                         "Nimmt genau die Absätze zur Kenntnis, die als offen angezeigt werden. Die Zahl im Menü geht auf null."),
                     new Step("Compare", "Fassungen vergleichen",

@@ -1,10 +1,12 @@
 @page "/dienstverordnung"
+@implements IAsyncDisposable
 @attribute [Authorize(Policy = Policies.InternalAgent)]
 @inject IRegulationService RegulationService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
 @inject ILogger<RegulationPage> Logger
+@inject IJSRuntime JS
 
 <PageTitle>Dienstverordnung · FIB</PageTitle>
 
@@ -51,7 +53,18 @@ else
         </MudAlert>
     }
 
-    <RecordSectionRail>
+    <MudTextField T="string" Value="_search" ValueChanged="OnSearchChanged" Placeholder="In der Dienstverordnung suchen…"
+                  Immediate="true" DebounceInterval="250" Clearable="true" Adornment="Adornment.Start"
+                  AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Class="mb-4 noose-filter-feld" aria-label="In der Dienstverordnung suchen" />
+    @* always in the DOM, so a screen reader hears the first count too, not only later changes *@
+    <div role="status" aria-live="polite" class="noose-sr-only">@StatusText</div>
+
+    @if (_terms.Count > 0)
+    {
+        @SearchResults()
+    }
+    <RecordSectionRail @ref="_rail" Hidden="@(_terms.Count > 0)" Class="dvo-rail">
         @foreach (var section in _doc.Sections)
         {
             <RecordSection Slug="@SlugOf(section.Id)" Label="@SectionRailLabel(section)" Icon="@(section.IsPreamble ? Icons.Material.Filled.MenuBook : Icons.Material.Filled.Article)"
@@ -92,6 +105,22 @@ else
     // trash rows this reader may restore; the service decides, the button only mirrors it
     private HashSet<string> _restorable = new();
 
+    // in-page search: the document is already loaded, so the filter runs here (RegulationTextSearch)
+    private string _search = string.Empty;
+    private IReadOnlyList<string> _terms = [];
+    private List<RegulationSearchGroup> _hits = [];
+    private Dictionary<string, string> _folded = new();
+    private ElementReference _resultsRef;
+    private string? _highlighted;
+    private string? _scrollTo;
+    private string? _focusHandled;
+    private IJSObjectReference? _module;
+    private RecordSectionRail? _rail;
+
+    /// <summary>Paragraph to scroll to on arrival (<c>?tab=…&amp;absatz=…</c>); a search hit's jump links here.</summary>
+    /// <remarks>In the URL rather than a field: the jump navigates, and the page may be built anew on the way.</remarks>
+    [SupplyParameterFromQuery(Name = "absatz")] public string? FocusParagraph { get; set; }
+
     /// <summary>Rail slug of a section; the paragraph page and My Shift link back with it.</summary>
     public static string SlugOf(string sectionId) => "a-" + sectionId[..Math.Min(8, sectionId.Length)];
 
@@ -100,7 +129,8 @@ else
         : "Wie das FIB intern arbeitet";
 
     private static string SectionRailLabel(RegulationSectionView section)
-        => section.IsPreamble ? section.Title : $"{section.Number}. {section.Title}";
+        // no-break space: a wrapped label keeps its number with the first word
+        => section.IsPreamble ? section.Title : $"{section.Number}. {section.Title}";
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,9 +138,21 @@ else
         await LoadAsync();
     }
 
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(FocusParagraph) && FocusParagraph != _focusHandled)
+        {
+            _focusHandled = FocusParagraph;
+            _scrollTo = AnchorOf(FocusParagraph);
+        }
+    }
+
     private async Task LoadAsync()
     {
         _doc = await RegulationService.GetDocumentAsync(_user);
+        _folded = _doc.Sections.SelectMany(s => s.Paragraphs).Concat(_doc.Repealed)
+            .ToDictionary(p => p.Id, RegulationTextSearch.FoldedText);
+        RunSearch();
         if (RegulationRules.MayManage(_user))
         {
             var standing = RegulationStanding.Of(_user);
@@ -176,14 +218,15 @@ else
         </MudStack>
     };
 
-    private RenderFragment ParagraphBlock(RegulationParagraphRow p, RegulationSectionView? section, int index, int count) => __builder =>
+    private RenderFragment ParagraphBlock(RegulationParagraphRow p, RegulationSectionView? section, int index, int count,
+        string? jumpSlug = null) => __builder =>
     {
-        <MudPaper Outlined="true" Class="@(p.MustAcknowledge ? "pa-4 dvo-absatz dvo-absatz-offen" : "pa-4 dvo-absatz")"
+        <MudPaper Outlined="true" id="@(jumpSlug is null ? AnchorOf(p.Id) : null)" tabindex="@(jumpSlug is null ? "-1" : null)" Class="@(p.MustAcknowledge ? "pa-4 dvo-absatz dvo-absatz-offen" : "pa-4 dvo-absatz")"
                   Style="@(p.MustAcknowledge ? "border-left: 4px solid var(--mud-palette-warning);" : null)">
             <MudStack Spacing="2">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap" Spacing="2">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-                        <MudText Typo="Typo.h6">@p.Heading</MudText>
+                        <MudText Typo="Typo.h6" Class="dvo-suchbar">@p.Heading</MudText>
                         <RegulationAudienceChip Audience="@p.Audience" />
                         @if (p.MustAcknowledge)
                         {
@@ -223,15 +266,163 @@ else
                         Aufgehoben@(p.RepealedAt is { } r ? $" am {r.ToLocalTime():dd.MM.yyyy}" : string.Empty): @p.RepealReason
                     </MudText>
                 }
-                <RichHtml Html="@p.ShownHtml" User="@_user" Glossary="false" />
-                <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                    <MudLink Href="@($"/dienstverordnung/absatz/{p.Id}")" Typo="Typo.caption">
-                        Fassung @p.ShownVersion · gültig ab @p.ShownValidFrom.ToString("dd.MM.yyyy") · Verlauf und Vergleich
-                    </MudLink>
-                </MudText>
+                @* dvo-suchbar: the only text the search reads, so the only text it highlights *@
+                <div class="dvo-suchbar"><RichHtml Html="@p.ShownHtml" User="@_user" Glossary="false" /></div>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="flex-wrap" Spacing="2">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        <MudLink Href="@($"/dienstverordnung/absatz/{p.Id}")" Typo="Typo.caption">
+                            Fassung @p.ShownVersion · gültig ab @p.ShownValidFrom.ToString("dd.MM.yyyy") · Verlauf und Vergleich
+                        </MudLink>
+                    </MudText>
+                    @if (jumpSlug is not null)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="@(() => Jump(jumpSlug, p.Id))">Im Abschnitt zeigen</MudButton>
+                    }
+                </MudStack>
             </MudStack>
         </MudPaper>
     };
+
+    private static string AnchorOf(string paragraphId) => "absatz-" + paragraphId;
+
+    private RenderFragment SearchResults() => __builder =>
+    {
+        var count = _hits.Sum(g => g.Paragraphs.Count);
+        <div @ref="_resultsRef">
+            <MudStack Spacing="4">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary" aria-hidden="true">
+                    @StatusText
+                    @if (count == 0)
+                    {
+                        <span> Gesucht wird in Überschriften, Abschnittstiteln und im Text, jedes Wort muss vorkommen.</span>
+                    }
+                </MudText>
+                @foreach (var group in _hits)
+                {
+                    <MudStack Spacing="3" @key="@(group.SectionId ?? "aufgehoben")">
+                        <MudText Typo="Typo.h6" Class="dvo-suchbar">@group.Caption</MudText>
+                        @foreach (var p in group.Paragraphs)
+                        {
+                            @ParagraphBlock(p, null, 0, 0, group.SectionId is { } id ? SlugOf(id) : "aufgehoben")
+                        }
+                    </MudStack>
+                }
+            </MudStack>
+        </div>
+    };
+
+    private string StatusText
+    {
+        get
+        {
+            if (_terms.Count == 0)
+            {
+                return string.Empty;
+            }
+            var count = _hits.Sum(g => g.Paragraphs.Count);
+            return count switch
+            {
+                0 => "Kein Absatz passt zur Suche.",
+                1 => "1 Absatz passt zur Suche.",
+                _ => $"{count} Absätze passen zur Suche.",
+            };
+        }
+    }
+
+    private void OnSearchChanged(string? value)
+    {
+        _search = value ?? string.Empty;
+        RunSearch();
+    }
+
+    private void RunSearch()
+    {
+        _terms = RegulationTextSearch.Terms(_search);
+        _hits = _doc is null || _terms.Count == 0
+            ? []
+            : RegulationTextSearch.Filter(_doc, p => _folded.GetValueOrDefault(p.Id) ?? string.Empty, _search);
+    }
+
+    // leaves the search, opens the paragraph's section and scrolls to it once the rail has drawn it
+    private async Task Jump(string slug, string paragraphId)
+    {
+        _search = string.Empty;
+        RunSearch();
+        // set here, not via the query round trip: the same URL twice would not re-supply ?absatz=
+        _scrollTo = AnchorOf(paragraphId);
+        _focusHandled = paragraphId;
+        _rail?.Show(slug);
+        // both pairs in one write: QueryState builds on the lagging NavigationManager.Uri, a lone write would drop tab
+        await QueryState.WriteAsync(JS, Nav, ("tab", slug), ("absatz", paragraphId));
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        try
+        {
+            // the hit ids too: a reload can swap the paragraphs while the words and the count stay the same
+            var key = _terms.Count > 0
+                ? string.Join(' ', _terms) + "|" + string.Join(',', _hits.SelectMany(g => g.Paragraphs).Select(p => p.Id + ":" + p.ShownVersion))
+                : null;
+            if (key != _highlighted)
+            {
+                _highlighted = key;
+                _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/textsearch.js?v=3");
+                if (key is null)
+                {
+                    await _module.InvokeVoidAsync("clearHighlight");
+                }
+                else
+                {
+                    await _module.InvokeAsync<int>("highlight", _resultsRef, _terms);
+                }
+            }
+            if (!_load && _scrollTo is { } target)
+            {
+                _scrollTo = null;
+                _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/textsearch.js?v=3");
+                // the rail mounts its sections over a couple of renders; wait for the paragraph briefly
+                for (var attempt = 0; attempt < 40; attempt++)
+                {
+                    if (await _module.InvokeAsync<bool>("scrollToId", target))
+                    {
+                        break;
+                    }
+                    await Task.Delay(50);
+                }
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            /* circuit gone */
+        }
+        catch (Exception ex) when (ex is JSException or TaskCanceledException or InvalidOperationException)
+        {
+            // highlighting and scrolling are conveniences; the filtered list is already on screen
+            Logger.LogDebug(ex, "Regulation search highlight or scroll failed");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("clearHighlight");
+                await _module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                /* ignore */
+            }
+            catch (JSException)
+            {
+                /* ignore */
+            }
+        }
+    }
 
     private async Task AcknowledgeAllAsync()
     {

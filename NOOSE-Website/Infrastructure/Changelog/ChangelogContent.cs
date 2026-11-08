@@ -725,6 +725,9 @@ public static class ChangelogContent
             Neu("3.0.44-dienstverordnung", "Die Dienstverordnung ersetzt die Dienstanweisungen: Abschnitte und Absätze unter "
                 + "Wissen, jeder Absatz mit vergleichbaren Fassungen. Geänderte Absätze nimmst du mit „Alle gelesen“ zur "
                 + "Kenntnis; Menü und Meine Schicht zeigen, was offen ist. Das Handbuch erzählt die Regeln nicht mehr nach.", "Dienstbetrieb"),
+            Neu("3.0.45-dvo-suche", "In der Dienstverordnung kannst du jetzt suchen. Die Seite zeigt alle passenden "
+                + "Absätze mit hervorgehobener Fundstelle, ein Klick springt zum Absatz. Die Zahlen offener Absätze "
+                + "in der Leiste sind wieder vollständig zu sehen.", "Dienstbetrieb"),
         ]),
     ];
 }
