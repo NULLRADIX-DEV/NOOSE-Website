@@ -19,8 +19,8 @@ else
 @* Below 960px the rail is a bar pinned under the app bar: the current section, and a menu to switch, reachable
    anywhere down a long section. From 960px up both stay hidden and the rail stands beside the content as before.
    The anchor in front of the bar is where a switch scrolls to, so the new section starts at its top. *@
-<div id="@_anchorId" class="record-rail-anker noose-nur-schmal"></div>
-<MudPaper Elevation="2" Class="record-rail-leiste noose-nur-schmal">
+<div id="@_anchorId" class="@($"record-rail-anker noose-nur-schmal{HiddenClass}")"></div>
+<MudPaper Elevation="2" Class="@($"record-rail-leiste noose-nur-schmal{HiddenClass}")">
     <MudMenu FullWidth="true" RelativeWidth="DropdownWidth.Relative" MaxHeight="420" Dense="true"
              AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" AriaLabel="Abschnitt wechseln">
         <ActivatorContent>
@@ -53,7 +53,8 @@ else
         </ChildContent>
     </MudMenu>
 </MudPaper>
-<MudPaper Elevation="2" Class="d-flex flex-column flex-md-row record-rail-shell">
+@* d-none instead of d-flex, not beside it: both are !important and d-flex comes later in MudBlazor's sheet *@
+<MudPaper Elevation="2" Class="@(Hidden ? "d-none record-rail-shell" : "d-flex flex-column flex-md-row record-rail-shell")">
     <nav class="record-rail noose-schmal-aus" aria-label="Abschnitte">
         @foreach (var group in Grouped())
         {
@@ -69,13 +70,11 @@ else
                            StartIcon="@entry.Icon"
                            OnClick="@(() => ActivateAsync(entry.Slug))"
                            aria-current="@(IsActive(entry) ? "true" : null)">
+                    <span class="record-rail-label">@entry.Label</span>
                     @if (entry.Badge is > 0)
                     {
-                        <MudBadge Content="@entry.Badge" Color="Color.Primary" Overlap="false">@entry.Label</MudBadge>
-                    }
-                    else
-                    {
-                        @entry.Label
+                        @* inline pill at the right edge; a floating MudBadge sat above the label and the rail clipped it *@
+                        <span class="record-rail-badge" aria-label="@($"{entry.Badge} offen")">@entry.Badge</span>
                     }
                 </MudButton>
             }
@@ -91,6 +90,13 @@ else
 
 @code {
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Keeps the rail mounted but out of sight, e.g. while a page shows search results in its place.</summary>
+    /// <remarks>Mounted rather than removed: a rail built anew reads ?tab= from <see cref="NavigationManager.Uri"/>,
+    /// which lags behind the section the reader picked (<see cref="QueryState"/>), and would open the wrong one.</remarks>
+    [Parameter] public bool Hidden { get; set; }
+
+    private string HiddenClass => Hidden ? " d-none" : string.Empty;
 
     /// <summary>Render the lone remaining section without the rail; for pages whose others are gated away.</summary>
     [Parameter] public bool HideRailWhenSingle { get; set; }
@@ -155,6 +161,13 @@ else
     // declaration order decides both group order and the order within a group
     private IEnumerable<IGrouping<string, RecordSection>> Grouped()
         => _sections.GroupBy(s => s.Group ?? string.Empty);
+
+    /// <summary>Opens a section on behalf of the page, e.g. a search hit's jump; the page writes the address.</summary>
+    public void Show(string slug)
+    {
+        _activeSlug = slug;
+        StateHasChanged();
+    }
 
     private async Task ActivateAsync(string slug)
     {
