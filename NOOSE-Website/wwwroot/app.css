@@ -1829,6 +1829,11 @@ div.vis-tooltip {
     letter-spacing: normal;
     border-radius: 0;
     padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+/* the regulation rail: long section titles plus a badge; a little less right padding (see the width below) */
+.dvo-rail .record-rail .mud-button-root {
     padding-right: 0.75rem;
 }
 
@@ -1906,13 +1911,18 @@ div.vis-tooltip {
     }
 
     .record-rail {
-        /* 16rem: "3. Handlungsvorschriften" plus its badge and the scrollbar stay on one line */
-        width: 16rem;
+        width: 15rem;
         border-bottom: none;
         border-right: 1px solid var(--mud-palette-divider);
         overflow-y: auto;
         /* wheel past the last entry must not scroll the page underneath */
         overscroll-behavior: contain;
+    }
+
+    /* 16rem on the regulation page only: "3. Handlungsvorschriften" plus its badge and the scrollbar stay on one
+       line; every other rail keeps 15rem, the desktop comparison holds it to master */
+    .dvo-rail .record-rail {
+        width: 16rem;
     }
 
     .record-rail-content {

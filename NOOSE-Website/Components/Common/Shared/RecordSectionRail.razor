@@ -54,7 +54,7 @@ else
     </MudMenu>
 </MudPaper>
 @* d-none instead of d-flex, not beside it: both are !important and d-flex comes later in MudBlazor's sheet *@
-<MudPaper Elevation="2" Class="@(Hidden ? "d-none record-rail-shell" : "d-flex flex-column flex-md-row record-rail-shell")">
+<MudPaper Elevation="2" Class="@((Hidden ? "d-none record-rail-shell" : "d-flex flex-column flex-md-row record-rail-shell") + ShellClass)">
     <nav class="record-rail noose-schmal-aus" aria-label="Abschnitte">
         @foreach (var group in Grouped())
         {
@@ -70,11 +70,15 @@ else
                            StartIcon="@entry.Icon"
                            OnClick="@(() => ActivateAsync(entry.Slug))"
                            aria-current="@(IsActive(entry) ? "true" : null)">
-                    <span class="record-rail-label">@entry.Label</span>
                     @if (entry.Badge is > 0)
                     {
                         @* inline pill at the right edge; a floating MudBadge sat above the label and the rail clipped it *@
+                        <span class="record-rail-label">@entry.Label</span>
                         <span class="record-rail-badge" aria-label="@($"{entry.Badge} offen")">@entry.Badge</span>
+                    }
+                    else
+                    {
+                        @entry.Label
                     }
                 </MudButton>
             }
@@ -97,6 +101,12 @@ else
     [Parameter] public bool Hidden { get; set; }
 
     private string HiddenClass => Hidden ? " d-none" : string.Empty;
+
+    /// <summary>Extra classes on the rail's paper, e.g. a page that needs a wider rail for its long labels.</summary>
+    /// <remarks>Page by page on purpose: the desktop comparison holds every other rail pixel-equal to master.</remarks>
+    [Parameter] public string? Class { get; set; }
+
+    private string ShellClass => string.IsNullOrWhiteSpace(Class) ? string.Empty : " " + Class;
 
     /// <summary>Render the lone remaining section without the rail; for pages whose others are gated away.</summary>
     [Parameter] public bool HideRailWhenSingle { get; set; }

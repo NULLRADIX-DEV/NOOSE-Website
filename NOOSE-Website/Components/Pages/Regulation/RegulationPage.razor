@@ -64,7 +64,7 @@ else
     {
         @SearchResults()
     }
-    <RecordSectionRail @ref="_rail" Hidden="@(_terms.Count > 0)">
+    <RecordSectionRail @ref="_rail" Hidden="@(_terms.Count > 0)" Class="dvo-rail">
         @foreach (var section in _doc.Sections)
         {
             <RecordSection Slug="@SlugOf(section.Id)" Label="@SectionRailLabel(section)" Icon="@(section.IsPreamble ? Icons.Material.Filled.MenuBook : Icons.Material.Filled.Article)"
