@@ -1958,6 +1958,14 @@ div.vis-tooltip {
         overflow: hidden;
     }
 
+    /* a rail kept mounted but hidden (RecordSectionRail.Hidden, the regulation search) holds no scroll box, so the
+       page scrolls normally again; two classes in :has() outrank the rule above */
+    .mud-container:has(.record-rail-shell.d-none) {
+        display: block;
+        height: auto;
+        overflow: visible;
+    }
+
     .mud-container:has(.record-rail-shell) > .record-rail-shell,
     .mud-container:has(.record-rail-shell) > .mud-grid {
         flex: 1 1 auto;
