@@ -28,7 +28,8 @@ public sealed class DiscordReadyHandler(DiscordCommandRegistrar registrar, Disco
             }
             catch (Exception ex)
             {
-                logger.LogWarning("Discord command registration failed ({Error}).", ex.GetType().Name);
+                status.Fail("Befehle registrieren", ex);
+                logger.LogWarning("Discord command registration failed: {Error}", DiscordBotStatus.Describe(ex));
             }
         });
         return ValueTask.CompletedTask;
@@ -83,9 +84,9 @@ public sealed class DiscordBotWorker(
         try
         {
             await Task.WhenAll(ConnectAsync(stoppingToken),
-                LoopAsync(PresenceEvery, UpdatePresenceAsync, stoppingToken),
-                LoopAsync(WantedEvery, UpdateWantedBoardAsync, stoppingToken),
-                LoopAsync(CommandsEvery, UpdateCommandsBoardAsync, stoppingToken),
+                LoopAsync("Status", PresenceEvery, UpdatePresenceAsync, stoppingToken),
+                LoopAsync("Fahndungstafel", WantedEvery, UpdateWantedBoardAsync, stoppingToken),
+                LoopAsync("Befehlsliste", CommandsEvery, UpdateCommandsBoardAsync, stoppingToken),
                 AlarmLoopAsync(stoppingToken));
         }
         finally
@@ -127,7 +128,7 @@ public sealed class DiscordBotWorker(
         await base.StopAsync(cancellationToken);
     }
 
-    private async Task LoopAsync(TimeSpan every, Func<IServiceProvider, CancellationToken, Task> work, CancellationToken stoppingToken)
+    private async Task LoopAsync(string step, TimeSpan every, Func<IServiceProvider, CancellationToken, Task> work, CancellationToken stoppingToken)
     {
         // let the gateway connect first
         await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
@@ -143,8 +144,8 @@ public sealed class DiscordBotWorker(
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
             {
-                status.LastError = ex.GetType().Name;
-                logger.LogWarning("Discord bot worker step failed ({Error}).", ex.GetType().Name);
+                status.Fail(step, ex);
+                logger.LogWarning("Discord bot step {Step} failed: {Error}", step, DiscordBotStatus.Describe(ex));
             }
             await Task.Delay(every, stoppingToken);
         }
@@ -336,7 +337,8 @@ public sealed class DiscordBotWorker(
                 }
                 catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {
-                    logger.LogWarning("Discord alarm board failed ({Error}).", ex.GetType().Name);
+                    status.Fail("Alarmtafel", ex);
+                    logger.LogWarning("Discord alarm board failed: {Error}", DiscordBotStatus.Describe(ex));
                 }
             }
         }

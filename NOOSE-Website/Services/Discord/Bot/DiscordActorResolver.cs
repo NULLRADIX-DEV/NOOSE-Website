@@ -97,4 +97,18 @@ public sealed class DiscordBotStatus
     public int RegisteredCommands { get; set; }
     public DateTime? RegisteredAt { get; set; }
     public string? LastError { get; set; }
+
+    /// <summary>Which step failed and why, as Discord said it; shown on the settings page.</summary>
+    public void Fail(string step, Exception ex) => LastError = $"{step}: {Describe(ex)}";
+
+    /// <summary>
+    /// "403 Missing Access (50001)" instead of just "RestException": the status and Discord's own error say
+    /// whether a right is missing or the message was refused. Discord's error texts carry no secrets.
+    /// </summary>
+    public static string Describe(Exception ex) => ex switch
+    {
+        NetCord.Rest.RestException rest => $"{(int)rest.StatusCode} {rest.Error?.Message ?? rest.ReasonPhrase}"
+            + (rest.Error is { } error ? $" ({error.Code})" : ""),
+        _ => ex.GetType().Name,
+    };
 }
