@@ -71,6 +71,11 @@
             </div>
         }
 
+        @if (User is not null)
+        {
+            <PersonKeeperBlock PersonId="@Person.Id" User="User" />
+        }
+
         <MudDivider />
 
         <MudStack Spacing="1">

@@ -73,6 +73,8 @@ public class DiscordWebhookModelsTests
         NotificationType.EmergencyAlarmByAgent,
         // the regulation never leaves the house
         NotificationType.RegulationChanged,
+        // who keeps which record is internal work
+        NotificationType.RecordKeeperAssigned,
     };
 
     // ----- IsRoutable: true branch -----

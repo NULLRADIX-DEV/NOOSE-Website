@@ -743,6 +743,9 @@ public static class ChangelogContent
             Neu("3.0.50-discord-fraktionstafel", "Eine angepinnte Fraktionstafel zeigt in Discord, welche Fraktion gerade "
                 + "die gefährlichste ist, mit Bedrohung, Routen und den fünf Fraktionen dahinter. Sie aktualisiert sich "
                 + "von selbst.", "Discord"),
+            Neu("3.0.51-aktenfuehrer", "Personenakten haben jetzt einen Aktenführer und eine Vertretung. Eine Akte ohne "
+                + "Aktenführer übernimmst du mit einem Klick auf der Steckkarte, und Meine Schicht zeigt dir, welche deiner "
+                + "Akten veralten.", "Akten"),
         ]),
     ];
 }

@@ -56,6 +56,7 @@ public static class NotificationMutes
             NotificationType.RequestDecided,
             NotificationType.ThreatSpike,
             NotificationType.HandoverReceived,
+            NotificationType.RecordKeeperAssigned,
         ]),
         new("Termine und Besprechungen", MudBlazor.Icons.Material.Filled.Event,
         [

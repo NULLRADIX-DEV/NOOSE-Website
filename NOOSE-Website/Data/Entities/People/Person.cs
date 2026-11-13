@@ -87,6 +87,14 @@ public class Person : IAuditable, ISoftDelete, IClassifiableRecord, IArchivable
     [Column("ScoreBerechnetAm")]
     public DateTime? ScoreCalculatedAt { get; set; }
 
+    /// <summary>Agent in charge of keeping the record current; set through IRecordKeeperService only.</summary>
+    [Column("AktenfuehrerId")]
+    public string? KeeperId { get; set; }
+
+    /// <summary>Stands in for the keeper; never the keeper themselves.</summary>
+    [Column("VertretungId")]
+    public string? DeputyId { get; set; }
+
     public List<PersonAlias> Aliases { get; set; } = new();
     public List<PersonPhone> PhoneNumbers { get; set; } = new();
     public List<PersonVehicle> Vehicles { get; set; } = new();

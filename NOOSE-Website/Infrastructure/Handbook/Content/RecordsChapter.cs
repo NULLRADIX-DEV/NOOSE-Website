@@ -407,6 +407,26 @@ internal static class RecordsChapter
                 <p>Eine rote Ampel ist kein Vorwurf, sondern eine Arbeitsanweisung.</p>
                 """),
 
+            new Article("art-aktenfuehrer", "aktenfuehrer", "Der Aktenführer",
+                "Wer eine Personenakte aktuell hält - und wie du eine übernimmst.",
+                """
+                <p>Jede Personenakte kann einen <strong>Aktenführer</strong> und eine <strong>Vertretung</strong>
+                haben. Der Aktenführer hält die Akte aktuell, die Vertretung springt ein, wenn er abwesend ist. Du
+                siehst beide links auf der Steckkarte der Akte unter <em>Aktenführung</em>.</p>
+                <p>Hat eine Akte keinen Aktenführer, kannst du sie mit <em>Übernehmen</em> selbst führen. Mit
+                <em>Abgeben</em> trittst du zurück; bist du Aktenführer und gibt es eine Vertretung, rückt sie
+                nach. Wer Aktenführer und Vertretung ändert, entscheidet die Führung oder der Aktenführer selbst
+                über <em>Ändern</em>. Wer neu eingetragen wird, bekommt eine Benachrichtigung.</p>
+                <p>Bei Fraktionen, Personengruppen und Parteien übernimmt der <strong>Ermittlungsleiter</strong>
+                diese Rolle, bei Vorgängen der <strong>Fallführer</strong>. Alle Akten, die du so führst, stehen
+                in <em>Meine Schicht</em> unter <em>Meine Akten</em>, sobald ihre Ampel gelb oder rot wird. In der
+                Personenliste zeigt der Filter <em>Aktenführer</em> deine Akten oder alle, die noch niemand
+                führt.</p>
+                <p>Eine neue Zuteilung setzt die Ampel nicht zurück: sie misst weiter, wann zuletzt jemand an der
+                Akte gearbeitet hat. Scheidet ein Agent aus, übergibt die Führung seine Akten mit dem Rest seiner
+                Arbeit an einen Nachfolger.</p>
+                """),
+
             new Article("art-papierkorb", "papierkorb", "Der Papierkorb",
                 "Gelöschtes ist nicht weg - und wie du es zurückholst.",
                 """
