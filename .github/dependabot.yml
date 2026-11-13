@@ -29,6 +29,10 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # the app targets net10.0; a new .NET major needs a TargetFramework change, not just a new image
+      - dependency-name: "*dotnet/*"
+        update-types: ["version-update:semver-major"]
     groups:
       base-images:
         patterns: ["*"]
