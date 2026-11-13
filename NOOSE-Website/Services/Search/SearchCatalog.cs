@@ -486,6 +486,7 @@ public static class SearchCatalog
             ["FactionDrugRoute"] = "Bestandszeile; die Fraktionsakte trägt den Text.",
             ["ClassificationHistory"] = "Einstufungs-Verlauf; die Akte selbst ist durchsuchbar.",
             ["AgentRankHistory"] = "Dienstgrad-Verlauf; die Personalakte ist durchsuchbar.",
+            ["AgentEvaluation"] = "Beurteilungen liest nur der Agent selbst und die Personalseite; die Suche würde sie allen zeigen.",
             ["AgentPromotionRequest"] = "Beförderungsantrag; die Personalakte ist durchsuchbar.",
             ["FirearmUse"] = "Meldung eines Schusswaffengebrauchs; gelesen wird sie auf /schusswaffengebrauch und in der "
                 + "eigenen Personalakte, eine Volltextsuche über Begründungen wäre ein Verzeichnis, wer wann geschossen hat.",

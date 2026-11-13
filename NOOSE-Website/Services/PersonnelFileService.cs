@@ -107,6 +107,66 @@ public class PersonnelFileService(IDbContextFactory<AppDbContext> dbFactory, IDi
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<List<AgentEvaluation>> GetEvaluationsAsync(string agentId, ClaimsPrincipal viewer,
+        CancellationToken cancellationToken = default)
+    {
+        if (!EvaluationRules.MayRead(viewer, agentId))
+        {
+            return new();
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await db.AgentEvaluations
+            .Where(e => e.AgentId == agentId)
+            .OrderByDescending(e => e.EntryDate)
+            .ThenByDescending(e => e.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<AgentEvaluation> EvaluationCreateAsync(string agentId, string? title, EvaluationGrade grade,
+        DateTime entryDate, string text, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireHrbOrLeadershipWrite(actor);
+        EvaluationRules.RequireValidGrade(grade);
+        var cleanTitle = EvaluationRules.CleanTitle(title, entryDate);
+        var content = NormalizeHtml(text);
+        if (string.IsNullOrEmpty(content))
+        {
+            throw new InvalidOperationException("Die Beurteilung braucht einen Text.");
+        }
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        if (!await db.Users.AnyAsync(u => u.Id == agentId, cancellationToken))
+        {
+            throw new InvalidOperationException("Der gewählte Agent wurde nicht gefunden.");
+        }
+
+        var evaluation = new AgentEvaluation
+        {
+            AgentId = agentId,
+            Title = cleanTitle,
+            Grade = grade,
+            EntryDate = entryDate,
+            Text = content,
+            AuthorName = actor.GetCodename(),
+        };
+        db.AgentEvaluations.Add(evaluation);
+        await db.SaveChangesAsync(cancellationToken);
+        return evaluation;
+    }
+
+    public async Task EvaluationDeleteAsync(string evaluationId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireHrbOrLeadershipWrite(actor);
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var evaluation = await db.AgentEvaluations.FirstOrDefaultAsync(e => e.Id == evaluationId, cancellationToken);
+        if (evaluation is null)
+        {
+            return;
+        }
+        db.AgentEvaluations.Remove(evaluation);
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<List<AgentPromotionRequest>> GetPromotionRequestsAsync(string agentId, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);

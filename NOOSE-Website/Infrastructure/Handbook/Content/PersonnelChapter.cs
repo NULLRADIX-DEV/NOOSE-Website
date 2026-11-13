@@ -25,8 +25,14 @@ internal static class PersonnelChapter
                 überschreiben, wenn <em>Verweis</em> oder <em>Ermahnung</em> genauer trifft. Welche Maßnahme wer
                 verhängen darf, prüft die Seite nicht - das regelt die <em>Dienstverordnung</em> (Menü
                 <em>Wissen</em>).</p>
+                <p>Dienstliche <strong>Beurteilungen</strong> stehen nicht unter den Vermerken, sondern im eigenen
+                Reiter <em>Beurteilungen</em>: ein Titel (vorbelegt mit <em>Beurteilung vom</em> und dem Datum),
+                eine Note von 1 (sehr gut) bis 5 (ungenügend) und ein Text. Den Reiter sehen nur der Agent selbst,
+                die Führung, die Administration Division und die Aufsicht; eintragen und löschen dürfen Führung und
+                Administration Division. Liegt die letzte Beurteilung mehr als vier Wochen zurück, weist der Reiter
+                darauf hin.</p>
                 <p>Die Akte ist in <strong>Reiter</strong> gegliedert: <em>Dienstaufsicht</em> (vorn, für die
-                Führung), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beförderungen</em>,
+                Führung), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beurteilungen</em>, <em>Beförderungen</em>,
                 <em>Finanzierung</em>, <em>KI-Kontingent</em>, <em>Module</em>, <em>Auszeichnungen</em>,
                 <em>Entführungen</em>, <em>Schusswaffengebrauch</em> und <em>Kommentare</em>. Oben auf der Akte
                 stehen die Knöpfe für Dienstausweis, Druckansicht und - wenn jemand geht - <em>Arbeit

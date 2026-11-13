@@ -24,6 +24,7 @@ public static class RichTextImageFields
         [typeof(MeetingAgendaItem)] = ["NotesHtml"],
         [typeof(Announcement)] = ["Content"],
         [typeof(AgentNote)] = ["Text"],
+        [typeof(AgentEvaluation)] = ["Text"],
         [typeof(PresentationSlide)] = ["BodyHtml"],
     };
 
