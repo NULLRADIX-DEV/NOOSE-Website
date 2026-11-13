@@ -94,6 +94,17 @@ public static class BotCommandCatalog
         new MessageCommandProperties(AttachToRecord) { Contexts = Where, IntegrationTypes = Install },
     ];
 
+    /// <summary>How the command list in Discord groups the commands; every command belongs to exactly one section.</summary>
+    public static readonly IReadOnlyList<(string Emoji, string Title, string[] Names)> Sections =
+    [
+        ("📁", "Akten", ["akte", "fahndung", "kopfgeld", "suche", "fraktion", "route"]),
+        ("📚", "Wissen", ["gesetz", "dvo", "fibi", "lage", "funk"]),
+        ("🗂️", "Mein Dienst", ["fib", "abmeldung", "termine", "quittieren", "aufgaben", "wiedervorlagen"]),
+        ("🎖️", "Führung", ["agent", "abgemeldet", "offen", "inaktiv"]),
+        ("✍️", "Erfassen", ["notiz", "wiedervorlage", "aufgabe", "schusswaffe", "alarm"]),
+        ("🖱️", "Rechtsklick-Menü", [AgentProfile, AttachToRecord]),
+    ];
+
     public static IEnumerable<string> SlashNames() => All().OfType<SlashCommandProperties>().Select(c => c.Name);
 
     private static SlashCommandProperties Slash(string name, string description, params ApplicationCommandOptionProperties[] options)

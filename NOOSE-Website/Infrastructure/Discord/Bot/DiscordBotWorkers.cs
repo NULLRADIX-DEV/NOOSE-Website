@@ -68,6 +68,8 @@ public sealed class DiscordBotWorker(
 {
     private static readonly TimeSpan PresenceEvery = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan WantedEvery = TimeSpan.FromMinutes(2);
+    // the list only changes with a deploy or a new channel; the check is local, Discord is only called on a change
+    private static readonly TimeSpan CommandsEvery = TimeSpan.FromMinutes(1);
 
     private readonly System.Threading.Channels.Channel<string> _alarmQueue = System.Threading.Channels.Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
     private string? _presence;
@@ -83,6 +85,7 @@ public sealed class DiscordBotWorker(
             await Task.WhenAll(ConnectAsync(stoppingToken),
                 LoopAsync(PresenceEvery, UpdatePresenceAsync, stoppingToken),
                 LoopAsync(WantedEvery, UpdateWantedBoardAsync, stoppingToken),
+                LoopAsync(CommandsEvery, UpdateCommandsBoardAsync, stoppingToken),
                 AlarmLoopAsync(stoppingToken));
         }
         finally
@@ -222,6 +225,91 @@ public sealed class DiscordBotWorker(
         }
         catch { /* no pin right */ }
         await boards.SetWantedBoardAsync(channel, message.Id, card.Hash, ct);
+    }
+
+    /// <summary>
+    /// Keeps the command list in its channel: one message per section, edited in place when a command changed,
+    /// posted anew when the channel or the number of sections changed or a message was deleted by hand.
+    /// </summary>
+    private async Task UpdateCommandsBoardAsync(IServiceProvider services, CancellationToken ct)
+    {
+        var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
+        var boards = services.GetRequiredService<DiscordLiveBoards>();
+        var stored = await boards.GetCommandsBoardAsync(ct);
+        var (messages, hash) = BotCommandHelp.Render();
+
+        if (stored is { } old && (old.Channel != settings.CommandsChannelId || old.Messages.Count != messages.Count))
+        {
+            await DeleteAllAsync(old.Channel, old.Messages, ct);
+            await boards.ClearCommandsBoardAsync(ct);
+            stored = null;
+        }
+        if (settings.CommandsChannelId is not { } channel)
+        {
+            return;
+        }
+        if (stored is { } current)
+        {
+            if (current.Hash == hash)
+            {
+                return;
+            }
+            try
+            {
+                for (var i = 0; i < messages.Count; i++)
+                {
+                    var components = messages[i].Components;
+                    await client.Rest.ModifyMessageAsync(current.Channel, current.Messages[i], m =>
+                    {
+                        m.Components = components;
+                        m.Flags = MessageFlags.IsComponentsV2;
+                        m.AllowedMentions = AllowedMentionsProperties.None;
+                    }, cancellationToken: ct);
+                }
+                await boards.SetCommandsBoardAsync(current.Channel, current.Messages, hash, ct);
+                return;
+            }
+            catch (RestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound || ex.Error?.Code == 10008)
+            {
+                // one was deleted by hand: post the whole list again so the order stays right
+                await DeleteAllAsync(current.Channel, current.Messages, ct);
+                await boards.ClearCommandsBoardAsync(ct);
+            }
+        }
+
+        var posted = new List<ulong>();
+        try
+        {
+            foreach (var card in messages)
+            {
+                var message = await client.Rest.SendMessageAsync(channel, new MessageProperties
+                {
+                    Components = card.Components,
+                    Flags = MessageFlags.IsComponentsV2,
+                    AllowedMentions = AllowedMentionsProperties.None,
+                }, cancellationToken: ct);
+                posted.Add(message.Id);
+            }
+        }
+        catch
+        {
+            // a half list would stay forever: take it down, the next round tries again
+            await DeleteAllAsync(channel, posted, ct);
+            throw;
+        }
+        await boards.SetCommandsBoardAsync(channel, posted, hash, ct);
+    }
+
+    private async Task DeleteAllAsync(ulong channel, IEnumerable<ulong> messages, CancellationToken ct)
+    {
+        foreach (var message in messages)
+        {
+            try
+            {
+                await client.Rest.DeleteMessageAsync(channel, message, cancellationToken: ct);
+            }
+            catch { /* already gone */ }
+        }
     }
 
     private async Task AlarmLoopAsync(CancellationToken stoppingToken)

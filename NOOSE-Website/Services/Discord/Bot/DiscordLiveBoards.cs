@@ -166,6 +166,33 @@ public sealed class DiscordLiveBoards(
 
     public Task ClearWantedBoardAsync(CancellationToken ct) => WriteAsync(SystemSettingKeys.DiscordBotWantedBoardState, null, ct);
 
+    // ---------------------------------------------------------------- command list
+
+    /// <summary>Channel, message ids in posting order and hash of the command list, or null.</summary>
+    public async Task<(ulong Channel, IReadOnlyList<ulong> Messages, string Hash)?> GetCommandsBoardAsync(CancellationToken ct)
+    {
+        var parts = (await ReadAsync(SystemSettingKeys.DiscordBotCommandsBoardState, ct))?.Split('|');
+        if (parts is not { Length: 3 } || !ulong.TryParse(parts[0], out var channel))
+        {
+            return null;
+        }
+        var messages = new List<ulong>();
+        foreach (var id in parts[1].Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (!ulong.TryParse(id, out var message))
+            {
+                return null;
+            }
+            messages.Add(message);
+        }
+        return (channel, messages, parts[2]);
+    }
+
+    public Task SetCommandsBoardAsync(ulong channel, IEnumerable<ulong> messages, string hash, CancellationToken ct)
+        => WriteAsync(SystemSettingKeys.DiscordBotCommandsBoardState, $"{channel}|{string.Join(",", messages)}|{hash}", ct);
+
+    public Task ClearCommandsBoardAsync(CancellationToken ct) => WriteAsync(SystemSettingKeys.DiscordBotCommandsBoardState, null, ct);
+
     // ---------------------------------------------------------------- storage
 
     private static (ulong, ulong, string)? Parse(string? value)
@@ -176,7 +203,7 @@ public sealed class DiscordLiveBoards(
             : null;
     }
 
-    private static string Hash(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..16];
+    internal static string Hash(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..16];
 
     private async Task<string?> ReadAsync(string key, CancellationToken ct)
     {

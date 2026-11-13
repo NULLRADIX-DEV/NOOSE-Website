@@ -1,4 +1,4 @@
-@* Discord bot: switch, live board channels, share channels, link preview, gateway status and command registration. Admins edit, leadership reads. *@
+@* Discord bot: switch, live board and command list channels, share channels, link preview, gateway status and command registration. Admins edit, leadership reads. *@
 @using NOOSE_Website.Services.Discord.Bot
 @inject IDiscordBotSettingsService BotSettings
 @inject DiscordBotStatus BotStatus
@@ -69,6 +69,11 @@ else
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
                 Eine angepinnte Nachricht mit den Gesuchten (ohne Verschlusssachen) und den höchsten Kopfgeldern, alle zwei Minuten aktuell.
             </MudText>
+            <MudTextField T="string" @bind-Value="_commandsChannel" Label="Kanal-ID der Befehlsliste" Variant="Variant.Outlined"
+                          Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
+                Alle Befehle mit Aufruf, Zweck und Feldern, nach Bereichen getrennt. Ändert sich ein Befehl, passt der Bot die Liste von selbst an.
+            </MudText>
             <MudTextField T="string" @bind-Value="_shareChannels" Label="Teilen nur in diesen Kanälen" Variant="Variant.Outlined"
                           Disabled="@(!_mayEdit)" Lines="2" Class="mb-1" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
@@ -101,6 +106,7 @@ else
     private string? _alarmChannel;
     private string? _wantedChannel;
     private string? _shareChannels;
+    private string? _commandsChannel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,6 +126,7 @@ else
             _alarmChannel = settings.AlarmChannelId?.ToString();
             _wantedChannel = settings.WantedChannelId?.ToString();
             _shareChannels = string.Join(", ", settings.ShareChannelIds);
+            _commandsChannel = settings.CommandsChannelId?.ToString();
         }
         catch (Exception ex)
         {
@@ -142,7 +149,8 @@ else
         {
             await BotSettings.SaveAsync(new DiscordBotSettings(_enabled,
                 DiscordBotSettingsService.ParseId(_alarmChannel), DiscordBotSettingsService.ParseId(_wantedChannel),
-                DiscordBotSettingsService.ParseIds(_shareChannels), _linkPreview), _user);
+                DiscordBotSettingsService.ParseIds(_shareChannels), _linkPreview,
+                DiscordBotSettingsService.ParseId(_commandsChannel)), _user);
             Snackbar.Add("Gespeichert.", Severity.Success);
             await LoadAsync();
         }

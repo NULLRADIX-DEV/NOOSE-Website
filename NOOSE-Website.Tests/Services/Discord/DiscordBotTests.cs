@@ -162,6 +162,41 @@ public class DiscordBotTests
     }
 
     [Fact]
+    public void The_command_list_shows_every_command_once()
+    {
+        var listed = BotCommandCatalog.Sections.SelectMany(s => s.Names).ToList();
+        Assert.Equal(listed.Count, listed.Distinct().Count());
+        Assert.Equal(BotCommandCatalog.All().Select(c => c.Name).Order(), listed.Order());
+    }
+
+    [Fact]
+    public void The_command_list_explains_usage_and_fits_Discord()
+    {
+        var (messages, hash) = BotCommandHelp.Render();
+        Assert.Equal(BotCommandCatalog.Sections.Count, messages.Count);
+        Assert.Equal(hash, BotCommandHelp.Render().Hash);
+
+        var akte = BotCommandHelp.Entry(BotCommandCatalog.All().First(c => c.Name == "akte"));
+        Assert.Contains("`/akte suche:… [teilen]`", akte);
+        Assert.Contains("`suche`: Name oder Aktenzeichen (Pflicht, mit Vorschlägen)", akte);
+        var absence = BotCommandHelp.Entry(BotCommandCatalog.All().First(c => c.Name == "abmeldung"));
+        Assert.Contains("`/abmeldung neu von:… bis:… [art] [grund]`", absence);
+        Assert.Contains("`/abmeldung beenden`", absence);
+        Assert.Contains("Auswahl: Urlaub, Arbeit, Krank, RP-Pause, Sonstiges", absence);
+        Assert.Contains("`grund`: Grund (optional)", absence);
+        Assert.DoesNotContain("(optional) (optional)", absence);
+
+        foreach (var message in messages)
+        {
+            var text = string.Concat(message.Components.OfType<ComponentContainerProperties>()
+                .SelectMany(c => c.Components).OfType<TextDisplayProperties>().Select(t => t.Content));
+            Assert.InRange(text.Length, 1, DiscordCards.MaxText - 100);
+            // FitText cuts with an ellipsis; a cut list would hide commands
+            Assert.DoesNotContain("…", text.Replace("feld:…", "").Replace(":…", ""));
+        }
+    }
+
+    [Fact]
     public void Shareable_commands_all_have_the_share_option()
     {
         foreach (var slash in BotCommandCatalog.All().OfType<SlashCommandProperties>())
