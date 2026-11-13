@@ -83,6 +83,12 @@ public static class SystemSettingKeys
     /// <summary>Channel id of the pinned live wanted board; unset means no board.</summary>
     public const string DiscordBotWantedChannel = "DiscordBotFahndungKanal";
 
+    /// <summary>Channel id of the pinned faction board (most dangerous faction first); unset means no board.</summary>
+    public const string DiscordBotFactionChannel = "DiscordBotFraktionKanal";
+
+    /// <summary>The faction board's message as "channelId|messageId|hash"; worker state, not user-edited.</summary>
+    public const string DiscordBotFactionBoardState = "DiscordBotFraktionTafel";
+
     /// <summary>Channel id of the self-updating command list; unset means no list.</summary>
     public const string DiscordBotCommandsChannel = "DiscordBotBefehleKanal";
 

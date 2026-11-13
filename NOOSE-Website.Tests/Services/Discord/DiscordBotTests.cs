@@ -197,6 +197,39 @@ public class DiscordBotTests
     }
 
     [Fact]
+    public void The_faction_board_leads_with_the_most_dangerous_faction()
+    {
+        var now = new DateTime(2026, 11, 13, 12, 0, 0, DateTimeKind.Utc);
+        FactionBoardEntry Entry(string id, string name, int score) => new(id, name, "FIB-F-" + id, score, null, null, []);
+        var ordered = new List<FactionBoardEntry>
+        {
+            new("1", "Los Santos Vagos", "FIB-F-1", 82, "Gang", 40, ["Hafenroute"]),
+            Entry("2", "Ballas", 61),
+            Entry("3", "Marabunta", 30),
+        };
+
+        var board = DiscordLiveBoards.RenderFactions(ordered, "https://fibhq.com", now);
+        var text = BoardText(board);
+        Assert.Contains("## Los Santos Vagos", text);
+        Assert.Contains("Bedrohung 82/100", text);
+        Assert.Contains("~40 Mitglieder", text);
+        Assert.Contains("Hafenroute", text);
+        Assert.Contains("**2.**", text);
+        Assert.Contains("Ballas", text);
+        Assert.True(text.IndexOf("Los Santos Vagos", StringComparison.Ordinal) < text.IndexOf("Ballas", StringComparison.Ordinal));
+
+        // the time stamp alone never causes an edit, a changed score does
+        Assert.Equal(board.Hash, DiscordLiveBoards.RenderFactions(ordered, "https://fibhq.com", now.AddHours(3)).Hash);
+        var changed = ordered.Select(f => f.Id == "2" ? f with { Score = 62 } : f).ToList();
+        Assert.NotEqual(board.Hash, DiscordLiveBoards.RenderFactions(changed, "https://fibhq.com", now).Hash);
+
+        Assert.Contains("keine Fraktion", BoardText(DiscordLiveBoards.RenderFactions([], "https://fibhq.com", now)));
+    }
+
+    private static string BoardText(BoardCard board) => string.Concat(board.Components.OfType<ComponentContainerProperties>()
+        .SelectMany(c => c.Components).OfType<TextDisplayProperties>().Select(t => t.Content + "\n"));
+
+    [Fact]
     public void Shareable_commands_all_have_the_share_option()
     {
         foreach (var slash in BotCommandCatalog.All().OfType<SlashCommandProperties>())

@@ -69,6 +69,11 @@ else
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
                 Eine angepinnte Nachricht mit den Gesuchten (ohne Verschlusssachen) und den höchsten Kopfgeldern, alle zwei Minuten aktuell.
             </MudText>
+            <MudTextField T="string" @bind-Value="_factionChannel" Label="Kanal-ID der Fraktionstafel" Variant="Variant.Outlined"
+                          Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
+                Eine angepinnte Nachricht mit der gefährlichsten Fraktion nach Bedrohungs-Score und den fünf dahinter (ohne Verschlusssachen, Staatsfraktionen und Archiv), alle zwei Minuten aktuell.
+            </MudText>
             <MudTextField T="string" @bind-Value="_commandsChannel" Label="Kanal-ID der Befehlsliste" Variant="Variant.Outlined"
                           Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
@@ -107,6 +112,7 @@ else
     private string? _wantedChannel;
     private string? _shareChannels;
     private string? _commandsChannel;
+    private string? _factionChannel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -127,6 +133,7 @@ else
             _wantedChannel = settings.WantedChannelId?.ToString();
             _shareChannels = string.Join(", ", settings.ShareChannelIds);
             _commandsChannel = settings.CommandsChannelId?.ToString();
+            _factionChannel = settings.FactionChannelId?.ToString();
         }
         catch (Exception ex)
         {
@@ -150,7 +157,7 @@ else
             await BotSettings.SaveAsync(new DiscordBotSettings(_enabled,
                 DiscordBotSettingsService.ParseId(_alarmChannel), DiscordBotSettingsService.ParseId(_wantedChannel),
                 DiscordBotSettingsService.ParseIds(_shareChannels), _linkPreview,
-                DiscordBotSettingsService.ParseId(_commandsChannel)), _user);
+                DiscordBotSettingsService.ParseId(_commandsChannel), DiscordBotSettingsService.ParseId(_factionChannel)), _user);
             Snackbar.Add("Gespeichert.", Severity.Success);
             await LoadAsync();
         }
