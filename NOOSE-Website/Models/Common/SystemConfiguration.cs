@@ -83,6 +83,9 @@ public static class SystemSettingKeys
     /// <summary>Channel id of the pinned live wanted board; unset means no board.</summary>
     public const string DiscordBotWantedChannel = "DiscordBotFahndungKanal";
 
+    /// <summary>Channel id of the self-updating command list; unset means no list.</summary>
+    public const string DiscordBotCommandsChannel = "DiscordBotBefehleKanal";
+
     /// <summary>Comma-separated channel ids where a bot card may be shared; empty means every channel of the server.</summary>
     public const string DiscordBotShareChannels = "DiscordBotTeilenKanaele";
 
@@ -91,6 +94,9 @@ public static class SystemSettingKeys
 
     /// <summary>The wanted board's message as "channelId|messageId|hash"; worker state, not user-edited.</summary>
     public const string DiscordBotWantedBoardState = "DiscordBotFahndungTafel";
+
+    /// <summary>The command list's messages as "channelId|messageId,messageId…|hash"; worker state, not user-edited.</summary>
+    public const string DiscordBotCommandsBoardState = "DiscordBotBefehleTafel";
 
     /// <summary>Live alarm boards as JSON alarmId → "channelId|messageId"; worker state, not user-edited.</summary>
     public const string DiscordBotAlarmBoards = "DiscordBotAlarmTafeln";
