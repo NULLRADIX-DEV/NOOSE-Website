@@ -528,7 +528,8 @@ public class AgentTestService(
         // never stamps anything: reading a status must not start the clock
         return new AgentTestStatusView(assignment.Id, test.Title, test.Description,
             assignment.CompletedAt is not null, assignment.StartedAt, assignment.DeadlineAt, assignment.DueAt,
-            assignment.TimedOut, TestDeadline.AllowedMinutes(assignment, test.TimeLimitMinutes));
+            assignment.TimedOut, TestDeadline.AllowedMinutes(assignment, test.TimeLimitMinutes),
+            TestLockRules.Labels(TestLockRules.Parse(test.BlockedPages)));
     }
 
     public async Task<AgentTestView?> OpenAsync(string assignmentId, ClaimsPrincipal actor,

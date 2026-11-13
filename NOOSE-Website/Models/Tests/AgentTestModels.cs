@@ -81,7 +81,8 @@ public sealed record AgentTestStatusView(
     DateTime? DeadlineAt,
     DateTime? DueAt,
     bool TimedOut,
-    int? TimeLimitMinutes);
+    int? TimeLimitMinutes,
+    IReadOnlyList<string>? LockedPages = null);
 
 /// <summary>The questionnaire of an own running attempt; carries no key and no verdict.</summary>
 public sealed record AgentTestView(

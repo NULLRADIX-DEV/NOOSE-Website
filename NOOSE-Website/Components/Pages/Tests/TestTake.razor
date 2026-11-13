@@ -47,6 +47,7 @@ else if (_test is null && _status is { StartedAt: null, TimeLimitMinutes: int li
             und läuft dann durchgehend weiter — auch wenn du das Fenster schließt. Bei Ablauf wird automatisch
             abgegeben, was du bis dahin eingetragen hast.
         </MudAlert>
+        @LockHint
         @if (_status.DueAt is { } due)
         {
             <MudText Typo="Typo.body2" Class="mb-3">Fällig bis @due.ToLocalTime().ToString("dd.MM.yyyy HH:mm") Uhr.</MudText>
@@ -72,6 +73,7 @@ else
         <MudText Typo="Typo.body2" Class="noose-pruefung-druckhinweis">
             Der Fragebogen wird nicht gedruckt. Bitte beantworte den Test online.
         </MudText>
+        @LockHint
 
         @* rendered without a deadline too: this bar owns the autosave *@
         <div class="noose-pruefung-leiste">
@@ -128,6 +130,13 @@ else
     private string Watermark => $"{_user.GetCodename()} · {DateTime.Now:dd.MM.yyyy HH:mm}";
 
     private bool IsDirty() => _questionnaire?.IsDirty() ?? false;
+
+    private RenderFragment? LockHint => _status?.LockedPages is { Count: > 0 } pages
+        ? @<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.Lock">
+              Solange der Test läuft, sind gesperrt: <b>@string.Join(", ", pages)</b>. Das gilt in jedem Tab, in der Suche,
+              für FIBI und für den Discord-Bot. Nach der Abgabe ist alles wieder offen.
+          </MudAlert>
+        : null;
 
     protected override void OnInitialized() => Broadcaster.Modified += OnModified;
 

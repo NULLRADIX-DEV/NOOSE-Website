@@ -1,0 +1,98 @@
+@* Wraps every routed page: while an internal test runs, a page it locks is replaced by a notice. Sits in the
+   router, so it covers a second tab, a typed URL and an in-app link alike, and the page never renders. *@
+@inject NavigationManager Nav
+@inject ITestLockService Locks
+@inject AgentTestBroadcaster Broadcaster
+@implements IDisposable
+
+@if (!_ready)
+{
+    @* first check of this circuit still running; showing the page here would leak it *@
+}
+else if (_lock is not null && _lock.Blocks(_path))
+{
+    <LayoutView Layout="typeof(MainLayout)">
+        <PageTitle>Gesperrt · FIB</PageTitle>
+        <EmptyState Icon="@Icons.Material.Filled.Lock" Title="Während deines Tests gesperrt"
+                    Text="@($"Du legst gerade den Test „{_lock.TestTitle}“ ab. Bis zur Abgabe sind diese Seiten gesperrt: {string.Join(", ", _lock.Labels)}.")" />
+        <MudStack Row="true" Justify="Justify.Center" Class="mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Quiz"
+                       Href="@($"/tests/{_lock.AssignmentId}")">Zurück zum Test</MudButton>
+        </MudStack>
+    </LayoutView>
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private string? _agentId;
+    private TestLock? _lock;
+    private bool _ready;
+    private string _path = string.Empty;
+
+    protected override void OnInitialized() => Broadcaster.Modified += OnModified;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _path = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        if (!_ready)
+        {
+            var user = AuthStateTask is null ? null : (await AuthStateTask).User;
+            _agentId = user?.Identity?.IsAuthenticated == true ? user.GetAgentId() : null;
+            await RefreshAsync();
+            _ready = true;
+            return;
+        }
+        // decided on the known lock first, so a navigation never flashes; then re-read in case it changed
+        // without an event (an edit to the test itself)
+        if (_agentId is not null)
+        {
+            _ = InvokeAsync(async () =>
+            {
+                var before = _lock;
+                await RefreshAsync();
+                if (!Same(before, _lock))
+                {
+                    StateHasChanged();
+                }
+            });
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            _lock = await Locks.GetActiveForAgentAsync(_agentId);
+        }
+        catch (Exception)
+        {
+            /* keep the last known lock */
+        }
+    }
+
+    /// <summary>A test of this agent started, was handed in or closed: an open page may have to give way.</summary>
+    private void OnModified(string assignmentId, string agentId)
+    {
+        if (agentId != _agentId)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            await RefreshAsync();
+            StateHasChanged();
+        });
+    }
+
+    private static bool Same(TestLock? a, TestLock? b)
+        => a is null ? b is null : b is not null && a.AssignmentId == b.AssignmentId && a.Keys.SequenceEqual(b.Keys);
+
+    public void Dispose() => Broadcaster.Modified -= OnModified;
+}

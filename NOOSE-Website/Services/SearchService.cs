@@ -18,7 +18,8 @@ public class SearchService(
     IDbContextFactory<AppDbContext> dbFactory,
     IPartnerVisibilityPolicyService partnerPolicy,
     IOptions<SearchOptions> options,
-    ILogger<SearchService> logger) : ISearchService
+    ILogger<SearchService> logger,
+    ITestLockService? testLocks = null) : ISearchService
 {
     private readonly SearchOptions _options = options.Value;
 
@@ -33,8 +34,9 @@ public class SearchService(
         var started = Stopwatch.StartNew();
         var viewer = await SearchViewer.FromAsync(actor, partnerPolicy, cancellationToken);
         var query = SearchQuery.From(criteria, viewer, _options);
+        var locked = await LockedAsync(actor, cancellationToken);
 
-        var allowed = Allowed(viewer).ToList();
+        var allowed = Allowed(viewer).Where(p => !IsLocked(p, locked)).ToList();
         var runnable = allowed.Where(p => Selected(query, p) && Answers(query, p)).ToList();
         if (runnable.Count == 0)
         {
@@ -109,8 +111,9 @@ public class SearchService(
         var query = SearchQuery.From(new SearchCriteria { Text = trimmed, Fuzzy = true }, viewer, _options)
             // a much smaller candidate pool than the page uses: see SearchOptions.QuickFuzzyCandidates
             with { FuzzyCandidates = Math.Max(50, _options.QuickFuzzyCandidates) };
+        var locked = await LockedAsync(actor, cancellationToken);
         var runnable = Allowed(viewer)
-            .Where(p => SearchCatalog.Has(p.Category, SearchTraits.Quick))
+            .Where(p => SearchCatalog.Has(p.Category, SearchTraits.Quick) && !IsLocked(p, locked))
             .ToList();
         if (runnable.Count == 0)
         {
@@ -144,6 +147,13 @@ public class SearchService(
         // round-robin, so one populous category cannot fill every slot
         return SearchProviderKit.Shuffle(lists).Take(max).ToList();
     }
+
+    private async Task<TestLock?> LockedAsync(ClaimsPrincipal actor, CancellationToken cancellationToken)
+        => testLocks is null ? null : await testLocks.GetActiveAsync(actor, cancellationToken);
+
+    /// <summary>A category whose hits open a page the running test locks; its snippets would show the same text.</summary>
+    private static bool IsLocked(ISearchProvider provider, TestLock? locked)
+        => locked is not null && SearchCatalog.Route(provider.Category, "x") is { } route && locked.Blocks(route);
 
     /// <summary>Providers this viewer may use at all. Two independent caps for a partner, both re-asserted here.</summary>
     private IEnumerable<ISearchProvider> Allowed(SearchViewer viewer)

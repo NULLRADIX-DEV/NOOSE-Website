@@ -43,6 +43,18 @@
                 </MudSelect>
             }
         </MudStack>
+        @if (TestUsageDisplay.ForAgents(_model.Test.Usage))
+        {
+            <MudSelect T="string" MultiSelection="true" @bind-SelectedValues="_blockedPages" Label="Während des Tests gesperrte Seiten"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" Class="mt-3 noose-breite-frei" Style="max-width:560px;"
+                       MultiSelectionTextFunc="@(keys => string.Join(", ", TestLockRules.Labels(keys.OfType<string>())))"
+                       HelperText="Vom Start bis zur Abgabe kommt der Agent an diese Seiten nicht heran, auch nicht im zweiten Tab, über die Suche oder den Discord-Bot. FIBI ist dann ganz gesperrt.">
+                @foreach (var entry in TestLockRules.Lockable)
+                {
+                    <MudSelectItem T="string" Value="@entry.Key">@entry.Label</MudSelectItem>
+                }
+            </MudSelect>
+        }
         <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
             Die Uhr startet, sobald der Bewerber den Test startet, und läuft durchgehend weiter — auch wenn er das
             Fenster schließt. Bei Ablauf wird automatisch abgegeben, was er bis dahin eingetragen hat, und die
@@ -175,7 +187,13 @@
 
     protected override Task OnParametersSetAsync() => LoadModelAsync();
 
-    private async Task LoadModelAsync() => _model = await TestService.GetEditModelAsync(Id!, _user);
+    private IReadOnlyCollection<string> _blockedPages = [];
+
+    private async Task LoadModelAsync()
+    {
+        _model = await TestService.GetEditModelAsync(Id!, _user);
+        _blockedPages = TestLockRules.Parse(_model?.Test.BlockedPages).ToHashSet();
+    }
 
     private async Task SaveTestAsync()
     {
@@ -183,7 +201,7 @@
         {
             await TestService.UpdateTestAsync(_model!.Test.Id, _model.Test.Title, _model.Test.Description, _model.Test.IsActive,
                 _model.Test.PassPercent, _model.Test.TimeLimitMinutes, _user);
-            await TestService.UpdateUsageAsync(_model.Test.Id, _model.Test.Usage, _model.Test.TrainingModuleId, _user);
+            await TestService.UpdateUsageAsync(_model.Test.Id, _model.Test.Usage, _model.Test.TrainingModuleId, _blockedPages, _user);
             Snackbar.Add("Gespeichert.", Severity.Success);
         }
         catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }

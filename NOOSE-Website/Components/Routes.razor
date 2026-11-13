@@ -1,20 +1,22 @@
 <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
-            <NotAuthorized>
-                @if (context.User.Identity?.IsAuthenticated ?? false)
-                {
-                    <AccessDenied />
-                }
-                else
-                {
-                    <RedirectToLogin />
-                }
-            </NotAuthorized>
-            <Authorizing>
-                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-7" />
-            </Authorizing>
-        </AuthorizeRouteView>
+        <TestLockGate>
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated ?? false)
+                    {
+                        <AccessDenied />
+                    }
+                    else
+                    {
+                        <RedirectToLogin />
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-7" />
+                </Authorizing>
+            </AuthorizeRouteView>
+        </TestLockGate>
         @* the selector has to name an element that exists: every page titles with MudText Typo.h4, which renders
            an <h4>, so "h1" matched only the print poster and focus never moved after a navigation. Listing the
            levels restores that for every page. The deeper issue - a page title should BE an h1 - is a change to

@@ -52,6 +52,7 @@ public static class BrandSweepPlan
         // the suffix rule skips a bare name
         ["Schluessel"] = "key that code or seeders look rows up by",
         ["Slug"] = "address of a page, referenced by links",
+        ["GesperrteSeiten"] = "nav keys that code looks entries up by",
         ["ContentType"] = "media type",
         ["DateinameGespeichert"] = "file name on disk, assigned by the server",
         ["DateiName"] = "file name on disk, assigned by the server",
