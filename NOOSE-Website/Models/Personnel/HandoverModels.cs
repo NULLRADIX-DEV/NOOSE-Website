@@ -18,6 +18,9 @@ public enum HandoverKind
 
     /// <summary>Closes with the departure: the leaving agent is taken off the guest list.</summary>
     Appointment = 10,
+
+    /// <summary>Keeper or deputy of a person record.</summary>
+    PersonRecord = 11,
 }
 
 /// <summary>One thing still hanging on the leaving agent.</summary>
@@ -82,6 +85,7 @@ public static class HandoverDisplay
         HandoverKind.Party => "Partei",
         HandoverKind.FinancingRequest => "Finanzierungsantrag",
         HandoverKind.Appointment => "Termin",
+        HandoverKind.PersonRecord => "Personenakte",
         _ => "Eintrag",
     };
 
@@ -98,6 +102,7 @@ public static class HandoverDisplay
         HandoverKind.Party => "Parteien",
         HandoverKind.FinancingRequest => "Finanzierungsanträge",
         HandoverKind.Appointment => "Termine",
+        HandoverKind.PersonRecord => "Personenakten",
         _ => "Einträge",
     };
 }

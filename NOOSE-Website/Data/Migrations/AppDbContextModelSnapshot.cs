@@ -7472,6 +7472,11 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("GeloeschtVonId");
 
+                    b.Property<string>("DeputyId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("VertretungId");
+
                     b.Property<string>("Description")
                         .HasColumnType("longtext")
                         .HasColumnName("Beschreibung");
@@ -7499,6 +7504,11 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<bool>("IsWanted")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("ZurFahndung");
+
+                    b.Property<string>("KeeperId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("AktenfuehrerId");
 
                     b.Property<int>("LifeStatus")
                         .HasColumnType("int")
@@ -7544,9 +7554,13 @@ namespace NOOSE_Website.Data.Migrations
 
                     b.HasIndex("CreatedAt");
 
+                    b.HasIndex("DeputyId");
+
                     b.HasIndex("IsArchived");
 
                     b.HasIndex("IsClassified");
+
+                    b.HasIndex("KeeperId");
 
                     b.HasIndex("Name");
 
@@ -13402,6 +13416,19 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("ObservingAgent");
 
                     b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.People.Person", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
+                        .WithMany()
+                        .HasForeignKey("DeputyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
+                        .WithMany()
+                        .HasForeignKey("KeeperId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.People.PersonAlias", b =>

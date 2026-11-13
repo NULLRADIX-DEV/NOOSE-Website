@@ -490,6 +490,10 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(p => p.IsClassified);
             // growth and capture series scan a date window over the whole table
             b.HasIndex(p => p.CreatedAt);
+            b.Property(p => p.KeeperId).HasMaxLength(64);
+            b.Property(p => p.DeputyId).HasMaxLength(64);
+            b.HasOne<Agent>().WithMany().HasForeignKey(p => p.KeeperId).OnDelete(DeleteBehavior.SetNull);
+            b.HasOne<Agent>().WithMany().HasForeignKey(p => p.DeputyId).OnDelete(DeleteBehavior.SetNull);
 
             b.HasMany(p => p.Aliases).WithOne(a => a.Person!)
                 .HasForeignKey(a => a.PersonId).OnDelete(DeleteBehavior.Cascade);

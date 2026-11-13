@@ -66,6 +66,15 @@ else
                     <MudSelectItem T="RecencyLevel?" Value="@e">@RecencyLevelDisplay.Name(e)</MudSelectItem>
                 }
             </MudSelect>
+            @if (_internal)
+            {
+                <MudSelect T="KeeperFilter?" Value="_keeper" ValueChanged="KeeperSelectedAsync" Label="Aktenführer" Dense="true"
+                           Clearable="true" Variant="Variant.Outlined" Style="max-width:190px;" Margin="Margin.Dense" Class="@($"ml-2 noose-filter-feld {FilterFoldClass}")">
+                    <MudSelectItem T="KeeperFilter?" Value="@(null)">Alle</MudSelectItem>
+                    <MudSelectItem T="KeeperFilter?" Value="@KeeperFilter.Mine">Meine Akten</MudSelectItem>
+                    <MudSelectItem T="KeeperFilter?" Value="@KeeperFilter.Unkept">Ohne Aktenführer</MudSelectItem>
+                </MudSelect>
+            }
             <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
                        Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="@($"ml-2 noose-filter-feld {FilterFoldClass}")">
                 <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
@@ -214,18 +223,25 @@ else
     private Classification? _classification;
     private RecencyLevel? _recency;
     private ArchiveFilter _archive = ArchiveFilter.Active;
+    private KeeperFilter? _keeper;
+    private bool _internal;
+    private string? _meId;
     private List<PersonRow> _rows = new();
 
     // below 600px the selects fold behind "Filter (n)"; the class does nothing from 600px up
     private bool _filtersOpen;
     private string FilterFoldClass => _filtersOpen ? string.Empty : "noose-filter-zu";
-    private int ActiveFilterCount => (_classification is null ? 0 : 1) + (_recency is null ? 0 : 1) + (_archive == ArchiveFilter.Active ? 0 : 1);
+    private int ActiveFilterCount => (_classification is null ? 0 : 1) + (_recency is null ? 0 : 1) + (_archive == ArchiveFilter.Active ? 0 : 1)
+        + (_keeper is null ? 0 : 1);
 
     private bool HasFilter => !string.IsNullOrWhiteSpace(_search) || _classification is not null || _recency is not null
-        || _archive != ArchiveFilter.Active;
+        || _archive != ArchiveFilter.Active || _keeper is not null;
 
     protected override async Task OnInitializedAsync()
     {
+        var user = (await AuthStateTask).User;
+        _internal = user.IsInternalAgent();
+        _meId = user.GetAgentId();
         // restore the view from the URL so back-navigation and shared links keep the filters
         ReadFilters(new Uri(Nav.Uri).Query);
 
@@ -238,6 +254,7 @@ else
         _classification = QueryState.ReadEnum<Classification>(query, "einstufung");
         _recency = QueryState.ReadEnum<RecencyLevel>(query, "aktualitaet");
         _archive = QueryState.ReadEnum<ArchiveFilter>(query, "archiv") ?? ArchiveFilter.Active;
+        _keeper = QueryState.ReadEnum<KeeperFilter>(query, "aktenfuehrer");
     }
 
     // a saved view, the palette or the menu landing on this list while it shows: the instance is reused
@@ -300,6 +317,8 @@ else
                 RefreshedUtc = referenceUtc,
                 Refreshed = referenceUtc.ToLocalTime(),
                 IsArchived = p.IsArchived,
+                KeeperId = p.KeeperId,
+                DeputyId = p.DeputyId,
                 Level = RecencyAssessment.For(settings.AgingDisabled, p.AgingDisabled, p.IsArchived,
                     settings.WarningDays, settings.StaleDays, referenceUtc, now),
             };
@@ -314,6 +333,13 @@ else
             return false;
         }
         if (_recency is { } r && z.Level != r)
+        {
+            return false;
+        }
+        // partners never get the select; a shared link must not filter their list either
+        if (_internal && _keeper is { } k && !(k == KeeperFilter.Mine
+                ? _meId is not null && (z.KeeperId == _meId || z.DeputyId == _meId)
+                : z.KeeperId is null))
         {
             return false;
         }
@@ -345,6 +371,12 @@ else
         return PersistFiltersAsync();
     }
 
+    private Task KeeperSelectedAsync(KeeperFilter? value)
+    {
+        _keeper = value;
+        return PersistFiltersAsync();
+    }
+
     private async Task ArchiveSelectedAsync(ArchiveFilter value)
     {
         _archive = value;
@@ -358,6 +390,7 @@ else
         _search = string.Empty;
         _classification = null;
         _recency = null;
+        _keeper = null;
         var reload = _archive != ArchiveFilter.Active;
         _archive = ArchiveFilter.Active;
         await PersistFiltersAsync();
@@ -375,6 +408,7 @@ else
         ("einstufung", _classification?.ToString()),
         ("aktualitaet", _recency?.ToString()),
         ("archiv", _archive == ArchiveFilter.Active ? null : _archive.ToString()),
+        ("aktenfuehrer", _keeper?.ToString()),
     ];
 
     private Task PersistFiltersAsync() => QueryState.WriteAsync(JS, Nav, FilterState);
@@ -419,5 +453,7 @@ else
         public DateTime Refreshed { get; set; }
         public RecencyLevel Level { get; set; }
         public bool IsArchived { get; set; }
+        public string? KeeperId { get; set; }
+        public string? DeputyId { get; set; }
     }
 }

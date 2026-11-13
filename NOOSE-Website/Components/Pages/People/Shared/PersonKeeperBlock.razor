@@ -1,0 +1,118 @@
+@* Keeper and deputy of a person record; internal agents only, the service returns null for everyone else. *@
+@inject IRecordKeeperService Keepers
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (_keepers is { } k)
+{
+    <div>
+        <MudText Typo="Typo.subtitle2" Class="mud-text-secondary mb-1">Aktenführung</MudText>
+        <MudStack Spacing="1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.FolderShared" Size="Size.Small" Color="@(k.KeeperId is null ? Color.Default : Color.Primary)" />
+                @if (k.KeeperId is null)
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Kein Aktenführer</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2"><b>@k.KeeperCodename</b></MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Aktenführer</MudText>
+                }
+            </MudStack>
+            @if (k.DeputyId is not null)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Size="Size.Small" Color="Color.Default" />
+                    <MudText Typo="Typo.body2">@k.DeputyCodename</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Vertretung</MudText>
+                </MudStack>
+            }
+            @if (k.MayClaim || k.MayAssign || k.MayStepDown)
+            {
+                <MudStack Row="true" Spacing="1" Class="flex-wrap">
+                    @if (k.MayClaim)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" Disabled="_busy"
+                                   StartIcon="@Icons.Material.Filled.PanTool" OnClick="ClaimAsync">Übernehmen</MudButton>
+                    }
+                    @if (k.MayAssign)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_busy"
+                                   StartIcon="@Icons.Material.Filled.Edit" OnClick="AssignAsync">Ändern</MudButton>
+                    }
+                    @if (k.MayStepDown)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="_busy"
+                                   StartIcon="@Icons.Material.Filled.Logout" OnClick="StepDownAsync">Abgeben</MudButton>
+                    }
+                </MudStack>
+            }
+        </MudStack>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string PersonId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private PersonKeepers? _keepers;
+    private string? _loadedFor;
+    private bool _busy;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedFor == PersonId)
+        {
+            return;
+        }
+        _loadedFor = PersonId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _keepers = await Keepers.GetAsync(PersonId, User);
+
+    private Task ClaimAsync() => RunAsync(() => Keepers.ClaimAsync(PersonId, User), "Du bist jetzt Aktenführer.");
+
+    private async Task AssignAsync()
+    {
+        var choice = await PersonKeeperDialog.ShowAsync(DialogService, _keepers?.KeeperId, _keepers?.DeputyId,
+            User.MayRealNameSee());
+        if (choice is { } c)
+        {
+            await RunAsync(() => Keepers.AssignAsync(PersonId, c.Keeper, c.Deputy, User), "Aktenführung gespeichert.");
+        }
+    }
+
+    private async Task StepDownAsync()
+    {
+        var keeper = _keepers?.KeeperId == User.GetAgentId();
+        var text = keeper && _keepers?.DeputyId is not null
+            ? $"Die Vertretung „{_keepers.DeputyCodename}“ wird Aktenführer."
+            : keeper ? "Die Akte hat danach keinen Aktenführer mehr." : "Du bist danach nicht mehr Vertretung.";
+        if (!await ConfirmDialog.ShowAsync(DialogService, "Aktenführung abgeben?", text, "Abgeben"))
+        {
+            return;
+        }
+        await RunAsync(() => Keepers.StepDownAsync(PersonId, User), "Aktenführung abgegeben.");
+    }
+
+    private async Task RunAsync(Func<Task> action, string done)
+    {
+        _busy = true;
+        try
+        {
+            await action();
+            Snackbar.Add(done, Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            await LoadAsync();
+            _busy = false;
+        }
+    }
+}

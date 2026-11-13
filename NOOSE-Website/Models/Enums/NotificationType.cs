@@ -190,6 +190,10 @@ public enum NotificationType
 
     /// <summary>A paragraph of the service regulation is new or changed and asks for acknowledgment. Bell only: the regulation never leaves the house.</summary>
     RegulationChanged = 55,
+
+    /// <summary>The recipient now keeps a person record or stands in for its keeper. Bell only: who keeps which record
+    /// is internal work, not a channel's.</summary>
+    RecordKeeperAssigned = 56,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -253,6 +257,7 @@ public static class NotificationTypeDisplay
         NotificationType.EmergencyAlarm => "Einsatzalarm",
         NotificationType.EmergencyAlarmByAgent => "Einsatzalarm (Gefahr im Verzug)",
         NotificationType.RegulationChanged => "Dienstverordnung geändert",
+        NotificationType.RecordKeeperAssigned => "Aktenführung",
         _ => "Benachrichtigung",
     };
 
@@ -315,6 +320,7 @@ public static class NotificationTypeDisplay
         NotificationType.EmergencyAlarm => Icons.Material.Filled.Emergency,
         NotificationType.EmergencyAlarmByAgent => Icons.Material.Filled.NotificationImportant,
         NotificationType.RegulationChanged => Icons.Material.Filled.Rule,
+        NotificationType.RecordKeeperAssigned => Icons.Material.Filled.FolderShared,
         _ => Icons.Material.Filled.Notifications,
     };
 }

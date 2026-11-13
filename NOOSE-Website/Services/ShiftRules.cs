@@ -10,6 +10,9 @@ public static class ShiftRules
 {
     public const string Route = "/meine-schicht";
 
+    /// <summary>The person list filtered to the records the viewer keeps.</summary>
+    public const string KeptRecordsHref = "/personen?aktenfuehrer=Mine";
+
     /// <summary>Looks closer together than this are one visit, so a reload keeps the block.</summary>
     public static readonly TimeSpan SameVisit = TimeSpan.FromMinutes(30);
 

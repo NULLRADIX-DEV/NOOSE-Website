@@ -12,6 +12,7 @@ using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
+using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Personnel;
@@ -85,6 +86,8 @@ public sealed class AgentHandoverService(
         var listed = open.Select(r => (r.Kind, r.Id)).ToHashSet();
         var taken = new Dictionary<string, List<HandoverKind>>();
         var closed = 0;
+        // keeper rows are written straight away, the rest on save: one transaction keeps them together
+        await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
         foreach (var choice in choices.DistinctBy(c => (c.Kind, c.Id)).Where(c => listed.Contains((c.Kind, c.Id))))
         {
             if (HandoverDisplay.Closes(choice.Kind))
@@ -93,7 +96,7 @@ public sealed class AgentHandoverService(
                 closed++;
                 continue;
             }
-            await PassAsync(db, agentId, choice.Kind, choice.Id, choice.SuccessorId!, cancellationToken);
+            await PassAsync(db, agentId, choice.Kind, choice.Id, choice.SuccessorId!, actor, cancellationToken);
             if (!taken.TryGetValue(choice.SuccessorId!, out var kinds))
             {
                 taken[choice.SuccessorId!] = kinds = [];
@@ -101,6 +104,7 @@ public sealed class AgentHandoverService(
             kinds.Add(choice.Kind);
         }
         await db.SaveChangesAsync(cancellationToken);
+        await tx.CommitAsync(cancellationToken);
 
         foreach (var (successorId, kinds) in taken.Where(t => t.Key != actor.GetAgentId()))
         {
@@ -231,6 +235,13 @@ public sealed class AgentHandoverService(
         candidates.AddRange(parties.Select(p => Record(HandoverKind.Party, nameof(Party), p.Id, p.Name,
             p.CaseNumber, $"/parteien/{p.Id}", p.IsInvestigationLead ? InvestigationLead : null)));
 
+        var people = await db.People.AsNoTracking()
+            .Where(p => !p.IsArchived && (p.KeeperId == agentId || p.DeputyId == agentId))
+            .Select(p => new { p.Id, p.Name, p.CaseNumber, p.KeeperId })
+            .ToListAsync(cancellationToken);
+        candidates.AddRange(people.Select(p => Record(HandoverKind.PersonRecord, nameof(Person), p.Id, p.Name,
+            p.CaseNumber, $"/personen/{p.Id}", p.KeeperId == agentId ? RecordKeeperRules.Keeper : RecordKeeperRules.Deputy)));
+
         var requests = await db.FinancingRequests.AsNoTracking()
             .Where(r => r.AgentId == agentId
                 && (r.Status == FinancingStatus.Requested || r.Status == FinancingStatus.Approved))
@@ -265,12 +276,15 @@ public sealed class AgentHandoverService(
         => new(new HandoverRow(kind, id, title, detail, href, role), recordType, id);
 
     private static async Task PassAsync(AppDbContext db, string agentId, HandoverKind kind, string id,
-        string successor, CancellationToken cancellationToken)
+        string successor, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         switch (kind)
         {
             case HandoverKind.Followup:
                 (await db.Followups.FirstAsync(f => f.Id == id, cancellationToken)).ResponsibleAgentId = successor;
+                break;
+            case HandoverKind.PersonRecord:
+                await PassKeeperAsync(db, id, agentId, successor, actor, cancellationToken);
                 break;
             case HandoverKind.Informant:
                 (await db.Informants.FirstAsync(i => i.Id == id, cancellationToken)).HandlerId = successor;
@@ -319,6 +333,47 @@ public sealed class AgentHandoverService(
                     (old, own) => own.IsInvestigationLead |= old.IsInvestigationLead, cancellationToken);
                 break;
         }
+    }
+
+    /// <summary>Puts the successor in the leaving agent's role; a successor holding the other role swaps up.</summary>
+    public static (string? Keeper, string? Deputy) PassKeeper(string? keeperId, string? deputyId, string agentId,
+        string successor)
+    {
+        if (keeperId == agentId)
+        {
+            return (successor, deputyId == successor ? null : deputyId);
+        }
+        if (deputyId == agentId)
+        {
+            return (keeperId, keeperId == successor ? null : successor);
+        }
+        return (keeperId, deputyId);
+    }
+
+    // ModifiedAt stays: a handed-on record must not look current to its new keeper
+    private static async Task PassKeeperAsync(AppDbContext db, string personId, string agentId, string successor,
+        ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
+        var row = await db.People.AsNoTracking().Where(p => p.Id == personId)
+            .Select(p => new { p.KeeperId, p.DeputyId }).FirstAsync(cancellationToken);
+        var (keeper, deputy) = PassKeeper(row.KeeperId, row.DeputyId, agentId, successor);
+        await db.People.Where(p => p.Id == personId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.KeeperId, keeper).SetProperty(p => p.DeputyId, deputy),
+                cancellationToken);
+        var ids = new[] { row.KeeperId, row.DeputyId, keeper, deputy }.OfType<string>().Distinct().ToList();
+        var names = await db.Users.AsNoTracking().Where(u => ids.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.Codename, cancellationToken);
+        string? Name(string? id) => id is null ? null : names.GetValueOrDefault(id, id);
+        var changes = new Dictionary<string, object?[]>();
+        if (keeper != row.KeeperId)
+        {
+            changes[RecordKeeperRules.Keeper] = [Name(row.KeeperId), Name(keeper)];
+        }
+        if (deputy != row.DeputyId)
+        {
+            changes[RecordKeeperRules.Deputy] = [Name(row.DeputyId), Name(deputy)];
+        }
+        db.AuditLogs.Add(ManualAudit.Row(nameof(Person), personId, AuditAction.Modified, actor, changes));
     }
 
     /// <summary>Replaces the leaving agent's membership row; a successor already there keeps theirs and gains the lead.</summary>

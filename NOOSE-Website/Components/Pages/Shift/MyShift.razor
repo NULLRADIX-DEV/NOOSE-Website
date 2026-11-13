@@ -11,6 +11,7 @@
 @inject IAnnouncementService Announcements
 @inject IRegulationService Regulation
 @inject ITaskforceChatService TaskforceChat
+@inject IRecordKeeperService Keepers
 @inject IGlobalChronikService Chronik
 @inject INavPreferencesService NavPrefs
 @inject NavigationManager Nav
@@ -222,6 +223,40 @@ else
                         @More(_taskforces.Count)
                     }
                 </MudPaper>
+
+                @* only for agents who keep or lead something: an empty block for everyone else is noise *@
+                @if (_kept.Count > 0)
+                {
+                    var due = _kept.Where(k => k.Level != RecencyLevel.Fresh).ToList();
+                    <MudPaper Class="pa-4" Elevation="2">
+                        @Head(Icons.Material.Filled.FolderShared, "Meine Akten", ShiftRules.KeptRecordsHref, "Meine Personenakten")
+                        @if (due.Count == 0)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                @(_kept.Count == 1 ? "Deine Akte ist aktuell." : $"Alle {_kept.Count} Akten, die du führst, sind aktuell.")
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                @due.Count von @_kept.Count brauchen eine Aktualisierung
+                            </MudText>
+                            <MudList T="string" Dense="true">
+                                @foreach (var k in due.Take(ShiftRules.ListCap))
+                                {
+                                    <MudListItem T="string" Href="@k.Href" Icon="@RecordTypeDisplay.Icon(k.RecordType)"
+                                                 IconColor="@RecencyLevelDisplay.Colour(k.Level)">
+                                        <MudText Typo="Typo.body2"><b>@k.Name</b> · @RecencyLevelDisplay.Name(k.Level)</MudText>
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                            @k.CaseNumber · @k.Role · zuletzt @k.ReferenceUtc.ToLocalTime().ToString("dd.MM.yyyy")
+                                        </MudText>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                            @More(due.Count)
+                        }
+                    </MudPaper>
+                }
             </MudStack>
         </MudItem>
 
@@ -297,6 +332,7 @@ else
     private List<OpenRegulationParagraph> _regulation = [];
     private IReadOnlyList<ShiftAcknowledgment> _ackRows = [];
     private List<TaskforceActivity> _taskforces = [];
+    private List<KeptRecord> _kept = [];
 
     private bool _sinceLoading = true;
     private bool _sinceFailed;
@@ -337,6 +373,7 @@ else
         _regulation = await Regulation.GetOpenForMeAsync(_user);
         _ackRows = ShiftRules.MergeAcknowledgments(_acks, _regulation);
         _taskforces = await TaskforceChat.GetUnreadAsync(_user);
+        _kept = await Keepers.GetMineAsync(_user);
         _load = false;
         StateHasChanged();
 
