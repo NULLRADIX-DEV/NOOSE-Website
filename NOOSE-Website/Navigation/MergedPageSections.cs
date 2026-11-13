@@ -5,7 +5,7 @@ public static class MergedPageSections
 {
     public static readonly string[] Settings =
     [
-        "system", "discord", "discord-rollen", "discord-direktnachrichten", "discord-bot", "status", "neuerungen",
+        "system", "discord", "discord-rollen", "discord-direktnachrichten", "status", "neuerungen",
         "custom-felder", "tags", "aktualitaet", "bedrohungs-score",
         "vorlagen-dok", "vorlagen-dokument", "vorlagen-aktivitaet", "vorlagen-personal",
         "module", "einladungen", "ehrenzeichen", "inaktivitaet",
