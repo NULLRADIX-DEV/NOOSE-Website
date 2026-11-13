@@ -173,25 +173,43 @@ public sealed class DiscordBotWorker(
     {
         var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
         var boards = services.GetRequiredService<DiscordLiveBoards>();
-        var stored = await boards.GetWantedBoardAsync(ct);
+        await KeepPinnedBoardAsync(settings.WantedChannelId, await boards.GetWantedBoardAsync(ct),
+            () => boards.RenderWantedAsync(ct), boards.SetWantedBoardAsync, boards.ClearWantedBoardAsync, ct);
+    }
 
+    private async Task UpdateFactionBoardAsync(IServiceProvider services, CancellationToken ct)
+    {
+        var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
+        var boards = services.GetRequiredService<DiscordLiveBoards>();
+        await KeepPinnedBoardAsync(settings.FactionChannelId, await boards.GetFactionBoardAsync(ct),
+            () => boards.RenderFactionsAsync(ct), boards.SetFactionBoardAsync, boards.ClearFactionBoardAsync, ct);
+    }
+
+    /// <summary>
+    /// One pinned message per board: edited when its hash changed, posted anew when it was deleted by hand,
+    /// removed when the channel changed or was cleared.
+    /// </summary>
+    private async Task KeepPinnedBoardAsync(ulong? channelId, (ulong Channel, ulong Message, string Hash)? stored,
+        Func<Task<BoardCard>> render, Func<ulong, ulong, string, CancellationToken, Task> save,
+        Func<CancellationToken, Task> clear, CancellationToken ct)
+    {
         // the channel changed or was cleared: the old board goes
-        if (stored is { } old && old.Channel != settings.WantedChannelId)
+        if (stored is { } old && old.Channel != channelId)
         {
             try
             {
                 await client.Rest.DeleteMessageAsync(old.Channel, old.Message, cancellationToken: ct);
             }
             catch { /* already gone */ }
-            await boards.ClearWantedBoardAsync(ct);
+            await clear(ct);
             stored = null;
         }
-        if (settings.WantedChannelId is not { } channel)
+        if (channelId is not { } channel)
         {
             return;
         }
 
-        var card = await boards.RenderWantedAsync(ct);
+        var card = await render();
         if (stored is { } current)
         {
             if (current.Hash == card.Hash)
@@ -206,7 +224,7 @@ public sealed class DiscordBotWorker(
                     m.Flags = MessageFlags.IsComponentsV2;
                     m.AllowedMentions = AllowedMentionsProperties.None;
                 }, cancellationToken: ct);
-                await boards.SetWantedBoardAsync(current.Channel, current.Message, card.Hash, ct);
+                await save(current.Channel, current.Message, card.Hash, ct);
                 return;
             }
             catch (RestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound || ex.Error?.Code == 10008)
@@ -225,7 +243,7 @@ public sealed class DiscordBotWorker(
             await client.Rest.PinMessageAsync(channel, message.Id, cancellationToken: ct);
         }
         catch { /* no pin right */ }
-        await boards.SetWantedBoardAsync(channel, message.Id, card.Hash, ct);
+        await save(channel, message.Id, card.Hash, ct);
     }
 
     /// <summary>

@@ -12,6 +12,10 @@ using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Services.Discord.Bot;
 
+/// <summary>One faction on the faction board, as every internal agent may see it.</summary>
+public sealed record FactionBoardEntry(string Id, string Name, string CaseNumber, int Score, string? Kind,
+    int? EstimatedMembers, IReadOnlyList<string> Routes);
+
 /// <summary>A rendered board and the hash that decides whether Discord needs an edit.</summary>
 public sealed record BoardCard(IReadOnlyList<IMessageComponentProperties> Components, string Hash);
 
@@ -165,6 +169,99 @@ public sealed class DiscordLiveBoards(
         => WriteAsync(SystemSettingKeys.DiscordBotWantedBoardState, $"{channel}|{message}|{hash}", ct);
 
     public Task ClearWantedBoardAsync(CancellationToken ct) => WriteAsync(SystemSettingKeys.DiscordBotWantedBoardState, null, ct);
+
+    // ---------------------------------------------------------------- faction board
+
+    /// <summary>Factions listed behind the most dangerous one.</summary>
+    public const int FactionRunnersUp = 5;
+
+    /// <summary>
+    /// The most dangerous factions, picked like the threat list: no VS, no state factions, nothing archived, only a
+    /// stated score. Highest first; name and id break ties so the order never flips between passes.
+    /// </summary>
+    public async Task<BoardCard> RenderFactionsAsync(CancellationToken ct)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
+        var top = await db.Factions.AsNoTracking()
+            .OnlyActive()
+            .OnlyUnrestricted()
+            .Where(f => !f.IsStateFaction && f.ThreatScore != null && f.ThreatScore > 0)
+            .OrderByDescending(f => f.ThreatScore).ThenBy(f => f.Name).ThenBy(f => f.Id)
+            .Take(FactionRunnersUp + 1)
+            .Select(f => new
+            {
+                f.Id, f.Name, f.CaseNumber, Score = f.ThreatScore!.Value, f.Kind, f.EstimatedMemberCount,
+                Routes = f.DrugRoutes.OrderBy(r => r.Designation).Select(r => r.Designation).Take(6).ToList(),
+            })
+            .ToListAsync(ct);
+        var baseUrl = (await webhook.GetConfigAsync(ct)).SiteBaseUrl.TrimEnd('/');
+        return RenderFactions(top.Select(f => new FactionBoardEntry(f.Id, f.Name, f.CaseNumber, f.Score, f.Kind,
+            f.EstimatedMemberCount, f.Routes)).ToList(), baseUrl, DateTime.UtcNow);
+    }
+
+    /// <summary>The board for an ordered list; the time stamp is shown but not hashed, so a quiet list is not edited.</summary>
+    public static BoardCard RenderFactions(IReadOnlyList<FactionBoardEntry> ordered, string baseUrl, DateTime now)
+    {
+        var parts = new List<IComponentContainerComponentProperties?>
+        {
+            DiscordCards.Text($"# ☠️ Gefährlichste Fraktion\n-# nach Bedrohungs-Score, ohne Verschlusssachen · aktualisiert {DiscordCards.When(now)}"),
+            DiscordCards.Line(),
+        };
+        string? leadUrl = null;
+        if (ordered.Count == 0)
+        {
+            parts.Add(DiscordCards.Text("✅ Gerade hat keine Fraktion einen Bedrohungs-Score."));
+        }
+        else
+        {
+            var lead = ordered[0];
+            var hazard = HazardLevelLogic.From(lead.Score);
+            leadUrl = $"{baseUrl}/fraktionen/{Uri.EscapeDataString(lead.Id)}";
+            var facts = new List<string>
+            {
+                $"{DiscordCards.HazardEmoji(hazard)} **Bedrohung {lead.Score}/100** · Gefahr {HazardLevelLogic.Name(hazard)}",
+            };
+            if (!string.IsNullOrWhiteSpace(lead.Kind))
+            {
+                facts.Add($"🏴 {DiscordCards.Inline(lead.Kind, 40)}");
+            }
+            if (lead.EstimatedMembers is { } members)
+            {
+                facts.Add($"👥 ~{members} Mitglieder geschätzt");
+            }
+            if (lead.Routes.Count > 0)
+            {
+                facts.Add("🧪 " + string.Join(", ", lead.Routes.Select(r => DiscordCards.Inline(r, 40))));
+            }
+            parts.Add(DiscordCards.Text($"## {DiscordCards.Inline(lead.Name, 80)}\n`{lead.CaseNumber}`\n\n{string.Join("\n", facts)}"));
+            if (ordered.Count > 1)
+            {
+                parts.Add(DiscordCards.Line());
+                parts.Add(DiscordCards.Text("**Dahinter**\n" + string.Join("\n", ordered.Skip(1).Select((f, i) =>
+                    $"**{i + 2}.** {DiscordCards.HazardEmoji(HazardLevelLogic.From(f.Score))} {DiscordCards.Inline(f.Name, 50)} `{f.CaseNumber}` · {f.Score}"))));
+            }
+        }
+        parts.Add(DiscordCards.Line());
+        parts.Add(DiscordCards.Text(DiscordCards.Footer));
+        parts.Add(DiscordCards.Row(
+            leadUrl is null ? null : DiscordCards.Open(leadUrl, "Akte öffnen"),
+            DiscordCards.Open($"{baseUrl}/fraktionen", "Alle Fraktionen")));
+        var hash = Hash(baseUrl + "#" + string.Join("|", ordered.Select(f =>
+            $"{f.Id}\t{f.Name}\t{f.CaseNumber}\t{f.Score}\t{f.Kind}\t{f.EstimatedMembers}\t{string.Join(",", f.Routes)}")));
+        var accent = ordered.Count == 0 ? DiscordCards.Success
+            : HazardLevelLogic.From(ordered[0].Score) >= HazardLevel.High ? DiscordCards.Danger : DiscordCards.Warning;
+        IMessageComponentProperties[] board = [DiscordCards.Card(accent, parts)];
+        DiscordCards.FitText(board);
+        return new BoardCard(board, hash);
+    }
+
+    public async Task<(ulong Channel, ulong Message, string Hash)?> GetFactionBoardAsync(CancellationToken ct)
+        => Parse(await ReadAsync(SystemSettingKeys.DiscordBotFactionBoardState, ct));
+
+    public Task SetFactionBoardAsync(ulong channel, ulong message, string hash, CancellationToken ct)
+        => WriteAsync(SystemSettingKeys.DiscordBotFactionBoardState, $"{channel}|{message}|{hash}", ct);
+
+    public Task ClearFactionBoardAsync(CancellationToken ct) => WriteAsync(SystemSettingKeys.DiscordBotFactionBoardState, null, ct);
 
     // ---------------------------------------------------------------- command list
 

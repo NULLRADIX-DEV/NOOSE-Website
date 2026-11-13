@@ -740,6 +740,9 @@ public static class ChangelogContent
             Neu("3.0.49-discord-befehlsliste", "Der FIB-Bot hält in einem eigenen Kanal eine Liste aller Befehle bereit: wie "
                 + "du sie aufrufst, was sie tun und was die Felder bedeuten. Kommt ein Befehl dazu oder ändert sich einer, "
                 + "passt sich die Liste von selbst an.", "Discord"),
+            Neu("3.0.50-discord-fraktionstafel", "Eine angepinnte Fraktionstafel zeigt in Discord, welche Fraktion gerade "
+                + "die gefährlichste ist, mit Bedrohung, Routen und den fünf Fraktionen dahinter. Sie aktualisiert sich "
+                + "von selbst.", "Discord"),
         ]),
     ];
 }
