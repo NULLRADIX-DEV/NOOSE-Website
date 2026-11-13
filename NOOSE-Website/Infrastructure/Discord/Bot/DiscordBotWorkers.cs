@@ -74,11 +74,14 @@ public sealed class DiscordBotWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // off the start path: the host is up and healthy before Discord is even asked
+        await Task.Yield();
         void OnAlarm(string id) => _alarmQueue.Writer.TryWrite(id);
         alarms.Modified += OnAlarm;
         try
         {
-            await Task.WhenAll(LoopAsync(PresenceEvery, UpdatePresenceAsync, stoppingToken),
+            await Task.WhenAll(ConnectAsync(stoppingToken),
+                LoopAsync(PresenceEvery, UpdatePresenceAsync, stoppingToken),
                 LoopAsync(WantedEvery, UpdateWantedBoardAsync, stoppingToken),
                 AlarmLoopAsync(stoppingToken));
         }
@@ -86,6 +89,39 @@ public sealed class DiscordBotWorker(
         {
             alarms.Modified -= OnAlarm;
         }
+    }
+
+    /// <summary>Connects the gateway, retrying with a growing pause; a failure never touches the website.</summary>
+    private async Task ConnectAsync(CancellationToken stoppingToken)
+    {
+        var pause = TimeSpan.FromSeconds(30);
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await client.StartAsync(cancellationToken: stoppingToken);
+                status.LastError = null;
+                return;
+            }
+            catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
+            {
+                status.Connected = false;
+                status.LastError = ex.GetType().Name;
+                logger.LogWarning("Discord gateway start failed ({Error}), next try in {Pause}.", ex.GetType().Name, pause);
+            }
+            await Task.Delay(pause, stoppingToken);
+            pause = TimeSpan.FromSeconds(Math.Min(pause.TotalSeconds * 2, 600));
+        }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await client.CloseAsync(cancellationToken: cancellationToken);
+        }
+        catch { /* already closed */ }
+        await base.StopAsync(cancellationToken);
     }
 
     private async Task LoopAsync(TimeSpan every, Func<IServiceProvider, CancellationToken, Task> work, CancellationToken stoppingToken)
