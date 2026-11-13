@@ -468,6 +468,7 @@ builder.Services.AddScoped<IBewerbungTestExpiryService, BewerbungTestExpiryServi
 builder.Services.AddHostedService<BewerbungTestExpiryWorker>();
 // internal tests: the same catalog, assigned to agents and graded by HRB/leadership
 builder.Services.AddScoped<IAgentTestService, AgentTestService>();
+builder.Services.AddScoped<ITestLockService, TestLockService>();
 builder.Services.AddScoped<IAgentTestExpiryService, AgentTestExpiryService>();
 builder.Services.AddHostedService<AgentTestWorker>();
 builder.Services.AddScoped<IBewerbungTemplateService, BewerbungTemplateService>();

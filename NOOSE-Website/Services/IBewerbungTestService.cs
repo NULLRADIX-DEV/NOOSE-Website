@@ -13,7 +13,8 @@ public interface IBewerbungTestService
     Task<BewerbungTest> CreateTestAsync(string title, string? description, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task UpdateTestAsync(string id, string title, string? description, bool isActive, int? passPercent, int? timeLimitMinutes, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     /// <summary>Who the test may go to, and the training module an agent passing it gets ticked.</summary>
-    Task UpdateUsageAsync(string id, TestUsage usage, string? trainingModuleId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <param name="blockedPages">Nav keys locked while an agent's attempt runs; null leaves them as they are.</param>
+    Task UpdateUsageAsync(string id, TestUsage usage, string? trainingModuleId, IReadOnlyCollection<string>? blockedPages, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task DeleteTestAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<TestEditModel?> GetEditModelAsync(string testId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 

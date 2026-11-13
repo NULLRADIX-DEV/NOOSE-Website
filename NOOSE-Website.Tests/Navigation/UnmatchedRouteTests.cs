@@ -110,6 +110,9 @@ public sealed class UnmatchedRouteTests(UnmatchedRouteTests.Site site) : IClassF
             builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
             builder.Services.AddSingleton(modules);
             builder.Services.AddSingleton(Substitute.For<INotificationService>());
+            // the router's test-lock gate wraps every page
+            builder.Services.AddSingleton(Substitute.For<ITestLockService>());
+            builder.Services.AddSingleton<NOOSE_Website.Infrastructure.Chat.AgentTestBroadcaster>();
 
             _app = builder.Build();
             // the part of the Program.cs pipeline a 404 runs through

@@ -746,6 +746,9 @@ public static class ChangelogContent
             Neu("3.0.51-aktenfuehrer", "Personenakten haben jetzt einen Aktenführer und eine Vertretung. Eine Akte ohne "
                 + "Aktenführer übernimmst du mit einem Klick auf der Steckkarte, und Meine Schicht zeigt dir, welche deiner "
                 + "Akten veralten.", "Akten"),
+            Neu("3.0.52-test-seitensperre", "Ein interner Test kann Seiten sperren, etwa die Dienstverordnung. Vom Start "
+                + "bis zur Abgabe zeigt eine gesperrte Seite nur einen Hinweis, auch im zweiten Tab, die Suche und der "
+                + "Discord-Bot halten sie zurück, und FIBI pausiert.", "Personal"),
         ]),
     ];
 }

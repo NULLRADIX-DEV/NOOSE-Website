@@ -110,7 +110,7 @@ else
             var t = await TestService.CreateTestAsync(_newTitle, null, _user);
             if (Internal)
             {
-                await TestService.UpdateUsageAsync(t.Id, TestUsage.Intern, null, _user);
+                await TestService.UpdateUsageAsync(t.Id, TestUsage.Intern, null, null, _user);
             }
             Nav.NavigateTo($"/bewerbungs-tests/{t.Id}");
         }

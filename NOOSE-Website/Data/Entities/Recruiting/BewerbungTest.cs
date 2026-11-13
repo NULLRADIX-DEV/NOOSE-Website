@@ -38,6 +38,10 @@ public class BewerbungTest : IAuditable, ISoftDelete
     [Column("AusbildungsmodulId")]
     public string? TrainingModuleId { get; set; }
 
+    /// <summary>Nav keys an agent cannot open while an attempt runs, one per line; null = none.</summary>
+    [Column("GesperrteSeiten")]
+    public string? BlockedPages { get; set; }
+
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }
     [Column("ErstelltVonId")]

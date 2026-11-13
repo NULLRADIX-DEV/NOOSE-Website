@@ -59,7 +59,8 @@ public class BewerbungTestService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UpdateUsageAsync(string id, TestUsage usage, string? trainingModuleId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task UpdateUsageAsync(string id, TestUsage usage, string? trainingModuleId, IReadOnlyCollection<string>? blockedPages,
+        ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireHrbOrLeadershipWrite(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -73,6 +74,15 @@ public class BewerbungTestService(
         test.Usage = usage;
         // only an internal test can tick a module; an applicant has no personnel file
         test.TrainingModuleId = TestUsageDisplay.ForAgents(usage) ? module : null;
+        // applicants never reach an internal page, so the lock only means something for agents
+        if (!TestUsageDisplay.ForAgents(usage))
+        {
+            test.BlockedPages = null;
+        }
+        else if (blockedPages is not null)
+        {
+            test.BlockedPages = TestLockRules.Serialize(blockedPages);
+        }
         await db.SaveChangesAsync(cancellationToken);
     }
 

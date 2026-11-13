@@ -22,8 +22,39 @@ public sealed class DiscordBotRouter(
     KnowledgeCommands knowledge,
     PersonalCommands personal,
     LeadershipCommands leadership,
-    CaptureCommands capture)
+    CaptureCommands capture,
+    ITestLockService testLocks)
 {
+    /// <summary>Pages behind a command; a running test that locks the page locks the command too.</summary>
+    private static readonly IReadOnlyDictionary<string, string> CommandPages = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["dvo"] = "/dienstverordnung",
+        ["gesetz"] = "/gesetze",
+        ["funk"] = "/funk",
+        ["fahndung"] = "/fahndung",
+        ["kopfgeld"] = "/fahndung",
+        ["fraktion"] = "/fraktionen",
+        ["route"] = "/fraktionen",
+    };
+
+    /// <summary>Buttons and menus that show what one of those pages shows.</summary>
+    private static string? ComponentPage(string action, string[] args) => action switch
+    {
+        "dvo" or "ackr" => "/dienstverordnung",
+        "card" => args.Arg(0) == nameof(Faction) ? "/fraktionen" : "/personen",
+        _ => null,
+    };
+
+    /// <summary>The refusal when a running test locks this page, else null.</summary>
+    private async Task<string?> LockedAsync(string? page, BotCall call)
+    {
+        if (page is null || await testLocks.GetActiveAsync(call.User) is not { } locked || !locked.Blocks(page))
+        {
+            return null;
+        }
+        return $"Gesperrt, solange du den Test „{locked.TestTitle}“ ablegst.";
+    }
+
     /// <summary>Commands whose card may go to the channel with teilen:true.</summary>
     public static readonly IReadOnlySet<string> Shareable = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -41,7 +72,12 @@ public sealed class DiscordBotRouter(
 
     // ---------------------------------------------------------------- slash commands
 
-    public Task<BotReply> SlashAsync(string name, BotCall call) => name switch
+    public async Task<BotReply> SlashAsync(string name, BotCall call)
+        => await LockedAsync(CommandPages.GetValueOrDefault(name), call) is { } refusal
+            ? BotReply.Error(refusal)
+            : await SlashCoreAsync(name, call);
+
+    private Task<BotReply> SlashCoreAsync(string name, BotCall call) => name switch
     {
         "akte" => recordCommands.AkteAsync(call),
         "fahndung" => recordCommands.FahndungAsync(call),
@@ -72,7 +108,12 @@ public sealed class DiscordBotRouter(
         _ => Task.FromResult(BotReply.Error("Diesen Befehl kenne ich nicht.")),
     };
 
-    public Task<BotReply> AutocompleteAsync(string name, BotCall call) => (name, call.Options.Focused) switch
+    public async Task<BotReply> AutocompleteAsync(string name, BotCall call)
+        => await LockedAsync(CommandPages.GetValueOrDefault(name), call) is not null
+            ? BotReply.Autocomplete([])
+            : await AutocompleteCoreAsync(name, call);
+
+    private Task<BotReply> AutocompleteCoreAsync(string name, BotCall call) => (name, call.Options.Focused) switch
     {
         ("akte", _) => recordCommands.AkteSuggestAsync(call),
         ("fahndung", _) => recordCommands.PersonSuggestAsync(call, "name"),
@@ -110,7 +151,12 @@ public sealed class DiscordBotRouter(
         _ => BotReply.Error("Unbekannte Aktion."),
     };
 
-    public Task<BotReply> ComponentAsync(string action, string[] args, IReadOnlyList<string> selected, BotCall call)
+    public async Task<BotReply> ComponentAsync(string action, string[] args, IReadOnlyList<string> selected, BotCall call)
+        => await LockedAsync(ComponentPage(action, args), call) is { } refusal
+            ? BotReply.Error(refusal)
+            : await ComponentCoreAsync(action, args, selected, call);
+
+    private Task<BotReply> ComponentCoreAsync(string action, string[] args, IReadOnlyList<string> selected, BotCall call)
     {
         var first = selected.Count > 0 ? selected[0] : null;
         return action switch
