@@ -39,6 +39,8 @@ public static class DiscordBotRegistration
         services.AddDiscordGateway(options =>
         {
             options.Token = token;
+            // the worker connects after the app is up: a slow or refused gateway must never hold up the start
+            options.AutoStartStop = false;
             options.Intents = GatewayIntents.Guilds | GatewayIntents.GuildMessages | GatewayIntents.DirectMessages
                 | (messageContent ? GatewayIntents.MessageContent : 0);
         });
