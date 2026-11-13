@@ -17,6 +17,14 @@ public interface IPersonnelFileService
     /// <summary>Delete a note - author or leadership.</summary>
     Task NoteDeleteAsync(string noteId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Service evaluations of an agent, newest first; empty for a viewer who may not read them.</summary>
+    Task<List<AgentEvaluation>> GetEvaluationsAsync(string agentId, ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+    /// <summary>Create a service evaluation - leadership and the Administration Division; an empty title gets the preset.</summary>
+    Task<AgentEvaluation> EvaluationCreateAsync(string agentId, string? title, EvaluationGrade grade, DateTime entryDate,
+        string text, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Delete a service evaluation - leadership and the Administration Division.</summary>
+    Task EvaluationDeleteAsync(string evaluationId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     Task<List<AgentPromotionRequest>> GetPromotionRequestsAsync(string agentId, CancellationToken cancellationToken = default);
     /// <summary>Open promotion requests the actor may decide (for the inbox): a Section Chief sees the own division, the Board and admins all, everyone else none.</summary>
     Task<List<AgentPromotionRequest>> GetOpenPromotionRequestsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);

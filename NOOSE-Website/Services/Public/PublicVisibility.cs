@@ -206,6 +206,7 @@ public static class PublicVisibility
             // --- personnel ---
             ["AgentRankHistory"] = Personnel,
             ["AgentNote"] = Personnel,
+            ["AgentEvaluation"] = Personnel,
             ["AgentPromotionRequest"] = Personnel,
             ["TrainingModule"] = Personnel,
             ["AgentModuleCompletion"] = Personnel,

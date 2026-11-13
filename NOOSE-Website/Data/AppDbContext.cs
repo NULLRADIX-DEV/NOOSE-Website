@@ -173,6 +173,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     // per-agent personnel file
     public DbSet<AgentRankHistory> AgentRankHistories => Set<AgentRankHistory>();
     public DbSet<AgentNote> AgentNotes => Set<AgentNote>();
+    public DbSet<AgentEvaluation> AgentEvaluations => Set<AgentEvaluation>();
     public DbSet<AgentPromotionRequest> AgentPromotionRequests => Set<AgentPromotionRequest>();
     public DbSet<FirearmUse> FirearmUses => Set<FirearmUse>();
 
@@ -1750,6 +1751,16 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(v => v.ArtFreetext).HasMaxLength(128);
             b.Property(v => v.Ausfuehrende).HasColumnType("longtext");
             b.HasIndex(v => new { v.AgentId, v.Kind });
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(v => v.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AgentEvaluation>(b =>
+        {
+            b.Property(v => v.Title).HasMaxLength(Services.EvaluationRules.MaxTitleLength).IsRequired();
+            b.Property(v => v.Text).HasColumnType("longtext").IsRequired();
+            b.Property(v => v.AuthorName).HasMaxLength(128);
+            b.HasIndex(v => new { v.AgentId, v.EntryDate });
             b.HasOne<Agent>().WithMany()
                 .HasForeignKey(v => v.AgentId).OnDelete(DeleteBehavior.Restrict);
         });

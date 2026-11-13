@@ -532,4 +532,120 @@ public sealed class PersonnelFileServiceTests
         using var verify = ctx.NewContext();
         Assert.Equal(1, verify.AgentPromotionRequests.Count(r => r.AgentId == "target-1"));
     }
+
+    // ---- evaluations ----
+
+    private static ClaimsPrincipal Administration(string id = "hrb-1")
+        => ClaimsPrincipalBuilder.Agent(id).WithRank(Rank.SpecialAgent).AsHrb().WithCodename("Owl").Build();
+
+    [Fact]
+    public async Task EvaluationCreateAsync_LeadershipAndAdministration_Persist()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("target-1"));
+            db.SaveChanges();
+        }
+        var service = NewService(ctx);
+
+        var first = await service.EvaluationCreateAsync("target-1", "Quartal", EvaluationGrade.Good, Utc(1),
+            "<p>Zuverlässig</p>", Leadership(codename: "Falcon"));
+        await service.EvaluationCreateAsync("target-1", null, EvaluationGrade.Satisfactory, Utc(2),
+            "<p>Ordentlich</p>", Administration());
+
+        using var verify = ctx.NewContext();
+        var rows = verify.AgentEvaluations.Where(e => e.AgentId == "target-1").OrderBy(e => e.EntryDate).ToList();
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("Quartal", rows[0].Title);
+        Assert.Equal(EvaluationGrade.Good, rows[0].Grade);
+        Assert.Equal("Falcon", rows[0].AuthorName);
+        Assert.Equal(first.Id, rows[0].Id);
+        Assert.Equal("Beurteilung vom 02.03.2026", rows[1].Title);
+        Assert.Equal("Owl", rows[1].AuthorName);
+    }
+
+    [Fact]
+    public async Task EvaluationCreateAsync_OutsideThePersonnelSide_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("target-1"));
+            db.SaveChanges();
+        }
+        var service = NewService(ctx);
+        var supervision = ClaimsPrincipalBuilder.Agent("tl").AsTeamLead().WithRank(Rank.Director).Build();
+        var partner = ClaimsPrincipalBuilder.Agent("p1").WithRank(Rank.Director)
+            .AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build();
+
+        foreach (var actor in new[] { Rank1(), supervision, partner })
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.EvaluationCreateAsync(
+                "target-1", null, EvaluationGrade.Good, Utc(1), "<p>x</p>", actor));
+        }
+
+        using var verify = ctx.NewContext();
+        Assert.Empty(verify.AgentEvaluations);
+    }
+
+    [Fact]
+    public async Task EvaluationCreateAsync_InvalidGradeOrEmptyText_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("target-1"));
+            db.SaveChanges();
+        }
+        var service = NewService(ctx);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.EvaluationCreateAsync(
+            "target-1", null, (EvaluationGrade)6, Utc(1), "<p>x</p>", Leadership()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.EvaluationCreateAsync(
+            "target-1", null, EvaluationGrade.Good, Utc(1), "<p> </p>", Leadership()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.EvaluationCreateAsync(
+            "ghost", null, EvaluationGrade.Good, Utc(1), "<p>x</p>", Leadership()));
+    }
+
+    [Fact]
+    public async Task GetEvaluationsAsync_OwnFileAndPersonnelSideOnly_NewestFirst()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.AgentEvaluations.Add(new AgentEvaluation { AgentId = "a1", Title = "alt", Grade = EvaluationGrade.Poor, EntryDate = Utc(1), Text = "x" });
+            db.AgentEvaluations.Add(new AgentEvaluation { AgentId = "a1", Title = "neu", Grade = EvaluationGrade.Good, EntryDate = Utc(3), Text = "x" });
+            db.AgentEvaluations.Add(new AgentEvaluation { AgentId = "a2", Title = "fremd", Grade = EvaluationGrade.Good, EntryDate = Utc(5), Text = "x" });
+            db.SaveChanges();
+        }
+        var service = NewService(ctx);
+
+        var own = await service.GetEvaluationsAsync("a1", Rank1("a1"));
+        Assert.Equal(["neu", "alt"], own.Select(e => e.Title));
+        Assert.Empty(await service.GetEvaluationsAsync("a1", Rank1("a3")));
+        Assert.Equal(2, (await service.GetEvaluationsAsync("a1", Administration())).Count);
+    }
+
+    [Fact]
+    public async Task EvaluationDeleteAsync_Removes_AndRefusesAnOrdinaryAgent()
+    {
+        using var ctx = new SqliteTestContext();
+        string id;
+        using (var db = ctx.NewContext())
+        {
+            db.Users.Add(Seed.Agent("target-1"));
+            var e = new AgentEvaluation { AgentId = "target-1", Title = "t", Grade = EvaluationGrade.Good, EntryDate = Utc(1), Text = "x" };
+            db.AgentEvaluations.Add(e);
+            db.SaveChanges();
+            id = e.Id;
+        }
+        var service = NewService(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.EvaluationDeleteAsync(id, Rank1()));
+        await service.EvaluationDeleteAsync(id, Administration());
+
+        using var verify = ctx.NewContext();
+        Assert.Empty(verify.AgentEvaluations);
+    }
 }
