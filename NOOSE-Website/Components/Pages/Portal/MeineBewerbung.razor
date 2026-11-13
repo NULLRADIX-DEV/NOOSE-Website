@@ -1,7 +1,9 @@
 ﻿@page "/portal"
 @layout ApplicantPortalLayout
 @attribute [AllowAnonymous]
+@using NOOSE_Website.Models.Recruiting
 @inject IBewerbungService BewerbungService
+@inject ICareerRequirementsService Requirements
 @inject IBewerbungssperreService SperreService
 @inject IDiscordMembershipCheck MembershipCheck
 @inject IDiscordDmService DiscordSettings
@@ -47,6 +49,34 @@ else if (_ready)
                 </MudAlert>
             }
 
+            @if (_requirements.Count > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                    <MudStack Spacing="2">
+                        <MudText Typo="Typo.body1">
+                            Bevor du dich bewirbst: Du musst <b>alle</b> diese Anforderungen erfüllen.
+                        </MudText>
+                        @foreach (var item in _requirements)
+                        {
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircleOutline" Size="Size.Small"
+                                         Style="margin-top:3px;flex:0 0 auto;" />
+                                <MudStack Spacing="1">
+                                    <MudText Typo="Typo.body2">@item.Text</MudText>
+                                    @foreach (var alternative in item.Alternatives)
+                                    {
+                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Baseline">
+                                            <MudText Typo="Typo.overline" Style="flex:0 0 auto;">ODER</MudText>
+                                            <MudText Typo="Typo.body2">@alternative</MudText>
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            </MudStack>
+                        }
+                    </MudStack>
+                </MudAlert>
+            }
+
             <MudTextField @bind-Value="_model.AcademicDegree" Label="Akademischer Grad (optional)" Variant="Variant.Outlined" />
             <MudTextField @bind-Value="_model.Name" Label="Name" Required="true" Variant="Variant.Outlined" />
             <MudDatePicker @bind-Date="_model.BirthDate" Label="Geburtsdatum" Variant="Variant.Outlined"
@@ -81,6 +111,14 @@ else if (_ready)
                 }
             </MudStack>
 
+            @if (_requirements.Count > 0)
+            {
+                <MudCheckBox T="bool" @bind-Value="_requirementsConfirmed" Color="Color.Primary">
+                    Ich erfülle <b>alle</b> oben genannten Anforderungen. Mir ist bewusst, dass meine Bewerbung
+                    sonst ohne Prüfung abgelehnt wird.
+                </MudCheckBox>
+            }
+
             <MudStack Row="true" Justify="Justify.FlexEnd">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
                            OnClick="SubmitAsync" Disabled="@(_busy || NotMember)">Bewerbung absenden</MudButton>
@@ -106,6 +144,8 @@ else if (_ready)
     private BewerbungStatus? _lastStatus;
     private readonly BewerbungSubmitModel _model = new();
     private IBrowserFile? _file;
+    private IReadOnlyList<CareerRequirement> _requirements = Array.Empty<CareerRequirement>();
+    private bool _requirementsConfirmed;
 
     protected override async Task OnInitializedAsync()
     {
@@ -130,6 +170,7 @@ else if (_ready)
             _blocked = true;
             return;
         }
+        _requirements = (await Requirements.GetAsync()).Items;
         _ready = true;
     }
 
@@ -189,6 +230,11 @@ else if (_ready)
         if (_model.StreamConsent is null)
         {
             Snackbar.Add("Bitte gib an, ob deine Bewerbung gestreamt werden darf.", Severity.Warning);
+            return;
+        }
+        if (_requirements.Count > 0 && !_requirementsConfirmed)
+        {
+            Snackbar.Add("Bitte bestätige, dass du alle Anforderungen erfüllst.", Severity.Warning);
             return;
         }
         _busy = true;

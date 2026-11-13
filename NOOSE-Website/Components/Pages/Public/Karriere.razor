@@ -25,9 +25,11 @@
             <MudDivider />
             <MudStack Spacing="3">
                 <MudText Typo="Typo.h6">Anforderungen</MudText>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                    Ohne diese Voraussetzungen wird eine Bewerbung nicht weiter geprüft.
-                </MudText>
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    <b>Alle Anforderungen sind Pflicht.</b> Wir prüfen nur Bewerbungen, die <b>jede</b> der
+                    folgenden Anforderungen erfüllen. Fehlt auch nur eine, wird die Bewerbung ohne weitere Prüfung
+                    abgelehnt. Bewirb dich bitte erst, wenn du alle Punkte erfüllst.
+                </MudAlert>
 
                 <MudStack Spacing="3">
                     @foreach (var item in _items)
