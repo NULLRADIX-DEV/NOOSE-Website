@@ -63,6 +63,10 @@
 
     <!-- Health-Checks (DB-Verbindung) -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="9.0.22" />
+
+    <!-- Discord bot: gateway, interactions, components v2 -->
+    <PackageReference Include="NetCord" Version="1.0.0-beta.30" />
+    <PackageReference Include="NetCord.Hosting" Version="1.0.0-beta.30" />
   </ItemGroup>
 
 </Project>

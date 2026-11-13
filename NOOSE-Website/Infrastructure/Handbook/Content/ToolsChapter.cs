@@ -229,6 +229,39 @@ internal static class ToolsChapter
                 """,
                 NavKey: "neuerungen"),
 
+            new Article("art-discord-bot", "discord-bot", "Der FIB-Bot in Discord",
+                "Akten, Dienstwissen und deine Schicht direkt in Discord.",
+                """
+                <p>Der <strong>FIB-Bot</strong> bringt die Seite nach Discord. Tipp im FIB-Server oder in der
+                Direktnachricht mit dem Bot einen Schrägstrich, und Discord zeigt dir alle Befehle. Der Bot erkennt dich an
+                deinem Discord-Konto, mit dem du dich hier anmeldest, und antwortet <strong>immer mit deinen Rechten</strong>:
+                was du auf der Seite nicht sehen darfst, zeigt er dir auch nicht.</p>
+                <p><strong>Nachschlagen:</strong> <em>/akte</em> zeigt eine Personen- oder Fraktionsakte als Karte mit Foto,
+                <em>/fahndung</em> die Fahndungstafel oder den Stand einer Person, <em>/kopfgeld</em> die höchsten Kopfgelder,
+                <em>/suche</em> durchsucht alles, <em>/fraktion</em> und <em>/route</em> beantworten, wer wo das Sagen hat.
+                <em>/gesetz</em>, <em>/dvo</em>, <em>/lage</em> und <em>/funk</em> holen Gesetze, Dienstverordnung,
+                Gefahrenlage und Funkplan, <em>/fibi</em> stellt FIBI eine Frage.</p>
+                <p><strong>Deine Schicht:</strong> <em>/fib</em> ist deine Dienst-Zentrale mit Knöpfen für Aufgaben,
+                Wiedervorlagen, offene Kenntnisnahmen und Termine. <em>/abmeldung</em> trägt eine Abmeldung ein oder beendet
+                sie. Datumsangaben verstehen „heute“, „morgen“, „+3“ oder „20.11.“.</p>
+                <p><strong>Erfassen:</strong> <em>/notiz</em>, <em>/wiedervorlage</em>, <em>/aufgabe</em>,
+                <em>/schusswaffe</em> und <em>/alarm</em> schreiben direkt in die Akten. Per Rechtsklick auf eine Nachricht
+                und <em>Apps → An Akte hängen</em> übernimmst du sie samt Bildern als Kommentar in eine Akte; per Rechtsklick
+                auf einen Nutzer zeigt <em>Agentenprofil</em>, wer das ist.</p>
+                <p>Antworten sieht nur, wer fragt. Mit der Option <em>teilen</em> geht die Karte für alle in den Kanal -
+                überleg vorher, wer dort mitliest. Einsatzalarme erscheinen im Alarm-Kanal als Tafel, auf der du mit einem
+                Klick zusagst; die angepinnte Fahndungstafel aktualisiert sich selbst.</p>
+                """,
+                Steps:
+                [
+                    new Step("Terminal", "Befehl tippen",
+                        "Schrägstrich in Discord, dann den Befehl wählen. Vorschläge erscheinen beim Tippen."),
+                    new Step("Visibility", "Privat oder geteilt",
+                        "Ohne teilen sieht nur du die Antwort. Mit teilen sieht sie der ganze Kanal."),
+                    new Step("AttachFile", "Nachricht übernehmen",
+                        "Rechtsklick auf eine Nachricht, Apps, An Akte hängen."),
+                ]),
+
             new Article("art-handbuch-pflegen", "handbuch-pflegen", "Handbuch und Glossar pflegen",
                 "Für Führung und Administration Division: wie du hier etwas änderst.",
                 """

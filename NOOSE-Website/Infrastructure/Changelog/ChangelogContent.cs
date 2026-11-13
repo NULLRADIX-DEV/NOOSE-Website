@@ -728,6 +728,12 @@ public static class ChangelogContent
             Neu("3.0.45-dvo-suche", "In der Dienstverordnung kannst du jetzt suchen. Die Seite zeigt alle passenden "
                 + "Absätze mit hervorgehobener Fundstelle, ein Klick springt zum Absatz. Die Zahlen offener Absätze "
                 + "in der Leiste sind wieder vollständig zu sehen.", "Dienstbetrieb"),
+            Neu("3.0.46-discord-bot", "Der FIB-Bot kann jetzt mehr als Nachrichten verschicken: Mit /fib, /akte, /fahndung, "
+                + "/gesetz, /dvo, /fibi, /abmeldung, /alarm und vielen weiteren Befehlen schlägst du direkt in Discord nach "
+                + "und trägst ein, immer mit deinen eigenen Rechten. Antworten siehst nur du, außer du teilst sie.", "Discord"),
+            Neu("3.0.47-discord-tafeln", "Einsatzalarme erscheinen im Alarm-Kanal als Tafel mit „Komme“ und „Komme nicht“, "
+                + "die sich bei jeder Antwort aktualisiert, und eine angepinnte Fahndungstafel zeigt die Gesuchten und "
+                + "Kopfgelder. Per Rechtsklick hängst du eine Discord-Nachricht samt Bildern an eine Akte.", "Discord"),
         ]),
     ];
 }
