@@ -999,10 +999,10 @@ html, body {
     margin: .25rem 0;
 }
 
-/* Bewerber-Chat: Editor kompakt halten (statt der globalen 340px-Mindesthöhe) und intern scrollen. */
+/* Bewerber-Chat: Editor mit eigener Höhe (statt der globalen 340px-Mindesthöhe) und intern scrollen. */
 .bewerbung-chat-editor .ql-editor {
-    min-height: 96px;
-    max-height: 160px;
+    min-height: 240px;
+    max-height: 45vh;
     overflow-y: auto;
 }
 
