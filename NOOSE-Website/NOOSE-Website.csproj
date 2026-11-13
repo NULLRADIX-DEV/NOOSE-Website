@@ -42,7 +42,7 @@
   <ItemGroup>
     <!-- UI -->
     <PackageReference Include="Markdig" Version="1.6.0" />
-    <PackageReference Include="HtmlSanitizer" Version="10.0.1120" />
+    <PackageReference Include="HtmlSanitizer" Version="11.0.26" />
     <PackageReference Include="MudBlazor" Version="9.12.0" />
 
     <!-- Import: liest Seitenzahl und Titel importierter Google-Slides-PDFs (gerendert wird im Browser mit pdf.js) -->
