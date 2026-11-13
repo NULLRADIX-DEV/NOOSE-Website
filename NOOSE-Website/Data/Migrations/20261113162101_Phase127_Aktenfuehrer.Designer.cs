@@ -12,8 +12,8 @@ using NOOSE_Website.Data;
 namespace NOOSE_Website.Data.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261113162101_Phase126_Aktenfuehrer")]
-    partial class Phase126_Aktenfuehrer
+    [Migration("20261113162101_Phase127_Aktenfuehrer")]
+    partial class Phase127_Aktenfuehrer
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

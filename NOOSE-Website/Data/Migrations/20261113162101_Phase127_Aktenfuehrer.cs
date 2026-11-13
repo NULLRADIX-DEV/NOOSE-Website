@@ -5,7 +5,7 @@
 namespace NOOSE_Website.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Phase126_Aktenfuehrer : Migration
+    public partial class Phase127_Aktenfuehrer : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
