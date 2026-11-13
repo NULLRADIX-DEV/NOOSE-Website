@@ -144,6 +144,7 @@ public class JobService(
     public async Task<Job> CreateAsync(JobInput input, IReadOnlyList<string> agentIds,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
+        Permission.RequireWriteAccess(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 

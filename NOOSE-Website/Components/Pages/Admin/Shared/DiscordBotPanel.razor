@@ -1,0 +1,186 @@
+@* Discord bot: switch, live board channels, share channels, link preview, gateway status and command registration. Admins edit, leadership reads. *@
+@using NOOSE_Website.Services.Discord.Bot
+@inject IDiscordBotSettingsService BotSettings
+@inject DiscordBotStatus BotStatus
+@inject IServiceProvider Services
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.h5" Class="mt-10 mb-2">Discord-Bot</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
+    Der FIB-Bot bringt Akten, Dienstverordnung, FIBI, die eigene Schicht und Erfassung als Slash-Befehle nach Discord
+    (<code>/fib</code>, <code>/akte</code>, <code>/alarm</code> …). Er antwortet nur verknüpften, aktiven Agenten und immer mit
+    deren Rechten. Antworten sieht nur, wer fragt; mit <em>teilen</em> geht die Karte in den Kanal.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudStack Spacing="4">
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Stand</MudText>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Wifi"
+                         Color="@(BotStatus.Connected ? Color.Success : Color.Warning)">
+                    @(BotStatus.Connected ? $"verbunden als {BotStatus.BotName}" : "nicht verbunden")
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Terminal">
+                    @(BotStatus.RegisteredAt is { } at ? $"{BotStatus.RegisteredCommands} Befehle, registriert {at.ToLocalTime():dd.MM. HH:mm}" : "Befehle nicht registriert")
+                </MudChip>
+                @if (BotStatus.LastError is { } error)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                             Icon="@Icons.Material.Filled.ErrorOutline">letzter Fehler: @error</MudChip>
+                }
+            </MudStack>
+            @if (!BotStatus.Connected)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Text" Class="mt-3">
+                    Ohne Bot-Token auf dem Server startet der Bot nicht. Nach dem Eintragen den Container neu erstellen.
+                </MudAlert>
+            }
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudSwitch T="bool" @bind-Value="_enabled" Disabled="@(!_mayEdit)" Color="Color.Primary" Label="Bot aktiv" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
+                Aus: Befehle antworten nur „abgeschaltet“, Tafeln und Status ruhen.
+            </MudText>
+
+            <MudSwitch T="bool" @bind-Value="_linkPreview" Disabled="@(!_mayEdit)" Color="Color.Primary"
+                       Label="Link-Vorschau für Akten" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                Postet ein Agent einen Link auf eine Personen- oder Fraktionsakte, antwortet der Bot mit der Karte, so wie der
+                Poster sie sehen darf. Braucht im Discord-Entwicklerportal den Schalter <em>Message Content Intent</em>; ist er dort aus, muss auf dem Server <code>Discord__MessageContent=false</code> stehen, sonst verbindet sich der Bot nicht.
+            </MudText>
+        </MudPaper>
+
+        <MudPaper Class="pa-4" Elevation="2">
+            <MudText Typo="Typo.h6" Class="mb-2">Kanäle</MudText>
+            <MudTextField T="string" @bind-Value="_alarmChannel" Label="Kanal-ID der Alarmtafel" Variant="Variant.Outlined"
+                          Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
+                Jeder Einsatzalarm erscheint dort als Tafel mit „Komme“/„Komme nicht“, die sich bei jeder Antwort aktualisiert.
+            </MudText>
+            <MudTextField T="string" @bind-Value="_wantedChannel" Label="Kanal-ID der Fahndungstafel" Variant="Variant.Outlined"
+                          Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
+                Eine angepinnte Nachricht mit den Gesuchten (ohne Verschlusssachen) und den höchsten Kopfgeldern, alle zwei Minuten aktuell.
+            </MudText>
+            <MudTextField T="string" @bind-Value="_shareChannels" Label="Teilen nur in diesen Kanälen" Variant="Variant.Outlined"
+                          Disabled="@(!_mayEdit)" Lines="2" Class="mb-1" />
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                Kanal-IDs durch Komma getrennt. Leer heißt: in jedem Kanal des FIB-Servers. Eine geteilte Karte sieht jeder im Kanal.
+            </MudText>
+        </MudPaper>
+
+        @if (_mayEdit)
+        {
+            <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Sync"
+                           OnClick="RegisterAsync" Disabled="@(_busy || !BotStatus.Connected)">Befehle neu registrieren</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                           OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+            </MudStack>
+        }
+    </MudStack>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    // twin of the service guards (write access, then admin)
+    private bool _mayEdit;
+    private bool _load = true;
+    private bool _busy;
+    private bool _enabled;
+    private bool _linkPreview;
+    private string? _alarmChannel;
+    private string? _wantedChannel;
+    private string? _shareChannels;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayEdit = _user.IsAdmin() && _user.MayWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        try
+        {
+            var settings = await BotSettings.GetAsync();
+            _enabled = settings.Enabled;
+            _linkPreview = settings.LinkPreview;
+            _alarmChannel = settings.AlarmChannelId?.ToString();
+            _wantedChannel = settings.WantedChannelId?.ToString();
+            _shareChannels = string.Join(", ", settings.ShareChannelIds);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _load = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (!_mayEdit)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await BotSettings.SaveAsync(new DiscordBotSettings(_enabled,
+                DiscordBotSettingsService.ParseId(_alarmChannel), DiscordBotSettingsService.ParseId(_wantedChannel),
+                DiscordBotSettingsService.ParseIds(_shareChannels), _linkPreview), _user);
+            Snackbar.Add("Gespeichert.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RegisterAsync()
+    {
+        if (!_mayEdit)
+        {
+            return;
+        }
+        // the gateway is only registered with a bot token
+        if (Services.GetService<NOOSE_Website.Infrastructure.Discord.Bot.DiscordCommandRegistrar>() is not { } registrar)
+        {
+            Snackbar.Add("Der Bot läuft nicht.", Severity.Warning);
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var count = await registrar.RegisterAsync(_user, CancellationToken.None);
+            Snackbar.Add($"{count} Befehle registriert.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Registrieren fehlgeschlagen ({ex.GetType().Name}).", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

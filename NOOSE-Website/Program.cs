@@ -27,6 +27,7 @@ using NOOSE_Website.Infrastructure.CounterIntel;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.Authorization;
 using NOOSE_Website.Infrastructure.Discord;
+using NOOSE_Website.Infrastructure.Discord.Bot;
 using NOOSE_Website.Infrastructure.Threat;
 using NOOSE_Website.Infrastructure.Gamification;
 using NOOSE_Website.Infrastructure.Search;
@@ -417,6 +418,8 @@ builder.Services.AddScoped<IDiscordMembershipCheck, DiscordMembershipCheck>();
 builder.Services.AddScoped<IApplicantDmNotifier, ApplicantDmNotifier>();
 builder.Services.AddSingleton<IDiscordDmQueue, DiscordDmQueue>();
 builder.Services.AddHostedService<DiscordDmWorker>();
+// slash commands, live boards, status; gateway only with a bot token
+builder.Services.AddFibDiscordBot(builder.Configuration);
 // per-process share quota
 builder.Services.AddSingleton<ChannelShareQuota>();
 builder.Services.AddScoped<IChannelShareService, ChannelShareService>();

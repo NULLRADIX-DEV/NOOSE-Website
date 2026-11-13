@@ -74,6 +74,27 @@ public static class SystemSettingKeys
     /// <summary>Invite link to the Discord server shown to applicants who are not on it; unset means the built-in default.</summary>
     public const string DiscordInviteLink = "DiscordEinladungslink";
 
+    /// <summary>Switch of the Discord bot (slash commands, live boards, status); default off.</summary>
+    public const string DiscordBotEnabled = "DiscordBotAktiv";
+
+    /// <summary>Channel id of the live emergency-alarm board; unset means no board.</summary>
+    public const string DiscordBotAlarmChannel = "DiscordBotAlarmKanal";
+
+    /// <summary>Channel id of the pinned live wanted board; unset means no board.</summary>
+    public const string DiscordBotWantedChannel = "DiscordBotFahndungKanal";
+
+    /// <summary>Comma-separated channel ids where a bot card may be shared; empty means every channel of the server.</summary>
+    public const string DiscordBotShareChannels = "DiscordBotTeilenKanaele";
+
+    /// <summary>Whether the bot answers a posted record link with its card; default off (needs the message content intent).</summary>
+    public const string DiscordBotLinkPreview = "DiscordBotLinkVorschau";
+
+    /// <summary>The wanted board's message as "channelId|messageId|hash"; worker state, not user-edited.</summary>
+    public const string DiscordBotWantedBoardState = "DiscordBotFahndungTafel";
+
+    /// <summary>Live alarm boards as JSON alarmId → "channelId|messageId"; worker state, not user-edited.</summary>
+    public const string DiscordBotAlarmBoards = "DiscordBotAlarmTafeln";
+
     // periodic top-3 agent announcement; the interval also drives its wording
     public const string BestAgentEnabled = "BesterAgentAktiv";
     public const string BestAgentIntervalDays = "BesterAgentIntervallTage";
