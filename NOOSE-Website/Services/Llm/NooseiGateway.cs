@@ -75,7 +75,8 @@ public class NooseiGateway(
     ILlmQuotaService quota,
     INooseiProviderService providerService,
     IOptions<LlmOptions> options,
-    ILogger<NooseiGateway> logger) : INooseiGateway
+    ILogger<NooseiGateway> logger,
+    ITestLockService? testLocks = null) : INooseiGateway
 {
     /// <summary>Shown to the agent under a rescued partial answer. The stored <c>Truncated</c> chip says an answer was
     /// cut off; only this says the clock did it, which is the one case where asking again is cheaper than it looks.</summary>
@@ -105,6 +106,12 @@ public class NooseiGateway(
     public async Task<NooseiAnswer> AskAsync(NooseiCall call, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         var id = actor.GetAgentId() ?? throw new UnauthorizedAccessException("FIBI steht in dieser Rolle nicht zur Verfügung.");
+        // FIBI reads nearly everything, so any page lock of a running test switches it off entirely
+        if (testLocks is not null && await testLocks.GetActiveForAgentAsync(id, cancellationToken) is { } locked)
+        {
+            throw new InvalidOperationException(
+                $"FIBI ist gesperrt, solange du den Test „{locked.TestTitle}“ ablegst.");
+        }
         var turn = TurnFor(id);
         await turn.WaitAsync(cancellationToken);
         try

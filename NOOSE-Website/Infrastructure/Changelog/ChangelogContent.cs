@@ -743,6 +743,9 @@ public static class ChangelogContent
             Neu("3.0.50-discord-fraktionstafel", "Eine angepinnte Fraktionstafel zeigt in Discord, welche Fraktion gerade "
                 + "die gefährlichste ist, mit Bedrohung, Routen und den fünf Fraktionen dahinter. Sie aktualisiert sich "
                 + "von selbst.", "Discord"),
+            Neu("3.0.51-test-seitensperre", "Ein interner Test kann Seiten sperren, etwa die Dienstverordnung. Vom Start "
+                + "bis zur Abgabe zeigt eine gesperrte Seite nur einen Hinweis, auch im zweiten Tab, die Suche und der "
+                + "Discord-Bot halten sie zurück, und FIBI pausiert.", "Personal"),
         ]),
     ];
 }

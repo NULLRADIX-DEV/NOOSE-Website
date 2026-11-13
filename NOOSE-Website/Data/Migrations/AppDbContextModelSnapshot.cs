@@ -11141,6 +11141,10 @@ namespace NOOSE_Website.Data.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("BlockedPages")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GesperrteSeiten");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime(6)")
                         .HasColumnName("ErstelltAm");

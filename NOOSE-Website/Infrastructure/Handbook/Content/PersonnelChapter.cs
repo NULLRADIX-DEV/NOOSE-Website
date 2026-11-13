@@ -277,6 +277,10 @@ internal static class PersonnelChapter
                 starten</em> klickst. Sie läuft dann durch, auch wenn du das Fenster schließt; bei Ablauf wird
                 abgegeben, was du eingetragen hast. Deine Antworten werden laufend gespeichert. Steht eine
                 <strong>Frist</strong> dabei, wirst du einen Tag vorher und bei Überschreitung erinnert.</p>
+                <p>Ein Test kann <strong>Seiten sperren</strong>, etwa die Dienstverordnung bei einem Test über
+                sie. Vom Start bis zur Abgabe zeigt jede gesperrte Seite nur einen Hinweis, auch in einem zweiten
+                Tab. Die Suche findet dort nichts, der Discord-Bot antwortet nicht dazu, und FIBI ist in dieser Zeit
+                ganz gesperrt. Welche Seiten betroffen sind, steht vor dem Start auf der Testseite.</p>
                 <p>Nach der Korrektur siehst du deine <strong>Punkte</strong>, den Prozentwert und ob du
                 bestanden hast - nicht, welche Frage falsch war. Das Ergebnis steht als Vermerk in deiner
                 Personalakte. Ist mit dem Test ein <strong>Ausbildungsmodul</strong> verknüpft, wird es beim
