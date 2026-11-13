@@ -162,6 +162,13 @@ else
                 <MudTabPanel Text="Vermerke" Icon="@Icons.Material.Filled.Description">
                     <NotesPanel AgentId="@_agent.Id" />
                 </MudTabPanel>
+                @* the agent's own file and the personnel side only, never every colleague *@
+                @if (_mayEvaluations)
+                {
+                    <MudTabPanel Text="Beurteilungen" Icon="@Icons.Material.Filled.Grading">
+                        <EvaluationsPanel AgentId="@_agent.Id" />
+                    </MudTabPanel>
+                }
                 <MudTabPanel Text="Beförderungen" Icon="@Icons.Material.Filled.MilitaryTech">
                     <PromotionPanel Agent="_agent" Changed="TargetDecisionAsync" />
                 </MudTabPanel>
@@ -244,6 +251,7 @@ else
     }
 
     private bool _mayFirearmUse;
+    private bool _mayEvaluations;
 
     // the service ID card has its own gate: the agent's own, leadership and the Administration Division
     private bool MayServiceId => _agent is not null && ServiceIdRules.IsHolder(_agent) && ServiceIdRules.MayPrint(_user, _agent.Id);
@@ -252,10 +260,13 @@ else
     private void BuildTabs()
     {
         _mayFirearmUse = FirearmUseRules.MayRead(_user, AgentId);
+        _mayEvaluations = EvaluationRules.MayRead(_user, AgentId);
         _tabs =
         [
             .. _maySupervise ? new[] { "dienstaufsicht" } : [],
-            "verlauf", "vermerke", "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen",
+            "verlauf", "vermerke",
+            .. _mayEvaluations ? new[] { "beurteilungen" } : [],
+            "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen",
             "entfuehrungen",
             .. _mayFirearmUse ? new[] { "schusswaffengebrauch" } : [],
             .. _isLeadership ? new[] { "kommentare" } : [],

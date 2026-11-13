@@ -17,7 +17,7 @@ namespace NOOSE_Website.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.22")
+                .HasAnnotation("ProductVersion", "9.0.23")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -7919,6 +7919,73 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("SteckbriefVorschlaege");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentEvaluation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AuthorName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AutorName");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<DateTime>("EntryDate")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("Datum");
+
+                    b.Property<int>("Grade")
+                        .HasColumnType("int")
+                        .HasColumnName("Note");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Titel");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgentId", "EntryDate");
+
+                    b.ToTable("AgentBeurteilungen");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentModuleCompletion", b =>
                 {
                     b.Property<string>("Id")
@@ -13427,6 +13494,15 @@ namespace NOOSE_Website.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentEvaluation", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Personnel.AgentModuleCompletion", b =>

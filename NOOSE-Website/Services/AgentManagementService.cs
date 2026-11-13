@@ -1074,6 +1074,7 @@ public class AgentManagementService(
         await db.RegulationAcknowledgments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentRankHistories.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentNotes.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.AgentEvaluations.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentPromotionRequests.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentModuleCompletions.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentProbations.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);

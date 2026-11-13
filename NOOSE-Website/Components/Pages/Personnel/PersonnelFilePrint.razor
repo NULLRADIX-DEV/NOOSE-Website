@@ -111,6 +111,28 @@ else
             </section>
         }
 
+        @if (_evaluations.Count > 0)
+        {
+            <section>
+                <h2>Beurteilungen</h2>
+                @foreach (var e in _evaluations)
+                {
+                    <div class="druck-eintrag">
+                        <div class="druck-eintrag-kopf">
+                            <b>@e.Title</b>
+                            <text> · Note @EvaluationGradeDisplay.Name(e.Grade)</text>
+                            <text> · @e.EntryDate.ToString("dd.MM.yyyy HH:mm")</text>
+                            @if (!string.IsNullOrWhiteSpace(e.AuthorName))
+                            {
+                                <text> · @e.AuthorName</text>
+                            }
+                        </div>
+                        <RichHtml Html="@e.Text" Plain="true" />
+                    </div>
+                }
+            </section>
+        }
+
         @if (_completedModules.Count > 0)
         {
             <section>
@@ -220,6 +242,7 @@ else
     private Agent? _agent;
     private List<AgentRankHistory> _rankHistory = new();
     private List<AgentNote> _notes = new();
+    private List<AgentEvaluation> _evaluations = new();
     private List<AgentModuleStatus> _completedModules = new();
     private Dictionary<string, string> _agentNames = new();
 
@@ -243,6 +266,8 @@ else
             _agentNames = (await AgentService.GetAllAsync()).ToDictionary(a => a.Id, a => a.Codename);
             _rankHistory = await PersonnelFileService.GetRankHistoryAsync(Id);
             _notes = await PersonnelFileService.GetNotesAsync(Id);
+            // the service answers empty for a reader outside the evaluation audience
+            _evaluations = await PersonnelFileService.GetEvaluationsAsync(Id, user);
             _completedModules = (await ModuleService.GetStatusForAgentAsync(Id)).Where(m => m.IsCompleted).ToList();
             // the same gate as the tab; the service decides about the counter-intelligence part on its own
             if (user.MayClassifiedRead() && !user.IsPartner())

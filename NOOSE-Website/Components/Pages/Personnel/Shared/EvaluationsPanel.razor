@@ -1,0 +1,210 @@
+@* Service evaluations with a school grade; read by the agent and the personnel side, written by leadership and HRB. *@
+@inject IPersonnelFileService PersonnelFileService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    @if (_mayWrite)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudStack Spacing="2">
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudTextField @bind-Value="_title" @bind-Value:after="OnTitleEdited" Label="Titel"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="@EvaluationRules.MaxTitleLength"
+                                  Class="noose-breite-frei" Style="min-width:240px;flex:1;" />
+                    <MudSelect T="EvaluationGrade?" @bind-Value="_grade" Label="Note" Required="true"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-breite-frei"
+                               Style="min-width:180px;" Placeholder="Note wählen …">
+                        @foreach (var g in EvaluationGradeDisplay.All)
+                        {
+                            <MudSelectItem T="EvaluationGrade?" Value="@g">@EvaluationGradeDisplay.Name(g)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudDatePicker @bind-Date="_entryDate" @bind-Date:after="OnDateChanged" Label="Datum"
+                                   Variant="Variant.Outlined" Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:180px;" />
+                    <MudTimePicker @bind-Time="_entryTime" Label="Uhrzeit" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Class="noose-breite-frei" Style="min-width:140px;" />
+                </MudStack>
+                <RichTextEditor @ref="_editor" @bind-Value="_newHtml" MinHeight="200px"
+                                DraftKey='@($"beurteilung:{AgentId}")' />
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddAsync" Disabled="@(_saves || _grade is null || string.IsNullOrWhiteSpace(_newHtml))">
+                        Beurteilung eintragen
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.subtitle1">Beurteilungen (@_evaluations.Count)</MudText>
+            <MudSpacer />
+            @if (_evaluations.FirstOrDefault() is { } latest)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Letzte Note:</MudText>
+                <MudChip T="string" Size="Size.Small" Color="@EvaluationGradeDisplay.ChipColor(latest.Grade)"
+                         Variant="Variant.Text">@EvaluationGradeDisplay.Name(latest.Grade)</MudChip>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">vom @latest.EntryDate.ToString("dd.MM.yyyy")</MudText>
+            }
+        </MudStack>
+
+        @if (IsOverdue)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                @(_evaluations.Count == 0
+                    ? "Noch keine Beurteilung. Die Dienstverordnung sieht in der Regel alle vier Wochen eine vor."
+                    : "Die letzte Beurteilung liegt mehr als vier Wochen zurück.")
+            </MudAlert>
+        }
+
+        @foreach (var e in _evaluations)
+        {
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                    <div style="flex:1;" class="noose-eintrag-titel">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mb-2" Wrap="Wrap.Wrap">
+                            <MudText Typo="Typo.subtitle1">@e.Title</MudText>
+                            <MudChip T="string" Size="Size.Small" Color="@EvaluationGradeDisplay.ChipColor(e.Grade)"
+                                     Variant="Variant.Text" Icon="@Icons.Material.Filled.Grading">@EvaluationGradeDisplay.Name(e.Grade)</MudChip>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                📅 @e.EntryDate.ToString("dd.MM.yyyy HH:mm")
+                            </MudText>
+                        </MudStack>
+                        <RichHtml Html="@e.Text" />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+                            @(string.IsNullOrWhiteSpace(e.AuthorName) ? "—" : e.AuthorName) · erfasst @e.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        </MudText>
+                    </div>
+                    @if (_mayWrite)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => DeleteAsync(e))" aria-label="Beurteilung löschen" />
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string AgentId { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _saves;
+    private bool _mayWrite;
+    private ClaimsPrincipal _user = default!;
+    private List<AgentEvaluation> _evaluations = new();
+    private RichTextEditor? _editor;
+
+    private string _newHtml = string.Empty;
+    private EvaluationGrade? _grade;
+    private DateTime? _entryDate = DateTime.Now;
+    private TimeSpan? _entryTime = DateTime.Now.TimeOfDay;
+    private string _title = EvaluationRules.DefaultTitle(DateTime.Now);
+    // the title follows the date until someone types their own
+    private bool _titleEdited;
+    private string? _loadedId;
+
+    private bool IsOverdue => _evaluations.Count == 0
+        || DateTime.Now - _evaluations[0].EntryDate > EvaluationRules.UsualInterval;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayWrite = EvaluationRules.MayWrite(_user);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == AgentId)
+        {
+            return;
+        }
+        _loadedId = AgentId;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _evaluations = await PersonnelFileService.GetEvaluationsAsync(AgentId, _user);
+        _load = false;
+    }
+
+    private void OnTitleEdited()
+        => _titleEdited = !string.IsNullOrWhiteSpace(_title)
+                          && _title != EvaluationRules.DefaultTitle(_entryDate ?? DateTime.Now);
+
+    private void OnDateChanged()
+    {
+        if (!_titleEdited)
+        {
+            _title = EvaluationRules.DefaultTitle(_entryDate ?? DateTime.Now);
+        }
+    }
+
+    private void ResetForm()
+    {
+        _newHtml = string.Empty;
+        _grade = null;
+        _entryDate = DateTime.Now;
+        _entryTime = DateTime.Now.TimeOfDay;
+        _titleEdited = false;
+        _title = EvaluationRules.DefaultTitle(DateTime.Now);
+    }
+
+    private async Task AddAsync()
+    {
+        if (_saves || _editor is null || _grade is not { } grade)
+        {
+            return;
+        }
+        var html = await _editor.GetHtmlAsync();
+        if (string.IsNullOrWhiteSpace(html))
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            var when = (_entryDate ?? DateTime.Now).Date + (_entryTime ?? TimeSpan.Zero);
+            await PersonnelFileService.EvaluationCreateAsync(AgentId, _title, grade, when, html, _user);
+            await _editor.MarkSavedAsync();
+            ResetForm();
+            await _editor.SetHtmlAsync(string.Empty);
+            Snackbar.Add("Beurteilung eingetragen.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+
+    private async Task DeleteAsync(AgentEvaluation e)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Beurteilung löschen?", $"„{e.Title}“ wird entfernt.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await PersonnelFileService.EvaluationDeleteAsync(e.Id, _user);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

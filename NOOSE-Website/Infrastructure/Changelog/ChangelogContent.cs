@@ -734,6 +734,9 @@ public static class ChangelogContent
             Neu("3.0.47-discord-tafeln", "Einsatzalarme erscheinen im Alarm-Kanal als Tafel mit „Komme“ und „Komme nicht“, "
                 + "die sich bei jeder Antwort aktualisiert, und eine angepinnte Fahndungstafel zeigt die Gesuchten und "
                 + "Kopfgelder. Per Rechtsklick hängst du eine Discord-Nachricht samt Bildern an eine Akte.", "Discord"),
+            Neu("3.0.48-beurteilungen", "Die Personalakte hat einen eigenen Reiter für Beurteilungen mit Titel, Note von "
+                + "1 bis 5 und Text. Lesen kann sie der Agent selbst und die Führung, eintragen Führung und Administration "
+                + "Division.", "Personal"),
         ]),
     ];
 }

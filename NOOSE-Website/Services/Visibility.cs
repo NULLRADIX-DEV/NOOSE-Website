@@ -180,6 +180,11 @@ public static class Visibility
             case nameof(AgentNote):
                 return scope.MayClassifiedRead
                     && await db.AgentNotes.AnyAsync(n => n.Id == entityId, cancellationToken);
+            // the scope-shaped twin of EvaluationRules.MayRead: the own file, leadership, supervision and HRB
+            case nameof(AgentEvaluation):
+                return scope.IsInternalAgent
+                    && await db.AgentEvaluations.AnyAsync(e => e.Id == entityId
+                        && (e.AgentId == scope.MeId || scope.MayClassifiedRead || scope.MayRecruiting), cancellationToken);
             // counter-intelligence: leadership but never read-only supervision, which a scope cannot express.
             // Narrower than MayCounterIntel() by exactly that, which is an omission and never a leak.
             case nameof(CounterIntelRule):
