@@ -26,6 +26,7 @@ public static class DiscordPings
         NotificationType.SavedSearchHit,
         NotificationType.TestAssigned,
         NotificationType.TestDueReminder,
+        NotificationType.TaskforceChat,
     ];
 
     /// <summary>Whether an agent decides for themselves when this category pings them.</summary>

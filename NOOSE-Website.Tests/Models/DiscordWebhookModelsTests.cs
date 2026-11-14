@@ -37,6 +37,7 @@ public class DiscordWebhookModelsTests
         NotificationType.FactionThreatBoard,
         NotificationType.TestAssigned,
         NotificationType.TestDueReminder,
+        NotificationType.TaskforceChat,
         NotificationType.EmergencyAlarm,
     };
 
@@ -138,6 +139,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.InactivityNudge)]
     [InlineData(NotificationType.TestAssigned)]
     [InlineData(NotificationType.TestDueReminder)]
+    [InlineData(NotificationType.TaskforceChat)]
     [InlineData(NotificationType.EmergencyAlarm)]
     public void PingsRecipients_forRecipientCategories_returnsTrue(NotificationType type)
     {

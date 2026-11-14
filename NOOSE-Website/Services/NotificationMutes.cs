@@ -57,6 +57,7 @@ public static class NotificationMutes
             NotificationType.ThreatSpike,
             NotificationType.HandoverReceived,
             NotificationType.RecordKeeperAssigned,
+            NotificationType.TaskforceChat,
             NotificationType.InvestigationParticipation,
             NotificationType.InvestigationTask,
             NotificationType.WarrantToSign,
