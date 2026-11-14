@@ -26,6 +26,7 @@ public static class XlsxReader
     public const long MaxFileBytes = 5 * 1024 * 1024;
     private const int MaxEntries = 300;
     private const long MaxUnpackedBytes = 60L * 1024 * 1024;
+    private const long MaxPartBytes = 8L * 1024 * 1024;
     private const int MaxCells = 200_000;
 
     private const string MainNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
@@ -156,7 +157,8 @@ public static class XlsxReader
         using var unpacked = new MemoryStream();
         using (var stream = entry.Open())
         {
-            CopyCapped(stream, unpacked, budget, "Die Datei ist entpackt zu groß.");
+            // one part is parsed into memory whole, so it gets its own small cap besides the file's budget
+            CopyCapped(stream, unpacked, Math.Min(budget, MaxPartBytes), "Die Datei ist entpackt zu groß.");
         }
         budget -= unpacked.Length;
         unpacked.Position = 0;

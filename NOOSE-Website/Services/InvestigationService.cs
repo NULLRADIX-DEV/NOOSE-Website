@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Investigations;
+using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Investigations;
@@ -49,6 +50,25 @@ public partial class InvestigationService(
             .OrderByDescending(i => i.OpenedAt)
             .Select(i => new { i.Id, i.CaseNumber, i.Title, i.Status, i.TaskforceId, i.SidCaseNumber, i.OpenedAt })
             .ToListAsync(cancellationToken);
+        if (personId is not null && rows.Count > 0)
+        {
+            // that a person appears in a file is itself an entry of its people tab
+            var kept = new List<string>();
+            foreach (var r in rows)
+            {
+                var access = await InvestigationAccess.ResolveAsync(db, r.Id, viewer, cancellationToken);
+                if (!access.CanRead(InvestigationTabs.People))
+                {
+                    continue;
+                }
+                var hidden = await InvestigationAccess.HiddenItemIdsAsync(db, r.Id, nameof(InvestigationPerson), access, cancellationToken);
+                if (await db.InvestigationPeople.AnyAsync(p => p.InvestigationId == r.Id && p.PersonId == personId && !hidden.Contains(p.Id), cancellationToken))
+                {
+                    kept.Add(r.Id);
+                }
+            }
+            rows = rows.Where(r => kept.Contains(r.Id)).ToList();
+        }
         if (rows.Count == 0)
         {
             return new();
@@ -126,7 +146,7 @@ public partial class InvestigationService(
                     .Where(c => c.InvestigationId == id).OrderBy(c => c.SortOrder).ThenBy(c => c.CreatedAt).ToListAsync(cancellationToken))
                 .Where(c => Shows(c.Id))
                 .Select(c => new InvestigationChargeView(c.Id, c.LawId, c.Paragraph, c.LawBook, c.Description, c.Check, c.SortOrder)).ToList(),
-            People = !access.CanRead(InvestigationTabs.People) ? [] : await PeopleAsync(db, id, Shows, cancellationToken),
+            People = !access.CanRead(InvestigationTabs.People) ? [] : await PeopleAsync(db, id, Shows, ViewerScope.From(viewer), cancellationToken),
             Evidence = !access.CanRead(InvestigationTabs.Evidence) ? [] : (await db.InvestigationEvidence.AsNoTracking()
                     .Where(e => e.InvestigationId == id).OrderBy(e => e.Number).ToListAsync(cancellationToken))
                 .Where(e => Shows(e.Id))
@@ -154,15 +174,24 @@ public partial class InvestigationService(
         return detail;
     }
 
-    private static async Task<List<InvestigationPersonView>> PeopleAsync(AppDbContext db, string id, Func<string, bool> shows, CancellationToken cancellationToken)
+    private static async Task<List<InvestigationPersonView>> PeopleAsync(AppDbContext db, string id, Func<string, bool> shows, ViewerScope scope,
+        CancellationToken cancellationToken)
     {
         var rows = await db.InvestigationPeople.AsNoTracking().Where(p => p.InvestigationId == id)
             .OrderBy(p => p.CreatedAt).ToListAsync(cancellationToken);
         var personIds = rows.Where(r => r.PersonId != null).Select(r => r.PersonId!).Distinct().ToList();
-        var files = await db.People.AsNoTracking().Where(p => personIds.Contains(p.Id))
-            .Select(p => new { p.Id, p.CaseNumber }).ToDictionaryAsync(p => p.Id, p => p.CaseNumber, cancellationToken);
+        // the link to a person file only where the viewer may open that file; the name in the list is the entry's own
+        var files = new Dictionary<string, string>();
+        foreach (var file in await db.People.AsNoTracking().Where(p => personIds.Contains(p.Id))
+                     .Select(p => new { p.Id, p.CaseNumber }).ToListAsync(cancellationToken))
+        {
+            if (await Visibility.IsRecordVisibleAsync(db, nameof(Person), file.Id, scope, cancellationToken))
+            {
+                files[file.Id] = file.CaseNumber;
+            }
+        }
         return rows.Where(r => shows(r.Id))
-            .Select(r => new InvestigationPersonView(r.Id, r.Name, r.PersonId, r.PersonId is null ? null : files.GetValueOrDefault(r.PersonId),
+            .Select(r => new InvestigationPersonView(r.Id, r.Name, r.PersonId, files.GetValueOrDefault(r.PersonId ?? string.Empty),
                 r.Phone, r.Role, r.Status, r.Note))
             .ToList();
     }
@@ -347,6 +376,21 @@ public partial class InvestigationService(
             if (!await db.Taskforces.AnyAsync(t => t.Id == input.TaskforceId, cancellationToken))
             {
                 throw new InvalidOperationException("Diese Taskforce gibt es nicht.");
+            }
+            // partners take part only through their agency's place in the taskforce
+            var target = await db.TaskforcePartnerAgencies
+                .Where(tp => tp.TaskforceId == input.TaskforceId
+                    && db.Taskforces.Any(t => t.Id == tp.TaskforceId && t.Scope == TaskforceScope.CrossAgency))
+                .Select(tp => tp.Agency).ToListAsync(cancellationToken);
+            var stranded = await db.InvestigationParticipants
+                .Where(p => p.InvestigationId == id
+                    && ((p.AgentId != null && db.Users.Any(u => u.Id == p.AgentId && u.PartnerAgency != null && !target.Contains(u.PartnerAgency.Value)))
+                        || (p.PartnerUnitId != null && db.PartnerUnits.Any(u => u.Id == p.PartnerUnitId && !target.Contains(u.Agency)))))
+                .AnyAsync(cancellationToken);
+            if (stranded)
+            {
+                throw new InvalidOperationException("An der neuen Taskforce arbeitet nicht jede beteiligte Partnerbehörde mit. "
+                    + "Erst die Behörde dort eintragen oder ihre Beteiligten austragen.");
             }
         }
         Apply(inv, input);
@@ -563,10 +607,8 @@ public partial class InvestigationService(
         {
             throw new InvalidOperationException("Die Person hat noch Vernehmungen. Erst diese löschen.");
         }
+        // the limits stay: the soft-deleted row still shows in the history, which must hide it as before
         db.Remove(row);
-        // a deleted entry keeps no limits; the soft-deleted row stays in the history
-        db.InvestigationItemRestrictions.RemoveRange(
-            await db.InvestigationItemRestrictions.Where(r => r.ItemType == itemType && r.ItemId == itemId).ToListAsync(cancellationToken));
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -770,6 +812,23 @@ public partial class InvestigationService(
         {
             throw new InvalidOperationException("Ein Beteiligter wechselt nicht das Konto; bitte neu eintragen.");
         }
+        if (!access.FullAccess)
+        {
+            // managing participants is not a way to raise one's own rights or to hand out the lead
+            if (role == InvestigationRole.Lead || (!isNew && row.Role == InvestigationRole.Lead))
+            {
+                throw new UnauthorizedAccessException("Die Ermittlungsleitung vergibt und entzieht nur, wer die Ermittlung leitet oder die Führung.");
+            }
+            if ((row.AgentId is not null && row.AgentId == access.MeId) || (row.PartnerUnitId is not null && row.PartnerUnitId == access.MyUnitId))
+            {
+                throw new UnauthorizedAccessException("Die eigenen Rechte ändert nur die Ermittlungsleitung.");
+            }
+        }
+        if (!isNew && row.Role == InvestigationRole.Lead && role != InvestigationRole.Lead
+            && !await db.InvestigationParticipants.AnyAsync(p => p.InvestigationId == id && p.Id != row.Id && p.Role == InvestigationRole.Lead, cancellationToken))
+        {
+            throw new InvalidOperationException("Die letzte Ermittlungsleitung bleibt. Erst eine neue eintragen.");
+        }
         row.Role = role;
         row.TabAccessJson = InvestigationTabAccess.Serialize(input.Overrides);
         await db.SaveChangesAsync(cancellationToken);
@@ -787,6 +846,10 @@ public partial class InvestigationService(
         InvestigationAccess.RequireEdit(access, InvestigationTabs.Participants);
         var row = await db.InvestigationParticipants.FirstOrDefaultAsync(p => p.Id == participantId && p.InvestigationId == id, cancellationToken)
             ?? throw new KeyNotFoundException("Diesen Beteiligten gibt es nicht.");
+        if (row.Role == InvestigationRole.Lead && !access.FullAccess)
+        {
+            throw new UnauthorizedAccessException("Die Ermittlungsleitung trägt nur aus, wer die Ermittlung leitet oder die Führung.");
+        }
         if (row.Role == InvestigationRole.Lead
             && !await db.InvestigationParticipants.AnyAsync(p => p.InvestigationId == id && p.Id != row.Id && p.Role == InvestigationRole.Lead, cancellationToken))
         {
@@ -861,6 +924,15 @@ public partial class InvestigationService(
         Add((await db.InvestigationParticipants.IgnoreQueryFilters().Where(r => r.InvestigationId == id).Select(r => new { r.Id }).ToListAsync(cancellationToken))
             .Select(r => (r.Id, "Beteiligung")), nameof(InvestigationParticipant));
 
+        // entries limited to others stay out of the history as they stay out of the tabs
+        foreach (var itemType in EntryTabs.Keys)
+        {
+            foreach (var hidden in await InvestigationAccess.HiddenItemIdsAsync(db, id, itemType, access, cancellationToken))
+            {
+                children.Remove(hidden);
+            }
+        }
+
         var ids = children.Keys.ToList();
         var rows = await db.AuditLogs.AsNoTracking()
             .Where(a => (a.EntityType == nameof(Investigation) && a.EntityId == id) || ids.Contains(a.EntityId))
@@ -899,6 +971,14 @@ public partial class InvestigationService(
             throw new UnauthorizedAccessException("Eine Ermittlung löscht nur, wer sie leitet oder die Führung.");
         }
         var inv = await db.Investigations.FirstOrDefaultAsync(i => i.Id == id, cancellationToken) ?? throw new KeyNotFoundException(NotFound);
+        // its warrants vanish with it, while the paper would still check out as valid in public
+        var now = DateTime.UtcNow;
+        if (await db.Warrants.AnyAsync(w => w.InvestigationId == id
+                && (w.Status == WarrantStatus.Requested || (w.Status == WarrantStatus.Signed && (w.ValidUntil == null || w.ValidUntil > now))),
+                cancellationToken))
+        {
+            throw new InvalidOperationException("Die Ermittlung hat noch offene oder gültige Anordnungen. Erst diese aufheben oder löschen.");
+        }
         db.Investigations.Remove(inv);
         await db.SaveChangesAsync(cancellationToken);
     }

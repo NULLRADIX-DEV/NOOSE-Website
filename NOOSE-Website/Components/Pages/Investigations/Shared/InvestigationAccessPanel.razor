@@ -42,7 +42,7 @@
                     </td>
                 }
                 <td class="text-right" style="white-space:nowrap;">
-                    @if (mayEdit)
+                    @if (mayEdit && MayTouch(p))
                     {
                         <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Tune" OnClick="@(() => Edit(p))" aria-label="Rechte bearbeiten" />
                         <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.PersonRemove" Color="Color.Error" OnClick="@(() => RemoveAsync(p))" aria-label="Austragen" />
@@ -84,7 +84,7 @@
             @if (!IsUnit)
             {
                 <MudSelect T="InvestigationRole" @bind-Value="_edit.Role" Label="Rolle" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" Style="max-width:260px;">
-                    @foreach (var role in InvestigationDisplay.Roles)
+                    @foreach (var role in InvestigationDisplay.Roles.Where(r => r != InvestigationRole.Lead || Detail.Access.FullAccess))
                     {
                         <MudSelectItem T="InvestigationRole" Value="role">@InvestigationDisplay.Name(role)</MudSelectItem>
                     }
@@ -121,6 +121,13 @@
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
+
+    // as the service: without full access neither a lead row nor one's own rows
+    private bool MayTouch(InvestigationParticipantView p)
+        => Detail.Access.FullAccess
+           || (p.Role != InvestigationRole.Lead
+               && !(p.AgentId is not null && p.AgentId == Detail.Access.MeId)
+               && !(p.PartnerUnitId is not null && p.PartnerUnitId == Detail.Access.MyUnitId));
 
     private const string Default = "vorgabe";
 

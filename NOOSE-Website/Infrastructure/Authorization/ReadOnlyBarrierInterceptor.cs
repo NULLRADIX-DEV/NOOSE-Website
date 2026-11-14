@@ -157,6 +157,13 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
             {
                 continue;
             }
+            // a partner withdraws only their own request while it is still open
+            if (partnerMayAuthor && entry.State == EntityState.Deleted && entry.Entity is Warrant
+                && entry.OriginalValues[nameof(Warrant.CreatedById)] is string author && author == user.Id
+                && entry.OriginalValues[nameof(Warrant.Status)] is WarrantStatus.Requested)
+            {
+                continue;
+            }
             // own law chat only
             if (entry.State is EntityState.Modified or EntityState.Deleted
                 && partnerMayAuthor

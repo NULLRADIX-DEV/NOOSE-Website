@@ -99,6 +99,12 @@ public static partial class InvestigationWorkbookImporter
                 {
                     break;
                 }
+                if (s[r, cCol + 1].Length == 0)
+                {
+                    // creating would refuse a charge without a law book; the import page cannot repair it
+                    d.Warnings.Add($"Tatvorwurf „{paragraph}“ ohne Gesetzbuch übersprungen.");
+                    continue;
+                }
                 d.Charges.Add(new InvestigationChargeInput(null, null, paragraph, s[r, cCol + 1], s[r, cCol + 2], ParseCheck(s[r, cCol + 3])));
             }
         }
@@ -323,6 +329,11 @@ public static partial class InvestigationWorkbookImporter
         if (date is not { } d)
         {
             return null;
+        }
+        // a time typed into Excel is stored as a fraction of a day
+        if (double.TryParse(time, NumberStyles.Float, CultureInfo.InvariantCulture, out var fraction) && fraction is >= 0 and < 1)
+        {
+            return d.ToLocalTime().Date.AddMinutes(Math.Round(fraction * 24 * 60)).ToUniversalTime();
         }
         var match = TimePattern().Match(time ?? string.Empty);
         if (!match.Success)

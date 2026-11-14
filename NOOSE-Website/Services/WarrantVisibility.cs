@@ -18,7 +18,9 @@ public static class WarrantVisibility
         var investigations = db.Investigations.OnlyVisible(db, scope);
         if (scope.IsPartner)
         {
-            return query.Where(w => w.InvestigationId != null && investigations.Any(i => i.Id == w.InvestigationId));
+            // a classified or trashed person hides its warrants from partners as well
+            return query.Where(w => w.InvestigationId != null && investigations.Any(i => i.Id == w.InvestigationId)
+                && db.People.Any(p => p.Id == w.PersonId && !p.IsClassified));
         }
         if (!scope.IsInternalAgent)
         {

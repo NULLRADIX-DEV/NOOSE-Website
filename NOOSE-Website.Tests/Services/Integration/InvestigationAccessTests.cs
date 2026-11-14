@@ -186,11 +186,15 @@ public sealed class InvestigationAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task UnitLead_SeesEverything_OnlyWhileTheAgencyTakesPart()
+    public async Task UnitLead_ReadsEverything_OnlyWhileTheAgencyTakesPart()
     {
         var (listed, _, access) = await Check(Doj("sid-lead", PartnerUnits.DojSid, lead: true));
         Assert.True(listed);
-        Assert.True(access.FullAccess);
+        Assert.True(access.CanRead(InvestigationTabs.Evidence));
+        Assert.True(access.SeesAllEntries);
+        // seeing is not running the file
+        Assert.False(access.FullAccess);
+        Assert.False(access.CanEdit(InvestigationTabs.Evidence));
 
         await using (var db = _ctx.NewContext())
         {
@@ -263,6 +267,16 @@ public sealed class InvestigationAccessTests : IDisposable
         Assert.Empty(await Hidden(Internal("member")));
         Assert.Contains("note-1", await Hidden(Doj("sid", PartnerUnits.DojSid)));
         Assert.Empty(await Hidden(Internal("lead")));
+        // supervision reads everything, restricted entries included
+        Assert.Empty(await Hidden(ClaimsPrincipalBuilder.Agent("outsider").WithRank(Rank.SpecialAgent).AsTeamLead().Build()));
+    }
+
+    [Fact]
+    public async Task Prosecutor_WithoutReadOnWarrants_MayNotSign()
+    {
+        AddRow("sta", null, InvestigationRole.Prosecutor, """{"anordnungen":0}""");
+        var (_, _, access) = await Check(Doj("sta", PartnerUnits.DojStateAttorney));
+        Assert.False(access.MaySignWarrants);
     }
 
     [Fact]

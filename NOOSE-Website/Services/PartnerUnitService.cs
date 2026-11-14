@@ -195,11 +195,25 @@ public class PartnerUnitService(IDbContextFactory<AppDbContext> dbFactory, IMemo
     /// </summary>
     public static async Task SyncAsync(AppDbContext db, CancellationToken cancellationToken = default)
     {
-        var unitIds = await db.PartnerUnits.IgnoreQueryFilters().Select(u => u.Id).ToListAsync(cancellationToken);
+        // an older build changes agency and tier but never the unit: such a unit no longer fits and is re-derived
+        var units = await db.PartnerUnits.IgnoreQueryFilters()
+            .Select(u => new { u.Id, u.Agency, u.LegacyRank, u.IsDeleted }).ToDictionaryAsync(u => u.Id, cancellationToken);
         var partners = await db.Users.Where(a => a.PartnerAgency != null).ToListAsync(cancellationToken);
-        foreach (var agent in partners.Where(a => a.PartnerUnitId is null || !unitIds.Contains(a.PartnerUnitId)))
+        foreach (var agent in partners)
         {
-            agent.PartnerUnitId = PartnerUnits.ForLegacy(agent.PartnerAgency!.Value, agent.PartnerRank);
+            var fits = agent.PartnerUnitId is { } unitId && units.TryGetValue(unitId, out var unit) && !unit.IsDeleted
+                && unit.Agency == agent.PartnerAgency && unit.LegacyRank == (agent.PartnerRank ?? PartnerRank.Member);
+            if (!fits)
+            {
+                agent.PartnerUnitId = PartnerUnits.ForLegacy(agent.PartnerAgency!.Value, agent.PartnerRank);
+                agent.IsPartnerUnitLead = false;
+            }
+        }
+        foreach (var agent in await db.Users.Where(a => a.PartnerAgency == null && (a.PartnerUnitId != null || a.IsPartnerUnitLead))
+                     .ToListAsync(cancellationToken))
+        {
+            agent.PartnerUnitId = null;
+            agent.IsPartnerUnitLead = false;
         }
 
         const string legacyKey = "PartnerRangSichtbarkeit";

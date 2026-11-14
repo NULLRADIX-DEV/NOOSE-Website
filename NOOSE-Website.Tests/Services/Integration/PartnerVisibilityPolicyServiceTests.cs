@@ -25,8 +25,22 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     private static ClaimsPrincipal Admin()
         => ClaimsPrincipalBuilder.Agent("admin").AsAdmin().Build();
 
-    private static ClaimsPrincipal Partner(string id, PartnerAgency agency, PartnerRank rank)
-        => ClaimsPrincipalBuilder.Agent(id).AsPartner(agency, rank).Build();
+    // the service reads the unit from the account row, so the row exists as well
+    private ClaimsPrincipal Partner(string id, PartnerAgency agency, PartnerRank rank)
+    {
+        using var db = _ctx.NewContext();
+        var agent = db.Users.Find(id);
+        if (agent is null)
+        {
+            agent = Seed.Agent(id);
+            db.Users.Add(agent);
+        }
+        agent.PartnerAgency = agency;
+        agent.PartnerRank = rank;
+        agent.PartnerUnitId = PartnerUnits.ForLegacy(agency, rank);
+        db.SaveChanges();
+        return ClaimsPrincipalBuilder.Agent(id).AsPartner(agency, rank).Build();
+    }
 
     private void SeedUnit(PartnerAgency agency, PartnerRank rank, PartnerUnitVisibility visibility)
     {
@@ -122,6 +136,48 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
             await PartnerUnitService.SyncAsync(db);
         }
         Assert.Null((await Units().GetAsync(unit.Id))!.Visibility);
+    }
+
+    [Fact]
+    public async Task SyncAsync_ReDerivesAUnitThatNoLongerFits_AndClearsInternalAccounts()
+    {
+        using (var db = _ctx.NewContext())
+        {
+            // an older build moved this DoJ lead to the LSPD without touching the unit
+            db.Users.Add(Seed.Agent("moved", configure: a =>
+            {
+                a.PartnerAgency = PartnerAgency.LSPD;
+                a.PartnerRank = PartnerRank.Special;
+                a.PartnerUnitId = PartnerUnits.DojSid;
+                a.IsPartnerUnitLead = true;
+            }));
+            // and turned this one internal
+            db.Users.Add(Seed.Agent("internal", configure: a =>
+            {
+                a.PartnerUnitId = PartnerUnits.DojStateAttorney;
+                a.IsPartnerUnitLead = true;
+            }));
+            // a fitting unit stays as it is
+            db.Users.Add(Seed.Agent("fits", configure: a =>
+            {
+                a.PartnerAgency = PartnerAgency.DoJ;
+                a.PartnerUnitId = PartnerUnits.DojSid;
+                a.IsPartnerUnitLead = true;
+            }));
+            db.SaveChanges();
+            await PartnerUnitService.SyncAsync(db);
+        }
+
+        using var check = _ctx.NewContext();
+        var moved = check.Users.Find("moved")!;
+        Assert.Equal(PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Special), moved.PartnerUnitId);
+        Assert.False(moved.IsPartnerUnitLead);
+        var internalAgent = check.Users.Find("internal")!;
+        Assert.Null(internalAgent.PartnerUnitId);
+        Assert.False(internalAgent.IsPartnerUnitLead);
+        var fits = check.Users.Find("fits")!;
+        Assert.Equal(PartnerUnits.DojSid, fits.PartnerUnitId);
+        Assert.True(fits.IsPartnerUnitLead);
     }
 
     [Fact]

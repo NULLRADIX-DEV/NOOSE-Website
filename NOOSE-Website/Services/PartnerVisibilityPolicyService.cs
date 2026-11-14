@@ -50,7 +50,8 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
             released.Add(nameof(Taskforce));
         }
 
-        var unit = await units.GetAsync(user.GetPartnerUnitId(), cancellationToken);
+        // the unit from the account row, not the claim: a moved account must not keep its old unit's allowlist
+        var unit = await units.GetAsync(await UnitIdAsync(db, meId, cancellationToken), cancellationToken);
         var entry = unit?.Visibility;
         // investigations: in the menu for whoever takes part in one or may open one
         var investigations = await db.Investigations.OnlyVisible(db, ViewerScope.From(user)).AnyAsync(cancellationToken)
@@ -105,10 +106,20 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
         return visible;
     }
 
+    /// <summary>The account's unit as stored now; claims may lag behind a move.</summary>
+    private static Task<string?> UnitIdAsync(AppDbContext db, string? meId, CancellationToken cancellationToken)
+        => meId is null ? Task.FromResult<string?>(null)
+            : db.Users.Where(u => u.Id == meId && u.PartnerAgency != null).Select(u => u.PartnerUnitId).FirstOrDefaultAsync(cancellationToken);
+
     /// <summary>Unit allowlist for a record; null = all tabs (unconfigured unit, individually released, or led taskforce).</summary>
     private async Task<IReadOnlySet<string>?> UnitTabsAsync(ClaimsPrincipal user, PartnerAgency agency, string typeKey, string recordId, CancellationToken cancellationToken)
     {
-        if ((await units.GetAsync(user.GetPartnerUnitId(), cancellationToken))?.Visibility is not { } entry)
+        string? unitId;
+        await using (var unitDb = await dbFactory.CreateDbContextAsync(cancellationToken))
+        {
+            unitId = await UnitIdAsync(unitDb, user.GetAgentId(), cancellationToken);
+        }
+        if ((await units.GetAsync(unitId, cancellationToken))?.Visibility is not { } entry)
         {
             return null;
         }

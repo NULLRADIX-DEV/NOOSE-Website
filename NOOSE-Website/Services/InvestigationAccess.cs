@@ -16,10 +16,14 @@ public sealed record InvestigationAccessView(
     bool MayWrite,
     IReadOnlyDictionary<string, InvestigationAccessLevel> Tabs,
     string? MeId,
-    string? MyUnitId)
+    string? MyUnitId,
+    bool ReadsAll = false)
 {
     public static readonly InvestigationAccessView None = new(false, false, false, false, false,
         new Dictionary<string, InvestigationAccessLevel>(), null, null);
+
+    /// <summary>Sees every entry, restricted ones included: full access, supervision, a unit lead that sees all.</summary>
+    public bool SeesAllEntries => CanSee && (FullAccess || ReadsAll || Level(InvestigationTabs.Participants) == InvestigationAccessLevel.Edit);
 
     public InvestigationAccessLevel Level(string slug) => Tabs.GetValueOrDefault(slug);
 
@@ -112,12 +116,10 @@ public static class InvestigationAccess
         {
             full = true;
         }
-        if (isPartner && me.IsPartnerUnitLead && unit?.LeadSeesAllInvestigations == true
+        // a unit lead that sees all reads the whole file; editing still needs a participant row
+        var leadReads = isPartner && me.IsPartnerUnitLead && unit?.LeadSeesAllInvestigations == true
             && await db.TaskforcePartnerAgencies.AnyAsync(tp => tp.TaskforceId == inv.TaskforceId && tp.Agency == me.PartnerAgency
-                && db.Taskforces.Any(t => t.Id == tp.TaskforceId && t.Scope == TaskforceScope.CrossAgency), cancellationToken))
-        {
-            full = true;
-        }
+                && db.Taskforces.Any(t => t.Id == tp.TaskforceId && t.Scope == TaskforceScope.CrossAgency), cancellationToken);
 
         var rows = await db.InvestigationParticipants.AsNoTracking()
             .Where(p => p.InvestigationId == investigationId
@@ -145,7 +147,7 @@ public static class InvestigationAccess
             }
             else
             {
-                level = InvestigationAccessLevel.None;
+                level = leadReads ? InvestigationAccessLevel.Read : InvestigationAccessLevel.None;
                 foreach (var row in rows)
                 {
                     var granted = RowLevel(row, tab.Slug, isPartner, unitDefaults);
@@ -158,7 +160,7 @@ public static class InvestigationAccess
             tabs[tab.Slug] = InvestigationTabs.Cap(tab.Slug, level);
         }
 
-        var canSee = full || readAll || rows.Count > 0;
+        var canSee = full || readAll || leadReads || rows.Count > 0;
         if (!canSee)
         {
             return InvestigationAccessView.None;
@@ -174,9 +176,11 @@ public static class InvestigationAccess
             tabs[InvestigationTabs.History] = InvestigationAccessLevel.None;
         }
 
-        var maySign = mayWrite && isPartner && own?.Role == InvestigationRole.Prosecutor && unit?.IsProsecution == true;
+        // signing a warrant one may not read would be blind
+        var maySign = mayWrite && isPartner && own?.Role == InvestigationRole.Prosecutor && unit?.IsProsecution == true
+            && tabs[InvestigationTabs.Warrants] >= InvestigationAccessLevel.Read;
         return new InvestigationAccessView(true, full && mayWrite, full && mayWrite || (mayWrite && tabs[InvestigationTabs.Participants] == InvestigationAccessLevel.Edit),
-            maySign, mayWrite, tabs, meId, unitId);
+            maySign, mayWrite, tabs, meId, unitId, ReadsAll: full || readAll || leadReads);
     }
 
     /// <summary>What one participant row grants on one tab: the role or unit default, then the row's own deviation.</summary>
@@ -191,6 +195,11 @@ public static class InvestigationAccess
         if (row.PartnerUnitId is not null || viewerIsPartner)
         {
             var level = unitDefaults.GetValueOrDefault(slug);
+            // the prosecutor is there for the warrants; signing one needs to read it
+            if (row.Role == InvestigationRole.Prosecutor && slug == InvestigationTabs.Warrants && level < InvestigationAccessLevel.Read)
+            {
+                return InvestigationAccessLevel.Read;
+            }
             return row.Role == InvestigationRole.Observer && level > InvestigationAccessLevel.Read ? InvestigationAccessLevel.Read : level;
         }
         return RoleDefault(row.Role, slug);
@@ -208,7 +217,7 @@ public static class InvestigationAccess
     public static async Task<HashSet<string>> HiddenItemIdsAsync(AppDbContext db, string investigationId, string itemType,
         InvestigationAccessView access, CancellationToken cancellationToken = default)
     {
-        if (access.FullAccess || (access.CanSee && access.Level(InvestigationTabs.Participants) == InvestigationAccessLevel.Edit))
+        if (access.SeesAllEntries)
         {
             return new();
         }

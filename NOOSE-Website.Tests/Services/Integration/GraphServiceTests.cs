@@ -94,6 +94,13 @@ public sealed class GraphServiceTests
             {
                 db.PartnerShares.Add(new PartnerShare { EntityType = type, EntityId = id, Agency = PartnerAgency.DoJ });
             }
+            // the unit is read from the account row
+            db.Users.Add(Seed.Agent("partner", configure: a =>
+            {
+                a.PartnerAgency = PartnerAgency.DoJ;
+                a.PartnerRank = PartnerRank.Member;
+                a.PartnerUnitId = PartnerUnits.DojSid;
+            }));
             // the DoJ base unit sees people and taskforces only
             db.PartnerUnits.Find(PartnerUnits.DojSid)!.VisibilityJson = System.Text.Json.JsonSerializer.Serialize(
                 new NOOSE_Website.Models.Common.PartnerUnitVisibility { Types = { "Person", "Taskforce" } });

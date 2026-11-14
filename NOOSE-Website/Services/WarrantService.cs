@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.Investigations;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Models.Enums;
@@ -102,7 +103,8 @@ public class WarrantService(
             {
                 MaySign = maySign && view.State == WarrantState.Requested && !own,
                 MayCancel = maySign && view.State == WarrantState.Valid,
-                MayDelete = maySign || (own && view.State == WarrantState.Requested),
+                // as DeleteAsync: FIB leadership, or the requester while the request is open
+                MayDelete = viewer.MayWarrantSign() || (own && view.State == WarrantState.Requested),
             });
         }
         return result;
@@ -220,16 +222,21 @@ public class WarrantService(
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var access = await InvestigationAccess.ResolveAsync(db, investigationId, viewer, cancellationToken);
-        if (!access.CanEdit(InvestigationTabs.Warrants))
+        if (!access.CanEdit(InvestigationTabs.Warrants) || !access.CanRead(InvestigationTabs.People))
         {
             return new();
         }
+        var hidden = await InvestigationAccess.HiddenItemIdsAsync(db, investigationId, nameof(InvestigationPerson), access, cancellationToken);
         return await db.InvestigationPeople.AsNoTracking()
-            .Where(p => p.InvestigationId == investigationId && p.PersonId != null)
-            .Join(db.People.AsNoTracking(), p => p.PersonId, x => x.Id, (p, x) => new WarrantTarget(x.Id, x.Name, x.CaseNumber))
+            .Where(p => p.InvestigationId == investigationId && p.PersonId != null && !hidden.Contains(p.Id))
+            .Join(TargetPeople(db, ViewerScope.From(viewer)), p => p.PersonId, x => x.Id, (p, x) => new WarrantTarget(x.Id, x.Name, x.CaseNumber))
             .Distinct()
             .ToListAsync(cancellationToken);
     }
+
+    /// <summary>Person files a warrant of an investigation may name: the viewer's own gate, for partners the unclassified ones.</summary>
+    private static IQueryable<Person> TargetPeople(AppDbContext db, ViewerScope scope)
+        => scope.IsPartner ? db.People.AsNoTracking().Where(p => !p.IsClassified) : db.People.AsNoTracking().OnlyVisible(scope);
 
     // ---- writes ----
 
@@ -288,9 +295,13 @@ public class WarrantService(
         {
             var access = await InvestigationAccess.ResolveAsync(db, investigationId, actor, cancellationToken);
             InvestigationAccess.RequireEdit(access, InvestigationTabs.Warrants);
-            // from an investigation the target is one of its people with a person file
-            if (personId is null || !await db.InvestigationPeople.AnyAsync(
-                    p => p.InvestigationId == investigationId && p.PersonId == personId, cancellationToken))
+            InvestigationAccess.RequireRead(access, InvestigationTabs.People);
+            // from an investigation the target is one of its people with a person file, as the editor offers them
+            var hidden = await InvestigationAccess.HiddenItemIdsAsync(db, investigationId, nameof(InvestigationPerson), access, cancellationToken);
+            if (personId is null
+                || !await db.InvestigationPeople.AnyAsync(p => p.InvestigationId == investigationId && p.PersonId == personId
+                    && !hidden.Contains(p.Id), cancellationToken)
+                || !await TargetPeople(db, scope).AnyAsync(p => p.Id == personId, cancellationToken))
             {
                 throw new InvalidOperationException("Die Person steht nicht mit Personenakte in dieser Ermittlung.");
             }
@@ -300,7 +311,8 @@ public class WarrantService(
         {
             throw new InvalidOperationException("Die Person wurde nicht gefunden.");
         }
-        var caseId = scope.IsPartner ? null : input.CaseId.TrimToNull();
+        // a warrant of an investigation names no case: its partners would read a case nobody released to them
+        var caseId = scope.IsPartner || investigationId is not null ? null : input.CaseId.TrimToNull();
         if (caseId is not null && !await db.Cases.OnlyVisible(scope).AnyAsync(c => c.Id == caseId, cancellationToken))
         {
             throw new InvalidOperationException("Der Vorgang wurde nicht gefunden.");

@@ -20,7 +20,7 @@ else
             {
                 <tr>
                     <td>
-                        @if (p.PersonId is { } personId && !User.IsPartner())
+                        @if (p.PersonId is { } personId && p.PersonCaseNumber is not null && !User.IsPartner())
                         {
                             <MudLink Href="@($"/personen/{personId}")">@p.Name</MudLink>
                         }
