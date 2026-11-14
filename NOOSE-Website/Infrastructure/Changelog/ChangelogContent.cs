@@ -749,6 +749,9 @@ public static class ChangelogContent
             Neu("3.0.52-test-seitensperre", "Ein interner Test kann Seiten sperren, etwa die Dienstverordnung. Vom Start "
                 + "bis zur Abgabe zeigt eine gesperrte Seite nur einen Hinweis, auch im zweiten Tab, die Suche und der "
                 + "Discord-Bot halten sie zurück, und FIBI pausiert.", "Personal"),
+            Neu("3.0.53-taskforce-chat-discord", "Schreibt jemand im Chat einer deiner Taskforces, bekommst du einen Ping "
+                + "in Discord, aber nur einmal, bis du den Chat wieder geöffnet hast. Wie bei den anderen Pings wählst du "
+                + "im Profil Sofort, Gesammelt oder Nie.", "Discord"),
         ]),
     ];
 }

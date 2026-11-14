@@ -194,6 +194,10 @@ public enum NotificationType
     /// <summary>The recipient now keeps a person record or stands in for its keeper. Bell only: who keeps which record
     /// is internal work, not a channel's.</summary>
     RecordKeeperAssigned = 56,
+
+    /// <summary>New messages in a taskforce chat the recipient belongs to, once until read. Routable — pings the
+    /// member; the post names no taskforce.</summary>
+    TaskforceChat = 57,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -258,6 +262,7 @@ public static class NotificationTypeDisplay
         NotificationType.EmergencyAlarmByAgent => "Einsatzalarm (Gefahr im Verzug)",
         NotificationType.RegulationChanged => "Dienstverordnung geändert",
         NotificationType.RecordKeeperAssigned => "Aktenführung",
+        NotificationType.TaskforceChat => "Taskforce-Chat",
         _ => "Benachrichtigung",
     };
 
@@ -321,6 +326,7 @@ public static class NotificationTypeDisplay
         NotificationType.EmergencyAlarmByAgent => Icons.Material.Filled.NotificationImportant,
         NotificationType.RegulationChanged => Icons.Material.Filled.Rule,
         NotificationType.RecordKeeperAssigned => Icons.Material.Filled.FolderShared,
+        NotificationType.TaskforceChat => Icons.Material.Filled.MarkUnreadChatAlt,
         _ => Icons.Material.Filled.Notifications,
     };
 }

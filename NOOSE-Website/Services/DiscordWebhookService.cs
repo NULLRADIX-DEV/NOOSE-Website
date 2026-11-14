@@ -746,6 +746,7 @@ public class DiscordWebhookService(
         NotificationType.FactionThreatBoard => "/fraktionen",
         NotificationType.TestAssigned => "/tests",
         NotificationType.TestDueReminder => "/tests",
+        NotificationType.TaskforceChat => "/taskforces",
         NotificationType.EmergencyAlarm => "/einsatzalarme",
         _ => "/dashboard",
     };
@@ -777,6 +778,7 @@ public class DiscordWebhookService(
         NotificationType.FactionThreatBoard => "🚨 Gefahrenlage der Fraktionen.",
         NotificationType.TestAssigned => "📝 Dir wurde ein Test zugewiesen.",
         NotificationType.TestDueReminder => "⏰ Ein Test wird bald fällig.",
+        NotificationType.TaskforceChat => "💬 Neue Nachricht in einem Taskforce-Chat.",
         NotificationType.EmergencyAlarm => "🚨 Einsatzalarm",
         _ => "🔔 Neue Benachrichtigung.",
     };

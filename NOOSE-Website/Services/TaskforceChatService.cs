@@ -2,8 +2,10 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Infrastructure.Chat;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Taskforces;
 
 namespace NOOSE_Website.Services;
@@ -129,6 +131,14 @@ public class TaskforceChatService(IDbContextFactory<AppDbContext> dbFactory, Tas
         await db.TaskforceAgents
             .Where(ta => ta.TaskforceId == taskforceId && ta.AgentId == meId && (ta.LastReadAt == null || ta.LastReadAt < now))
             .ExecuteUpdateAsync(s => s.SetProperty(ta => ta.LastReadAt, now), cancellationToken);
+
+        // the bell notice for this chat is read along with it
+        try
+        {
+            await notifications.TargetAsReadMarkAsync(actor, NotificationType.TaskforceChat, Href(taskforceId), now,
+                cancellationToken);
+        }
+        catch { /* best effort */ }
     }
 
     public async Task<TaskforceMessage> SendAsync(string taskforceId, string text, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -161,12 +171,75 @@ public class TaskforceChatService(IDbContextFactory<AppDbContext> dbFactory, Tas
         {
             var who = string.IsNullOrWhiteSpace(actor.GetCodename()) ? "Ein Agent" : actor.GetCodename();
             await notifications.NotifyMentionedAsync(content, $"{who} hat dich im Taskforce-Chat erwähnt.",
-                $"/taskforces/{taskforceId}", nameof(Taskforce), taskforceId, actor, cancellationToken);
+                Href(taskforceId), nameof(Taskforce), taskforceId, actor, cancellationToken);
+        }
+        catch { /* best effort */ }
+
+        try
+        {
+            await NotifyMembersAsync(db, message, actor, cancellationToken);
         }
         catch { /* best effort */ }
 
         return message;
     }
+
+    /// <summary>Rings members for whom this is the first unread message since they last opened the chat.</summary>
+    /// <remarks>
+    /// Once per unread run: the next ping waits until the member has read the chat again. Skipped are the author,
+    /// whoever has the chat open, and who is mentioned (the mention already pings them).
+    /// </remarks>
+    private async Task NotifyMembersAsync(AppDbContext db, TaskforceMessage message, ClaimsPrincipal actor,
+        CancellationToken cancellationToken)
+    {
+        var authorId = message.CreatedById ?? actor.GetAgentId();
+        var taskforce = await db.Taskforces.AsNoTracking()
+            .Where(t => t.Id == message.TaskforceId)
+            .Select(t => new { t.Name, t.IsArchived })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (taskforce is null || taskforce.IsArchived)
+        {
+            return;
+        }
+
+        var mentioned = MentionParser.Parse(message.Text)
+            .Where(t => t.Type == nameof(Agent))
+            .Select(t => t.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        var members = (await (
+                    from ta in db.TaskforceAgents
+                    where ta.TaskforceId == message.TaskforceId && ta.AgentId != authorId
+                    join u in db.Users on ta.AgentId equals u.Id
+                    where u.Status == AgentStatus.Active
+                    select new { ta.AgentId, Since = ta.LastReadAt ?? ta.CreatedAt })
+                .ToListAsync(cancellationToken))
+            .Where(m => !mentioned.Contains(m.AgentId) && !broadcaster.IsWatching(message.TaskforceId, m.AgentId))
+            .ToList();
+        if (members.Count == 0)
+        {
+            return;
+        }
+
+        var oldest = members.Min(m => m.Since);
+        var earlier = await db.TaskforceMessages.AsNoTracking()
+            .Where(n => n.TaskforceId == message.TaskforceId && n.Id != message.Id && n.CreatedAt > oldest)
+            .Select(n => new { n.CreatedAt, n.CreatedById })
+            .ToListAsync(cancellationToken);
+        var recipients = members
+            .Where(m => !earlier.Any(n => n.CreatedAt > m.Since && n.CreatedById != m.AgentId))
+            .Select(m => m.AgentId)
+            .ToList();
+        if (recipients.Count == 0)
+        {
+            return;
+        }
+
+        await notifications.NotifyManyAsync(recipients, NotificationType.TaskforceChat,
+            $"Neue Nachrichten im Taskforce-Chat „{taskforce.Name}“.", Href(message.TaskforceId), authorId,
+            cancellationToken);
+    }
+
+    private static string Href(string taskforceId) => $"/taskforces/{taskforceId}";
 
     public async Task DeleteAsync(string messageId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {

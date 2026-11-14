@@ -66,6 +66,8 @@ public static class DiscordRouting
         // personal like a task: pings the agent, and the post names no test
         NotificationType.TestAssigned,
         NotificationType.TestDueReminder,
+        // pings the member, never the taskforce's name
+        NotificationType.TaskforceChat,
         // pings its recipients and carries the situation; EmergencyAlarmByAgent stays bell only
         NotificationType.EmergencyAlarm,
     };
@@ -84,6 +86,7 @@ public static class DiscordRouting
                 or NotificationType.DecorationAwarded
                 or NotificationType.InactivityNudge
                 or NotificationType.TestAssigned or NotificationType.TestDueReminder
+                or NotificationType.TaskforceChat
                 // deliberate absence leak, accepted: only FIB agents read this channel; do not "repair" it into a role ping
                 or NotificationType.EmergencyAlarm;
 
