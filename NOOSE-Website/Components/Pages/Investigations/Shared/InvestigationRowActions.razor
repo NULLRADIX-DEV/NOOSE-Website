@@ -1,0 +1,48 @@
+@* The actions of one entry row: icons from 600px up, a ⋮ menu below, behind the same checks. *@
+
+<span class="noose-mobil-aus" style="white-space:nowrap;">
+    <InvestigationEntryLimit @ref="_limit" Detail="Detail" ItemType="@ItemType" ItemId="@ItemId" User="User" Changed="Changed" />
+    @if (MayEdit)
+    {
+        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="OnEdit" aria-label="Bearbeiten" />
+        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="OnDelete" aria-label="Löschen" />
+    }
+</span>
+<span class="noose-nur-handy" style="white-space:nowrap;">
+    @if (Detail.RestrictedIds.Contains(ItemId))
+    {
+        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" title="Nur für ausgewählte Beteiligte sichtbar" />
+    }
+    @if (MayEdit || Detail.Access.MayManage)
+    {
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small" Dense="true" AriaLabel="Aktionen"
+                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            @if (MayEdit)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="OnEdit">Bearbeiten</MudMenuItem>
+            }
+            @if (Detail.Access.MayManage)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Lock" OnClick="@(() => _limit?.OpenAsync() ?? Task.CompletedTask)">Sichtbarkeit</MudMenuItem>
+            }
+            @if (MayEdit)
+            {
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="OnDelete">Löschen</MudMenuItem>
+            }
+        </MudMenu>
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public string ItemType { get; set; } = default!;
+    [Parameter, EditorRequired] public string ItemId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+    [Parameter] public bool MayEdit { get; set; }
+    [Parameter] public EventCallback OnEdit { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+
+    private InvestigationEntryLimit? _limit;
+}

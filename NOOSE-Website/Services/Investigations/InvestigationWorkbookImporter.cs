@@ -230,7 +230,10 @@ public static partial class InvestigationWorkbookImporter
 
     private static void ReadStatements(XlsxSheet s, InvestigationImportDraft d)
     {
-        if (Header(s, "Zeuge") is not (int row, int nameCol))
+        // "Zeuge" also stands in the cover block as the role ("Rolle: Zeuge"); the table header is the row that names the protocol too
+        var header = s.Cells.Where(c => c.Value.Trim().Equals("Zeuge", StringComparison.OrdinalIgnoreCase) && Column(s, c.Key.Row, "Protokoll") is not null)
+            .Select(c => ((int, int)?)c.Key).OrderBy(k => k!.Value.Item1).FirstOrDefault() ?? Header(s, "Zeuge");
+        if (header is not (int row, int nameCol))
         {
             return;
         }

@@ -49,7 +49,7 @@ public sealed class InvestigationDetail
 }
 
 /// <summary>An account or a unit, as picked for participation or for an entry restriction.</summary>
-public sealed record InvestigationTarget(string? AgentId, string? PartnerUnitId, string Label);
+public sealed record InvestigationTarget(string? AgentId, string? PartnerUnitId, string Label, bool IsPartner = false);
 
 public sealed record InvestigationChargeView(string Id, string? LawId, string Paragraph, string LawBook, string Description,
     InvestigationChargeCheck Check, int SortOrder);
@@ -64,7 +64,16 @@ public sealed record InvestigationPersonInput(string? Id, string Name, string? P
     InvestigationPersonStatus Status, string? Note);
 
 public sealed record InvestigationEvidenceView(string Id, int Number, string Name, string? Description, string? Owner,
-    string? Officer, InvestigationEvidenceStatus Status, DateTime? SecuredAt);
+    string? Officer, InvestigationEvidenceStatus Status, DateTime? SecuredAt, IReadOnlyList<InvestigationPhotoView>? Photos = null)
+{
+    public IReadOnlyList<InvestigationPhotoView> PhotoList => Photos ?? [];
+}
+
+/// <summary>A picture of a piece of evidence; Url goes through the protected file endpoint.</summary>
+public sealed record InvestigationPhotoView(string Id, string OriginalName)
+{
+    public string Url => $"/dateien/ermittlungen/foto/{Id}";
+}
 
 public sealed record InvestigationEvidenceInput(string? Id, string Name, string? Description, string? Owner, string? Officer,
     InvestigationEvidenceStatus Status, DateTime? SecuredAt);
@@ -90,11 +99,12 @@ public sealed record InvestigationNoteView(string Id, string Text, string? Autho
 public sealed record InvestigationParticipantView(
     string Id, string? AgentId, string? PartnerUnitId, string Label, string? Detail, InvestigationRole Role, bool IsUnit,
     IReadOnlyDictionary<string, InvestigationAccessLevel> Overrides,
-    IReadOnlyDictionary<string, InvestigationAccessLevel> Defaults);
+    IReadOnlyDictionary<string, InvestigationAccessLevel> Defaults,
+    bool IsPartner = false);
 
 public sealed record InvestigationParticipantInput(
     string? Id, string? AgentId, string? PartnerUnitId, InvestigationRole Role,
     IReadOnlyDictionary<string, InvestigationAccessLevel> Overrides);
 
 /// <summary>One line of the file's history.</summary>
-public sealed record InvestigationHistoryEntry(DateTime At, string? Who, string Tab, string What, string? Changes);
+public sealed record InvestigationHistoryEntry(DateTime At, string? Who, string Tab, string What, string? Changes, string? EntityType = null);

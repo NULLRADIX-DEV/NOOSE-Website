@@ -11,16 +11,31 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudSimpleTable Dense="true" Hover="true">
-        <thead><tr><th>Zeit</th><th>Wer</th><th>Tab</th><th>Was</th></tr></thead>
+    <MudSimpleTable Dense="true" Hover="true" Class="noose-ermittlung-tabelle">
+        <thead><tr><th>Zeit</th><th class="noose-mobil-aus">Wer</th><th class="noose-mobil-aus">Tab</th><th>Was</th></tr></thead>
         <tbody>
             @foreach (var h in _rows)
             {
                 <tr>
-                    <td style="white-space:nowrap;">@h.At.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                    <td>@(h.Who ?? "System")</td>
-                    <td>@h.Tab</td>
-                    <td>@h.What</td>
+                    <td style="white-space:nowrap;">
+                        <span class="noose-mobil-aus">@h.At.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                        <span class="noose-nur-handy">@h.At.ToLocalTime().ToString("dd.MM.")<br />@h.At.ToLocalTime().ToString("HH:mm")</span>
+                    </td>
+                    <td class="noose-mobil-aus">@(h.Who ?? "System")</td>
+                    <td class="noose-mobil-aus">@h.Tab</td>
+                    <td>
+                        @h.What
+                        @* below 600px tab and author stand under the entry instead of in their own columns *@
+                        <div class="noose-nur-handy">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@h.Tab · @(h.Who ?? "System")</MudText>
+                        </div>
+                        @foreach (var c in AuditDisplay.Parse(h.Changes, 120, h.EntityType))
+                        {
+                            <MudText Typo="Typo.caption" Class="d-block">
+                                <b>@c.Field:</b> <span class="mud-text-secondary">@c.Alt → @c.New</span>
+                            </MudText>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>

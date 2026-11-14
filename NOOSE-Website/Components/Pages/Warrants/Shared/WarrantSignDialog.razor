@@ -4,7 +4,7 @@
     <DialogContent>
         <MudStack Spacing="3">
             <MudText Typo="Typo.body2">
-                Mit deiner Unterschrift gilt die Anordnung ab sofort. Sie trägt deinen Codenamen und Dienstgrad.
+                Mit deiner Unterschrift gilt die Anordnung ab sofort. Sie trägt deinen Codenamen und deinen Dienstgrad, bei der DoJ deine Funktion.
             </MudText>
             <MudSelect T="int" @bind-Value="_days" Label="Gültig für" Variant="Variant.Outlined">
                 @foreach (var days in WarrantRules.ValidityChoices)

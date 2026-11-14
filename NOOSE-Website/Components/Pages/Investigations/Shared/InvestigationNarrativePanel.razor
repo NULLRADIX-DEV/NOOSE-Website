@@ -4,7 +4,8 @@
 
 @if (_editing)
 {
-    <RichTextEditor Value="@_html" ValueChanged="@(v => _html = v)" MinHeight="260px" DraftKey="@($"ermittlung:{Detail.Id}:tathergang")" />
+    <RichTextEditor @ref="_editor" Value="@_html" MinHeight="260px" DraftKey="@($"ermittlung:{Detail.Id}:tathergang")"
+                    OnSaveRequested="SaveAsync" />
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">Bilder werden beim Speichern entfernt; Fotos gehören als Beweismittel in die Akte.</MudText>
     <MudStack Row="true" Spacing="2" Class="mt-2">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
@@ -36,13 +37,21 @@ else
     private bool _editing;
     private bool _busy;
     private string? _html;
+    private RichTextEditor? _editor;
 
     private async Task SaveAsync()
     {
+        if (_editor is null || _busy)
+        {
+            return;
+        }
         _busy = true;
         try
         {
-            await Investigations.SetNarrativeAsync(Detail.Id, _html, User);
+            // the editor reports its content lazily; read it fresh, as every other editor page does
+            var html = await _editor.GetHtmlAsync();
+            await Investigations.SetNarrativeAsync(Detail.Id, html, User);
+            await _editor.MarkSavedAsync();
             _editing = false;
             await Changed.InvokeAsync();
         }

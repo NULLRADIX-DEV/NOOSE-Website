@@ -6,6 +6,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Investigations;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Taskforces;
+using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Investigations;
 
@@ -15,7 +16,8 @@ namespace NOOSE_Website.Services;
 public partial class InvestigationService(
     IDbContextFactory<AppDbContext> dbFactory,
     ICaseNumberService caseNumber,
-    INotificationService notifications) : IInvestigationService
+    INotificationService notifications,
+    IInvestigationPhotoStorageService photoStorage) : IInvestigationService
 {
     public const string CaseNumberPrefix = "ER";
     private const string NotFound = "Die Ermittlung wurde nicht gefunden.";
@@ -147,10 +149,7 @@ public partial class InvestigationService(
                 .Where(c => Shows(c.Id))
                 .Select(c => new InvestigationChargeView(c.Id, c.LawId, c.Paragraph, c.LawBook, c.Description, c.Check, c.SortOrder)).ToList(),
             People = !access.CanRead(InvestigationTabs.People) ? [] : await PeopleAsync(db, id, Shows, ViewerScope.From(viewer), cancellationToken),
-            Evidence = !access.CanRead(InvestigationTabs.Evidence) ? [] : (await db.InvestigationEvidence.AsNoTracking()
-                    .Where(e => e.InvestigationId == id).OrderBy(e => e.Number).ToListAsync(cancellationToken))
-                .Where(e => Shows(e.Id))
-                .Select(e => new InvestigationEvidenceView(e.Id, e.Number, e.Name, e.Description, e.Owner, e.Officer, e.Status, e.SecuredAt)).ToList(),
+            Evidence = !access.CanRead(InvestigationTabs.Evidence) ? [] : await EvidenceAsync(db, id, Shows, cancellationToken),
             Interrogations = !access.CanRead(InvestigationTabs.Interrogations) ? [] : (await db.InvestigationInterrogations.AsNoTracking()
                     .Include(v => v.Entries)
                     .Where(v => v.InvestigationId == id).OrderBy(v => v.HeldAt ?? v.CreatedAt).ToListAsync(cancellationToken))
@@ -236,7 +235,7 @@ public partial class InvestigationService(
                     : agent?.PartnerAgency is { } agency ? PartnerUnitDisplay.Full(agency, unit?.Name) : "FIB";
                 return new InvestigationParticipantView(r.Id, r.AgentId, r.PartnerUnitId,
                     labels.GetValueOrDefault(r.AgentId ?? r.PartnerUnitId ?? string.Empty) ?? "—", detail, r.Role, r.PartnerUnitId is not null,
-                    InvestigationTabAccess.Parse(r.TabAccessJson), defaults);
+                    InvestigationTabAccess.Parse(r.TabAccessJson), defaults, isPartner);
             })
             .ToList();
     }
@@ -332,7 +331,7 @@ public partial class InvestigationService(
         foreach (var v in interrogations)
         {
             var row = ApplyInterrogation(new InvestigationInterrogation { InvestigationId = inv.Id }, v);
-            row.InvestigationPersonId ??= personIds.GetValueOrDefault(row.Name);
+            row.InvestigationPersonId ??= MatchPerson(row.Name, personIds);
             db.InvestigationInterrogations.Add(row);
         }
         order = 0;
@@ -356,6 +355,43 @@ public partial class InvestigationService(
         await db.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
         return inv.Id;
+    }
+
+    /// <summary>The list entry an imported interrogation belongs to: the same name, else the one name that differs by a typo
+    /// (at most two letters, as "Hummerman" for "Hummermann"); two close names link to neither.</summary>
+    public static string? MatchPerson(string name, IReadOnlyDictionary<string, string> personIds)
+    {
+        var wanted = name.Trim();
+        if (personIds.TryGetValue(wanted, out var exact))
+        {
+            return exact;
+        }
+        if (wanted.Length < 5)
+        {
+            return null;
+        }
+        var close = personIds.Where(p => Distance(p.Key.Trim().ToLowerInvariant(), wanted.ToLowerInvariant()) <= 2).Take(2).ToList();
+        return close.Count == 1 ? close[0].Value : null;
+    }
+
+    private static int Distance(string a, string b)
+    {
+        if (Math.Abs(a.Length - b.Length) > 2)
+        {
+            return int.MaxValue;
+        }
+        var prev = Enumerable.Range(0, b.Length + 1).ToArray();
+        for (var i = 1; i <= a.Length; i++)
+        {
+            var cur = new int[b.Length + 1];
+            cur[0] = i;
+            for (var j = 1; j <= b.Length; j++)
+            {
+                cur[j] = Math.Min(Math.Min(cur[j - 1] + 1, prev[j] + 1), prev[j - 1] + (a[i - 1] == b[j - 1] ? 0 : 1));
+            }
+            prev = cur;
+        }
+        return prev[b.Length];
     }
 
     // ---- cover sheet and narrative ----
@@ -727,14 +763,14 @@ public partial class InvestigationService(
             foreach (var u in await db.PartnerUnits.AsNoTracking().Where(u => agencies.Contains(u.Agency))
                          .OrderBy(u => u.Agency).ThenBy(u => u.SortOrder).ToListAsync(cancellationToken))
             {
-                result.Add(new InvestigationTarget(null, u.Id, $"{PartnerUnitDisplay.Full(u.Agency, u.Name)} (ganze Einheit)"));
+                result.Add(new InvestigationTarget(null, u.Id, $"{PartnerUnitDisplay.Full(u.Agency, u.Name)} (ganze Einheit)", true));
             }
             foreach (var a in await db.Users.AsNoTracking()
                          .Where(a => a.Status == AgentStatus.Active && a.PartnerAgency != null && agencies.Contains(a.PartnerAgency.Value))
                          .OrderBy(a => a.Codename).Select(a => new { a.Id, a.Codename, a.PartnerAgency, a.PartnerUnitId })
                          .ToListAsync(cancellationToken))
             {
-                result.Add(new InvestigationTarget(a.Id, null, $"{a.Codename} · {PartnerUnitDisplay.OfAccount(a.PartnerAgency, a.PartnerUnitId)}"));
+                result.Add(new InvestigationTarget(a.Id, null, $"{a.Codename} · {PartnerUnitDisplay.OfAccount(a.PartnerAgency, a.PartnerUnitId)}", true));
             }
         }
         return result;
@@ -921,16 +957,37 @@ public partial class InvestigationService(
             .Select(r => (r.Id, r.Text)), nameof(InvestigationTask));
         Add((await db.InvestigationNotes.IgnoreQueryFilters().Where(r => r.InvestigationId == id).Select(r => new { r.Id }).ToListAsync(cancellationToken))
             .Select(r => (r.Id, "Notiz")), nameof(InvestigationNote));
-        Add((await db.InvestigationParticipants.IgnoreQueryFilters().Where(r => r.InvestigationId == id).Select(r => new { r.Id }).ToListAsync(cancellationToken))
-            .Select(r => (r.Id, "Beteiligung")), nameof(InvestigationParticipant));
+        // a participation names who joined, an account by codename, a unit by its name
+        var parts = await db.InvestigationParticipants.IgnoreQueryFilters().Where(r => r.InvestigationId == id)
+            .Select(r => new
+            {
+                r.Id,
+                Who = r.AgentId != null ? db.Users.Where(u => u.Id == r.AgentId).Select(u => u.Codename).FirstOrDefault()
+                    : db.PartnerUnits.IgnoreQueryFilters().Where(u => u.Id == r.PartnerUnitId).Select(u => u.Name).FirstOrDefault(),
+            })
+            .ToListAsync(cancellationToken);
+        Add(parts.Select(r => (r.Id, r.Who is null ? "Beteiligung" : $"Beteiligung {r.Who}")), nameof(InvestigationParticipant));
 
         // entries limited to others stay out of the history as they stay out of the tabs
+        var hiddenEvidence = new HashSet<string>();
         foreach (var itemType in EntryTabs.Keys)
         {
             foreach (var hidden in await InvestigationAccess.HiddenItemIdsAsync(db, id, itemType, access, cancellationToken))
             {
                 children.Remove(hidden);
+                if (itemType == nameof(InvestigationEvidence))
+                {
+                    hiddenEvidence.Add(hidden);
+                }
             }
+        }
+        // a picture follows its piece of evidence, hidden with it
+        var photos = await db.InvestigationEvidencePhotos.IgnoreQueryFilters().Where(r => r.InvestigationId == id)
+            .Select(r => new { r.Id, r.EvidenceId, r.OriginalName }).ToListAsync(cancellationToken);
+        foreach (var p in photos.Where(p => !hiddenEvidence.Contains(p.EvidenceId)))
+        {
+            var piece = children.TryGetValue(p.EvidenceId, out var e) ? $" an {e.Label}" : string.Empty;
+            children[p.Id] = (nameof(InvestigationEvidencePhoto), $"Bild{piece} ({p.OriginalName})");
         }
 
         var ids = children.Keys.ToList();
@@ -943,15 +1000,42 @@ public partial class InvestigationService(
             {
                 if (a.EntityType == nameof(Investigation))
                 {
+                    // the narrative is an HTML body the change list leaves out; named by its tab, the row still says what changed
+                    if (a.Action == AuditAction.Modified && OnlyNarrativeChanged(a.ChangesJson))
+                    {
+                        return new InvestigationHistoryEntry(a.Timestamp, a.AgentName, InvestigationTabs.Label(InvestigationTabs.Narrative),
+                            "Geändert: Tathergang", null, a.EntityType);
+                    }
                     return new InvestigationHistoryEntry(a.Timestamp, a.AgentName, InvestigationTabs.Label(InvestigationTabs.Overview),
-                        ActionLabel(a.Action) + " Akte", a.ChangesJson);
+                        $"{ActionLabel(a.Action)}: Akte", ChangesOf(a), a.EntityType);
                 }
                 var (type, label) = children[a.EntityId];
                 return new InvestigationHistoryEntry(a.Timestamp, a.AgentName,
                     InvestigationTabs.Label(InvestigationTabs.ForChildType(type) ?? InvestigationTabs.Overview),
-                    $"{ActionLabel(a.Action)}: {label}", a.ChangesJson);
+                    $"{ActionLabel(a.Action)}: {label}", ChangesOf(a), type);
             })
             .ToList();
+    }
+
+    // what changed is news on a change; a new or removed entry is named by its label alone
+    private static string? ChangesOf(Infrastructure.Audit.AuditLog a) => a.Action == AuditAction.Modified ? a.ChangesJson : null;
+
+    private static bool OnlyNarrativeChanged(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return false;
+        }
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var fields = doc.RootElement.EnumerateObject().Select(p => p.Name).ToList();
+            return fields.Count == 1 && fields[0] == nameof(Investigation.NarrativeHtml);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
     }
 
     private static string ActionLabel(AuditAction action) => action switch

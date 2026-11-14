@@ -190,6 +190,34 @@ public class PartnerUnitService(IDbContextFactory<AppDbContext> dbFactory, IMemo
     }
 
     /// <summary>
+    /// What a DoJ unit may do in an investigation it is entered in, until an admin changes it: the SID works the file,
+    /// the prosecutor reads it all and keeps warrants, to-dos and notes, the chief reads.
+    /// </summary>
+    internal static Dictionary<string, InvestigationAccessLevel> DojDefaults(string unitId)
+    {
+        var content = new[]
+        {
+            InvestigationTabs.Charges, InvestigationTabs.Narrative, InvestigationTabs.People, InvestigationTabs.Evidence,
+            InvestigationTabs.Interrogations, InvestigationTabs.Tasks, InvestigationTabs.Notes, InvestigationTabs.Warrants,
+        };
+        var map = InvestigationTabs.Slugs.ToDictionary(s => s, _ => InvestigationAccessLevel.Read);
+        if (unitId == PartnerUnits.DojSid)
+        {
+            foreach (var slug in content)
+            {
+                map[slug] = InvestigationAccessLevel.Edit;
+            }
+        }
+        else if (unitId == PartnerUnits.DojStateAttorney)
+        {
+            map[InvestigationTabs.Warrants] = InvestigationAccessLevel.Edit;
+            map[InvestigationTabs.Tasks] = InvestigationAccessLevel.Edit;
+            map[InvestigationTabs.Notes] = InvestigationAccessLevel.Edit;
+        }
+        return map;
+    }
+
+    /// <summary>
     /// Startup alignment, idempotent: partner accounts without a unit (an older build created them) get the seeded unit
     /// of their (agency, tier); the old per-tier allowlist moves onto the seeded units once.
     /// </summary>
@@ -201,11 +229,19 @@ public class PartnerUnitService(IDbContextFactory<AppDbContext> dbFactory, IMemo
         var partners = await db.Users.Where(a => a.PartnerAgency != null).ToListAsync(cancellationToken);
         foreach (var agent in partners)
         {
+            // an unknown tier counts as the base tier, as the seeded units only know the three
+            var rank = agent.PartnerRank is { } r && Enum.IsDefined(r) ? r : PartnerRank.Member;
             var fits = agent.PartnerUnitId is { } unitId && units.TryGetValue(unitId, out var unit) && !unit.IsDeleted
-                && unit.Agency == agent.PartnerAgency && unit.LegacyRank == (agent.PartnerRank ?? PartnerRank.Member);
+                && unit.Agency == agent.PartnerAgency && unit.LegacyRank == rank;
             if (!fits)
             {
-                agent.PartnerUnitId = PartnerUnits.ForLegacy(agent.PartnerAgency!.Value, agent.PartnerRank);
+                var target = PartnerUnits.ForLegacy(agent.PartnerAgency!.Value, rank);
+                // one odd row must not stop the alignment of all the others
+                if (!units.ContainsKey(target))
+                {
+                    continue;
+                }
+                agent.PartnerUnitId = target;
                 agent.IsPartnerUnitLead = false;
             }
         }
@@ -247,6 +283,20 @@ public class PartnerUnitService(IDbContextFactory<AppDbContext> dbFactory, IMemo
                 }
             }
             db.SystemSettings.Add(new SystemSetting { Key = doneKey, Value = "1" });
+        }
+
+        // the DoJ units start with working investigation defaults, once; an admin's later choice stays
+        const string defaultsKey = "ErmittlungsVorgabenDoJGesetzt";
+        if (!await db.SystemSettings.AnyAsync(s => s.Key == defaultsKey, cancellationToken))
+        {
+            foreach (var unit in await db.PartnerUnits
+                         .Where(u => u.InvestigationDefaultsJson == null
+                             && (u.Id == PartnerUnits.DojSid || u.Id == PartnerUnits.DojStateAttorney || u.Id == PartnerUnits.DojChief))
+                         .ToListAsync(cancellationToken))
+            {
+                unit.InvestigationDefaultsJson = InvestigationTabAccess.Serialize(DojDefaults(unit.Id));
+            }
+            db.SystemSettings.Add(new SystemSetting { Key = defaultsKey, Value = "1" });
         }
         await db.SaveChangesAsync(cancellationToken);
         var names = await db.PartnerUnits.Select(u => new { u.Id, u.Name }).ToListAsync(cancellationToken);

@@ -33,7 +33,8 @@ public sealed record WarrantView(
     IReadOnlyList<WarrantLaw>? Laws = null,
     bool MaySign = false,
     bool MayCancel = false,
-    bool MayDelete = false);
+    bool MayDelete = false,
+    string? InvestigationLabel = null);
 
 /// <summary>A cited paragraph the reader may open in the law book.</summary>
 public sealed record WarrantLaw(string Id, string Label);

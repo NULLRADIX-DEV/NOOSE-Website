@@ -5963,6 +5963,80 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("ErmittlungBeweismittel");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationEvidencePhoto", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("EvidenceId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("BeweismittelId");
+
+                    b.Property<string>("FileNameSaved")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("DateinameGespeichert");
+
+                    b.Property<string>("InvestigationId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ErmittlungId");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("OriginalName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("GroesseBytes");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EvidenceId");
+
+                    b.HasIndex("InvestigationId");
+
+                    b.ToTable("ErmittlungBeweismittelBilder");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationInterrogation", b =>
                 {
                     b.Property<string>("Id")
@@ -14347,6 +14421,21 @@ namespace NOOSE_Website.Data.Migrations
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationEvidence", b =>
                 {
+                    b.HasOne("NOOSE_Website.Data.Entities.Investigations.Investigation", null)
+                        .WithMany()
+                        .HasForeignKey("InvestigationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationEvidencePhoto", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Investigations.InvestigationEvidence", null)
+                        .WithMany()
+                        .HasForeignKey("EvidenceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("NOOSE_Website.Data.Entities.Investigations.Investigation", null)
                         .WithMany()
                         .HasForeignKey("InvestigationId")

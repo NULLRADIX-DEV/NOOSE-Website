@@ -24,13 +24,14 @@ else if (IsLimited)
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
 
-    private bool IsLimited => Detail.RestrictedIds.Contains(ItemId);
+    public bool IsLimited => Detail.RestrictedIds.Contains(ItemId);
 
     private string Tooltip => Detail.Restrictions.TryGetValue(ItemId, out var targets) && targets.Count > 0
         ? "Nur sichtbar für: " + string.Join(", ", targets.Select(t => t.Label))
         : "Sichtbar für alle mit Zugriff auf den Tab. Klicken, um einzuschränken.";
 
-    private async Task OpenAsync()
+    /// <summary>Opens the picker; also reached from the row's phone menu.</summary>
+    public async Task OpenAsync()
     {
         var current = Detail.Restrictions.TryGetValue(ItemId, out var targets) ? targets : Array.Empty<InvestigationTarget>();
         var options = Detail.Participants

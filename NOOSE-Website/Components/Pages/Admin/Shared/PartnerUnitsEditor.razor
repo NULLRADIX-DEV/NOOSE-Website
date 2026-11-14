@@ -212,6 +212,13 @@ else
 
     private async Task Select(PartnerUnitView unit)
     {
+        // rules first: the form renders at the first await and reads one rule per record type
+        var rules = await Units.GetRulesAsync(unit.Id);
+        _rules = PartnerTabCatalog.All.ToDictionary(t => t.TypeKey, t =>
+        {
+            var rule = rules.FirstOrDefault(r => r.EntityType == t.TypeKey);
+            return new RuleState { Scope = rule?.Scope, IncludesChildren = rule?.IncludesChildren ?? false };
+        });
         _edit = new EditState
         {
             Id = unit.Id,
@@ -222,12 +229,6 @@ else
             LeadSeesAllInvestigations = unit.LeadSeesAllInvestigations,
             Defaults = unit.InvestigationDefaults.ToDictionary(kv => kv.Key, kv => kv.Value),
         };
-        var rules = await Units.GetRulesAsync(unit.Id);
-        _rules = PartnerTabCatalog.All.ToDictionary(t => t.TypeKey, t =>
-        {
-            var rule = rules.FirstOrDefault(r => r.EntityType == t.TypeKey);
-            return new RuleState { Scope = rule?.Scope, IncludesChildren = rule?.IncludesChildren ?? false };
-        });
     }
 
     private void NewUnit()

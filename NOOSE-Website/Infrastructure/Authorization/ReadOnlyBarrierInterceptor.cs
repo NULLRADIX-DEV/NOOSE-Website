@@ -81,6 +81,7 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
         typeof(InvestigationCharge),
         typeof(InvestigationPerson),
         typeof(InvestigationEvidence),
+        typeof(InvestigationEvidencePhoto),
         typeof(InvestigationInterrogation),
         typeof(InvestigationInterrogationEntry),
         typeof(InvestigationTask),

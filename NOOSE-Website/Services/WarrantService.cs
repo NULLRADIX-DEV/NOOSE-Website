@@ -594,6 +594,15 @@ public class WarrantService(
                 .ToListAsync(cancellationToken))
                 .ToDictionary(c => c.Id, c => (c.Title, c.CaseNumber));
 
+        // the investigation by number and title; who reaches the warrant already sees its investigation
+        var investigationIds = rows.Where(w => w.InvestigationId != null).Select(w => w.InvestigationId!).Distinct().ToList();
+        var investigations = investigationIds.Count == 0
+            ? new Dictionary<string, string>()
+            : await db.Investigations.IgnoreQueryFilters().AsNoTracking()
+                .Where(i => investigationIds.Contains(i.Id))
+                .Select(i => new { i.Id, Label = i.CaseNumber + " · " + i.Title })
+                .ToDictionaryAsync(i => i.Id, i => i.Label, cancellationToken);
+
         return rows.Select(w =>
         {
             persons.TryGetValue(w.PersonId, out var person);
@@ -602,7 +611,8 @@ public class WarrantService(
                 : null;
             return new WarrantView(w, WarrantRules.StateAt(w, nowUtc),
                 person?.Name ?? Unknown, person?.CaseNumber ?? string.Empty,
-                @case?.Title, @case?.CaseNumber);
+                @case?.Title, @case?.CaseNumber,
+                InvestigationLabel: w.InvestigationId is { } iid ? investigations.GetValueOrDefault(iid) : null);
         }).ToList();
     }
 }

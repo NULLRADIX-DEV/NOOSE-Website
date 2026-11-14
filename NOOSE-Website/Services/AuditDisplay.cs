@@ -41,6 +41,8 @@ public static class AuditDisplay
         "DecorationId", "AnnouncementId", "AwardedById", "RecipientRank", "SignatoryRank",
         // a warrant's decider is logged by name; the cited paragraphs by their snapshot text
         "DeciderId", "DeciderRank", "LawIds",
+        // investigation bookkeeping: the label of the row already names the entry
+        "InvestigationId", "InvestigationPersonId", "LawId", "PartnerUnitId", "ItemType", "ItemId", "SortOrder", "AssigneeId",
     };
 
     // Document bodies, layouts and score snapshots are unreadable as a before/after pair and swamp
@@ -102,6 +104,12 @@ public static class AuditDisplay
         ["Text"] = "Text", ["Note"] = "Notiz", ["Reason"] = "Grund", ["Url"] = "Link",
         ["Frequency"] = "Frequenz", ["Scope"] = "Bereich", ["Agency"] = "Partnerbehörde",
         ["TaskforceId"] = "Taskforce",
+        // investigations
+        ["SidCaseNumber"] = "Az. SID", ["FiveNetCaseNumber"] = "Az. 5Net", ["OpenedAt"] = "Eröffnet", ["Indictment"] = "Anklage",
+        ["Paragraph"] = "Paragraf", ["LawBook"] = "Gesetzbuch", ["Check"] = "Prüfung", ["Phone"] = "Telefon",
+        ["Number"] = "Nr.", ["Owner"] = "Besitzer", ["Officer"] = "Sichernder Beamter", ["SecuredAt"] = "Datum",
+        ["Summons"] = "Vorladung", ["HeldAt"] = "Zeitpunkt", ["Officers"] = "Beamte", ["ProsecutorPresent"] = "Staatsanwalt anwesend",
+        ["ProtocolReference"] = "Protokoll-Verweis", ["Usable"] = "Verwertbar",
         ["Outcome"] = "Maßnahme-Ausgang", ["TruthSerum"] = "Wahrheitsserum",
         ["MemoryDeleted"] = "Gedächtnisverlust", ["ReceivedInformation"] = "Erhaltene Informationen",
         ["Timestamp"] = "Zeitpunkt", ["OrgType"] = "Verknüpfte Org (Typ)",
@@ -303,6 +311,12 @@ public static class AuditDisplay
             => TicketAbschlussgrundDisplay.Name((TicketAbschlussgrund)n),
         "Status" when entityType == nameof(Warrant) => WarrantStatusDisplay.Name((WarrantStatus)n),
         "Type" when entityType == nameof(Warrant) => WarrantTypeDisplay.Name((WarrantType)n),
+        // the investigation's own enums; their history passes the entity type
+        "Status" when entityType == "Investigation" => InvestigationDisplay.Name((InvestigationStatus)n),
+        "Status" when entityType == "InvestigationPerson" => InvestigationDisplay.Name((InvestigationPersonStatus)n),
+        "Status" when entityType == "InvestigationEvidence" => InvestigationDisplay.Name((InvestigationEvidenceStatus)n),
+        "Check" when entityType == "InvestigationCharge" => InvestigationDisplay.Name((InvestigationChargeCheck)n),
+        "Role" when entityType == "InvestigationParticipant" => InvestigationDisplay.Name((InvestigationRole)n),
         _ => n.ToString(),
     };
 

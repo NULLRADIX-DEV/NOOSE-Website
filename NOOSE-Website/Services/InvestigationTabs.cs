@@ -50,7 +50,7 @@ public static class InvestigationTabs
     {
         "InvestigationCharge" => Charges,
         "InvestigationPerson" => People,
-        "InvestigationEvidence" => Evidence,
+        "InvestigationEvidence" or "InvestigationEvidencePhoto" => Evidence,
         "InvestigationInterrogation" or "InvestigationInterrogationEntry" => Interrogations,
         "InvestigationTask" => Tasks,
         "InvestigationNote" => Notes,

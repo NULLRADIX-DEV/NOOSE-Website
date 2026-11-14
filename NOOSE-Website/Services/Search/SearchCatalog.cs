@@ -528,6 +528,7 @@ public static class SearchCatalog
             ["InvestigationCharge"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
             ["InvestigationPerson"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
             ["InvestigationEvidence"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
+            ["InvestigationEvidencePhoto"] = "Bild an einem Beweismittel; folgt dessen Rechten, ohne eigenen Text.",
             ["InvestigationInterrogation"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
             ["InvestigationInterrogationEntry"] = "Frage und Antwort einer Vernehmung; die Vernehmung hat eigene Rechte.",
             ["InvestigationTask"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",

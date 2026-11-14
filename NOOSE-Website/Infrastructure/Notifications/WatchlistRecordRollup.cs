@@ -155,6 +155,7 @@ public static class WatchlistRecordRollup
             case InvestigationCharge:
             case InvestigationPerson:
             case InvestigationEvidence:
+            case InvestigationEvidencePhoto:
             case InvestigationInterrogation:
             case InvestigationInterrogationEntry:
             case InvestigationTask:

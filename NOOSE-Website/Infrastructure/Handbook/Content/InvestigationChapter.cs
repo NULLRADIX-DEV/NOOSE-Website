@@ -219,7 +219,7 @@ internal static class InvestigationChapter
                 <em>Hauptverhandlung</em>, <em>Eingestellt</em>, <em>Abgeschlossen</em>) und der Anklage-Vermerk.</p>
                 <p>Die Akte hat feste Tabs: <em>Tatvorwurf</em> (Paragrafen aus dem Gesetzbuch mit Prüfung),
                 <em>Tathergang</em>, <em>Personen</em> (Zeugen und Beschuldigte mit Status), <em>Beweismittel</em>
-                (laufend nummeriert), <em>Vernehmungen</em> (Frage und Antwort), <em>Aufgaben</em>, <em>Notizen</em>,
+                (laufend nummeriert, mit Bildern), <em>Vernehmungen</em> (Frage und Antwort), <em>Aufgaben</em>, <em>Notizen</em>,
                 <em>Anordnungen</em>, <em>Beteiligte</em> und <em>Verlauf</em>.</p>
                 <p><strong>Sehen darf sie nur, wer eingetragen ist.</strong> Dazu kommen die Leitung der Taskforce und die
                 Führung (beide bearbeiten alles) sowie die Aufsicht (liest). Wer eingetragen ist, bekommt je Tab

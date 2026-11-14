@@ -12,30 +12,25 @@
 }
 else
 {
-    <MudSimpleTable Dense="true" Hover="true">
+    <MudSimpleTable Dense="true" Hover="true" Class="noose-ermittlung-tabelle">
         <thead>
-            <tr><th>Paragraf</th><th>Gesetzbuch</th><th>Beschreibung</th><th>Geprüft</th><th></th></tr>
+            <tr><th>Paragraf</th><th class="noose-mobil-aus">Gesetzbuch</th><th>Beschreibung</th><th>Geprüft</th><th></th></tr>
         </thead>
         <tbody>
             @foreach (var c in Detail.Charges)
             {
                 <tr>
-                    <td>@c.Paragraph</td>
-                    <td>@c.LawBook</td>
+                    <td style="white-space:nowrap;">@c.Paragraph<span class="noose-nur-handy"> @c.LawBook</span></td>
+                    <td class="noose-mobil-aus">@c.LawBook</td>
                     <td>@c.Description</td>
                     <td>
-                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                                 Color="@(c.Check == InvestigationChargeCheck.Applies ? Color.Error : c.Check == InvestigationChargeCheck.DoesNotApply ? Color.Success : Color.Default)">
-                            @InvestigationDisplay.Name(c.Check)
-                        </MudChip>
+                        <InvestigationQuickChoice TValue="InvestigationChargeCheck" Value="c.Check" Items="InvestigationDisplay.Checks"
+                                                  Name="InvestigationDisplay.Name" Colour="CheckColour" Enabled="mayEdit" Hint="Prüfung ändern"
+                                                  Picked="@(v => SetCheckAsync(c, v))" />
                     </td>
-                    <td class="text-right" style="white-space:nowrap;">
-                        <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationCharge)" ItemId="@c.Id" User="User" Changed="Changed" />
-                        @if (mayEdit)
-                        {
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(c))" aria-label="Bearbeiten" />
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(c.Id))" aria-label="Löschen" />
-                        }
+                    <td class="text-right">
+                        <InvestigationRowActions Detail="Detail" ItemType="@nameof(InvestigationCharge)" ItemId="@c.Id" User="User" Changed="Changed"
+                                                 MayEdit="mayEdit" OnEdit="@(() => Edit(c))" OnDelete="@(() => DeleteAsync(c.Id))" />
                     </td>
                 </tr>
             }
@@ -115,6 +110,27 @@ else
         _edit.Paragraph = law.Paragraph;
         _edit.LawBook = law.LawBook;
         _edit.Description = law.Title;
+    }
+
+    private static Color CheckColour(InvestigationChargeCheck c) => c switch
+    {
+        InvestigationChargeCheck.Applies => Color.Error,
+        InvestigationChargeCheck.DoesNotApply => Color.Success,
+        _ => Color.Default,
+    };
+
+    private async Task SetCheckAsync(InvestigationChargeView c, InvestigationChargeCheck check)
+    {
+        try
+        {
+            await Investigations.SaveChargeAsync(Detail.Id,
+                new InvestigationChargeInput(c.Id, c.LawId, c.Paragraph, c.LawBook, c.Description, check), User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
     }
 
     private async Task SaveAsync()

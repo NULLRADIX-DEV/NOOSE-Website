@@ -35,18 +35,31 @@ else
                 }
             </MudStack>
         </SubtitleContent>
+        @* as on the other files: print and delete keep their places from 960px up and move into the ⋮ menu below *@
         <Actions>
-            <MudTooltip Text="Druckansicht im Aktenlayout">
-                <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/ermittlungen/{d.Id}/druck")" Target="_blank" aria-label="Druckansicht öffnen" />
-            </MudTooltip>
+            <div class="d-contents noose-schmal-aus">
+                <MudTooltip Text="Druckansicht im Aktenlayout">
+                    <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/ermittlungen/{d.Id}/druck")" Target="_blank" aria-label="Druckansicht öffnen" />
+                </MudTooltip>
+            </div>
             @if (a.CanEdit(InvestigationTabs.Overview))
             {
                 <MudButton Href="@($"/ermittlungen/{d.Id}/bearbeiten")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit">Deckblatt</MudButton>
             }
             @if (a.FullAccess)
             {
-                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+                <div class="d-contents noose-schmal-aus">
+                    <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+                </div>
             }
+            <HeaderMenu>
+                <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/ermittlungen/{d.Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+                @if (a.FullAccess)
+                {
+                    <MudDivider Class="my-1" />
+                    <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+                }
+            </HeaderMenu>
         </Actions>
     </PageHeader>
 

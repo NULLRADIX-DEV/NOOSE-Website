@@ -11,16 +11,20 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudSimpleTable Dense="true" Hover="true">
-        <thead><tr><th>Aktenzeichen</th><th>Titel</th><th>Status</th><th>Taskforce</th></tr></thead>
+    <MudSimpleTable Dense="true" Hover="true" Class="noose-ermittlung-tabelle">
+        <thead><tr><th>Aktenzeichen</th><th class="noose-mobil-aus">Titel</th><th>Status</th><th class="noose-mobil-aus">Taskforce</th></tr></thead>
         <tbody>
             @foreach (var r in _rows)
             {
                 <tr>
-                    <td><MudLink Href="@($"/ermittlungen/{r.Id}?tab={InvestigationTabs.People}")">@r.CaseNumber</MudLink></td>
-                    <td>@r.Title</td>
+                    <td>
+                        <MudLink Href="@($"/ermittlungen/{r.Id}?tab={InvestigationTabs.People}")" Style="white-space:nowrap;">@r.CaseNumber</MudLink>
+                        @* below 600px the title stands under the case number *@
+                        <div class="noose-nur-handy"><MudText Typo="Typo.caption" Class="mud-text-secondary">@r.Title</MudText></div>
+                    </td>
+                    <td class="noose-mobil-aus">@r.Title</td>
                     <td><InvestigationStatusChip Status="r.Status" /></td>
-                    <td>@(r.TaskforceName ?? "—")</td>
+                    <td class="noose-mobil-aus">@(r.TaskforceName ?? "—")</td>
                 </tr>
             }
         </tbody>

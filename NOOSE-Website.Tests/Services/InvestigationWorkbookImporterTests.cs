@@ -108,6 +108,26 @@ public class InvestigationWorkbookImporterTests
     }
 
     [Fact]
+    public void Read_WitnessStatements_UseTheTableHeader_NotTheRoleAbove()
+    {
+        // the real sheet carries "Rolle: Zeuge" in its cover block, above the table's own "Zeuge" column
+        using var file = Workbook(("Deckblatt", Cover), ("Zeugenvernehmungen",
+        [
+            ("A3", "Aktenzeichen"), ("B3", "5N-123"), ("D3", "Rolle:"), ("E3", "Zeuge"),
+            ("D4", "Datum:"), ("E4", "-"), ("D5", "Uhrzeit"), ("E5", "-"),
+            ("A9", "Zeuge"), ("D9", "Protokoll"),
+            ("A10", "Max Muster"), ("D10", "[001] Protokoll Max Muster"),
+            ("A11", "Erika Muster"), ("D11", "Aussage nicht verwertbar; kein Zeuge."),
+        ]));
+
+        var draft = InvestigationWorkbookImporter.Read(file);
+
+        Assert.Equal(["Max Muster", "Erika Muster"], draft.Interrogations.Select(v => v.Name));
+        Assert.Equal("[001] Protokoll Max Muster", draft.Interrogations[0].ProtocolReference);
+        Assert.False(draft.Interrogations[1].Usable);
+    }
+
+    [Fact]
     public void Read_NotAZip_IsRejected()
     {
         using var file = new MemoryStream(Encoding.UTF8.GetBytes("keine Excel-Datei"));

@@ -1,94 +1,184 @@
 @page "/ermittlungen"
 @* open to partners too: the list only ever holds files the viewer takes part in *@
 @inject IInvestigationService Investigations
+@inject NavigationManager Nav
+@using NOOSE_Website.Models.Navigation
 
 <PageTitle>Ermittlungen · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.Gavel" Title="Ermittlungen"
             Subtitle="Ermittlungsakten, die FIB und DoJ gemeinsam führen. Jede hängt an einer Taskforce und ist nur für ihre Beteiligten sichtbar.">
-    <Actions>
+    <MoreActions>
         @if (_mayCreate)
         {
             <MudButton Href="/ermittlungen/import" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.UploadFile">Aus Excel übernehmen</MudButton>
+        }
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudButton Href="/papierkorb?tab=ermittlungen" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
+        </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        @if (_mayCreate)
+        {
+            <MudMenuItem Icon="@Icons.Material.Filled.UploadFile" Href="/ermittlungen/import">Aus Excel übernehmen</MudMenuItem>
+        }
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=ermittlungen">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
+        @if (_mayCreate)
+        {
             <MudButton Href="/ermittlungen/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Ermittlung</MudButton>
         }
     </Actions>
 </PageHeader>
 
-<MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Class="mb-3">
-    <MudTextField @bind-Value="_search" Placeholder="Aktenzeichen, Titel, Az. SID, Taskforce …" Immediate="true" Clearable="true"
-                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Variant="Variant.Outlined" Margin="Margin.Dense"
-                  Class="flex-grow-1" Style="min-width:220px;" />
-    <MudSelect T="string" @bind-Value="_status" Label="Status" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:180px;">
-        <MudSelectItem T="string" Value="@("offen")">Laufend</MudSelectItem>
-        <MudSelectItem T="string" Value="@("alle")">Alle</MudSelectItem>
-        @foreach (var s in InvestigationDisplay.Statuses)
-        {
-            <MudSelectItem T="string" Value="@s.ToString()">@InvestigationDisplay.Name(s)</MudSelectItem>
-        }
-    </MudSelect>
-</MudStack>
-
 @if (_load)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
 }
-else if (_rows.Count == 0)
-{
-    <EmptyState Icon="@Icons.Material.Filled.Gavel" Title="Keine Ermittlungen"
-                Text="Du bist an keiner Ermittlung beteiligt. Beteiligte trägt die Ermittlungsleitung im Tab „Beteiligte & Zugriff“ ein." />
-}
 else
 {
-    <MudTable Items="Filtered" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" T="InvestigationListItem">
-        <HeaderContent>
-            <MudTh>Aktenzeichen</MudTh>
-            <MudTh>Titel</MudTh>
-            <MudTh>Status</MudTh>
-            <MudTh>Taskforce</MudTh>
-            <MudTh>Az. SID</MudTh>
-            <MudTh>Staatsanwalt</MudTh>
-            <MudTh>Eröffnet</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Aktenzeichen"><MudLink Href="@($"/ermittlungen/{context.Id}")">@context.CaseNumber</MudLink></MudTd>
-            <MudTd DataLabel="Titel"><MudLink Href="@($"/ermittlungen/{context.Id}")" Color="Color.Inherit">@context.Title</MudLink></MudTd>
-            <MudTd DataLabel="Status"><InvestigationStatusChip Status="context.Status" /></MudTd>
-            <MudTd DataLabel="Taskforce">@(context.TaskforceName ?? "—")</MudTd>
-            <MudTd DataLabel="Az. SID">@(context.SidCaseNumber ?? "—")</MudTd>
-            <MudTd DataLabel="Staatsanwalt">@(context.Prosecutors.Count == 0 ? "—" : string.Join(", ", context.Prosecutors))</MudTd>
-            <MudTd DataLabel="Eröffnet">@context.OpenedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
-        </RowTemplate>
-    </MudTable>
+    <MudDataGrid T="InvestigationListItem" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" Class="noose-filterleiste">
+        <ToolBarContent>
+            <MudTextField Value="_search" ValueChanged="@((string v) => SetSearch(v))" Placeholder="Suchen (Aktenzeichen, Titel, Az. SID, Taskforce)…"
+                          Immediate="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium"
+                          Class="mt-0 noose-filter-feld" />
+            <MudSpacer />
+            <MobileColumnPicker ListKey="ermittlungen" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
+            <MudSelect T="string" Value="_status" ValueChanged="SetStatus" Label="Status" Dense="true" Variant="Variant.Outlined"
+                       Style="max-width:200px;" Margin="Margin.Dense" Class="noose-filter-feld">
+                <MudSelectItem T="string" Value="@Open_">Laufend</MudSelectItem>
+                <MudSelectItem T="string" Value="@All">Alle</MudSelectItem>
+                @foreach (var s in InvestigationDisplay.Statuses)
+                {
+                    <MudSelectItem T="string" Value="@s.ToString()">@InvestigationDisplay.Name(s)</MudSelectItem>
+                }
+            </MudSelect>
+        </ToolBarContent>
+        <Columns>
+            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" HeaderClass="@Col("aktenzeichen")" CellClass="@Col("aktenzeichen")" />
+            <TemplateColumn Sortable="true" Title="Titel" SortBy="x => x.Title" HeaderClass="@Col("titel")" CellClass="@Col("titel")">
+                <CellTemplate>
+                    @* real link: middle-click/ctrl-click opens in a new tab *@
+                    <MudLink Href="@($"/ermittlungen/{context.Item.Id}")" @onclick:stopPropagation="true">@context.Item.Title</MudLink>
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Sortable="true" Title="Status" SortBy="x => x.Status" HeaderClass="@Col("status")" CellClass="@Col("status")">
+                <CellTemplate><InvestigationStatusChip Status="context.Item.Status" /></CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.TaskforceName" Title="Taskforce" HeaderClass="@Col("taskforce")" CellClass="@Col("taskforce")" />
+            <PropertyColumn Property="x => x.SidCaseNumber" Title="Az. SID" HeaderClass="@Col("azsid")" CellClass="@Col("azsid")" />
+            <TemplateColumn Sortable="false" Title="Staatsanwalt" HeaderClass="@Col("staatsanwalt")" CellClass="@Col("staatsanwalt")">
+                <CellTemplate>@(context.Item.Prosecutors.Count == 0 ? "—" : string.Join(", ", context.Item.Prosecutors))</CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Sortable="true" Title="Eröffnet" SortBy="x => x.OpenedAt" HeaderClass="@Col("eroeffnet")" CellClass="@Col("eroeffnet")">
+                <CellTemplate>@context.Item.OpenedAt.ToLocalTime().ToString("dd.MM.yyyy")</CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <NoRecordsContent>
+            @if (_rows.Count > 0)
+            {
+                <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Keine Treffer"
+                            Text="Für diese Filter gibt es keine Ermittlung.">
+                    <Actions>
+                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.FilterAltOff" OnClick="ResetFilters">Filter zurücksetzen</MudButton>
+                    </Actions>
+                </EmptyState>
+            }
+            else
+            {
+                <EmptyState Icon="@Icons.Material.Filled.Gavel" Title="Keine Ermittlungen"
+                            Text="Du bist an keiner Ermittlung beteiligt. Beteiligte trägt die Ermittlungsleitung im Tab „Beteiligte & Zugriff“ ein." />
+            }
+        </NoRecordsContent>
+        <PagerContent>
+            <MudDataGridPager Class="noose-pager-handy" T="InvestigationListItem" />
+        </PagerContent>
+    </MudDataGrid>
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
+    private const string Open_ = "offen";
+    private const string All = "alle";
+
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("aktenzeichen", "Aktenzeichen"), ("titel", "Titel"), ("status", "Status"), ("taskforce", "Taskforce"),
+        ("azsid", "Az. SID"), ("staatsanwalt", "Staatsanwalt"), ("eroeffnet", "Eröffnet"),
+    ];
+
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["aktenzeichen", "titel"];
+
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
     private bool _load = true;
     private bool _mayCreate;
     private string _search = string.Empty;
-    private string _status = "offen";
+    private string _status = Open_;
     private List<InvestigationListItem> _rows = new();
 
-    private IEnumerable<InvestigationListItem> Filtered => _rows
-        .Where(r => _status switch
-        {
-            "offen" => InvestigationDisplay.IsOpen(r.Status),
-            "alle" => true,
-            _ => r.Status.ToString() == _status,
-        })
-        .Where(r => string.IsNullOrWhiteSpace(_search)
-            || r.CaseNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
-            || r.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
-            || (r.SidCaseNumber ?? string.Empty).Contains(_search, StringComparison.OrdinalIgnoreCase)
-            || (r.TaskforceName ?? string.Empty).Contains(_search, StringComparison.OrdinalIgnoreCase));
+    private bool Filter(InvestigationListItem r)
+        => (_status switch
+            {
+                Open_ => InvestigationDisplay.IsOpen(r.Status),
+                All => true,
+                _ => r.Status.ToString() == _status,
+            })
+            && (string.IsNullOrWhiteSpace(_search)
+                || r.CaseNumber.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || r.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || (r.SidCaseNumber ?? string.Empty).Contains(_search, StringComparison.OrdinalIgnoreCase)
+                || (r.TaskforceName ?? string.Empty).Contains(_search, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
+        // the filters live in the URL so back-navigation keeps them
+        var query = new Uri(Nav.Uri).Query;
+        _search = QueryState.Read(query, "q") ?? string.Empty;
+        _status = QueryState.Read(query, "status") ?? Open_;
         var user = (await AuthStateTask).User;
         _rows = await Investigations.GetListAsync(user);
         _mayCreate = await Investigations.MayCreateAsync(user);
         _load = false;
+    }
+
+    private void Open(InvestigationListItem row) => Nav.NavigateTo($"/ermittlungen/{row.Id}");
+
+    private void SetSearch(string value)
+    {
+        _search = value ?? string.Empty;
+        WriteUrl();
+    }
+
+    private void SetStatus(string value)
+    {
+        _status = value;
+        WriteUrl();
+    }
+
+    private void ResetFilters()
+    {
+        _search = string.Empty;
+        _status = All;
+        WriteUrl();
+    }
+
+    private void WriteUrl()
+    {
+        var uri = Nav.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            ["q"] = string.IsNullOrWhiteSpace(_search) ? null : _search,
+            ["status"] = _status == Open_ ? null : _status,
+        });
+        Nav.NavigateTo(uri, new NavigationOptions { ReplaceHistoryEntry = true });
     }
 }

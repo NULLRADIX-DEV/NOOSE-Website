@@ -50,6 +50,7 @@ public static class AuditEntityDisplay
         "InvestigationCharge" => "Ermittlung: Tatvorwurf",
         "InvestigationPerson" => "Ermittlung: Zeuge/Beschuldigter",
         "InvestigationEvidence" => "Ermittlung: Beweismittel",
+        "InvestigationEvidencePhoto" => "Ermittlung: Beweismittelbild",
         "InvestigationInterrogation" => "Ermittlung: Vernehmung",
         "InvestigationInterrogationEntry" => "Ermittlung: Vernehmungsfrage",
         "InvestigationTask" => "Ermittlung: Aufgabe",

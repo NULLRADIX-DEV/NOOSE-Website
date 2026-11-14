@@ -47,7 +47,9 @@ else
     {
         <MudPaper Class="pa-3 mt-2" Outlined="true">
             <MudGrid Spacing="2">
-                <MudItem xs="12" md="6"><MudTextField @bind-Value="_edit.Text" Label="Aufgabe" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500" /></MudItem>
+                <MudItem xs="12" md="6"><MudTextField @bind-Value="_edit.Text" Label="Aufgabe" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500"
+                                                         Immediate="true" AutoFocus="true" OnKeyDown="@(e => e.Key == "Enter" ? SaveAsync() : Task.CompletedTask)"
+                                                         HelperText="Enter speichert" /></MudItem>
                 <MudItem xs="12" md="4">
                     <MudSelect T="string" @bind-Value="_edit.AssigneeId" Label="Zuständig" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (var p in Detail.Participants.Where(p => p.AgentId != null))

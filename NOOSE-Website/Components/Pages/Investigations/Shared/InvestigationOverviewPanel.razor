@@ -48,6 +48,15 @@
 <MudDivider Class="my-4" />
 
 <MudText Typo="Typo.subtitle2" Class="mb-2">Dein Zugriff</MudText>
+@if (Detail.Access.FullAccess)
+{
+    @* nothing to tell apart: every tab, every entry *@
+    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.VerifiedUser" Color="Color.Success" Variant="Variant.Text">
+        Vollzugriff: alle Tabs und Einträge bearbeiten, Beteiligte verwalten
+    </MudChip>
+}
+else
+{
 <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
     @foreach (var tab in InvestigationTabs.All)
     {
@@ -59,6 +68,7 @@
         </MudChip>
     }
 </MudStack>
+}
 
 @code {
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;

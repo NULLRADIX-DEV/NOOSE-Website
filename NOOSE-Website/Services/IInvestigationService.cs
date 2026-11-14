@@ -44,6 +44,20 @@ public interface IInvestigationService
 
     Task<string> SaveEvidenceAsync(string id, InvestigationEvidenceInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>Largest picture the store takes.</summary>
+    long PhotoMaxBytes { get; }
+
+    bool IsAllowedPhotoType(string contentType);
+
+    /// <summary>A picture of a piece of evidence, or null when the viewer may not read that piece.</summary>
+    Task<Data.Entities.Investigations.InvestigationEvidencePhoto?> GetEvidencePhotoAsync(string photoId, ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+
+    /// <summary>Attaches a picture to a piece of evidence; needs edit on the evidence tab.</summary>
+    Task<string> AddEvidencePhotoAsync(string id, string evidenceId, Stream content, string originalName, string contentType, long size,
+        ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    Task RemoveEvidencePhotoAsync(string id, string photoId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     Task<string> SaveInterrogationAsync(string id, InvestigationInterrogationInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     Task<string> SaveTaskAsync(string id, InvestigationTaskInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);

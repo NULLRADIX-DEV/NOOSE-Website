@@ -11,33 +11,45 @@
 }
 else
 {
-    <MudSimpleTable Dense="true" Hover="true">
+    <MudSimpleTable Dense="true" Hover="true" Class="noose-ermittlung-tabelle">
         <thead>
-            <tr><th>Nr.</th><th>Bezeichnung</th><th>Besitzer</th><th>Beamter</th><th>Status</th><th>Datum</th><th></th></tr>
+            <tr><th class="noose-mobil-aus">Nr.</th><th>Bezeichnung</th><th class="noose-mobil-aus">Besitzer</th><th class="noose-mobil-aus">Beamter</th><th>Status</th><th class="noose-mobil-aus">Datum</th><th></th></tr>
         </thead>
         <tbody>
             @foreach (var e in Detail.Evidence)
             {
                 <tr>
-                    <td>@e.Number</td>
+                    <td class="noose-mobil-aus">@e.Number</td>
                     <td>
-                        @e.Name
+                        <span class="noose-nur-handy">@e.Number · </span>@e.Name
                         @if (!string.IsNullOrWhiteSpace(e.Description))
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block" Style="white-space:pre-line;">@e.Description</MudText>
                         }
-                    </td>
-                    <td>@(e.Owner ?? "—")</td>
-                    <td>@(e.Officer ?? "—")</td>
-                    <td>@InvestigationDisplay.Name(e.Status)</td>
-                    <td>@(e.SecuredAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</td>
-                    <td class="text-right" style="white-space:nowrap;">
-                        <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationEvidence)" ItemId="@e.Id" User="User" Changed="Changed" />
-                        @if (mayEdit)
+                        @if (e.PhotoList.Count > 0)
                         {
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(e))" aria-label="Bearbeiten" />
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(e.Id))" aria-label="Löschen" />
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                @for (var i = 0; i < e.PhotoList.Count; i++)
+                                {
+                                    var index = i;
+                                    var photo = e.PhotoList[i];
+                                    <img src="@photo.Url" alt="@photo.OriginalName" title="@photo.OriginalName" loading="lazy"
+                                         class="noose-beweisbild" @onclick="@(() => ShowPhotosAsync(e, index))" />
+                                }
+                            </div>
                         }
+                    </td>
+                    <td class="noose-mobil-aus">@(e.Owner ?? "—")</td>
+                    <td class="noose-mobil-aus">@(e.Officer ?? "—")</td>
+                    <td>
+                        <InvestigationQuickChoice TValue="InvestigationEvidenceStatus" Value="e.Status" Items="InvestigationDisplay.EvidenceStatuses"
+                                                  Name="InvestigationDisplay.Name" Enabled="mayEdit" Hint="Status ändern"
+                                                  Picked="@(s => SetStatusAsync(e, s))" />
+                    </td>
+                    <td class="noose-mobil-aus">@(e.SecuredAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</td>
+                    <td class="text-right">
+                        <InvestigationRowActions Detail="Detail" ItemType="@nameof(InvestigationEvidence)" ItemId="@e.Id" User="User" Changed="Changed"
+                                                 MayEdit="mayEdit" OnEdit="@(() => Edit(e))" OnDelete="@(() => DeleteAsync(e.Id))" />
                     </td>
                 </tr>
             }
@@ -59,7 +71,7 @@ else
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Owner" Label="Besitzer" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Officer" Label="Sichernder Beamter" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
                 <MudItem xs="12" md="8"><MudTextField @bind-Value="_edit.Description" Label="Beschreibung" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="2000" /></MudItem>
-                <MudItem xs="6" md="2">
+                <MudItem xs="12" sm="6" md="2">
                     <MudSelect T="InvestigationEvidenceStatus" @bind-Value="_edit.Status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (var s in InvestigationDisplay.EvidenceStatuses)
                         {
@@ -67,7 +79,42 @@ else
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="6" md="2"><MudDatePicker @bind-Date="_edit.Date" Label="Datum" DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                <MudItem xs="12" sm="6" md="2"><MudDatePicker @bind-Date="_edit.Date" Label="Datum" DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+                <MudItem xs="12">
+                    @{ var piece = _edit.Id is null ? null : Detail.Evidence.FirstOrDefault(x => x.Id == _edit.Id); }
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        @if (piece is not null)
+                        {
+                            @for (var i = 0; i < piece.PhotoList.Count; i++)
+                            {
+                                var index = i;
+                                var photo = piece.PhotoList[i];
+                                <div class="noose-beweisbild-rahmen">
+                                    <img src="@photo.Url" alt="@photo.OriginalName" title="@photo.OriginalName" class="noose-beweisbild noose-beweisbild-gross"
+                                         @onclick="@(() => ShowPhotosAsync(piece, index))" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" Color="Color.Error" Class="noose-beweisbild-weg"
+                                                   OnClick="@(() => RemovePhotoAsync(photo))" Disabled="_busy" aria-label="@($"{photo.OriginalName} entfernen")" />
+                                </div>
+                            }
+                        }
+                        @foreach (var file in _edit.Pending)
+                        {
+                            <MudChip T="string" Icon="@Icons.Material.Filled.Image" OnClose="@(() => _edit.Pending.Remove(file))">@file.Name</MudChip>
+                        }
+                        <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="PickPhotos" Accept="image/jpeg,image/png,image/webp,image/gif"
+                                       MaximumFileCount="@InvestigationService.MaxPhotosPerEvidence">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AddPhotoAlternate" OnClick="@context.OpenFilePickerAsync"
+                                           Disabled="_busy">Bilder anhängen</MudButton>
+                            </CustomContent>
+                            <SelectedTemplate />
+                        </MudFileUpload>
+                    </MudStack>
+                    @if (_edit.Pending.Count > 0)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Wird beim Speichern hochgeladen.</MudText>
+                    }
+                </MudItem>
             </MudGrid>
             <MudStack Row="true" Spacing="2" Class="mt-2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
@@ -91,6 +138,7 @@ else
         public string? Officer { get; set; }
         public InvestigationEvidenceStatus Status { get; set; }
         public DateTime? Date { get; set; } = DateTime.Today;
+        public List<IBrowserFile> Pending { get; } = new();
     }
 
     private EditState? _edit;
@@ -104,6 +152,20 @@ else
                 Date = e.SecuredAt?.ToLocalTime().Date,
             };
 
+    private async Task SetStatusAsync(InvestigationEvidenceView e, InvestigationEvidenceStatus status)
+    {
+        try
+        {
+            await Investigations.SaveEvidenceAsync(Detail.Id, new InvestigationEvidenceInput(e.Id, e.Name, e.Description, e.Owner,
+                e.Officer, status, e.SecuredAt), User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
     private async Task SaveAsync()
     {
         if (_edit is null)
@@ -113,8 +175,21 @@ else
         _busy = true;
         try
         {
-            await Investigations.SaveEvidenceAsync(Detail.Id, new InvestigationEvidenceInput(_edit.Id, _edit.Name, _edit.Description, _edit.Owner,
+            var evidenceId = await Investigations.SaveEvidenceAsync(Detail.Id, new InvestigationEvidenceInput(_edit.Id, _edit.Name, _edit.Description, _edit.Owner,
                 _edit.Officer, _edit.Status, _edit.Date?.ToUniversalTime()), User);
+            // the entry stands; a picture that fails is named and the rest still go up
+            foreach (var file in _edit.Pending)
+            {
+                try
+                {
+                    await using var stream = file.OpenReadStream(Investigations.PhotoMaxBytes);
+                    await Investigations.AddEvidencePhotoAsync(Detail.Id, evidenceId, stream, file.Name, file.ContentType, file.Size, User);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or IOException)
+                {
+                    Snackbar.Add($"{file.Name}: {ex.Message}", Severity.Warning);
+                }
+            }
             _edit = null;
             await Changed.InvokeAsync();
         }
@@ -125,6 +200,51 @@ else
         finally
         {
             _busy = false;
+        }
+    }
+
+    private void PickPhotos(IReadOnlyList<IBrowserFile> files)
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        // checked here as well as in the service, so a wrong file is named before anything is saved
+        foreach (var file in files)
+        {
+            if (!Investigations.IsAllowedPhotoType(file.ContentType))
+            {
+                Snackbar.Add($"{file.Name}: nur Bilder (JPG, PNG, WebP, GIF).", Severity.Warning);
+            }
+            else if (file.Size > Investigations.PhotoMaxBytes)
+            {
+                Snackbar.Add($"{file.Name}: zu groß (höchstens {Investigations.PhotoMaxBytes / (1024 * 1024)} MB).", Severity.Warning);
+            }
+            else
+            {
+                _edit.Pending.Add(file);
+            }
+        }
+    }
+
+    private async Task ShowPhotosAsync(InvestigationEvidenceView e, int start)
+        => await ImageLightbox.ShowAsync(DialogService,
+            e.PhotoList.Select(p => new ImageLightbox.LightboxImage(p.Url, $"#{e.Number} {e.Name} · {p.OriginalName}")).ToList(), start);
+
+    private async Task RemovePhotoAsync(InvestigationPhotoView photo)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Bild entfernen", $"{photo.OriginalName} wird vom Beweismittel entfernt.", yesText: "Entfernen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.RemoveEvidencePhotoAsync(Detail.Id, photo.Id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 

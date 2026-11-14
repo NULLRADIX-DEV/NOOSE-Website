@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.CurrentUser;
+using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Investigations;
 using NOOSE_Website.Services;
@@ -22,6 +23,7 @@ public sealed class InvestigationServiceTests : IDisposable
 
     private readonly SqliteTestContext _ctx = new();
     private readonly InvestigationService _svc;
+    private readonly IInvestigationPhotoStorageService _photos = Substitute.For<IInvestigationPhotoStorageService>();
 
     public InvestigationServiceTests()
     {
@@ -31,7 +33,10 @@ public sealed class InvestigationServiceTests : IDisposable
             .AddInterceptors(new AuditSaveChangesInterceptor(new CurrentUser()))
             .Options;
         _svc = new InvestigationService(new TestDbContextFactory(options), Substitute.For<ICaseNumberService>(),
-            Substitute.For<INotificationService>());
+            Substitute.For<INotificationService>(), _photos);
+        _photos.IsAllowedType(Arg.Any<string>()).Returns(true);
+        _photos.MaxBytes.Returns(10 * 1024 * 1024);
+        _photos.SaveAsync(Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns("bild.png");
 
         using var db = _ctx.NewContext();
         db.Users.AddRange(
@@ -124,6 +129,79 @@ public sealed class InvestigationServiceTests : IDisposable
         // still hidden once the entry is deleted
         await _svc.DeleteEntryAsync(Inv, nameof(InvestigationCharge), chargeId, Internal("lead"));
         Assert.DoesNotContain(await _svc.GetHistoryAsync(Inv, sid), h => h.What.Contains("§ 99"));
+    }
+
+    private async Task<(string EvidenceId, string PhotoId)> EvidenceWithPhotoAsync()
+    {
+        var evidenceId = await _svc.SaveEvidenceAsync(Inv,
+            new InvestigationEvidenceInput(null, "Messer", null, null, null, InvestigationEvidenceStatus.Secured, null), Internal("lead"));
+        var photoId = await _svc.AddEvidencePhotoAsync(Inv, evidenceId, new MemoryStream([1, 2, 3]), "messer.png", "image/png", 3, Internal("lead"));
+        return (evidenceId, photoId);
+    }
+
+    [Fact]
+    public async Task An_evidence_picture_follows_the_limit_of_its_piece()
+    {
+        var (evidenceId, photoId) = await EvidenceWithPhotoAsync();
+        var sid = ClaimsPrincipalBuilder.Agent("sid").AsPartnerUnit(PartnerAgency.DoJ, PartnerUnits.DojSid).Build();
+        Assert.NotNull(await _svc.GetEvidencePhotoAsync(photoId, sid));
+
+        await _svc.SetRestrictionAsync(Inv, nameof(InvestigationEvidence), evidenceId,
+            [new InvestigationTarget("other", null, "other")], Internal("lead"));
+
+        Assert.Null(await _svc.GetEvidencePhotoAsync(photoId, sid));
+        Assert.NotNull(await _svc.GetEvidencePhotoAsync(photoId, Internal("other")));
+        Assert.DoesNotContain(await _svc.GetHistoryAsync(Inv, sid), h => h.What.Contains("messer.png"));
+        Assert.Empty((await _svc.GetAsync(Inv, sid))!.Evidence);
+    }
+
+    [Fact]
+    public async Task Only_edit_on_the_evidence_tab_attaches_or_removes_pictures()
+    {
+        var (evidenceId, photoId) = await EvidenceWithPhotoAsync();
+        // the SID row reads the evidence tab only
+        var sid = ClaimsPrincipalBuilder.Agent("sid").AsPartnerUnit(PartnerAgency.DoJ, PartnerUnits.DojSid).Build();
+        _photos.ClearReceivedCalls();
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _svc.AddEvidencePhotoAsync(Inv, evidenceId, new MemoryStream([1]), "x.png", "image/png", 1, sid));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _svc.RemoveEvidencePhotoAsync(Inv, photoId, sid));
+        await _photos.DidNotReceive().SaveAsync(Arg.Any<Stream>(), "image/png", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_picture_goes_with_its_deleted_piece()
+    {
+        var (evidenceId, photoId) = await EvidenceWithPhotoAsync();
+
+        await _svc.DeleteEntryAsync(Inv, nameof(InvestigationEvidence), evidenceId, Internal("lead"));
+
+        Assert.Null(await _svc.GetEvidencePhotoAsync(photoId, Internal("lead")));
+    }
+
+    [Theory]
+    [InlineData("Lena Carter ", "p-lena")]        // trailing blank
+    [InlineData("Julius Hummerman", "p-julius")]  // one letter short
+    [InlineData("Robnin Schneider", "p-robin")]   // typo, the other Schneider is far off
+    [InlineData("Timotheus Porter", "p-timo")]    // two letters off
+    [InlineData("Unbekannte Person", null)]
+    public void An_imported_interrogation_finds_its_person_despite_a_typo(string name, string? expected)
+    {
+        var people = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Lena Carter"] = "p-lena", ["Julius Hummermann"] = "p-julius", ["Robin Schneider"] = "p-robin",
+            ["Johann Schneider"] = "p-johann", ["Timotheus Porta"] = "p-timo",
+        };
+
+        Assert.Equal(expected, InvestigationService.MatchPerson(name, people));
+    }
+
+    [Fact]
+    public void Two_close_names_link_to_neither()
+    {
+        var people = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["Max Muster"] = "a", ["Max Mustar"] = "b" };
+
+        Assert.Null(InvestigationService.MatchPerson("Max Mustor", people));
     }
 
     [Fact]

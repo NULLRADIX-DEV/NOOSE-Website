@@ -163,6 +163,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<InvestigationCharge> InvestigationCharges => Set<InvestigationCharge>();
     public DbSet<InvestigationPerson> InvestigationPeople => Set<InvestigationPerson>();
     public DbSet<InvestigationEvidence> InvestigationEvidence => Set<InvestigationEvidence>();
+    public DbSet<InvestigationEvidencePhoto> InvestigationEvidencePhotos => Set<InvestigationEvidencePhoto>();
     public DbSet<InvestigationInterrogation> InvestigationInterrogations => Set<InvestigationInterrogation>();
     public DbSet<InvestigationInterrogationEntry> InvestigationInterrogationEntries => Set<InvestigationInterrogationEntry>();
     public DbSet<InvestigationTask> InvestigationTasks => Set<InvestigationTask>();
@@ -1345,6 +1346,19 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(x => x.Officer).HasMaxLength(200);
             b.HasIndex(x => x.InvestigationId);
             b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationEvidencePhoto>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.EvidenceId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.FileNameSaved).HasMaxLength(128).IsRequired();
+            b.Property(x => x.OriginalName).HasMaxLength(255).IsRequired();
+            b.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+            b.HasIndex(x => x.InvestigationId);
+            b.HasIndex(x => x.EvidenceId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<InvestigationEvidence>().WithMany().HasForeignKey(x => x.EvidenceId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<InvestigationInterrogation>(b =>

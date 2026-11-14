@@ -84,23 +84,25 @@ else
                         {
                             <MudLink Href="@($"/personen/{w.PersonId}")">@_view.PersonName</MudLink>
                         }
-                        <span class="mud-text-secondary"> @_view.PersonCaseNumber</span>
+                        <span class="mud-text-secondary ml-1">@_view.PersonCaseNumber</span>
                     </MudText>
                 </MudItem>
                 @if (w.InvestigationId is { } investigationId)
                 {
                     <MudItem xs="12" sm="6" md="4">
                         <MudText Typo="Typo.overline" Class="mud-text-secondary">Ermittlung</MudText>
-                        <MudText Typo="Typo.body1"><MudLink Href="@($"/ermittlungen/{investigationId}")">Zur Ermittlungsakte</MudLink></MudText>
+                        <MudText Typo="Typo.body1"><MudLink Href="@($"/ermittlungen/{investigationId}")">@(_view.InvestigationLabel ?? "Zur Ermittlungsakte")</MudLink></MudText>
                     </MudItem>
                 }
+                else
+                {
                 <MudItem xs="12" sm="6" md="4">
                     <MudText Typo="Typo.overline" Class="mud-text-secondary">Vorgang</MudText>
                     <MudText Typo="Typo.body1">
                         @if (w.CaseId is { } caseId)
                         {
                             <MudLink Href="@($"/vorgaenge/{caseId}")">@(_view.CaseTitle ?? "Vorgang")</MudLink>
-                            <span class="mud-text-secondary"> @_view.CaseCaseNumber</span>
+                            <span class="mud-text-secondary ml-1">@_view.CaseCaseNumber</span>
                         }
                         else
                         {
@@ -108,6 +110,7 @@ else
                         }
                     </MudText>
                 </MudItem>
+                }
                 <MudItem xs="12" sm="6" md="4">
                     <MudText Typo="Typo.overline" Class="mud-text-secondary">Gültigkeit</MudText>
                     <MudText Typo="Typo.body1">

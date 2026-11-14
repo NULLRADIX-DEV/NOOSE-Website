@@ -123,6 +123,24 @@ public class InvestigationEvidence : InvestigationRow
     public DateTime? SecuredAt { get; set; }
 }
 
+/// <summary>A picture of a piece of evidence; the file lives outside wwwroot under a server-assigned name.</summary>
+[Table("ErmittlungBeweismittelBilder")]
+public class InvestigationEvidencePhoto : InvestigationRow
+{
+    [Column("BeweismittelId")]
+    public string EvidenceId { get; set; } = string.Empty;
+
+    [Column("DateinameGespeichert")]
+    public string FileNameSaved { get; set; } = string.Empty;
+
+    public string OriginalName { get; set; } = string.Empty;
+
+    public string ContentType { get; set; } = string.Empty;
+
+    [Column("GroesseBytes")]
+    public long SizeBytes { get; set; }
+}
+
 /// <summary>An interrogation of someone on the list, with its question and answer protocol.</summary>
 [Table("ErmittlungVernehmungen")]
 public class InvestigationInterrogation : InvestigationRow

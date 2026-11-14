@@ -114,6 +114,18 @@ else
                         }
                     </tbody>
                 </table>
+                @foreach (var e in d.Evidence.Where(x => x.PhotoList.Count > 0))
+                {
+                    <div class="druck-eintrag">
+                        <div class="druck-eintrag-kopf"><strong>Bildanhang zu Nr. @e.Number</strong> · @e.Name</div>
+                        <div class="druck-bilder">
+                            @foreach (var photo in e.PhotoList)
+                            {
+                                <img src="@photo.Url" alt="@photo.OriginalName" />
+                            }
+                        </div>
+                    </div>
+                }
             </section>
         }
         @if (a.CanRead(InvestigationTabs.Interrogations))
@@ -125,7 +137,7 @@ else
                     <table class="druck-felder">
                         <tbody>
                             <tr><th>Vorladung</th><td>@(v.Summons ?? "—")</td></tr>
-                            <tr><th>Datum</th><td>@(v.HeldAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")</td></tr>
+                            <tr><th>Datum</th><td>@(v.HeldAt?.ToLocalTime() is { } held ? held.ToString(held.TimeOfDay == TimeSpan.Zero ? "dd.MM.yyyy" : "dd.MM.yyyy HH:mm") : "—")</td></tr>
                             <tr><th>StA</th><td>@(v.ProsecutorPresent ?? "—")</td></tr>
                             <tr><th>Beamte</th><td>@(v.Officers ?? "—")</td></tr>
                             @if (!string.IsNullOrWhiteSpace(v.ProtocolReference))

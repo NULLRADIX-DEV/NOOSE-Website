@@ -1930,6 +1930,12 @@ div.vis-tooltip {
         overscroll-behavior: contain;
     }
 
+    /* the content column is the editor's scroll box and no app bar covers it: with the page offset the toolbar
+       stood 64px down inside it and hid the first lines of text */
+    .record-rail-shell .ql-toolbar.ql-snow {
+        --noose-rte-toolbar-top: 0px;
+    }
+
     /* Steckkarte: same one-screenful cap as .record-rail-shell next to it. */
     .akte-steckkarte {
         position: sticky;
@@ -2670,6 +2676,48 @@ div.vis-tooltip {
     z-index: 2001 !important;
 }
 
+/* evidence pictures of an investigation: thumbnails in the log, a bigger tile with a remove button in the form */
+.noose-beweisbild {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    cursor: zoom-in;
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+.noose-beweisbild-gross {
+    width: 88px;
+    height: 88px;
+}
+
+.noose-beweisbild-rahmen {
+    position: relative;
+    display: inline-flex;
+}
+
+    .noose-beweisbild-rahmen .noose-beweisbild-weg {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background: var(--mud-palette-surface);
+        box-shadow: var(--mud-elevation-2);
+    }
+
+/* picture appendix of a printed evidence log */
+.druck-bilder {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+    .druck-bilder img {
+        max-width: calc(50% - 4px);
+        max-height: 9cm;
+        object-fit: contain;
+        break-inside: avoid;
+    }
+
 /* === Handy-Ansicht === */
 /* Phone and narrow rules only. "schmal" is below 960px, "Handy" below 600px; at 960px and up nothing here applies, and
    print never sees a screen rule. Every rule in this section sits in one of these wrappers, checked by
@@ -3182,5 +3230,21 @@ div.vis-tooltip {
     .dokument-html .glossar:focus::after,
     .dokument-html .glossar:focus-visible::after {
         display: block;
+    }
+}
+
+/* Below 960px the page scrolls, not the rail: clip keeps the rounded corners without making the shell a scroll box,
+   so an editor toolbar inside sticks under the app bar as on any other page instead of 64px down the shell. */
+@media screen and (max-width: 959.98px) {
+    .record-rail-shell {
+        overflow: clip;
+    }
+}
+
+/* Tables of an investigation file on phones: tighter cells, so name, status and the ⋮ menu fit without sideways scrolling */
+@media screen and (max-width: 599.98px) {
+    .noose-ermittlung-tabelle.mud-simple-table table * tr > td,
+    .noose-ermittlung-tabelle.mud-simple-table table * tr > th {
+        padding: 6px;
     }
 }

@@ -174,6 +174,7 @@ public static class PublicVisibility
             ["InvestigationCharge"] = "Tatvorwurf einer Ermittlung; nach außen nie.",
             ["InvestigationPerson"] = "Zeugenliste einer Ermittlung; nach außen nie.",
             ["InvestigationEvidence"] = "Beweismittelprotokoll einer Ermittlung; nach außen nie.",
+            ["InvestigationEvidencePhoto"] = "Bild an einem Beweismittel einer Ermittlung; nach außen nie.",
             ["InvestigationInterrogation"] = "Vernehmungsprotokoll; nach außen nie.",
             ["InvestigationInterrogationEntry"] = "Frage und Antwort einer Vernehmung; nach außen nie.",
             ["InvestigationTask"] = "Aufgabe einer Ermittlung; nach außen nie.",

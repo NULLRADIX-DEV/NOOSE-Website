@@ -77,7 +77,9 @@ else
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@v.Role</MudChip>
                         @if (v.HeldAt is { } held)
                         {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@held.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                            @* without a time only the date was entered *@
+                            var local = held.ToLocalTime();
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@(local.TimeOfDay == TimeSpan.Zero ? local.ToString("dd.MM.yyyy") : local.ToString("dd.MM.yyyy HH:mm"))</MudText>
                         }
                         @if (!v.Usable)
                         {
@@ -85,7 +87,7 @@ else
                         }
                         @if (v.Entries.Count > 0)
                         {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@v.Entries.Count Fragen</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@(v.Entries.Count == 1 ? "1 Frage" : $"{v.Entries.Count} Fragen")</MudText>
                         }
                     </MudStack>
                 </TitleContent>
@@ -187,7 +189,7 @@ else
         _edit = new EditState
         {
             Id = v.Id, PersonRef = v.InvestigationPersonId, Name = v.Name, Role = v.Role, Summons = v.Summons,
-            Date = local?.Date, Time = local?.TimeOfDay, Officers = v.Officers, Prosecutor = v.ProsecutorPresent,
+            Date = local?.Date, Time = local?.TimeOfDay is { } t && t != TimeSpan.Zero ? t : null, Officers = v.Officers, Prosecutor = v.ProsecutorPresent,
             Summary = v.Summary, Reference = v.ProtocolReference, Usable = v.Usable,
             Entries = v.Entries.Select(e => new Qa { Question = e.Question, Answer = e.Answer }).ToList(),
         };

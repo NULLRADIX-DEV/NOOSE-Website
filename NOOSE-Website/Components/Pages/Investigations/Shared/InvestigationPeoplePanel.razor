@@ -11,9 +11,9 @@
 }
 else
 {
-    <MudSimpleTable Dense="true" Hover="true">
+    <MudSimpleTable Dense="true" Hover="true" Class="noose-ermittlung-tabelle">
         <thead>
-            <tr><th>Name</th><th>Telefon</th><th>Rolle</th><th>Status</th><th></th></tr>
+            <tr><th>Name</th><th class="noose-mobil-aus">Telefon</th><th class="noose-mobil-aus">Rolle</th><th>Status</th><th></th></tr>
         </thead>
         <tbody>
             @foreach (var p in Detail.People)
@@ -28,21 +28,25 @@ else
                         {
                             @p.Name
                         }
+                        @* below 600px role and phone stand under the name instead of in their own columns *@
+                        <div class="noose-nur-handy">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Role@(p.Phone is null ? "" : $" · {p.Phone}")</MudText>
+                        </div>
                         @if (!string.IsNullOrWhiteSpace(p.Note))
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@p.Note</MudText>
                         }
                     </td>
-                    <td>@(p.Phone ?? "—")</td>
-                    <td>@p.Role</td>
-                    <td><MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@StatusColour(p.Status)">@InvestigationDisplay.Name(p.Status)</MudChip></td>
-                    <td class="text-right" style="white-space:nowrap;">
-                        <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationPerson)" ItemId="@p.Id" User="User" Changed="Changed" />
-                        @if (mayEdit)
-                        {
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(p))" aria-label="Bearbeiten" />
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(p.Id))" aria-label="Löschen" />
-                        }
+                    <td class="noose-mobil-aus">@(p.Phone ?? "—")</td>
+                    <td class="noose-mobil-aus">@p.Role</td>
+                    <td>
+                        <InvestigationQuickChoice TValue="InvestigationPersonStatus" Value="p.Status" Items="InvestigationDisplay.PersonStatuses"
+                                                  Name="InvestigationDisplay.Name" Colour="StatusColour" Enabled="mayEdit" Hint="Status ändern"
+                                                  Picked="@(s => SetStatusAsync(p, s))" />
+                    </td>
+                    <td class="text-right">
+                        <InvestigationRowActions Detail="Detail" ItemType="@nameof(InvestigationPerson)" ItemId="@p.Id" User="User" Changed="Changed"
+                                                 MayEdit="mayEdit" OnEdit="@(() => Edit(p))" OnDelete="@(() => DeleteAsync(p.Id))" />
                     </td>
                 </tr>
             }
@@ -60,6 +64,13 @@ else
     {
         <MudPaper Class="pa-3 mt-3" Outlined="true">
             <MudGrid Spacing="2">
+                @if (!User.IsPartner())
+                {
+                    <MudItem xs="12">
+                        <QuickRecordPicker Allowed="PersonOnly" Value="_edit.Person" ValueChanged="PickPerson" Label="Personenakte (optional)"
+                                           HelperText="Übernimmt den Namen. Nötig, damit eine Anordnung gegen diese Person beantragt werden kann." />
+                    </MudItem>
+                }
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
                 <MudItem xs="12" md="3"><MudTextField @bind-Value="_edit.Phone" Label="Telefon" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="64" /></MudItem>
                 <MudItem xs="12" md="2">
@@ -74,11 +85,7 @@ else
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" md="6">
-                    <QuickRecordPicker Allowed="PersonOnly" Value="_edit.Person" ValueChanged="@(h => _edit.Person = h)" Label="Personenakte (optional)"
-                                       HelperText="Nötig, damit eine Anordnung gegen diese Person beantragt werden kann." />
-                </MudItem>
-                <MudItem xs="12" md="6"><MudTextField @bind-Value="_edit.Note" Label="Notiz" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="1000" /></MudItem>
+                <MudItem xs="12"><MudTextField @bind-Value="_edit.Note" Label="Notiz" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="1000" /></MudItem>
             </MudGrid>
             <MudStack Row="true" Spacing="2" Class="mt-2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
@@ -129,6 +136,34 @@ else
                 Id = p.Id, Name = p.Name, Phone = p.Phone, Role = p.Role, Status = p.Status, Note = p.Note,
                 Person = p.PersonId is null ? null : new QuickHit("Person", p.PersonId, p.Name, p.PersonCaseNumber ?? string.Empty),
             };
+
+    private void PickPerson(QuickHit? hit)
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        // the file's name replaces an empty field or the one the previous pick filled in
+        if (hit is not null && (string.IsNullOrWhiteSpace(_edit.Name) || _edit.Name == _edit.Person?.Name))
+        {
+            _edit.Name = hit.Name;
+        }
+        _edit.Person = hit;
+    }
+
+    private async Task SetStatusAsync(InvestigationPersonView p, InvestigationPersonStatus status)
+    {
+        try
+        {
+            await Investigations.SavePersonAsync(Detail.Id,
+                new InvestigationPersonInput(p.Id, p.Name, p.PersonId, p.Phone, p.Role, status, p.Note), User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
 
     private async Task SaveAsync()
     {
