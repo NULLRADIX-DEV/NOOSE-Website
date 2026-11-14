@@ -228,8 +228,9 @@ internal static class InvestigationChapter
                 Einträge lassen sich zusätzlich auf bestimmte Beteiligte beschränken. Den <em>Verlauf</em> sieht nur, wer
                 alle Tabs lesen darf.</p>
                 <p>Anlegen dürfen Agenten der Taskforce und Partner-Einheiten mit Anlegerecht (bei der DoJ die SID), wenn
-                ihre Behörde an der Taskforce beteiligt ist. Die Leitung einer Einheit sieht, wenn die Einheit es
-                erlaubt, alle Ermittlungen der Taskforces, an denen ihre Behörde beteiligt ist. Eine bisherige
+                ihre Behörde an der Taskforce beteiligt ist. Die Leitung einer Einheit sieht und bearbeitet, wenn die
+                Einheit es erlaubt, alle Ermittlungen der Taskforces, an denen ihre Behörde beteiligt ist; löschen und die
+                Ermittlungsleitung vergeben kann sie nicht. Eine bisherige
                 Excel-Akte lässt sich unter <em>Import</em> mit Vorschau übernehmen.</p>
                 <p>Ermittlungen tauchen nicht in der Suche, bei FIBI, in der Beobachtungsliste oder im öffentlichen
                 Bereich auf. Diese Wege kennen keine Beteiligten.</p>

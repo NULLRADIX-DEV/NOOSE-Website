@@ -116,7 +116,7 @@ public static class InvestigationAccess
         {
             full = true;
         }
-        // a unit lead that sees all reads the whole file; editing still needs a participant row
+        // a unit lead that sees all works on the whole file; deleting it and handing out the lead stay with full access
         var leadReads = isPartner && me.IsPartnerUnitLead && unit?.LeadSeesAllInvestigations == true
             && await db.TaskforcePartnerAgencies.AnyAsync(tp => tp.TaskforceId == inv.TaskforceId && tp.Agency == me.PartnerAgency
                 && db.Taskforces.Any(t => t.Id == tp.TaskforceId && t.Scope == TaskforceScope.CrossAgency), cancellationToken);
@@ -147,7 +147,7 @@ public static class InvestigationAccess
             }
             else
             {
-                level = leadReads ? InvestigationAccessLevel.Read : InvestigationAccessLevel.None;
+                level = leadReads ? InvestigationAccessLevel.Edit : InvestigationAccessLevel.None;
                 foreach (var row in rows)
                 {
                     var granted = RowLevel(row, tab.Slug, isPartner, unitDefaults);

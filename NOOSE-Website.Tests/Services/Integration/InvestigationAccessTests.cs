@@ -186,15 +186,15 @@ public sealed class InvestigationAccessTests : IDisposable
     }
 
     [Fact]
-    public async Task UnitLead_ReadsEverything_OnlyWhileTheAgencyTakesPart()
+    public async Task UnitLead_EditsEverything_OnlyWhileTheAgencyTakesPart()
     {
         var (listed, _, access) = await Check(Doj("sid-lead", PartnerUnits.DojSid, lead: true));
         Assert.True(listed);
-        Assert.True(access.CanRead(InvestigationTabs.Evidence));
+        Assert.True(access.CanEdit(InvestigationTabs.Evidence));
+        Assert.True(access.CanEdit(InvestigationTabs.Participants));
         Assert.True(access.SeesAllEntries);
-        // seeing is not running the file
+        // deleting the file and handing out its lead stay with full access
         Assert.False(access.FullAccess);
-        Assert.False(access.CanEdit(InvestigationTabs.Evidence));
 
         await using (var db = _ctx.NewContext())
         {
