@@ -22,6 +22,13 @@ public partial class InvestigationService(
     public const string CaseNumberPrefix = "ER";
     private const string NotFound = "Die Ermittlung wurde nicht gefunden.";
 
+    // the plain fields that may carry @-references; the input fields take the same limits, so the clip never bites
+    public const int NoteMaxLength = 4000;
+    public const int SummaryMaxLength = 4000;
+    public const int EvidenceDescriptionMaxLength = 2000;
+    public const int PersonNoteMaxLength = 1000;
+    public const int IndictmentMaxLength = 1000;
+
     /// <summary>Entry types a participant can delete or limit, with the tab they live on.</summary>
     public static readonly IReadOnlyDictionary<string, string> EntryTabs = new Dictionary<string, string>
     {
@@ -345,7 +352,7 @@ public partial class InvestigationService(
         }
         foreach (var note in notes.Where(n => !string.IsNullOrWhiteSpace(n)))
         {
-            db.InvestigationNotes.Add(new InvestigationNote { InvestigationId = inv.Id, Text = Clip(note, 4000)!, AuthorName = actor.GetCodename() });
+            db.InvestigationNotes.Add(new InvestigationNote { InvestigationId = inv.Id, Text = ClipReferences(note, NoteMaxLength)!, AuthorName = actor.GetCodename() });
         }
 
         // case-number allocation needs an enclosing transaction so counter and record commit together
@@ -456,7 +463,7 @@ public partial class InvestigationService(
         inv.FiveNetCaseNumber = Clip(input.FiveNetCaseNumber, 64);
         inv.Status = input.Status;
         inv.OpenedAt = input.OpenedAt == default ? DateTime.UtcNow : input.OpenedAt;
-        inv.Indictment = Clip(input.Indictment, 1000);
+        inv.Indictment = ClipReferences(input.Indictment, IndictmentMaxLength);
     }
 
     /// <summary>Sanitized rich text without images: the image endpoint is internal-only.</summary>
@@ -580,7 +587,7 @@ public partial class InvestigationService(
             {
                 throw new InvalidOperationException("Die Notiz ist leer.");
             }
-            row.Text = Clip(clean, 4000)!;
+            row.Text = ClipReferences(clean, NoteMaxLength)!;
             row.AuthorName = actor.GetCodename();
             return Task.CompletedTask;
         }, cancellationToken);
@@ -694,7 +701,7 @@ public partial class InvestigationService(
         row.Phone = Clip(input.Phone, 64);
         row.Role = Clip(string.IsNullOrWhiteSpace(input.Role) ? "Zeuge" : input.Role.Trim(), 100)!;
         row.Status = input.Status;
-        row.Note = Clip(input.Note, 1000);
+        row.Note = ClipReferences(input.Note, PersonNoteMaxLength);
         return row;
     }
 
@@ -706,7 +713,7 @@ public partial class InvestigationService(
             throw new InvalidOperationException("Das Beweismittel braucht eine Bezeichnung.");
         }
         row.Name = Clip(name, 200)!;
-        row.Description = Clip(input.Description, 2000);
+        row.Description = ClipReferences(input.Description, EvidenceDescriptionMaxLength);
         row.Owner = Clip(input.Owner, 200);
         row.Officer = Clip(input.Officer, 200);
         row.Status = input.Status;
@@ -728,7 +735,7 @@ public partial class InvestigationService(
         row.HeldAt = input.HeldAt;
         row.Officers = Clip(input.Officers, 300);
         row.ProsecutorPresent = Clip(input.ProsecutorPresent, 200);
-        row.Summary = Clip(input.Summary, 4000);
+        row.Summary = ClipReferences(input.Summary, SummaryMaxLength);
         row.ProtocolReference = Clip(input.ProtocolReference, 500);
         row.Usable = input.Usable;
         var order = 0;
@@ -954,7 +961,8 @@ public partial class InvestigationService(
         Add((await db.InvestigationInterrogations.IgnoreQueryFilters().Where(r => r.InvestigationId == id).Select(r => new { r.Id, r.Name }).ToListAsync(cancellationToken))
             .Select(r => (r.Id, r.Name)), nameof(InvestigationInterrogation));
         Add((await db.InvestigationTasks.IgnoreQueryFilters().Where(r => r.InvestigationId == id).Select(r => new { r.Id, r.Text }).ToListAsync(cancellationToken))
-            .Select(r => (r.Id, r.Text)), nameof(InvestigationTask));
+            // a typed token would otherwise stand raw in the history; the task text is no reference host
+            .Select(r => (r.Id, MentionParser.Strip(r.Text))), nameof(InvestigationTask));
         Add((await db.InvestigationNotes.IgnoreQueryFilters().Where(r => r.InvestigationId == id).Select(r => new { r.Id }).ToListAsync(cancellationToken))
             .Select(r => (r.Id, "Notiz")), nameof(InvestigationNote));
         // a participation names who joined, an account by codename, a unit by its name
@@ -967,6 +975,19 @@ public partial class InvestigationService(
             })
             .ToListAsync(cancellationToken);
         Add(parts.Select(r => (r.Id, r.Who is null ? "Beteiligung" : $"Beteiligung {r.Who}")), nameof(InvestigationParticipant));
+        // a link names only the kind of record: a participant may not be allowed to see which one it is
+        var links = await db.InvestigationLinks.IgnoreQueryFilters()
+            .Where(r => r.InvestigationId == id || (r.RecordType == nameof(Investigation) && r.RecordId == id))
+            .Select(r => new { r.Id, r.InvestigationId, r.RecordType }).ToListAsync(cancellationToken);
+        // a row from another file belongs to that file's team: its time and author stay out unless the reader sees that file
+        var otherFiles = links.Where(r => r.InvestigationId != id).Select(r => r.InvestigationId).Distinct().ToList();
+        var seenOthers = otherFiles.Count == 0 || await InvestigationReferences.ViewerAsync(db, ViewerScope.From(viewer), cancellationToken) is not { } scope
+            ? []
+            : (await db.Investigations.AsNoTracking().Where(i => otherFiles.Contains(i.Id)).OnlyVisible(db, scope)
+                .Select(i => i.Id).ToListAsync(cancellationToken)).ToHashSet(StringComparer.Ordinal);
+        Add(links.Where(r => r.InvestigationId == id || seenOthers.Contains(r.InvestigationId))
+                .Select(r => (r.Id, $"Verknüpfung mit {LinkTypeName(r.InvestigationId == id ? r.RecordType : nameof(Investigation))}")),
+            nameof(InvestigationLink));
 
         // entries limited to others stay out of the history as they stay out of the tabs
         var hiddenEvidence = new HashSet<string>();
@@ -1011,11 +1032,21 @@ public partial class InvestigationService(
                 }
                 var (type, label) = children[a.EntityId];
                 return new InvestigationHistoryEntry(a.Timestamp, a.AgentName,
-                    InvestigationTabs.Label(InvestigationTabs.ForChildType(type) ?? InvestigationTabs.Overview),
-                    $"{ActionLabel(a.Action)}: {label}", ChangesOf(a), type);
+                    type == nameof(InvestigationLink) ? LinksSection
+                        : InvestigationTabs.Label(InvestigationTabs.ForChildType(type) ?? InvestigationTabs.Overview),
+                    // a link's changes are its label, which describes a record the reader may not see
+                    $"{ActionLabel(a.Action)}: {label}", type == nameof(InvestigationLink) ? null : ChangesOf(a), type);
             })
             .ToList();
     }
+
+    /// <summary>Rail label of the links section; it is no rights tab, the cover sheet right governs it.</summary>
+    public const string LinksSection = "Verknüpfungen";
+
+    /// <summary>Slug of the links section in the file's rail, kept outside the tab rights.</summary>
+    public const string LinksSlug = "verknuepfungen";
+
+    private static string LinkTypeName(string type) => type == nameof(Investigation) ? "Ermittlung" : RecordTypeDisplay.Name(type);
 
     // what changed is news on a change; a new or removed entry is named by its label alone
     private static string? ChangesOf(Infrastructure.Audit.AuditLog a) => a.Action == AuditAction.Modified ? a.ChangesJson : null;
@@ -1140,4 +1171,10 @@ public partial class InvestigationService(
         var t = value.Trim();
         return t.Length <= max ? t : t[..max];
     }
+
+    /// <summary>Like <see cref="Clip"/>, for fields that may carry @-references.</summary>
+    /// <remarks>A plain cut could halve a token and leave it in the file as broken literal text.</remarks>
+    private static string? ClipReferences(string? value, int max)
+        => string.IsNullOrWhiteSpace(value) ? null
+            : MentionParser.ClipSafe(value.Trim(), max) is { Length: > 0 } clipped ? clipped : null;
 }

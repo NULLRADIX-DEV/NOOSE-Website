@@ -5,7 +5,7 @@
 
 <MudStack Spacing="3">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
-        <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@_list.Count)</MudText>
+        <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@(_list.Count + _fileLinks))</MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLink" OnClick="AddAsync">
             Akte verknüpfen
         </MudButton>
@@ -15,7 +15,7 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
-    else if (_list.Count == 0)
+    else if (_list.Count == 0 && _fileLinks == 0)
     {
         <MudText Typo="Typo.body2" Class="mud-text-secondary">
             Noch nichts verknüpft. Verknüpfe z. B. die Person/Operation/den Vorgang, um den die Aufgabe sich dreht.
@@ -56,6 +56,10 @@
             </div>
         }
     }
+
+    @* files live apart from the link engine and are filtered by participation; same open gate as the button above *@
+    <RecordInvestigationLinks EntityType="@nameof(Job)" EntityId="@JobId" User="User" MayWrite="true"
+                              CountChanged="@(n => _fileLinks = n)" />
 </MudStack>
 
 @code {
@@ -64,6 +68,9 @@
 
     private bool _load = true;
     private List<LinkDisplay> _list = new();
+
+    // linked files, listed by their own group; counted here so the empty text never contradicts them
+    private int _fileLinks;
 
     private static readonly string[] _order =
     {

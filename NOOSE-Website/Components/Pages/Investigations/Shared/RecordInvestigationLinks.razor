@@ -1,0 +1,134 @@
+@* The "Ermittlungen" group of a record's links area: only files the viewer takes part in, never through the link engine.
+   Renders nothing while there is nothing to show and nothing the viewer may add; with nothing linked, only a small button. *@
+@inject IInvestigationLinkService Links
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (!_load && _list.Count == 0 && MayAdd)
+{
+    @* no empty group heading: this sits in every links area, an "Ermittlungen (0)" there would only be noise *@
+    <div>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Gavel"
+                   OnClick="AddAsync">Ermittlung verknüpfen</MudButton>
+    </div>
+}
+else if (!_load && _list.Count > 0)
+{
+    <div>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch mb-1">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.Gavel" Color="Color.Primary" Size="Size.Small" />
+                <MudText Typo="Typo.subtitle2">Ermittlungen (@_list.Count)</MudText>
+            </MudStack>
+            @if (MayAdd)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.AddLink"
+                           OnClick="AddAsync">Ermittlung verknüpfen</MudButton>
+            }
+        </MudStack>
+        @foreach (var v in _list)
+        {
+            <MudPaper Class="pa-3 mb-2" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap noose-eintrag-titel">
+                        <MudLink Href="@v.Href" Typo="Typo.body2"><b>@v.Display</b></MudLink>
+                        @if (!string.IsNullOrWhiteSpace(v.Label))
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@v.Label</MudChip>
+                        }
+                    </MudStack>
+                    @if (MayWrite && v.MayRemove)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => RemoveAsync(v))" aria-label="Verknüpfung zur Ermittlung entfernen" />
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string EntityType { get; set; } = default!;
+    [Parameter, EditorRequired] public string EntityId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    /// <summary>The host's own write gate for its links; the service checks the file's cover sheet right on top.</summary>
+    [Parameter] public bool MayWrite { get; set; }
+
+    /// <summary>How many files this group lists, after each load; the host counts them in and drops its empty text.</summary>
+    [Parameter] public EventCallback<int> CountChanged { get; set; }
+
+    private bool _load = true;
+    private string? _loadedKey;
+    private int _reported;
+    private List<InvestigationLinkView> _list = new();
+
+    // internal writers only: a partner's links area is read-only, and linking needs the file's cover sheet right
+    private bool MayAdd => MayWrite && User.MayWrite() && InvestigationLinkService.IsLinkable(EntityType);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var key = $"{EntityType}:{EntityId}";
+        if (_loadedKey == key)
+        {
+            return;
+        }
+        _loadedKey = key;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _list = await Links.GetForRecordAsync(EntityType, EntityId, User);
+        _load = false;
+        // only on a change: the host re-renders on every report, and that must not loop back here
+        if (_list.Count != _reported)
+        {
+            _reported = _list.Count;
+            await CountChanged.InvokeAsync(_reported);
+        }
+    }
+
+    private async Task AddAsync()
+    {
+        var choice = await InvestigationLinkDialog.ShowAsync(DialogService, "Ermittlung verknüpfen",
+            offerRecords: false, offerFiles: true, editableOnly: true, excludeId: null,
+            linked: _list.Select(v => (nameof(Investigation), v.InvestigationId)).ToHashSet());
+        if (choice is null)
+        {
+            return;
+        }
+        try
+        {
+            await Links.CreateAsync(choice.Id, EntityType, EntityId, choice.Label, User);
+            Snackbar.Add("Ermittlung verknüpft.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task RemoveAsync(InvestigationLinkView v)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Verknüpfung entfernen?",
+            $"Die Verknüpfung zu „{v.Display}“ wird entfernt.", "Entfernen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await Links.RemoveAsync(v.LinkId, User);
+            Snackbar.Add("Verknüpfung entfernt.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

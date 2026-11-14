@@ -204,6 +204,61 @@ public sealed class InvestigationServiceTests : IDisposable
         Assert.Null(InvestigationService.MatchPerson("Max Mustor", people));
     }
 
+    private static string EvidenceToken() => MentionParser.Token(nameof(InvestigationEvidence), Guid.NewGuid().ToString());
+
+    [Fact]
+    public async Task The_five_reference_fields_store_the_bare_token()
+    {
+        var lead = Internal("lead");
+        // a token for a piece that does not even exist: writing validates nothing, so it is no oracle either
+        var text = $"siehe {EvidenceToken()} dazu";
+
+        await _svc.UpdateAsync(Inv, new InvestigationInput("Akte", Tf, null, null, InvestigationStatus.Investigating, DateTime.UtcNow, text), lead);
+        var noteId = await _svc.AddNoteAsync(Inv, text, lead);
+        var summaryId = await _svc.SaveInterrogationAsync(Inv, new InvestigationInterrogationInput(null, null, "Max", "Zeuge", null, null,
+            null, null, text, null, true, []), lead);
+        var evidenceId = await _svc.SaveEvidenceAsync(Inv,
+            new InvestigationEvidenceInput(null, "Messer", text, null, null, InvestigationEvidenceStatus.Secured, null), lead);
+        var personId = await _svc.SavePersonAsync(Inv,
+            new InvestigationPersonInput(null, "Max", null, null, "Zeuge", InvestigationPersonStatus.Listed, text), lead);
+
+        await using var db = _ctx.NewContext();
+        Assert.Equal(text, db.Investigations.Find(Inv)!.Indictment);
+        Assert.Equal(text, db.InvestigationNotes.Find(noteId)!.Text);
+        Assert.Equal(text, db.InvestigationInterrogations.Find(summaryId)!.Summary);
+        Assert.Equal(text, db.InvestigationEvidence.Find(evidenceId)!.Description);
+        Assert.Equal(text, db.InvestigationPeople.Find(personId)!.Note);
+    }
+
+    [Fact]
+    public async Task A_reference_field_never_keeps_half_a_token()
+    {
+        var token = EvidenceToken();
+        // the token straddles the limit: a plain cut would leave "@{InvestigationEvi" as literal text
+        var text = new string('a', InvestigationService.NoteMaxLength - 10) + " " + token;
+
+        var noteId = await _svc.AddNoteAsync(Inv, text, Internal("lead"));
+
+        await using var db = _ctx.NewContext();
+        var stored = db.InvestigationNotes.Find(noteId)!.Text;
+        Assert.True(stored.Length <= InvestigationService.NoteMaxLength);
+        Assert.DoesNotContain("@{", stored);
+        Assert.Equal(new string('a', InvestigationService.NoteMaxLength - 10), stored);
+    }
+
+    [Fact]
+    public async Task A_token_in_a_task_stays_out_of_the_history_label()
+    {
+        var token = EvidenceToken();
+        await _svc.SaveTaskAsync(Inv, new InvestigationTaskInput(null, $"Prüfen {token} sofort", null, null), Internal("lead"));
+
+        var history = await _svc.GetHistoryAsync(Inv, Internal("lead"));
+
+        var entry = Assert.Single(history, h => h.EntityType == nameof(InvestigationTask));
+        Assert.DoesNotContain("@{", entry.What);
+        Assert.Contains("Prüfen sofort", entry.What);
+    }
+
     [Fact]
     public async Task An_investigation_with_an_open_warrant_cannot_be_deleted()
     {

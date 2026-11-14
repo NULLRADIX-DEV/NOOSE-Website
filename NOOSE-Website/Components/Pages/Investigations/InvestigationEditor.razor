@@ -56,8 +56,11 @@ else
                     <MudDatePicker @bind-Date="_opened" Label="Eröffnet am" Variant="Variant.Outlined" DateFormat="dd.MM.yyyy" />
                 </MudItem>
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_indictment" Label="Anklage" MaxLength="1000" Lines="2" Variant="Variant.Outlined"
-                                  HelperText="Wann und wo Anklage erhoben wurde, sobald es so weit ist." />
+                    @* may name entries of this or another file; no agents here, the cover sheet notifies nobody *@
+                    <MentionInput Text="@(_indictment ?? string.Empty)" TextChanged="@(t => _indictment = t)" Label="Anklage"
+                                  MaxLength="@InvestigationService.IndictmentMaxLength" Lines="2"
+                                  HelperText="@($"Wann und wo Anklage erhoben wurde, sobald es so weit ist. {MentionInput.Hint}")"
+                                  MentionSource="MentionSource.InvestigationField" MentionContext="@Id" />
                 </MudItem>
             </MudGrid>
             <FormActions>

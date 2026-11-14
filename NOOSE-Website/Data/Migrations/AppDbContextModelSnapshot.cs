@@ -6245,6 +6245,71 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("ErmittlungEintragFreigaben");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationLink", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("InvestigationId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ErmittlungId");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<string>("Label")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Bezeichnung");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("RecordId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("AkteId");
+
+                    b.Property<string>("RecordType")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("AkteTyp");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvestigationId");
+
+                    b.HasIndex("RecordType", "RecordId");
+
+                    b.ToTable("ErmittlungVerknuepfungen");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationNote", b =>
                 {
                     b.Property<string>("Id")
@@ -14483,6 +14548,15 @@ namespace NOOSE_Website.Data.Migrations
                         .WithMany()
                         .HasForeignKey("PartnerUnitId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationLink", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Investigations.Investigation", null)
+                        .WithMany()
+                        .HasForeignKey("InvestigationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Investigations.InvestigationNote", b =>

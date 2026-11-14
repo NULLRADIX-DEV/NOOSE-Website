@@ -30,6 +30,43 @@ public static partial class MentionParser
     [GeneratedRegex(@"[ \t]{2,}")]
     private static partial Regex GapRegex();
 
+    /// <summary>Stands in for a neutralized token; says a reference was there, never which.</summary>
+    public const string NeutralReference = "[Verweis]";
+
+    /// <summary>Replaces the tokens whose type matches with <see cref="NeutralReference"/>; other tokens stay.</summary>
+    public static string Neutralize(string? text, Func<string, bool> typeFilter)
+    {
+        if (string.IsNullOrEmpty(text) || !text.Contains("@{", StringComparison.Ordinal))
+        {
+            return text ?? string.Empty;
+        }
+        return TokenRegex().Replace(text, m => typeFilter(m.Groups["typ"].Value) ? NeutralReference : m.Value);
+    }
+
+    /// <summary>Clips to at most <paramref name="max"/> chars without cutting a token; one that would not fit goes whole.</summary>
+    public static string ClipSafe(string text, int max)
+    {
+        if (max <= 0)
+        {
+            return string.Empty;
+        }
+        if (text.Length <= max)
+        {
+            return text;
+        }
+        var cut = max;
+        foreach (var token in Parse(text))
+        {
+            if (token.Start < max && token.Start + token.Length > max)
+            {
+                cut = token.Start;
+                break;
+            }
+        }
+        // a half token would stay in the field as broken literal text
+        return text[..cut].TrimEnd();
+    }
+
     /// <summary>Drops all tokens for contexts that never resolve them (search snippets, fuzzy matching, exports).</summary>
     public static string Strip(string? text)
     {

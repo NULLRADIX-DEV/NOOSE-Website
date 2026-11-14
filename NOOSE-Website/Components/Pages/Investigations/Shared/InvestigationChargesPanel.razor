@@ -19,7 +19,7 @@ else
         <tbody>
             @foreach (var c in Detail.Charges)
             {
-                <tr>
+                <tr id="@InvestigationTexts.Anchor(c.Id)" style="@InvestigationTexts.HighlightStyle(c.Id, Highlight)">
                     <td style="white-space:nowrap;">@c.Paragraph<span class="noose-nur-handy"> @c.LawBook</span></td>
                     <td class="noose-mobil-aus">@c.LawBook</td>
                     <td>@c.Description</td>
@@ -78,6 +78,9 @@ else
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
+
+    /// <summary>Entry a reference points at (?eintrag=); marked in the list.</summary>
+    [Parameter] public string? Highlight { get; set; }
 
     private sealed class EditState
     {

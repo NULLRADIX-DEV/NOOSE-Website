@@ -161,6 +161,7 @@ public static class WatchlistRecordRollup
             case InvestigationTask:
             case InvestigationNote:
             case InvestigationItemRestriction:
+            case InvestigationLink:
             // partner administration is configuration, not casework
             case PartnerUnit:
             case PartnerUnitShare:

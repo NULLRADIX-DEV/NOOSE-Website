@@ -108,3 +108,17 @@ public sealed record InvestigationParticipantInput(
 
 /// <summary>One line of the file's history.</summary>
 public sealed record InvestigationHistoryEntry(DateTime At, string? Who, string Tab, string What, string? Changes, string? EntityType = null);
+
+/// <summary>A file linked to the record being viewed, as the viewer may see it.</summary>
+public sealed record InvestigationLinkView(string LinkId, string InvestigationId, string Display, string Href, string? Label,
+    bool MayRemove);
+
+/// <summary>A record linked to the file being viewed; only records the viewer may open.</summary>
+public sealed record InvestigationLinkedRecord(string LinkId, string Type, string Id, string Display, string? Href, string? Label,
+    bool MayEditLabel, bool MayRemove);
+
+/// <summary>A file offered in a link picker.</summary>
+public sealed record InvestigationPick(string Id, string CaseNumber, string Title)
+{
+    public string Display => $"{CaseNumber} · {Title}";
+}

@@ -56,6 +56,8 @@ public static class InvestigationTabs
         "InvestigationNote" => Notes,
         "InvestigationParticipant" or "InvestigationItemRestriction" => Participants,
         "Warrant" => Warrants,
+        // links sit in their own rail section, which the cover sheet right governs
+        "InvestigationLink" => Overview,
         _ => null,
     };
 

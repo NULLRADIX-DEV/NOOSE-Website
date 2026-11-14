@@ -214,6 +214,7 @@ builder.Services.AddScoped<IFinancingBudgetService, FinancingBudgetService>();
 builder.Services.AddScoped<IFinancingService, FinancingService>();
 builder.Services.AddScoped<IWarrantService, WarrantService>();
 builder.Services.AddScoped<IInvestigationService, InvestigationService>();
+builder.Services.AddScoped<IInvestigationLinkService, InvestigationLinkService>();
 builder.Services.AddScoped<IProfileSuggestionService, ProfileSuggestionService>();
 builder.Services.AddScoped<IValueListLabelService, ValueListLabelService>();
 builder.Services.AddScoped<IDocTemplateService, DocTemplateService>();

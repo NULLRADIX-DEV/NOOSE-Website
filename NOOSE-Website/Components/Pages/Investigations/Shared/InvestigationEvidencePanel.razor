@@ -2,6 +2,7 @@
 @inject IInvestigationService Investigations
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IMentionService MentionService
 
 @{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.Evidence); }
 
@@ -18,13 +19,13 @@ else
         <tbody>
             @foreach (var e in Detail.Evidence)
             {
-                <tr>
+                <tr id="@InvestigationTexts.Anchor(e.Id)" style="@InvestigationTexts.HighlightStyle(e.Id, Highlight)">
                     <td class="noose-mobil-aus">@e.Number</td>
                     <td>
                         <span class="noose-nur-handy">@e.Number · </span>@e.Name
                         @if (!string.IsNullOrWhiteSpace(e.Description))
                         {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block" Style="white-space:pre-line;">@e.Description</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block"><InvestigationText Text="@e.Description" Resolved="_resolved" /></MudText>
                         }
                         @if (e.PhotoList.Count > 0)
                         {
@@ -70,7 +71,11 @@ else
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Name" Label="Bezeichnung" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Owner" Label="Besitzer" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Officer" Label="Sichernder Beamter" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
-                <MudItem xs="12" md="8"><MudTextField @bind-Value="_edit.Description" Label="Beschreibung" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="2000" /></MudItem>
+                <MudItem xs="12" md="8">
+                    <MentionInput Text="@(_edit.Description ?? string.Empty)" TextChanged="@(t => { if (_edit is not null) _edit.Description = t; })"
+                                  Label="Beschreibung" Lines="2" MaxLength="@InvestigationService.EvidenceDescriptionMaxLength"
+                                  MentionSource="MentionSource.InvestigationField" MentionContext="@Detail.Id" />
+                </MudItem>
                 <MudItem xs="12" sm="6" md="2">
                     <MudSelect T="InvestigationEvidenceStatus" @bind-Value="_edit.Status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
                         @foreach (var s in InvestigationDisplay.EvidenceStatuses)
@@ -128,6 +133,23 @@ else
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
+
+    /// <summary>Entry a reference points at (?eintrag=); marked in the list.</summary>
+    [Parameter] public string? Highlight { get; set; }
+
+    private InvestigationDetail? _resolvedFor;
+    private IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> _resolved = new Dictionary<string, IReadOnlyList<MentionSegment>>();
+
+    // one batch per loaded detail; a reload hands in a new instance
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_resolvedFor, Detail))
+        {
+            return;
+        }
+        _resolvedFor = Detail;
+        _resolved = await InvestigationTexts.ResolveAsync(MentionService, User, Detail.Evidence.Select(e => e.Description));
+    }
 
     private sealed class EditState
     {

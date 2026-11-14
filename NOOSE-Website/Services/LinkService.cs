@@ -31,6 +31,8 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
     /// <remarks>
     /// Public so a test can hold it against <c>SearchCatalog</c>: a type listed here without a catalog row renders
     /// its raw CLR name as a group heading, which is how "Law" and "Hinweis" once reached the screen.
+    /// Investigation types stay out on purpose: link readers know no participants, so they are only ever mentioned
+    /// in text (<see cref="InvestigationReferences"/>).
     /// </remarks>
     public static readonly IReadOnlyList<string> KnownTypes =
     [
@@ -342,6 +344,11 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
     /// </param>
     public async Task CreateAsync(string sourceType, string sourceId, string targetType, string targetId, string? label, ClaimsPrincipal actor, LinkKind kind = LinkKind.Default, CancellationToken cancellationToken = default, IReadOnlyCollection<string>? allowedTargetTypes = null)
     {
+        // a link row would name its other end to every reader of either side
+        if (InvestigationReferences.IsType(sourceType) || InvestigationReferences.IsType(targetType))
+        {
+            throw new InvalidOperationException("Ermittlungen lassen sich nicht verknüpfen, nur im Text erwähnen.");
+        }
         if (allowedTargetTypes is { Count: > 0 } erlaubt && !erlaubt.Contains(targetType, StringComparer.Ordinal))
         {
             throw new InvalidOperationException("Dieser Aktentyp ist an dieser Stelle nicht verknüpfbar.");

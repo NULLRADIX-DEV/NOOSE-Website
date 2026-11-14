@@ -336,4 +336,35 @@ public class MentionParserTests
         string text = $"Zeile1\nZeile2 {MentionParser.Token("Person", Guid1)}";
         Assert.Equal("Zeile1\nZeile2", MentionParser.Strip(text));
     }
+
+    // ---------- Neutralize / ClipSafe ----------
+
+    [Fact]
+    public void Neutralize_ReplacesOnlyMatchingTypes()
+    {
+        var text = $"a {MentionParser.Token("InvestigationNote", Guid1)} b {MentionParser.Token("Person", Guid2)}";
+
+        var result = MentionParser.Neutralize(text, t => t.StartsWith("Investigation", StringComparison.Ordinal));
+
+        Assert.Equal($"a [Verweis] b {MentionParser.Token("Person", Guid2)}", result);
+        Assert.Equal(string.Empty, MentionParser.Neutralize(null, _ => true));
+    }
+
+    [Fact]
+    public void ClipSafe_NeverLeavesAHalfToken()
+    {
+        var token = MentionParser.Token("InvestigationEvidence", Guid1);
+        var text = $"Siehe {token} und mehr Text";
+
+        for (var max = 0; max <= text.Length + 2; max++)
+        {
+            var clipped = MentionParser.ClipSafe(text, max);
+            Assert.True(clipped.Length <= Math.Max(0, max));
+            var opens = clipped.Split("@{").Length - 1;
+            Assert.Equal(opens, MentionParser.Parse(clipped).Count);
+        }
+        Assert.Equal("Siehe", MentionParser.ClipSafe(text, 10));
+        Assert.Equal($"Siehe {token}", MentionParser.ClipSafe(text, 6 + token.Length));
+        Assert.Equal(text, MentionParser.ClipSafe(text, text.Length));
+    }
 }

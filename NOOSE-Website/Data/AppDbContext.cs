@@ -169,6 +169,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<InvestigationTask> InvestigationTasks => Set<InvestigationTask>();
     public DbSet<InvestigationNote> InvestigationNotes => Set<InvestigationNote>();
     public DbSet<InvestigationItemRestriction> InvestigationItemRestrictions => Set<InvestigationItemRestriction>();
+    public DbSet<InvestigationLink> InvestigationLinks => Set<InvestigationLink>();
 
     // ---- service directives (numbered, versioned, acknowledged) ----
     public DbSet<RegulationSection> RegulationSections => Set<RegulationSection>();
@@ -1359,6 +1360,18 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(x => x.EvidenceId);
             b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne<InvestigationEvidence>().WithMany().HasForeignKey(x => x.EvidenceId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationLink>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.RecordType).HasMaxLength(64).IsRequired();
+            b.Property(x => x.RecordId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.Label).HasMaxLength(200);
+            // no unique: soft-delete safe; the service keeps one live row per pair
+            b.HasIndex(x => new { x.RecordType, x.RecordId });
+            b.HasIndex(x => x.InvestigationId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<InvestigationInterrogation>(b =>

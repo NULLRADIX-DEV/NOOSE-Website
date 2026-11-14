@@ -52,6 +52,22 @@ public class AuditDisplayTests
         Assert.Equal(0, result.Count);
     }
 
+    [Fact]
+    public void Parse_InvestigationLinkTarget_IsHidden()
+    {
+        // a merge repoints the linked record; its id must not reach a history reader
+        Assert.Empty(AuditDisplay.Parse("""{"RecordId":["a","b"],"InvestigationId":["x","y"]}""", 120, "InvestigationLink"));
+    }
+
+    [Fact]
+    public void Parse_InvestigationLinkLabel_IsHidden()
+    {
+        // the label describes the linked record; the file's history names only its kind
+        Assert.Empty(AuditDisplay.Parse("""{"Label":["Tatort","Hauptverdächtiger"]}""", 120, "InvestigationLink"));
+        // other entities keep their Label field
+        Assert.Single(AuditDisplay.Parse("""{"Label":["a","b"]}""", 120, "Link"));
+    }
+
     // ---- happy path --------------------------------------------------------
 
     [Fact]
@@ -512,5 +528,30 @@ public class AuditDisplayTests
         Assert.Equal("A", fc.Alt);
         Assert.Equal("N", fc.New);
         Assert.Equal(new AuditDisplay.FieldChange("F", "A", "N"), fc); // value equality
+    }
+
+    // ---- investigation references never name their target in the history ----
+
+    [Fact]
+    public void Parse_NeutralizesInvestigationTokens_InOldAndNewValues()
+    {
+        const string ev = "0f8fad5b-d9cb-469f-a165-70867728950e";
+        const string person = "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed";
+        var json = $$"""{"Text":["siehe @{InvestigationEvidence:{{ev}}}","siehe @{Investigation:{{ev}}} und @{Person:{{person}}}"]}""";
+
+        var fc = Single(json);
+
+        Assert.Equal("siehe [Verweis]", fc.Alt);
+        Assert.Equal($"siehe [Verweis] und @{{Person:{person}}}", fc.New);
+        Assert.DoesNotContain(ev, fc.Alt + fc.New);
+    }
+
+    [Fact]
+    public void Parse_LeavesTextWithoutInvestigationTokensAlone()
+    {
+        var fc = Single("""{"Text":["alt","neu @ {kein Token}"]}""");
+
+        Assert.Equal("alt", fc.Alt);
+        Assert.Equal("neu @ {kein Token}", fc.New);
     }
 }

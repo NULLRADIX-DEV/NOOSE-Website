@@ -533,6 +533,7 @@ public static class SearchCatalog
             ["InvestigationInterrogationEntry"] = "Frage und Antwort einer Vernehmung; die Vernehmung hat eigene Rechte.",
             ["InvestigationTask"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
             ["InvestigationNote"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
+            ["InvestigationLink"] = "Verknüpfung einer Ermittlung; beide Enden haben eigene Rechte, sie zu listen wäre ein Zugriffs-Orakel.",
             ["DocumentAccessExclusion"] = "Entzugs-Zeile; sie zu listen wäre ein Zugriffs-Orakel.",
             ["CustomFieldDefinition"] = "Feld-Definition; die Werte sind durchsuchbar, die Definition ist Konfiguration.",
 

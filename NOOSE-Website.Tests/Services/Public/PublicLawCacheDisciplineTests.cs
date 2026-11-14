@@ -29,6 +29,7 @@ public partial class PublicLawCacheDisciplineTests
         ["LinkService.cs"] = "Löst einen Paragrafen als Verknüpfungsziel auf; geschrieben wird die Verknüpfung.",
         ["PartnerShareService.cs"] = "Liest Paragrafen für die Partnerfreigabe; geschrieben wird die Freigabe.",
         ["WarrantService.cs"] = "Liest Paragrafen als Rechtsgrundlage einer Anordnung; geschrieben wird die Anordnung.",
+        ["InvestigationLinkService.cs"] = "Liest Paragrafen als Verknüpfungsziel einer Ermittlung; geschrieben wird die Verknüpfung.",
     };
 
     private static string ProjectRoot([CallerFilePath] string here = "")

@@ -2,6 +2,7 @@
 @inject IInvestigationService Investigations
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IMentionService MentionService
 
 @{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.People); }
 
@@ -18,7 +19,7 @@ else
         <tbody>
             @foreach (var p in Detail.People)
             {
-                <tr>
+                <tr id="@InvestigationTexts.Anchor(p.Id)" style="@InvestigationTexts.HighlightStyle(p.Id, Highlight)">
                     <td>
                         @if (p.PersonId is { } personId && p.PersonCaseNumber is not null && !User.IsPartner())
                         {
@@ -34,7 +35,7 @@ else
                         </div>
                         @if (!string.IsNullOrWhiteSpace(p.Note))
                         {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@p.Note</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block"><InvestigationText Text="@p.Note" Resolved="_resolved" /></MudText>
                         }
                     </td>
                     <td class="noose-mobil-aus">@(p.Phone ?? "—")</td>
@@ -85,7 +86,11 @@ else
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12"><MudTextField @bind-Value="_edit.Note" Label="Notiz" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="1000" /></MudItem>
+                <MudItem xs="12">
+                    <MentionInput Text="@(_edit.Note ?? string.Empty)" TextChanged="@(t => { if (_edit is not null) _edit.Note = t; })"
+                                  Label="Notiz" Lines="1" MaxLength="@InvestigationService.PersonNoteMaxLength"
+                                  MentionSource="MentionSource.InvestigationField" MentionContext="@Detail.Id" />
+                </MudItem>
             </MudGrid>
             <MudStack Row="true" Spacing="2" Class="mt-2">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
@@ -99,6 +104,23 @@ else
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
+
+    /// <summary>Entry a reference points at (?eintrag=); marked in the list.</summary>
+    [Parameter] public string? Highlight { get; set; }
+
+    private InvestigationDetail? _resolvedFor;
+    private IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> _resolved = new Dictionary<string, IReadOnlyList<MentionSegment>>();
+
+    // one batch per loaded detail; a reload hands in a new instance
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_resolvedFor, Detail))
+        {
+            return;
+        }
+        _resolvedFor = Detail;
+        _resolved = await InvestigationTexts.ResolveAsync(MentionService, User, Detail.People.Select(p => p.Note));
+    }
 
     private static readonly IReadOnlySet<string> PersonOnly = new HashSet<string> { "Person" };
     private static readonly string[] RoleSuggestions = CasePersonRoles.Suggestions.Concat(new[] { "Beamter", "Sachverständiger" }).Distinct().ToArray();

@@ -1,4 +1,5 @@
 @* The cover sheet: file numbers, status, prosecutor, indictment and how much each tab holds. *@
+@inject IMentionService MentionService
 
 <MudGrid Spacing="2">
     <MudItem xs="12" sm="6" md="4">
@@ -41,7 +42,16 @@
     </MudItem>
     <MudItem xs="12" sm="6">
         <MudText Typo="Typo.overline" Class="mud-text-secondary">Anklage</MudText>
-        <MudText Typo="Typo.body1" Style="white-space:pre-line;">@(Detail.Indictment ?? "— (noch keine)")</MudText>
+        <MudText Typo="Typo.body1">
+            @if (Detail.Indictment is null)
+            {
+                @("— (noch keine)")
+            }
+            else
+            {
+                <InvestigationText Text="@Detail.Indictment" Resolved="_resolved" />
+            }
+        </MudText>
     </MudItem>
 </MudGrid>
 
@@ -72,4 +82,19 @@ else
 
 @code {
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private InvestigationDetail? _resolvedFor;
+    private IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> _resolved = new Dictionary<string, IReadOnlyList<MentionSegment>>();
+
+    // one batch per loaded detail; a reload hands in a new instance
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_resolvedFor, Detail))
+        {
+            return;
+        }
+        _resolvedFor = Detail;
+        _resolved = await InvestigationTexts.ResolveAsync(MentionService, User, [Detail.Indictment]);
+    }
 }

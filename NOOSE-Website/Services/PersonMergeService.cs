@@ -268,6 +268,23 @@ public class PersonMergeService(
             }
         }
 
+        // investigation links live apart from the link engine; a file linked to both keeps one row
+        var linkedFiles = await db.InvestigationLinks.Where(l => l.RecordType == type && l.RecordId == targetId)
+            .Select(l => l.InvestigationId).ToListAsync(cancellationToken);
+        foreach (var link in await db.InvestigationLinks.Where(l => l.RecordType == type && l.RecordId == sourceId)
+                     .ToListAsync(cancellationToken))
+        {
+            if (linkedFiles.Contains(link.InvestigationId))
+            {
+                db.InvestigationLinks.Remove(link);
+            }
+            else
+            {
+                link.RecordId = targetId;
+                linkedFiles.Add(link.InvestigationId);
+            }
+        }
+
         // open requests: point to the target record, refresh the designation. A publication request is left behind on
         // purpose — its snapshot still names the source, so following the target would approve a notice for a file the
         // request was never about; it is closed with the source's notices below instead.

@@ -3,6 +3,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject IMentionService MentionService
 
 @{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.Interrogations); }
 
@@ -31,9 +32,9 @@
                                                   HelperText="z. B. Dokumentnummer aus 5Net" /></MudItem>
             <MudItem xs="12" md="2"><MudSwitch T="bool" @bind-Value="_edit.Usable" Color="Color.Primary" Label="Verwertbar" /></MudItem>
             <MudItem xs="12">
-                <TextDraft DraftKey="@DraftKeys.In(DraftScope, "zusammenfassung")" OnRestore="@(t => { if (_edit is not null) _edit.Summary = t; })">
-                    <MudTextField @bind-Value="_edit.Summary" Label="Zusammenfassung" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="4000" Immediate="true" />
-                </TextDraft>
+                <MentionInput Text="@(_edit.Summary ?? string.Empty)" TextChanged="@(t => { if (_edit is not null) _edit.Summary = t; })"
+                              Label="Zusammenfassung" Lines="3" MaxLength="@InvestigationService.SummaryMaxLength" HelperText="@MentionInput.Hint"
+                              DraftKey="@DraftKeys.In(DraftScope, "zusammenfassung")" MentionSource="MentionSource.InvestigationField" MentionContext="@Detail.Id" />
             </MudItem>
         </MudGrid>
 
@@ -70,7 +71,10 @@ else
     <MudExpansionPanels MultiExpansion="true" Elevation="0">
         @foreach (var v in Detail.Interrogations)
         {
-            <MudExpansionPanel>
+            @* a deep link opens its interrogation; the user may still fold it, the value only changes with the link.
+               Following the link again bumps the round, which re-creates the panel so a folded one opens again. *@
+            <MudExpansionPanel @key="@(v.Id == Highlight ? $"{v.Id}:{HighlightRound}" : v.Id)"
+                               id="@InvestigationTexts.Anchor(v.Id)" Style="@InvestigationTexts.HighlightStyle(v.Id, Highlight)" Expanded="@(v.Id == Highlight)">
                 <TitleContent>
                     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
                         <MudText Typo="Typo.subtitle2">@v.Name</MudText>
@@ -110,7 +114,7 @@ else
                         }
                         @if (!string.IsNullOrWhiteSpace(v.Summary))
                         {
-                            <MudItem xs="12"><MudText Typo="Typo.overline" Class="mud-text-secondary">Zusammenfassung</MudText><MudText Typo="Typo.body2" Style="white-space:pre-line;">@v.Summary</MudText></MudItem>
+                            <MudItem xs="12"><MudText Typo="Typo.overline" Class="mud-text-secondary">Zusammenfassung</MudText><MudText Typo="Typo.body2"><InvestigationText Text="@v.Summary" Resolved="_resolved" /></MudText></MudItem>
                         }
                     </MudGrid>
                     @if (v.Entries.Count > 0)
@@ -135,6 +139,26 @@ else
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
+
+    /// <summary>Entry a reference points at (?eintrag=); marked and opened.</summary>
+    [Parameter] public string? Highlight { get; set; }
+
+    /// <summary>Counts how often a reference was followed; a new round opens the highlighted interrogation again.</summary>
+    [Parameter] public int HighlightRound { get; set; }
+
+    private InvestigationDetail? _resolvedFor;
+    private IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> _resolved = new Dictionary<string, IReadOnlyList<MentionSegment>>();
+
+    // one batch per loaded detail; a reload hands in a new instance
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_resolvedFor, Detail))
+        {
+            return;
+        }
+        _resolvedFor = Detail;
+        _resolved = await InvestigationTexts.ResolveAsync(MentionService, User, Detail.Interrogations.Select(v => v.Summary));
+    }
 
     private sealed class Qa
     {

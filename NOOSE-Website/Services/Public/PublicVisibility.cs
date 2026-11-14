@@ -180,6 +180,7 @@ public static class PublicVisibility
             ["InvestigationTask"] = "Aufgabe einer Ermittlung; nach außen nie.",
             ["InvestigationNote"] = "Notiz einer Ermittlung; nach außen nie.",
             ["InvestigationItemRestriction"] = "Einschränkung eines Eintrags; Zugangssteuerung, nach außen nie.",
+            ["InvestigationLink"] = "Verknüpfung einer Ermittlung mit einer Akte; nach außen nie.",
             ["PartnerUnit"] = "Einheit einer Partnerbehörde; Verwaltung, nach außen nie.",
             ["PartnerUnitShare"] = "Freigabe an eine Einheit; Zugangssteuerung, nach außen nie.",
             ["PartnerUnitReleaseRule"] = "Regelfreigabe an eine Einheit; Zugangssteuerung, nach außen nie.",

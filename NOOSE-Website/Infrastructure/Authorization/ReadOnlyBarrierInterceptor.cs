@@ -87,6 +87,7 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
         typeof(InvestigationTask),
         typeof(InvestigationNote),
         typeof(InvestigationItemRestriction),
+        typeof(InvestigationLink),
         // a request from the investigation, or the prosecutor's signature on it
         typeof(Warrant),
     ];

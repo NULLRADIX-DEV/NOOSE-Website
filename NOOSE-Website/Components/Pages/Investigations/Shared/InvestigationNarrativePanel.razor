@@ -1,10 +1,12 @@
-@* Course of events as rich text, without images. *@
+@* Course of events as rich text, without images; @-references resolve per reader in RichHtml. *@
 @inject IInvestigationService Investigations
 @inject ISnackbar Snackbar
 
 @if (_editing)
 {
+    @* references to this or another file; the picker offers no agents here, the narrative notifies nobody *@
     <RichTextEditor @ref="_editor" Value="@_html" MinHeight="260px" DraftKey="@($"ermittlung:{Detail.Id}:tathergang")"
+                    Mentions="true" MentionSource="MentionSource.InvestigationField" MentionContext="@Detail.Id"
                     OnSaveRequested="SaveAsync" />
     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">Bilder werden beim Speichern entfernt; Fotos gehören als Beweismittel in die Akte.</MudText>
     <MudStack Row="true" Spacing="2" Class="mt-2">

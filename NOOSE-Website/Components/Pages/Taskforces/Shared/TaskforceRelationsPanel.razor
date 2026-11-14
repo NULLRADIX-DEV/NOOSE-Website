@@ -19,7 +19,7 @@
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
     }
-    else if (_list.Count == 0)
+    else if (_list.Count == 0 && _fileLinks == 0)
     {
         <MudText Typo="Typo.body2" Class="mud-text-secondary">
             Noch keine Verknüpfungen erfasst. (Agents werden im Tab „Zugeteilte Agents" zugeteilt.)
@@ -57,6 +57,10 @@
             </MudPaper>
         }
     }
+
+    @* files live apart from the link engine and are filtered by participation *@
+    <RecordInvestigationLinks EntityType="@nameof(Taskforce)" EntityId="@TaskforceId" User="User" MayWrite="_mayWrite"
+                              CountChanged="@(n => _fileLinks = n)" />
 </MudStack>
 
 @code {
@@ -70,6 +74,9 @@
     private bool _load = true;
     private bool _mayWrite;
     private List<LinkDisplay> _list = new();
+
+    // linked files, listed by their own group (no person or organisation, so not in the header count); only the empty text asks
+    private int _fileLinks;
 
     protected override async Task OnInitializedAsync()
     {

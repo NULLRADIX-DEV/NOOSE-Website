@@ -14,7 +14,7 @@ else
     <MudList T="string" Dense="true">
         @foreach (var t in Detail.Tasks)
         {
-            <MudListItem T="string">
+            <MudListItem T="string" id="@InvestigationTexts.Anchor(t.Id)" Style="@InvestigationTexts.HighlightStyle(t.Id, Highlight)">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
                     <MudCheckBox T="bool" Value="t.Done" ValueChanged="@(v => SetDoneAsync(t, v))" Disabled="@(!mayEdit)" Color="Color.Success" Dense="true" />
                     <div class="flex-grow-1">
@@ -72,6 +72,9 @@ else
     [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
+
+    /// <summary>Entry a reference points at (?eintrag=); marked in the list.</summary>
+    [Parameter] public string? Highlight { get; set; }
 
     private sealed class EditState
     {

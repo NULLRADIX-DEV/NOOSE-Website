@@ -232,6 +232,11 @@ internal static class InvestigationChapter
                 Einheit es erlaubt, alle Ermittlungen der Taskforces, an denen ihre Behörde beteiligt ist; löschen und die
                 Ermittlungsleitung vergeben kann sie nicht. Eine bisherige
                 Excel-Akte lässt sich unter <em>Import</em> mit Vorschau übernehmen.</p>
+                <p>Die Akte und jeder Eintrag (Tatvorwurf, Person, Beweismittel, Vernehmung, Aufgabe, Notiz) lassen sich
+                per <strong>@</strong> in Texten erwähnen, in der Akte selbst genauso wie in Dokumenten oder Kommentaren.
+                Ein Klick springt direkt zum Eintrag. Unter <em>Verknüpfungen</em> hängst du Personen, Fraktionen,
+                Vorgänge oder andere Ermittlungen an die Akte; dort erscheint sie in der Gruppe <em>Ermittlungen</em>.
+                Wer nicht beteiligt ist, sieht weder den Verweis noch die Verknüpfung.</p>
                 <p>Ermittlungen tauchen nicht in der Suche, bei FIBI, in der Beobachtungsliste oder im öffentlichen
                 Bereich auf. Diese Wege kennen keine Beteiligten.</p>
                 """,

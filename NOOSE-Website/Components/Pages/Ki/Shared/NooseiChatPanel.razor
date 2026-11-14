@@ -242,7 +242,7 @@ else
 
             <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
                 @* NOOSEI resolves the token itself via loese_erwaehnung_auf, so an @ here points it at a record *@
-                <MentionInput @bind-Text="_input" Label="Frage an FIBI" Lines="3" HelperText="@MentionInput.Hint"
+                <MentionInput @bind-Text="_input" Label="Frage an FIBI" Lines="3" HelperText="@MentionInput.Hint" MentionSource="MentionSource.Assistant"
                               Class="flex-grow-1" Disabled="@(_busy || Locked)" />
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
                            OnClick="SendAsync"

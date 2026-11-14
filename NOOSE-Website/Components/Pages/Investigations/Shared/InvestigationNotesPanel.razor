@@ -2,12 +2,13 @@
 @inject IInvestigationService Investigations
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject IMentionService MentionService
 
 @if (Detail.Access.CanEdit(InvestigationTabs.Notes))
 {
-    <TextDraft DraftKey="@DraftKeys.In(DraftScope, "text")" OnRestore="@(t => _text = t)">
-        <MudTextField @bind-Value="_text" Label="Neue Notiz" Lines="3" Variant="Variant.Outlined" MaxLength="4000" Immediate="true" />
-    </TextDraft>
+    @* references to entries of this or another file; no agents here, a note notifies nobody *@
+    <MentionInput @bind-Text="_text" Label="Neue Notiz" Lines="3" MaxLength="@InvestigationService.NoteMaxLength" HelperText="@MentionInput.Hint"
+                  DraftKey="@DraftKeys.In(DraftScope, "text")" MentionSource="MentionSource.InvestigationField" MentionContext="@Detail.Id" />
     <MudButton Class="mt-2 mb-4" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
                Disabled="@(_busy || string.IsNullOrWhiteSpace(_text))" OnClick="AddAsync">Notiz speichern</MudButton>
 }
@@ -21,7 +22,7 @@ else
     <MudStack Spacing="2">
         @foreach (var n in Detail.Notes)
         {
-            <MudPaper Class="pa-3" Outlined="true">
+            <MudPaper Class="pa-3" Outlined="true" id="@InvestigationTexts.Anchor(n.Id)" Style="@InvestigationTexts.HighlightStyle(n.Id, Highlight)">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                     <MudText Typo="Typo.caption" Class="mud-text-secondary flex-grow-1">@(n.AuthorName ?? "—") · @n.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
                     <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationNote)" ItemId="@n.Id" User="User" Changed="Changed" />
@@ -30,7 +31,7 @@ else
                         <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(n.Id))" aria-label="Löschen" />
                     }
                 </MudStack>
-                <MudText Typo="Typo.body2" Style="white-space:pre-line;">@n.Text</MudText>
+                <MudText Typo="Typo.body2"><InvestigationText Text="@n.Text" Resolved="_resolved" /></MudText>
             </MudPaper>
         }
     </MudStack>
@@ -41,8 +42,24 @@ else
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public EventCallback Changed { get; set; }
 
-    private string? _text;
+    /// <summary>Entry a reference points at (?eintrag=); marked in the list.</summary>
+    [Parameter] public string? Highlight { get; set; }
+
+    private string _text = string.Empty;
     private bool _busy;
+    private InvestigationDetail? _resolvedFor;
+    private IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> _resolved = new Dictionary<string, IReadOnlyList<MentionSegment>>();
+
+    // one batch per loaded detail; a reload hands in a new instance
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_resolvedFor, Detail))
+        {
+            return;
+        }
+        _resolvedFor = Detail;
+        _resolved = await InvestigationTexts.ResolveAsync(MentionService, User, Detail.Notes.Select(n => (string?)n.Text));
+    }
 
     private string DraftScope => $"ermittlung-notiz:{Detail.Id}";
 
@@ -52,7 +69,7 @@ else
         try
         {
             await Investigations.AddNoteAsync(Detail.Id, _text ?? string.Empty, User);
-            _text = null;
+            _text = string.Empty;
             await TextDraft.DiscardScopeAsync(JS, User.GetAgentId(), DraftScope);
             await Changed.InvokeAsync();
         }

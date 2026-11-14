@@ -279,6 +279,83 @@ public sealed class InvestigationAccessTests : IDisposable
         Assert.False(access.MaySignWarrants);
     }
 
+    /// <summary>The scope-shaped read used by references must read exactly what the page shows, and never write.</summary>
+    [Fact]
+    public async Task ResolveRead_matches_Resolve_for_read_decisions()
+    {
+        await using (var db = _ctx.NewContext())
+        {
+            db.Users.AddRange(
+                Seed.Agent("over", Rank.SpecialAgent),
+                Seed.Agent("observer", Rank.SpecialAgent),
+                Seed.Agent("chief-p", configure: a => Partner(a, PartnerUnits.DojChief, lead: false)),
+                Seed.Agent("sid-2", configure: a => Partner(a, PartnerUnits.DojSid, lead: false)));
+            db.PartnerUnits.Find(PartnerUnits.DojChief)!.InvestigationDefaultsJson = """{"beweismittel":1,"notizen":2}""";
+            db.InvestigationItemRestrictions.AddRange(
+                new InvestigationItemRestriction { InvestigationId = Inv, ItemType = "InvestigationNote", ItemId = "note-1", AgentId = "over" },
+                new InvestigationItemRestriction { InvestigationId = Inv, ItemType = "InvestigationNote", ItemId = "note-2", PartnerUnitId = PartnerUnits.DojChief },
+                new InvestigationItemRestriction { InvestigationId = Inv, ItemType = "InvestigationEvidence", ItemId = "ev-1", AgentId = "sid" });
+            await db.SaveChangesAsync();
+        }
+        AddRow("over", null, InvestigationRole.Investigator, """{"notizen":1,"aufgaben":0}""");
+        AddRow("observer", null, InvestigationRole.Observer);
+        AddRow("sid", null, InvestigationRole.Investigator, """{"beweismittel":1}""");
+        AddRow(null, PartnerUnits.DojChief, InvestigationRole.Investigator);
+        AddRow("sta", null, InvestigationRole.Prosecutor);
+
+        var viewers = new Dictionary<string, ClaimsPrincipal>
+        {
+            ["leadership"] = Internal("chief", Rank.SectionChief),
+            ["supervision"] = ClaimsPrincipalBuilder.Agent("outsider").WithRank(Rank.SpecialAgent).AsTeamLead().Build(),
+            ["tf-lead"] = Internal("tf-lead"),
+            ["tf-member"] = Internal("member"),
+            ["lead-row"] = Internal("lead"),
+            ["override"] = Internal("over"),
+            ["observer"] = Internal("observer"),
+            ["stranger"] = Internal("outsider"),
+            ["partner-own-row"] = Doj("sid", PartnerUnits.DojSid),
+            ["partner-unit-row"] = Doj("chief-p", PartnerUnits.DojChief),
+            ["prosecutor"] = Doj("sta", PartnerUnits.DojStateAttorney),
+            ["unit-lead"] = Doj("sid-lead", PartnerUnits.DojSid, lead: true),
+            ["partner-stranger"] = Doj("sid-2", PartnerUnits.DojSid),
+            ["demo"] = ClaimsPrincipalBuilder.Agent("chief").WithRank(Rank.Director).AsDemo().Build(),
+        };
+
+        foreach (var (name, user) in viewers)
+        {
+            await using var db = _ctx.NewContext();
+            var full = await InvestigationAccess.ResolveAsync(db, Inv, user);
+            var read = await InvestigationAccess.ResolveReadAsync(db, Inv, ViewerScope.From(user));
+
+            Assert.True(full.CanSee == read.CanSee, $"{name}: CanSee");
+            Assert.True(full.SeesAllEntries == read.SeesAllEntries, $"{name}: SeesAllEntries");
+            foreach (var slug in InvestigationTabs.Slugs)
+            {
+                Assert.True(full.CanRead(slug) == read.CanRead(slug), $"{name}: CanRead {slug}");
+                Assert.False(read.CanEdit(slug), $"{name}: CanEdit {slug}");
+            }
+            foreach (var type in InvestigationService.EntryTabs.Keys)
+            {
+                Assert.Equal(await InvestigationAccess.HiddenItemIdsAsync(db, Inv, type, full),
+                    await InvestigationAccess.HiddenItemIdsAsync(db, Inv, type, read));
+            }
+            Assert.False(read.MayManage, name);
+            Assert.False(read.FullAccess, name);
+            Assert.False(read.MaySignWarrants, name);
+        }
+    }
+
+    [Fact]
+    public async Task ResolveRead_never_gives_a_partner_the_read_all_arm()
+    {
+        await using var db = _ctx.NewContext();
+        // the scope claims supervision and forgets the agency; the account row still says partner
+        Assert.False((await InvestigationAccess.ResolveReadAsync(db, Inv, new ViewerScope(true, true, "sta", null))).CanSee);
+        Assert.False((await InvestigationAccess.ResolveReadAsync(db, Inv, new ViewerScope(true, true, "sta", PartnerAgency.DoJ))).CanSee);
+        Assert.True((await InvestigationAccess.ResolveReadAsync(db, Inv, new ViewerScope(true, true, "outsider", null))).CanSee);
+        Assert.False((await InvestigationAccess.ResolveReadAsync(db, Inv, new ViewerScope(true, true, null, null))).CanSee);
+    }
+
     [Fact]
     public async Task Demo_ReadsButNeverWrites()
     {

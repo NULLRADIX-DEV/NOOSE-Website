@@ -1,0 +1,24 @@
+@* One plain field of the file with its @-references resolved by the panel's batch; line breaks stay. *@
+@if (string.IsNullOrEmpty(Text))
+{
+}
+else if (Resolved.TryGetValue(Text, out var segments))
+{
+    <MentionText Segments="segments" Plain="Plain" />
+}
+else
+{
+    @* not resolved (yet): a raw token would show its type and id to every reader, so it stays out until the batch is in *@
+    <span style="white-space:pre-wrap;word-break:break-word;">@(MentionParser.Parse(Text).Count > 0 ? MentionParser.Strip(Text) : Text)</span>
+}
+
+@code {
+    [Parameter] public string? Text { get; set; }
+
+    /// <summary>The panel's batch from <see cref="InvestigationTexts.ResolveAsync"/>, keyed by text.</summary>
+    [Parameter] public IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> Resolved { get; set; }
+        = new Dictionary<string, IReadOnlyList<MentionSegment>>();
+
+    /// <summary>References as bare text instead of links; for the print view.</summary>
+    [Parameter] public bool Plain { get; set; }
+}

@@ -753,8 +753,8 @@ public static class ChangelogContent
                 + "in Discord, aber nur einmal, bis du den Chat wieder geöffnet hast. Wie bei den anderen Pings wählst du "
                 + "im Profil Sofort, Gesammelt oder Nie.", "Discord"),
             Neu("3.0.54-ermittlungen", "FIB und DoJ führen Ermittlungen gemeinsam als Akte an einer Taskforce, mit Rechten "
-                + "je Beteiligtem und Tab. Beweismittel tragen Bilder, Staatsanwälte zeichnen Anordnungen ihrer Ermittlung, und die bisherige "
-                + "Excel-Akte lässt sich importieren.", "Akten"),
+                + "je Beteiligtem und Tab. Staatsanwälte zeichnen Anordnungen, Excel-Akten lassen sich importieren, und die Akte "
+                + "lässt sich per @ erwähnen und mit anderen Akten verknüpfen, sichtbar nur für Beteiligte.", "Akten"),
         ]),
     ];
 }

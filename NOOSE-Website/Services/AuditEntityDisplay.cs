@@ -56,6 +56,7 @@ public static class AuditEntityDisplay
         "InvestigationTask" => "Ermittlung: Aufgabe",
         "InvestigationNote" => "Ermittlung: Notiz",
         "InvestigationItemRestriction" => "Ermittlung: Eintragsfreigabe",
+        "InvestigationLink" => "Ermittlung: Verknüpfung",
         "PartnerUnit" => "Partner-Einheit",
         "PartnerUnitShare" => "Partner-Freigabe an Einheit",
         "PartnerUnitReleaseRule" => "Partner-Regelfreigabe an Einheit",

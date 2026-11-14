@@ -65,6 +65,9 @@
             </div>
         }
     }
+
+    @* files live apart from the link engine and are filtered by participation *@
+    <RecordInvestigationLinks EntityType="@nameof(Case)" EntityId="@CaseId" User="User" MayWrite="@User.MayWrite()" />
 </MudStack>
 
 @code {

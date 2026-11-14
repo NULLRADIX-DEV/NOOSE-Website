@@ -114,6 +114,12 @@ else if (_lastCost is { } cost)
     /// never offer it, or internal record names surface in the applicant portal.</summary>
     [Parameter] public bool Mentions { get; set; }
 
+    /// <summary>Where the editor sits; decides which picker groups it offers (see <see cref="Models.Common.MentionSource"/>).</summary>
+    [Parameter] public MentionSource MentionSource { get; set; } = MentionSource.Default;
+
+    /// <summary>The investigation this text belongs to, so its own entries rank first in the picker.</summary>
+    [Parameter] public string? MentionContext { get; set; }
+
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
     private ElementReference _element;
@@ -142,8 +148,8 @@ else if (_lastCost is { } cost)
         Ai is not null && TextAssist.IsAvailable && _user is { } u
         && !u.IsPartner() && !u.IsDemo() && u.MayWrite();
 
-    // partners post plain text: the picker is unscoped, same rule as MentionInput
-    private bool MentionsEnabled => Mentions && _user is { } u && !u.IsPartner();
+    // partners get the picker only in investigation texts, where the server limits it to what they read there
+    private bool MentionsEnabled => Mentions && _user is { } u && (!u.IsPartner() || MentionSource == MentionSource.InvestigationField);
 
     private bool _mentionsOpen;
     private int _active;
@@ -484,15 +490,16 @@ else if (_lastCost is { } cost)
         }
     }
 
-    /// <summary>Chip labels for the tokens in <paramref name="html"/>; a token the viewer may not resolve is left out
-    /// on purpose, so it stays literal text in the editor instead of gaining a name it should not carry.</summary>
+    /// <summary>Chip labels for the tokens in <paramref name="html"/>; a token the viewer may not resolve gets the
+    /// neutral missing label, so it stays a chip that saves back as the original token.</summary>
     private async Task<IReadOnlyDictionary<string, string>> LabelsAsync(string? html)
     {
         if (!MentionsEnabled || _user is null)
         {
             return new Dictionary<string, string>();
         }
-        return await MentionService.HtmlLabelsAsync(html, _user.MayClassifiedRead(), _user.GetAgentId());
+        return await MentionService.HtmlLabelsAsync(html, _user.MayClassifiedRead(), _user.GetAgentId(),
+            partnerAgency: _user.GetPartnerAgency());
     }
 
     [JSInvokable]
@@ -507,7 +514,7 @@ else if (_lastCost is { } cost)
             await CloseMentionsAsync();
             return;
         }
-        _candidates = await MentionService.CandidatesAsync(query, _user);
+        _candidates = await MentionService.CandidatesAsync(query, _user, MentionSource, MentionContext);
         _mentionStart = start;
         _mentionLength = length;
         _mentionTop = top;

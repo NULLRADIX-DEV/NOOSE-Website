@@ -2,6 +2,8 @@
 @page "/ermittlungen/{Id}/druck"
 @layout PrintLayout
 @inject IInvestigationService Investigations
+@inject IMentionService MentionService
+@inject IInvestigationLinkService Links
 
 <PageTitle>@(_detail is null ? "Druckansicht" : $"Ermittlungsakte {_detail.CaseNumber}") · FIB</PageTitle>
 
@@ -30,7 +32,7 @@ else
                     <tr><th>Status</th><td>@InvestigationDisplay.Name(d.Status)</td></tr>
                     <tr><th>Eröffnet</th><td>@d.OpenedAt.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
                     <tr><th>Staatsanwalt</th><td>@(d.Prosecutors.Count == 0 ? "—" : string.Join(", ", d.Prosecutors))</td></tr>
-                    <tr><th>Anklage</th><td>@(d.Indictment ?? "—")</td></tr>
+                    <tr><th>Anklage</th><td>@if (d.Indictment is null) { @("—") } else { <InvestigationText Text="@d.Indictment" Resolved="_resolved" Plain="true" /> }</td></tr>
                     <tr><th>Taskforce</th><td>@(d.TaskforceName ?? "—")</td></tr>
                 </tbody>
             </table>
@@ -79,7 +81,7 @@ else
                 <h2>D) Notizen</h2>
                 @foreach (var n in d.Notes.OrderBy(n => n.CreatedAt))
                 {
-                    <p style="white-space:pre-line;">– @n.Text</p>
+                    <p>– <InvestigationText Text="@n.Text" Resolved="_resolved" Plain="true" /></p>
                 }
             </section>
         }
@@ -88,11 +90,14 @@ else
             <section>
                 <h2>Zeugenliste</h2>
                 <table class="druck-tabelle">
-                    <thead><tr><th>Name</th><th>Telefon</th><th>Rolle</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Telefon</th><th>Rolle</th><th>Status</th><th>Notiz</th></tr></thead>
                     <tbody>
                         @foreach (var p in d.People)
                         {
-                            <tr><td>@p.Name</td><td>@(p.Phone ?? "")</td><td>@p.Role</td><td>@InvestigationDisplay.Name(p.Status)</td></tr>
+                            <tr>
+                                <td>@p.Name</td><td>@(p.Phone ?? "")</td><td>@p.Role</td><td>@InvestigationDisplay.Name(p.Status)</td>
+                                <td><InvestigationText Text="@p.Note" Resolved="_resolved" Plain="true" /></td>
+                            </tr>
                         }
                     </tbody>
                 </table>
@@ -108,7 +113,7 @@ else
                         @foreach (var e in d.Evidence)
                         {
                             <tr>
-                                <td>@e.Number</td><td>@e.Name</td><td>@(e.Description ?? "")</td><td>@(e.Owner ?? "")</td><td>@(e.Officer ?? "")</td>
+                                <td>@e.Number</td><td>@e.Name</td><td><InvestigationText Text="@e.Description" Resolved="_resolved" Plain="true" /></td><td>@(e.Owner ?? "")</td><td>@(e.Officer ?? "")</td>
                                 <td>@InvestigationDisplay.Name(e.Status)</td><td>@(e.SecuredAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "")</td>
                             </tr>
                         }
@@ -152,7 +157,7 @@ else
                     </table>
                     @if (!string.IsNullOrWhiteSpace(v.Summary))
                     {
-                        <p style="white-space:pre-line;">@v.Summary</p>
+                        <p><InvestigationText Text="@v.Summary" Resolved="_resolved" Plain="true" /></p>
                     }
                     @if (v.Entries.Count > 0)
                     {
@@ -169,6 +174,21 @@ else
                 </section>
             }
         }
+        @if (_links.Count > 0)
+        {
+            <section>
+                <h2>Verknüpfungen</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Art</th><th>Akte</th><th>Bezeichnung</th></tr></thead>
+                    <tbody>
+                        @foreach (var l in _links)
+                        {
+                            <tr><td>@(l.Type == nameof(Investigation) ? "Ermittlung" : RecordTypeDisplay.Name(l.Type))</td><td>@l.Display</td><td>@(l.Label ?? "")</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
     </PrintFrame>
 }
 
@@ -179,12 +199,21 @@ else
     private bool _load = true;
     private string? _printBy;
     private InvestigationDetail? _detail;
+    private List<InvestigationLinkedRecord> _links = new();
+    private IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> _resolved = new Dictionary<string, IReadOnlyList<MentionSegment>>();
 
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
         _printBy = user.GetCodename();
         _detail = await Investigations.GetAsync(Id, user);
+        // references print as plain text, resolved for the one printing; the narrative does the same in RichHtml
+        if (_detail is not null)
+        {
+            _resolved = await InvestigationTexts.ResolveAsync(MentionService, user, InvestigationTexts.All(_detail));
+            // only what the one printing may open
+            _links = await Links.GetForInvestigationAsync(Id, user);
+        }
         _load = false;
     }
 }

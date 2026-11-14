@@ -15,7 +15,7 @@
               Label="@Label" Placeholder="@Placeholder" HelperText="@HelperText" Variant="Variant.Outlined"
               Lines="@Lines" MaxLength="@MaxLength" Counter="@Counter" Disabled="@Disabled" Class="@Class"
               Required="@Required" RequiredError="@RequiredError" AutoFocus="@AutoFocus"
-              Adornment="@(_isPartner ? Adornment.None : Adornment.End)" AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
+              Adornment="@(PickerOff ? Adornment.None : Adornment.End)" AdornmentIcon="@Icons.Material.Filled.AlternateEmail"
               OnAdornmentClick="ManualOpenAsync" AdornmentAriaLabel="Objekt verlinken"
               OnKeyDown="OnKeyDown" />
 </div>
@@ -80,6 +80,12 @@
     /// <summary>Record id the pasted image belongs to; see <see cref="ImageOwnerType"/>.</summary>
     [Parameter] public string? ImageOwnerId { get; set; }
 
+    /// <summary>Where the field sits; decides which picker groups it offers (see <see cref="Models.Common.MentionSource"/>).</summary>
+    [Parameter] public MentionSource MentionSource { get; set; } = MentionSource.Default;
+
+    /// <summary>The investigation this text belongs to, so its own entries rank first in the picker.</summary>
+    [Parameter] public string? MentionContext { get; set; }
+
     /// <summary>Keeps unsaved text in the browser under this key (<see cref="DraftKeys.In"/>); null keeps none.</summary>
     /// <remarks>
     /// Opt-in like the rich text editor's: the owner has to drop the draft after a successful save - through
@@ -90,6 +96,7 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
     private string? _meId;
     private bool _isPartner;
+    private PartnerAgency? _partnerAgency;
     private bool _mayClassifiedRead;
     private bool _mayRealName;
     private bool _mayWrite;
@@ -101,6 +108,9 @@
     private DotNetObjectReference<MentionInput>? _ref;
     private bool _disposed;
     private bool _attaching;
+
+    // partners get the picker only in investigation texts, where the server limits it to what they read there
+    private bool PickerOff => _isPartner && MentionSource != MentionSource.InvestigationField;
 
     // the read-only supervision would only run into the service guard, and a partner posts plain text
     private bool ImagePasteEnabled =>
@@ -115,8 +125,8 @@
             _user = user;
             _mayWrite = user.MayWrite();
             _meId = user.GetAgentId();
-            // partners post plain text: the @-picker is unscoped, so it stays disabled for them
             _isPartner = user.IsPartner();
+            _partnerAgency = user.GetPartnerAgency();
             _mayClassifiedRead = user.MayClassifiedRead();
             _mayRealName = user.MayRealNameSee();
         }
@@ -168,9 +178,9 @@
 
     private async Task PickerRefreshAsync()
     {
-        if (_isPartner)
+        if (PickerOff)
         {
-            return; // no unscoped record picker for partners
+            return;
         }
         var m = ActiveQuery.Match(_text);
         if (!m.Success || m.Groups[1].Value.Length < 1)
@@ -182,7 +192,7 @@
         {
             return;
         }
-        _candidates = await MentionService.CandidatesAsync(m.Groups[1].Value, (await AuthStateTask).User);
+        _candidates = await MentionService.CandidatesAsync(m.Groups[1].Value, (await AuthStateTask).User, MentionSource, MentionContext);
         _pickerOpen = _candidates.Count > 0;
     }
 
@@ -285,9 +295,9 @@
 
     private async Task ReferencesRefreshAsync()
     {
-        if (_isPartner)
+        if (PickerOff)
         {
-            return; // partners can't insert tokens, so nothing to resolve/preview
+            return; // no picker, no tokens of their own to preview
         }
         // only re-resolve when the token set changed
         var sig = string.Join(",", MentionParser.Parse(_text).Select(t => $"{t.Type}:{t.Id}"));
@@ -301,7 +311,7 @@
             _references = new();
             return;
         }
-        var segments = await MentionService.ResolveAsync(_text, _mayClassifiedRead, _meId);
+        var segments = await MentionService.ResolveAsync(_text, _mayClassifiedRead, _meId, partnerAgency: _partnerAgency);
         _references = segments.Where(s => s.IsReference).ToList();
     }
 

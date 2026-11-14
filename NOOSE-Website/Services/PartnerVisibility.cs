@@ -84,6 +84,20 @@ public static class PartnerVisibility
                 db, entityId, new ViewerScope(false, false, partnerAgentId, agency), cancellationToken),
             nameof(Data.Entities.Warrants.Warrant) => await WarrantVisibility.IsVisibleAsync(
                 db, entityId, new ViewerScope(false, false, partnerAgentId, agency), cancellationToken),
+            // investigation entries: participation, tab and restriction, never a release
+            nameof(Data.Entities.Investigations.InvestigationCharge)
+                or nameof(Data.Entities.Investigations.InvestigationPerson)
+                or nameof(Data.Entities.Investigations.InvestigationEvidence)
+                or nameof(Data.Entities.Investigations.InvestigationInterrogation)
+                or nameof(Data.Entities.Investigations.InvestigationTask)
+                or nameof(Data.Entities.Investigations.InvestigationNote) => await InvestigationReferences.IsEntryVisibleAsync(
+                db, entityType, entityId, new ViewerScope(false, false, partnerAgentId, agency), cancellationToken),
+            // named so nobody mistakes the default for an oversight
+            nameof(Data.Entities.Investigations.InvestigationEvidencePhoto)
+                or nameof(Data.Entities.Investigations.InvestigationInterrogationEntry)
+                or nameof(Data.Entities.Investigations.InvestigationParticipant)
+                or nameof(Data.Entities.Investigations.InvestigationItemRestriction)
+                or nameof(Data.Entities.Investigations.InvestigationLink) => false,
             _ => false,
         };
 

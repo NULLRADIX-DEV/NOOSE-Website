@@ -244,6 +244,21 @@ public class InvestigationNote : InvestigationRow
     public string? AuthorName { get; set; }
 }
 
+/// <summary>The file linked to another record (or another file); read only through <c>InvestigationLinks</c>, never through the link engine.</summary>
+[Table("ErmittlungVerknuepfungen")]
+public class InvestigationLink : InvestigationRow
+{
+    /// <summary>CLR type name of the linked record (nameof); <c>Investigation</c> for file to file.</summary>
+    [Column("AkteTyp")]
+    public string RecordType { get; set; } = string.Empty;
+
+    [Column("AkteId")]
+    public string RecordId { get; set; } = string.Empty;
+
+    [Column("Bezeichnung")]
+    public string? Label { get; set; }
+}
+
 /// <summary>Limits one entry to named accounts or units; an entry with rows here is hidden from everyone else without full access.</summary>
 [Table("ErmittlungEintragFreigaben")]
 public class InvestigationItemRestriction : IAuditable
