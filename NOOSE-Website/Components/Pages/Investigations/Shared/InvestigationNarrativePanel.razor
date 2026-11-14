@@ -1,0 +1,58 @@
+@* Course of events as rich text, without images. *@
+@inject IInvestigationService Investigations
+@inject ISnackbar Snackbar
+
+@if (_editing)
+{
+    <RichTextEditor Value="@_html" ValueChanged="@(v => _html = v)" MinHeight="260px" DraftKey="@($"ermittlung:{Detail.Id}:tathergang")" />
+    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">Bilder werden beim Speichern entfernt; Fotos gehören als Beweismittel in die Akte.</MudText>
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+        <MudButton OnClick="@(() => _editing = false)">Abbrechen</MudButton>
+    </MudStack>
+}
+else
+{
+    @if (string.IsNullOrWhiteSpace(Detail.NarrativeHtml))
+    {
+        <EmptyState Icon="@Icons.Material.Outlined.Article" Title="Noch kein Tathergang" />
+    }
+    else
+    {
+        <RichHtml Html="@Detail.NarrativeHtml" User="User" />
+    }
+    @if (Detail.Access.CanEdit(InvestigationTabs.Narrative))
+    {
+        <MudButton Class="mt-3" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                   OnClick="@(() => { _html = Detail.NarrativeHtml; _editing = true; })">Tathergang bearbeiten</MudButton>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool _editing;
+    private bool _busy;
+    private string? _html;
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Investigations.SetNarrativeAsync(Detail.Id, _html, User);
+            _editing = false;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

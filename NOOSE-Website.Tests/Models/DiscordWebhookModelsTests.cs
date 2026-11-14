@@ -75,6 +75,10 @@ public class DiscordWebhookModelsTests
         NotificationType.RegulationChanged,
         // who keeps which record is internal work
         NotificationType.RecordKeeperAssigned,
+        // an investigation is seen only by its participants; a channel would show it exists
+        NotificationType.InvestigationParticipation,
+        NotificationType.InvestigationTask,
+        NotificationType.WarrantToSign,
     };
 
     // ----- IsRoutable: true branch -----

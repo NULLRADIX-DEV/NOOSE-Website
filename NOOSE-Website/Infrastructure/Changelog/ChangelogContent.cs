@@ -749,6 +749,9 @@ public static class ChangelogContent
             Neu("3.0.52-test-seitensperre", "Ein interner Test kann Seiten sperren, etwa die Dienstverordnung. Vom Start "
                 + "bis zur Abgabe zeigt eine gesperrte Seite nur einen Hinweis, auch im zweiten Tab, die Suche und der "
                 + "Discord-Bot halten sie zurück, und FIBI pausiert.", "Personal"),
+            Neu("3.0.53-ermittlungen", "FIB und DoJ führen Ermittlungen gemeinsam als Akte an einer Taskforce, mit Rechten "
+                + "je Beteiligtem und Tab. Staatsanwälte zeichnen Anordnungen ihrer Ermittlung, und die bisherige "
+                + "Excel-Akte lässt sich importieren.", "Akten"),
         ]),
     ];
 }

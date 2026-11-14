@@ -21,6 +21,7 @@ using NOOSE_Website.Data.Entities.Radio;
 using NOOSE_Website.Data.Entities.Taskforces;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.Investigations;
 using NOOSE_Website.Data.Entities.Watchlist;
 using NOOSE_Website.Data.Entities.Leads;
 using NOOSE_Website.Data.Entities.Informants;
@@ -130,6 +131,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     // taskforces
     public DbSet<Taskforce> Taskforces => Set<Taskforce>();
     public DbSet<TaskforceAgent> TaskforceAgents => Set<TaskforceAgent>();
+    public DbSet<TaskforcePartnerAgency> TaskforcePartnerAgencies => Set<TaskforcePartnerAgency>();
     public DbSet<TaskforceMessage> TaskforceMessages => Set<TaskforceMessage>();
 
     // ---- observations ----
@@ -156,6 +158,16 @@ public class AppDbContext : IdentityDbContext<Agent>
 
     // ---- warrants (search, seizure, arrest orders) ----
     public DbSet<Warrant> Warrants => Set<Warrant>();
+    public DbSet<Investigation> Investigations => Set<Investigation>();
+    public DbSet<InvestigationParticipant> InvestigationParticipants => Set<InvestigationParticipant>();
+    public DbSet<InvestigationCharge> InvestigationCharges => Set<InvestigationCharge>();
+    public DbSet<InvestigationPerson> InvestigationPeople => Set<InvestigationPerson>();
+    public DbSet<InvestigationEvidence> InvestigationEvidence => Set<InvestigationEvidence>();
+    public DbSet<InvestigationInterrogation> InvestigationInterrogations => Set<InvestigationInterrogation>();
+    public DbSet<InvestigationInterrogationEntry> InvestigationInterrogationEntries => Set<InvestigationInterrogationEntry>();
+    public DbSet<InvestigationTask> InvestigationTasks => Set<InvestigationTask>();
+    public DbSet<InvestigationNote> InvestigationNotes => Set<InvestigationNote>();
+    public DbSet<InvestigationItemRestriction> InvestigationItemRestrictions => Set<InvestigationItemRestriction>();
 
     // ---- service directives (numbered, versioned, acknowledged) ----
     public DbSet<RegulationSection> RegulationSections => Set<RegulationSection>();
@@ -265,6 +277,9 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<PartnerShare> PartnerShares => Set<PartnerShare>();
     public DbSet<PartnerAgencyProfile> PartnerAgencyProfiles => Set<PartnerAgencyProfile>();
     public DbSet<PartnerReleaseRule> PartnerReleaseRules => Set<PartnerReleaseRule>();
+    public DbSet<PartnerUnit> PartnerUnits => Set<PartnerUnit>();
+    public DbSet<PartnerUnitShare> PartnerUnitShares => Set<PartnerUnitShare>();
+    public DbSet<PartnerUnitReleaseRule> PartnerUnitReleaseRules => Set<PartnerUnitReleaseRule>();
     public DbSet<DocumentAccessExclusion> DocumentAccessExclusions => Set<DocumentAccessExclusion>();
 
     // ---- recruiting (applications, invites, tests) ----
@@ -351,6 +366,10 @@ public class AppDbContext : IdentityDbContext<Agent>
                 b.Property(feed).Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
             }
             b.HasIndex(a => a.CalendarFeedTokenHash).IsUnique();
+            b.Property(a => a.PartnerUnitId).HasMaxLength(64);
+            // older builds still insert accounts on Discord login
+            b.Property(a => a.IsPartnerUnitLead).HasDefaultValue(false);
+            b.HasOne<PartnerUnit>().WithMany().HasForeignKey(a => a.PartnerUnitId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<AuditLog>(b =>
@@ -1255,6 +1274,138 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(x => x.Status);
             b.HasOne<Person>().WithMany().HasForeignKey(x => x.PersonId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne<Case>().WithMany().HasForeignKey(x => x.CaseId).OnDelete(DeleteBehavior.Restrict);
+            b.Property(x => x.InvestigationId).HasMaxLength(64);
+            b.Property(x => x.DeciderFunction).HasMaxLength(160);
+            b.HasIndex(x => x.InvestigationId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ---- investigations run with the DoJ ----
+        modelBuilder.Entity<Investigation>(b =>
+        {
+            b.Property(x => x.CaseNumber).HasMaxLength(32).IsRequired();
+            b.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            b.Property(x => x.TaskforceId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.SidCaseNumber).HasMaxLength(64);
+            b.Property(x => x.FiveNetCaseNumber).HasMaxLength(64);
+            b.Property(x => x.Indictment).HasMaxLength(1000);
+            b.Property(x => x.NarrativeHtml).HasColumnType("longtext");
+            b.HasIndex(x => x.CaseNumber).IsUnique();
+            b.HasIndex(x => x.TaskforceId);
+            b.HasIndex(x => x.Status);
+            b.HasOne(x => x.Taskforce).WithMany().HasForeignKey(x => x.TaskforceId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationParticipant>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.AgentId).HasMaxLength(255);
+            b.Property(x => x.PartnerUnitId).HasMaxLength(64);
+            b.Property(x => x.TabAccessJson).HasMaxLength(2000);
+            // no unique: soft-delete safe; the service keeps one live row per account or unit
+            b.HasIndex(x => new { x.InvestigationId, x.AgentId });
+            b.HasIndex(x => x.AgentId);
+            b.HasIndex(x => x.PartnerUnitId);
+            b.HasOne(x => x.Investigation).WithMany(i => i.Participants).HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Agent>().WithMany().HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<PartnerUnit>().WithMany().HasForeignKey(x => x.PartnerUnitId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationCharge>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.LawId).HasMaxLength(64);
+            b.Property(x => x.Paragraph).HasMaxLength(64).IsRequired();
+            b.Property(x => x.LawBook).HasMaxLength(128).IsRequired();
+            b.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            b.HasIndex(x => x.InvestigationId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationPerson>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            b.Property(x => x.PersonId).HasMaxLength(64);
+            b.Property(x => x.Phone).HasMaxLength(64);
+            b.Property(x => x.Role).HasMaxLength(100).IsRequired();
+            b.Property(x => x.Note).HasMaxLength(1000);
+            b.HasIndex(x => x.InvestigationId);
+            b.HasIndex(x => x.PersonId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Person>().WithMany().HasForeignKey(x => x.PersonId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationEvidence>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            b.Property(x => x.Description).HasMaxLength(2000);
+            b.Property(x => x.Owner).HasMaxLength(200);
+            b.Property(x => x.Officer).HasMaxLength(200);
+            b.HasIndex(x => x.InvestigationId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationInterrogation>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.InvestigationPersonId).HasMaxLength(64);
+            b.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            b.Property(x => x.Role).HasMaxLength(100).IsRequired();
+            b.Property(x => x.Summons).HasMaxLength(300);
+            b.Property(x => x.Officers).HasMaxLength(300);
+            b.Property(x => x.ProsecutorPresent).HasMaxLength(200);
+            b.Property(x => x.Summary).HasMaxLength(4000);
+            b.Property(x => x.ProtocolReference).HasMaxLength(500);
+            b.HasIndex(x => x.InvestigationId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<InvestigationPerson>().WithMany().HasForeignKey(x => x.InvestigationPersonId).OnDelete(DeleteBehavior.Restrict);
+            b.HasMany(x => x.Entries).WithOne().HasForeignKey(e => e.InterrogationId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<InvestigationInterrogationEntry>(b =>
+        {
+            b.Property(x => x.InterrogationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.Question).HasMaxLength(2000).IsRequired();
+            b.Property(x => x.Answer).HasMaxLength(4000).IsRequired();
+            b.HasIndex(x => new { x.InterrogationId, x.SortOrder });
+        });
+
+        modelBuilder.Entity<InvestigationTask>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.Text).HasMaxLength(500).IsRequired();
+            b.Property(x => x.DoneById).HasMaxLength(255);
+            b.Property(x => x.AssigneeId).HasMaxLength(255);
+            b.HasIndex(x => x.InvestigationId);
+            b.HasIndex(x => x.AssigneeId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Agent>().WithMany().HasForeignKey(x => x.AssigneeId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationNote>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.Text).HasMaxLength(4000).IsRequired();
+            b.Property(x => x.AuthorName).HasMaxLength(128);
+            b.HasIndex(x => x.InvestigationId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InvestigationItemRestriction>(b =>
+        {
+            b.Property(x => x.InvestigationId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.ItemType).HasMaxLength(128).IsRequired();
+            b.Property(x => x.ItemId).HasMaxLength(64).IsRequired();
+            b.Property(x => x.AgentId).HasMaxLength(255);
+            b.Property(x => x.PartnerUnitId).HasMaxLength(64);
+            b.HasIndex(x => new { x.ItemType, x.ItemId });
+            b.HasIndex(x => x.InvestigationId);
+            b.HasIndex(x => x.AgentId);
+            b.HasOne<Investigation>().WithMany().HasForeignKey(x => x.InvestigationId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Agent>().WithMany().HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<PartnerUnit>().WithMany().HasForeignKey(x => x.PartnerUnitId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ---- service regulation ----
@@ -1730,6 +1881,15 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.HasIndex(a => a.AgentId);
         });
 
+        modelBuilder.Entity<TaskforcePartnerAgency>(b =>
+        {
+            b.Property(p => p.TaskforceId).HasMaxLength(64).IsRequired();
+            b.HasOne(p => p.Taskforce).WithMany(t => t.PartnerAgencies)
+                .HasForeignKey(p => p.TaskforceId).OnDelete(DeleteBehavior.Cascade);
+            b.HasIndex(p => new { p.TaskforceId, p.Agency }).IsUnique();
+            b.HasIndex(p => p.Agency);
+        });
+
         modelBuilder.Entity<TaskforceMessage>(b =>
         {
             b.Property(n => n.Text).HasMaxLength(4000).IsRequired();
@@ -1881,6 +2041,33 @@ public class AppDbContext : IdentityDbContext<Agent>
         {
             b.Property(r => r.EntityType).HasMaxLength(128).IsRequired();
             b.HasIndex(r => new { r.Agency, r.EntityType }).IsUnique();
+        });
+
+        modelBuilder.Entity<PartnerUnit>(b =>
+        {
+            b.Property(u => u.Name).HasMaxLength(100).IsRequired();
+            b.Property(u => u.VisibilityJson).HasColumnType("longtext");
+            b.Property(u => u.InvestigationDefaultsJson).HasColumnType("longtext");
+            b.HasIndex(u => new { u.Agency, u.SortOrder });
+            b.HasData(NOOSE_Website.Services.PartnerUnits.Seed());
+        });
+
+        modelBuilder.Entity<PartnerUnitShare>(b =>
+        {
+            b.Property(s => s.EntityType).HasMaxLength(128).IsRequired();
+            b.Property(s => s.EntityId).HasMaxLength(64).IsRequired();
+            b.Property(s => s.PartnerUnitId).HasMaxLength(64).IsRequired();
+            b.HasIndex(s => new { s.EntityType, s.EntityId });
+            b.HasIndex(s => new { s.PartnerUnitId, s.EntityType });
+            b.HasOne<PartnerUnit>().WithMany().HasForeignKey(s => s.PartnerUnitId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PartnerUnitReleaseRule>(b =>
+        {
+            b.Property(r => r.EntityType).HasMaxLength(128).IsRequired();
+            b.Property(r => r.PartnerUnitId).HasMaxLength(64).IsRequired();
+            b.HasIndex(r => new { r.PartnerUnitId, r.EntityType }).IsUnique();
+            b.HasOne<PartnerUnit>().WithMany().HasForeignKey(r => r.PartnerUnitId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<DocumentAccessExclusion>(b =>

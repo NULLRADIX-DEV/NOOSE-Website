@@ -26,7 +26,7 @@ public sealed class NooseiLegalChatTests : IDisposable
     private static ClaimsPrincipal Partner() => ClaimsPrincipalBuilder.Agent(PartnerId).AsPartner(PartnerAgency.Parlament, PartnerRank.Member).Build();
     private static ClaimsPrincipal Agent() => ClaimsPrincipalBuilder.Agent("agent").WithRank(Rank.SpecialAgent).Build();
 
-    private PartnerVisibilityPolicyService Policy() => new(_ctx.Factory, new MemoryCache(new MemoryCacheOptions()));
+    private PartnerVisibilityPolicyService Policy() => new(_ctx.Factory, new PartnerUnitService(_ctx.Factory, new MemoryCache(new MemoryCacheOptions())));
 
     private NooseiToolRegistry Registry() => new(
     [

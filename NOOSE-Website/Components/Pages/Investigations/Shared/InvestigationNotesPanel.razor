@@ -1,0 +1,81 @@
+@* Notes of the file, newest first; everyone deletes their own, managers any. *@
+@inject IInvestigationService Investigations
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+@if (Detail.Access.CanEdit(InvestigationTabs.Notes))
+{
+    <TextDraft DraftKey="@DraftKeys.In(DraftScope, "text")" OnRestore="@(t => _text = t)">
+        <MudTextField @bind-Value="_text" Label="Neue Notiz" Lines="3" Variant="Variant.Outlined" MaxLength="4000" Immediate="true" />
+    </TextDraft>
+    <MudButton Class="mt-2 mb-4" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               Disabled="@(_busy || string.IsNullOrWhiteSpace(_text))" OnClick="AddAsync">Notiz speichern</MudButton>
+}
+
+@if (Detail.Notes.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.StickyNote2" Title="Noch keine Notizen" />
+}
+else
+{
+    <MudStack Spacing="2">
+        @foreach (var n in Detail.Notes)
+        {
+            <MudPaper Class="pa-3" Outlined="true">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary flex-grow-1">@(n.AuthorName ?? "—") · @n.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                    <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationNote)" ItemId="@n.Id" User="User" Changed="Changed" />
+                    @if (Detail.Access.CanEdit(InvestigationTabs.Notes) && (n.AuthorId == Detail.Access.MeId || Detail.Access.MayManage))
+                    {
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(n.Id))" aria-label="Löschen" />
+                    }
+                </MudStack>
+                <MudText Typo="Typo.body2" Style="white-space:pre-line;">@n.Text</MudText>
+            </MudPaper>
+        }
+    </MudStack>
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private string? _text;
+    private bool _busy;
+
+    private string DraftScope => $"ermittlung-notiz:{Detail.Id}";
+
+    private async Task AddAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Investigations.AddNoteAsync(Detail.Id, _text ?? string.Empty, User);
+            _text = null;
+            await TextDraft.DiscardScopeAsync(JS, User.GetAgentId(), DraftScope);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        try
+        {
+            await Investigations.DeleteEntryAsync(Detail.Id, nameof(InvestigationNote), id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,49 @@
+@* Investigations naming this person that the viewer takes part in; internal person pages only. *@
+@inject IInvestigationService Investigations
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Gavel" Title="Keine Ermittlung, an der du beteiligt bist" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead><tr><th>Aktenzeichen</th><th>Titel</th><th>Status</th><th>Taskforce</th></tr></thead>
+        <tbody>
+            @foreach (var r in _rows)
+            {
+                <tr>
+                    <td><MudLink Href="@($"/ermittlungen/{r.Id}?tab={InvestigationTabs.People}")">@r.CaseNumber</MudLink></td>
+                    <td>@r.Title</td>
+                    <td><InvestigationStatusChip Status="r.Status" /></td>
+                    <td>@(r.TaskforceName ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter, EditorRequired] public string PersonId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private List<InvestigationListItem> _rows = new();
+    private string? _loadedId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == PersonId)
+        {
+            return;
+        }
+        _loadedId = PersonId;
+        _load = true;
+        _rows = User.IsPartner() ? new() : await Investigations.GetListAsync(User, personId: PersonId);
+        _load = false;
+    }
+}

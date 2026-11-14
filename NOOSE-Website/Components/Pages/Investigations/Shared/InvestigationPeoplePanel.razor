@@ -1,0 +1,173 @@
+@* Witness list with the accused: role, phone, status and an optional person file. *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.People); }
+
+@if (Detail.People.Count == 0 && _edit is null)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.Groups" Title="Noch niemand eingetragen" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead>
+            <tr><th>Name</th><th>Telefon</th><th>Rolle</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Detail.People)
+            {
+                <tr>
+                    <td>
+                        @if (p.PersonId is { } personId && !User.IsPartner())
+                        {
+                            <MudLink Href="@($"/personen/{personId}")">@p.Name</MudLink>
+                        }
+                        else
+                        {
+                            @p.Name
+                        }
+                        @if (!string.IsNullOrWhiteSpace(p.Note))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@p.Note</MudText>
+                        }
+                    </td>
+                    <td>@(p.Phone ?? "—")</td>
+                    <td>@p.Role</td>
+                    <td><MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@StatusColour(p.Status)">@InvestigationDisplay.Name(p.Status)</MudChip></td>
+                    <td class="text-right" style="white-space:nowrap;">
+                        <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationPerson)" ItemId="@p.Id" User="User" Changed="Changed" />
+                        @if (mayEdit)
+                        {
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(p))" aria-label="Bearbeiten" />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(p.Id))" aria-label="Löschen" />
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (mayEdit)
+{
+    @if (_edit is null)
+    {
+        <MudButton Class="mt-3" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="@(() => Edit(null))">Person eintragen</MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-3 mt-3" Outlined="true">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+                <MudItem xs="12" md="3"><MudTextField @bind-Value="_edit.Phone" Label="Telefon" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="64" /></MudItem>
+                <MudItem xs="12" md="2">
+                    <MudAutocomplete T="string" @bind-Value="_edit.Role" Label="Rolle" SearchFunc="Roles" CoerceText="true" CoerceValue="true"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="InvestigationPersonStatus" @bind-Value="_edit.Status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var s in InvestigationDisplay.PersonStatuses)
+                        {
+                            <MudSelectItem T="InvestigationPersonStatus" Value="s">@InvestigationDisplay.Name(s)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <QuickRecordPicker Allowed="PersonOnly" Value="_edit.Person" ValueChanged="@(h => _edit.Person = h)" Label="Personenakte (optional)"
+                                       HelperText="Nötig, damit eine Anordnung gegen diese Person beantragt werden kann." />
+                </MudItem>
+                <MudItem xs="12" md="6"><MudTextField @bind-Value="_edit.Note" Label="Notiz" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="1000" /></MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+                <MudButton OnClick="@(() => _edit = null)">Abbrechen</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private static readonly IReadOnlySet<string> PersonOnly = new HashSet<string> { "Person" };
+    private static readonly string[] RoleSuggestions = CasePersonRoles.Suggestions.Concat(new[] { "Beamter", "Sachverständiger" }).Distinct().ToArray();
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string Role { get; set; } = "Zeuge";
+        public InvestigationPersonStatus Status { get; set; }
+        public QuickHit? Person { get; set; }
+        public string? Note { get; set; }
+    }
+
+    private EditState? _edit;
+    private bool _busy;
+
+    private static Color StatusColour(InvestigationPersonStatus s) => s switch
+    {
+        InvestigationPersonStatus.StatementTaken => Color.Success,
+        InvestigationPersonStatus.NotUsable => Color.Error,
+        InvestigationPersonStatus.Contacted or InvestigationPersonStatus.Cautioned => Color.Info,
+        _ => Color.Default,
+    };
+
+    private Task<IEnumerable<string>> Roles(string value, CancellationToken token)
+        => Task.FromResult(string.IsNullOrWhiteSpace(value) ? RoleSuggestions.AsEnumerable()
+            : RoleSuggestions.Where(r => r.Contains(value, StringComparison.OrdinalIgnoreCase)).Append(value).Distinct());
+
+    private void Edit(InvestigationPersonView? p)
+        => _edit = p is null ? new EditState()
+            : new EditState
+            {
+                Id = p.Id, Name = p.Name, Phone = p.Phone, Role = p.Role, Status = p.Status, Note = p.Note,
+                Person = p.PersonId is null ? null : new QuickHit("Person", p.PersonId, p.Name, p.PersonCaseNumber ?? string.Empty),
+            };
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Investigations.SavePersonAsync(Detail.Id,
+                new InvestigationPersonInput(_edit.Id, _edit.Name, _edit.Person?.TargetId, _edit.Phone, _edit.Role, _edit.Status, _edit.Note), User);
+            _edit = null;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Person austragen", "Die Person wird aus der Liste entfernt.", yesText: "Löschen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.DeleteEntryAsync(Detail.Id, nameof(InvestigationPerson), id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

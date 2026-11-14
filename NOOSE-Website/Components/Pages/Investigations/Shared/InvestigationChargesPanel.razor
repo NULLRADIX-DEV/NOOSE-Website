@@ -1,0 +1,160 @@
+@* Charges: paragraph, law book, description and whether it applies. *@
+@inject IInvestigationService Investigations
+@inject ILawService LawService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.Charges); }
+
+@if (Detail.Charges.Count == 0 && _edit is null)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.Gavel" Title="Noch kein Tatvorwurf" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead>
+            <tr><th>Paragraf</th><th>Gesetzbuch</th><th>Beschreibung</th><th>Geprüft</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Detail.Charges)
+            {
+                <tr>
+                    <td>@c.Paragraph</td>
+                    <td>@c.LawBook</td>
+                    <td>@c.Description</td>
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="@(c.Check == InvestigationChargeCheck.Applies ? Color.Error : c.Check == InvestigationChargeCheck.DoesNotApply ? Color.Success : Color.Default)">
+                            @InvestigationDisplay.Name(c.Check)
+                        </MudChip>
+                    </td>
+                    <td class="text-right" style="white-space:nowrap;">
+                        <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationCharge)" ItemId="@c.Id" User="User" Changed="Changed" />
+                        @if (mayEdit)
+                        {
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(c))" aria-label="Bearbeiten" />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(c.Id))" aria-label="Löschen" />
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (mayEdit)
+{
+    @if (_edit is null)
+    {
+        <MudButton Class="mt-3" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => Edit(null))">Tatvorwurf hinzufügen</MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-3 mt-3" Outlined="true">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudAutocomplete T="Law" Value="_lawPick" ValueChanged="PickLaw" SearchFunc="SearchLaws" Label="Aus dem Gesetzbuch übernehmen"
+                                     ToStringFunc="@(l => l is null ? string.Empty : $"{l.Paragraph} {l.LawBook} – {l.Title}")"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" ResetValueOnEmptyText="true"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Gavel" />
+                </MudItem>
+                <MudItem xs="6" md="2"><MudTextField @bind-Value="_edit.Paragraph" Label="Paragraf" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="64" /></MudItem>
+                <MudItem xs="6" md="2"><MudTextField @bind-Value="_edit.LawBook" Label="Gesetzbuch" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="128" /></MudItem>
+                <MudItem xs="12" md="5"><MudTextField @bind-Value="_edit.Description" Label="Beschreibung" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500" /></MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="InvestigationChargeCheck" @bind-Value="_edit.Check" Label="Geprüft" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var check in InvestigationDisplay.Checks)
+                        {
+                            <MudSelectItem T="InvestigationChargeCheck" Value="check">@InvestigationDisplay.Name(check)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+                <MudButton OnClick="@(() => _edit = null)">Abbrechen</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string? LawId { get; set; }
+        public string Paragraph { get; set; } = string.Empty;
+        public string LawBook { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public InvestigationChargeCheck Check { get; set; }
+    }
+
+    private EditState? _edit;
+    private Law? _lawPick;
+    private bool _busy;
+
+    private void Edit(InvestigationChargeView? c)
+        => _edit = c is null ? new EditState()
+            : new EditState { Id = c.Id, LawId = c.LawId, Paragraph = c.Paragraph, LawBook = c.LawBook, Description = c.Description, Check = c.Check };
+
+    private async Task<IEnumerable<Law>> SearchLaws(string value, CancellationToken token) => await LawService.SearchAsync(value, 20, token);
+
+    private void PickLaw(Law? law)
+    {
+        _lawPick = null;
+        if (law is null || _edit is null)
+        {
+            return;
+        }
+        _edit.LawId = law.Id;
+        _edit.Paragraph = law.Paragraph;
+        _edit.LawBook = law.LawBook;
+        _edit.Description = law.Title;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Investigations.SaveChargeAsync(Detail.Id,
+                new InvestigationChargeInput(_edit.Id, _edit.LawId, _edit.Paragraph, _edit.LawBook, _edit.Description, _edit.Check), User);
+            _edit = null;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Tatvorwurf löschen", "Der Tatvorwurf wird aus der Akte entfernt.", yesText: "Löschen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.DeleteEntryAsync(Detail.Id, nameof(InvestigationCharge), id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -3,7 +3,7 @@
 @if (Agent?.PartnerAgency is { } agency)
 {
     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined"
-             Icon="@Icons.Material.Filled.Handshake">@PartnerRankDisplay.Full(agency, Agent.PartnerRank)</MudChip>
+             Icon="@Icons.Material.Filled.Handshake">@PartnerUnitDisplay.OfAccount(agency, Agent.PartnerUnitId)</MudChip>
 }
 else
 {

@@ -1,0 +1,15 @@
+@* Status of an investigation as a chip. *@
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@Colour">@InvestigationDisplay.Name(Status)</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public InvestigationStatus Status { get; set; }
+
+    private Color Colour => Status switch
+    {
+        InvestigationStatus.Investigating => Color.Info,
+        InvestigationStatus.Indicted => Color.Warning,
+        InvestigationStatus.Trial => Color.Secondary,
+        InvestigationStatus.Closed => Color.Success,
+        _ => Color.Default,
+    };
+}

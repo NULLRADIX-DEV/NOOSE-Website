@@ -8,6 +8,7 @@
 @inject IPartnerShareService PartnerShareService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IPartnerUnitService Units
 @inject SharesBroadcaster SharesBroadcaster
 @inject NOOSE_Website.Services.Public.IPublicWantedService PublicWanted
 @inject NOOSE_Website.Services.Public.IBountyService Bounty
@@ -247,15 +248,17 @@ else
                             <MudSelectItem T="PartnerAgency?" Value="@((PartnerAgency?)agency)">@PartnerAgencyDisplay.Name(agency)</MudSelectItem>
                         }
                     </MudSelect>
-                    @if (Selection(context.Id).Partner is not null)
+                    @if (Selection(context.Id).Partner is { } chosenAgency)
                     {
-                        <MudSelect T="PartnerRank" @bind-Value="Selection(context.Id).PartnerDegree" Dense="true" Margin="Margin.Dense"
-                                   Variant="Variant.Outlined" Class="mt-1">
-                            @foreach (var pr in PartnerRankDisplay.All)
+                        <MudSelect T="string" @bind-Value="Selection(context.Id).PartnerUnitId" Dense="true" Margin="Margin.Dense"
+                                   Variant="Variant.Outlined" Class="mt-1" Placeholder="Einheit wählen">
+                            @foreach (var unit in _partnerUnits.Where(u => u.Agency == chosenAgency))
                             {
-                                <MudSelectItem Value="pr">@(PartnerRankDisplay.Suffix(pr) is { Length: > 0 } s ? s : "Standard")</MudSelectItem>
+                                <MudSelectItem T="string" Value="@unit.Id">@unit.Name</MudSelectItem>
                             }
                         </MudSelect>
+                        <MudCheckBox T="bool" @bind-Value="Selection(context.Id).PartnerLead" Dense="true" Color="Color.Primary"
+                                     Label="Leitung" />
                     }
                 </MudTd>
                 <MudTd DataLabel="Pate">
@@ -648,9 +651,12 @@ else
         public bool Hrb { get; set; }
         // non-null = release as partner
         public PartnerAgency? Partner { get; set; }
-        public PartnerRank PartnerDegree { get; set; } = PartnerRank.Member;
+        public string? PartnerUnitId { get; set; }
+        public bool PartnerLead { get; set; }
         public string? MentorId { get; set; }
     }
+
+    private IReadOnlyList<PartnerUnitView> _partnerUnits = Array.Empty<PartnerUnitView>();
 
     private SelectionState Selection(string agentId)
     {
@@ -687,6 +693,7 @@ else
     {
         _load = true;
         _isLeadership = _user.IsLeadership();
+        _partnerUnits = await Units.GetAllAsync();
 
         // Senior Special Agent+ sees upgrade requests (broader than leadership).
         _openUpgrades = await RequestService.GetOpenAsync(_isLeadership);
@@ -823,8 +830,14 @@ else
         {
             if (selection.Partner is { } agency)
             {
-                await AgentService.ReleaseAsPartnerAsync(agent.Id, agency, selection.PartnerDegree, _user);
-                Snackbar.Add($"{DisplayName(agent)} als Partner ({PartnerRankDisplay.Full(agency, selection.PartnerDegree)}) freigegeben.", Severity.Success);
+                var unit = _partnerUnits.FirstOrDefault(u => u.Agency == agency && u.Id == selection.PartnerUnitId);
+                if (unit is null)
+                {
+                    Snackbar.Add("Bitte zuerst die Einheit wählen.", Severity.Warning);
+                    return;
+                }
+                await AgentService.ReleaseAsPartnerAsync(agent.Id, unit.Id, selection.PartnerLead, _user);
+                Snackbar.Add($"{DisplayName(agent)} als Partner ({unit.FullName}) freigegeben.", Severity.Success);
             }
             else
             {

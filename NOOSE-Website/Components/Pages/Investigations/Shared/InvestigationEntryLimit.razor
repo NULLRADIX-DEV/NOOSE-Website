@@ -1,0 +1,62 @@
+@* Lock marker of one entry; whoever manages the file limits the entry to chosen participants here. *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (Detail.Access.MayManage)
+{
+    <MudTooltip Text="@Tooltip">
+        <MudIconButton Size="Size.Small" Icon="@(IsLimited ? Icons.Material.Filled.Lock : Icons.Material.Outlined.LockOpen)"
+                       Color="@(IsLimited ? Color.Warning : Color.Default)" OnClick="OpenAsync" aria-label="Sichtbarkeit des Eintrags" />
+    </MudTooltip>
+}
+else if (IsLimited)
+{
+    <MudTooltip Text="Nur für ausgewählte Beteiligte sichtbar">
+        <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" />
+    </MudTooltip>
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public string ItemType { get; set; } = default!;
+    [Parameter, EditorRequired] public string ItemId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool IsLimited => Detail.RestrictedIds.Contains(ItemId);
+
+    private string Tooltip => Detail.Restrictions.TryGetValue(ItemId, out var targets) && targets.Count > 0
+        ? "Nur sichtbar für: " + string.Join(", ", targets.Select(t => t.Label))
+        : "Sichtbar für alle mit Zugriff auf den Tab. Klicken, um einzuschränken.";
+
+    private async Task OpenAsync()
+    {
+        var current = Detail.Restrictions.TryGetValue(ItemId, out var targets) ? targets : Array.Empty<InvestigationTarget>();
+        var options = Detail.Participants
+            .Select(p => new InvestigationTarget(p.AgentId, p.PartnerUnitId, p.IsUnit ? $"{p.Label} (ganze Einheit)" : $"{p.Label} · {p.Detail}"))
+            .ToList();
+        var parameters = new DialogParameters<InvestigationEntryLimitDialog>
+        {
+            { x => x.Options, options },
+            { x => x.Selected, current },
+        };
+        var reference = await DialogService.ShowAsync<InvestigationEntryLimitDialog>("Sichtbarkeit des Eintrags", parameters,
+            new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        var result = await reference.Result;
+        if (result is not { Canceled: false, Data: IReadOnlyList<InvestigationTarget> picked })
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.SetRestrictionAsync(Detail.Id, ItemType, ItemId, picked, User);
+            Snackbar.Add(picked.Count == 0 ? "Eintrag wieder für alle mit Tab-Zugriff sichtbar." : "Eintrag eingeschränkt.", Severity.Success);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or ArgumentException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

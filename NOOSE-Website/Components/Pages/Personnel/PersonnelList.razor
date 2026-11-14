@@ -64,13 +64,16 @@ else
                         <MudSelectItem T="PartnerAgency?" Value="@ag">@PartnerAgencyDisplay.Name(ag)</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="PartnerRank?" Value="_rankFilter" ValueChanged="@(v => _rankFilter = v)"
-                           Label="Rang" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                           Class="@FilterClass" Style="min-width:160px;">
-                    <MudSelectItem T="PartnerRank?" Value="@((PartnerRank?)null)">Alle Ränge</MudSelectItem>
-                    @foreach (var pr in PartnerRankDisplay.All)
+                <MudSelect T="string" Value="_unitFilter" ValueChanged="@(v => _unitFilter = v)"
+                           Label="Einheit" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                           Class="@FilterClass" Style="min-width:180px;">
+                    <MudSelectItem T="string" Value="@((string?)null)">Alle Einheiten</MudSelectItem>
+                    @foreach (var unit in _agents.Where(a => a.PartnerAgency != null && a.PartnerUnitId != null
+                                                             && (_agencyFilter is null || a.PartnerAgency == _agencyFilter))
+                                                 .Select(a => (a.PartnerUnitId!, PartnerUnitDisplay.OfAccount(a.PartnerAgency, a.PartnerUnitId)))
+                                                 .Distinct().OrderBy(u => u.Item2))
                     {
-                        <MudSelectItem T="PartnerRank?" Value="@pr">@pr</MudSelectItem>
+                        <MudSelectItem T="string" Value="@unit.Item1">@unit.Item2</MudSelectItem>
                     }
                 </MudSelect>
             }
@@ -98,7 +101,7 @@ else
                 else if (_tab == TabPartner)
                 {
                     <MudTh Class="@Col("behoerde")"><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerAgency)">Behörde</MudTableSortLabel></MudTh>
-                    <MudTh Class="@Col("partnerrang")"><MudTableSortLabel T="Agent" SortBy="@(x => x.PartnerRank)">Partner-Rang</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("partnerrang")"><MudTableSortLabel T="Agent" SortBy="@(x => PartnerUnitDisplay.OfAccount(x.PartnerAgency, x.PartnerUnitId))">Einheit</MudTableSortLabel></MudTh>
                     <MudTh Class="@Col("status")"><MudTableSortLabel T="Agent" SortBy="@(x => AgentStatusDisplay.Name(x.Status))">Status</MudTableSortLabel></MudTh>
                 }
                 else
@@ -134,7 +137,7 @@ else
                 else if (_tab == TabPartner)
                 {
                     <MudTd DataLabel="Behörde" Class="@Col("behoerde")">@PartnerAgencyDisplay.Name(context.PartnerAgency)</MudTd>
-                    <MudTd DataLabel="Partner-Rang" Class="@Col("partnerrang")">@PartnerRankDisplay.Full(context.PartnerAgency, context.PartnerRank)</MudTd>
+                    <MudTd DataLabel="Einheit" Class="@Col("partnerrang")">@PartnerUnitDisplay.OfAccount(context.PartnerAgency, context.PartnerUnitId)@(context.IsPartnerUnitLead ? " · Leitung" : "")</MudTd>
                     <MudTd DataLabel="Status" Class="@Col("status")">@AgentStatusDisplay.Name(context.Status)</MudTd>
                 }
                 else
@@ -169,7 +172,7 @@ else
     private string _search = string.Empty;
     private int _tab;
     private PartnerAgency? _agencyFilter;
-    private PartnerRank? _rankFilter;
+    private string? _unitFilter;
     private List<Agent> _agents = new();
     private InactivityRadar? _radar;
     private ClaimsPrincipal _user = default!;
@@ -180,7 +183,7 @@ else
     [
         ("codename", "Codename"), ("dienstnummer", "Dienstnummer"), ("klarname", "Klarname"),
         ("dienstgrad", "Dienstgrad"), ("gekuendigtam", "Gekündigt am"), ("gekuendigtvon", "Gekündigt von"),
-        ("grund", "Grund"), ("behoerde", "Behörde"), ("partnerrang", "Partner-Rang"), ("status", "Status"),
+        ("grund", "Grund"), ("behoerde", "Behörde"), ("partnerrang", "Einheit"), ("status", "Status"),
         ("abteilung", "Abteilung"), ("hrb", DepartmentRules.ColumnLabel),
     ];
 
@@ -195,7 +198,7 @@ else
     // below 600px only; from 600px up every column shows, as before
     private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
 
-    private int ActiveFilters => (_agencyFilter is null ? 0 : 1) + (_rankFilter is null ? 0 : 1);
+    private int ActiveFilters => (_agencyFilter is null ? 0 : 1) + (_unitFilter is null ? 0 : 1);
 
     // folded only below 600px (noose-filter-zu); from 600px up the selects stand in the row as before
     private string FilterClass => _filtersOpen ? "noose-filter-feld" : "noose-filter-feld noose-filter-zu";
@@ -216,9 +219,9 @@ else
                 {
                     query = query.Where(a => a.PartnerAgency == agency);
                 }
-                if (_rankFilter is { } rank)
+                if (_unitFilter is { } unit)
                 {
-                    query = query.Where(a => a.PartnerRank == rank);
+                    query = query.Where(a => a.PartnerUnitId == unit);
                 }
             }
             if (!string.IsNullOrWhiteSpace(_search))

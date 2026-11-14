@@ -194,6 +194,15 @@ public enum NotificationType
     /// <summary>The recipient now keeps a person record or stands in for its keeper. Bell only: who keeps which record
     /// is internal work, not a channel's.</summary>
     RecordKeeperAssigned = 56,
+
+    /// <summary>The recipient was added to an investigation. Bell only: who works on which file stays in the house.</summary>
+    InvestigationParticipation = 57,
+
+    /// <summary>A to-do of an investigation was assigned to the recipient. Bell only.</summary>
+    InvestigationTask = 58,
+
+    /// <summary>A warrant of the recipient's investigation waits for the prosecutor's signature. Bell only.</summary>
+    WarrantToSign = 59,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -258,6 +267,9 @@ public static class NotificationTypeDisplay
         NotificationType.EmergencyAlarmByAgent => "Einsatzalarm (Gefahr im Verzug)",
         NotificationType.RegulationChanged => "Dienstverordnung geändert",
         NotificationType.RecordKeeperAssigned => "Aktenführung",
+        NotificationType.InvestigationParticipation => "Ermittlung",
+        NotificationType.InvestigationTask => "Aufgabe in einer Ermittlung",
+        NotificationType.WarrantToSign => "Anordnung zu zeichnen",
         _ => "Benachrichtigung",
     };
 
@@ -321,6 +333,9 @@ public static class NotificationTypeDisplay
         NotificationType.EmergencyAlarmByAgent => Icons.Material.Filled.NotificationImportant,
         NotificationType.RegulationChanged => Icons.Material.Filled.Rule,
         NotificationType.RecordKeeperAssigned => Icons.Material.Filled.FolderShared,
+        NotificationType.InvestigationParticipation => Icons.Material.Filled.Gavel,
+        NotificationType.InvestigationTask => Icons.Material.Filled.Checklist,
+        NotificationType.WarrantToSign => Icons.Material.Filled.Draw,
         _ => Icons.Material.Filled.Notifications,
     };
 }

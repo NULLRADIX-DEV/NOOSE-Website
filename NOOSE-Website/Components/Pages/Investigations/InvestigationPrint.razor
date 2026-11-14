@@ -1,0 +1,178 @@
+@* The investigation file laid out like the DoJ sheet: cover, witness list, evidence log, interrogations; only what the viewer may read. *@
+@page "/ermittlungen/{Id}/druck"
+@layout PrintLayout
+@inject IInvestigationService Investigations
+
+<PageTitle>@(_detail is null ? "Druckansicht" : $"Ermittlungsakte {_detail.CaseNumber}") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_detail is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Diese Ermittlung gibt es nicht oder du bist nicht beteiligt.</MudAlert>
+}
+else
+{
+    var d = _detail;
+    var a = d.Access;
+    <PrintFrame Title="Ermittlungsakte" BackHref="@($"/ermittlungen/{Id}")" BackText="Zurück zur Akte" PrintedBy="@_printBy"
+                Footer="@($"Ermittlungsakte {d.CaseNumber}{(d.SidCaseNumber is null ? string.Empty : $" · Az. SID {d.SidCaseNumber}")} · Nur für Beteiligte")">
+        <section>
+            <h2>Übersicht</h2>
+            <table class="druck-felder">
+                <tbody>
+                    <tr><th>Aktenzeichen</th><td>@d.CaseNumber</td></tr>
+                    <tr><th>Az. SID</th><td>@(d.SidCaseNumber ?? "—")</td></tr>
+                    <tr><th>Az. 5Net</th><td>@(d.FiveNetCaseNumber ?? "—")</td></tr>
+                    <tr><th>Titel</th><td>@d.Title</td></tr>
+                    <tr><th>Status</th><td>@InvestigationDisplay.Name(d.Status)</td></tr>
+                    <tr><th>Eröffnet</th><td>@d.OpenedAt.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
+                    <tr><th>Staatsanwalt</th><td>@(d.Prosecutors.Count == 0 ? "—" : string.Join(", ", d.Prosecutors))</td></tr>
+                    <tr><th>Anklage</th><td>@(d.Indictment ?? "—")</td></tr>
+                    <tr><th>Taskforce</th><td>@(d.TaskforceName ?? "—")</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        @if (a.CanRead(InvestigationTabs.Charges))
+        {
+            <section>
+                <h2>A) Tatvorwurf</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Paragraf</th><th>Gesetzbuch</th><th>Beschreibung</th><th>Geprüft</th></tr></thead>
+                    <tbody>
+                        @foreach (var c in d.Charges)
+                        {
+                            <tr><td>@c.Paragraph</td><td>@c.LawBook</td><td>@c.Description</td><td>@InvestigationDisplay.Name(c.Check)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        @if (a.CanRead(InvestigationTabs.Narrative) && !string.IsNullOrWhiteSpace(d.NarrativeHtml))
+        {
+            <section>
+                <h2>B) Tathergang</h2>
+                <RichHtml Html="@d.NarrativeHtml" Plain="true" Glossary="false" />
+            </section>
+        }
+        @if (a.CanRead(InvestigationTabs.Tasks))
+        {
+            <section>
+                <h2>C) To-Do</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Erfolgt</th><th>Beschreibung</th></tr></thead>
+                    <tbody>
+                        @foreach (var t in d.Tasks)
+                        {
+                            <tr><td>@(t.Done ? "✓" : "–")</td><td>@t.Text</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        @if (a.CanRead(InvestigationTabs.Notes) && d.Notes.Count > 0)
+        {
+            <section>
+                <h2>D) Notizen</h2>
+                @foreach (var n in d.Notes.OrderBy(n => n.CreatedAt))
+                {
+                    <p style="white-space:pre-line;">– @n.Text</p>
+                }
+            </section>
+        }
+        @if (a.CanRead(InvestigationTabs.People))
+        {
+            <section>
+                <h2>Zeugenliste</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Name</th><th>Telefon</th><th>Rolle</th><th>Status</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in d.People)
+                        {
+                            <tr><td>@p.Name</td><td>@(p.Phone ?? "")</td><td>@p.Role</td><td>@InvestigationDisplay.Name(p.Status)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        @if (a.CanRead(InvestigationTabs.Evidence))
+        {
+            <section>
+                <h2>Beweismittelprotokoll</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>ID</th><th>Name</th><th>Beschreibung</th><th>Besitzer</th><th>Beamter</th><th>Status</th><th>Datum</th></tr></thead>
+                    <tbody>
+                        @foreach (var e in d.Evidence)
+                        {
+                            <tr>
+                                <td>@e.Number</td><td>@e.Name</td><td>@(e.Description ?? "")</td><td>@(e.Owner ?? "")</td><td>@(e.Officer ?? "")</td>
+                                <td>@InvestigationDisplay.Name(e.Status)</td><td>@(e.SecuredAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        @if (a.CanRead(InvestigationTabs.Interrogations))
+        {
+            @foreach (var v in d.Interrogations)
+            {
+                <section>
+                    <h2>Vernehmungsprotokoll · @v.Name (@v.Role)</h2>
+                    <table class="druck-felder">
+                        <tbody>
+                            <tr><th>Vorladung</th><td>@(v.Summons ?? "—")</td></tr>
+                            <tr><th>Datum</th><td>@(v.HeldAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")</td></tr>
+                            <tr><th>StA</th><td>@(v.ProsecutorPresent ?? "—")</td></tr>
+                            <tr><th>Beamte</th><td>@(v.Officers ?? "—")</td></tr>
+                            @if (!string.IsNullOrWhiteSpace(v.ProtocolReference))
+                            {
+                                <tr><th>Protokoll</th><td>@v.ProtocolReference</td></tr>
+                            }
+                            @if (!v.Usable)
+                            {
+                                <tr><th>Hinweis</th><td>Aussage nicht verwertbar</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                    @if (!string.IsNullOrWhiteSpace(v.Summary))
+                    {
+                        <p style="white-space:pre-line;">@v.Summary</p>
+                    }
+                    @if (v.Entries.Count > 0)
+                    {
+                        <table class="druck-tabelle">
+                            <thead><tr><th>Frage</th><th>Antwort</th></tr></thead>
+                            <tbody>
+                                @foreach (var qa in v.Entries)
+                                {
+                                    <tr><td style="white-space:pre-line;">@qa.Question</td><td style="white-space:pre-line;">@qa.Answer</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </section>
+            }
+        }
+    </PrintFrame>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private string? _printBy;
+    private InvestigationDetail? _detail;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _printBy = user.GetCodename();
+        _detail = await Investigations.GetAsync(Id, user);
+        _load = false;
+    }
+}

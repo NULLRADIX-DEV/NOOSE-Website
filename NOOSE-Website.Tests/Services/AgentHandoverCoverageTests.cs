@@ -26,6 +26,9 @@ public class AgentHandoverCoverageTests
     private const string Recruiting = "Recruiting: die Zuweisung einer Bewerbung läuft über HRB mit eigenen Rechten; "
         + "ob und wie sie übergeben wird, ist offen und nicht Teil von #25";
 
+    private const string Investigation = "Ermittlung mit der DoJ: Rechte gelten je Beteiligtem und Eintrag; wer nachrückt, "
+        + "trägt die Ermittlungsleitung bewusst ein, eine Übergabe würde Rechte ungefragt weiterreichen";
+
     /// <summary>Agent pointers the handover leaves where they are, with the reason.</summary>
     private static readonly Dictionary<string, string> NotHandedOver = new(StringComparer.Ordinal)
     {
@@ -64,6 +67,9 @@ public class AgentHandoverCoverageTests
         ["IdentityUserLogin`1.UserId"] = Own,
         ["IdentityUserRole`1.UserId"] = Own,
         ["IdentityUserToken`1.UserId"] = Own,
+        ["InvestigationItemRestriction.AgentId"] = Investigation,
+        ["InvestigationParticipant.AgentId"] = Investigation,
+        ["InvestigationTask.AssigneeId"] = Investigation,
         ["KassenBuchung.BookedById"] = History,
         ["LlmQuotaAdjustment.AgentId"] = Own,
         ["LlmQuotaPeriod.AgentId"] = Own,

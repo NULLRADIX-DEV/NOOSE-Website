@@ -67,7 +67,7 @@ public static class PartnerTabCatalog
         }),
         new PartnerRecordType(nameof(Taskforce), "taskforces", "Taskforces", new PartnerTab[]
         {
-            new("stammdaten", "Stammdaten"), new("chat", "Chat"), new("beziehungen", "Beziehungen"),
+            new("stammdaten", "Stammdaten"), new("chat", "Chat"), new("ermittlungen", "Ermittlungen"), new("beziehungen", "Beziehungen"),
             new("quellen", "Quellen"), new("wiedervorlagen", "Wiedervorlagen"), new("kommentare", "Kommentare"),
             new("zusatzfelder", "Zusatzfelder"), new("historie", "Zeitstrahl"),
         }),

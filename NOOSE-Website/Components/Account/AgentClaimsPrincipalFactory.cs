@@ -46,9 +46,10 @@ public class AgentClaimsPrincipalFactory(
             identity.AddClaim(new Claim(AgentClaimTypes.PartnerAgency, ((int)agency).ToString()));
         }
 
-        if (user.PartnerRank is { } partnerRank)
+        if (user.PartnerAgency is not null && user.PartnerUnitId is { } partnerUnit)
         {
-            identity.AddClaim(new Claim(AgentClaimTypes.PartnerRank, ((int)partnerRank).ToString()));
+            identity.AddClaim(new Claim(AgentClaimTypes.PartnerUnit, partnerUnit));
+            identity.AddClaim(new Claim(AgentClaimTypes.IsPartnerUnitLead, user.IsPartnerUnitLead ? "true" : "false"));
         }
 
         return identity;

@@ -1,0 +1,57 @@
+@* Warrants filed under the investigation; the prosecutor or FIB leadership signs, one signature is enough. *@
+@inject IWarrantService WarrantService
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Durchsuchungs-, Beschlagnahme- und Festnahmeanordnungen dieser Ermittlung. Es zeichnet der zuständige Staatsanwalt oder die
+            FIB-Führung; eine Unterschrift genügt.
+        </MudText>
+        <MudSpacer />
+        @if (Detail.Access.CanEdit(InvestigationTabs.Warrants) && !User.IsTeamLead())
+        {
+            <MudButton Href="@($"/anordnungen/neu?ermittlung={Uri.EscapeDataString(Detail.Id)}")" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">Anordnung beantragen</MudButton>
+        }
+    </MudStack>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_rows.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Approval" Title="Keine Anordnungen" />
+    }
+    else
+    {
+        <WarrantTable Rows="_rows" ShowPerson="true" />
+        @if (_rows.Any(r => r.MaySign))
+        {
+            <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined">
+                @_rows.Count(r => r.MaySign) Antrag/Anträge warten auf deine Unterschrift. Öffne die Anordnung, um zu zeichnen oder abzulehnen.
+            </MudAlert>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private List<WarrantView> _rows = new();
+    private string? _loadedId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Detail.Id)
+        {
+            return;
+        }
+        _loadedId = Detail.Id;
+        _load = true;
+        _rows = await WarrantService.GetForInvestigationAsync(Detail.Id, User);
+        _load = false;
+    }
+}

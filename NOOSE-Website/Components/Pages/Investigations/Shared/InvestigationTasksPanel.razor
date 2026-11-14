@@ -1,0 +1,141 @@
+@* The file's to-do list: tick off, assign to a participant, set a due date. *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.Tasks); }
+
+@if (Detail.Tasks.Count == 0 && _edit is null)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.Checklist" Title="Keine offenen Aufgaben" />
+}
+else
+{
+    <MudList T="string" Dense="true">
+        @foreach (var t in Detail.Tasks)
+        {
+            <MudListItem T="string">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
+                    <MudCheckBox T="bool" Value="t.Done" ValueChanged="@(v => SetDoneAsync(t, v))" Disabled="@(!mayEdit)" Color="Color.Success" Dense="true" />
+                    <div class="flex-grow-1">
+                        <MudText Typo="Typo.body2" Style="@(t.Done ? "text-decoration:line-through;opacity:.7;" : null)">@t.Text</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @(t.AssigneeName is { } who ? $"Zuständig: {who}" : "Niemand zugewiesen")
+                            @(t.DueAt is { } due ? $" · fällig {due.ToLocalTime():dd.MM.yyyy}" : string.Empty)
+                            @(t.DoneAt is { } doneAt ? $" · erledigt {doneAt.ToLocalTime():dd.MM.yyyy}" : string.Empty)
+                        </MudText>
+                    </div>
+                    <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationTask)" ItemId="@t.Id" User="User" Changed="Changed" />
+                    @if (mayEdit)
+                    {
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(t))" aria-label="Bearbeiten" />
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(t.Id))" aria-label="Löschen" />
+                    }
+                </MudStack>
+            </MudListItem>
+        }
+    </MudList>
+}
+
+@if (mayEdit)
+{
+    @if (_edit is null)
+    {
+        <MudButton Class="mt-2" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => Edit(null))">Aufgabe hinzufügen</MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-3 mt-2" Outlined="true">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="6"><MudTextField @bind-Value="_edit.Text" Label="Aufgabe" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500" /></MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="string" @bind-Value="_edit.AssigneeId" Label="Zuständig" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var p in Detail.Participants.Where(p => p.AgentId != null))
+                        {
+                            <MudSelectItem T="string" Value="@p.AgentId">@p.Label · @p.Detail</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="2"><MudDatePicker @bind-Date="_edit.Due" Label="Fällig" DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+                <MudButton OnClick="@(() => _edit = null)">Abbrechen</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string Text { get; set; } = string.Empty;
+        public string? AssigneeId { get; set; }
+        public DateTime? Due { get; set; }
+    }
+
+    private EditState? _edit;
+    private bool _busy;
+
+    private void Edit(InvestigationTaskView? t)
+        => _edit = t is null ? new EditState()
+            : new EditState { Id = t.Id, Text = t.Text, AssigneeId = t.AssigneeId, Due = t.DueAt?.ToLocalTime().Date };
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Investigations.SaveTaskAsync(Detail.Id, new InvestigationTaskInput(_edit.Id, _edit.Text, _edit.AssigneeId, _edit.Due?.ToUniversalTime()), User);
+            _edit = null;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SetDoneAsync(InvestigationTaskView t, bool done)
+    {
+        try
+        {
+            await Investigations.SetTaskDoneAsync(Detail.Id, t.Id, done, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Aufgabe löschen", "Die Aufgabe wird entfernt.", yesText: "Löschen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.DeleteEntryAsync(Detail.Id, nameof(InvestigationTask), id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

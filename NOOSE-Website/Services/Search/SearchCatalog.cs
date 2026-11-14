@@ -515,6 +515,23 @@ public static class SearchCatalog
             ["PartnerShare"] = "Freigabe-Zeile; sie zu listen wäre ein Zugriffs-Orakel.",
             ["PartnerAgencyProfile"] = "Zugangseinstellung einer Behörde; Verwaltung, kein Akteninhalt.",
             ["PartnerReleaseRule"] = "Regelfreigabe; sie zu listen wäre ein Zugriffs-Orakel.",
+            ["PartnerUnit"] = "Einheit einer Partnerbehörde; Verwaltung, kein Akteninhalt.",
+            ["PartnerUnitShare"] = "Freigabe an eine Einheit; sie zu listen wäre ein Zugriffs-Orakel.",
+            ["PartnerUnitReleaseRule"] = "Regelfreigabe an eine Einheit; sie zu listen wäre ein Zugriffs-Orakel.",
+            ["TaskforcePartnerAgency"] = "Beteiligung einer Behörde an einer Taskforce; Zugangssteuerung, kein Text.",
+            ["InvestigationParticipant"] = "Beteiligung an einer Ermittlung; sie zu listen wäre ein Zugriffs-Orakel.",
+            ["InvestigationItemRestriction"] = "Einschränkung eines Eintrags; sie zu listen wäre ein Zugriffs-Orakel.",
+
+            // --- the investigation file: participants only, rights per tab and per entry ---
+            ["Investigation"] = "Nur für Beteiligte und je Tab berechtigt; die Liste unter /ermittlungen ist der Zugang, "
+                + "eine allgemeine Suche würde Titel an Unbeteiligte verraten.",
+            ["InvestigationCharge"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
+            ["InvestigationPerson"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
+            ["InvestigationEvidence"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
+            ["InvestigationInterrogation"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
+            ["InvestigationInterrogationEntry"] = "Frage und Antwort einer Vernehmung; die Vernehmung hat eigene Rechte.",
+            ["InvestigationTask"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
+            ["InvestigationNote"] = "Teil einer Ermittlungsakte mit eigenen Tab- und Eintragsrechten.",
             ["DocumentAccessExclusion"] = "Entzugs-Zeile; sie zu listen wäre ein Zugriffs-Orakel.",
             ["CustomFieldDefinition"] = "Feld-Definition; die Werte sind durchsuchbar, die Definition ist Konfiguration.",
 

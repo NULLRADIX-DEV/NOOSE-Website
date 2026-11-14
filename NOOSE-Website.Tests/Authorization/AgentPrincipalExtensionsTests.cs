@@ -1,3 +1,4 @@
+using NOOSE_Website.Services;
 using System.Security.Claims;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Models.Enums;
@@ -323,33 +324,36 @@ public class AgentPrincipalExtensionsTests
         Assert.Null(user.GetPartnerAgency());
     }
 
-    // ---------- GetPartnerRank ----------
+    // ---------- GetPartnerUnitId / IsPartnerUnitLead ----------
 
-    [Theory]
-    [InlineData(1, PartnerRank.Member)]
-    [InlineData(2, PartnerRank.Special)]
-    [InlineData(3, PartnerRank.Chief)]
-    public void GetPartnerRank_definedClaim_returnsRank(int value, PartnerRank expected)
+    [Fact]
+    public void GetPartnerUnitId_partnerWithUnitClaim_returnsUnit()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Raw(AgentClaimTypes.PartnerRank, value.ToString()).Build();
-        Assert.Equal(expected, user.GetPartnerRank());
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsPartnerUnit(PartnerAgency.DoJ, PartnerUnits.DojSid).Build();
+        Assert.Equal(PartnerUnits.DojSid, user.GetPartnerUnitId());
     }
 
     [Fact]
-    public void GetPartnerRank_whenMissing_returnsNull()
+    public void GetPartnerUnitId_internalAgentWithStrayClaim_returnsNull()
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Build();
-        Assert.Null(user.GetPartnerRank());
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Raw(AgentClaimTypes.PartnerUnit, PartnerUnits.DojSid).Build();
+        Assert.Null(user.GetPartnerUnitId());
+    }
+
+    [Fact]
+    public void AsPartner_mapsTheOldTierToItsSeededUnit()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsPartner(PartnerAgency.DoJ, PartnerRank.Special).Build();
+        Assert.Equal(PartnerUnits.DojStateAttorney, user.GetPartnerUnitId());
     }
 
     [Theory]
-    [InlineData("0")]
-    [InlineData("4")]
-    [InlineData("nope")]
-    public void GetPartnerRank_undefinedOrMalformed_returnsNull(string raw)
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IsPartnerUnitLead_followsTheClaim(bool lead)
     {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Raw(AgentClaimTypes.PartnerRank, raw).Build();
-        Assert.Null(user.GetPartnerRank());
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsPartnerUnit(PartnerAgency.DoJ, PartnerUnits.DojSid, lead).Build();
+        Assert.Equal(lead, user.IsPartnerUnitLead());
     }
 
     // ---------- IsPartner ----------
@@ -366,43 +370,6 @@ public class AgentPrincipalExtensionsTests
     {
         ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Build();
         Assert.False(user.IsPartner());
-    }
-
-    // ---------- HasPartnerRank ----------
-
-    [Fact]
-    public void HasPartnerRank_sameAgencyRankAboveMinimum_returnsTrue()
-    {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsPartner(PartnerAgency.LSPD, PartnerRank.Special).Build();
-        Assert.True(user.HasPartnerRank(PartnerAgency.LSPD, PartnerRank.Member));
-    }
-
-    [Fact]
-    public void HasPartnerRank_sameAgencyRankEqualsMinimum_returnsTrue()
-    {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsPartner(PartnerAgency.LSPD, PartnerRank.Special).Build();
-        Assert.True(user.HasPartnerRank(PartnerAgency.LSPD, PartnerRank.Special));
-    }
-
-    [Fact]
-    public void HasPartnerRank_sameAgencyRankBelowMinimum_returnsFalse()
-    {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsPartner(PartnerAgency.LSPD, PartnerRank.Special).Build();
-        Assert.False(user.HasPartnerRank(PartnerAgency.LSPD, PartnerRank.Chief));
-    }
-
-    [Fact]
-    public void HasPartnerRank_differentAgency_returnsFalse()
-    {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build();
-        Assert.False(user.HasPartnerRank(PartnerAgency.DoJ, PartnerRank.Member));
-    }
-
-    [Fact]
-    public void HasPartnerRank_nonPartner_returnsFalse()
-    {
-        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().Build();
-        Assert.False(user.HasPartnerRank(PartnerAgency.LSPD, PartnerRank.Member));
     }
 
     // ---------- MayWrite (!OnlyReader && !Partner && !Demo) ----------

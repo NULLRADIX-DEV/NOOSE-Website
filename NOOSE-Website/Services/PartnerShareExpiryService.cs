@@ -28,9 +28,23 @@ public class PartnerShareExpiryService(IDbContextFactory<AppDbContext> dbFactory
             .OrderBy(s => s.ValidUntil)
             .Take(Batch)
             .ToListAsync(cancellationToken);
-        if (due.Count == 0)
+        var dueUnits = await db.PartnerUnitShares
+            .Where(s => s.ValidUntil != null && s.ValidUntil <= now)
+            .OrderBy(s => s.ValidUntil)
+            .Take(Batch)
+            .ToListAsync(cancellationToken);
+        if (due.Count == 0 && dueUnits.Count == 0)
         {
             return 0;
+        }
+        foreach (var share in dueUnits)
+        {
+            var unit = await db.PartnerUnits.IgnoreQueryFilters().AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == share.PartnerUnitId, cancellationToken);
+            db.PartnerUnitShares.Remove(share);
+            db.AuditLogs.Add(PartnerShareService.RecordRow(share.EntityType, share.EntityId,
+                PartnerUnitDisplay.Full(unit?.Agency, unit?.Name), actor: null,
+                "freigegeben, " + PartnerShareExpiry.Until(share.ValidUntil), "abgelaufen"));
         }
 
         foreach (var share in due)
@@ -42,6 +56,6 @@ public class PartnerShareExpiryService(IDbContextFactory<AppDbContext> dbFactory
                 "freigegeben, " + PartnerShareExpiry.Until(share.ValidUntil), "abgelaufen"));
         }
         await db.SaveChangesAsync(cancellationToken);
-        return due.Count;
+        return due.Count + dueUnits.Count;
     }
 }

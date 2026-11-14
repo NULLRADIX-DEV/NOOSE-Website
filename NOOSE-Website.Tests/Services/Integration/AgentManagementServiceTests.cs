@@ -336,7 +336,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t"));
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => f.Svc.ReleaseAsPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Junior()));
+            () => f.Svc.ReleaseAsPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Junior()));
     }
 
     [Fact]
@@ -345,7 +345,7 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending, rank: Rank.Director, cfg: a => a.IsAdmin = true));
 
-        await f.Svc.ReleaseAsPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Admin());
+        await f.Svc.ReleaseAsPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Admin());
 
         var a = Reload(f, "t");
         Assert.Equal(AgentStatus.Active, a.Status);
@@ -664,25 +664,29 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task SetPartnerRankAsync_NonPartnerThrows()
+    public async Task SetPartnerUnitAsync_NonPartnerThrows()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.SetPartnerRankAsync("t", PartnerRank.Special, Admin()));
+            () => f.Svc.SetPartnerUnitAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Special), false, Admin()));
     }
 
     [Fact]
-    public async Task SetPartnerRankAsync_UpdatesPartner()
+    public async Task SetPartnerUnitAsync_UpdatesUnitLeadAndOldTier()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active,
             cfg: a => { a.PartnerAgency = PartnerAgency.LSPD; a.PartnerRank = PartnerRank.Member; }));
 
-        await f.Svc.SetPartnerRankAsync("t", PartnerRank.Special, Admin());
+        await f.Svc.SetPartnerUnitAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Special), true, Admin());
 
-        Assert.Equal(PartnerRank.Special, Reload(f, "t").PartnerRank);
+        var a = Reload(f, "t");
+        Assert.Equal(PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Special), a.PartnerUnitId);
+        Assert.True(a.IsPartnerUnitLead);
+        // the old tier follows the unit for an older build
+        Assert.Equal(PartnerRank.Special, a.PartnerRank);
     }
 
     [Fact]
@@ -692,7 +696,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Admin()));
+            () => f.Svc.ConvertToPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Admin()));
     }
 
     [Fact]
@@ -702,7 +706,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("only", AgentStatus.Active, rank: Rank.Director, cfg: a => a.IsAdmin = true));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.ConvertToPartnerAsync("only", PartnerAgency.LSPD, PartnerRank.Member, Admin("other")));
+            () => f.Svc.ConvertToPartnerAsync("only", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Admin("other")));
     }
 
     [Fact]
@@ -713,7 +717,7 @@ public class AgentManagementServiceTests
             NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent),
             NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
 
-        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSMD, PartnerRank.Member, Admin("keepadmin"));
+        await f.Svc.ConvertToPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSMD, PartnerRank.Member), false, Admin("keepadmin"));
 
         var a = Reload(f, "t");
         Assert.Equal(PartnerAgency.LSMD, a.PartnerAgency);
@@ -1749,7 +1753,7 @@ public class AgentManagementServiceTests
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending, rank: Rank.SpecialAgent,
             cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }));
 
-        await f.Svc.ReleaseAsPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Admin());
+        await f.Svc.ReleaseAsPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Admin());
 
         var a = Reload(f, "t");
         Assert.Null(a.Division);
@@ -1764,7 +1768,7 @@ public class AgentManagementServiceTests
             NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent, cfg: a => { a.Division = Division.Hrt; a.IsTRU = true; }),
             NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
 
-        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSMD, PartnerRank.Member, Admin("keepadmin"));
+        await f.Svc.ConvertToPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSMD, PartnerRank.Member), false, Admin("keepadmin"));
 
         var a = Reload(f, "t");
         Assert.Null(a.Division);
@@ -2517,7 +2521,7 @@ public class AgentManagementServiceTests
         PersistHolder(f, "board", Rank.AssistantDirector);
         Persist(f.Ctx, Member("t", target, Division.Ctd));
 
-        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Holder("board", Rank.AssistantDirector));
+        await f.Svc.ConvertToPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Holder("board", Rank.AssistantDirector));
 
         Assert.Null(Reload(f, "t").Rank);
     }
@@ -2528,7 +2532,7 @@ public class AgentManagementServiceTests
         using var f = Make();
         Persist(f.Ctx, Member("t", Rank.Director, Division.Cid));
 
-        await f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Admin());
+        await f.Svc.ConvertToPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Admin());
 
         Assert.Equal(PartnerAgency.LSPD, Reload(f, "t").PartnerAgency);
     }
@@ -2544,7 +2548,7 @@ public class AgentManagementServiceTests
         PersistHolder(f, "sc", Rank.SectionChief, Division.Cid);
         Persist(f.Ctx, Member("t", current, home));
 
-        var call = () => f.Svc.ConvertToPartnerAsync("t", PartnerAgency.LSPD, PartnerRank.Member, Holder("sc", Rank.SectionChief));
+        var call = () => f.Svc.ConvertToPartnerAsync("t", PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Holder("sc", Rank.SectionChief));
 
         if (allowed)
         {
@@ -2568,7 +2572,7 @@ public class AgentManagementServiceTests
         foreach (var id in new[] { "t", "u" })
         {
             await Assert.ThrowsAsync<UnauthorizedAccessException>(() => f.Svc.ConvertToPartnerAsync(
-                id, PartnerAgency.LSPD, PartnerRank.Member, Holder("sac", Rank.SpecialAgentInCharge)));
+                id, PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Member), false, Holder("sac", Rank.SpecialAgentInCharge)));
             Assert.NotNull(Reload(f, id).Rank);
         }
     }

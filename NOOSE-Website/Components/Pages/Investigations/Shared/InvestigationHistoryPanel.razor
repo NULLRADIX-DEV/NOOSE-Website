@@ -1,0 +1,50 @@
+@* Every change of the file and its entries, newest first; only for who reads all tabs. *@
+@inject IInvestigationService Investigations
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.History" Title="Noch kein Verlauf" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead><tr><th>Zeit</th><th>Wer</th><th>Tab</th><th>Was</th></tr></thead>
+        <tbody>
+            @foreach (var h in _rows)
+            {
+                <tr>
+                    <td style="white-space:nowrap;">@h.At.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    <td>@(h.Who ?? "System")</td>
+                    <td>@h.Tab</td>
+                    <td>@h.What</td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter, EditorRequired] public string InvestigationId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private List<InvestigationHistoryEntry> _rows = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _load = true;
+        try
+        {
+            _rows = await Investigations.GetHistoryAsync(InvestigationId, User);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            _rows = new();
+        }
+        _load = false;
+    }
+}

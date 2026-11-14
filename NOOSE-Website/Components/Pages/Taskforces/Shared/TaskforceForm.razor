@@ -12,6 +12,19 @@
             }
         </MudSelect>
     </MudItem>
+    @if (Input.Scope == TaskforceScope.CrossAgency)
+    {
+        <MudItem xs="12">
+            <MudSelect T="PartnerAgency" SelectedValues="Input.PartnerAgencies" SelectedValuesChanged="@(v => Input.PartnerAgencies = v.ToList())"
+                       MultiSelection="true" Label="Beteiligte Partnerbehörden" Variant="Variant.Outlined"
+                       HelperText="Nur Behörden, die hier eingetragen sind, können an Ermittlungen dieser Taskforce beteiligt werden. Die Leitung einer Einheit mit entsprechender Einstellung (z. B. SID) sieht dann alles in dieser Taskforce.">
+                @foreach (var agency in PartnerAgencyDisplay.All)
+                {
+                    <MudSelectItem T="PartnerAgency" Value="agency">@PartnerAgencyDisplay.Name(agency) · @PartnerAgencyDisplay.LongName(agency)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
     <MudItem xs="12" md="6" Class="d-flex flex-column justify-center">
         <MudSwitch T="bool" @bind-Value="Input.IsClassified" Color="Color.Warning"
                    Label="Verschlusssache (nur Führung sichtbar)" />

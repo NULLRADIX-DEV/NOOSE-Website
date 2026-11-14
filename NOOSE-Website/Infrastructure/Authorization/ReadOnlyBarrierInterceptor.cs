@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Investigations;
+using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.Public;
@@ -69,6 +71,25 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
         typeof(LlmQuotaPeriod),
     ];
 
+    // The investigation file run with the DoJ: partners write in it where a tab grants them edit. Which tab and which
+    // entry is the service's call (InvestigationAccess); this barrier only lets the types through. Soft deletes
+    // arrive here as Deleted, the audit interceptor rewrites them later.
+    private static readonly HashSet<Type> PartnerInvestigationWritable =
+    [
+        typeof(Investigation),
+        typeof(InvestigationParticipant),
+        typeof(InvestigationCharge),
+        typeof(InvestigationPerson),
+        typeof(InvestigationEvidence),
+        typeof(InvestigationInterrogation),
+        typeof(InvestigationInterrogationEntry),
+        typeof(InvestigationTask),
+        typeof(InvestigationNote),
+        typeof(InvestigationItemRestriction),
+        // a request from the investigation, or the prosecutor's signature on it
+        typeof(Warrant),
+    ];
+
     // Rows either side may change again afterwards — their own only; the create side is handled above.
     private static readonly HashSet<Type> PartnerEditableOwn = [typeof(Document)];
 
@@ -128,6 +149,11 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
                     || (partnerMayAuthor && entry.Entity is Request { Type: RequestType.PartnerAnfrage })
                     || (partnerMayAuthor && PartnerChatAuthorable.Contains(type))
                     || (mayActAsCitizen && CitizenAuthorable.Contains(type))))
+            {
+                continue;
+            }
+            if (partnerMayAuthor && PartnerInvestigationWritable.Contains(type)
+                && (type != typeof(Warrant) || entry.State != EntityState.Deleted))
             {
                 continue;
             }

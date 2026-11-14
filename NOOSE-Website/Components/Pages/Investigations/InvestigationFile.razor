@@ -1,0 +1,172 @@
+@page "/ermittlungen/{Id}"
+@* open to partners: InvestigationAccess decides per tab and per entry, the page only shows what the service returns *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+
+<PageTitle>@(_detail?.CaseNumber ?? "Ermittlung") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_detail is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Ermittlung nicht gefunden oder du bist nicht beteiligt.
+    </MudAlert>
+}
+else
+{
+    var d = _detail;
+    var a = d.Access;
+    <PageHeader Icon="@Icons.Material.Filled.Gavel" Title="@($"{d.CaseNumber} · {d.Title}")" BackHref="/ermittlungen">
+        <SubtitleContent>
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                <InvestigationStatusChip Status="d.Status" />
+                @if (!string.IsNullOrWhiteSpace(d.SidCaseNumber))
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Az. SID @d.SidCaseNumber</MudText>
+                }
+                @if (d.Prosecutors.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">StA @string.Join(", ", d.Prosecutors)</MudText>
+                }
+            </MudStack>
+        </SubtitleContent>
+        <Actions>
+            <MudTooltip Text="Druckansicht im Aktenlayout">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Href="@($"/ermittlungen/{d.Id}/druck")" Target="_blank" aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+            @if (a.CanEdit(InvestigationTabs.Overview))
+            {
+                <MudButton Href="@($"/ermittlungen/{d.Id}/bearbeiten")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Edit">Deckblatt</MudButton>
+            }
+            @if (a.FullAccess)
+            {
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (!a.MayWrite && (a.FullAccess || InvestigationTabs.Slugs.Any(s => a.Level(s) == InvestigationAccessLevel.Edit)))
+    {
+        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined" Class="mb-3">Du liest diese Ermittlung nur.</MudAlert>
+    }
+
+    <RecordSectionRail>
+        <RecordSection Slug="@InvestigationTabs.Overview" Label="Übersicht" Icon="@Icons.Material.Outlined.Summarize">
+            <InvestigationOverviewPanel Detail="d" />
+        </RecordSection>
+        @if (a.CanRead(InvestigationTabs.Charges))
+        {
+            <RecordSection Slug="@InvestigationTabs.Charges" Label="Tatvorwurf" Icon="@Icons.Material.Outlined.Gavel" Badge="@d.Charges.Count">
+                <InvestigationChargesPanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.Narrative))
+        {
+            <RecordSection Slug="@InvestigationTabs.Narrative" Label="Tathergang" Icon="@Icons.Material.Outlined.Article">
+                <InvestigationNarrativePanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.People))
+        {
+            <RecordSection Slug="@InvestigationTabs.People" Label="Zeugen & Beschuldigte" Icon="@Icons.Material.Outlined.Groups" Badge="@d.People.Count">
+                <InvestigationPeoplePanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.Evidence))
+        {
+            <RecordSection Slug="@InvestigationTabs.Evidence" Label="Beweismittel" Icon="@Icons.Material.Outlined.Inventory2" Badge="@d.Evidence.Count">
+                <InvestigationEvidencePanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.Interrogations))
+        {
+            <RecordSection Slug="@InvestigationTabs.Interrogations" Label="Vernehmungen" Icon="@Icons.Material.Outlined.RecordVoiceOver" Badge="@d.Interrogations.Count">
+                <InvestigationInterrogationsPanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.Tasks))
+        {
+            <RecordSection Slug="@InvestigationTabs.Tasks" Label="To-Do" Icon="@Icons.Material.Outlined.Checklist" Badge="@d.Tasks.Count(t => !t.Done)">
+                <InvestigationTasksPanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.Notes))
+        {
+            <RecordSection Slug="@InvestigationTabs.Notes" Label="Notizen" Icon="@Icons.Material.Outlined.StickyNote2" Badge="@d.Notes.Count">
+                <InvestigationNotesPanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.Warrants))
+        {
+            <RecordSection Slug="@InvestigationTabs.Warrants" Label="Anordnungen" Icon="@Icons.Material.Outlined.Policy">
+                <InvestigationWarrantsPanel Detail="d" User="_user" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.Participants))
+        {
+            <RecordSection Slug="@InvestigationTabs.Participants" Label="Beteiligte & Zugriff" Icon="@Icons.Material.Outlined.AdminPanelSettings" Badge="@d.Participants.Count">
+                <InvestigationAccessPanel Detail="d" User="_user" Changed="ReloadAsync" />
+            </RecordSection>
+        }
+        @if (a.CanRead(InvestigationTabs.History))
+        {
+            <RecordSection Slug="@InvestigationTabs.History" Label="Verlauf" Icon="@Icons.Material.Outlined.History">
+                <InvestigationHistoryPanel InvestigationId="@d.Id" User="_user" />
+            </RecordSection>
+        }
+    </RecordSectionRail>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private string? _loadedId;
+    private InvestigationDetail? _detail;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _load = true;
+        _user = (await AuthStateTask).User;
+        _detail = await Investigations.GetAsync(Id, _user);
+        _load = false;
+    }
+
+    private async Task ReloadAsync()
+    {
+        _detail = await Investigations.GetAsync(Id, _user);
+        StateHasChanged();
+    }
+
+    private async Task DeleteAsync()
+    {
+        var ok = await DialogService.ShowMessageBoxAsync("Ermittlung löschen",
+            $"{_detail!.CaseNumber} kommt in den Papierkorb; wiederherstellen kann die Führung.", yesText: "Löschen", cancelText: "Abbrechen");
+        if (ok != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.DeleteAsync(Id, _user);
+            Snackbar.Add("Ermittlung gelöscht.", Severity.Success);
+            Nav.NavigateTo("/ermittlungen");
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}
