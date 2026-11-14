@@ -75,6 +75,11 @@ public static class Visibility
         {
             return await WarrantVisibility.IsVisibleAsync(db, entityId, scope, cancellationToken);
         }
+        // investigations: participants only (plus leadership and supervision); explicit, the tail would answer "visible"
+        if (entityType == nameof(Data.Entities.Investigations.Investigation))
+        {
+            return await InvestigationAccess.IsVisibleAsync(db, entityId, scope, cancellationToken);
+        }
         // documents: secrecy level alone is not the gate — the owning taskforce and per-agent revocation count too
         if (entityType == nameof(Document))
         {

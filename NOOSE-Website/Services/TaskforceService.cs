@@ -37,10 +37,10 @@ public class TaskforceService(
         {
             // partners: only released, non-classified taskforces
             return await PartnerVisibility.IsRecordVisibleToPartnerAsync(db, nameof(Taskforce), id, agency, partnerAgentId, cancellationToken)
-                ? await db.Taskforces.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
+                ? await db.Taskforces.Include(t => t.PartnerAgencies).FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
                 : null;
         }
-        var taskforce = await db.Taskforces.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+        var taskforce = await db.Taskforces.Include(t => t.PartnerAgencies).FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
         if (taskforce is null)
         {
             return null;
@@ -112,6 +112,8 @@ public class TaskforceService(
         };
 
         db.Taskforces.Add(taskforce);
+        // the creator leads it, so the creator may name the agencies taking part
+        SetPartnerAgencies(db, taskforce, input);
         await db.SaveChangesAsync(cancellationToken);
 
         // auto-assign creator as lead, so a lead always exists
@@ -152,6 +154,19 @@ public class TaskforceService(
         taskforce.Purpose = input.Purpose.TrimToNull();
         taskforce.Scope = input.Scope;
         taskforce.Remarks = input.Remarks.TrimToNull();
+        var current = await db.TaskforcePartnerAgencies.Where(p => p.TaskforceId == id).Select(p => p.Agency).ToListAsync(cancellationToken);
+        var wanted = WantedAgencies(input);
+        if (!current.ToHashSet().SetEquals(wanted))
+        {
+            // which agencies take part decides who sees its investigations: leadership or the taskforce lead
+            if (!actor.IsLeadership() && !await db.TaskforceAgents.AnyAsync(
+                    a => a.TaskforceId == id && a.AgentId == actor.GetAgentId() && a.Role != TaskforceRole.Member, cancellationToken))
+            {
+                throw new UnauthorizedAccessException("Beteiligte Behörden ändert nur die Führung oder die Leitung der Taskforce.");
+            }
+            await db.Entry(taskforce).Collection(t => t.PartnerAgencies).LoadAsync(cancellationToken);
+            SetPartnerAgencies(db, taskforce, input);
+        }
         CriticalChange.NoteSecrecy(db, nameof(Taskforce), id, CriticalChange.TaskforceLevel(taskforce.IsClassified),
             CriticalChange.TaskforceLevel(input.IsClassified), input.SecrecyReason, actor);
         taskforce.IsClassified = input.IsClassified;
@@ -160,6 +175,23 @@ public class TaskforceService(
 
         await MentionNotify.DeltaAsync(notifications, oldMentions, MentionScope(taskforce), "einer Taskforce",
             nameof(Taskforce), id, actor, cancellationToken);
+    }
+
+    /// <summary>Agencies taking part; only a cross-agency taskforce has any.</summary>
+    private static HashSet<PartnerAgency> WantedAgencies(TaskforceInput input)
+        => input.Scope == TaskforceScope.CrossAgency ? input.PartnerAgencies.ToHashSet() : new HashSet<PartnerAgency>();
+
+    private static void SetPartnerAgencies(AppDbContext db, Taskforce taskforce, TaskforceInput input)
+    {
+        var wanted = WantedAgencies(input);
+        foreach (var row in taskforce.PartnerAgencies.Where(p => !wanted.Contains(p.Agency)).ToList())
+        {
+            db.TaskforcePartnerAgencies.Remove(row);
+        }
+        foreach (var agency in wanted.Where(a => taskforce.PartnerAgencies.All(p => p.Agency != a)))
+        {
+            db.TaskforcePartnerAgencies.Add(new TaskforcePartnerAgency { TaskforceId = taskforce.Id, Agency = agency });
+        }
     }
 
     public async Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -171,6 +203,12 @@ public class TaskforceService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var taskforce = await db.Taskforces.FirstOrDefaultAsync(t => t.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Taskforce '{id}' nicht gefunden.");
+        // a soft delete would strand its investigations without anyone seeing them through the taskforce
+        if (await db.Investigations.AnyAsync(i => i.TaskforceId == id
+                && (i.Status == InvestigationStatus.Investigating || i.Status == InvestigationStatus.Indicted || i.Status == InvestigationStatus.Trial), cancellationToken))
+        {
+            throw new InvalidOperationException("Die Taskforce hat noch laufende Ermittlungen. Erst abschließen oder an eine andere Taskforce hängen.");
+        }
         db.Taskforces.Remove(taskforce);
         CriticalChange.NoteDeletion(db, nameof(Taskforce), id, note, actor);
         await db.SaveChangesAsync(cancellationToken);

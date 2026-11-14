@@ -12,7 +12,7 @@ using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Partner visibility: a record is visible only if released to the viewer's agency or account (by share or rule), and not classified.</summary>
+/// <summary>Partner visibility: a record is visible only if released to the viewer's agency, unit or account (by share or rule), and not classified.</summary>
 public static class PartnerVisibility
 {
     /// <summary>Record types that can be released to partners; everything else is never partner-visible.</summary>
@@ -28,12 +28,35 @@ public static class PartnerVisibility
         return db.PartnerShares.Where(s => s.ValidUntil == null || s.ValidUntil > now);
     }
 
-    /// <summary>True if an active share row grants this record to the agency or the viewer's account (whole or shell).</summary>
-    public static Task<bool> HasShareAsync(AppDbContext db, string entityType, string entityId, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
-        => ActiveShares(db).AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId && s.Agency == agency
-            && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId), cancellationToken);
+    /// <summary>Active unit share rows reaching this account through its unit; the unit is read from the account row, never a claim.</summary>
+    public static IQueryable<PartnerUnitShare> ActiveUnitShares(AppDbContext db, string? partnerAgentId)
+    {
+        var now = DateTime.UtcNow;
+        return db.PartnerUnitShares.Where(s => (s.ValidUntil == null || s.ValidUntil > now)
+            && db.Users.Any(u => u.Id == partnerAgentId && u.PartnerUnitId == s.PartnerUnitId));
+    }
 
-    /// <summary>Parent point-check: released to agency or account (share or rule), exists, and not classified.</summary>
+    /// <summary>Unit release rules of one type reaching this account through its unit.</summary>
+    private static IQueryable<PartnerUnitReleaseRule> UnitRules(AppDbContext db, string? partnerAgentId, string entityType)
+        => db.PartnerUnitReleaseRules.Where(r => r.EntityType == entityType
+            && db.Users.Any(u => u.Id == partnerAgentId && u.PartnerUnitId == r.PartnerUnitId));
+
+    /// <summary>Cross-agency taskforces this account sees whole, as lead of a unit whose leads see all investigations.</summary>
+    public static IQueryable<string> LeadTaskforceIds(AppDbContext db, PartnerAgency agency, string? partnerAgentId)
+        => db.TaskforcePartnerAgencies
+            .Where(tp => tp.Agency == agency
+                && db.Taskforces.Any(t => t.Id == tp.TaskforceId && t.Scope == TaskforceScope.CrossAgency)
+                && db.Users.Any(u => u.Id == partnerAgentId && u.PartnerAgency == agency && u.IsPartnerUnitLead
+                    && db.PartnerUnits.Any(pu => pu.Id == u.PartnerUnitId && pu.LeadSeesAllInvestigations)))
+            .Select(tp => tp.TaskforceId);
+
+    /// <summary>True if an active share row grants this record to the agency, the viewer's unit or account (whole or shell).</summary>
+    public static async Task<bool> HasShareAsync(AppDbContext db, string entityType, string entityId, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
+        => await ActiveShares(db).AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId && s.Agency == agency
+                && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId), cancellationToken)
+            || await ActiveUnitShares(db, partnerAgentId).AnyAsync(s => s.EntityType == entityType && s.EntityId == entityId, cancellationToken);
+
+    /// <summary>Parent point-check: released to agency, unit or account (share or rule), exists, and not classified.</summary>
     public static async Task<bool> IsRecordVisibleToPartnerAsync(
         AppDbContext db, string entityType, string entityId, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
         => entityType switch
@@ -56,6 +79,11 @@ public static class PartnerVisibility
                 .OnlyPartnerVisible(db, agency, partnerAgentId).AnyAsync(cancellationToken),
             nameof(Law) => await db.Laws.Where(l => l.Id == entityId)
                 .OnlyPartnerVisible(db, agency, partnerAgentId).AnyAsync(cancellationToken),
+            // not a release: participation decides
+            nameof(Data.Entities.Investigations.Investigation) => await InvestigationAccess.IsVisibleAsync(
+                db, entityId, new ViewerScope(false, false, partnerAgentId, agency), cancellationToken),
+            nameof(Data.Entities.Warrants.Warrant) => await WarrantVisibility.IsVisibleAsync(
+                db, entityId, new ViewerScope(false, false, partnerAgentId, agency), cancellationToken),
             _ => false,
         };
 
@@ -75,11 +103,13 @@ public static class PartnerVisibility
             || await HasShareAsync(db, childType, childId, agency, partnerAgentId, cancellationToken);
     }
 
-    /// <summary>True if the parent record is released whole (all children covered) to the agency or the viewer's account. Says nothing about the parent's own visibility; check that first.</summary>
+    /// <summary>True if the parent record is released whole (all children covered) to the agency, unit or account. Says nothing about the parent's own visibility; check that first.</summary>
     public static async Task<bool> ParentIncludesChildrenAsync(AppDbContext db, string parentType, string parentId, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
         => await ActiveShares(db).AnyAsync(s => s.EntityType == parentType && s.EntityId == parentId && s.Agency == agency && s.IncludesChildren
                 && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId), cancellationToken)
-            || (await RuleMatchedIdsAsync(db, agency, parentType, new[] { parentId }, wholeOnly: true, cancellationToken)).Count > 0;
+            || await ActiveUnitShares(db, partnerAgentId).AnyAsync(s => s.EntityType == parentType && s.EntityId == parentId && s.IncludesChildren, cancellationToken)
+            || (parentType == nameof(Taskforce) && await LeadTaskforceIds(db, agency, partnerAgentId).ContainsAsync(parentId, cancellationToken))
+            || (await RuleMatchedIdsAsync(db, agency, partnerAgentId, parentType, new[] { parentId }, wholeOnly: true, cancellationToken)).Count > 0;
 
     /// <summary>True when the agency profile never shows this child type, whatever was released.</summary>
     public static async Task<bool> IsContentBlockedAsync(AppDbContext db, PartnerAgency agency, string childType, CancellationToken cancellationToken = default)
@@ -107,7 +137,7 @@ public static class PartnerVisibility
             .Select(p => p.BlockedContent)
             .FirstOrDefaultAsync(cancellationToken);
 
-    /// <summary>Of a candidate child-id set, those individually released to the agency or the viewer's account; none when the type is blocked.</summary>
+    /// <summary>Of a candidate child-id set, those individually released to the agency, unit or account; none when the type is blocked.</summary>
     public static async Task<HashSet<string>> ReleasedChildIdsAsync(AppDbContext db, string childType, IReadOnlyCollection<string> childIds, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
     {
         if (childIds.Count == 0 || await IsContentBlockedAsync(db, agency, childType, cancellationToken))
@@ -120,7 +150,12 @@ public static class PartnerVisibility
             .Select(s => s.EntityId)
             .Distinct()
             .ToListAsync(cancellationToken);
-        return ids.ToHashSet();
+        var byUnit = await ActiveUnitShares(db, partnerAgentId)
+            .Where(s => s.EntityType == childType && childIds.Contains(s.EntityId))
+            .Select(s => s.EntityId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        return ids.Concat(byUnit).ToHashSet();
     }
 
     /// <summary>Filters a child list for a partner: none when blocked, all when the parent is released whole, else only individually released items.</summary>
@@ -167,11 +202,26 @@ public static class PartnerVisibility
                 .ToListAsync(cancellationToken))
             .Select(s => (s.EntityType, s.EntityId))
             .ToHashSet();
+        foreach (var s in await ActiveUnitShares(db, partnerAgentId)
+                     .Where(s => s.IncludesChildren && parentIds.Contains(s.EntityId))
+                     .Select(s => new { s.EntityType, s.EntityId })
+                     .ToListAsync(cancellationToken))
+        {
+            whole.Add((s.EntityType, s.EntityId));
+        }
+        // whole as unit lead of a cross-agency taskforce
+        if (candidates.Any(c => c.ParentType == nameof(Taskforce)))
+        {
+            foreach (var id in await LeadTaskforceIds(db, agency, partnerAgentId).Where(id => parentIds.Contains(id)).ToListAsync(cancellationToken))
+            {
+                whole.Add((nameof(Taskforce), id));
+            }
+        }
         // whole by rule
         foreach (var byType in candidates.GroupBy(c => c.ParentType))
         {
             var ids = byType.Select(c => c.ParentId).Distinct().ToList();
-            foreach (var id in await RuleMatchedIdsAsync(db, agency, byType.Key, ids, wholeOnly: true, cancellationToken))
+            foreach (var id in await RuleMatchedIdsAsync(db, agency, partnerAgentId, byType.Key, ids, wholeOnly: true, cancellationToken))
             {
                 whole.Add((byType.Key, id));
             }
@@ -194,7 +244,7 @@ public static class PartnerVisibility
         return visible;
     }
 
-    /// <summary>Of a candidate parent-id set, those released to the agency or the viewer's account (share or rule). Caller still applies the classified check.</summary>
+    /// <summary>Of a candidate parent-id set, those released to the agency, unit or account (share or rule). Caller still applies the classified check.</summary>
     public static async Task<HashSet<string>> ReleasedParentIdsAsync(
         AppDbContext db, string entityType, IReadOnlyCollection<string> candidateIds, PartnerAgency agency, string? partnerAgentId, CancellationToken cancellationToken = default)
     {
@@ -209,36 +259,55 @@ public static class PartnerVisibility
             .Distinct()
             .ToListAsync(cancellationToken);
         var released = ids.ToHashSet();
-        released.UnionWith(await RuleMatchedIdsAsync(db, agency, entityType, candidateIds, wholeOnly: false, cancellationToken));
+        released.UnionWith(await ActiveUnitShares(db, partnerAgentId)
+            .Where(s => s.EntityType == entityType && candidateIds.Contains(s.EntityId))
+            .Select(s => s.EntityId)
+            .ToListAsync(cancellationToken));
+        if (entityType == nameof(Taskforce))
+        {
+            released.UnionWith(await LeadTaskforceIds(db, agency, partnerAgentId)
+                .Where(id => candidateIds.Contains(id))
+                .ToListAsync(cancellationToken));
+        }
+        released.UnionWith(await RuleMatchedIdsAsync(db, agency, partnerAgentId, entityType, candidateIds, wholeOnly: false, cancellationToken));
         return released;
     }
 
-    /// <summary>Of a candidate id set, those a release rule of the agency covers. Existence and classification are the caller's: every caller checks parent visibility first.</summary>
+    /// <summary>Of a candidate id set, those a release rule of the agency or the viewer's unit covers. Existence and classification are the caller's: every caller checks parent visibility first.</summary>
     private static async Task<HashSet<string>> RuleMatchedIdsAsync(
-        AppDbContext db, PartnerAgency agency, string entityType, IReadOnlyCollection<string> candidateIds, bool wholeOnly, CancellationToken cancellationToken)
+        AppDbContext db, PartnerAgency agency, string? partnerAgentId, string entityType, IReadOnlyCollection<string> candidateIds, bool wholeOnly, CancellationToken cancellationToken)
     {
-        var scope = await db.PartnerReleaseRules
-            .Where(r => r.Agency == agency && r.EntityType == entityType && (!wholeOnly || r.IncludesChildren))
-            .Select(r => (PartnerRuleScope?)r.Scope)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (scope is null || candidateIds.Count == 0)
+        if (candidateIds.Count == 0)
         {
             return new();
         }
+        var scopes = await db.PartnerReleaseRules
+            .Where(r => r.Agency == agency && r.EntityType == entityType && (!wholeOnly || r.IncludesChildren))
+            .Select(r => r.Scope)
+            .ToListAsync(cancellationToken);
+        scopes.AddRange(await UnitRules(db, partnerAgentId, entityType)
+            .Where(r => !wholeOnly || r.IncludesChildren)
+            .Select(r => r.Scope)
+            .ToListAsync(cancellationToken));
         var ids = candidateIds.ToList();
-        return scope switch
+        var matched = new HashSet<string>();
+        foreach (var scope in scopes.Distinct())
         {
-            PartnerRuleScope.All => ids.ToHashSet(),
-            PartnerRuleScope.BadFactions when entityType == nameof(Faction) => (await db.Factions
-                .Where(f => ids.Contains(f.Id) && f.IsBadFaction && !f.IsArchived)
-                .Select(f => f.Id)
-                .ToListAsync(cancellationToken)).ToHashSet(),
-            PartnerRuleScope.BadFactionMembers when entityType == nameof(Person) => (await BadFactionMemberIds(db)
-                .Where(id => ids.Contains(id))
-                .Distinct()
-                .ToListAsync(cancellationToken)).ToHashSet(),
-            _ => new(),
-        };
+            matched.UnionWith(scope switch
+            {
+                PartnerRuleScope.All => ids,
+                PartnerRuleScope.BadFactions when entityType == nameof(Faction) => await db.Factions
+                    .Where(f => ids.Contains(f.Id) && f.IsBadFaction && !f.IsArchived)
+                    .Select(f => f.Id)
+                    .ToListAsync(cancellationToken),
+                PartnerRuleScope.BadFactionMembers when entityType == nameof(Person) => await BadFactionMemberIds(db)
+                    .Where(id => ids.Contains(id))
+                    .Distinct()
+                    .ToListAsync(cancellationToken),
+                _ => new List<string>(),
+            });
+        }
+        return matched;
     }
 
     /// <summary>People currently in an active, unclassified Badfrak.</summary>
@@ -247,102 +316,96 @@ public static class PartnerVisibility
             .Where(m => db.Factions.Any(f => f.Id == m.FactionId && f.IsBadFaction && !f.IsClassified && !f.IsArchived))
             .Select(m => m.PersonId);
 
-    /// <summary>Release rules of one agency for one type.</summary>
-    private static IQueryable<PartnerReleaseRule> Rules(AppDbContext db, PartnerAgency agency, string entityType)
-        => db.PartnerReleaseRules.Where(r => r.Agency == agency && r.EntityType == entityType);
+    /// <summary>Rule scopes of one type reaching the viewer: the agency's rules plus those of the viewer's unit.</summary>
+    private static IQueryable<PartnerRuleScope> RuleScopes(AppDbContext db, PartnerAgency agency, string? partnerAgentId, string entityType)
+        => db.PartnerReleaseRules.Where(r => r.Agency == agency && r.EntityType == entityType).Select(r => r.Scope)
+            .Concat(UnitRules(db, partnerAgentId, entityType).Select(r => r.Scope));
 
-    // ---- list predicates: released (share or rule, agency or account) and not classified ----
+    /// <summary>Record ids of one type released by a share to the agency, the viewer's unit or account.</summary>
+    private static IQueryable<string> SharedIds(AppDbContext db, PartnerAgency agency, string? partnerAgentId, string entityType)
+        => ActiveShares(db)
+            .Where(s => s.EntityType == entityType && s.Agency == agency && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
+            .Select(s => s.EntityId)
+            .Concat(ActiveUnitShares(db, partnerAgentId).Where(s => s.EntityType == entityType).Select(s => s.EntityId));
+
+    // ---- list predicates: released (share or rule; agency, unit or account) and not classified ----
 
     public static IQueryable<Person> OnlyPartnerVisible(this IQueryable<Person> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Person));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Person));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Person));
         var badMembers = BadFactionMemberIds(db);
         return query.Where(p => !p.IsClassified
-            && (shares.Any(s => s.EntityType == nameof(Person) && s.EntityId == p.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)
-                || (rules.Any(r => r.Scope == PartnerRuleScope.BadFactionMembers) && badMembers.Contains(p.Id))));
+            && (shared.Contains(p.Id)
+                || rules.Any(r => r == PartnerRuleScope.All)
+                || (rules.Any(r => r == PartnerRuleScope.BadFactionMembers) && badMembers.Contains(p.Id))));
     }
 
     public static IQueryable<Faction> OnlyPartnerVisible(this IQueryable<Faction> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Faction));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Faction));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Faction));
         return query.Where(f => !f.IsClassified
-            && (shares.Any(s => s.EntityType == nameof(Faction) && s.EntityId == f.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)
-                || (f.IsBadFaction && !f.IsArchived && rules.Any(r => r.Scope == PartnerRuleScope.BadFactions))));
+            && (shared.Contains(f.Id)
+                || rules.Any(r => r == PartnerRuleScope.All)
+                || (f.IsBadFaction && !f.IsArchived && rules.Any(r => r == PartnerRuleScope.BadFactions))));
     }
 
     public static IQueryable<PersonGroup> OnlyPartnerVisible(this IQueryable<PersonGroup> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(PersonGroup));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(PersonGroup));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(PersonGroup));
         return query.Where(g => !g.IsClassified
-            && (shares.Any(s => s.EntityType == nameof(PersonGroup) && s.EntityId == g.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)));
+            && (shared.Contains(g.Id) || rules.Any(r => r == PartnerRuleScope.All)));
     }
 
     public static IQueryable<Party> OnlyPartnerVisible(this IQueryable<Party> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Party));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Party));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Party));
         return query.Where(p => !p.IsClassified
-            && (shares.Any(s => s.EntityType == nameof(Party) && s.EntityId == p.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)));
+            && (shared.Contains(p.Id) || rules.Any(r => r == PartnerRuleScope.All)));
     }
 
     public static IQueryable<Operation> OnlyPartnerVisible(this IQueryable<Operation> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Operation));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Operation));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Operation));
         return query.Where(o => !o.IsClassified
-            && (shares.Any(s => s.EntityType == nameof(Operation) && s.EntityId == o.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)));
+            && (shared.Contains(o.Id) || rules.Any(r => r == PartnerRuleScope.All)));
     }
 
     public static IQueryable<Case> OnlyPartnerVisible(this IQueryable<Case> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Case));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Case));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Case));
         return query.Where(v => !v.IsClassified
-            && (shares.Any(s => s.EntityType == nameof(Case) && s.EntityId == v.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)));
+            && (shared.Contains(v.Id) || rules.Any(r => r == PartnerRuleScope.All)));
     }
 
     public static IQueryable<Document> OnlyPartnerVisible(this IQueryable<Document> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Document));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Document));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Document));
         return query.Where(d => !(d.IsClassified || d.IsTRUClassified || d.IsHRBClassified)
             && ((partnerAgentId != null && d.CreatedById == partnerAgentId)
-                || shares.Any(s => s.EntityType == nameof(Document) && s.EntityId == d.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)));
+                || shared.Contains(d.Id)
+                || rules.Any(r => r == PartnerRuleScope.All)));
     }
 
     public static IQueryable<Law> OnlyPartnerVisible(this IQueryable<Law> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Law));
-        var shares = ActiveShares(db);
-        return query.Where(l => shares.Any(s => s.EntityType == nameof(Law) && s.EntityId == l.Id && s.Agency == agency
-                && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-            || rules.Any(r => r.Scope == PartnerRuleScope.All));
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Law));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Law));
+        return query.Where(l => shared.Contains(l.Id) || rules.Any(r => r == PartnerRuleScope.All));
     }
 
     public static IQueryable<Taskforce> OnlyPartnerVisible(this IQueryable<Taskforce> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
     {
-        var rules = Rules(db, agency, nameof(Taskforce));
-        var shares = ActiveShares(db);
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(Taskforce));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(Taskforce));
+        var led = LeadTaskforceIds(db, agency, partnerAgentId);
         return query.Where(t => !t.IsClassified
-            && (shares.Any(s => s.EntityType == nameof(Taskforce) && s.EntityId == t.Id && s.Agency == agency
-                    && (s.PartnerAgentId == null || s.PartnerAgentId == partnerAgentId))
-                || rules.Any(r => r.Scope == PartnerRuleScope.All)));
+            && (shared.Contains(t.Id) || led.Contains(t.Id) || rules.Any(r => r == PartnerRuleScope.All)));
     }
 }

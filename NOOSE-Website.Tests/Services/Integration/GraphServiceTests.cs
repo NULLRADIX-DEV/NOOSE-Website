@@ -94,13 +94,19 @@ public sealed class GraphServiceTests
             {
                 db.PartnerShares.Add(new PartnerShare { EntityType = type, EntityId = id, Agency = PartnerAgency.DoJ });
             }
-            var cfg = new NOOSE_Website.Models.Common.PartnerVisibilityConfig();
-            cfg.Ranks[NOOSE_Website.Models.Common.PartnerVisibilityConfig.RankKey(PartnerAgency.DoJ, PartnerRank.Member)] =
-                new NOOSE_Website.Models.Common.PartnerRankVisibility { Types = { "Person", "Taskforce" } };
-            db.SystemSettings.Add(new SystemSetting { Key = "PartnerRangSichtbarkeit", Value = System.Text.Json.JsonSerializer.Serialize(cfg) });
+            // the unit is read from the account row
+            db.Users.Add(Seed.Agent("partner", configure: a =>
+            {
+                a.PartnerAgency = PartnerAgency.DoJ;
+                a.PartnerRank = PartnerRank.Member;
+                a.PartnerUnitId = PartnerUnits.DojSid;
+            }));
+            // the DoJ base unit sees people and taskforces only
+            db.PartnerUnits.Find(PartnerUnits.DojSid)!.VisibilityJson = System.Text.Json.JsonSerializer.Serialize(
+                new NOOSE_Website.Models.Common.PartnerUnitVisibility { Types = { "Person", "Taskforce" } });
             db.SaveChanges();
         }
-        var policy = new PartnerVisibilityPolicyService(ctx.Factory, new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()));
+        var policy = new PartnerVisibilityPolicyService(ctx.Factory, new PartnerUnitService(ctx.Factory, new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions())));
 
         var result = await new GraphService(ctx.Factory, policy).GetGraphAsync(new GraphQuery(), Partner());
 

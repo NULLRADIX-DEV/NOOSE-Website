@@ -84,6 +84,8 @@ public class AgentInviteService(IDbContextFactory<AppDbContext> dbFactory, UserM
         agent.Status = AgentStatus.Pending;
         agent.PartnerAgency = null;
         agent.PartnerRank = null;
+        agent.PartnerUnitId = null;
+        agent.IsPartnerUnitLead = false;
         var update = await userManager.UpdateAsync(agent);
         if (!update.Succeeded)
         {

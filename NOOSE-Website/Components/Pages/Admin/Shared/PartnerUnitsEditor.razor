@@ -1,0 +1,306 @@
+@* Units of one partner agency: abilities, investigation defaults and automatic releases per unit. *@
+@inject IPartnerUnitService Units
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    Jede Behörde gliedert sich in Einheiten (bei der DoJ zum Beispiel SID, State Attorney Office und Chief). Jedes
+    Partnerkonto gehört genau einer Einheit an. Freigaben, Sichtbarkeit und die Vorgaben für Ermittlungen gelten je Einheit.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudPaper Class="pa-2 mb-4" Elevation="2">
+        <MudTable Items="_units" Dense="true" Hover="true" Elevation="0" T="PartnerUnitView"
+                  OnRowClick="@(e => Select(e.Item))" RowClass="cursor-pointer">
+            <HeaderContent>
+                <MudTh>Einheit</MudTh>
+                <MudTh>Konten</MudTh>
+                <MudTh>Fähigkeiten</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Einheit">
+                    <b>@context.Name</b>
+                    @if (context.Id == _edit?.Id)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Class="ml-1" />
+                    }
+                </MudTd>
+                <MudTd DataLabel="Konten">@context.ActiveAccounts</MudTd>
+                <MudTd DataLabel="Fähigkeiten">
+                    @if (context.IsProsecution)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning">Staatsanwaltschaft</MudChip>
+                    }
+                    @if (context.MayCreateInvestigations)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">legt Ermittlungen an</MudChip>
+                    }
+                    @if (context.LeadSeesAllInvestigations)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success">Leitung sieht alle Ermittlungen</MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+        @if (_mayEdit)
+        {
+            <MudButton Class="ma-2" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="NewUnit">Neue Einheit</MudButton>
+        }
+    </MudPaper>
+
+    @if (_edit is not null)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudText Typo="Typo.subtitle1" Class="mb-2">@(_edit.Id is null ? "Neue Einheit" : $"Einheit „{_edit.Name}“")</MudText>
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="_edit.Name" Label="Name" MaxLength="100" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" ReadOnly="!_mayEdit" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField @bind-Value="_edit.SortOrder" Label="Reihenfolge" Variant="Variant.Outlined"
+                                     Margin="Margin.Dense" ReadOnly="!_mayEdit" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Class="mt-2" Spacing="0">
+                <MudSwitch T="bool" @bind-Value="_edit.IsProsecution" Color="Color.Warning" Disabled="!_mayEdit"
+                           Label="Staatsanwaltschaft: Konten dürfen zuständiger Staatsanwalt einer Ermittlung sein und deren Anordnungen zeichnen" />
+                <MudSwitch T="bool" @bind-Value="_edit.MayCreateInvestigations" Color="Color.Primary" Disabled="!_mayEdit"
+                           Label="Konten dürfen Ermittlungen anlegen (an Taskforces mit Beteiligung der Behörde)" />
+                <MudSwitch T="bool" @bind-Value="_edit.LeadSeesAllInvestigations" Color="Color.Primary" Disabled="!_mayEdit"
+                           Label="Leitung sieht alles in überbehördlichen Taskforces der Behörde, samt allen Ermittlungen" />
+            </MudStack>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Vorgaben für Ermittlungen</MudText>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+                Gilt, wenn die Einheit oder eines ihrer Konten an einer Ermittlung beteiligt wird. Abweichungen stellt man
+                an der Ermittlung selbst ein; Änderungen hier wirken sofort auf alle Ermittlungen.
+            </MudText>
+            <MudGrid Spacing="1">
+                @foreach (var tab in InvestigationTabs.All)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSelect T="InvestigationAccessLevel" Value="@Level(tab.Slug)" ValueChanged="@(v => _edit.Defaults[tab.Slug] = v)"
+                                   Label="@tab.Label" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" ReadOnly="!_mayEdit">
+                            @foreach (var level in InvestigationAccessLevelDisplay.All.Where(l => !tab.ReadOnly || l != InvestigationAccessLevel.Edit))
+                            {
+                                <MudSelectItem T="InvestigationAccessLevel" Value="@level">@InvestigationAccessLevelDisplay.Name(level)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+            </MudGrid>
+
+            @if (_edit.Id is not null)
+            {
+                <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Automatische Freigaben an diese Einheit</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+                    Zusätzlich zu den Regeln der ganzen Behörde. Verschlusssachen bleiben immer unsichtbar.
+                </MudText>
+                <MudGrid Spacing="2">
+                    @foreach (var type in PartnerTabCatalog.All)
+                    {
+                        <MudItem xs="12" md="6">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag">
+                                <MudSelect T="PartnerRuleScope?" Value="@_rules[type.TypeKey].Scope" ValueChanged="@(v => _rules[type.TypeKey].Scope = v)"
+                                           Label="@type.DisplayName" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           ReadOnly="@(!_mayEdit)" Style="min-width:220px;">
+                                    <MudSelectItem T="PartnerRuleScope?" Value="@(null)">Nur Einzelfreigabe</MudSelectItem>
+                                    @foreach (var scope in ScopesFor(type.TypeKey))
+                                    {
+                                        <MudSelectItem T="PartnerRuleScope?" Value="@scope">@PartnerProfileDisplay.Name(scope)</MudSelectItem>
+                                    }
+                                </MudSelect>
+                                @if (_rules[type.TypeKey].Scope is not null && type.Tabs.Count > 0)
+                                {
+                                    <MudCheckBox T="bool" Value="@_rules[type.TypeKey].IncludesChildren"
+                                                 ValueChanged="@(v => _rules[type.TypeKey].IncludesChildren = v)"
+                                                 Color="Color.Primary" Label="Ganze Akte" ReadOnly="@(!_mayEdit)" Dense="true" />
+                                }
+                            </MudStack>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+
+            @if (_mayEdit)
+            {
+                <MudStack Row="true" Class="mt-4" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+                    @if (_edit.Id is not null)
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                                   OnClick="DeleteAsync" Disabled="_busy">Einheit löschen</MudButton>
+                    }
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _edit = null)">Schließen</MudButton>
+                </MudStack>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    [Parameter] public PartnerAgency Agency { get; set; }
+
+    /// <summary>Raised after a unit was saved or deleted, so siblings reload their unit lists.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _busy;
+    private bool _mayEdit;
+    private PartnerAgency? _loadedAgency;
+    private IReadOnlyList<PartnerUnitView> _units = Array.Empty<PartnerUnitView>();
+    private EditState? _edit;
+    private Dictionary<string, RuleState> _rules = new();
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
+        public bool IsProsecution { get; set; }
+        public bool MayCreateInvestigations { get; set; }
+        public bool LeadSeesAllInvestigations { get; set; }
+        public Dictionary<string, InvestigationAccessLevel> Defaults { get; set; } = new();
+    }
+
+    private sealed class RuleState
+    {
+        public PartnerRuleScope? Scope { get; set; }
+        public bool IncludesChildren { get; set; }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayEdit = _user.IsAdmin() && _user.MayWrite();
+        if (_loadedAgency == Agency)
+        {
+            return;
+        }
+        _loadedAgency = Agency;
+        _edit = null;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _units = await Units.ForAgencyAsync(Agency);
+        _load = false;
+    }
+
+    private InvestigationAccessLevel Level(string slug)
+        => _edit?.Defaults.GetValueOrDefault(slug) ?? InvestigationAccessLevel.None;
+
+    private static IEnumerable<PartnerRuleScope> ScopesFor(string typeKey) => typeKey switch
+    {
+        "Faction" => new[] { PartnerRuleScope.All, PartnerRuleScope.BadFactions },
+        "Person" => new[] { PartnerRuleScope.All, PartnerRuleScope.BadFactionMembers },
+        _ => new[] { PartnerRuleScope.All },
+    };
+
+    private async Task Select(PartnerUnitView unit)
+    {
+        _edit = new EditState
+        {
+            Id = unit.Id,
+            Name = unit.Name,
+            SortOrder = unit.SortOrder,
+            IsProsecution = unit.IsProsecution,
+            MayCreateInvestigations = unit.MayCreateInvestigations,
+            LeadSeesAllInvestigations = unit.LeadSeesAllInvestigations,
+            Defaults = unit.InvestigationDefaults.ToDictionary(kv => kv.Key, kv => kv.Value),
+        };
+        var rules = await Units.GetRulesAsync(unit.Id);
+        _rules = PartnerTabCatalog.All.ToDictionary(t => t.TypeKey, t =>
+        {
+            var rule = rules.FirstOrDefault(r => r.EntityType == t.TypeKey);
+            return new RuleState { Scope = rule?.Scope, IncludesChildren = rule?.IncludesChildren ?? false };
+        });
+    }
+
+    private void NewUnit()
+    {
+        _edit = new EditState { SortOrder = _units.Count == 0 ? 1 : _units.Max(u => u.SortOrder) + 1 };
+        _rules = PartnerTabCatalog.All.ToDictionary(t => t.TypeKey, _ => new RuleState());
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var id = await Units.SaveAsync(new PartnerUnitInput(_edit.Id, Agency, _edit.Name, _edit.SortOrder, _edit.IsProsecution,
+                _edit.MayCreateInvestigations, _edit.LeadSeesAllInvestigations, _edit.Defaults), _user);
+            if (_edit.Id is not null)
+            {
+                var rules = _rules.Where(kv => kv.Value.Scope is not null)
+                    .Select(kv => new PartnerRuleView(kv.Key, kv.Value.Scope!.Value, kv.Value.IncludesChildren))
+                    .ToList();
+                await Units.SaveRulesAsync(id, rules, _user);
+            }
+            Snackbar.Add("Einheit gespeichert.", Severity.Success);
+            await LoadAsync();
+            if (_units.FirstOrDefault(u => u.Id == id) is { } saved)
+            {
+                await Select(saved);
+            }
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or KeyNotFoundException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_edit?.Id is not { } id)
+        {
+            return;
+        }
+        var confirmed = await DialogService.ShowMessageBoxAsync("Einheit löschen",
+            $"„{_edit.Name}“ wird gelöscht. Das geht nur, wenn ihr kein Konto und keine Freigabe mehr zugeordnet ist.",
+            yesText: "Löschen", cancelText: "Abbrechen");
+        if (confirmed != true)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Units.DeleteAsync(id, _user);
+            Snackbar.Add("Einheit gelöscht.", Severity.Success);
+            _edit = null;
+            await LoadAsync();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or KeyNotFoundException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

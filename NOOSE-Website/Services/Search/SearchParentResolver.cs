@@ -339,7 +339,7 @@ public static class SearchParentResolver
         if (!viewer.IsPartner && Ids(nameof(Warrant)) is { Count: > 0 } warrantIds)
         {
             foreach (var x in await db.Warrants.OnlyVisible(db, scope)
-                         .Where(w => warrantIds.Contains(w.Id))
+                         .Where(w => warrantIds.Contains(w.Id) && w.InvestigationId == null)
                          .Select(w => new { w.Id, w.Subject, w.CaseNumber }).ToListAsync(cancellationToken))
             {
                 Put(nameof(Warrant), x.Id, x.Subject, x.CaseNumber);

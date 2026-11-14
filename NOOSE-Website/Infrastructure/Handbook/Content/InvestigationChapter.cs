@@ -32,9 +32,9 @@ internal static class InvestigationChapter
                 DiagramKey: "akten-ebenen"),
 
             new Article("art-vorgaenge", "vorgaenge", "Vorgänge",
-                "Die Ermittlungsakte, die mehrere andere Akten bündelt.",
+                "Die Sammelakte, die mehrere andere Akten bündelt.",
                 """
-                <p>Ein <strong>Vorgang</strong> ist die übergeordnete Ermittlungsakte. Er hat einen Status -
+                <p>Ein <strong>Vorgang</strong> ist die Sammelakte, die mehrere Akten bündelt. Er hat einen Status -
                 <em>Angelegt</em>, <em>Aktiv</em>, <em>Ruhend</em>, <em>Abgeschlossen</em>,
                 <em>Archiviert</em> -, beteiligte Agenten und im Abschnitt <em>Inhalt</em> alles, was dazu
                 gehört.</p>
@@ -144,8 +144,11 @@ internal static class InvestigationChapter
                 bist.</p>
                 <p>Der <strong>Umfang</strong> unterscheidet innerbehördlich von überbehördlich. Eine
                 überbehördliche Taskforce ist die Form, in der mit LSPD, DoJ oder LSMD zusammengearbeitet
-                wird; Partnerkonten können dort mitlesen und schreiben, aber die Agentenliste bleibt
-                intern.</p>
+                wird. Dort trägst du ein, welche <strong>Behörden beteiligt</strong> sind; das ändern nur die Führung
+                und die Leitung der Taskforce. Partnerkonten sehen die Taskforce nur, wenn sie ihnen freigegeben ist
+                oder ihre Einheitsleitung alles sieht, und die Agentenliste bleibt intern. Im Tab
+                <em>Ermittlungen</em> liegen die gemeinsamen Ermittlungsakten; eine Taskforce mit offenen Ermittlungen
+                lässt sich nicht löschen.</p>
                 <p>Wer in einer Taskforce die <strong>Einsatzleitung</strong> hat, kennt die Seite nicht: Sie
                 kennt nur Dienstgrade und Zuteilungen. Schreib die Leitung deshalb in die Beschreibung der
                 Taskforce.</p>
@@ -207,6 +210,42 @@ internal static class InvestigationChapter
                 """,
                 NavKey: "entfuehrungen"),
 
+            new Article("art-ermittlungen", "ermittlungen", "Ermittlungen",
+                "Die gemeinsame Ermittlungsakte mit der DoJ: Zeugen, Beweise, Vernehmungen, Anordnungen.",
+                """
+                <p>Eine <strong>Ermittlung</strong> ist die Akte, die FIB und DoJ gemeinsam führen. Sie hängt immer an
+                einer <strong>Taskforce</strong> und bekommt ein Aktenzeichen mit <em>ER</em>. Daneben stehen das
+                Aktenzeichen der SID und der 5Net-Eintrag, der Status (<em>Ermittlung</em>, <em>Anklage erhoben</em>,
+                <em>Hauptverhandlung</em>, <em>Eingestellt</em>, <em>Abgeschlossen</em>) und der Anklage-Vermerk.</p>
+                <p>Die Akte hat feste Tabs: <em>Tatvorwurf</em> (Paragrafen aus dem Gesetzbuch mit Prüfung),
+                <em>Tathergang</em>, <em>Personen</em> (Zeugen und Beschuldigte mit Status), <em>Beweismittel</em>
+                (laufend nummeriert), <em>Vernehmungen</em> (Frage und Antwort), <em>Aufgaben</em>, <em>Notizen</em>,
+                <em>Anordnungen</em>, <em>Beteiligte</em> und <em>Verlauf</em>.</p>
+                <p><strong>Sehen darf sie nur, wer eingetragen ist.</strong> Dazu kommen die Leitung der Taskforce und die
+                Führung (beide bearbeiten alles) sowie die Aufsicht (liest). Wer eingetragen ist, bekommt je Tab
+                <em>Keine</em>, <em>Lesen</em> oder <em>Bearbeiten</em>. Ohne eigene Einstellung gilt die Vorgabe der
+                Rolle oder der Partner-Einheit; die Ermittlungsleitung kann sie je Beteiligtem überschreiben. Einzelne
+                Einträge lassen sich zusätzlich auf bestimmte Beteiligte beschränken. Den <em>Verlauf</em> sieht nur, wer
+                alle Tabs lesen darf.</p>
+                <p>Anlegen dürfen Agenten der Taskforce und Partner-Einheiten mit Anlegerecht (bei der DoJ die SID), wenn
+                ihre Behörde an der Taskforce beteiligt ist. Die Leitung einer Einheit sieht und bearbeitet, wenn die
+                Einheit es erlaubt, alle Ermittlungen der Taskforces, an denen ihre Behörde beteiligt ist; löschen und die
+                Ermittlungsleitung vergeben kann sie nicht. Eine bisherige
+                Excel-Akte lässt sich unter <em>Import</em> mit Vorschau übernehmen.</p>
+                <p>Ermittlungen tauchen nicht in der Suche, bei FIBI, in der Beobachtungsliste oder im öffentlichen
+                Bereich auf. Diese Wege kennen keine Beteiligten.</p>
+                """,
+                NavKey: "ermittlungen",
+                Steps:
+                [
+                    new Step("Groups", "Taskforce vorbereiten",
+                        "Geltungsbereich „Überbehördlich“ und die beteiligten Behörden eintragen."),
+                    new Step("NoteAdd", "Ermittlung anlegen",
+                        "Im Tab „Ermittlungen“ der Taskforce oder per Excel-Import."),
+                    new Step("ManageAccounts", "Beteiligte eintragen",
+                        "Agenten, Partnerkonten und Einheiten mit Rolle und Rechten je Tab."),
+                ]),
+
             new Article("art-anordnungen", "anordnungen", "Anordnungen",
                 "Durchsuchung, Beschlagnahme, Festnahme - beantragen, unterzeichnen, vorzeigen.",
                 """
@@ -234,7 +273,12 @@ internal static class InvestigationChapter
                 auf dem Papier. Die Prüfseite ist <strong>standardmäßig abgeschaltet</strong>; die Führung schaltet das
                 Modul <em>Anordnungs-Prüfung</em> bei den Einstellungen des öffentlichen Bereichs ein.</p>
                 <p>Wer eine Anordnung sieht, entscheidet die Personenakte: Sie ist nie weiter sichtbar als die Person
-                und, falls angegeben, der Vorgang, um die es geht. Partnerbehörden sehen Anordnungen nicht.</p>
+                und, falls angegeben, der Vorgang, um die es geht. Hängt sie an einer <em>Ermittlung</em>, sieht sie
+                nur, wer dort den Tab <em>Anordnungen</em> lesen darf, auch intern. Andere Anordnungen sehen
+                Partnerbehörden nicht.</p>
+                <p>Eine Anordnung an einer Ermittlung unterzeichnet die Führung <strong>oder</strong> der dort
+                eingetragene <strong>Staatsanwalt</strong> der DoJ; einer reicht. Auf dem Papier steht dann seine
+                Funktion statt eines Dienstgrads.</p>
                 """,
                 RoleplayHtml: """
                 <p>Vorzeigen darfst du nur eine <strong>gültige</strong> Anordnung. Ein abgelaufenes oder aufgehobenes

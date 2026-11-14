@@ -18,18 +18,34 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
 
     // Fresh cache per service instance keeps the 10s cache isolated per test.
     private PartnerVisibilityPolicyService NewService()
-        => new(_ctx.Factory, new MemoryCache(new MemoryCacheOptions()));
+        => new(_ctx.Factory, Units());
+
+    private PartnerUnitService Units() => new(_ctx.Factory, new MemoryCache(new MemoryCacheOptions()));
 
     private static ClaimsPrincipal Admin()
         => ClaimsPrincipalBuilder.Agent("admin").AsAdmin().Build();
 
-    private static ClaimsPrincipal Partner(string id, PartnerAgency agency, PartnerRank rank)
-        => ClaimsPrincipalBuilder.Agent(id).AsPartner(agency, rank).Build();
-
-    private void SeedConfig(PartnerVisibilityConfig cfg)
+    // the service reads the unit from the account row, so the row exists as well
+    private ClaimsPrincipal Partner(string id, PartnerAgency agency, PartnerRank rank)
     {
         using var db = _ctx.NewContext();
-        db.SystemSettings.Add(new SystemSetting { Key = SettingKey, Value = JsonSerializer.Serialize(cfg) });
+        var agent = db.Users.Find(id);
+        if (agent is null)
+        {
+            agent = Seed.Agent(id);
+            db.Users.Add(agent);
+        }
+        agent.PartnerAgency = agency;
+        agent.PartnerRank = rank;
+        agent.PartnerUnitId = PartnerUnits.ForLegacy(agency, rank);
+        db.SaveChanges();
+        return ClaimsPrincipalBuilder.Agent(id).AsPartner(agency, rank).Build();
+    }
+
+    private void SeedUnit(PartnerAgency agency, PartnerRank rank, PartnerUnitVisibility visibility)
+    {
+        using var db = _ctx.NewContext();
+        db.PartnerUnits.Find(PartnerUnits.ForLegacy(agency, rank))!.VisibilityJson = JsonSerializer.Serialize(visibility);
         db.SaveChanges();
     }
 
@@ -60,152 +76,126 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
         db.SaveChanges();
     }
 
-    private PartnerVisibilityConfig? ReadConfigFromDb()
-    {
-        using var db = _ctx.NewContext();
-        var raw = db.SystemSettings.AsNoTracking().FirstOrDefault(e => e.Key == SettingKey)?.Value;
-        return string.IsNullOrWhiteSpace(raw) ? null : JsonSerializer.Deserialize<PartnerVisibilityConfig>(raw);
-    }
-
     public void Dispose() => _ctx.Dispose();
 
-    // ---- GetAsync ----
+    // ---- unit allowlist (PartnerUnitService) ----
 
     [Fact]
-    public async Task GetAsync_NoSetting_ReturnsEmptyConfig()
+    public async Task SaveVisibilityAsync_Admin_StoresOnTheUnit()
     {
-        var svc = NewService();
+        await Units().SaveVisibilityAsync(PartnerUnits.DojSid, new PartnerUnitVisibility { Types = { "Faction" } }, Admin());
 
-        var cfg = await svc.GetAsync();
-
-        Assert.NotNull(cfg);
-        Assert.Empty(cfg.Ranks);
+        var unit = await Units().GetAsync(PartnerUnits.DojSid);
+        Assert.Equal(new[] { "Faction" }, unit!.Visibility!.Types);
     }
 
     [Fact]
-    public async Task GetAsync_WithSetting_ReturnsParsedConfig()
+    public async Task SaveVisibilityAsync_Null_ClearsTheRestriction()
     {
-        var stored = new PartnerVisibilityConfig();
-        stored.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Chief)] =
-            new PartnerRankVisibility { Types = { "Person", "Case" } };
-        SeedConfig(stored);
+        SeedUnit(PartnerAgency.DoJ, PartnerRank.Member, new PartnerUnitVisibility { Types = { "Person" } });
 
-        var cfg = await NewService().GetAsync();
+        await Units().SaveVisibilityAsync(PartnerUnits.DojSid, null, Admin());
 
-        var entry = cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Chief)];
-        Assert.Contains("Person", entry.Types);
-        Assert.Contains("Case", entry.Types);
+        Assert.Null((await Units().GetAsync(PartnerUnits.DojSid))!.Visibility);
     }
 
     [Fact]
-    public async Task GetAsync_CachesFirstResult()
-    {
-        var svc = NewService();
-
-        // First call with no row caches the empty config.
-        var first = await svc.GetAsync();
-        Assert.Empty(first.Ranks);
-
-        // Row added afterwards is not observed because the cache still holds the empty config.
-        var later = new PartnerVisibilityConfig();
-        later.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.DoJ, PartnerRank.Member)] =
-            new PartnerRankVisibility { Types = { "Person" } };
-        SeedConfig(later);
-
-        var second = await svc.GetAsync();
-        Assert.Empty(second.Ranks);
-    }
-
-    // ---- GetRankAsync ----
-
-    [Fact]
-    public async Task GetRankAsync_ConfiguredRank_ReturnsEntry()
-    {
-        var stored = new PartnerVisibilityConfig();
-        stored.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSMD, PartnerRank.Special)] =
-            new PartnerRankVisibility { Types = { "Faction" } };
-        SeedConfig(stored);
-
-        var entry = await NewService().GetRankAsync(PartnerAgency.LSMD, PartnerRank.Special);
-
-        Assert.NotNull(entry);
-        Assert.Contains("Faction", entry!.Types);
-    }
-
-    [Fact]
-    public async Task GetRankAsync_UnconfiguredRank_ReturnsNull()
-    {
-        var entry = await NewService().GetRankAsync(PartnerAgency.LSPD, PartnerRank.Member);
-
-        Assert.Null(entry);
-    }
-
-    // ---- SaveRankAsync ----
-
-    [Fact]
-    public async Task SaveRankAsync_Admin_CreatesRowWhenAbsent()
-    {
-        var vis = new PartnerRankVisibility { Types = { "Faction" } };
-
-        await NewService().SaveRankAsync(PartnerAgency.LSPD, PartnerRank.Special, vis, Admin());
-
-        var cfg = ReadConfigFromDb();
-        Assert.NotNull(cfg);
-        var key = PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Special);
-        Assert.True(cfg!.Ranks.ContainsKey(key));
-        Assert.Contains("Faction", cfg.Ranks[key].Types);
-    }
-
-    [Fact]
-    public async Task SaveRankAsync_Admin_UpdatesExistingRow()
-    {
-        var seeded = new PartnerVisibilityConfig();
-        seeded.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.DoJ, PartnerRank.Member)] =
-            new PartnerRankVisibility { Types = { "Person" } };
-        SeedConfig(seeded);
-
-        await NewService().SaveRankAsync(
-            PartnerAgency.LSPD, PartnerRank.Chief,
-            new PartnerRankVisibility { Types = { "Case" } }, Admin());
-
-        var cfg = ReadConfigFromDb();
-        Assert.NotNull(cfg);
-        Assert.True(cfg!.Ranks.ContainsKey(PartnerVisibilityConfig.RankKey(PartnerAgency.DoJ, PartnerRank.Member)));
-        Assert.True(cfg.Ranks.ContainsKey(PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Chief)));
-
-        // Only one settings row exists (updated, not duplicated).
-        using var db = _ctx.NewContext();
-        Assert.Equal(1, db.SystemSettings.Count(e => e.Key == SettingKey));
-    }
-
-    [Fact]
-    public async Task SaveRankAsync_NullVisibility_RemovesEntry()
-    {
-        var seeded = new PartnerVisibilityConfig();
-        var key = PartnerVisibilityConfig.RankKey(PartnerAgency.DoJ, PartnerRank.Member);
-        seeded.Ranks[key] = new PartnerRankVisibility { Types = { "Person" } };
-        SeedConfig(seeded);
-
-        await NewService().SaveRankAsync(PartnerAgency.DoJ, PartnerRank.Member, null, Admin());
-
-        var cfg = ReadConfigFromDb();
-        Assert.NotNull(cfg);
-        Assert.False(cfg!.Ranks.ContainsKey(key));
-    }
-
-    [Fact]
-    public async Task SaveRankAsync_NonAdmin_Throws()
+    public async Task SaveVisibilityAsync_NonAdmin_Throws()
     {
         var actor = ClaimsPrincipalBuilder.Agent("u").WithRank(Rank.Director).Build();
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => NewService().SaveRankAsync(
-                PartnerAgency.LSPD, PartnerRank.Member,
-                new PartnerRankVisibility { Types = { "Person" } }, actor));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Units().SaveVisibilityAsync(
+            PartnerUnits.DojSid, new PartnerUnitVisibility { Types = { "Person" } }, actor));
+    }
 
-        // Nothing was persisted.
-        using var db = _ctx.NewContext();
-        Assert.Equal(0, db.SystemSettings.Count(e => e.Key == SettingKey));
+    [Fact]
+    public async Task SyncAsync_MovesTheOldTierAllowlistOntoTheSeededUnitOnce()
+    {
+        var legacy = new PartnerVisibilityConfig();
+        legacy.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Chief)] = new PartnerUnitVisibility
+        {
+            Types = { "Taskforce" },
+            Tabs = { ["Taskforce"] = new List<string> { "stammdaten" } },
+        };
+        using (var db = _ctx.NewContext())
+        {
+            db.SystemSettings.Add(new SystemSetting { Key = SettingKey, Value = JsonSerializer.Serialize(legacy) });
+            db.SaveChanges();
+            await PartnerUnitService.SyncAsync(db);
+        }
+
+        var unit = await Units().GetAsync(PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Chief));
+        Assert.Equal(new[] { "Taskforce" }, unit!.Visibility!.Types);
+        // the new investigations tab joins an explicit old tab list
+        Assert.Contains("ermittlungen", unit.Visibility.Tabs["Taskforce"]);
+
+        // a second run leaves an admin change alone
+        await Units().SaveVisibilityAsync(unit.Id, null, Admin());
+        using (var db = _ctx.NewContext())
+        {
+            await PartnerUnitService.SyncAsync(db);
+        }
+        Assert.Null((await Units().GetAsync(unit.Id))!.Visibility);
+    }
+
+    [Fact]
+    public async Task SyncAsync_ReDerivesAUnitThatNoLongerFits_AndClearsInternalAccounts()
+    {
+        using (var db = _ctx.NewContext())
+        {
+            // an older build moved this DoJ lead to the LSPD without touching the unit
+            db.Users.Add(Seed.Agent("moved", configure: a =>
+            {
+                a.PartnerAgency = PartnerAgency.LSPD;
+                a.PartnerRank = PartnerRank.Special;
+                a.PartnerUnitId = PartnerUnits.DojSid;
+                a.IsPartnerUnitLead = true;
+            }));
+            // and turned this one internal
+            db.Users.Add(Seed.Agent("internal", configure: a =>
+            {
+                a.PartnerUnitId = PartnerUnits.DojStateAttorney;
+                a.IsPartnerUnitLead = true;
+            }));
+            // a fitting unit stays as it is
+            db.Users.Add(Seed.Agent("fits", configure: a =>
+            {
+                a.PartnerAgency = PartnerAgency.DoJ;
+                a.PartnerUnitId = PartnerUnits.DojSid;
+                a.IsPartnerUnitLead = true;
+            }));
+            db.SaveChanges();
+            await PartnerUnitService.SyncAsync(db);
+        }
+
+        using var check = _ctx.NewContext();
+        var moved = check.Users.Find("moved")!;
+        Assert.Equal(PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Special), moved.PartnerUnitId);
+        Assert.False(moved.IsPartnerUnitLead);
+        var internalAgent = check.Users.Find("internal")!;
+        Assert.Null(internalAgent.PartnerUnitId);
+        Assert.False(internalAgent.IsPartnerUnitLead);
+        var fits = check.Users.Find("fits")!;
+        Assert.Equal(PartnerUnits.DojSid, fits.PartnerUnitId);
+        Assert.True(fits.IsPartnerUnitLead);
+    }
+
+    [Fact]
+    public async Task SyncAsync_GivesAPartnerWithoutUnitTheSeededUnitOfItsTier()
+    {
+        using (var db = _ctx.NewContext())
+        {
+            db.Users.Add(new NOOSE_Website.Data.Entities.Agent
+            {
+                Id = "old", UserName = "old", Codename = "Old", Status = AgentStatus.Active,
+                PartnerAgency = PartnerAgency.DoJ, PartnerRank = PartnerRank.Special,
+            });
+            db.SaveChanges();
+            await PartnerUnitService.SyncAsync(db);
+        }
+
+        using var check = _ctx.NewContext();
+        Assert.Equal(PartnerUnits.DojStateAttorney, check.Users.AsNoTracking().Single(u => u.Id == "old").PartnerUnitId);
     }
 
     // ---- GetAllowedTypesAsync ----
@@ -221,7 +211,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllowedTypesAsync_PartnerUnconfiguredRank_ReturnsReleasedTypesOnly()
+    public async Task GetAllowedTypesAsync_PartnerUnconfiguredUnit_ReturnsReleasedTypesOnly()
     {
         SeedShare("Faction", "f1", null, PartnerAgency.LSPD);
         SeedRule(PartnerAgency.LSPD, "Law", PartnerRuleScope.All);
@@ -234,12 +224,9 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllowedTypesAsync_ConfiguredRank_ReturnsAllowlistNarrowedToReleased()
+    public async Task GetAllowedTypesAsync_ConfiguredUnit_ReturnsAllowlistNarrowedToReleased()
     {
-        var cfg = new PartnerVisibilityConfig();
-        cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member)] =
-            new PartnerRankVisibility { Types = { "Person", "Case" } };
-        SeedConfig(cfg);
+        SeedUnit(PartnerAgency.LSPD, PartnerRank.Member, new PartnerUnitVisibility { Types = { "Person", "Case" } });
         SeedShare("Person", "p1", null, PartnerAgency.LSPD);
 
         var allowed = await NewService().GetAllowedTypesAsync(Partner("me", PartnerAgency.LSPD, PartnerRank.Member));
@@ -251,10 +238,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     [Fact]
     public async Task GetAllowedTypesAsync_IndividualShare_WidensAllowlist()
     {
-        var cfg = new PartnerVisibilityConfig();
-        cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member)] =
-            new PartnerRankVisibility { Types = { "Person" } };
-        SeedConfig(cfg);
+        SeedUnit(PartnerAgency.LSPD, PartnerRank.Member, new PartnerUnitVisibility { Types = { "Person" } });
         SeedShare("Person", "p1", null, PartnerAgency.LSPD);
         SeedShare("Faction", "f1", "me", PartnerAgency.LSPD);
 
@@ -288,7 +272,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetVisibleTabsAsync_NoRankEntry_ReturnsNull()
+    public async Task GetVisibleTabsAsync_NoUnitAllowlist_ReturnsNull()
     {
         var user = Partner("me", PartnerAgency.LSPD, PartnerRank.Member);
 
@@ -300,14 +284,11 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     [Fact]
     public async Task GetVisibleTabsAsync_TabRestriction_ReturnsSlugs()
     {
-        var cfg = new PartnerVisibilityConfig();
-        var key = PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member);
-        cfg.Ranks[key] = new PartnerRankVisibility
+        SeedUnit(PartnerAgency.LSPD, PartnerRank.Member, new PartnerUnitVisibility
         {
             Types = { "Person" },
             Tabs = { ["Person"] = new List<string> { "overview", "docs" } },
-        };
-        SeedConfig(cfg);
+        });
 
         var tabs = await NewService().GetVisibleTabsAsync(
             Partner("me", PartnerAgency.LSPD, PartnerRank.Member), "Person", "r1");
@@ -321,10 +302,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     [Fact]
     public async Task GetVisibleTabsAsync_ListedTypeWithoutRestriction_ReturnsNull()
     {
-        var cfg = new PartnerVisibilityConfig();
-        cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member)] =
-            new PartnerRankVisibility { Types = { "Faction" } };
-        SeedConfig(cfg);
+        SeedUnit(PartnerAgency.LSPD, PartnerRank.Member, new PartnerUnitVisibility { Types = { "Faction" } });
 
         var tabs = await NewService().GetVisibleTabsAsync(
             Partner("me", PartnerAgency.LSPD, PartnerRank.Member), "Faction", "f1");
@@ -335,10 +313,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     [Fact]
     public async Task GetVisibleTabsAsync_UnlistedType_ReturnsEmpty()
     {
-        var cfg = new PartnerVisibilityConfig();
-        cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member)] =
-            new PartnerRankVisibility { Types = { "Person" } };
-        SeedConfig(cfg);
+        SeedUnit(PartnerAgency.LSPD, PartnerRank.Member, new PartnerUnitVisibility { Types = { "Person" } });
 
         var tabs = await NewService().GetVisibleTabsAsync(
             Partner("me", PartnerAgency.LSPD, PartnerRank.Member), "Vehicle", "v1");
@@ -350,17 +325,14 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     [Fact]
     public async Task GetVisibleTabsAsync_IndividualShare_ReturnsNull()
     {
-        var cfg = new PartnerVisibilityConfig();
-        cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.LSPD, PartnerRank.Member)] =
-            new PartnerRankVisibility
+        SeedUnit(PartnerAgency.LSPD, PartnerRank.Member, new PartnerUnitVisibility
             {
                 Types = { "Person" },
                 Tabs = { ["Person"] = new List<string> { "overview" } },
-            };
-        SeedConfig(cfg);
+            });
         SeedShare("Person", "r1", "me", PartnerAgency.LSPD);
 
-        // Individually released record shows in full (null) despite the rank tab restriction.
+        // Individually released record shows in full (null) despite the unit tab restriction.
         var tabs = await NewService().GetVisibleTabsAsync(
             Partner("me", PartnerAgency.LSPD, PartnerRank.Member), "Person", "r1");
 
@@ -368,7 +340,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task GetVisibleTabsAsync_BlockedContent_RemovesTabsOfAnUnconfiguredRank()
+    public async Task GetVisibleTabsAsync_BlockedContent_RemovesTabsOfAnUnconfiguredUnit()
     {
         SeedBlocked(PartnerAgency.Parlament, PartnerContent.Docs | PartnerContent.Observations);
 
@@ -385,10 +357,7 @@ public sealed class PartnerVisibilityPolicyServiceTests : IDisposable
     [Fact]
     public async Task GetVisibleTabsAsync_BlockedContent_BeatsAnIndividualRelease()
     {
-        var cfg = new PartnerVisibilityConfig();
-        cfg.Ranks[PartnerVisibilityConfig.RankKey(PartnerAgency.Parlament, PartnerRank.Member)] =
-            new PartnerRankVisibility { Types = { "Faction" } };
-        SeedConfig(cfg);
+        SeedUnit(PartnerAgency.Parlament, PartnerRank.Member, new PartnerUnitVisibility { Types = { "Faction" } });
         SeedShare("Faction", "f1", "me", PartnerAgency.Parlament);
         SeedBlocked(PartnerAgency.Parlament, PartnerContent.Docs);
 

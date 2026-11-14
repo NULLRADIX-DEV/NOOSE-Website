@@ -63,9 +63,17 @@ public class Agent : IdentityUser
     [Column("Partnerbehoerde")]
     public PartnerAgency? PartnerAgency { get; set; }
 
-    /// <summary>Null = internal NOOSE agent.</summary>
+    /// <summary>Old fixed tier; kept in step with the unit so an older build still reads it. Read nowhere else.</summary>
     [Column("Partnerrang")]
     public PartnerRank? PartnerRank { get; set; }
+
+    /// <summary>Unit inside the partner agency; null for internal agents.</summary>
+    [Column("PartnerEinheitId")]
+    public string? PartnerUnitId { get; set; }
+
+    /// <summary>Leads the partner unit (e.g. SID lead).</summary>
+    [Column("IstEinheitsleitung")]
+    public bool IsPartnerUnitLead { get; set; }
 
     public AgentStatus Status { get; set; } = AgentStatus.Pending;
 

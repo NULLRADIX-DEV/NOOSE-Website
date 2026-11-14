@@ -1,0 +1,255 @@
+@* Who takes part and what they may do, tab by tab: accounts (FIB or partner) with a role, or whole partner units. *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.Participants); }
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+    Rechte gelten je Tab: <b>Keine</b>, <b>Lesen</b> oder <b>Bearbeiten</b>. Ohne eigene Einstellung gilt die Vorgabe: bei Partnern die
+    der Einheit (einstellbar unter Einstellungen → Partnerbehörden), bei FIB-Agents die der Rolle. Mehrere Wege addieren sich, der höchste
+    gewinnt. Ermittlungsleitung, Taskforce-Leitung und FIB-Führung haben immer vollen Zugriff, die Leitung einer Einheit mit
+    entsprechender Einstellung ebenso.
+</MudText>
+
+<MudSimpleTable Dense="true" Hover="true">
+    <thead>
+        <tr>
+            <th>Beteiligt</th>
+            <th>Rolle</th>
+            @foreach (var tab in InvestigationTabs.All)
+            {
+                <th title="@tab.Label" style="text-align:center;"><MudIcon Icon="@tab.Icon" Size="Size.Small" /></th>
+            }
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var p in Detail.Participants)
+        {
+            <tr>
+                <td>
+                    <MudText Typo="Typo.body2"><b>@p.Label</b></MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Detail</MudText>
+                </td>
+                <td>@(p.IsUnit ? "Einheit" : InvestigationDisplay.Name(p.Role))</td>
+                @foreach (var tab in InvestigationTabs.All)
+                {
+                    var own = p.Overrides.TryGetValue(tab.Slug, out var set);
+                    var level = own ? set : p.Defaults.GetValueOrDefault(tab.Slug);
+                    <td style="text-align:center;" title="@($"{tab.Label}: {InvestigationAccessLevelDisplay.Name(level)}{(own ? " (eigene Einstellung)" : " (Vorgabe)")}")">
+                        <MudIcon Size="Size.Small" Icon="@LevelIcon(level)" Color="@LevelColour(level)" Style="@(own ? null : "opacity:.55;")" />
+                    </td>
+                }
+                <td class="text-right" style="white-space:nowrap;">
+                    @if (mayEdit && MayTouch(p))
+                    {
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Tune" OnClick="@(() => Edit(p))" aria-label="Rechte bearbeiten" />
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.PersonRemove" Color="Color.Error" OnClick="@(() => RemoveAsync(p))" aria-label="Austragen" />
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</MudSimpleTable>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+    <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Success" /> Bearbeiten ·
+    <MudIcon Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info" /> Lesen ·
+    <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Small" /> Keine · blass = Vorgabe
+</MudText>
+
+@if (mayEdit)
+{
+    @if (_edit is null)
+    {
+        <MudButton Class="mt-3" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NewAsync">Beteiligen</MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-3 mt-3" Outlined="true">
+            @if (_edit.Id is null)
+            {
+                <MudAutocomplete T="InvestigationTarget" Value="_edit.Target" ValueChanged="@(t => { _edit.Target = t; })" SearchFunc="SearchCandidates"
+                                 ToStringFunc="@(t => t?.Label ?? string.Empty)" Label="Agent, Partnerkonto oder ganze Einheit" Variant="Variant.Outlined"
+                                 Margin="Margin.Dense" ResetValueOnEmptyText="true" MinCharacters="0"
+                                 Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    Partner lassen sich nur aus Behörden beteiligen, die an der Taskforce mitarbeiten (überbehördliche Taskforce, Behörde eingetragen).
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.subtitle2">@_edit.Label</MudText>
+            }
+            @if (!IsUnit)
+            {
+                <MudSelect T="InvestigationRole" @bind-Value="_edit.Role" Label="Rolle" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mt-2" Style="max-width:260px;">
+                    @foreach (var role in InvestigationDisplay.Roles.Where(r => r != InvestigationRole.Lead || Detail.Access.FullAccess))
+                    {
+                        <MudSelectItem T="InvestigationRole" Value="role">@InvestigationDisplay.Name(role)</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+                    Staatsanwalt nur für Konten der Staatsanwaltschaft; er zeichnet die Anordnungen dieser Ermittlung.
+                </MudText>
+            }
+            <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Rechte je Tab</MudText>
+            <MudGrid Spacing="1">
+                @foreach (var tab in InvestigationTabs.All)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudSelect T="string" Value="@CellValue(tab.Slug)" ValueChanged="@(v => SetCell(tab.Slug, v))" Label="@tab.Label"
+                                   Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                            <MudSelectItem T="string" Value="@Default">Vorgabe</MudSelectItem>
+                            @foreach (var level in InvestigationAccessLevelDisplay.All.Where(l => !tab.ReadOnly || l != InvestigationAccessLevel.Edit))
+                            {
+                                <MudSelectItem T="string" Value="@level.ToString()">@InvestigationAccessLevelDisplay.Name(level)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_busy || (_edit.Id is null && _edit.Target is null))">Speichern</MudButton>
+                <MudButton OnClick="@(() => _edit = null)">Abbrechen</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    // as the service: without full access neither a lead row nor one's own rows
+    private bool MayTouch(InvestigationParticipantView p)
+        => Detail.Access.FullAccess
+           || (p.Role != InvestigationRole.Lead
+               && !(p.AgentId is not null && p.AgentId == Detail.Access.MeId)
+               && !(p.PartnerUnitId is not null && p.PartnerUnitId == Detail.Access.MyUnitId));
+
+    private const string Default = "vorgabe";
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string Label { get; set; } = string.Empty;
+        public InvestigationTarget? Target { get; set; }
+        public string? AgentId { get; set; }
+        public string? UnitId { get; set; }
+        public InvestigationRole Role { get; set; } = InvestigationRole.Investigator;
+        public Dictionary<string, InvestigationAccessLevel> Overrides { get; set; } = new();
+    }
+
+    private EditState? _edit;
+    private List<InvestigationTarget> _candidates = new();
+    private bool _busy;
+
+    private bool IsUnit => _edit?.UnitId is not null || (_edit?.Target is { AgentId: null, PartnerUnitId: not null });
+
+    private static string LevelIcon(InvestigationAccessLevel level) => level switch
+    {
+        InvestigationAccessLevel.Edit => Icons.Material.Filled.Edit,
+        InvestigationAccessLevel.Read => Icons.Material.Filled.Visibility,
+        _ => Icons.Material.Filled.Block,
+    };
+
+    private static Color LevelColour(InvestigationAccessLevel level) => level switch
+    {
+        InvestigationAccessLevel.Edit => Color.Success,
+        InvestigationAccessLevel.Read => Color.Info,
+        _ => Color.Default,
+    };
+
+    private string CellValue(string slug) => _edit?.Overrides.TryGetValue(slug, out var v) == true ? v.ToString() : Default;
+
+    private void SetCell(string slug, string value)
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        if (value == Default || !Enum.TryParse<InvestigationAccessLevel>(value, out var level))
+        {
+            _edit.Overrides.Remove(slug);
+        }
+        else
+        {
+            _edit.Overrides[slug] = level;
+        }
+    }
+
+    private async Task NewAsync()
+    {
+        try
+        {
+            _candidates = await Investigations.GetCandidatesAsync(Detail.Id, User);
+            _edit = new EditState();
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private Task<IEnumerable<InvestigationTarget>> SearchCandidates(string value, CancellationToken token)
+    {
+        var taken = Detail.Participants.Select(p => p.AgentId ?? p.PartnerUnitId).ToHashSet();
+        var q = _candidates.Where(c => !taken.Contains(c.AgentId ?? c.PartnerUnitId));
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            q = q.Where(c => c.Label.Contains(value, StringComparison.OrdinalIgnoreCase));
+        }
+        return Task.FromResult<IEnumerable<InvestigationTarget>>(q.Take(30).ToList());
+    }
+
+    private void Edit(InvestigationParticipantView p)
+        => _edit = new EditState
+        {
+            Id = p.Id, Label = p.Label, AgentId = p.AgentId, UnitId = p.PartnerUnitId, Role = p.Role,
+            Overrides = p.Overrides.ToDictionary(kv => kv.Key, kv => kv.Value),
+        };
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        var agentId = _edit.Id is null ? _edit.Target?.AgentId : _edit.AgentId;
+        var unitId = _edit.Id is null ? (_edit.Target?.AgentId is null ? _edit.Target?.PartnerUnitId : null) : _edit.UnitId;
+        _busy = true;
+        try
+        {
+            await Investigations.SaveParticipantAsync(Detail.Id, new InvestigationParticipantInput(_edit.Id, agentId, unitId, _edit.Role, _edit.Overrides), User);
+            _edit = null;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or ArgumentException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RemoveAsync(InvestigationParticipantView p)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Beteiligung beenden", $"{p.Label} verliert den Zugriff auf diese Ermittlung.", yesText: "Austragen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.RemoveParticipantAsync(Detail.Id, p.Id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

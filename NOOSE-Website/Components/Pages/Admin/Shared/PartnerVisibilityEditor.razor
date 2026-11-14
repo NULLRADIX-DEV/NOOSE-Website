@@ -1,24 +1,27 @@
-@* What a partner rank may see; the agency selector lives on the parent panel. *@
-@inject IPartnerVisibilityPolicyService Policy
+@* What a partner unit may see; the agency selector lives on the parent panel. *@
+@inject IPartnerUnitService Units
 @inject ISnackbar Snackbar
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">
-    Lege je Partner-Rang fest, welche Akten-Bereiche und welche Tabs darin standardmäßig sichtbar sind.
-    Ohne Einschränkung sieht ein Rang alle für seine Behörde freigegebenen Akten. Einzelfreigaben an ein
+    Lege je Einheit fest, welche Akten-Bereiche und welche Tabs darin standardmäßig sichtbar sind.
+    Ohne Einschränkung sieht eine Einheit alle für sie freigegebenen Akten. Einzelfreigaben an ein
     einzelnes Konto bleiben unberührt – sie zeigen die Akte immer vollständig.
     Diese Einstellung schränkt nur ein; <b>welche Akten überhaupt freigegeben sind, steuerst du oben.</b>
 </MudText>
 
 <MudPaper Class="pa-4 mb-4" Elevation="2">
     <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
-        <MudSelect T="PartnerRank" Value="_rank" ValueChanged="RankChangedAsync" Label="Rang"
-                   Dense="true" Variant="Variant.Outlined" Style="min-width:160px;">
-            @foreach (var r in PartnerRankDisplay.All)
+        <MudSelect T="string" Value="_unitId" ValueChanged="UnitChangedAsync" Label="Einheit"
+                   Dense="true" Variant="Variant.Outlined" Style="min-width:220px;">
+            @foreach (var u in _units)
             {
-                <MudSelectItem T="PartnerRank" Value="@r">@r</MudSelectItem>
+                <MudSelectItem T="string" Value="@u.Id">@u.Name</MudSelectItem>
             }
         </MudSelect>
-        <MudChip T="string" Color="Color.Info" Variant="Variant.Filled">@PartnerRankDisplay.Full(Agency, _rank)</MudChip>
+        @if (_units.FirstOrDefault(u => u.Id == _unitId) is { } current)
+        {
+            <MudChip T="string" Color="Color.Info" Variant="Variant.Filled">@current.FullName</MudChip>
+        }
     </MudStack>
 </MudPaper>
 
@@ -30,9 +33,9 @@ else
 {
     <MudPaper Class="pa-4 mb-4" Elevation="2">
         <MudSwitch T="bool" Value="_restricted" ValueChanged="RestrictedChanged" Color="Color.Primary"
-                   Label="Sichtbarkeit für diesen Rang einschränken" />
+                   Label="Sichtbarkeit für diese Einheit einschränken" Disabled="!_mayEdit" />
         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-            Aus: Rang sieht alle freigegebenen Akten und Tabs. Ein: nur die unten angehakten Bereiche und Tabs.
+            Aus: die Einheit sieht alle freigegebenen Akten und Tabs. Ein: nur die unten angehakten Bereiche und Tabs.
         </MudText>
     </MudPaper>
 
@@ -63,21 +66,29 @@ else
         </MudGrid>
     }
 
-    <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-               OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+    @if (_mayEdit)
+    {
+        <MudButton Class="mt-4" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveAsync" Disabled="@(_busy || _unitId is null)">Speichern</MudButton>
+    }
 }
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
-    /// <summary>Agency whose rank visibility is edited; owned by the parent panel.</summary>
+    /// <summary>Agency whose unit visibility is edited; owned by the parent panel.</summary>
     [Parameter] public PartnerAgency Agency { get; set; }
+
+    /// <summary>Bumped by the parent when units were added or renamed.</summary>
+    [Parameter] public int Version { get; set; }
 
     private ClaimsPrincipal _user = default!;
     private bool _load = true;
     private bool _busy;
-    private PartnerAgency? _loadedAgency;
-    private PartnerRank _rank = PartnerRank.Member;
+    private bool _mayEdit;
+    private (PartnerAgency, int)? _loadedFor;
+    private IReadOnlyList<PartnerUnitView> _units = Array.Empty<PartnerUnitView>();
+    private string? _unitId;
     private bool _restricted;
     private Dictionary<string, bool> _typeChecked = new();
     private Dictionary<string, Dictionary<string, bool>> _tabChecked = new();
@@ -86,25 +97,31 @@ else
     protected override async Task OnParametersSetAsync()
     {
         _user = (await AuthStateTask).User;
-        if (_loadedAgency == Agency)
+        _mayEdit = _user.IsAdmin() && _user.MayWrite();
+        if (_loadedFor == (Agency, Version))
         {
             return;
         }
-        _loadedAgency = Agency;
+        _loadedFor = (Agency, Version);
+        _units = await Units.ForAgencyAsync(Agency);
+        if (_units.All(u => u.Id != _unitId))
+        {
+            _unitId = _units.FirstOrDefault()?.Id;
+        }
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _load = true;
-        var entry = await Policy.GetRankAsync(Agency, _rank);
+        var entry = (await Units.GetAsync(_unitId))?.Visibility;
         _restricted = entry is not null;
         BuildState(entry);
         _load = false;
     }
 
     // null entry = "sees all" → every box checked (starting point when the admin enables restriction)
-    private void BuildState(PartnerRankVisibility? entry)
+    private void BuildState(PartnerUnitVisibility? entry)
     {
         _typeChecked = new();
         _tabChecked = new();
@@ -127,9 +144,9 @@ else
         }
     }
 
-    private async Task RankChangedAsync(PartnerRank rank)
+    private async Task UnitChangedAsync(string unitId)
     {
-        _rank = rank;
+        _unitId = unitId;
         await LoadAsync();
     }
 
@@ -164,7 +181,7 @@ else
         _busy = true;
         try
         {
-            await Policy.SaveRankAsync(Agency, _rank, _restricted ? Build() : null, _user);
+            await Units.SaveVisibilityAsync(_unitId!, _restricted ? Build() : null, _user);
             Snackbar.Add("Partner-Sichtbarkeit gespeichert – wirksam beim nächsten Seitenwechsel.", Severity.Success);
             await LoadAsync();
         }
@@ -178,9 +195,9 @@ else
         }
     }
 
-    private PartnerRankVisibility Build()
+    private PartnerUnitVisibility Build()
     {
-        var vis = new PartnerRankVisibility();
+        var vis = new PartnerUnitVisibility();
         foreach (var type in PartnerTabCatalog.All)
         {
             if (!_typeChecked[type.TypeKey])

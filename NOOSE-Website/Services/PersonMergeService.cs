@@ -47,6 +47,8 @@ public class PersonMergeService(
         // trashed ones too, or a restore would hang off the merged-away file
         await db.Warrants.IgnoreQueryFilters().Where(w => w.PersonId == sourceId)
             .ExecuteUpdateAsync(s => s.SetProperty(w => w.PersonId, targetId), cancellationToken);
+        await db.InvestigationPeople.IgnoreQueryFilters().Where(p => p.PersonId == sourceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.PersonId, targetId), cancellationToken);
 
         // ---- profile children with case-insensitive dedup ----
         static string Norm(string? s) => (s ?? string.Empty).Trim().ToLowerInvariant();

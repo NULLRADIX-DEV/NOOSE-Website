@@ -198,6 +198,15 @@ public enum NotificationType
     /// <summary>New messages in a taskforce chat the recipient belongs to, once until read. Routable — pings the
     /// member; the post names no taskforce.</summary>
     TaskforceChat = 57,
+
+    /// <summary>The recipient was added to an investigation. Bell only: who works on which file stays in the house.</summary>
+    InvestigationParticipation = 58,
+
+    /// <summary>A to-do of an investigation was assigned to the recipient. Bell only.</summary>
+    InvestigationTask = 59,
+
+    /// <summary>A warrant of the recipient's investigation waits for the prosecutor's signature. Bell only.</summary>
+    WarrantToSign = 60,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -263,6 +272,9 @@ public static class NotificationTypeDisplay
         NotificationType.RegulationChanged => "Dienstverordnung geändert",
         NotificationType.RecordKeeperAssigned => "Aktenführung",
         NotificationType.TaskforceChat => "Taskforce-Chat",
+        NotificationType.InvestigationParticipation => "Ermittlung",
+        NotificationType.InvestigationTask => "Aufgabe in einer Ermittlung",
+        NotificationType.WarrantToSign => "Anordnung zu zeichnen",
         _ => "Benachrichtigung",
     };
 
@@ -327,6 +339,9 @@ public static class NotificationTypeDisplay
         NotificationType.RegulationChanged => Icons.Material.Filled.Rule,
         NotificationType.RecordKeeperAssigned => Icons.Material.Filled.FolderShared,
         NotificationType.TaskforceChat => Icons.Material.Filled.MarkUnreadChatAlt,
+        NotificationType.InvestigationParticipation => Icons.Material.Filled.Gavel,
+        NotificationType.InvestigationTask => Icons.Material.Filled.Checklist,
+        NotificationType.WarrantToSign => Icons.Material.Filled.Draw,
         _ => Icons.Material.Filled.Notifications,
     };
 }

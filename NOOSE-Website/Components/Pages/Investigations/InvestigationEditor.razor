@@ -1,0 +1,168 @@
+@page "/ermittlungen/neu"
+@page "/ermittlungen/{Id}/bearbeiten"
+@* open to partners: the service lets an SID account open files at taskforces its agency takes part in *@
+@inject IInvestigationService Investigations
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(Id is null ? "Neue Ermittlung" : "Deckblatt bearbeiten") · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.Gavel" Title="@(Id is null ? "Neue Ermittlung" : "Deckblatt bearbeiten")"
+            BackHref="@(Id is null ? "/ermittlungen" : $"/ermittlungen/{Id}")"
+            Subtitle="@(Id is null ? "Wer die Ermittlung anlegt, leitet sie und trägt danach die Beteiligten ein." : null)" />
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_denied is not null)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">@_denied</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudForm @ref="_form">
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_title" Label="Titel" Required="true" RequiredError="Bitte einen Titel angeben."
+                                  MaxLength="200" Variant="Variant.Outlined" HelperText="Kurz, z. B. „Schusswaffeneinsatz Carter“." />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="string" @bind-Value="_taskforceId" Label="Taskforce" Required="true" Variant="Variant.Outlined"
+                               Disabled="@(Id is not null && !_user.IsLeadership())"
+                               HelperText="@(Id is null ? "Die Ermittlung hängt an dieser Taskforce." : "Umhängen darf nur die Führung.")">
+                        @foreach (var tf in _taskforces)
+                        {
+                            <MudSelectItem T="string" Value="@tf.Id">@tf.Label</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="InvestigationStatus" @bind-Value="_status" Label="Status" Variant="Variant.Outlined">
+                        @foreach (var s in InvestigationDisplay.Statuses)
+                        {
+                            <MudSelectItem T="InvestigationStatus" Value="s">@InvestigationDisplay.Name(s)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_sid" Label="Az. SID" MaxLength="64" Variant="Variant.Outlined" Placeholder="IR-9-2026-001" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_fiveNet" Label="Az. 5Net" MaxLength="64" Variant="Variant.Outlined" Placeholder="DOC-12345" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudDatePicker @bind-Date="_opened" Label="Eröffnet am" Variant="Variant.Outlined" DateFormat="dd.MM.yyyy" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_indictment" Label="Anklage" MaxLength="1000" Lines="2" Variant="Variant.Outlined"
+                                  HelperText="Wann und wo Anklage erhoben wurde, sobald es so weit ist." />
+                </MudItem>
+            </MudGrid>
+            <FormActions>
+                <MudButton Href="@(Id is null ? "/ermittlungen" : $"/ermittlungen/{Id}")">Abbrechen</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_saving"
+                           StartIcon="@Icons.Material.Filled.Save">@(Id is null ? "Anlegen" : "Speichern")</MudButton>
+            </FormActions>
+        </MudForm>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    [SupplyParameterFromQuery(Name = "taskforce")] public string? PreTaskforceId { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private MudForm _form = default!;
+    private bool _load = true;
+    private bool _saving;
+    private string? _denied;
+    private string? _loadedId = "\0";
+    private List<(string Id, string Label)> _taskforces = new();
+    private string _title = string.Empty;
+    private string? _taskforceId;
+    private InvestigationStatus _status;
+    private string? _sid;
+    private string? _fiveNet;
+    private DateTime? _opened = DateTime.Today;
+    private string? _indictment;
+
+    // both routes bind this component, so loading follows the parameter
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _load = true;
+        _denied = null;
+        _user = (await AuthStateTask).User;
+        _taskforces = await Investigations.GetCreatableTaskforcesAsync(_user);
+        if (Id is null)
+        {
+            if (_taskforces.Count == 0)
+            {
+                _denied = "Du darfst an keiner Taskforce eine Ermittlung anlegen. Partner brauchen eine Einheit mit Anlegerecht und eine überbehördliche Taskforce mit Beteiligung ihrer Behörde.";
+            }
+            _taskforceId = _taskforces.Any(t => t.Id == PreTaskforceId) ? PreTaskforceId : _taskforces.FirstOrDefault().Id;
+        }
+        else
+        {
+            var detail = await Investigations.GetAsync(Id, _user);
+            if (detail is null || !detail.Access.CanEdit(InvestigationTabs.Overview))
+            {
+                _denied = "Das Deckblatt dieser Ermittlung darfst du nicht bearbeiten.";
+            }
+            else
+            {
+                _title = detail.Title;
+                _taskforceId = detail.TaskforceId;
+                if (_taskforces.All(t => t.Id != detail.TaskforceId))
+                {
+                    _taskforces.Insert(0, (detail.TaskforceId, detail.TaskforceName ?? "Taskforce"));
+                }
+                _status = detail.Status;
+                _sid = detail.SidCaseNumber;
+                _fiveNet = detail.FiveNetCaseNumber;
+                _opened = detail.OpenedAt.ToLocalTime().Date;
+                _indictment = detail.Indictment;
+            }
+        }
+        _load = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid || _taskforceId is null)
+        {
+            return;
+        }
+        _saving = true;
+        try
+        {
+            var opened = (_opened ?? DateTime.Today).ToUniversalTime();
+            var input = new InvestigationInput(_title, _taskforceId, _sid, _fiveNet, _status, opened, _indictment);
+            if (Id is null)
+            {
+                var id = await Investigations.CreateAsync(input, _user);
+                Snackbar.Add("Ermittlung angelegt. Trage jetzt die Beteiligten ein.", Severity.Success);
+                Nav.NavigateTo($"/ermittlungen/{id}?tab={InvestigationTabs.Participants}");
+            }
+            else
+            {
+                await Investigations.UpdateAsync(Id, input, _user);
+                Snackbar.Add("Deckblatt gespeichert.", Severity.Success);
+                Nav.NavigateTo($"/ermittlungen/{Id}");
+            }
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _saving = false;
+        }
+    }
+}

@@ -1,0 +1,147 @@
+@* Evidence log: numbered items with owner, securing officer, status and date. *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.Evidence); }
+
+@if (Detail.Evidence.Count == 0 && _edit is null)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.Inventory2" Title="Noch keine Beweismittel" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true">
+        <thead>
+            <tr><th>Nr.</th><th>Bezeichnung</th><th>Besitzer</th><th>Beamter</th><th>Status</th><th>Datum</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var e in Detail.Evidence)
+            {
+                <tr>
+                    <td>@e.Number</td>
+                    <td>
+                        @e.Name
+                        @if (!string.IsNullOrWhiteSpace(e.Description))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block" Style="white-space:pre-line;">@e.Description</MudText>
+                        }
+                    </td>
+                    <td>@(e.Owner ?? "—")</td>
+                    <td>@(e.Officer ?? "—")</td>
+                    <td>@InvestigationDisplay.Name(e.Status)</td>
+                    <td>@(e.SecuredAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")</td>
+                    <td class="text-right" style="white-space:nowrap;">
+                        <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationEvidence)" ItemId="@e.Id" User="User" Changed="Changed" />
+                        @if (mayEdit)
+                        {
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(e))" aria-label="Bearbeiten" />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(e.Id))" aria-label="Löschen" />
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (mayEdit)
+{
+    @if (_edit is null)
+    {
+        <MudButton Class="mt-3" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => Edit(null))">Beweismittel eintragen</MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-3 mt-3" Outlined="true">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Name" Label="Bezeichnung" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+                <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Owner" Label="Besitzer" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+                <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Officer" Label="Sichernder Beamter" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+                <MudItem xs="12" md="8"><MudTextField @bind-Value="_edit.Description" Label="Beschreibung" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="2000" /></MudItem>
+                <MudItem xs="6" md="2">
+                    <MudSelect T="InvestigationEvidenceStatus" @bind-Value="_edit.Status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var s in InvestigationDisplay.EvidenceStatuses)
+                        {
+                            <MudSelectItem T="InvestigationEvidenceStatus" Value="s">@InvestigationDisplay.Name(s)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="6" md="2"><MudDatePicker @bind-Date="_edit.Date" Label="Datum" DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+                <MudButton OnClick="@(() => _edit = null)">Abbrechen</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public string? Owner { get; set; }
+        public string? Officer { get; set; }
+        public InvestigationEvidenceStatus Status { get; set; }
+        public DateTime? Date { get; set; } = DateTime.Today;
+    }
+
+    private EditState? _edit;
+    private bool _busy;
+
+    private void Edit(InvestigationEvidenceView? e)
+        => _edit = e is null ? new EditState()
+            : new EditState
+            {
+                Id = e.Id, Name = e.Name, Description = e.Description, Owner = e.Owner, Officer = e.Officer, Status = e.Status,
+                Date = e.SecuredAt?.ToLocalTime().Date,
+            };
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Investigations.SaveEvidenceAsync(Detail.Id, new InvestigationEvidenceInput(_edit.Id, _edit.Name, _edit.Description, _edit.Owner,
+                _edit.Officer, _edit.Status, _edit.Date?.ToUniversalTime()), User);
+            _edit = null;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Beweismittel löschen", "Das Beweismittel wird aus dem Protokoll entfernt.", yesText: "Löschen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.DeleteEntryAsync(Detail.Id, nameof(InvestigationEvidence), id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

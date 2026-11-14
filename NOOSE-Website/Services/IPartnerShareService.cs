@@ -8,10 +8,13 @@ namespace NOOSE_Website.Services;
 public record PartnerShareState(PartnerAgency Agency, bool Released, bool IncludesChildren, DateTime? ValidUntil = null);
 
 /// <summary>Release of a record to a single partner account.</summary>
-public record PartnerIndividualShareState(string AgentId, string Codename, PartnerAgency Agency, PartnerRank? Rank, bool IncludesChildren, DateTime? ValidUntil = null);
+public record PartnerIndividualShareState(string AgentId, string Codename, PartnerAgency Agency, string? UnitId, bool IncludesChildren, DateTime? ValidUntil = null);
+
+/// <summary>Release of a record or child item to one partner unit.</summary>
+public record PartnerUnitShareState(string UnitId, PartnerAgency Agency, bool IncludesChildren, DateTime? ValidUntil = null);
 
 /// <summary>Selectable partner account for an individual release.</summary>
-public record PartnerAccountOption(string AgentId, string Codename, PartnerAgency Agency, PartnerRank? Rank);
+public record PartnerAccountOption(string AgentId, string Codename, PartnerAgency Agency, string? UnitId);
 
 /// <summary>Release coverage of one record type for an agency: total records and how many are released agency-wide.</summary>
 public record PartnerTypeShareSummary(string TypeKey, string DisplayName, int TotalRecords, int SharedRecords);
@@ -27,6 +30,13 @@ public interface IPartnerShareService
 
     /// <summary>Individual account releases for a parent record.</summary>
     Task<IReadOnlyList<PartnerIndividualShareState>> GetIndividualSharesForRecordAsync(string entityType, string entityId, CancellationToken cancellationToken = default);
+
+    /// <summary>Active unit releases of a record or child item.</summary>
+    Task<IReadOnlyList<PartnerUnitShareState>> GetUnitSharesAsync(string entityType, string entityId, CancellationToken cancellationToken = default);
+
+    /// <summary>Set/clear the release to one partner unit; validUntil applies when setExpiry (null = unlimited, past rejected). Leadership.</summary>
+    Task SetUnitAsync(string entityType, string entityId, string partnerUnitId, bool released, bool includesChildren,
+        bool setExpiry, DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Active partner accounts that can receive an individual release.</summary>
     Task<IReadOnlyList<PartnerAccountOption>> GetSelectablePartnersAsync(CancellationToken cancellationToken = default);

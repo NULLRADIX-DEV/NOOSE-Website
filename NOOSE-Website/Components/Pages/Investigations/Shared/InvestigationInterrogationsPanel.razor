@@ -1,0 +1,239 @@
+@* Interrogations of the accused and the witnesses, each with a question and answer protocol. *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+@{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.Interrogations); }
+
+@if (_edit is not null)
+{
+    <MudPaper Class="pa-3 mb-3" Outlined="true">
+        <MudText Typo="Typo.subtitle2" Class="mb-2">@(_edit.Id is null ? "Neue Vernehmung" : "Vernehmung bearbeiten")</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" Value="_edit.PersonRef" ValueChanged="PickPerson" Label="Person aus der Liste" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var p in Detail.People)
+                    {
+                        <MudSelectItem T="string" Value="@p.Id">@p.Name (@p.Role)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+            <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Role" Label="Rolle" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" /></MudItem>
+            <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Summons" Label="Vorladung" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="300" /></MudItem>
+            <MudItem xs="6" md="2"><MudDatePicker @bind-Date="_edit.Date" Label="Datum" DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            <MudItem xs="6" md="2"><MudTimePicker @bind-Time="_edit.Time" Label="Uhrzeit" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Officers" Label="Vernehmende Beamte" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="300" /></MudItem>
+            <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Prosecutor" Label="Staatsanwalt anwesend" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="_edit.Reference" Label="Verweis auf ein Protokoll" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500"
+                                                  HelperText="z. B. Dokumentnummer aus 5Net" /></MudItem>
+            <MudItem xs="12" md="2"><MudSwitch T="bool" @bind-Value="_edit.Usable" Color="Color.Primary" Label="Verwertbar" /></MudItem>
+            <MudItem xs="12">
+                <TextDraft DraftKey="@DraftKeys.In(DraftScope, "zusammenfassung")" OnRestore="@(t => { if (_edit is not null) _edit.Summary = t; })">
+                    <MudTextField @bind-Value="_edit.Summary" Label="Zusammenfassung" Lines="3" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="4000" Immediate="true" />
+                </TextDraft>
+            </MudItem>
+        </MudGrid>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-3 mb-1">Schriftliches Protokoll</MudText>
+        @for (var i = 0; i < _edit.Entries.Count; i++)
+        {
+            var index = i;
+            var qa = _edit.Entries[index];
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Start" Class="noose-eintrag mb-1">
+                <MudTextField @bind-Value="qa.Question" Label="@($"Frage {index + 1}")" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" MaxLength="2000" />
+                <MudTextField @bind-Value="qa.Answer" Label="Antwort" Lines="2" Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1" MaxLength="4000" />
+                <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => _edit.Entries.RemoveAt(index))" aria-label="Frage entfernen" />
+            </MudStack>
+        }
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => _edit.Entries.Add(new Qa()))">Frage hinzufügen</MudButton>
+
+        <MudStack Row="true" Spacing="2" Class="mt-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+            <MudButton OnClick="@(() => _edit = null)">Abbrechen</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+else if (mayEdit)
+{
+    <MudButton Class="mb-3" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => Edit(null))">Vernehmung eintragen</MudButton>
+}
+
+@if (Detail.Interrogations.Count == 0 && _edit is null)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.RecordVoiceOver" Title="Noch keine Vernehmung" />
+}
+else
+{
+    <MudExpansionPanels MultiExpansion="true" Elevation="0">
+        @foreach (var v in Detail.Interrogations)
+        {
+            <MudExpansionPanel>
+                <TitleContent>
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        <MudText Typo="Typo.subtitle2">@v.Name</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@v.Role</MudChip>
+                        @if (v.HeldAt is { } held)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@held.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                        }
+                        @if (!v.Usable)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">nicht verwertbar</MudChip>
+                        }
+                        @if (v.Entries.Count > 0)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@v.Entries.Count Fragen</MudText>
+                        }
+                    </MudStack>
+                </TitleContent>
+                <ChildContent>
+                    <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                        <InvestigationEntryLimit Detail="Detail" ItemType="@nameof(InvestigationInterrogation)" ItemId="@v.Id" User="User" Changed="Changed" />
+                        @if (mayEdit)
+                        {
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => Edit(v))" aria-label="Bearbeiten" />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(v.Id))" aria-label="Löschen" />
+                        }
+                    </MudStack>
+                    <MudGrid Spacing="1">
+                        <MudItem xs="12" sm="6" md="4"><MudText Typo="Typo.overline" Class="mud-text-secondary">Vorladung</MudText><MudText Typo="Typo.body2">@(v.Summons ?? "—")</MudText></MudItem>
+                        <MudItem xs="12" sm="6" md="4"><MudText Typo="Typo.overline" Class="mud-text-secondary">Beamte</MudText><MudText Typo="Typo.body2">@(v.Officers ?? "—")</MudText></MudItem>
+                        <MudItem xs="12" sm="6" md="4"><MudText Typo="Typo.overline" Class="mud-text-secondary">Staatsanwalt</MudText><MudText Typo="Typo.body2">@(v.ProsecutorPresent ?? "—")</MudText></MudItem>
+                        @if (!string.IsNullOrWhiteSpace(v.ProtocolReference))
+                        {
+                            <MudItem xs="12"><MudText Typo="Typo.overline" Class="mud-text-secondary">Protokoll</MudText><MudText Typo="Typo.body2">@v.ProtocolReference</MudText></MudItem>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(v.Summary))
+                        {
+                            <MudItem xs="12"><MudText Typo="Typo.overline" Class="mud-text-secondary">Zusammenfassung</MudText><MudText Typo="Typo.body2" Style="white-space:pre-line;">@v.Summary</MudText></MudItem>
+                        }
+                    </MudGrid>
+                    @if (v.Entries.Count > 0)
+                    {
+                        <MudSimpleTable Dense="true" Class="mt-2">
+                            <thead><tr><th style="width:40%;">Frage</th><th>Antwort</th></tr></thead>
+                            <tbody>
+                                @foreach (var qa in v.Entries)
+                                {
+                                    <tr><td style="white-space:pre-line;">@qa.Question</td><td style="white-space:pre-line;">@qa.Answer</td></tr>
+                                }
+                            </tbody>
+                        </MudSimpleTable>
+                    }
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    </MudExpansionPanels>
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private sealed class Qa
+    {
+        public string Question { get; set; } = string.Empty;
+        public string Answer { get; set; } = string.Empty;
+    }
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string? PersonRef { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Role { get; set; } = "Zeuge";
+        public string? Summons { get; set; }
+        public DateTime? Date { get; set; } = DateTime.Today;
+        public TimeSpan? Time { get; set; }
+        public string? Officers { get; set; }
+        public string? Prosecutor { get; set; }
+        public string? Summary { get; set; }
+        public string? Reference { get; set; }
+        public bool Usable { get; set; } = true;
+        public List<Qa> Entries { get; set; } = new();
+    }
+
+    private EditState? _edit;
+    private bool _busy;
+
+    private string? DraftScope => _edit is null ? null : $"ermittlung-vernehmung:{Detail.Id}:{_edit.Id ?? "neu"}";
+
+    private void PickPerson(string? id)
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _edit.PersonRef = id;
+        if (Detail.People.FirstOrDefault(p => p.Id == id) is { } p)
+        {
+            _edit.Name = p.Name;
+            _edit.Role = p.Role;
+        }
+    }
+
+    private void Edit(InvestigationInterrogationView? v)
+    {
+        if (v is null)
+        {
+            _edit = new EditState { Entries = { new Qa() } };
+            return;
+        }
+        var local = v.HeldAt?.ToLocalTime();
+        _edit = new EditState
+        {
+            Id = v.Id, PersonRef = v.InvestigationPersonId, Name = v.Name, Role = v.Role, Summons = v.Summons,
+            Date = local?.Date, Time = local?.TimeOfDay, Officers = v.Officers, Prosecutor = v.ProsecutorPresent,
+            Summary = v.Summary, Reference = v.ProtocolReference, Usable = v.Usable,
+            Entries = v.Entries.Select(e => new Qa { Question = e.Question, Answer = e.Answer }).ToList(),
+        };
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            DateTime? held = _edit.Date is { } date ? (date.Date + (_edit.Time ?? TimeSpan.Zero)).ToUniversalTime() : null;
+            await Investigations.SaveInterrogationAsync(Detail.Id, new InvestigationInterrogationInput(_edit.Id, _edit.PersonRef, _edit.Name, _edit.Role,
+                _edit.Summons, held, _edit.Officers, _edit.Prosecutor, _edit.Summary, _edit.Reference, _edit.Usable,
+                _edit.Entries.Select(e => new InvestigationQa(e.Question, e.Answer)).ToList()), User);
+            await TextDraft.DiscardScopeAsync(JS, User.GetAgentId(), DraftScope);
+            _edit = null;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Vernehmung löschen", "Die Vernehmung samt Protokoll wird entfernt.", yesText: "Löschen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.DeleteEntryAsync(Detail.Id, nameof(InvestigationInterrogation), id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

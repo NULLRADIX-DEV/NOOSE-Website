@@ -18,7 +18,8 @@ public sealed class WarrantSearchProvider(IDbContextFactory<AppDbContext> dbFact
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var q = db.Warrants.AsNoTracking().OnlyVisible(db, query.Scope);
+        // warrants of an investigation stay out like the investigation: their tab rights are not a query
+        var q = db.Warrants.AsNoTracking().OnlyVisible(db, query.Scope).Where(w => w.InvestigationId == null);
         if (query.HasText)
         {
             var s = query.Text;

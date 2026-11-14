@@ -1,5 +1,5 @@
 @page "/anordnungen/{Id}"
-@attribute [Authorize(Policy = Policies.InternalAgent)]
+@* no internal-only policy: the prosecutor of an investigation reads its warrants; the service decides *@
 @inject IWarrantService WarrantService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -22,7 +22,7 @@ else
 {
     var w = _view.Warrant;
     <PageHeader Icon="@WarrantTypeDisplay.Icon(w.Type)" Title="@($"{WarrantTypeDisplay.Name(w.Type)} {w.CaseNumber}")"
-                BackHref="/anordnungen">
+                BackHref="@(w.InvestigationId is { } backInv ? $"/ermittlungen/{backInv}" : "/anordnungen")">
         @* The decision (sign, refuse, cancel) is the main action and stays at every width. Print and delete keep their
            places between and after it from 960px up; below 960px they move into the ⋮ menu, under the same conditions
            as their buttons. The d-contents wrappers add no box, so the wide row is the one it always was. *@
@@ -76,10 +76,24 @@ else
                 <MudItem xs="12" sm="6" md="4">
                     <MudText Typo="Typo.overline" Class="mud-text-secondary">Betroffene Person</MudText>
                     <MudText Typo="Typo.body1">
-                        <MudLink Href="@($"/personen/{w.PersonId}")">@_view.PersonName</MudLink>
+                        @if (_user.IsPartner())
+                        {
+                            @_view.PersonName
+                        }
+                        else
+                        {
+                            <MudLink Href="@($"/personen/{w.PersonId}")">@_view.PersonName</MudLink>
+                        }
                         <span class="mud-text-secondary"> @_view.PersonCaseNumber</span>
                     </MudText>
                 </MudItem>
+                @if (w.InvestigationId is { } investigationId)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudText Typo="Typo.overline" Class="mud-text-secondary">Ermittlung</MudText>
+                        <MudText Typo="Typo.body1"><MudLink Href="@($"/ermittlungen/{investigationId}")">Zur Ermittlungsakte</MudLink></MudText>
+                    </MudItem>
+                }
                 <MudItem xs="12" sm="6" md="4">
                     <MudText Typo="Typo.overline" Class="mud-text-secondary">Vorgang</MudText>
                     <MudText Typo="Typo.body1">
@@ -145,7 +159,7 @@ else
                     <MudTimelineItem Color="@(w.Status == WarrantStatus.Rejected ? Color.Error : Color.Success)" Size="Size.Small">
                         <MudText Typo="Typo.body2">
                             <strong>@(w.Status == WarrantStatus.Rejected ? "Abgelehnt" : "Unterzeichnet")</strong>
-                            von @(w.DeciderName ?? "—")@(w.DeciderRank is { } rank ? $", {RankDisplay.Name(rank)}" : string.Empty)
+                            von @(w.DeciderName ?? "—")@(w.DeciderRank is { } rank ? $", {RankDisplay.Name(rank)}" : string.Empty)@(w.DeciderFunction is { } function ? $", {function}" : string.Empty)
                         </MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@decided.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
                         @if (!string.IsNullOrWhiteSpace(w.DecisionNote))
@@ -174,9 +188,12 @@ else
                 }
             </MudTimeline>
         </RecordSection>
-        <RecordSection Slug="verknuepfungen" Label="Verknüpfungen" Icon="@Icons.Material.Filled.Link">
-            <RecordLinksPanel @key="Id" EntityType="@nameof(Warrant)" EntityId="@Id" User="@_user" />
-        </RecordSection>
+        @if (!_user.IsPartner())
+        {
+            <RecordSection Slug="verknuepfungen" Label="Verknüpfungen" Icon="@Icons.Material.Filled.Link">
+                <RecordLinksPanel @key="Id" EntityType="@nameof(Warrant)" EntityId="@Id" User="@_user" />
+            </RecordSection>
+        }
     </RecordSectionRail>
 }
 
@@ -189,15 +206,14 @@ else
     private WarrantView? _view;
     private string? _loadedId;
 
-    // mirrors the service: leadership any, the requester only an open own request
-    private bool MayDelete => _view is { } v
-        && (_user.MayWarrantSign()
-            || (_user.MayWarrantRequest() && v.State == WarrantState.Requested
-                && !string.IsNullOrEmpty(v.Warrant.CreatedById) && v.Warrant.CreatedById == _user.GetAgentId()));
+    // computed by the service per warrant
+    private bool MayDelete => _view?.MayDelete == true;
 
     private string Banner => _view is not { } v ? string.Empty : v.State switch
     {
-        WarrantState.Requested => "Wartet auf die Unterschrift der Führung. Bis dahin gilt nichts und es gibt kein Papier.",
+        WarrantState.Requested => v.Warrant.InvestigationId is null
+            ? "Wartet auf die Unterschrift der Führung. Bis dahin gilt nichts und es gibt kein Papier."
+            : "Wartet auf die Unterschrift der FIB-Führung oder des zuständigen Staatsanwalts. Bis dahin gilt nichts und es gibt kein Papier.",
         WarrantState.Valid => $"Gültig bis {v.Warrant.ValidUntil?.ToLocalTime():dd.MM.yyyy HH:mm}. Das Papier darf vorgezeigt werden.",
         WarrantState.Expired => $"Abgelaufen am {v.Warrant.ValidUntil?.ToLocalTime():dd.MM.yyyy HH:mm}. Das Papier gilt nicht mehr.",
         WarrantState.Cancelled => $"Aufgehoben am {v.Warrant.CancelledAt?.ToLocalTime():dd.MM.yyyy HH:mm}. Das Papier gilt nicht mehr.",

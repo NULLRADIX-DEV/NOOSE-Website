@@ -1,0 +1,65 @@
+@* The investigations of a taskforce the viewer takes part in, and a way to open a new one. *@
+@inject IInvestigationService Investigations
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Ermittlungsakten, die an dieser Taskforce hängen. Jede sieht nur, wer an ihr beteiligt ist; die Leitung der Taskforce sieht alle.
+        </MudText>
+        <MudSpacer />
+        @if (_mayCreate)
+        {
+            <MudButton Href="@($"/ermittlungen/neu?taskforce={Uri.EscapeDataString(TaskforceId)}")" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">Neue Ermittlung</MudButton>
+        }
+    </MudStack>
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_rows.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Gavel" Title="Keine Ermittlung, an der du beteiligt bist" />
+    }
+    else
+    {
+        <MudSimpleTable Dense="true" Hover="true">
+            <thead><tr><th>Aktenzeichen</th><th>Titel</th><th>Status</th><th>Az. SID</th><th>Staatsanwalt</th></tr></thead>
+            <tbody>
+                @foreach (var r in _rows)
+                {
+                    <tr>
+                        <td><MudLink Href="@($"/ermittlungen/{r.Id}")">@r.CaseNumber</MudLink></td>
+                        <td>@r.Title</td>
+                        <td><InvestigationStatusChip Status="r.Status" /></td>
+                        <td>@(r.SidCaseNumber ?? "—")</td>
+                        <td>@(r.Prosecutors.Count == 0 ? "—" : string.Join(", ", r.Prosecutors))</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string TaskforceId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _mayCreate;
+    private List<InvestigationListItem> _rows = new();
+    private string? _loadedId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == TaskforceId)
+        {
+            return;
+        }
+        _loadedId = TaskforceId;
+        _load = true;
+        _rows = await Investigations.GetListAsync(User, taskforceId: TaskforceId);
+        _mayCreate = (await Investigations.GetCreatableTaskforcesAsync(User)).Any(t => t.Id == TaskforceId);
+        _load = false;
+    }
+}

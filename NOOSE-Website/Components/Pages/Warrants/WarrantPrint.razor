@@ -1,6 +1,6 @@
 @* The paper to show in roleplay: what is ordered, against whom, on which legal basis, signed by whom and until when. *@
 @page "/anordnungen/{Id}/druck"
-@attribute [Authorize(Policy = Policies.InternalAgent)]
+@* no internal-only policy: the prosecutor prints the warrants of an investigation; the service decides *@
 @layout PrintLayout
 @inject IWarrantService WarrantService
 @inject IPublicWarrantCheckService WarrantCheck
@@ -76,7 +76,7 @@ else
             <h2>Unterschrift</h2>
             <p>
                 gez. @(w.DeciderName ?? "—")@(w.DeciderRank is { } rank ? $", {RankDisplay.Name(rank)}" : string.Empty)<br />
-                Federal Investigation Bureau, @(w.DecidedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"))
+                @(w.DeciderFunction ?? "Federal Investigation Bureau"), @(w.DecidedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm"))
             </p>
         </section>
 

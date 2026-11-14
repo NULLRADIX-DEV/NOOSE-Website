@@ -20,6 +20,7 @@ using NOOSE_Website.Data.Entities.Watchlist;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Public;
+using NOOSE_Website.Data.Entities.Investigations;
 using NOOSE_Website.Models.Abstractions;
 
 namespace NOOSE_Website.Infrastructure.Notifications;
@@ -148,6 +149,22 @@ public static class WatchlistRecordRollup
             case LawBook:
             // the decoration catalog is configuration; the award is what a follower of a file hears about
             case Decoration:
+            // investigations are kept off the watchlist: the fan-out knows no participants and would leak titles
+            case Investigation:
+            case InvestigationParticipant:
+            case InvestigationCharge:
+            case InvestigationPerson:
+            case InvestigationEvidence:
+            case InvestigationInterrogation:
+            case InvestigationInterrogationEntry:
+            case InvestigationTask:
+            case InvestigationNote:
+            case InvestigationItemRestriction:
+            // partner administration is configuration, not casework
+            case PartnerUnit:
+            case PartnerUnitShare:
+            case PartnerUnitReleaseRule:
+            case TaskforcePartnerAgency:
                 return Array.Empty<(string, string)>();
 
             default:

@@ -224,7 +224,7 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
             var warrantIds = refs.Where(r => r.Item1 == nameof(Warrant)).Select(r => r.Item2).ToList();
             if (warrantIds.Count > 0)
             {
-                foreach (var x in await db.Warrants.OnlyVisible(db, scope).Where(w => warrantIds.Contains(w.Id))
+                foreach (var x in await db.Warrants.OnlyVisible(db, scope).Where(w => warrantIds.Contains(w.Id) && w.InvestigationId == null)
                              .Select(w => new { w.Id, w.CaseNumber }).ToListAsync(cancellationToken))
                 {
                     map[(nameof(Warrant), x.Id)] = new($"Anordnung {x.CaseNumber}", false, $"/anordnungen/{x.Id}");

@@ -122,7 +122,7 @@ public sealed class PartnerShareServiceTests
             {
                 a.Codename = "Nightowl";
                 a.PartnerAgency = PartnerAgency.LSPD;
-                a.PartnerRank = PartnerRank.Chief;
+                a.PartnerRank = PartnerRank.Chief; a.PartnerUnitId = PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Chief);
             }));
             db.SaveChanges();
         }
@@ -137,7 +137,7 @@ public sealed class PartnerShareServiceTests
         Assert.Equal("partner-1", row.AgentId);
         Assert.Equal("Nightowl", row.Codename);
         Assert.Equal(PartnerAgency.LSPD, row.Agency);
-        Assert.Equal(PartnerRank.Chief, row.Rank);
+        Assert.Equal(PartnerUnits.ForLegacy(PartnerAgency.LSPD, PartnerRank.Chief), row.UnitId);
         Assert.True(row.IncludesChildren);
     }
 
@@ -159,7 +159,7 @@ public sealed class PartnerShareServiceTests
             {
                 a.Codename = "Alpha";
                 a.PartnerAgency = PartnerAgency.DoJ;
-                a.PartnerRank = PartnerRank.Special;
+                a.PartnerRank = PartnerRank.Special; a.PartnerUnitId = PartnerUnits.DojStateAttorney;
             }));
             // internal agent (no partner agency) -> excluded
             db.Users.Add(Seed.Agent("internal", configure: a => a.Codename = "Zulu"));
@@ -179,7 +179,7 @@ public sealed class PartnerShareServiceTests
         Assert.Equal("p-doj", options[0].AgentId);   // DoJ(1) before LSPD(2)
         Assert.Equal("p-lspd", options[1].AgentId);
         Assert.Equal(PartnerAgency.DoJ, options[0].Agency);
-        Assert.Equal(PartnerRank.Special, options[0].Rank);
+        Assert.Equal(PartnerUnits.DojStateAttorney, options[0].UnitId);
     }
 
     // ---- SetParentAsync ----

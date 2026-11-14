@@ -86,21 +86,16 @@ public static class AgentPrincipalExtensions
             : null;
     }
 
-    /// <summary>Partner rank tier from claim, or null for internal NOOSE agents.</summary>
-    public static PartnerRank? GetPartnerRank(this ClaimsPrincipal user)
-    {
-        var raw = user.FindFirstValue(AgentClaimTypes.PartnerRank);
-        return int.TryParse(raw, out var value) && Enum.IsDefined(typeof(PartnerRank), value)
-            ? (PartnerRank)value
-            : null;
-    }
+    /// <summary>Partner unit id from claim (up to 30 s old), or null; write paths re-read it from the database.</summary>
+    public static string? GetPartnerUnitId(this ClaimsPrincipal user)
+        => user.IsPartner() && user.FindFirstValue(AgentClaimTypes.PartnerUnit) is { Length: > 0 } unit ? unit : null;
+
+    /// <summary>Leads their partner unit, from claim.</summary>
+    public static bool IsPartnerUnitLead(this ClaimsPrincipal user)
+        => user.GetPartnerUnitId() is not null && user.FindFirstValue(AgentClaimTypes.IsPartnerUnitLead) == "true";
 
     /// <summary>External partner (DoJ/LSPD/LSMD): read-only, sees only released non-classified content.</summary>
     public static bool IsPartner(this ClaimsPrincipal user) => user.GetPartnerAgency() is not null;
-
-    /// <summary>True if the viewer is a partner of the given agency at or above the given rank tier.</summary>
-    public static bool HasPartnerRank(this ClaimsPrincipal user, PartnerAgency agency, PartnerRank minimum)
-        => user.GetPartnerAgency() == agency && user.GetPartnerRank() is { } rank && rank >= minimum;
 
     /// <summary>May write at all; false for read-only supervisors, partners and demo visitors. Sole source for write-control visibility.</summary>
     public static bool MayWrite(this ClaimsPrincipal user) => !user.IsOnlyReader() && !user.IsPartner() && !user.IsDemo();

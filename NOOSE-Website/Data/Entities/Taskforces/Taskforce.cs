@@ -36,6 +36,7 @@ public class Taskforce : IAuditable, ISoftDelete, IArchivable
     public bool AgingDisabled { get; set; }
 
     public List<TaskforceAgent> Agents { get; set; } = new();
+    public List<TaskforcePartnerAgency> PartnerAgencies { get; set; } = new();
 
     [Column("ErstelltAm")]
     public DateTime CreatedAt { get; set; }

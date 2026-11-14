@@ -13,10 +13,16 @@ public sealed class WarrantInput
     public string Justification { get; set; } = string.Empty;
     public List<string> LawIds { get; set; } = new();
     public int ValidityDays { get; set; } = 3;
+
+    /// <summary>Investigation the request comes from; its people are the targets and its prosecutor may sign.</summary>
+    public string? InvestigationId { get; set; }
 }
 
 /// <summary>A warrant with its person, optional case and the state computed at read time.</summary>
 /// <param name="Laws">The cited paragraphs that still exist; filled for a single warrant only.</param>
+/// <param name="MaySign">The viewer may sign or refuse it now (FIB leadership, or the prosecutor of its investigation; never the requester).</param>
+/// <param name="MayCancel">The viewer may lift it while valid.</param>
+/// <param name="MayDelete">The viewer may delete it (deciders, or the requester while it is open).</param>
 public sealed record WarrantView(
     Warrant Warrant,
     WarrantState State,
@@ -24,7 +30,10 @@ public sealed record WarrantView(
     string PersonCaseNumber,
     string? CaseTitle,
     string? CaseCaseNumber,
-    IReadOnlyList<WarrantLaw>? Laws = null);
+    IReadOnlyList<WarrantLaw>? Laws = null,
+    bool MaySign = false,
+    bool MayCancel = false,
+    bool MayDelete = false);
 
 /// <summary>A cited paragraph the reader may open in the law book.</summary>
 public sealed record WarrantLaw(string Id, string Label);

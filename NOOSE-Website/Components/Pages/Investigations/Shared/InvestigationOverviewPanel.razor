@@ -1,0 +1,65 @@
+@* The cover sheet: file numbers, status, prosecutor, indictment and how much each tab holds. *@
+
+<MudGrid Spacing="2">
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Aktenzeichen</MudText>
+        <MudText Typo="Typo.body1">@Detail.CaseNumber</MudText>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Az. SID</MudText>
+        <MudText Typo="Typo.body1">@(Detail.SidCaseNumber ?? "—")</MudText>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Az. 5Net</MudText>
+        <MudText Typo="Typo.body1">@(Detail.FiveNetCaseNumber ?? "—")</MudText>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Status</MudText>
+        <div><InvestigationStatusChip Status="Detail.Status" /></div>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Eröffnet</MudText>
+        <MudText Typo="Typo.body1">@Detail.OpenedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Staatsanwalt</MudText>
+        <MudText Typo="Typo.body1">@(Detail.Prosecutors.Count == 0 ? "— (noch nicht eingetragen)" : string.Join(", ", Detail.Prosecutors))</MudText>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Taskforce</MudText>
+        <MudText Typo="Typo.body1">
+            @if (Detail.TaskforceVisible)
+            {
+                <MudLink Href="@($"/taskforces/{Detail.TaskforceId}?tab=ermittlungen")">@(Detail.TaskforceName ?? "Taskforce")</MudLink>
+            }
+            else
+            {
+                @(Detail.TaskforceName ?? "—")
+            }
+            <span class="mud-text-secondary ml-1">@Detail.TaskforceCaseNumber</span>
+        </MudText>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Anklage</MudText>
+        <MudText Typo="Typo.body1" Style="white-space:pre-line;">@(Detail.Indictment ?? "— (noch keine)")</MudText>
+    </MudItem>
+</MudGrid>
+
+<MudDivider Class="my-4" />
+
+<MudText Typo="Typo.subtitle2" Class="mb-2">Dein Zugriff</MudText>
+<MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+    @foreach (var tab in InvestigationTabs.All)
+    {
+        var level = Detail.Access.Level(tab.Slug);
+        <MudChip T="string" Size="Size.Small" Icon="@tab.Icon"
+                 Color="@(level == InvestigationAccessLevel.Edit && Detail.Access.MayWrite ? Color.Success : level >= InvestigationAccessLevel.Read ? Color.Info : Color.Default)"
+                 Variant="@(level == InvestigationAccessLevel.None ? Variant.Outlined : Variant.Text)">
+            @tab.Label: @(level == InvestigationAccessLevel.Edit && !Detail.Access.MayWrite ? "Lesen" : InvestigationAccessLevelDisplay.Name(level))
+        </MudChip>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+}

@@ -17,4 +17,6 @@ public static class AgentClaimTypes
     public const string BadgeNumber = "noose:dienstnummer";
     public const string PartnerAgency = "noose:partnerbehoerde";
     public const string PartnerRank = "noose:partnerrang";
+    public const string PartnerUnit = "noose:partnereinheit";
+    public const string IsPartnerUnitLead = "noose:einheitsleitung";
 }

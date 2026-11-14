@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.Investigations;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Models.Enums;
@@ -32,7 +33,96 @@ public class WarrantService(
             query = query.WhereState(wanted, now);
         }
         var rows = await query.OrderByDescending(w => w.CreatedAt).ToListAsync(cancellationToken);
-        return await ProjectAsync(db, rows, now, ignoreFilters: false, cancellationToken);
+        return await ForViewerAsync(db, await ProjectAsync(db, rows, now, ignoreFilters: false, cancellationToken), viewer, cancellationToken);
+    }
+
+    public async Task<List<WarrantView>> GetForInvestigationAsync(string investigationId, ClaimsPrincipal viewer,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await db.Warrants.AsNoTracking().OnlyVisible(db, ViewerScope.From(viewer))
+            .Where(w => w.InvestigationId == investigationId)
+            .OrderByDescending(w => w.CreatedAt)
+            .ToListAsync(cancellationToken);
+        return await ForViewerAsync(db, await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken), viewer, cancellationToken);
+    }
+
+    public async Task<List<WarrantView>> GetToSignAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var rows = await ProsecutorQueue(db, viewer).OrderBy(w => w.CreatedAt).ToListAsync(cancellationToken);
+        var views = await ForViewerAsync(db, await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken), viewer, cancellationToken);
+        return views.Where(v => v.MaySign).ToList();
+    }
+
+    public async Task<int> GetToSignCountAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
+        => (await GetToSignAsync(viewer, cancellationToken)).Count;
+
+    /// <summary>Open requests of investigations where the viewer is the prosecutor; empty for internal accounts.</summary>
+    private static IQueryable<Warrant> ProsecutorQueue(AppDbContext db, ClaimsPrincipal viewer)
+    {
+        var me = viewer.GetAgentId();
+        if (!viewer.IsPartner() || me is null)
+        {
+            return db.Warrants.Where(_ => false);
+        }
+        return db.Warrants.AsNoTracking().Where(w => w.Status == WarrantStatus.Requested && w.InvestigationId != null
+            && db.InvestigationParticipants.Any(p => p.InvestigationId == w.InvestigationId && p.AgentId == me
+                && p.Role == InvestigationRole.Prosecutor));
+    }
+
+    /// <summary>
+    /// Drops warrants of investigations whose warrants tab the viewer may not read, and marks what the viewer may
+    /// decide: FIB leadership everywhere, the prosecutor of the investigation for its own warrants; never the requester.
+    /// </summary>
+    private static async Task<List<WarrantView>> ForViewerAsync(AppDbContext db, List<WarrantView> views, ClaimsPrincipal viewer,
+        CancellationToken cancellationToken)
+    {
+        var me = viewer.GetAgentId();
+        var cache = new Dictionary<string, InvestigationAccessView>();
+        var result = new List<WarrantView>(views.Count);
+        foreach (var view in views)
+        {
+            var w = view.Warrant;
+            var maySign = viewer.MayWarrantSign();
+            if (w.InvestigationId is { } invId)
+            {
+                if (!cache.TryGetValue(invId, out var access))
+                {
+                    access = await InvestigationAccess.ResolveAsync(db, invId, viewer, cancellationToken);
+                    cache[invId] = access;
+                }
+                if (!access.CanRead(InvestigationTabs.Warrants))
+                {
+                    continue;
+                }
+                maySign = maySign || access.MaySignWarrants;
+            }
+            var own = !string.IsNullOrEmpty(w.CreatedById) && w.CreatedById == me;
+            result.Add(view with
+            {
+                MaySign = maySign && view.State == WarrantState.Requested && !own,
+                MayCancel = maySign && view.State == WarrantState.Valid,
+                // as DeleteAsync: FIB leadership, or the requester while the request is open
+                MayDelete = viewer.MayWarrantSign() || (own && view.State == WarrantState.Requested),
+            });
+        }
+        return result;
+    }
+
+    /// <summary>FIB leadership signs every warrant; the prosecutor of an investigation those filed under it. Read fresh.</summary>
+    private static async Task RequireMayDecideAsync(AppDbContext db, Warrant warrant, ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
+        if (actor.MayWarrantSign())
+        {
+            return;
+        }
+        if (warrant.InvestigationId is { } invId
+            && (await InvestigationAccess.ResolveAsync(db, invId, actor, cancellationToken)).MaySignWarrants)
+        {
+            return;
+        }
+        throw new UnauthorizedAccessException("Zeichnen darf die FIB-Führung oder der zuständige Staatsanwalt der Ermittlung.");
     }
 
     public async Task<List<WarrantView>> GetForPersonAsync(string personId, ClaimsPrincipal viewer,
@@ -43,7 +133,7 @@ public class WarrantService(
             .Where(w => w.PersonId == personId)
             .OrderByDescending(w => w.CreatedAt)
             .ToListAsync(cancellationToken);
-        return await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken);
+        return await ForViewerAsync(db, await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken), viewer, cancellationToken);
     }
 
     public async Task<List<WarrantView>> GetForCaseAsync(string caseId, ClaimsPrincipal viewer,
@@ -54,7 +144,7 @@ public class WarrantService(
             .Where(w => w.CaseId == caseId)
             .OrderByDescending(w => w.CreatedAt)
             .ToListAsync(cancellationToken);
-        return await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken);
+        return await ForViewerAsync(db, await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken), viewer, cancellationToken);
     }
 
     public async Task<List<WarrantView>> GetPendingAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
@@ -64,7 +154,7 @@ public class WarrantService(
             .Where(w => w.Status == WarrantStatus.Requested)
             .OrderBy(w => w.CreatedAt)
             .ToListAsync(cancellationToken);
-        return await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken);
+        return await ForViewerAsync(db, await ProjectAsync(db, rows, DateTime.UtcNow, ignoreFilters: false, cancellationToken), viewer, cancellationToken);
     }
 
     public async Task<int> GetOpenCountAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
@@ -99,8 +189,9 @@ public class WarrantService(
         // a deleted paragraph drops out of the links; the snapshot on the paper keeps its wording
         var cited = ids.Where(laws.ContainsKey).Select(i => new WarrantLaw(i, laws[i])).ToList();
 
-        var view = (await ProjectAsync(db, [warrant], DateTime.UtcNow, ignoreFilters: false, cancellationToken)).Single();
-        return view with { Laws = cited };
+        var view = (await ForViewerAsync(db, await ProjectAsync(db, [warrant], DateTime.UtcNow, ignoreFilters: false, cancellationToken),
+            viewer, cancellationToken)).SingleOrDefault();
+        return view is null ? null : view with { Laws = cited };
     }
 
     public async Task<WarrantTarget?> GetTargetAsync(string type, string id, ClaimsPrincipal viewer,
@@ -126,11 +217,40 @@ public class WarrantService(
         };
     }
 
+    public async Task<List<WarrantTarget>> GetInvestigationTargetsAsync(string investigationId, ClaimsPrincipal viewer,
+        CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var access = await InvestigationAccess.ResolveAsync(db, investigationId, viewer, cancellationToken);
+        if (!access.CanEdit(InvestigationTabs.Warrants) || !access.CanRead(InvestigationTabs.People))
+        {
+            return new();
+        }
+        var hidden = await InvestigationAccess.HiddenItemIdsAsync(db, investigationId, nameof(InvestigationPerson), access, cancellationToken);
+        return await db.InvestigationPeople.AsNoTracking()
+            .Where(p => p.InvestigationId == investigationId && p.PersonId != null && !hidden.Contains(p.Id))
+            .Join(TargetPeople(db, ViewerScope.From(viewer)), p => p.PersonId, x => x.Id, (p, x) => new WarrantTarget(x.Id, x.Name, x.CaseNumber))
+            .Distinct()
+            .ToListAsync(cancellationToken);
+    }
+
+    /// <summary>Person files a warrant of an investigation may name: the viewer's own gate, for partners the unclassified ones.</summary>
+    private static IQueryable<Person> TargetPeople(AppDbContext db, ViewerScope scope)
+        => scope.IsPartner ? db.People.AsNoTracking().Where(p => !p.IsClassified) : db.People.AsNoTracking().OnlyVisible(scope);
+
     // ---- writes ----
 
     public async Task<Warrant> CreateAsync(WarrantInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireWarrantRequest(actor);
+        var investigationId = input.InvestigationId.TrimToNull();
+        if (investigationId is null)
+        {
+            Permission.RequireWarrantRequest(actor);
+        }
+        else if (actor.IsTeamLead() || !actor.MayContribute())
+        {
+            throw new UnauthorizedAccessException("Du darfst keine Anordnung beantragen.");
+        }
         if (!Enum.IsDefined(input.Type))
         {
             throw new InvalidOperationException("Bitte eine Art der Anordnung wählen.");
@@ -171,12 +291,28 @@ public class WarrantService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var scope = ViewerScope.From(actor);
         var personId = input.PersonId.TrimToNull();
+        if (investigationId is not null)
+        {
+            var access = await InvestigationAccess.ResolveAsync(db, investigationId, actor, cancellationToken);
+            InvestigationAccess.RequireEdit(access, InvestigationTabs.Warrants);
+            InvestigationAccess.RequireRead(access, InvestigationTabs.People);
+            // from an investigation the target is one of its people with a person file, as the editor offers them
+            var hidden = await InvestigationAccess.HiddenItemIdsAsync(db, investigationId, nameof(InvestigationPerson), access, cancellationToken);
+            if (personId is null
+                || !await db.InvestigationPeople.AnyAsync(p => p.InvestigationId == investigationId && p.PersonId == personId
+                    && !hidden.Contains(p.Id), cancellationToken)
+                || !await TargetPeople(db, scope).AnyAsync(p => p.Id == personId, cancellationToken))
+            {
+                throw new InvalidOperationException("Die Person steht nicht mit Personenakte in dieser Ermittlung.");
+            }
+        }
         // same answer for "missing" and "not yours to see"
-        if (personId is null || !await db.People.OnlyVisible(scope).AnyAsync(p => p.Id == personId, cancellationToken))
+        if (personId is null || (!scope.IsPartner && !await db.People.OnlyVisible(scope).AnyAsync(p => p.Id == personId, cancellationToken)))
         {
             throw new InvalidOperationException("Die Person wurde nicht gefunden.");
         }
-        var caseId = input.CaseId.TrimToNull();
+        // a warrant of an investigation names no case: its partners would read a case nobody released to them
+        var caseId = scope.IsPartner || investigationId is not null ? null : input.CaseId.TrimToNull();
         if (caseId is not null && !await db.Cases.OnlyVisible(scope).AnyAsync(c => c.Id == caseId, cancellationToken))
         {
             throw new InvalidOperationException("Der Vorgang wurde nicht gefunden.");
@@ -200,6 +336,7 @@ public class WarrantService(
             LawIds = string.Join(",", lawIds),
             ValidityDays = input.ValidityDays,
             RequesterName = actor.GetCodename(),
+            InvestigationId = investigationId,
         };
 
         // case-number allocation needs an enclosing transaction so counter and record commit together
@@ -208,13 +345,32 @@ public class WarrantService(
         db.Warrants.Add(warrant);
         await db.SaveChangesAsync(cancellationToken);
         await tx.CommitAsync(cancellationToken);
+
+        if (investigationId is not null)
+        {
+            await NotifyProsecutorsAsync(db, warrant, actor, cancellationToken);
+        }
         return warrant;
+    }
+
+    /// <summary>Tells the prosecutors of the investigation a request waits for them; bell only, case number only.</summary>
+    private async Task NotifyProsecutorsAsync(AppDbContext db, Warrant warrant, ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var prosecutors = await db.InvestigationParticipants.AsNoTracking()
+                .Where(p => p.InvestigationId == warrant.InvestigationId && p.Role == InvestigationRole.Prosecutor && p.AgentId != null)
+                .Select(p => p.AgentId!)
+                .ToListAsync(cancellationToken);
+            await notifications.NotifyManyInAppAsync(prosecutors, NotificationType.WarrantToSign,
+                $"Anordnung {warrant.CaseNumber} wartet auf deine Zeichnung.", $"/anordnungen/{warrant.Id}", actor.GetAgentId(), cancellationToken);
+        }
+        catch { /* best effort */ }
     }
 
     public async Task SignAsync(string id, int validityDays, string? note, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
-        Permission.RequireWarrantSign(actor);
         if (!WarrantRules.IsValidityChoice(validityDays))
         {
             throw new InvalidOperationException("Bitte eine der angebotenen Gültigkeitsdauern wählen.");
@@ -223,10 +379,11 @@ public class WarrantService(
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var warrant = await OpenRequestAsync(db, id, actor, cancellationToken);
+        await RequireMayDecideAsync(db, warrant, actor, cancellationToken);
         if (!string.IsNullOrEmpty(warrant.CreatedById) && warrant.CreatedById == actor.GetAgentId())
         {
             throw new InvalidOperationException(
-                "Die eigene Anordnung unterzeichnet eine andere Führungskraft (Vier-Augen-Prinzip).");
+                "Die eigene Anordnung unterzeichnet jemand anderes (Vier-Augen-Prinzip).");
         }
 
         var now = DateTime.UtcNow;
@@ -234,7 +391,7 @@ public class WarrantService(
         warrant.ValidityDays = validityDays;
         warrant.ValidFrom = now;
         warrant.ValidUntil = now.AddDays(validityDays);
-        Stamp(warrant, actor, now, trimmed);
+        await StampAsync(db, warrant, actor, now, trimmed, cancellationToken);
         await SaveAsync(db, cancellationToken);
 
         await NotifyRequesterAsync(warrant, actor, $"Deine Anordnung {warrant.CaseNumber} wurde unterzeichnet.", cancellationToken);
@@ -242,13 +399,13 @@ public class WarrantService(
 
     public async Task RejectAsync(string id, string? note, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireWarrantSign(actor);
         var trimmed = Note(note);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var warrant = await OpenRequestAsync(db, id, actor, cancellationToken);
+        await RequireMayDecideAsync(db, warrant, actor, cancellationToken);
         warrant.Status = WarrantStatus.Rejected;
-        Stamp(warrant, actor, DateTime.UtcNow, trimmed);
+        await StampAsync(db, warrant, actor, DateTime.UtcNow, trimmed, cancellationToken);
         await SaveAsync(db, cancellationToken);
 
         await NotifyRequesterAsync(warrant, actor, $"Deine Anordnung {warrant.CaseNumber} wurde abgelehnt.", cancellationToken);
@@ -256,7 +413,6 @@ public class WarrantService(
 
     public async Task CancelAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireWarrantSign(actor);
         var trimmed = reason.TrimToNull()
             ?? throw new InvalidOperationException("Bitte einen Grund für die Aufhebung angeben.");
         if (trimmed.Length > WarrantRules.NoteMaxLength)
@@ -268,6 +424,7 @@ public class WarrantService(
         var warrant = await db.Warrants.OnlyVisible(db, ViewerScope.From(actor))
             .FirstOrDefaultAsync(w => w.Id == id, cancellationToken)
             ?? throw new InvalidOperationException(NotFound);
+        await RequireMayDecideAsync(db, warrant, actor, cancellationToken);
         var now = DateTime.UtcNow;
         if (WarrantRules.StateAt(warrant, now) != WarrantState.Valid)
         {
@@ -285,7 +442,14 @@ public class WarrantService(
 
     public async Task DeleteAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireWarrantRequest(actor);
+        if (!actor.IsPartner())
+        {
+            Permission.RequireWarrantRequest(actor);
+        }
+        else if (!actor.MayContribute())
+        {
+            throw new UnauthorizedAccessException("Du darfst keine Anordnung löschen.");
+        }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var warrant = await db.Warrants.OnlyVisible(db, ViewerScope.From(actor))
@@ -355,11 +519,23 @@ public class WarrantService(
         return trimmed;
     }
 
-    private static void Stamp(Warrant warrant, ClaimsPrincipal actor, DateTime now, string? note)
+    /// <summary>Who decided; a partner signer gets the unit as function instead of a FIB rank, read fresh.</summary>
+    private static async Task StampAsync(AppDbContext db, Warrant warrant, ClaimsPrincipal actor, DateTime now, string? note,
+        CancellationToken cancellationToken)
     {
         warrant.DeciderId = actor.GetAgentId();
         warrant.DeciderName = actor.GetCodename();
         warrant.DeciderRank = actor.GetRank();
+        warrant.DeciderFunction = null;
+        if (actor.IsPartner())
+        {
+            var me = await db.Users.AsNoTracking().Where(u => u.Id == warrant.DeciderId)
+                .Select(u => new { u.PartnerAgency, u.PartnerUnitId }).FirstOrDefaultAsync(cancellationToken);
+            var unit = me?.PartnerUnitId is null ? null
+                : await db.PartnerUnits.AsNoTracking().Where(u => u.Id == me.PartnerUnitId).Select(u => u.Name).FirstOrDefaultAsync(cancellationToken);
+            warrant.DeciderRank = null;
+            warrant.DeciderFunction = PartnerUnitDisplay.Full(me?.PartnerAgency, unit);
+        }
         warrant.DecidedAt = now;
         warrant.DecisionNote = note;
     }

@@ -284,7 +284,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         var warrantIds = pairs.Where(p => p.OtherType == nameof(Warrant)).Select(p => p.OtherId).Distinct().ToList();
         if (warrantIds.Count > 0)
         {
-            foreach (var x in await db.Warrants.OnlyVisible(db, scope).Where(w => warrantIds.Contains(w.Id))
+            foreach (var x in await db.Warrants.OnlyVisible(db, scope).Where(w => warrantIds.Contains(w.Id) && w.InvestigationId == null)
                          .Select(w => new { w.Id, w.CaseNumber, w.Type }).ToListAsync(cancellationToken))
             {
                 targets[(nameof(Warrant), x.Id)] = ($"{WarrantTypeDisplay.Name(x.Type)} {x.CaseNumber}", false, $"/anordnungen/{x.Id}");

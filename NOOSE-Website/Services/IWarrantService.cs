@@ -20,6 +20,18 @@ public interface IWarrantService
     /// <summary>Visible requests awaiting a decision, oldest first, for the inbox.</summary>
     Task<List<WarrantView>> GetPendingAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
 
+    /// <summary>Visible warrants filed under one investigation, newest first (needs read on its warrants tab).</summary>
+    Task<List<WarrantView>> GetForInvestigationAsync(string investigationId, ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+
+    /// <summary>Open requests the viewer must sign as prosecutor of their investigation.</summary>
+    Task<List<WarrantView>> GetToSignAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+
+    /// <summary>How many requests wait for the viewer as prosecutor; the leadership badge stays <see cref="GetOpenCountAsync"/>.</summary>
+    Task<int> GetToSignCountAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+
+    /// <summary>People of an investigation with a person file a warrant from it may concern.</summary>
+    Task<List<WarrantTarget>> GetInvestigationTargetsAsync(string investigationId, ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
+
     /// <summary>Requests the viewer could decide right now; zero for anyone who may not sign.</summary>
     Task<int> GetOpenCountAsync(ClaimsPrincipal viewer, CancellationToken cancellationToken = default);
 

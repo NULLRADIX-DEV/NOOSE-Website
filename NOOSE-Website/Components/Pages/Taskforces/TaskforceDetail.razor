@@ -189,6 +189,12 @@ else
                     <TaskforceChatPanel TaskforceId="@_taskforce.Id" User="_user" Read="@(() => _chatUnread = 0)" />
                 </RecordSection>
                 }
+                @if (TabOn("ermittlungen"))
+                {
+                <RecordSection Group="Struktur" Slug="ermittlungen" Label="Ermittlungen" Icon="@Icons.Material.Filled.Gavel">
+                    <TaskforceInvestigationsPanel TaskforceId="@_taskforce.Id" User="_user" />
+                </RecordSection>
+                }
                 @if (TabOn("beziehungen"))
                 {
                 <RecordSection Group="Struktur" Slug="beziehungen" Label="Beziehungen" Icon="@Icons.Material.Filled.Hub">
@@ -255,7 +261,7 @@ else
     // every section slug on this page; the rail persists the active one in the URL
     private static readonly string[] _tabs =
     {
-        "stammdaten", "agents", "chat", "beziehungen", "quellen", "wiedervorlagen", "kommentare", "zusatzfelder", "historie",
+        "stammdaten", "agents", "chat", "ermittlungen", "beziehungen", "quellen", "wiedervorlagen", "kommentare", "zusatzfelder", "historie",
     };
 
     // assigned-agents tab exposes internal codenames; hidden from partners regardless of tab config

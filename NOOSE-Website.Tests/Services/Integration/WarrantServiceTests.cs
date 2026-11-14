@@ -319,8 +319,17 @@ public sealed class WarrantServiceTests : IDisposable
         var w = await _svc.CreateAsync(Input(), As(Agent("requester")));
         var principal = who == "agent" ? Agent() : Named(who);
 
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _svc.SignAsync(w.Id, 3, null, As(principal)));
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _svc.RejectAsync(w.Id, null, As(principal)));
+        if (who == "partner")
+        {
+            // a partner does not even see a warrant outside an investigation, so it is not found rather than refused
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _svc.SignAsync(w.Id, 3, null, As(principal)));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _svc.RejectAsync(w.Id, null, As(principal)));
+        }
+        else
+        {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _svc.SignAsync(w.Id, 3, null, As(principal)));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => _svc.RejectAsync(w.Id, null, As(principal)));
+        }
 
         Assert.Equal(WarrantStatus.Requested, Raw(w.Id).Status);
     }
