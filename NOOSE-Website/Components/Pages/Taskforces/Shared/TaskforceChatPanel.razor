@@ -99,6 +99,7 @@
     // read state at opening; the divider stays where it was while the chat is open
     private TaskforceReadState _state = TaskforceReadState.None;
     private bool _marked;
+    private (string TaskforceId, string AgentId)? _entered;
 
     private sealed record Entry(TaskforceMessage Msg, IReadOnlyList<MentionSegment> Segments);
 
@@ -122,6 +123,12 @@
         if (!_marked && !_load)
         {
             _marked = true;
+            // interactive only, so a prerender never counts as watching
+            if (!string.IsNullOrEmpty(_myId))
+            {
+                Broadcaster.Enter(TaskforceId, _myId);
+                _entered = (TaskforceId, _myId);
+            }
             await MarkReadAsync(notify: true);
         }
     }
@@ -246,6 +253,10 @@
     public ValueTask DisposeAsync()
     {
         Broadcaster.Modified -= OnModified;
+        if (_entered is { } watched)
+        {
+            Broadcaster.Leave(watched.TaskforceId, watched.AgentId);
+        }
         return ValueTask.CompletedTask;
     }
 }
