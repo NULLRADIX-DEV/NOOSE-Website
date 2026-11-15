@@ -8,7 +8,7 @@ using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Services.Discord.Bot;
 
-/// <summary>The ping line of a card and plain ping messages for the rest; a tuple cannot name an element Rest.</summary>
+/// <summary>Ping line of a card and plain lines for the rest.</summary>
 public readonly record struct PingLineSet(string First, IReadOnlyList<string> Rest);
 
 /// <summary>Renders every Discord notification as one bot card; pure, no I/O and no clock.</summary>
@@ -27,9 +27,7 @@ public static class NotificationCards
 
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
 
-    // ---------------------------------------------------------------- cards
-
-    /// <summary>The card of a category that carries no data beyond its notice; the headline only where the caller allows it.</summary>
+    /// <summary>A card with just the notice and an optional headline.</summary>
     public static IReadOnlyList<IMessageComponentProperties> Generic(NotificationType type, string baseUrl, string? href,
         string? headline, string ping, bool acknowledgeable = false)
     {
@@ -99,7 +97,7 @@ public static class NotificationCards
             OpenRow(DiscordWebhookService.Link(baseUrl, card.ProfilePath)));
     }
 
-    /// <summary>An app-authored broadcast; the content is the caller's markdown and the card never offers a record button.</summary>
+    /// <summary>An app-authored broadcast in the caller's markdown.</summary>
     public static IReadOnlyList<IMessageComponentProperties> Custom(NotificationType type, string content, string? link, string ping)
     {
         var (accent, emoji, title) = Style(type);
@@ -117,9 +115,7 @@ public static class NotificationCards
     public static IReadOnlyList<IMessageComponentProperties> Share(string content)
         => Assemble(DiscordCards.Steel, string.Empty, null, content, null);
 
-    // ---------------------------------------------------------------- buttons
-
-    /// <summary>The button row of a category: its actions where the href names a record, then "Öffnen"; an announcement offers "Quittieren" only when it is acknowledgeable.</summary>
+    /// <summary>Action buttons where the href names a record, then Öffnen.</summary>
     public static ActionRowProperties? Buttons(NotificationType type, string? href, string? baseUrl = null,
         bool acknowledgeable = false)
     {
@@ -131,7 +127,7 @@ public static class NotificationCards
             items.Add(type switch
             {
                 NotificationType.JobAssigned or NotificationType.JobDueSoon => ActionButton("cjd", "Erledigt", "✅", id),
-                // a reminder exists only for announcements that need it
+                // reminder implies duty
                 NotificationType.Announcement when acknowledgeable => ActionButton("cack", "Quittieren", "✍️", id),
                 NotificationType.AcknowledgmentReminder => ActionButton("cack", "Quittieren", "✍️", id),
                 NotificationType.PublicTipCreated => ActionButton("ctip", "Übernehmen", "🙋", id),
@@ -215,9 +211,7 @@ public static class NotificationCards
     private static LinkButtonProperties? OpenButton(string? link)
         => string.IsNullOrWhiteSpace(link) || link.Length > MaxLinkChars ? null : DiscordCards.Open(link, "Öffnen");
 
-    // ---------------------------------------------------------------- pings
-
-    /// <summary>The first ping line for the card (up to max chips) and plain ping messages for the rest; invalid and doubled ids drop out.</summary>
+    /// <summary>First ping line for the card, plain lines for the rest.</summary>
     public static PingLineSet PingLines(IReadOnlyList<string> discordIds, int max = 100)
     {
         var chips = discordIds
@@ -252,9 +246,7 @@ public static class NotificationCards
     public static string RolePing(string roleId)
         => DiscordWebhookService.IsSnowflake(roleId) && roleId.Length <= MaxSnowflakeChars ? $"<@&{roleId}>" : string.Empty;
 
-    // ---------------------------------------------------------------- style
-
-    /// <summary>Accent colour, header emoji and header title of a category; the emoji is the one the notice starts with.</summary>
+    /// <summary>Accent, emoji and title of a category.</summary>
     public static (Color Accent, string Emoji, string Title) Style(NotificationType type)
     {
         var notice = DiscordWebhookService.Notice(type);
@@ -309,8 +301,6 @@ public static class NotificationCards
         _ => NotificationTypeDisplay.Name(type),
     };
 
-    // ---------------------------------------------------------------- frame
-
     // cut spares ping
     private static IReadOnlyList<IMessageComponentProperties> Assemble(Color accent, string ping,
         IComponentContainerComponentProperties? header, string? body, ActionRowProperties? row)
@@ -343,7 +333,7 @@ public static class NotificationCards
             ? uri.GetLeftPart(UriPartial.Authority)
             : null);
 
-    // inline fields share lines
+    // inline fields join
     private static string WantedBody(IReadOnlyList<WantedDiscordField> fields)
     {
         var lines = new List<string>();
@@ -374,11 +364,11 @@ public static class NotificationCards
     // chips stay chips
     private static string Chip(string? value) => MentionChip(value) ?? Dash(DiscordCards.Inline(value));
 
-    // bold name, chip beside it
+    // name plus chip
     private static string Subject(string? display, string? chip)
         => $"**{Dash(DiscordCards.Inline(display, 200))}**" + (MentionChip(chip) is { } mention ? $" ( {mention} )" : string.Empty);
 
-    // exactly a user mention, else null
+    // user mention only
     private static string? MentionChip(string? value)
     {
         var chip = value?.Trim();

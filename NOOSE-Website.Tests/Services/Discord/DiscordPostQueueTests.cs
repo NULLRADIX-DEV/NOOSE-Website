@@ -11,7 +11,7 @@ using NSubstitute;
 
 namespace NOOSE_Website.Tests.Services.Discord;
 
-/// <summary>The post queue, the failure rule and the worker that sends a post through the bot or, failing that, the webhook.</summary>
+/// <summary>Post queue, failure rule and post worker.</summary>
 public class DiscordPostQueueTests
 {
     private const string Hook = "https://discord.test/api/webhooks/1/secret-token?thread_id=7";
@@ -192,8 +192,6 @@ public class DiscordPostQueueTests
 
     private static string Content(string body) => JsonDocument.Parse(body).RootElement.GetProperty("content").GetString()!;
 
-    // ---------------------------------------------------------------- queue
-
     [Fact]
     public void Alarm_is_read_first()
     {
@@ -265,8 +263,6 @@ public class DiscordPostQueueTests
         Assert.False(empty.IsCompleted);
     }
 
-    // ---------------------------------------------------------------- failure rule
-
     [Theory]
     [InlineData(403, 50013, true)]
     [InlineData(404, 10003, true)]
@@ -279,8 +275,6 @@ public class DiscordPostQueueTests
     [InlineData(400, 50035, false)]
     public void A_missing_channel_or_right_is_a_channel_problem(int status, int? code, bool expected)
         => Assert.Equal(expected, DiscordSendFailure.IsChannelProblem(status, code));
-
-    // ---------------------------------------------------------------- worker
 
     [Fact]
     public async Task A_sent_card_needs_no_fallback()
@@ -375,8 +369,6 @@ public class DiscordPostQueueTests
         Assert.DoesNotContain("Discord says no", host.Logged);
     }
 
-    // ---------------------------------------------------------------- mentions
-
     [Fact]
     public async Task The_card_may_ping_exactly_the_listed_users()
     {
@@ -454,8 +446,6 @@ public class DiscordPostQueueTests
         Assert.Equal(users, sent.SelectMany(m => m.Mentions.AllowedUsers!).ToList());
     }
 
-    // ---------------------------------------------------------------- after the card
-
     [Fact]
     public async Task A_failing_ping_line_after_the_card_neither_falls_back_nor_marks_failing()
     {
@@ -505,8 +495,6 @@ public class DiscordPostQueueTests
         Assert.Equal("webhook", Content(host.Handler.Posts.Single().Body));
         host.Routes.Received(1).MarkFailing(Hook);
     }
-
-    // ---------------------------------------------------------------- stopping
 
     [Fact]
     public async Task Stopping_ends_the_worker_while_it_waits_for_posts()

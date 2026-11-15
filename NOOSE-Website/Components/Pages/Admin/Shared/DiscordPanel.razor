@@ -154,6 +154,7 @@ else
     private readonly Dictionary<NotificationType, string?> _webhooks = new();
     private readonly Dictionary<NotificationType, string?> _roles = new();
     private readonly Dictionary<NotificationType, BotRouteState> _routes = new();
+    private readonly HashSet<NotificationType> _ownChannel = [];
     private bool _load = true;
     private bool _saving;
     private bool _refreshing;
@@ -181,7 +182,7 @@ else
             _roles[type] = config.Roles.GetValueOrDefault(type);
         }
         _load = false;
-        // show the form first
+        // form first
         StateHasChanged();
         await LoadRoutesAsync(config);
     }
@@ -211,6 +212,18 @@ else
                     _routes[type] = state;
                 }
             }
+            // bot channel wins
+            _ownChannel.Clear();
+            if (await Routes.AlarmChannelAsync() is not null)
+            {
+                _routes[NotificationType.EmergencyAlarm] = BotRouteState.Bot;
+                _ownChannel.Add(NotificationType.EmergencyAlarm);
+            }
+            if (await Routes.FactionBoardChannelAsync() is not null)
+            {
+                _routes[NotificationType.FactionThreatBoard] = BotRouteState.Bot;
+                _ownChannel.Add(NotificationType.FactionThreatBoard);
+            }
         }
         catch
         {
@@ -224,6 +237,8 @@ else
 
     private RouteBadge? RouteChip(NotificationType type) => RouteStateOf(type) switch
     {
+        BotRouteState.Bot when _ownChannel.Contains(type) => new("Bot", Color.Success, Icons.Material.Filled.SmartToy,
+            "Der FIB-Bot postet diese Kategorie als Karte in seinen Kanal aus dem Bot-Bereich, sonst in den Kanal des Webhooks."),
         BotRouteState.Bot => new("Bot", Color.Success, Icons.Material.Filled.SmartToy,
             "Der FIB-Bot postet diese Kategorie als Karte in den Kanal des Webhooks."),
         BotRouteState.BotOff => new("Webhook – Bot aus", Color.Default, Icons.Material.Filled.Link,
@@ -278,7 +293,7 @@ else
         try
         {
             var outcome = await ThreatBoard.RefreshAsync(_user);
-            // bot board replaces the webhook one
+            // bot board took over
             var botBoard = outcome == ThreatBoardOutcome.Off && await Routes.FactionBoardChannelAsync() is not null;
             var (text, severity) = outcome switch
             {

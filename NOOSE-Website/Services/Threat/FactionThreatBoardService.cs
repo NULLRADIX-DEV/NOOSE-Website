@@ -123,7 +123,7 @@ public sealed class FactionThreatBoardService(
         return ThreatBoardOutcome.Posted;
     }
 
-    /// <summary>True once the bot's board stands in the channel it owns; before that this board stays, so nothing is lost.</summary>
+    /// <summary>True once the bot board stands in its channel.</summary>
     private async Task<bool> BotBoardIsUpAsync(CancellationToken cancellationToken)
         => await routes.FactionBoardChannelAsync(cancellationToken) is { } channel
             && await DiscordLiveBoards.ReadFactionBoardAsync(dbFactory, cancellationToken) is { } board

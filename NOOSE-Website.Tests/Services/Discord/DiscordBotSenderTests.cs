@@ -9,7 +9,7 @@ using NOOSE_Website.Services.Discord.Bot;
 
 namespace NOOSE_Website.Tests.Services.Discord;
 
-/// <summary>What the bot sender puts on the wire: the flags, the mention allow-list and the reply, seen through NetCord's own REST client.</summary>
+/// <summary>What the bot sender puts on the wire.</summary>
 public class DiscordBotSenderTests
 {
     private const ulong Channel = 700000000000000001;

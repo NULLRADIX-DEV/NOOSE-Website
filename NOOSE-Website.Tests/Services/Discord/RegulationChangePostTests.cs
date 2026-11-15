@@ -14,7 +14,7 @@ using static NOOSE_Website.Tests.Services.Integration.RegulationFixture;
 
 namespace NOOSE_Website.Tests.Services.Discord;
 
-/// <summary>Service regulation changes as one collected Discord post: Markdown, layout, split, collector and worker.</summary>
+/// <summary>DVO changes as one collected Discord post.</summary>
 public class RegulationChangePostTests
 {
     private const string BaseUrl = "https://fibhq.com";
@@ -22,8 +22,6 @@ public class RegulationChangePostTests
     private const string Ins = "<ins class=\"noosei-neu\">";
     private const string Del = "<del class=\"noosei-weg\">";
     private static readonly DateTime Since = Stamp.AddDays(10);
-
-    // ---------------------------------------------------------------- helpers
 
     private static IEnumerable<object> Walk(IEnumerable<object> items)
     {
@@ -56,26 +54,22 @@ public class RegulationChangePostTests
         IReadOnlyList<(string Chip, string Rank)>? signers = null)
         => RegulationChangePost.Render(changes, Role, signers ?? [("<@111111111111111111>", "Deputy Director")], BaseUrl);
 
-    // long changes that cannot share one message
+    // too long together
     private static List<RegulationChange> LongChanges(int count = 6, int length = 1500)
         => Enumerable.Range(1, count)
             .Select(i => Changed($"§{i}.1 Absatz {i}", $"<p>{new string('x', length)} {Ins}neu{i}</ins></p>"))
             .ToList();
-
-    // ---------------------------------------------------------------- markdown
 
     [Fact]
     public void Markdown_turns_ins_bold_and_del_struck()
     {
         Assert.Equal("a **b** ~~c~~", RegulationChangePost.Markdown($"a {Ins}b</ins> {Del}c</del>"));
         Assert.Equal("eins **zwei**\ndrei", RegulationChangePost.Markdown($"<p>eins {Ins}zwei</ins></p><p>drei</p>"));
-        // other tags stripped, user text escaped
+        // tags stripped, escaped
         Assert.Equal(@"x \*y\* **\<z\>**", RegulationChangePost.Markdown($"<p><span>x</span> *y* {Ins}&lt;z&gt;</ins></p>"));
-        // spaces stay outside the marks
+        // spaces outside marks
         Assert.Equal("a **b** c", RegulationChangePost.Markdown($"a{Ins} b </ins>c"));
     }
-
-    // ---------------------------------------------------------------- layout
 
     [Fact]
     public void Corrections_go_under_Sonstiges()
@@ -91,7 +85,7 @@ public class RegulationChangePostTests
         Assert.Contains("\n\n**Sonstiges**\n> §6.3 Dienstnummer: Querverweise korrigiert", Everything(message));
         Assert.DoesNotContain("### §6.3", Everything(message));
         Assert.DoesNotContain("geheimer", Everything(message));
-        // legend only with a change
+        // legend needs change
         Assert.Contains("**Fett:** Neuerung / Änderung\n~~Durchgestrichen:~~ Entfernungen", Everything(message));
     }
 
@@ -125,7 +119,7 @@ public class RegulationChangePostTests
         Assert.Contains($"<@&{Role}>", Everything(messages[0]));
         Assert.StartsWith("# Änderung der Dienstverordnung\n", Texts(messages[0])[0]);
         Assert.All(messages.Skip(1), m => Assert.DoesNotContain("<@&", Everything(m)));
-        // split at paragraph boundaries only
+        // paragraph boundaries only
         var all = string.Join("\n", messages.Select(Everything));
         Assert.All(Enumerable.Range(1, 6), i => Assert.Contains($"### §{i}.1 Absatz {i}\n", all));
         Assert.All(Enumerable.Range(1, 6), i => Assert.Contains($"**neu{i}**", all));
@@ -187,8 +181,6 @@ public class RegulationChangePostTests
     [Fact]
     public void Nothing_renders_nothing() => Assert.Empty(Render([]));
 
-    // ---------------------------------------------------------------- collector
-
     private static RegulationParagraphVersion By(RegulationParagraphVersion version, string? agentId, bool ack = true,
         string note = "Notiz")
     {
@@ -246,7 +238,7 @@ public class RegulationChangePostTests
         var (changes, newest) = await collector.CollectAsync(Since);
 
         string Label(string heading) => RegulationRules.ParagraphLabel(1, heading);
-        // document order; p5 is older than the state, p6 and p7 are hidden
+        // p5 old, p6/p7 hidden
         Assert.Equal([Label("Dienstkleidung"), Label("Dienstnummer"), Label("Sector X"), Label("Altes")],
             changes.Select(c => c.Label));
         var changed = changes[0];
@@ -320,18 +312,19 @@ public class RegulationChangePostTests
         Assert.Equal(1, await db.SystemSettings.CountAsync(s => s.Key == SystemSettingKeys.DiscordDvoState));
     }
 
-    // ---------------------------------------------------------------- worker
-
     private sealed class FakeSender : IDiscordBotSender
     {
         public ConcurrentQueue<(ulong Channel, IReadOnlyList<IMessageComponentProperties> Card, AllowedMentionsProperties Mentions)> Sent { get; } = new();
 
         public bool Fail { get; set; }
 
+        // fails from here
+        public int? FailFrom { get; set; }
+
         public Task<ulong> SendAsync(ulong channelId, IReadOnlyList<IMessageComponentProperties> card,
             AllowedMentionsProperties mentions, ulong? replyTo = null, CancellationToken cancellationToken = default)
         {
-            if (Fail)
+            if (Fail || Sent.Count >= FailFrom)
             {
                 throw new HttpRequestException("down");
             }
@@ -457,14 +450,82 @@ public class RegulationChangePostTests
     }
 
     [Fact]
-    public async Task Worker_is_off_without_a_channel()
+    public async Task Worker_is_off_without_a_channel_and_forgets_the_state()
+    {
+        using var ctx = new SqliteTestContext();
+        await SeedRegulationAsync(ctx);
+        var sender = new FakeSender();
+        await using var services = Services(ctx, sender, channel: null);
+        var collector = services.GetRequiredService<IRegulationChangeCollector>();
+        await collector.SetStateAsync(Since);
+
+        await DiscordBotWorker.PostRegulationChangesAsync(services, Since.AddDays(30), CancellationToken.None);
+
+        Assert.Empty(sender.Sent);
+        Assert.Null(await collector.GetStateAsync());
+    }
+
+    [Fact]
+    public async Task Worker_set_up_again_after_a_pause_posts_nothing_old()
+    {
+        using var ctx = new SqliteTestContext();
+        await SeedRegulationAsync(ctx);
+        var sender = new FakeSender();
+        var collector = new RegulationChangeCollector(ctx.Factory);
+        await collector.SetStateAsync(Since);
+        await using (var off = Services(ctx, sender, channel: null))
+        {
+            await DiscordBotWorker.PostRegulationChangesAsync(off, Since.AddDays(30), CancellationToken.None);
+        }
+        await using var on = Services(ctx, sender);
+
+        await DiscordBotWorker.PostRegulationChangesAsync(on, Since.AddDays(31), CancellationToken.None);
+        await DiscordBotWorker.PostRegulationChangesAsync(on, Since.AddDays(32), CancellationToken.None);
+
+        Assert.Empty(sender.Sent);
+        Assert.Equal(Since.AddDays(31), await collector.GetStateAsync());
+    }
+
+    [Fact]
+    public async Task Worker_bot_off_forgets_the_state()
     {
         using var ctx = new SqliteTestContext();
         var sender = new FakeSender();
-        await using var services = Services(ctx, sender, channel: null);
+        await using var services = Services(ctx, sender);
+        var collector = services.GetRequiredService<IRegulationChangeCollector>();
+        await collector.SetStateAsync(Since);
 
-        await DiscordBotWorker.PostRegulationChangesAsync(services, Since, CancellationToken.None);
+        await DiscordBotWorker.ClearRegulationStateAsync(services, CancellationToken.None);
 
-        Assert.Null(await services.GetRequiredService<IRegulationChangeCollector>().GetStateAsync());
+        Assert.Null(await collector.GetStateAsync());
+    }
+
+    [Fact]
+    public async Task Worker_a_failing_later_part_never_pings_twice()
+    {
+        using var ctx = new SqliteTestContext();
+        await using (var db = ctx.NewContext())
+        {
+            db.RegulationSections.Add(SectionRow("s1", 10));
+            for (var i = 1; i <= 6; i++)
+            {
+                db.RegulationParagraphs.Add(ParagraphRow($"p{i}", "s1", configure: p => { p.SortOrder = i; p.CurrentVersion = 2; }));
+                db.RegulationVersions.AddRange(
+                    By(VersionRow($"p{i}", 1, Stamp, $"<p>{new string('a', 1500)}</p>"), "a0"),
+                    By(VersionRow($"p{i}", 2, Since.AddMinutes(i), $"<p>{new string('b', 1500)}</p>"), "a1"));
+            }
+            await db.SaveChangesAsync();
+        }
+        var sender = new FakeSender { FailFrom = 1 };
+        await using var services = Services(ctx, sender);
+        var collector = services.GetRequiredService<IRegulationChangeCollector>();
+        await collector.SetStateAsync(Since);
+
+        await DiscordBotWorker.PostRegulationChangesAsync(services, Since.AddHours(1), CancellationToken.None);
+        await DiscordBotWorker.PostRegulationChangesAsync(services, Since.AddHours(2), CancellationToken.None);
+
+        var (_, card, _) = Assert.Single(sender.Sent);
+        Assert.Contains($"<@&{Role}>", Everything(card));
+        Assert.Equal(Since.AddMinutes(6), await collector.GetStateAsync());
     }
 }

@@ -5,7 +5,7 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Infrastructure.Discord.Bot;
 
-/// <summary>Sends queued posts as bot cards, alarms first; a send that fails before the card is out goes to the webhook instead.</summary>
+/// <summary>Sends queued bot posts, alarms first, webhook as fallback.</summary>
 public sealed partial class DiscordPostWorker(
     IDiscordPostQueue queue,
     IDiscordBotSender sender,
@@ -66,7 +66,7 @@ public sealed partial class DiscordPostWorker(
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            /* stopping */
+            /* ignore */
         }
         catch (Exception ex)
         {
@@ -87,7 +87,7 @@ public sealed partial class DiscordPostWorker(
         await SendPingLinesAsync(sender, logger, post.Category, post.ChannelId, post.ExtraPings, cancellationToken);
     }
 
-    /// <summary>The webhook posts what the bot could not; a channel problem keeps the next posts there for a while.</summary>
+    /// <summary>Posts by webhook what the bot could not send.</summary>
     private async Task FallBackAsync(DiscordPost post, Exception failure, CancellationToken cancellationToken)
     {
         if (post.Fallback is not { } fallback)
@@ -123,7 +123,7 @@ public sealed partial class DiscordPostWorker(
         }
     }
 
-    /// <summary>Plain ping lines under a card that is already out: a failing line is logged and skipped, never a fallback.</summary>
+    /// <summary>Ping lines under a sent card; failures are only logged.</summary>
     internal static async Task SendPingLinesAsync(IDiscordBotSender sender, ILogger logger, Models.Enums.NotificationType category,
         ulong channelId, IEnumerable<string> lines, CancellationToken cancellationToken)
     {
@@ -141,7 +141,7 @@ public sealed partial class DiscordPostWorker(
         }
     }
 
-    /// <summary>One bot call with its own time limit; a timeout counts as a failure, the stop token keeps its meaning.</summary>
+    /// <summary>One bot call with its own time limit.</summary>
     internal static async Task<T> TimedAsync<T>(Func<CancellationToken, Task<T>> call, CancellationToken cancellationToken)
     {
         using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

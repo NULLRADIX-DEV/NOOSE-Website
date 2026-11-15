@@ -17,8 +17,6 @@ public class NotificationCardsTests
 
     public static IEnumerable<object[]> Routable => DiscordRouting.RoutableTypes.Select(t => new object[] { t });
 
-    // ---------------------------------------------------------------- helpers
-
     // webhook notice sentence
     private static string Notice(NotificationType type)
         => DiscordWebhookService.PersonalText(type, BaseUrl, "/x").Split('\n')[0];
@@ -68,8 +66,6 @@ public class NotificationCardsTests
     private static string Body(IEnumerable<IMessageComponentProperties> card) => string.Join("\n", Prose(card));
 
     private static string Everything(IEnumerable<IMessageComponentProperties> card) => string.Join("\n", Texts(card));
-
-    // ---------------------------------------------------------------- generic cards
 
     [Theory]
     [MemberData(nameof(Routable))]
@@ -154,8 +150,6 @@ public class NotificationCardsTests
         Assert.DoesNotContain("<t:", Everything(card));
     }
 
-    // ---------------------------------------------------------------- colours and style
-
     [Fact]
     public void Gold_is_the_decoration_colour()
         => Assert.Equal(0xC9A227, DiscordCards.Gold.RawValue);
@@ -209,8 +203,6 @@ public class NotificationCardsTests
         Assert.Equal("🎖️", NotificationCards.Style(NotificationType.DecorationAwarded).Emoji);
     }
 
-    // ---------------------------------------------------------------- buttons
-
     public static IEnumerable<object[]> ButtonCases()
     {
         static object[] Case(NotificationType type, string? href, params string[] ids) => [type, href!, false, ids];
@@ -219,13 +211,13 @@ public class NotificationCardsTests
 
         yield return Case(NotificationType.JobAssigned, "/aufgaben/abc", "fib:cjd:abc", Details(NotificationType.JobAssigned, "abc"));
         yield return Case(NotificationType.JobDueSoon, "/aufgaben/abc", "fib:cjd:abc", Details(NotificationType.JobDueSoon, "abc"));
-        // acknowledge only where the announcement asks for it
+        // only when required
         yield return AckCase(NotificationType.Announcement, "/brett/a1", "fib:cack:a1", Details(NotificationType.Announcement, "a1"));
         yield return Case(NotificationType.Announcement, "/brett/a1", Details(NotificationType.Announcement, "a1"));
-        // a reminder exists only for those, so it always acknowledges
+        // reminder always acknowledges
         yield return Case(NotificationType.AcknowledgmentReminder, "/brett/a1", "fib:cack:a1");
         yield return AckCase(NotificationType.AcknowledgmentReminder, "/brett/a1", "fib:cack:a1");
-        // the flag is no reason for a button where there is nothing to acknowledge
+        // flag needs a record
         yield return AckCase(NotificationType.JobAssigned, "/aufgaben/abc", "fib:cjd:abc", Details(NotificationType.JobAssigned, "abc"));
         yield return AckCase(NotificationType.Announcement, "/brett/");
         yield return Case(NotificationType.AppointmentAssigned, "/kalender/k1", "fib:cdates");
@@ -347,8 +339,6 @@ public class NotificationCardsTests
         Assert.Contains(ids, id => id == $"fib:cack:{Guid}");
     }
 
-    // ---------------------------------------------------------------- pings
-
     [Fact]
     public void PingLines_split_at_100()
     {
@@ -367,7 +357,7 @@ public class NotificationCardsTests
     [Fact]
     public void PingLines_keep_every_rest_line_a_postable_message()
     {
-        // real ids are long
+        // real-length ids
         var ids = Enumerable.Range(1, 250).Select(i => (100000000000000000L + i).ToString()).ToList();
 
         var (first, rest) = NotificationCards.PingLines(ids);
@@ -417,8 +407,6 @@ public class NotificationCardsTests
     public void Anything_but_a_role_id_pings_nobody(string roleId)
         => Assert.Equal(string.Empty, NotificationCards.RolePing(roleId));
 
-    // ---------------------------------------------------------------- the fit
-
     [Fact]
     public void Cards_fit_text_limit()
     {
@@ -450,8 +438,6 @@ public class NotificationCardsTests
         // body gave way
         Assert.EndsWith("…", Body(card));
     }
-
-    // ---------------------------------------------------------------- special cards
 
     [Fact]
     public void A_personnel_entry_shows_what_today_s_embed_shows()
@@ -540,7 +526,7 @@ public class NotificationCardsTests
         var everything = Everything(card);
         Assert.Contains("### ⚠️ Kündigung", Texts(card));
         Assert.Contains("> Hiermit wird die **Kündigung** des folgenden Mitglieds offiziell bekannt gegeben.", everything);
-        // name in bold, chip beside it
+        // name plus chip
         Assert.Contains("**👤 Name:** **Max Mustermann** ( <@1> )", everything);
         Assert.Contains("**👮 Ausgeführt von:** <@2>", everything);
         // UTC to Berlin
@@ -571,7 +557,7 @@ public class NotificationCardsTests
         var card = NotificationCards.Termination("**Max** <@5> @everyone", "kein Chip <@8>", "<@6> <@7>", Moment, "Grund", null);
 
         var body = Body(card);
-        // bold around the escaped name only; a chip that is none is dropped
+        // fake chip dropped
         Assert.Contains("**👤 Name:** **\\*\\*Max\\*\\* \\<\\@5\\> \\@everyone**\n", body);
         Assert.DoesNotContain("( ", body);
         Assert.DoesNotContain("<@", Everything(card));
@@ -594,8 +580,6 @@ public class NotificationCardsTests
         Assert.Empty(Links(card));
     }
 
-    // ---------------------------------------------------------------- wanted
-
     private static WantedDiscordEmbed WantedCard(string? image, string? thumbnail) => new(
         "🔎 Fahndung: Max\\_Muster",
         "/gesucht/FIB-2026-001",
@@ -615,7 +599,7 @@ public class NotificationCardsTests
         var card = NotificationCards.Wanted(WantedCard("/gesucht/FIB-2026-001/foto", null), BaseUrl, "<@&9>");
 
         Assert.Equal("<@&9>", Texts(card)[0]);
-        // title not escaped twice
+        // escaped once
         Assert.Contains("### 🔎 Fahndung: Max\\_Muster", Texts(card));
         var body = Body(card);
         Assert.Contains("**Aktenzeichen:** FIB\\-2026\\-001 · **Gefahrenstufe:** Hoch · **Kopfgeld:** $5.000", body);
@@ -645,8 +629,6 @@ public class NotificationCardsTests
 
         Assert.Equal(BaseUrl + "/FibIcon.png", Thumbnail(card));
     }
-
-    // ---------------------------------------------------------------- custom, digest, share
 
     [Fact]
     public void A_custom_card_carries_the_text_and_only_the_link()

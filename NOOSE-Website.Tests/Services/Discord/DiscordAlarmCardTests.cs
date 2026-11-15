@@ -22,7 +22,7 @@ using NSubstitute;
 
 namespace NOOSE_Website.Tests.Services.Discord;
 
-/// <summary>The alarm as one live bot card: routing, the „Alarmiert“ line, the first post, the re-ping and the live edits.</summary>
+/// <summary>The alarm as one live bot card.</summary>
 public partial class DiscordAlarmCardTests
 {
     private const string Hook = "https://discord.test/api/webhooks/1/secret-token";
@@ -30,8 +30,6 @@ public partial class DiscordAlarmCardTests
     private const ulong AlarmChannel = 5;
     private const ulong StoredMessage = 77;
     private const string FirstId = "111111111111111111";
-
-    // ---------------------------------------------------------------- fakes
 
     private sealed record Sent(string Kind, ulong Channel, ulong? Message,
         IReadOnlyList<IMessageComponentProperties>? Card, string? Text, AllowedMentionsProperties? Mentions);
@@ -140,7 +138,7 @@ public partial class DiscordAlarmCardTests
         public ValueTask DisposeAsync() => Provider.DisposeAsync();
     }
 
-    /// <summary>An open alarm whose recipient i carries the Discord id the function gives; r0 triggered it and comes.</summary>
+    /// <summary>Seeds an open alarm; r0 triggered it and comes.</summary>
     private static async Task SeedAlarmAsync(SqliteTestContext ctx, int recipients, Func<int, string> discordId)
     {
         await using var db = ctx.NewContext();
@@ -213,8 +211,6 @@ public partial class DiscordAlarmCardTests
     [GeneratedRegex(@"<@(\d+)>")]
     private static partial Regex Chip();
 
-    // ---------------------------------------------------------------- the card
-
     [Fact]
     public async Task Alarm_card_names_the_alarmed()
     {
@@ -272,8 +268,6 @@ public partial class DiscordAlarmCardTests
 
         Assert.NotEqual(before, (await cards.RenderAsync()).Hash);
     }
-
-    // ---------------------------------------------------------------- routing
 
     private sealed record Pushed(DiscordWebhookService Service, DiscordPostQueue Queue, FakeBotRoutes Routes, List<string> Posts);
 
@@ -387,8 +381,6 @@ public partial class DiscordAlarmCardTests
         Assert.False(host.Queue.TryRead(out _));
     }
 
-    // ---------------------------------------------------------------- first post
-
     [Fact]
     public async Task The_first_post_is_one_card_that_pings_the_alarmed_and_is_stored()
     {
@@ -476,14 +468,12 @@ public partial class DiscordAlarmCardTests
 
         var calls = cards.Sender.Calls.ToList();
         Assert.Equal("Ersatz", Text(calls[0].Card!));
-        // no chip on it
+        // no chip
         Assert.Equal("<@2>", calls[1].Text);
         Assert.Equal<ulong>([2], calls[1].Mentions!.AllowedUsers!);
         Assert.Equal(2, calls.Count);
         Assert.Null(await cards.StoredAsync());
     }
-
-    // ---------------------------------------------------------------- re-ping
 
     [Fact]
     public async Task A_reping_edits_the_card_and_replies_under_it_pinging_only_the_open()
@@ -586,8 +576,6 @@ public partial class DiscordAlarmCardTests
         Assert.All(texts, t => Assert.Equal(Chips(t.Text!), t.Mentions!.AllowedUsers!));
         Assert.Equal(users, texts.SelectMany(t => t.Mentions!.AllowedUsers!).ToList());
     }
-
-    // ---------------------------------------------------------------- live edits
 
     [Fact]
     public async Task An_update_never_creates_a_card()

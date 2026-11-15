@@ -60,7 +60,7 @@ public sealed class DiscordCommandRegistrar(GatewayClient client, DiscordBotStat
     }
 }
 
-/// <summary>Presence, live wanted board and the live edits of the alarm cards; one per host instance like the other workers.</summary>
+/// <summary>Presence, live boards and alarm card edits; one per host.</summary>
 public sealed class DiscordBotWorker(
     GatewayClient client,
     IServiceScopeFactory scopeFactory,
@@ -91,7 +91,8 @@ public sealed class DiscordBotWorker(
                 LoopAsync("Fahndungstafel", WantedEvery, UpdateWantedBoardAsync, stoppingToken),
                 LoopAsync("Fraktionstafel", WantedEvery, UpdateFactionBoardAsync, stoppingToken),
                 LoopAsync("Befehlsliste", CommandsEvery, UpdateCommandsBoardAsync, stoppingToken),
-                LoopAsync("DVO-Änderungen", DvoEvery, (s, t) => PostRegulationChangesAsync(s, DateTime.UtcNow, t), stoppingToken),
+                LoopAsync("DVO-Änderungen", DvoEvery, (s, t) => PostRegulationChangesAsync(s, DateTime.UtcNow, t), stoppingToken,
+                    ClearRegulationStateAsync),
                 AlarmLoopAsync(stoppingToken));
         }
         finally
@@ -133,7 +134,8 @@ public sealed class DiscordBotWorker(
         await base.StopAsync(cancellationToken);
     }
 
-    private async Task LoopAsync(string step, TimeSpan every, Func<IServiceProvider, CancellationToken, Task> work, CancellationToken stoppingToken)
+    private async Task LoopAsync(string step, TimeSpan every, Func<IServiceProvider, CancellationToken, Task> work, CancellationToken stoppingToken,
+        Func<IServiceProvider, CancellationToken, Task>? whenOff = null)
     {
         // let the gateway connect first
         await Task.Delay(TimeSpan.FromSeconds(20), stoppingToken);
@@ -145,6 +147,10 @@ public sealed class DiscordBotWorker(
                 if ((await scope.ServiceProvider.GetRequiredService<IDiscordBotSettingsService>().GetAsync(stoppingToken)).Enabled)
                 {
                     await work(scope.ServiceProvider, stoppingToken);
+                }
+                else if (whenOff is not null)
+                {
+                    await whenOff(scope.ServiceProvider, stoppingToken);
                 }
             }
             catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
@@ -194,7 +200,7 @@ public sealed class DiscordBotWorker(
         }
         catch (RestException ex)
         {
-            // the threat board webhook takes over
+            // webhook board resumes
             var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
             var config = await services.GetRequiredService<IDiscordWebhookService>().GetConfigAsync(ct);
             if (DiscordSendFailure.FactionBoardFallback(settings.FactionChannelId,
@@ -341,12 +347,14 @@ public sealed class DiscordBotWorker(
         await boards.SetCommandsBoardAsync(channel, posted, hash, ct);
     }
 
-    /// <summary>Posts the collected regulation changes a quarter hour after the last one; a failed send keeps the state.</summary>
+    /// <summary>Posts collected DVO changes after a quiet quarter hour.</summary>
     public static async Task PostRegulationChangesAsync(IServiceProvider services, DateTime now, CancellationToken ct)
     {
         var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
         if (settings.DvoChannelId is not { } channel)
         {
+            // no flood later
+            await ClearRegulationStateAsync(services, ct);
             return;
         }
         var collector = services.GetRequiredService<IRegulationChangeCollector>();
@@ -372,13 +380,26 @@ public sealed class DiscordBotWorker(
             for (var i = 0; i < messages.Count; i++)
             {
                 var message = messages[i];
-                // only the first pings
+                // only first pings
                 var mentions = DiscordPostWorker.Mentions([], i == 0 ? role : null);
-                await DiscordPostWorker.TimedAsync(t => sender.SendAsync(channel, message, mentions, cancellationToken: t), ct);
+                try
+                {
+                    await DiscordPostWorker.TimedAsync(t => sender.SendAsync(channel, message, mentions, cancellationToken: t), ct);
+                }
+                catch (Exception ex) when (i > 0 && !ct.IsCancellationRequested)
+                {
+                    // no second ping
+                    services.GetService<ILoggerFactory>()?.CreateLogger<DiscordBotWorker>().LogWarning(
+                        "Discord DVO post part {Part} failed ({Reason}), the first part is out.", i + 1, DiscordPostWorker.Reason(ex));
+                }
             }
         }
         await collector.SetStateAsync(last, ct);
     }
+
+    /// <summary>Forgets the DVO state while posting is off.</summary>
+    public static Task ClearRegulationStateAsync(IServiceProvider services, CancellationToken ct)
+        => services.GetRequiredService<IRegulationChangeCollector>().ClearStateAsync(ct);
 
     private async Task DeleteAllAsync(ulong channel, IEnumerable<ulong> messages, CancellationToken ct)
     {

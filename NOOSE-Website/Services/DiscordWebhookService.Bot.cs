@@ -9,7 +9,7 @@ namespace NOOSE_Website.Services;
 /// <summary>The bot side of the webhook service: which posts go into the bot queue and how.</summary>
 public partial class DiscordWebhookService
 {
-    // one post per batch
+    // post per batch
     private static IReadOnlyList<MentionSpec> Batches(Pings pings, int bodyLength)
     {
         if (pings.Role is { } roleId)
@@ -37,7 +37,7 @@ public partial class DiscordWebhookService
         }
     }
 
-    /// <summary>Queues the alarm for its one live card; today's alarm webhook post is the fallback when webhooks are on.</summary>
+    /// <summary>Queues the alarm card, webhook post as fallback.</summary>
     private async Task EnqueueAlarmAsync(AlarmRoute alarm, DiscordWebhookConfig config, string? href,
         IReadOnlyCollection<string>? recipientAgentIds, string? headline, CancellationToken cancellationToken)
     {
@@ -48,12 +48,12 @@ public partial class DiscordWebhookService
             ping => NotificationCards.Generic(type, config.SiteBaseUrl, href, shown, ping), alarm);
     }
 
-    /// <summary>Queues one bot post: the card's ping line and the extra ping lines come from the same recipient list.</summary>
+    /// <summary>Queues one card; ping line and extra lines share one list.</summary>
     private void EnqueueCard(NotificationType type, ulong channelId, string url, IReadOnlyList<object> payloads,
         Pings pings, Func<string, IReadOnlyList<IMessageComponentProperties>> card)
         => Enqueue(type, channelId, new WebhookFallback(url, payloads), pings, card, null);
 
-    /// <summary>An alarm post carries its id; the worker renders the live card and the generic one stands in when the alarm is gone.</summary>
+    /// <summary>Queues one bot post; an alarm post carries its id.</summary>
     private void Enqueue(NotificationType type, ulong channelId, WebhookFallback? fallback, Pings pings,
         Func<string, IReadOnlyList<IMessageComponentProperties>> card, AlarmRoute? alarm)
     {
@@ -66,7 +66,7 @@ public partial class DiscordWebhookService
             fallback, alarm?.AlarmId, alarm?.IsReping ?? false));
     }
 
-    /// <summary>The alarm card's channel and whether its card is already out; null keeps the alarm on the webhook.</summary>
+    /// <summary>Alarm card channel and re-ping flag; null keeps the webhook.</summary>
     private async Task<AlarmRoute?> AlarmRouteAsync(string? href, CancellationToken cancellationToken)
     {
         if (NotificationCards.RecordId(NotificationType.EmergencyAlarm, href) is not { } alarmId)

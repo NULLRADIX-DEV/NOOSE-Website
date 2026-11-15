@@ -5,16 +5,16 @@ using NOOSE_Website.Models.Enums;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Today's webhook posts for one notification: the config URL as stored and the exact JSON bodies.</summary>
+/// <summary>Today's webhook URL and exact JSON bodies.</summary>
 public sealed record WebhookFallback(string Url, IReadOnlyList<object> Payloads);
 
-/// <summary>One bot post: the card, who it may ping and the webhook post that replaces it when the bot fails.</summary>
+/// <summary>One bot post with its pings and webhook fallback.</summary>
 public sealed record DiscordPost(
     NotificationType Category, ulong ChannelId, IReadOnlyList<IMessageComponentProperties> Card,
     IReadOnlyList<ulong> PingUsers, ulong? PingRole, IReadOnlyList<string> ExtraPings,
     WebhookFallback? Fallback, string? AlarmId = null, bool IsReping = false);
 
-/// <summary>Process-wide hand-off from write paths to the post worker; adding never blocks and never calls Discord.</summary>
+/// <summary>Hand-off to the post worker; never blocks, never calls Discord.</summary>
 public interface IDiscordPostQueue
 {
     /// <summary>Queue one post; open ones are lost on a restart.</summary>
@@ -33,7 +33,7 @@ public sealed class DiscordPostQueue : IDiscordPostQueue
     private readonly Channel<DiscordPost> _alarms = Channel.CreateUnbounded<DiscordPost>();
     private readonly Channel<DiscordPost> _posts = Channel.CreateUnbounded<DiscordPost>();
 
-    // one permit per post
+    // permit per post
     private readonly SemaphoreSlim _queued = new(0);
 
     // unbounded, never full
@@ -67,7 +67,7 @@ public sealed class DiscordPostQueue : IDiscordPostQueue
             : throw new InvalidOperationException("The post queue lost a post.");
 }
 
-/// <summary>Sends and changes bot messages in a channel; the NetCord part, so the worker needs no live gateway to be tested.</summary>
+/// <summary>Sends and edits bot messages; the NetCord seam.</summary>
 public interface IDiscordBotSender
 {
     /// <summary>Sends a components-v2 card and returns its message id.</summary>
@@ -82,20 +82,21 @@ public interface IDiscordBotSender
     Task EditAsync(ulong channelId, ulong messageId, IReadOnlyList<IMessageComponentProperties> card,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Deletes a bot message.</summary>
     Task DeleteAsync(ulong channelId, ulong messageId, CancellationToken cancellationToken = default);
 }
 
 /// <summary>Tells a channel problem (no access, no such channel) from a passing failure.</summary>
 public static class DiscordSendFailure
 {
-    // channel, access, permission, thread
+    // channel error codes
     private static readonly int[] ChannelCodes = [10003, 50001, 50013, 50083];
 
-    /// <summary>True when the bot cannot write there until someone fixes the channel: 403, 404 or one of Discord's channel codes.</summary>
+    /// <summary>True for 403, 404 and Discord's channel codes.</summary>
     public static bool IsChannelProblem(int status, int? code)
         => status is 403 or 404 || (code is { } c && ChannelCodes.Contains(c));
 
-    /// <summary>The threat board webhook that takes over when the bot cannot write into a channel derived from it; else null.</summary>
+    /// <summary>Webhook to fall back to when the derived board channel fails.</summary>
     public static string? FactionBoardFallback(ulong? explicitChannel, string? threatBoardWebhook, int status, int? code)
         => explicitChannel is null && !string.IsNullOrWhiteSpace(threatBoardWebhook) && IsChannelProblem(status, code)
             ? threatBoardWebhook

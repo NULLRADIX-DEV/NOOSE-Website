@@ -14,14 +14,12 @@ using NSubstitute;
 
 namespace NOOSE_Website.Tests.Services.Discord;
 
-/// <summary>The buttons of channel cards: private answers, the clicker's rights, and „Details“ limited to the clicker's own bell.</summary>
+/// <summary>Channel-card buttons: private answers with the clicker's rights.</summary>
 public sealed class ChannelCardCommandsTests
 {
     private const string Nothing = "Für dich gibt es dazu nichts.";
     private const string JobTitle = "Dir wurde eine Aufgabe zugewiesen: „Observation“";
     private static readonly int Assigned = (int)NotificationType.JobAssigned;
-
-    // ---------------------------------------------------------------- mode
 
     [Theory]
     [InlineData("cjd")]
@@ -33,8 +31,6 @@ public sealed class ChannelCardCommandsTests
     [InlineData("nd")]
     public void New_actions_answer_privately(string action)
         => Assert.Equal(BotAnswerMode.Reply, DiscordBotRouter.ModeForComponent(action, []));
-
-    // ---------------------------------------------------------------- details
 
     [Fact]
     public async Task Details_shows_own_notification_and_marks_it_read()
@@ -59,7 +55,7 @@ public sealed class ChannelCardCommandsTests
 
         Assert.Contains(Nothing, TextOf(reply));
         Assert.DoesNotContain("Observation", TextOf(reply));
-        // the click of a stranger touches nothing of the owner's
+        // stranger changes nothing
         Assert.Null(host.Row(id).ReadAt);
     }
 
@@ -70,7 +66,7 @@ public sealed class ChannelCardCommandsTests
         var older = new DateTime(2026, 11, 14, 8, 0, 0, DateTimeKind.Utc);
         host.AddNotice("a1", NotificationType.JobAssigned, "Alt", "/aufgaben/j1?tab=1", older);
         var newest = host.AddNotice("a1", NotificationType.JobAssigned, "Neu", "/aufgaben/j1#kommentare", older.AddHours(2));
-        // another record, another type
+        // other record, type
         host.AddNotice("a1", NotificationType.JobAssigned, "Fremde Akte", "/aufgaben/j10", older.AddHours(3));
         host.AddNotice("a1", NotificationType.JobDueSoon, "Fremder Typ", "/aufgaben/j1", older.AddHours(4));
 
@@ -81,7 +77,7 @@ public sealed class ChannelCardCommandsTests
         Assert.DoesNotContain("Alt", text);
         Assert.DoesNotContain("Fremde Akte", text);
         Assert.DoesNotContain("Fremder Typ", text);
-        // only the shown row is read
+        // only shown row read
         Assert.NotNull(host.Row(newest).ReadAt);
         Assert.Equal(3, host.Unread("a1"));
     }
@@ -129,8 +125,6 @@ public sealed class ChannelCardCommandsTests
         Assert.Null(host.Row(id).ReadAt);
     }
 
-    // ---------------------------------------------------------------- job
-
     [Fact]
     public async Task Job_done_from_channel_card_replies_privately()
     {
@@ -140,7 +134,7 @@ public sealed class ChannelCardCommandsTests
         var reply = await host.Router.ComponentAsync("cjd", ["j1"], [], Call("a1"));
 
         Assert.False(reply.IsError);
-        // a short confirmation, never the clicker's task list
+        // confirmation, no list
         Assert.Equal(TextOf(BotReply.Done("Aufgabe erledigt.")), TextOf(reply));
         using var check = host.Ctx.NewContext();
         Assert.Equal(JobStatus.Done, check.Jobs.Single(j => j.Id == "j1").Status);
@@ -159,8 +153,6 @@ public sealed class ChannelCardCommandsTests
         using var check = host.Ctx.NewContext();
         Assert.Equal(JobStatus.Open, check.Jobs.Single(j => j.Id == "j2").Status);
     }
-
-    // ---------------------------------------------------------------- acknowledge and take over
 
     [Theory]
     [InlineData("cack", "Zur Kenntnis genommen.")]
@@ -207,8 +199,6 @@ public sealed class ChannelCardCommandsTests
         await Assert.ThrowsAsync<TimeoutException>(() => host.Router.ComponentAsync("cbw", ["rec-1"], [], Call("a1")));
     }
 
-    // ---------------------------------------------------------------- dates
-
     [Fact]
     public async Task Dates_from_a_channel_card_show_only_the_clickers_own_appointments()
     {
@@ -222,8 +212,6 @@ public sealed class ChannelCardCommandsTests
         await host.Calendar.Received(1).GetEntriesAsync(Arg.Any<DateTime>(), Arg.Any<DateTime>(), call.User, CalendarMode.My,
             Arg.Any<CancellationToken>());
     }
-
-    // ---------------------------------------------------------------- helpers
 
     private static BotCall Call(string agentId) => new()
     {
@@ -263,7 +251,7 @@ public sealed class ChannelCardCommandsTests
             var personal = new PersonalCommands(records, jobs, Substitute.For<IFollowupService>(), Announcements,
                 Substitute.For<IRegulationService>(), Calendar, Substitute.For<IAbsenceService>(), Substitute.For<IEmergencyAlarmService>(),
                 TimeProvider.System);
-            // the modules these buttons never reach stay empty
+            // unused modules
             Router = new DiscordBotRouter(null!, null!, personal, null!, null!, cards, Substitute.For<ITestLockService>());
         }
 

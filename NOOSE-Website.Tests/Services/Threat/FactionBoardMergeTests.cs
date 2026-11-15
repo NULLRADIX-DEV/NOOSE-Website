@@ -13,7 +13,7 @@ using NSubstitute;
 
 namespace NOOSE_Website.Tests.Services.Threat;
 
-/// <summary>The webhook threat list and the bot's faction board are one board: who owns it and what it lists.</summary>
+/// <summary>Threat list and bot faction board as one board.</summary>
 public sealed class FactionBoardMergeTests : IDisposable
 {
     private const string Hook = "https://discord.com/api/webhooks/111/token";
@@ -65,7 +65,7 @@ public sealed class FactionBoardMergeTests : IDisposable
             .Where(s => s.Key == SystemSettingKeys.DiscordThreatBoardMessage).Select(s => s.Value).SingleOrDefault());
     }
 
-    // the bot's pinned board, as its worker stores it
+    // stored bot board
     private void StoreBotBoard(ulong channel)
     {
         using var db = _ctx.NewContext();
@@ -73,7 +73,7 @@ public sealed class FactionBoardMergeTests : IDisposable
         db.SaveChanges();
     }
 
-    // the Discord traffic in order, without the config reads in between
+    // Discord calls in order
     private List<string> DiscordCalls()
         => _discord.ReceivedCalls()
             .Select(c => c.GetMethodInfo().Name)
@@ -104,7 +104,7 @@ public sealed class FactionBoardMergeTests : IDisposable
         Assert.Equal(ThreatBoardOutcome.Off, await _service.RunAsync());
         Assert.Equal(ThreatBoardOutcome.Off, await _service.RunAsync(force: true));
 
-        // removed once, never edited or posted again
+        // removed exactly once
         Assert.Equal(["Post", "Delete"], DiscordCalls());
         await _discord.Received(1).DeleteThreatBoardAsync(Hook, "555", Arg.Any<CancellationToken>());
         Assert.Null(StoredBoard());
@@ -116,7 +116,7 @@ public sealed class FactionBoardMergeTests : IDisposable
         SeedFaction("vagos", "Vagos", 97);
         await _service.RunAsync();
 
-        // a channel is resolved, but the bot has posted nothing there yet (wrong id, missing right)
+        // no bot board yet
         _routes.FactionBoard = 9;
         Assert.Equal(ThreatBoardOutcome.Unchanged, await _service.RunAsync());
         SetScore("vagos", 95);
@@ -247,7 +247,7 @@ public sealed class FactionBoardMergeTests : IDisposable
         Assert.NotEqual(first.Hash, second.Hash);
     }
 
-    // the worker has no seam without a gateway client, so its decision is a pure helper
+    // pure worker decision
     [Theory]
     [InlineData(null, Hook, 403, null, Hook)]
     [InlineData(null, Hook, 404, 10003, Hook)]

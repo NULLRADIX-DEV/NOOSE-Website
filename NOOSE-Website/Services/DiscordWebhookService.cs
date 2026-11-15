@@ -79,7 +79,7 @@ public partial class DiscordWebhookService(
         }
     }
 
-    /// <summary>Today's text post of a category: the headline shown, the pings and one payload per ping batch.</summary>
+    /// <summary>Today's text post: headline, pings, payloads.</summary>
     private async Task<(string? Shown, Pings Pings, List<object> Payloads)> TextPostAsync(NotificationType type,
         DiscordWebhookConfig config, string? href, IReadOnlyCollection<string>? recipientAgentIds, string? headline,
         CancellationToken cancellationToken)
@@ -89,7 +89,7 @@ public partial class DiscordWebhookService(
             ? ComposeHeadline(shown, config.SiteBaseUrl, href)
             : Compose(type, config.SiteBaseUrl, href);
         var pings = await ResolvePingsAsync(type, recipientAgentIds, config, cancellationToken);
-        // a long ping list goes out as several posts, or Discord refuses the whole message
+        // Discord message limit
         var payloads = Batches(pings, content.Length).Select(mention => TextPayload(content, mention)).ToList();
         return (shown, pings, payloads);
     }
@@ -551,7 +551,7 @@ public partial class DiscordWebhookService(
         return ids.Count > 0 ? $"<@{ids[0]}>" : null;
     }
 
-    // personal categories ping the recipients; broadcast categories ping the configured role
+    // recipients or role
     private async Task<Pings> ResolvePingsAsync(NotificationType type, IReadOnlyCollection<string>? recipientAgentIds,
         DiscordWebhookConfig config, CancellationToken cancellationToken)
     {

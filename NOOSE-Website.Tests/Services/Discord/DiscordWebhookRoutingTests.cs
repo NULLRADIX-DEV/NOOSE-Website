@@ -76,7 +76,7 @@ public class DiscordWebhookRoutingTests
         var factory = Substitute.For<IHttpClientFactory>();
         factory.CreateClient("discord").Returns(_ => new HttpClient(handler, disposeHandler: false));
         var chosen = route ?? ToBot;
-        // like the real routes
+        // as real routes
         var routes = new FakeBotRoutes { Route = chosen, AlarmChannel = chosen.State == BotRouteState.Bot ? chosen.ChannelId : null };
         var queue = new DiscordPostQueue();
         var service = new DiscordWebhookService(factory, ctx.Factory, new MemoryCache(new MemoryCacheOptions()),
@@ -120,8 +120,6 @@ public class DiscordWebhookRoutingTests
 
     private static List<string> CustomIds(DiscordPost post)
         => Walk(post.Card).OfType<ButtonProperties>().Select(b => b.CustomId).ToList();
-
-    // ---------------------------------------------------------------- brief
 
     [Fact]
     public async Task Routed_category_is_queued_not_posted()
@@ -228,7 +226,7 @@ public class DiscordWebhookRoutingTests
         Assert.Contains("Max Mustermann", text);
         Assert.Contains($"<@{FirstId}>", text);
         Assert.Contains($"<@{SecondId}>", text);
-        // no ping line, the header opens the card
+        // header comes first
         Assert.StartsWith("### ", Texts(post)[0]);
         var mentions = JsonDocument.Parse(Json(Assert.Single(post.Fallback!.Payloads))).RootElement.GetProperty("allowed_mentions");
         Assert.Empty(mentions.GetProperty("parse").EnumerateArray());
@@ -277,13 +275,11 @@ public class DiscordWebhookRoutingTests
         var extra = Assert.Single(post.ExtraPings);
         Assert.Equal(100, Texts(post)[0].Split(' ').Length);
         Assert.Equal(50, extra.Split(' ').Length);
-        // the card line and the extra line together name everybody, once
+        // everyone exactly once
         Assert.Equal(150, Texts(post)[0].Split(' ').Concat(extra.Split(' ')).Distinct().Count());
-        // the webhook fallback keeps today's batches
+        // fallback keeps batches
         Assert.Equal(2, post.Fallback!.Payloads.Count);
     }
-
-    // ---------------------------------------------------------------- contracts
 
     [Theory]
     [InlineData(true)]
@@ -365,8 +361,6 @@ public class DiscordWebhookRoutingTests
         Assert.Empty(host.Handler.Posts);
         Assert.False(host.Queue.TryRead(out _));
     }
-
-    // ---------------------------------------------------------------- the other methods
 
     [Fact]
     public async Task A_personnel_entry_pings_the_subject_and_keeps_its_embed_as_fallback()
@@ -477,8 +471,6 @@ public class DiscordWebhookRoutingTests
         Assert.False(host.Queue.TryRead(out _));
     }
 
-    // ---------------------------------------------------------------- test message
-
     private static ClaimsPrincipalBuilder Leadership => ClaimsPrincipalBuilder.Agent().AsAdmin();
 
     [Fact]
@@ -499,8 +491,9 @@ public class DiscordWebhookRoutingTests
         Assert.Equal(Channel, args[0]);
         var mentions = Assert.IsType<AllowedMentionsProperties>(args[2]);
         Assert.False(mentions.Everyone);
-        Assert.Empty(mentions.AllowedUsers ?? []);
-        Assert.Empty(mentions.AllowedRoles ?? []);
+        // null allows all
+        Assert.Empty(Assert.IsAssignableFrom<IEnumerable<ulong>>(mentions.AllowedUsers));
+        Assert.Empty(Assert.IsAssignableFrom<IEnumerable<ulong>>(mentions.AllowedRoles));
     }
 
     [Fact]

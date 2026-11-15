@@ -196,12 +196,12 @@ public sealed class DiscordLiveBoards(
     /// <summary>Factions listed behind the most dangerous one.</summary>
     public const int FactionRunnersUp = 5;
 
-    /// <summary>The factions above the threat list's threshold, picked like it: no VS, no state factions, nothing archived.</summary>
+    /// <summary>Factions above the threat threshold, without VS, state or archived ones.</summary>
     public async Task<BoardCard> RenderFactionsAsync(CancellationToken ct)
     {
         var config = await webhook.GetConfigAsync(ct);
         var threshold = config.ThreatBoardThreshold;
-        // highest first; name and id keep the order stable
+        // highest first, stable
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         var top = await db.Factions.AsNoTracking()
             .OnlyActive()

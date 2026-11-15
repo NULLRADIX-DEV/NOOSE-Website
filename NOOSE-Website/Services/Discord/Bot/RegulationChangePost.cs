@@ -20,11 +20,11 @@ public enum RegulationChangeKind
     Repealed,
 }
 
-/// <summary>One paragraph's change since the last post: the diff for a change, the text for a new one, the reason for a repeal.</summary>
+/// <summary>One paragraph's change since the last post.</summary>
 public sealed record RegulationChange(string Label, RegulationChangeKind Kind, string? DiffHtml, string? ContentHtml,
     string? Note, string? Reason, IReadOnlyList<string> PublisherIds);
 
-/// <summary>The collected regulation post in the style of the hand-written ones; pure, no clock and no database.</summary>
+/// <summary>The collected DVO post, pure.</summary>
 public static partial class RegulationChangePost
 {
     /// <summary>Quiet time after the last change before the post goes out.</summary>
@@ -39,10 +39,10 @@ public static partial class RegulationChangePost
     /// <summary>Discord's limit on components in one message, nested ones included.</summary>
     public const int MaxComponents = 40;
 
-    /// <summary>Container, text displays and the closing part (separator, text, row, two buttons) every message may carry.</summary>
+    /// <summary>Components of one message: container, texts and closing part.</summary>
     private static int ComponentCount(int textDisplays) => 1 + textDisplays + 5;
 
-    /// <summary>One component list per Discord message; only the first greets the role, only the last signs and has buttons.</summary>
+    /// <summary>One component list per message; first pings, last signs.</summary>
     public static IReadOnlyList<IReadOnlyList<IMessageComponentProperties>> Render(IReadOnlyList<RegulationChange> changes,
         string roleId, IReadOnlyList<(string Chip, string Rank)> signers, string baseUrl)
     {
@@ -154,7 +154,7 @@ public static partial class RegulationChangePost
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();
 
-    /// <summary>Discord Markdown from stored or diffed HTML: ins bold, del struck, blocks as lines, everything else plain and escaped.</summary>
+    /// <summary>Discord Markdown from HTML: ins bold, del struck, rest escaped.</summary>
     public static string Markdown(string? html)
     {
         if (string.IsNullOrWhiteSpace(html))
@@ -219,7 +219,7 @@ public static partial class RegulationChangePost
         return result.ToString();
     }
 
-    // marks hug the words
+    // marks hug words
     private static void Append(StringBuilder line, string text, string? mark)
     {
         var core = text.Trim();
@@ -234,10 +234,10 @@ public static partial class RegulationChangePost
     }
 }
 
-/// <summary>Reads the regulation events since the last post and keeps the post state; the database half of the post.</summary>
+/// <summary>Reads DVO events and keeps the post state.</summary>
 public interface IRegulationChangeCollector
 {
-    /// <summary>One entry per paragraph a plain internal agent reads, in document order, and the newest event time.</summary>
+    /// <summary>Changes a plain agent may read, in order, and the newest time.</summary>
     Task<(IReadOnlyList<RegulationChange> Changes, DateTime? NewestUtc)> CollectAsync(DateTime sinceUtc,
         CancellationToken cancellationToken = default);
 
@@ -250,6 +250,9 @@ public interface IRegulationChangeCollector
 
     /// <summary>Stores the state without an audit row.</summary>
     Task SetStateAsync(DateTime newestUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>Drops the state; the next run starts from now.</summary>
+    Task ClearStateAsync(CancellationToken cancellationToken = default);
 }
 
 /// <inheritdoc cref="IRegulationChangeCollector" />
@@ -398,5 +401,12 @@ public sealed class RegulationChangeCollector(IDbContextFactory<AppDbContext> db
             await db.Database.ExecuteSqlInterpolatedAsync(
                 $"INSERT INTO SystemEinstellungen (Schluessel, Wert, ErstelltAm) VALUES ({key}, {value}, {now})", cancellationToken);
         }
+    }
+
+    // no audit row
+    public async Task ClearStateAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        await db.SystemSettings.Where(s => s.Key == SystemSettingKeys.DiscordDvoState).ExecuteDeleteAsync(cancellationToken);
     }
 }

@@ -5,10 +5,10 @@ using NOOSE_Website.Services.Discord.Bot;
 
 namespace NOOSE_Website.Infrastructure.Discord.Bot;
 
-/// <summary>The one live card of each alarm: posted with the ping, re-pinged with a reply under it, edited on answers.</summary>
+/// <summary>One live card per alarm: posted, re-pinged and edited.</summary>
 public interface IDiscordAlarmCards
 {
-    /// <summary>Posts the card or re-pings under it; throws only while nobody has been pinged yet, so the worker can fall back.</summary>
+    /// <summary>Posts the card or re-pings under it; throws only before any ping.</summary>
     Task HandleAsync(DiscordPost post, CancellationToken cancellationToken = default);
 
     /// <summary>Edits the stored card when it changed; never posts one.</summary>
@@ -106,7 +106,7 @@ public sealed class DiscordAlarmCards(
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
         {
-            // the ping matters more
+            // ping matters more
             logger.LogWarning("Discord alarm card edit failed ({Reason}), re-pinging anyway.", DiscordPostWorker.Reason(ex));
             return true;
         }
@@ -142,7 +142,7 @@ public sealed class DiscordAlarmCards(
             new[] { rest.First }.Where(l => l.Length > 0).Concat(rest.Rest), cancellationToken);
     }
 
-    /// <summary>A reply under the card pings the open ones; a failing first reply throws, the lines after it do not.</summary>
+    /// <summary>Re-pings the open ones in a reply under the card.</summary>
     private async Task RepingAsync(DiscordPost post, ulong channel, ulong message, CancellationToken cancellationToken)
     {
         var lines = NotificationCards.PingLines(post.PingUsers.Select(u => u.ToString()).ToList(), PlainChips);
