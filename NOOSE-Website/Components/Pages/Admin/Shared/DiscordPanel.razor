@@ -1,6 +1,7 @@
 @* Discord webhook routing: one channel per notification category. Managed by leadership. *@
 @inject IDiscordWebhookService Discord
 @inject IFactionThreatBoardService ThreatBoard
+@inject IDiscordBotRoutes Routes
 @inject ISnackbar Snackbar
 
 
@@ -57,6 +58,8 @@ else
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                 Trage pro Kategorie die Webhook-URL des Ziel-Channels ein (in Discord: Channel →
                 Einstellungen → Integrationen → Webhooks). Leer lassen = diese Kategorie nicht weiterleiten.
+                Server und Kanal liest der FIB-Bot aus dem Webhook. Der Chip zeigt, wie die gespeicherte URL gerade ankommt:
+                als Karte des Bots oder per Webhook, mit dem Grund.
             </MudText>
             <MudStack Spacing="3">
                 @foreach (var type in _types)
@@ -106,6 +109,13 @@ else
                                          Icon="@Icons.Material.Filled.AlternateEmail">pingt Empfänger</MudChip>
                             </MudTooltip>
                         }
+                        @if (RouteChip(type) is { } route)
+                        {
+                            <MudTooltip Text="@route.Tip">
+                                <MudChip T="string" Size="Size.Small" Color="@route.Color" Variant="Variant.Outlined"
+                                         Icon="@route.Icon">@route.Text</MudChip>
+                            </MudTooltip>
+                        }
                         @if (type == NotificationType.FactionThreatBoard)
                         {
                             @* a test post would sit in the board's channel; refreshing posts the board itself *@
@@ -143,9 +153,13 @@ else
     private DiscordWebhookConfigInput _input = new();
     private readonly Dictionary<NotificationType, string?> _webhooks = new();
     private readonly Dictionary<NotificationType, string?> _roles = new();
+    private readonly Dictionary<NotificationType, BotRouteState> _routes = new();
     private bool _load = true;
     private bool _saving;
     private bool _refreshing;
+
+    /// <summary>The chip of one category's route.</summary>
+    private sealed record RouteBadge(string Text, Color Color, string Icon, string Tip);
 
     protected override async Task OnInitializedAsync()
     {
@@ -167,7 +181,61 @@ else
             _roles[type] = config.Roles.GetValueOrDefault(type);
         }
         _load = false;
+        // show the form first
+        StateHasChanged();
+        await LoadRoutesAsync(config);
     }
+
+    /// <summary>Reads each saved webhook's route once per distinct URL.</summary>
+    private async Task LoadRoutesAsync(DiscordWebhookConfig config)
+    {
+        try
+        {
+            var urls = _types
+                .Select(type => config.Webhooks.GetValueOrDefault(type))
+                .Where(url => !string.IsNullOrWhiteSpace(url))
+                .Select(url => url!)
+                .Distinct()
+                .ToList();
+            var states = new Dictionary<string, BotRouteState>();
+            if (config.Enabled)
+            {
+                var routes = await Task.WhenAll(urls.Select(async url => (url, (await Routes.ForWebhookAsync(url)).State)));
+                states = routes.ToDictionary(route => route.url, route => route.State);
+            }
+            _routes.Clear();
+            foreach (var type in _types)
+            {
+                if (config.Webhooks.GetValueOrDefault(type) is { } url && states.TryGetValue(url, out var state))
+                {
+                    _routes[type] = state;
+                }
+            }
+        }
+        catch
+        {
+            /* best effort */
+            _routes.Clear();
+        }
+    }
+
+    private BotRouteState? RouteStateOf(NotificationType type)
+        => _routes.TryGetValue(type, out var state) && state != BotRouteState.NoWebhook ? state : null;
+
+    private RouteBadge? RouteChip(NotificationType type) => RouteStateOf(type) switch
+    {
+        BotRouteState.Bot => new("Bot", Color.Success, Icons.Material.Filled.SmartToy,
+            "Der FIB-Bot postet diese Kategorie als Karte in den Kanal des Webhooks."),
+        BotRouteState.BotOff => new("Webhook – Bot aus", Color.Default, Icons.Material.Filled.Link,
+            "Der Bot ist nicht eingerichtet oder abgeschaltet; der Webhook postet."),
+        BotRouteState.OtherServer => new("Webhook – anderer Server", Color.Default, Icons.Material.Filled.Link,
+            "Der Webhook gehört nicht zum Server des Bots; der Webhook postet."),
+        BotRouteState.Failing => new("Webhook – Kanalrecht fehlt", Color.Warning, Icons.Material.Filled.WarningAmber,
+            "Der Bot konnte dort zuletzt nicht schreiben („Nachrichten senden“, in Threads „In Threads senden“). Der Webhook postet zehn Minuten lang, danach versucht es der Bot erneut."),
+        BotRouteState.Unknown => new("Webhook – unbekannt", Color.Default, Icons.Material.Filled.HelpOutline,
+            "Server und Kanal des Webhooks ließen sich nicht abfragen; der Webhook postet."),
+        _ => null,
+    };
 
     private async Task SaveAsync()
     {
@@ -178,6 +246,7 @@ else
             _input.Roles = new Dictionary<NotificationType, string?>(_roles);
             await Discord.SaveConfigAsync(_input, _user);
             Snackbar.Add("Discord-Einstellungen gespeichert.", Severity.Success);
+            await LoadRoutesAsync(await Discord.GetConfigAsync());
         }
         catch (Exception ex)
         {
@@ -209,10 +278,13 @@ else
         try
         {
             var outcome = await ThreatBoard.RefreshAsync(_user);
+            // bot board replaces the webhook one
+            var botBoard = outcome == ThreatBoardOutcome.Off && await Routes.FactionBoardChannelAsync() is not null;
             var (text, severity) = outcome switch
             {
                 ThreatBoardOutcome.Posted => ("Gefahrenlage gepostet.", Severity.Success),
                 ThreatBoardOutcome.Edited or ThreatBoardOutcome.Unchanged => ("Gefahrenlage aktualisiert.", Severity.Success),
+                ThreatBoardOutcome.Off when botBoard => ("Die Fraktionstafel des Bots hat die Gefahrenlage übernommen und aktualisiert sich von selbst. Ein Webhook wird dafür nicht mehr gebraucht.", Severity.Info),
                 ThreatBoardOutcome.Off => ("Discord ist aus oder für die Gefahrenlage ist kein Webhook gespeichert (erst speichern).", Severity.Warning),
                 _ => ("Discord hat die Gefahrenlage nicht angenommen. Webhook prüfen; der nächste Durchlauf versucht es erneut.", Severity.Error),
             };
