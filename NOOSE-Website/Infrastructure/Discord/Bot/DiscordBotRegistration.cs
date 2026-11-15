@@ -23,6 +23,7 @@ public static class DiscordBotRegistration
         services.AddScoped<PersonalCommands>();
         services.AddScoped<LeadershipCommands>();
         services.AddScoped<CaptureCommands>();
+        services.AddScoped<ChannelCardCommands>();
         services.AddScoped<DiscordBotRouter>();
         services.AddScoped<DiscordLiveBoards>();
         services.AddHttpClient(CaptureCommands.CdnClient, client => client.Timeout = TimeSpan.FromSeconds(15))
