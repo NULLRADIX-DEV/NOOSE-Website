@@ -73,6 +73,7 @@ public sealed class DiscordBotWorker(
     private static readonly TimeSpan WantedEvery = TimeSpan.FromMinutes(2);
     // the list only changes with a deploy or a new channel; the check is local, Discord is only called on a change
     private static readonly TimeSpan CommandsEvery = TimeSpan.FromMinutes(1);
+    private static readonly TimeSpan DvoEvery = TimeSpan.FromMinutes(1);
 
     private readonly System.Threading.Channels.Channel<string> _alarmQueue = System.Threading.Channels.Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
     private string? _presence;
@@ -90,6 +91,7 @@ public sealed class DiscordBotWorker(
                 LoopAsync("Fahndungstafel", WantedEvery, UpdateWantedBoardAsync, stoppingToken),
                 LoopAsync("Fraktionstafel", WantedEvery, UpdateFactionBoardAsync, stoppingToken),
                 LoopAsync("Befehlsliste", CommandsEvery, UpdateCommandsBoardAsync, stoppingToken),
+                LoopAsync("DVO-Änderungen", DvoEvery, (s, t) => PostRegulationChangesAsync(s, DateTime.UtcNow, t), stoppingToken),
                 AlarmLoopAsync(stoppingToken));
         }
         finally
@@ -337,6 +339,45 @@ public sealed class DiscordBotWorker(
             throw;
         }
         await boards.SetCommandsBoardAsync(channel, posted, hash, ct);
+    }
+
+    /// <summary>Posts the collected regulation changes a quarter hour after the last one; a failed send keeps the state.</summary>
+    public static async Task PostRegulationChangesAsync(IServiceProvider services, DateTime now, CancellationToken ct)
+    {
+        var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
+        if (settings.DvoChannelId is not { } channel)
+        {
+            return;
+        }
+        var collector = services.GetRequiredService<IRegulationChangeCollector>();
+        if (await collector.GetStateAsync(ct) is not { } since)
+        {
+            // no backlog flood
+            await collector.SetStateAsync(now, ct);
+            return;
+        }
+        var (changes, newest) = await collector.CollectAsync(since, ct);
+        if (newest is not { } last || now - last < RegulationChangePost.QuietFor)
+        {
+            return;
+        }
+        if (changes.Count > 0)
+        {
+            var config = await services.GetRequiredService<IDiscordWebhookService>().GetConfigAsync(ct);
+            var role = DiscordBotSettingsService.ParseId(config.Roles.GetValueOrDefault(Models.Enums.NotificationType.Announcement));
+            var messages = RegulationChangePost.Render(changes,
+                role?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "",
+                await collector.SignersAsync(changes, ct), config.SiteBaseUrl.TrimEnd('/'));
+            var sender = services.GetRequiredService<IDiscordBotSender>();
+            for (var i = 0; i < messages.Count; i++)
+            {
+                var message = messages[i];
+                // only the first pings
+                var mentions = DiscordPostWorker.Mentions([], i == 0 ? role : null);
+                await DiscordPostWorker.TimedAsync(t => sender.SendAsync(channel, message, mentions, cancellationToken: t), ct);
+            }
+        }
+        await collector.SetStateAsync(last, ct);
     }
 
     private async Task DeleteAllAsync(ulong channel, IEnumerable<ulong> messages, CancellationToken ct)

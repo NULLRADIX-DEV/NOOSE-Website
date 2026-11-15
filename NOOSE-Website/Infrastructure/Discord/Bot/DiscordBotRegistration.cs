@@ -26,6 +26,7 @@ public static class DiscordBotRegistration
         services.AddScoped<ChannelCardCommands>();
         services.AddScoped<DiscordBotRouter>();
         services.AddScoped<DiscordLiveBoards>();
+        services.AddScoped<IRegulationChangeCollector, RegulationChangeCollector>();
         services.AddHttpClient(CaptureCommands.CdnClient, client => client.Timeout = TimeSpan.FromSeconds(15))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false })
             .RemoveAllLoggers();
