@@ -36,6 +36,12 @@ public static partial class RegulationChangePost
     // Text's clip
     private const int MaxBlock = 3800;
 
+    /// <summary>Discord's limit on components in one message, nested ones included.</summary>
+    public const int MaxComponents = 40;
+
+    /// <summary>Container, text displays and the closing part (separator, text, row, two buttons) every message may carry.</summary>
+    private static int ComponentCount(int textDisplays) => 1 + textDisplays + 5;
+
     /// <summary>One component list per Discord message; only the first greets the role, only the last signs and has buttons.</summary>
     public static IReadOnlyList<IReadOnlyList<IMessageComponentProperties>> Render(IReadOnlyList<RegulationChange> changes,
         string roleId, IReadOnlyList<(string Chip, string Rank)> signers, string baseUrl)
@@ -54,18 +60,30 @@ public static partial class RegulationChangePost
                 + (string.IsNullOrWhiteSpace(c.Note) ? "" : ": " + DiscordCards.Inline(c.Note, RegulationRules.MaxChangeNote)))));
         }
 
-        // paragraph boundaries only
-        var messages = new List<List<string>> { new() };
+        // whole blocks only
+        var messages = new List<List<StringBuilder>> { new() };
         var size = 0;
         foreach (var block in blocks.Select(b => DiscordCards.Clip(b, MaxBlock)))
         {
-            if (messages[^1].Count > 0 && size + block.Length > Budget)
+            var chunks = messages[^1];
+            var joins = chunks.Count > 0 && chunks[^1].Length + 2 + block.Length <= MaxBlock;
+            var displays = chunks.Count + (joins ? 0 : 1);
+            if (chunks.Count > 0 && (size + 2 + block.Length > Budget || ComponentCount(displays) > MaxComponents))
             {
-                messages.Add([]);
+                messages.Add(chunks = []);
                 size = 0;
+                joins = false;
             }
-            messages[^1].Add(block);
-            size += block.Length;
+            if (joins)
+            {
+                chunks[^1].Append("\n\n").Append(block);
+                size += 2 + block.Length;
+            }
+            else
+            {
+                chunks.Add(new StringBuilder(block));
+                size += block.Length;
+            }
         }
         var closing = Closing(changes.Any(c => c.Kind == RegulationChangeKind.Changed), signers);
         if (size + closing.Length > Budget)
@@ -76,7 +94,7 @@ public static partial class RegulationChangePost
         var result = new List<IReadOnlyList<IMessageComponentProperties>>();
         for (var i = 0; i < messages.Count; i++)
         {
-            var parts = messages[i].Select(b => (IComponentContainerComponentProperties?)DiscordCards.Text(b)).ToList();
+            var parts = messages[i].Select(b => (IComponentContainerComponentProperties?)DiscordCards.Text(b.ToString())).ToList();
             if (i == messages.Count - 1)
             {
                 parts.Add(DiscordCards.Line());

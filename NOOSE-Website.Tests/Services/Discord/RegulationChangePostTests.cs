@@ -87,9 +87,8 @@ public class RegulationChangePostTests
         ]);
 
         var message = Assert.Single(messages);
-        var texts = Texts(message);
-        Assert.Contains(texts, t => t.StartsWith("### §5.1 Dienstkleidung\n") && t.Contains("Anzug **schwarz**"));
-        Assert.Contains("**Sonstiges**\n> §6.3 Dienstnummer: Querverweise korrigiert", texts);
+        Assert.Contains("\n\n### §5.1 Dienstkleidung\nAnzug **schwarz**", Everything(message));
+        Assert.Contains("\n\n**Sonstiges**\n> §6.3 Dienstnummer: Querverweise korrigiert", Everything(message));
         Assert.DoesNotContain("### §6.3", Everything(message));
         Assert.DoesNotContain("geheimer", Everything(message));
         // legend only with a change
@@ -104,7 +103,7 @@ public class RegulationChangePostTests
                 "<p>Der Bunker liegt hier.</p><p>Zweite Zeile.</p>", null, null, []),
         ]));
 
-        Assert.Contains("**Neueinführung: §9.3 Sector X**\n> Der Bunker liegt hier.\n> Zweite Zeile.", Texts(message));
+        Assert.Contains("\n\n**Neueinführung: §9.3 Sector X**\n> Der Bunker liegt hier.\n> Zweite Zeile.", Everything(message));
     }
 
     [Fact]
@@ -114,7 +113,7 @@ public class RegulationChangePostTests
             new RegulationChange("§2.1 Altes", RegulationChangeKind.Repealed, null, null, null, "Überholt durch §2.2", []),
         ]));
 
-        Assert.Contains("**Aufgehoben: §2.1 Altes**\n> Überholt durch §2.2", Texts(message));
+        Assert.Contains("\n\n**Aufgehoben: §2.1 Altes**\n> Überholt durch §2.2", Everything(message));
     }
 
     [Fact]
@@ -167,6 +166,22 @@ public class RegulationChangePostTests
         Assert.Equal($"{BaseUrl}/dienstverordnung", open.Url);
         Assert.Equal("Öffnen", open.Label);
         Assert.All(messages.SkipLast(1), m => Assert.Empty(Walk(m).OfType<ActionRowProperties>()));
+    }
+
+    [Fact]
+    public void Many_short_changes_stay_within_the_component_limit()
+    {
+        var repeals = Enumerable.Range(1, 50)
+            .Select(i => new RegulationChange($"§{i}.1 Absatz {i}", RegulationChangeKind.Repealed, null, null, null, "Überholt", []))
+            .ToList();
+
+        var messages = Render(repeals);
+
+        // Discord's limit
+        Assert.All(messages, m => Assert.True(Walk(m).Count() <= 40));
+        Assert.All(messages, m => Assert.True(Texts(m).Sum(t => t.Length) <= DiscordCards.MaxText));
+        var all = string.Join("\n", messages.Select(Everything));
+        Assert.All(Enumerable.Range(1, 50), i => Assert.Contains($"**Aufgehoben: §{i}.1 Absatz {i}**\n> Überholt", all));
     }
 
     [Fact]
