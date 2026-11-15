@@ -191,7 +191,9 @@ public sealed class DiscordLiveBoards(
             .Select(f => new
             {
                 f.Id, f.Name, f.CaseNumber, Score = f.ThreatScore!.Value, f.Kind, f.EstimatedMemberCount,
-                Routes = f.DrugRoutes.OrderBy(r => r.Designation).Select(r => r.Designation).Take(6).ToList(),
+                // the board is read by everyone in the channel: open routes only
+                Routes = db.DrugRoutes.OnlyActive().OnlyUnrestricted().Where(r => r.FactionId == f.Id)
+                    .OrderBy(r => r.Designation).Select(r => r.Designation).Take(6).ToList(),
             })
             .ToListAsync(ct);
         var baseUrl = (await webhook.GetConfigAsync(ct)).SiteBaseUrl.TrimEnd('/');

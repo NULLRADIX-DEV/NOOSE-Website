@@ -20,6 +20,7 @@ public class NetworkStatisticsService(
         ("Faction", "Fraktion"),
         ("PersonGroup", "Personengruppe"),
         ("Party", "Partei"),
+        ("DrugRoute", "Drogenroute"),
         ("Operation", "Operation"),
         ("Case", "Vorgang"),
         ("Taskforce", "Taskforce"),

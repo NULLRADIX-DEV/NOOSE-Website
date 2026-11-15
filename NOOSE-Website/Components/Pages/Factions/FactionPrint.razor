@@ -1,6 +1,7 @@
 ﻿@page "/fraktionen/{Id}/druck"
 @layout PrintLayout
 @inject IFactionService FactionService
+@inject IDrugRouteService DrugRouteService
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 @inject IAgentActivityService ActivityService
 @inject IOperationService OperationService
@@ -182,16 +183,16 @@ else
             </section>
         }
 
-        @if (_faction.DrugRoutes.Count > 0)
+        @if (_routes.Count > 0)
         {
             <section>
                 <h2>Drogenrouten</h2>
                 <table class="druck-tabelle">
-                    <thead><tr><th>Bezeichnung</th><th>Notiz</th></tr></thead>
+                    <thead><tr><th>Bezeichnung</th><th>Aktenzeichen</th><th>Substanz</th><th>Stationen</th></tr></thead>
                     <tbody>
-                        @foreach (var d in _faction.DrugRoutes)
+                        @foreach (var d in _routes)
                         {
-                            <tr><td>@d.Designation</td><td>@(string.IsNullOrWhiteSpace(d.Note) ? "—" : d.Note)</td></tr>
+                            <tr><td>@d.Designation@(d.IsArchived ? " (archiviert)" : "")</td><td>@d.CaseNumber</td><td>@(d.Substance ?? "—")</td><td>@d.Stations.Count</td></tr>
                         }
                     </tbody>
                 </table>
@@ -268,6 +269,8 @@ else
     private bool _isPartner;
 
     /// <summary>False only when a partner's rank restricts this record type to other tabs.</summary>
+    private List<DrugRoute> _routes = new();
+
     private bool TabOn(string slug) => _visibleTabs is null || _visibleTabs.Contains(slug);
 
     protected override async Task OnInitializedAsync()
@@ -284,6 +287,10 @@ else
             _visibleTabs = user.IsPartner()
                 ? await PartnerPolicy.GetVisibleTabsAsync(user, nameof(Faction), Id)
                 : null;
+            if (TabOn("bestaende"))
+            {
+                _routes = await DrugRouteService.GetForFactionAsync(Id, scope);
+            }
             // the per-rank TAB restriction, which the detail page honours and this route did not: the coarse
             // type gate in PrintLayout lets a tab-limited partner through to the classification history
             if (TabOn("einstufung"))

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -292,6 +293,9 @@ public static class CounterIntelEventLoader
             .Where(x => ids.Contains(x.Id))
             .Select(x => new Flat(x.Id, x.IsClassified, x.Classification)).ToListAsync(ct)),
         nameof(Party) => Map(await db.Parties.AsNoTracking().IgnoreQueryFilters()
+            .Where(x => ids.Contains(x.Id))
+            .Select(x => new Flat(x.Id, x.IsClassified, x.Classification)).ToListAsync(ct)),
+        nameof(DrugRoute) => Map(await db.DrugRoutes.AsNoTracking().IgnoreQueryFilters()
             .Where(x => ids.Contains(x.Id))
             .Select(x => new Flat(x.Id, x.IsClassified, x.Classification)).ToListAsync(ct)),
         nameof(Operation) => Map(await db.Operations.AsNoTracking().IgnoreQueryFilters()

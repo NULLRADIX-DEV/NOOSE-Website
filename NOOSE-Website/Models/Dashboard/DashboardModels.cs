@@ -12,6 +12,7 @@ public enum DashboardRecordType
     Operation,
     Taskforce,
     Case,
+    DrugRoute,
 }
 
 /// <summary>Dashboard metric tiles; counts are classification-filtered per calling agent.</summary>

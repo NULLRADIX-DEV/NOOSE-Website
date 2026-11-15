@@ -1,6 +1,7 @@
 using MudBlazor;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -37,6 +38,7 @@ public interface INavLabelService
         "fraktionen" => (nameof(Faction), Icons.Material.Filled.Groups),
         "personengruppen" => (nameof(PersonGroup), Icons.Material.Filled.Diversity3),
         "parteien" => (nameof(Party), Icons.Material.Filled.AccountBalance),
+        "drogenrouten" => (nameof(DrugRoute), Icons.Material.Filled.Route),
         "operationen" => (nameof(Operation), Icons.Material.Filled.Radar),
         "vorgaenge" => (nameof(Case), Icons.Material.Filled.FolderSpecial),
         "dokumente" => (nameof(Document), Icons.Material.Filled.MenuBook),

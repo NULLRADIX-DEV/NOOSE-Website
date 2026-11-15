@@ -52,12 +52,14 @@ public static class NooseiToolHost
         ISituationReportService? situationReports = null,
         ITrainingModuleService? trainingModules = null,
         ICounterIntelRuleService? counterIntelRules = null,
-        IFeedbackService? feedback = null)
+        IFeedbackService? feedback = null,
+        IDrugRouteService? drugRoutes = null)
         => new(
             people ?? Substitute.For<IPersonService>(),
             factions ?? Substitute.For<IFactionService>(),
             groups ?? Substitute.For<IPersonGroupService>(),
             parties ?? Substitute.For<IPartyService>(),
+            drugRoutes ?? Substitute.For<IDrugRouteService>(),
             cases ?? Substitute.For<ICaseService>(),
             operations ?? Substitute.For<IOperationService>(),
             laws ?? Substitute.For<ILawService>(),

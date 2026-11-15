@@ -1,0 +1,411 @@
+@page "/drogenrouten/{Id}"
+@inject IDrugRouteService RouteService
+@inject IAccessLogService AccessLog
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IPartnerVisibilityPolicyService PartnerPolicy
+
+<PageTitle>@(_route?.Designation ?? "Drogenroute") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_route is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Drogenroute nicht gefunden oder nicht zugänglich (ggf. Verschlusssache).
+    </MudAlert>
+}
+else
+{
+    @if (_route.IsArchived)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
+                <div>
+                    <MudText Typo="Typo.body2">
+                        Archiviert am @(_route.ArchivedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—") —
+                        erscheint nicht in Listen, Auswahllisten und der Standardsuche.
+                    </MudText>
+                    @if (!string.IsNullOrWhiteSpace(_route.ArchiveReason))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Grund: @_route.ArchiveReason</MudText>
+                    }
+                </div>
+                <MudSpacer />
+                <AuthorizeView Policy="@Policies.WriteAccess" Context="archiv">
+                    <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Unarchive"
+                               OnClick="UnarchiveAsync">Zurückholen</MudButton>
+                </AuthorizeView>
+            </MudStack>
+        </MudAlert>
+    }
+
+    @* secondary actions move to the menu below 960px *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4 noose-kopf-umbruch">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/drogenrouten" aria-label="Zurück" />
+        <MudSpacer />
+        <div class="d-contents noose-schmal-aus">
+            <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
+                <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
+                               Href="@($"/drogenrouten/{Id}/druck")" Target="_blank"
+                               aria-label="Druckansicht öffnen" />
+            </MudTooltip>
+            <DossierExportButton EntityType="@nameof(DrugRoute)" EntityId="@Id" />
+            @if (!_isPartner)
+            {
+                <FollowButton EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" User="_user" />
+                <JobCreateButton EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" />
+                <ChannelShareButton EntityType="@nameof(DrugRoute)" EntityId="@_route.Id"
+                                    Restricted="@ChannelShareRules.IsRestricted(_route)" />
+            }
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
+                <PartnerShareButton EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" />
+            </AuthorizeView>
+        </div>
+        <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
+            <MudButton Href="@($"/drogenrouten/{_route.Id}/bearbeiten")" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit">Bearbeiten</MudButton>
+        </AuthorizeView>
+        <div class="d-contents noose-schmal-aus">
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="ablegen">
+                @if (!_route.IsArchived)
+                {
+                    <MudButton Color="Color.Default" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Archive"
+                               OnClick="ArchiveAsync">Archivieren</MudButton>
+                }
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.Leadership">
+                <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
+            </AuthorizeView>
+        </div>
+        <HeaderMenu>
+            <MudMenuItem Icon="@Icons.Material.Filled.Print" Href="@($"/drogenrouten/{Id}/druck")" Target="_blank">Druckansicht</MudMenuItem>
+            <DossierExportButton AsMenuItem="true" EntityType="@nameof(DrugRoute)" EntityId="@Id" />
+            @if (!_isPartner)
+            {
+                <FollowButton AsMenuItem="true" EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" User="_user" />
+                <JobCreateButton AsMenuItem="true" EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" />
+                <ChannelShareButton AsMenuItem="true" EntityType="@nameof(DrugRoute)" EntityId="@_route.Id"
+                                    Restricted="@ChannelShareRules.IsRestricted(_route)" />
+            }
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="freigabe">
+                <PartnerShareButton AsMenuItem="true" EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" />
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.WriteAccess" Context="ablegen">
+                <MudDivider Class="my-1" />
+                @if (!_route.IsArchived)
+                {
+                    <MudMenuItem Icon="@Icons.Material.Filled.Archive" OnClick="ArchiveAsync">Archivieren</MudMenuItem>
+                }
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.Leadership">
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            </AuthorizeView>
+        </HeaderMenu>
+    </MudStack>
+
+    @if (!_isPartner)
+    {
+        <MudPaper Class="pa-2 mb-4" Elevation="1">
+            <TagChips EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" User="_user" />
+        </MudPaper>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="4" lg="3">
+            <div class="akte-steckkarte">
+                <DrugRouteCard Route="_route" StationCount="@(_isPartner ? null : _stationCount)" PersonCount="@(_isPartner ? null : _personCount)"
+                               TitleImagePhotoId="@RecordAvatar.ProfileId(_route.Photos)"
+                               User="_user" Changed="NewLoadAsync" />
+            </div>
+        </MudItem>
+
+        <MudItem xs="12" md="8" lg="9">
+            @if (_renderTabs.Count == 0)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Für Ihren Zugang sind in dieser Akte keine Bereiche freigegeben.
+                </MudAlert>
+            }
+            else
+            {
+            @if (TabOn("historie"))
+            {
+                <SinceLastVisitBar EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" User="_user" Since="_since" />
+            }
+            <RecordSectionRail>
+                @if (TabOn("uebersicht"))
+                {
+                <RecordSection Group="Akte" Slug="uebersicht" Label="Übersicht" Icon="@Icons.Material.Filled.Info">
+                    <MudStack Spacing="3">
+                        <div>
+                            <MudText Typo="Typo.subtitle2">Substanz</MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@(string.IsNullOrWhiteSpace(_route.Substance) ? "—" : _route.Substance)</MudText>
+                        </div>
+                        <div>
+                            <MudText Typo="Typo.subtitle2">Fraktion</MudText>
+                            @if (_route.Faction is { } faction)
+                            {
+                                <MudLink Href="@($"/fraktionen/{faction.Id}")" Typo="Typo.body2">@faction.Name</MudLink>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">@(_route.FactionId is null ? "unbekannt" : "nicht einsehbar")</MudText>
+                            }
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(_route.Description))
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Beschreibung</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary"><MentionDisplay Text="@_route.Description" /></MudText>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_route.Findings))
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Erkenntnisse</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary"><MentionDisplay Text="@_route.Findings" /></MudText>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_route.Remarks))
+                        {
+                            <div>
+                                <MudText Typo="Typo.subtitle2">Bemerkungen</MudText>
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary"><MentionDisplay Text="@_route.Remarks" /></MudText>
+                            </div>
+                        }
+                        @if (string.IsNullOrWhiteSpace(_route.Description) && string.IsNullOrWhiteSpace(_route.Findings) && string.IsNullOrWhiteSpace(_route.Remarks))
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Beschreibung und keine Erkenntnisse erfasst.</MudText>
+                        }
+                    </MudStack>
+                </RecordSection>
+                }
+                @if (TabOn("einstufung"))
+                {
+                <RecordSection Group="Akte" Slug="einstufung" Label="Einstufung" Icon="@Icons.Material.Filled.Shield">
+                    <ClassificationPanel Current="_route.Classification" History="_classificationHistory" User="_user" OnSet="ClassificationSetAsync"
+                                         EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" TargetDesignation="@($"{_route.Designation} ({_route.CaseNumber})")" />
+                </RecordSection>
+                }
+                @if (TabOn("stationen"))
+                {
+                <RecordSection Group="Route" Slug="stationen" Label="Stationen" Icon="@Icons.Material.Filled.Route">
+                    <DrugRouteStationsPanel RouteId="@_route.Id" User="_user" Changed="NewLoadAsync" />
+                </RecordSection>
+                }
+                @if (TabOn("personen"))
+                {
+                <RecordSection Group="Route" Slug="personen" Label="Beteiligte Personen" Icon="@Icons.Material.Filled.Group">
+                    <DrugRoutePeoplePanel RouteId="@_route.Id" User="_user" Changed="NewLoadAsync" />
+                </RecordSection>
+                }
+                @if (TabOn("fotos"))
+                {
+                <RecordSection Group="Anhänge" Slug="fotos" Label="Beweisfotos" Icon="@Icons.Material.Filled.PhotoLibrary">
+                    <DrugRoutePhotoGallery RouteId="@_route.Id" User="_user" Changed="NewLoadAsync" />
+                </RecordSection>
+                }
+                @if (TabOn("verknuepfungen"))
+                {
+                <RecordSection Group="Struktur" Slug="verknuepfungen" Label="Verknüpfungen" Icon="@Icons.Material.Filled.Link">
+                    <RecordLinksPanel @key="Id" EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" User="_user" />
+                </RecordSection>
+                }
+                @if (TabOn("kommentare"))
+                {
+                <RecordSection Group="Verlauf" Slug="kommentare" Label="Kommentare" Icon="@Icons.Material.Filled.Comment">
+                    <CommentPanel EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" User="_user" />
+                </RecordSection>
+                }
+                @* partner-safe: timeline filters cross-refs for partners *@
+                @if (TabOn("historie"))
+                {
+                <RecordSection Group="Verlauf" Slug="historie" Label="Zeitstrahl" Icon="@Icons.Material.Filled.Timeline">
+                    <TimelinePanel EntityType="@nameof(DrugRoute)" EntityId="@_route.Id" User="_user" NewSince="_since" @key="_historyKey" />
+                </RecordSection>
+                }
+            </RecordSectionRail>
+            }
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _isPartner;
+    private DrugRoute? _route;
+    private int _stationCount;
+    private int _personCount;
+    private List<ClassificationHistory> _classificationHistory = new();
+    private ClaimsPrincipal _user = default!;
+    private Guid _historyKey = Guid.NewGuid();
+    private string? _loadedId;
+    // last view of the previous visit, read before this one is logged
+    private DateTime? _since;
+
+    // section slugs
+    private static readonly string[] _tabs =
+    {
+        "uebersicht", "einstufung", "stationen", "personen", "fotos", "verknuepfungen", "kommentare", "historie",
+    };
+
+    // null = unrestricted
+    private IReadOnlySet<string>? _visibleTabs;
+    private List<string> _renderTabs = new();
+    private bool TabOn(string slug) => _visibleTabs is null || _visibleTabs.Contains(slug);
+    private void RebuildRenderTabs() => _renderTabs = _tabs.Where(TabOn).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _isPartner = _user.IsPartner();
+    }
+
+    // reused across ids
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _load = true;
+        _route = null;
+        _since = null;
+        await LoadAsync();
+        if (_route is not null)
+        {
+            _since = await AccessLog.PreviousVisitAsync(nameof(DrugRoute), _route.Id);
+            await AccessLog.LogViewAsync(nameof(DrugRoute), _route.Id);
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        // no _load, rail keeps its section
+        var scope = ViewerScope.From(_user);
+        _route = await RouteService.GetDetailAsync(Id, scope);
+        if (_route is not null)
+        {
+            _classificationHistory = await RouteService.GetClassificationHistoryAsync(_route.Id, scope);
+            // no child counts
+            if (!_isPartner)
+            {
+                _stationCount = (await RouteService.GetStationsAsync(_route.Id, ViewerScope.From(_user))).Count;
+                _personCount = (await RouteService.GetPeopleAsync(_route.Id, scope)).Count;
+            }
+        }
+        _visibleTabs = _isPartner && _route is not null
+            ? await PartnerPolicy.GetVisibleTabsAsync(_user, nameof(DrugRoute), _route.Id)
+            : null;
+        RebuildRenderTabs();
+        _load = false;
+    }
+
+    private async Task NewLoadAsync()
+    {
+        await LoadAsync();
+        _historyKey = Guid.NewGuid();
+        StateHasChanged();
+    }
+
+    private async Task ClassificationSetAsync((Classification New, string? Justification) input)
+    {
+        if (_route is null)
+        {
+            return;
+        }
+        await RouteService.ClassificationSetAsync(_route.Id, input.New, input.Justification, _user);
+        await NewLoadAsync();
+    }
+
+    private async Task ArchiveAsync()
+    {
+        if (_route is null)
+        {
+            return;
+        }
+        var reason = await ReasonDialog.ShowAsync(DialogService, "Drogenroute archivieren?",
+            "Diese Drogenroute verschwindet aus Listen, Auswahllisten und der Standardsuche. Verknüpfungen, "
+            + "Erwähnungen und der Graph bleiben unverändert; zurückholen kann sie jeder mit Schreibrecht.",
+            confirmText: "Archivieren", label: "Grund (optional)");
+        if (reason is null)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.ArchiveAsync(_route.Id, reason, _user);
+            Snackbar.Add("Drogenroute archiviert.", Severity.Success);
+            await NewLoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task UnarchiveAsync()
+    {
+        if (_route is null)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.UnarchiveAsync(_route.Id, _user);
+            Snackbar.Add("Wieder im aktiven Bestand.", Severity.Success);
+            await NewLoadAsync();
+        }
+        catch (DrugRouteDuplicateException dup)
+        {
+            Snackbar.Add(dup.Message, Severity.Error, options =>
+            {
+                options.RequireInteraction = true;
+                if (dup.ExistingId is { } existingId)
+                {
+                    options.Action = "Öffnen";
+                    options.OnClick = _ =>
+                    {
+                        Nav.NavigateTo($"/drogenrouten/{existingId}");
+                        return Task.CompletedTask;
+                    };
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (_route is null)
+        {
+            return;
+        }
+        var reason = await CriticalReasonPrompt.DeleteAsync(DialogService, "Drogenroute löschen?",
+            "Die Drogenroute wird in den Papierkorb verschoben und kann von der Führung wiederhergestellt werden.");
+        if (reason is null)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.DeleteAsync(_route.Id, reason, _user);
+            Snackbar.Add("Drogenroute in den Papierkorb verschoben.", Severity.Success);
+            Nav.NavigateTo("/drogenrouten");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

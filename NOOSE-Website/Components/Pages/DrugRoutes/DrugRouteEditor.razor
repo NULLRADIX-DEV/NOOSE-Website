@@ -1,0 +1,229 @@
+@page "/drogenrouten/neu"
+@page "/drogenrouten/{Id}/bearbeiten"
+@inject IDrugRouteService RouteService
+@inject IFactionService FactionService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>@(IsEdit ? "Drogenroute bearbeiten" : "Neue Drogenroute") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_input is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Drogenroute nicht gefunden oder nicht zugänglich.
+    </MudAlert>
+}
+else
+{
+    @* no help button *@
+    <PageHeader Compact="true" BackTooltip="false" BackHref="@BackHref" Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Route)"
+                Title="@(IsEdit ? "Drogenroute bearbeiten" : "Neue Drogenroute anlegen")" ShowHelp="false" />
+
+    <MudForm @ref="_form">
+        <DrugRouteForm DraftScope="@DraftScope" @key="_loadedId" Input="_input" ShowClassification="@(!IsEdit)" MayHighest="_mayHighest"
+                       IsLeadership="_isLeadership" SecrecyOptions="_secrecyOptions" />
+    </MudForm>
+    @if (IsEdit)
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+            Hinweis: Die Einstufung wird in der Akte unter „Einstufung" geändert (mit Verlauf und Rang-Prüfung).
+        </MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+            Stationen, Beweisfotos und beteiligte Personen ergänzt du in der Akte, sobald die Route angelegt ist.
+        </MudText>
+    }
+
+    @* pinned below 960px *@
+    <FormActions Justify="Justify.FlexStart" Class="mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="SaveAsync" Disabled="_saves">@(IsEdit ? "Speichern" : "Anlegen")</MudButton>
+        <MudButton Variant="Variant.Text" Href="@BackHref">Abbrechen</MudButton>
+    </FormActions>
+}
+
+@code {
+    [Parameter] public string? Id { get; set; }
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+    /// <summary>Faction to preselect on create.</summary>
+    [SupplyParameterFromQuery(Name = "fraktion")] public string? PreFactionId { get; set; }
+
+    // stale Id survives neu
+    private bool IsEdit { get; set; }
+    private string BackHref => IsEdit ? $"/drogenrouten/{Id}"
+        : PreFactionId is { Length: > 0 } f ? $"/fraktionen/{Uri.EscapeDataString(f)}" : "/drogenrouten";
+
+    private MudForm _form = default!;
+    private DrugRouteInput? _input;
+    private ClaimsPrincipal _user = default!;
+
+    // one draft scope
+    private string DraftScope => IsEdit ? $"drogenroute:{Id}" : "drogenroute:neu";
+    private bool _mayHighest;
+    private bool _isLeadership;
+    private bool _load = true;
+    private bool _saves;
+    private string? _loadedId;
+    // as loaded
+    private DocumentClassification _loadedSecrecy;
+    private string? _loadedFactionId;
+    private string? _loadedFactionName;
+    private IReadOnlyList<DocumentClassification> _secrecyOptions = Array.Empty<DocumentClassification>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayHighest = _user.MayHighestClassification();
+        _isLeadership = _user.IsLeadership();
+        _secrecyOptions = DocumentViewerScope.AssignableOptions(_user);
+    }
+
+    // instance reused across routes
+    protected override async Task OnParametersSetAsync()
+    {
+        IsEdit = Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0]
+            .EndsWith("/bearbeiten", StringComparison.OrdinalIgnoreCase);
+        var key = IsEdit ? Id ?? string.Empty : $"neu:{PreFactionId}";
+        if (_loadedId == key)
+        {
+            return;
+        }
+        _loadedId = key;
+        _load = true;
+        _input = null;
+
+        if (!IsEdit)
+        {
+            _input = new DrugRouteInput();
+            await PreselectFactionAsync(_input);
+            _load = false;
+            return;
+        }
+
+        var r = await RouteService.GetDetailAsync(Id!, ViewerScope.From(_user));
+        if (r is not null)
+        {
+            _input = new DrugRouteInput
+            {
+                Designation = r.Designation,
+                Substance = r.Substance,
+                Description = r.Description,
+                Findings = r.Findings,
+                Remarks = r.Remarks,
+                FactionId = r.FactionId,
+                // keep hidden faction id
+                FactionName = r.Faction?.Name ?? (r.FactionId is null ? null : "Fraktion nicht einsehbar"),
+                Classification = r.Classification,
+                SecrecyLevel = r.SecrecyLevel,
+            };
+        }
+        _loadedSecrecy = _input?.SecrecyLevel ?? DocumentClassification.None;
+        _loadedFactionId = _input?.FactionId;
+        _loadedFactionName = _input?.FactionName;
+        _load = false;
+    }
+
+    private async Task PreselectFactionAsync(DrugRouteInput input)
+    {
+        if (string.IsNullOrWhiteSpace(PreFactionId))
+        {
+            return;
+        }
+        try
+        {
+            var faction = await FactionService.GetDetailAsync(PreFactionId, ViewerScope.From(_user));
+            if (faction is not null)
+            {
+                input.FactionId = faction.Id;
+                input.FactionName = faction.Name;
+            }
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_input is null)
+        {
+            return;
+        }
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+        {
+            return;
+        }
+
+        if (IsEdit)
+        {
+            var secrecyReason = await CriticalReasonPrompt.SecrecyAsync(DialogService, _loadedSecrecy, _input.SecrecyLevel);
+            if (secrecyReason is null)
+            {
+                return;
+            }
+            _input.SecrecyReason = secrecyReason;
+
+            if (_loadedFactionId is not null && _input.FactionId is not null && _input.FactionId != _loadedFactionId)
+            {
+                var handover = await DialogService.ShowMessageBoxAsync("Route übergeben?",
+                    $"Die Route wechselt von „{_loadedFactionName}“ zu „{_input.FactionName}“. Beide Fraktionsakten vermerken den Wechsel.",
+                    yesText: "Übergeben", cancelText: "Abbrechen");
+                if (handover != true)
+                {
+                    return;
+                }
+            }
+        }
+
+        _saves = true;
+        try
+        {
+            if (IsEdit)
+            {
+                await RouteService.RefreshAsync(Id!, _input, _user);
+                await TextDraft.DiscardScopeAsync(JS, _user.GetAgentId(), DraftScope);
+                Snackbar.Add("Änderungen gespeichert.", Severity.Success);
+                Nav.NavigateTo($"/drogenrouten/{Id}");
+            }
+            else
+            {
+                var route = await RouteService.CreateAsync(_input, _user);
+                await TextDraft.DiscardScopeAsync(JS, _user.GetAgentId(), DraftScope);
+                Snackbar.Add($"Drogenroute {route.CaseNumber} angelegt.", Severity.Success);
+                Nav.NavigateTo($"/drogenrouten/{route.Id}");
+            }
+        }
+        catch (DrugRouteDuplicateException dup)
+        {
+            Snackbar.Add(dup.Message, Severity.Error, options =>
+            {
+                options.RequireInteraction = true;
+                if (dup.ExistingId is { } existingId)
+                {
+                    options.Action = "Öffnen";
+                    options.OnClick = _ =>
+                    {
+                        Nav.NavigateTo($"/drogenrouten/{existingId}");
+                        return Task.CompletedTask;
+                    };
+                }
+            });
+            _saves = false;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _saves = false;
+        }
+    }
+}

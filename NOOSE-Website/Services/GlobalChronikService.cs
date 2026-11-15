@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -39,7 +40,7 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
     /// <summary>Record types the chronicle anchors its events on.</summary>
     public static readonly string[] RecordTypes =
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(Operation),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute), nameof(Operation),
         nameof(Case), nameof(Taskforce), nameof(Job), nameof(Document), nameof(Law),
     };
 
@@ -577,6 +578,16 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
             }
         }
 
+        var drugRouteIds = Ids(nameof(DrugRoute));
+        if (drugRouteIds.Count > 0)
+        {
+            foreach (var x in await db.DrugRoutes.IgnoreQueryFilters().Where(r => drugRouteIds.Contains(r.Id))
+                .Select(r => new { r.Id, r.Designation, r.IsClassified, r.IsTRUClassified, r.IsHRBClassified, r.IsDeleted }).ToListAsync(ct))
+            {
+                if (VisRestricted(x.IsClassified, x.IsTRUClassified, x.IsHRBClassified)) { result[(nameof(DrugRoute), x.Id)] = new RecordRef(x.Designation, x.IsDeleted); }
+            }
+        }
+
         var operationIds = Ids(nameof(Operation));
         if (operationIds.Count > 0)
         {
@@ -767,6 +778,7 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
         nameof(Faction) => $"/fraktionen/{id}",
         nameof(PersonGroup) => $"/personengruppen/{id}",
         nameof(Party) => $"/parteien/{id}",
+        nameof(DrugRoute) => $"/drogenrouten/{id}",
         nameof(Operation) => $"/operationen/{id}",
         nameof(Case) => $"/vorgaenge/{id}",
         nameof(Taskforce) => $"/taskforces/{id}",

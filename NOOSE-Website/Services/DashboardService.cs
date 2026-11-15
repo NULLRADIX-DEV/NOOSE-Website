@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -47,6 +48,7 @@ public class DashboardService(IDbContextFactory<AppDbContext> dbFactory, IReques
                 + await db.Factions.OnlyActive().CountAsync(f => f.IsClassified, cancellationToken)
                 + await db.PersonGroups.OnlyActive().CountAsync(g => g.IsClassified, cancellationToken)
                 + await db.Parties.OnlyActive().CountAsync(p => p.IsClassified, cancellationToken)
+                + await db.DrugRoutes.OnlyActive().CountAsync(r => r.IsClassified, cancellationToken)
                 + await db.Operations.OnlyActive().CountAsync(o => o.IsClassified, cancellationToken)
                 + await db.Taskforces.OnlyActive().CountAsync(t => t.IsClassified, cancellationToken)
                 + await db.Cases.OnlyActive().CountAsync(v => v.IsClassified, cancellationToken);
@@ -60,6 +62,7 @@ public class DashboardService(IDbContextFactory<AppDbContext> dbFactory, IReques
         var sF = CutoffDate(nameof(Faction));
         var sG = CutoffDate(nameof(PersonGroup));
         var sPt = CutoffDate(nameof(Party));
+        var sDr = CutoffDate(nameof(DrugRoute));
         var sO = CutoffDate(nameof(Operation));
         var sT = CutoffDate(nameof(Taskforce));
         var sV = CutoffDate(nameof(Case));
@@ -73,6 +76,7 @@ public class DashboardService(IDbContextFactory<AppDbContext> dbFactory, IReques
                 .CountAsync(cancellationToken))
             + (settings[nameof(PersonGroup)].AgingDisabled ? 0 : await db.PersonGroups.OnlyActive().CountAsync(g => (isLeadership || !g.IsClassified) && !g.AgingDisabled && (g.ModifiedAt ?? g.CreatedAt) < sG, cancellationToken))
             + (settings[nameof(Party)].AgingDisabled ? 0 : await db.Parties.OnlyActive().CountAsync(p => (isLeadership || !p.IsClassified) && !p.AgingDisabled && (p.ModifiedAt ?? p.CreatedAt) < sPt, cancellationToken))
+            + (settings[nameof(DrugRoute)].AgingDisabled ? 0 : await db.DrugRoutes.OnlyActive().CountAsync(r => (isLeadership || !r.IsClassified) && !r.AgingDisabled && (r.ModifiedAt ?? r.CreatedAt) < sDr, cancellationToken))
             + (settings[nameof(Operation)].AgingDisabled ? 0 : await db.Operations.OnlyActive().CountAsync(o => (isLeadership || !o.IsClassified) && !o.AgingDisabled && (o.ModifiedAt ?? o.CreatedAt) < sO, cancellationToken))
             + (settings[nameof(Taskforce)].AgingDisabled ? 0 : await db.Taskforces.OnlyVisible(db, isLeadership, meId).OnlyActive().CountAsync(t => !t.AgingDisabled && (t.ModifiedAt ?? t.CreatedAt) < sT, cancellationToken))
             + (settings[nameof(Case)].AgingDisabled ? 0 : await db.Cases.OnlyActive().CountAsync(v => (isLeadership || !v.IsClassified) && !v.AgingDisabled && (v.ModifiedAt ?? v.CreatedAt) < sV, cancellationToken));
@@ -162,6 +166,21 @@ public class DashboardService(IDbContextFactory<AppDbContext> dbFactory, IReques
             {
                 result.Add(new DashboardStaleRecord(DashboardRecordType.Party, x.Name, x.CaseNumber, $"/parteien/{x.Id}",
                     RecencyAssessment.Level(setPt.WarningDays, setPt.StaleDays, x.Reference, now), x.Reference));
+            }
+        }
+
+        var setDr = settings[nameof(DrugRoute)];
+        if (!setDr.AgingDisabled)
+        {
+            var cutDr = now.AddDays(-setDr.WarningDays);
+            foreach (var x in await db.DrugRoutes.OnlyActive()
+                .Where(r => (isLeadership || !r.IsClassified) && !r.AgingDisabled && (r.ModifiedAt ?? r.CreatedAt) < cutDr)
+                .OrderBy(r => r.ModifiedAt ?? r.CreatedAt)
+                .Select(r => new { r.Id, Name = r.Designation, r.CaseNumber, Reference = r.ModifiedAt ?? r.CreatedAt })
+                .Take(max).ToListAsync(cancellationToken))
+            {
+                result.Add(new DashboardStaleRecord(DashboardRecordType.DrugRoute, x.Name, x.CaseNumber, $"/drogenrouten/{x.Id}",
+                    RecencyAssessment.Level(setDr.WarningDays, setDr.StaleDays, x.Reference, now), x.Reference));
             }
         }
 

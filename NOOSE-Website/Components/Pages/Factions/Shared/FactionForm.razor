@@ -108,22 +108,20 @@
         </MudStack>
 
         <div class="mt-4">
-            <ProfileMultipleField TItem="StockInput" Title="WeaponStock" Items="Input.WeaponStock"
+            <ProfileMultipleField TItem="StockInput" Title="Waffenbestand" Items="Input.WeaponStock"
                                     Type="SuggestionType.Weapon" ShowExtra="true"
                                     MainPlaceholder="Waffe" ExtraPlaceholder="Menge (optional)" />
         </div>
     </MudItem>
 
     <MudItem xs="12" md="6">
-        <ProfileMultipleField TItem="StockInput" Title="Inventory" Items="Input.Inventory"
+        <ProfileMultipleField TItem="StockInput" Title="Inventar" Items="Input.Inventory"
                                 Type="SuggestionType.Inventory" ShowExtra="true"
                                 MainPlaceholder="Gegenstand" ExtraPlaceholder="Menge (optional)" />
 
-        <div class="mt-4">
-            <ProfileMultipleField TItem="StockInput" Title="DrugRoutes" Items="Input.DrugRoutes"
-                                    Type="SuggestionType.DrugRoute" ShowExtra="true"
-                                    MainPlaceholder="Route" ExtraPlaceholder="Notiz (optional)" />
-        </div>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-4 d-block">
+            Drogenrouten haben eine eigene Akte. Du legst sie über die Fraktionsakte unter „Bestände“ oder unter Drogenrouten an.
+        </MudText>
     </MudItem>
 </MudGrid>
 

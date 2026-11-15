@@ -3,6 +3,7 @@ using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Financing;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Jobs;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -56,9 +57,18 @@ public static class TimelineDisplay
         {
             return (TimelineCategory.Allocation, $"Agent {Verb("zugeteilt", "entfernt")}");
         }
-        if (entityType is nameof(PersonPhoto) or nameof(FactionPhoto) or nameof(PersonGroupPhoto) or nameof(PartyPhoto))
+        if (entityType is nameof(PersonPhoto) or nameof(FactionPhoto) or nameof(PersonGroupPhoto) or nameof(PartyPhoto)
+            or nameof(DrugRoutePhoto))
         {
             return (TimelineCategory.Photo, $"Foto {Verb("hinzugefügt", "entfernt")}");
+        }
+        if (entityType == nameof(DrugRoutePerson))
+        {
+            return (TimelineCategory.Membership, $"Beteiligte Person {Verb("aufgenommen", "entfernt")}");
+        }
+        if (entityType == nameof(DrugRouteStation))
+        {
+            return (TimelineCategory.Change, $"Station {Verb("angelegt", "entfernt")}");
         }
         if (entityType == nameof(CustomFieldValue))
         {

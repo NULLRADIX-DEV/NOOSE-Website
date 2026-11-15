@@ -755,6 +755,9 @@ public static class ChangelogContent
             Neu("3.0.54-ermittlungen", "FIB und DoJ führen Ermittlungen gemeinsam als Akte an einer Taskforce, mit Rechten "
                 + "je Beteiligtem und Tab. Staatsanwälte zeichnen Anordnungen, Excel-Akten lassen sich importieren, und die Akte "
                 + "lässt sich per @ erwähnen und mit anderen Akten verknüpfen, sichtbar nur für Beteiligte.", "Akten"),
+            Neu("3.0.55-drogenrouten", "Drogenrouten haben eine eigene Akte mit Stationen in Reihenfolge, Beweisfotos je "
+                + "Station, beteiligten Personen und der Fraktion, die sie betreibt. Die bisherigen Routen der Fraktionen "
+                + "sind als Akten übernommen, und die Fraktionsakte zeigt sie unter Bestände.", "Akten"),
         ]),
     ];
 }

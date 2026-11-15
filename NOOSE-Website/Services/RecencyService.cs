@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -26,6 +27,7 @@ public class RecencyService(IDbContextFactory<AppDbContext> dbFactory, IMemoryCa
         new(nameof(Faction), "Fraktion", 60, 180),
         new(nameof(PersonGroup), "Personengruppe", 60, 180),
         new(nameof(Party), "Partei", 60, 180),
+        new(nameof(DrugRoute), "Drogenroute", 60, 180),
         new(nameof(Operation), "Operation", 30, 90),
         new(nameof(Taskforce), "Taskforce", 30, 90),
         new(nameof(Case), "Vorgang", 30, 90),
@@ -133,6 +135,8 @@ public class RecencyService(IDbContextFactory<AppDbContext> dbFactory, IMemoryCa
             nameof(PersonGroup) => await db.PersonGroups.Where(x => x.Id == id)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.AgingDisabled, disabled), cancellationToken),
             nameof(Party) => await db.Parties.Where(x => x.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.AgingDisabled, disabled), cancellationToken),
+            nameof(DrugRoute) => await db.DrugRoutes.Where(x => x.Id == id)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.AgingDisabled, disabled), cancellationToken),
             nameof(Operation) => await db.Operations.Where(x => x.Id == id)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.AgingDisabled, disabled), cancellationToken),

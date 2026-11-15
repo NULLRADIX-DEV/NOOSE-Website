@@ -1,0 +1,240 @@
+@page "/drogenrouten"
+@using NOOSE_Website.Models.Navigation
+@inject IDrugRouteService RouteService
+@inject NavigationManager Nav
+
+<PageTitle>Drogenrouten · FIB</PageTitle>
+
+@* no help button *@
+<PageHeader Icon="@Icons.Material.Filled.Route" Title="Drogenrouten" ShowHelp="false"
+            Subtitle="Drogenrouten mit Stationen, Beweisfotos, beteiligten Personen und betreibender Fraktion.">
+    <MoreActions>
+        <ListExportButton T="RouteRow" RecordType="@nameof(DrugRoute)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudButton Href="/papierkorb?tab=drogenrouten" Variant="Variant.Text" Color="Color.Default" StartIcon="@Icons.Material.Filled.Delete">Papierkorb</MudButton>
+        </AuthorizeView>
+    </MoreActions>
+    <MoreActionsMenu>
+        <ListExportButton AsMenuItem="true" T="RouteRow" RecordType="@nameof(DrugRoute)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />
+        <AuthorizeView Policy="@Policies.Leadership">
+            <MudMenuItem Icon="@Icons.Material.Filled.Delete" Href="/papierkorb?tab=drogenrouten">Papierkorb</MudMenuItem>
+        </AuthorizeView>
+    </MoreActionsMenu>
+    <Actions>
+        <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
+            <MudButton Href="/drogenrouten/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Drogenroute</MudButton>
+        </AuthorizeView>
+    </Actions>
+</PageHeader>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudDataGrid @ref="_grid" T="RouteRow" Items="_rows" Hover="true" Filterable="false" SortMode="SortMode.Multiple"
+                 QuickFilter="Filter" Elevation="2" RowClick="@(args => Open(args.Item))" Dense="true"
+                 Breakpoint="Breakpoint.None" Class="noose-filterleiste">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Suchen (Bezeichnung, Aktenzeichen, Substanz, Fraktion)…" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0 noose-filter-feld" />
+            <MudSpacer />
+            @* single filter, no fold *@
+            <MudSelect T="ArchiveFilter" Value="_archive" ValueChanged="ArchiveSelectedAsync" Label="Archiv" Dense="true"
+                       Variant="Variant.Outlined" Style="max-width:170px;" Margin="Margin.Dense" Class="ml-sm-2 noose-filter-feld">
+                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Active">Aktiv</MudSelectItem>
+                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Including">Mit Archiv</MudSelectItem>
+                <MudSelectItem T="ArchiveFilter" Value="ArchiveFilter.Only">Nur Archiv</MudSelectItem>
+            </MudSelect>
+            <MobileColumnPicker ListKey="drogenrouten" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
+        </ToolBarContent>
+        <Columns>
+            <TemplateColumn Sortable="true" Title="Bezeichnung" HeaderClass="@Col("bezeichnung")" CellClass="@Col("bezeichnung")" SortBy="x => x.Designation">
+                <CellTemplate>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        @if (!string.IsNullOrEmpty(context.Item.TitleImagePhotoId))
+                        {
+                            <MudImage Src="@RecordAvatar.Url(nameof(DrugRoute), context.Item.TitleImagePhotoId)" Alt="Titelbild"
+                                      Height="28" Width="28" ObjectFit="ObjectFit.Cover" Class="rounded" />
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Route" Color="Color.Default" Size="Size.Small" />
+                        }
+                        @* real link *@
+                        <MudLink Href="@($"/drogenrouten/{context.Item.Id}")" @onclick:stopPropagation="true">@context.Item.Designation</MudLink>
+                        @if (context.Item.IsArchived)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined" Class="ml-2">Archiviert</MudChip>
+                        }
+                    </MudStack>
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.CaseNumber" Title="Aktenzeichen" HeaderClass="@Col("aktenzeichen")" CellClass="@Col("aktenzeichen")" />
+            <PropertyColumn Property="x => x.Substance" Title="Substanz" HeaderClass="@Col("substanz")" CellClass="@Col("substanz")" />
+            <TemplateColumn Sortable="true" Title="Fraktion" HeaderClass="@Col("fraktion")" CellClass="@Col("fraktion")" SortBy="x => x.FactionName">
+                <CellTemplate>
+                    @if (context.Item.FactionName is { } name)
+                    {
+                        <MudLink Href="@($"/fraktionen/{context.Item.FactionId}")" @onclick:stopPropagation="true">@name</MudLink>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.Item.FactionId is null ? "unbekannt" : "nicht einsehbar")</MudText>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.StationCount" Title="Stationen" HeaderClass="@Col("stationen")" CellClass="@Col("stationen")" />
+            <TemplateColumn Sortable="true" Title="Einstufung" HeaderClass="@Col("einstufung")" CellClass="@Col("einstufung")" SortBy="x => x.Classification">
+                <CellTemplate>
+                    <ClassificationBadge Value="context.Item.Classification" />
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Sortable="true" Title="Verschluss" HeaderClass="@Col("verschluss")" CellClass="@Col("verschluss")" SortBy="x => x.IsClassified">
+                <CellTemplate>
+                    @if (context.Item.IsClassified)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Lock">@DocumentClassificationDisplay.ChipLabel(context.Item.SecrecyLevel)</MudChip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+            <PropertyColumn Property="x => x.Refreshed" Title="Zuletzt" HeaderClass="@Col("zuletzt")" CellClass="@Col("zuletzt")" Format="dd.MM.yyyy HH:mm" />
+        </Columns>
+        <NoRecordsContent>
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Class="pa-6">
+                <MudIcon Icon="@Icons.Material.Filled.Route" Color="Color.Default" Size="Size.Large" />
+                <AuthorizeView Policy="@Policies.PartnerView" Context="partnerEmpty">
+                    <Authorized>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Für Ihre Behörde wurde noch keine Drogenroute freigegeben.</MudText>
+                    </Authorized>
+                    <NotAuthorized>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Drogenrouten – lege die erste an.</MudText>
+                    </NotAuthorized>
+                </AuthorizeView>
+                <AuthorizeView Policy="@Policies.WriteAccess" Context="schreib">
+                    <MudButton Href="/drogenrouten/neu" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">Neue Drogenroute</MudButton>
+                </AuthorizeView>
+            </MudStack>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudDataGridPager Class="noose-pager-handy" T="RouteRow" />
+        </PagerContent>
+    </MudDataGrid>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private MudDataGrid<RouteRow>? _grid;
+
+    /// <summary>CSV export columns.</summary>
+    private static readonly IReadOnlyList<ExportColumn<RouteRow>> ExportColumns =
+    [
+        new("Bezeichnung", r => r.Designation),
+        new("Aktenzeichen", r => r.CaseNumber),
+        new("Archiviert", r => ExportText.Flag(r.IsArchived)),
+        new("Substanz", r => r.Substance),
+        new("Fraktion", r => r.FactionName ?? (r.FactionId is null ? "unbekannt" : "nicht einsehbar")),
+        new("Stationen", r => r.StationCount.ToString()),
+        new("Einstufung", r => ClassificationDisplay.Name(r.Classification)),
+        new("Verschluss", r => ExportText.Secrecy(r.IsClassified, r.SecrecyLevel)),
+        new("Zuletzt", r => ExportText.Stamp(r.Refreshed)),
+    ];
+
+    /// <summary>Phone picker columns, in table order.</summary>
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+    [
+        ("bezeichnung", "Bezeichnung"), ("aktenzeichen", "Aktenzeichen"), ("substanz", "Substanz"), ("fraktion", "Fraktion"),
+        ("stationen", "Stationen"), ("einstufung", "Einstufung"), ("verschluss", "Verschluss"), ("zuletzt", "Zuletzt"),
+    ];
+
+    /// <summary>Phone default columns.</summary>
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["bezeichnung", "einstufung"];
+
+    // narrow first paint
+    private IReadOnlySet<string> _phoneColumns = MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // phones only
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    private bool _load = true;
+    private ArchiveFilter _archive = ArchiveFilter.Active;
+    private string _search = string.Empty;
+    private List<RouteRow> _rows = new();
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    // server-side filter
+    private async Task LoadAsync()
+    {
+        var user = (await AuthStateTask).User;
+        var scope = ViewerScope.From(user);
+        var isPartner = user.IsPartner();
+        var routes = await RouteService.GetListAsync(scope, _archive);
+        _rows = routes.Select(r =>
+        {
+            var referenceUtc = r.ModifiedAt ?? r.CreatedAt;
+            // mask hidden factions
+            var factionVisible = r.Faction is { } f && !isPartner
+                && RecordVisibility.IsVisible(scope, f.IsClassified, f.IsTRUClassified, f.IsHRBClassified);
+            return new RouteRow
+            {
+                Id = r.Id,
+                CaseNumber = r.CaseNumber,
+                Designation = r.Designation,
+                Substance = r.Substance,
+                FactionId = r.FactionId,
+                FactionName = factionVisible ? r.Faction!.Name : null,
+                StationCount = r.Stations.Count,
+                TitleImagePhotoId = RecordAvatar.ProfileId(r.Photos),
+                Classification = r.Classification,
+                IsClassified = r.IsClassified,
+                SecrecyLevel = r.SecrecyLevel,
+                Refreshed = referenceUtc.ToLocalTime(),
+                IsArchived = r.IsArchived,
+            };
+        }).ToList();
+        _load = false;
+    }
+
+    private bool Filter(RouteRow r)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+        {
+            return true;
+        }
+        var s = _search.Trim();
+        return r.Designation.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || r.CaseNumber.Contains(s, StringComparison.OrdinalIgnoreCase)
+            || (r.Substance?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false)
+            || (r.FactionName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false);
+    }
+
+    private void Open(RouteRow r) => Nav.NavigateTo($"/drogenrouten/{r.Id}");
+
+    private async Task ArchiveSelectedAsync(ArchiveFilter value)
+    {
+        _archive = value;
+        _load = true;
+        await LoadAsync();
+    }
+
+    private sealed class RouteRow
+    {
+        public string Id { get; set; } = string.Empty;
+        public string CaseNumber { get; set; } = string.Empty;
+        public string Designation { get; set; } = string.Empty;
+        public string? Substance { get; set; }
+        public string? FactionId { get; set; }
+        public string? FactionName { get; set; }
+        public int StationCount { get; set; }
+        public string? TitleImagePhotoId { get; set; }
+        public Classification Classification { get; set; }
+        public bool IsClassified { get; set; }
+        public DocumentClassification SecrecyLevel { get; set; }
+        public DateTime Refreshed { get; set; }
+        public bool IsArchived { get; set; }
+    }
+}

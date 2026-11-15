@@ -175,12 +175,9 @@ internal static class RecordsChapter
                 <p>Vier dieser Bereiche haben eine <strong>eigene Aktualitäts-Ampel</strong>. Wer die
                 Mitgliederliste pflegt, setzt nur die Mitglieder-Ampel zurück - Stammdaten anzufassen zählt
                 nicht als „gepflegt“.</p>
-                <p>Eine <strong>Drogenroute gehört immer nur einer Fraktion</strong>. Trägst du eine Route ein,
-                die schon eine andere Fraktion hält, fragt die Seite vor dem Speichern nach. Bestätigst du, geht
-                die Route über: bei der anderen Fraktion verschwindet sie, und beide Akten vermerken den Wechsel in
-                ihrem Verlauf. Groß- und Kleinschreibung zählen dabei nicht - „Kokain Nord“ und „kokain nord“ sind
-                dieselbe Route. Eine Fraktion im Papierkorb oder im Archiv hält keine Route; holt man sie zurück
-                und eine andere Fraktion hat die Route inzwischen, fällt sie bei der zurückgeholten weg.</p>
+                <p>Unter <em>Bestände</em> stehen die <strong>Drogenrouten</strong>, die die Fraktion betreibt.
+                Jede Route hat eine eigene Akte; von hier legst du eine neue an, die Fraktion ist dann schon
+                eingetragen.</p>
                 """,
                 NavKey: "fraktionen"),
 
@@ -208,6 +205,28 @@ internal static class RecordsChapter
                 wie überall.</p>
                 """,
                 NavKey: "parteien"),
+
+            new Article("art-drogenrouten", "drogenrouten", "Drogenrouten",
+                "Die Route als eigene Akte: Stationen, Beweisfotos, Beteiligte und die Fraktion dahinter.",
+                """
+                <p>Eine <strong>Drogenroute</strong> hat eine eigene Akte. Darin hältst du fest, wie die Route
+                läuft, was ihr belegt habt und wer daran beteiligt ist.</p>
+                <p>Den Verlauf legst du als <em>Stationen</em> an, in der Reihenfolge der Route, zum Beispiel
+                Sammeln, Verarbeiten, Verkauf. Jede Station hat einen Ort, eine Beschreibung und eigene
+                Beweisfotos. Fotos, die zu keiner Station gehören, liegen in der Galerie der Akte. Entfernst du
+                eine Station, wandern ihre Fotos in die Galerie.</p>
+                <p>Personen, die an der Route beteiligt sind, verknüpfst du mit ihrer Personenakte und gibst
+                ihnen eine Rolle wie Fahrer oder Verkäufer.</p>
+                <p>Eine Route gehört <strong>höchstens einer Fraktion</strong>. Solange unklar ist, wer sie
+                betreibt, bleibt das Feld leer. Wechselt die Route zu einer anderen Fraktion, fragt die Seite
+                vor dem Speichern nach, und beide Fraktionsakten vermerken den Wechsel in ihrem Verlauf. Die
+                Fraktionsakte zeigt ihre Routen unter <em>Bestände</em>, und jede aktive Route zählt in den
+                Bedrohungswert der Fraktion.</p>
+                <p>Jede Route gibt es nur einmal. Groß- und Kleinschreibung zählen dabei nicht, „Kokain Nord“
+                und „kokain nord“ sind dieselbe Route. Eine archivierte Route gibt ihren Namen frei; holst du
+                sie zurück, während eine andere Akte den Namen trägt, lehnt die Seite das ab.</p>
+                """,
+                NavKey: "drogenrouten"),
 
             new Article("art-verknuepfungen", "verknuepfungen", "Akten verknüpfen",
                 "Warum eine Verknüpfung immer in beide Richtungen sichtbar ist.",

@@ -4,6 +4,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Jobs;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -28,7 +29,7 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory, IPartnerVis
     /// <summary>Record types the graph resolves as nodes; an edge to any other type is dropped.</summary>
     public static readonly IReadOnlySet<string> NodeTypes = new HashSet<string>(StringComparer.Ordinal)
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute),
         nameof(Operation), nameof(Case), nameof(Taskforce), nameof(Job),
         nameof(Agent), nameof(Law), nameof(PersonDoc), nameof(Observation),
     };
@@ -36,7 +37,7 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory, IPartnerVis
     /// <summary>Node types a partner may ever see in the graph; docs, observations, jobs and agents never.</summary>
     public static readonly IReadOnlySet<string> PartnerNodeTypes = new HashSet<string>
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute),
         nameof(Operation), nameof(Case), nameof(Law), nameof(Taskforce),
     };
 
@@ -294,6 +295,7 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory, IPartnerVis
                 nameof(Faction) => await db.Factions.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(PersonGroup) => await db.PersonGroups.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Party) => await db.Parties.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(DrugRoute) => await db.DrugRoutes.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Operation) => await db.Operations.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Case) => await db.Cases.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Law) => await db.Laws.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, meId).Select(x => x.Id).ToListAsync(cancellationToken),
@@ -417,6 +419,22 @@ public class GraphService(IDbContextFactory<AppDbContext> dbFactory, IPartnerVis
                     continue;
                 }
                 result[$"{nameof(Party)}:{x.Id}"] = Mk(nameof(Party), x.Id, x.Name, x.CaseNumber, $"/parteien/{x.Id}", (int)x.Classification, x.IsClassified)
+                    with { IsArchived = x.IsArchived };
+            }
+        }
+
+        // ---- DrugRoute ----
+        var drugRouteIds = Ids(nameof(DrugRoute));
+        if (drugRouteIds.Count > 0)
+        {
+            foreach (var x in await db.DrugRoutes.Where(r => drugRouteIds.Contains(r.Id))
+                .Select(r => new { r.Id, r.Designation, r.CaseNumber, r.IsClassified, r.Classification, r.IsArchived }).ToListAsync(cancellationToken))
+            {
+                if (x.IsClassified && !isLeadership)
+                {
+                    continue;
+                }
+                result[$"{nameof(DrugRoute)}:{x.Id}"] = Mk(nameof(DrugRoute), x.Id, x.Designation, x.CaseNumber, $"/drogenrouten/{x.Id}", (int)x.Classification, x.IsClassified)
                     with { IsArchived = x.IsArchived };
             }
         }

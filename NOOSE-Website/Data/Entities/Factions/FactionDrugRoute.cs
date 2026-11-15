@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 namespace NOOSE_Website.Data.Entities.Factions;
 
-/// <summary>A faction drug route (designation + optional note).</summary>
+/// <summary>Legacy faction drug route row; replaced by the DrugRoute record, kept mapped until the table is dropped.</summary>
 [Table("FraktionDrogenrouten")]
 public class FactionDrugRoute
 {

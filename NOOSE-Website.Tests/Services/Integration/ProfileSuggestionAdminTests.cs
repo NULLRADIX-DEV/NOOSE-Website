@@ -112,53 +112,6 @@ public sealed class ProfileSuggestionAdminTests
     }
 
     [Fact]
-    public async Task RenameAsync_RefusesToMergeTwoDrugRoutes_EvenOneMissingFromTheCatalog()
-    {
-        using var ctx = new SqliteTestContext();
-        string entryId;
-        using (var db = ctx.NewContext())
-        {
-            var entry = new ProfileSuggestion { Type = SuggestionType.DrugRoute, Value = "Kokain Nord" };
-            db.ProfileSuggestions.Add(entry);
-            entryId = entry.Id;
-            db.FactionDrugRoutes.Add(new FactionDrugRoute { FactionId = "f1", Designation = "Kokain Nord" });
-            // a classified faction's route never reaches the catalog, but it is a route all the same
-            db.FactionDrugRoutes.Add(new FactionDrugRoute { FactionId = "f2", Designation = "Kokain Süd" });
-            db.SaveChanges();
-        }
-
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => Build(ctx).RenameAsync(entryId, "kokain süd", Leader));
-
-        using (var db = ctx.NewContext())
-        {
-            Assert.Equal(["Kokain Nord", "Kokain Süd"], db.FactionDrugRoutes.Select(d => d.Designation).Order().ToList());
-        }
-    }
-
-    [Fact]
-    public async Task RenameAsync_LetsADrugRouteChangeItsCase()
-    {
-        using var ctx = new SqliteTestContext();
-        string entryId;
-        using (var db = ctx.NewContext())
-        {
-            var entry = new ProfileSuggestion { Type = SuggestionType.DrugRoute, Value = "kokain nord" };
-            db.ProfileSuggestions.Add(entry);
-            entryId = entry.Id;
-            db.FactionDrugRoutes.Add(new FactionDrugRoute { FactionId = "f1", Designation = "kokain nord" });
-            db.SaveChanges();
-        }
-
-        await Build(ctx).RenameAsync(entryId, "Kokain Nord", Leader);
-
-        using (var db = ctx.NewContext())
-        {
-            Assert.Equal("Kokain Nord", db.FactionDrugRoutes.Single().Designation);
-        }
-    }
-
-    [Fact]
     public async Task RenameAsync_RejectsDuplicateTarget()
     {
         using var ctx = new SqliteTestContext();

@@ -8,6 +8,7 @@ const TYP_FARBE = {
     Faction: '#A3C23B',
     PersonGroup: '#D29922',
     Party: '#3FB950',
+    DrugRoute: '#2DB88F',
     Operation: '#F0883E',
     Case: '#A371F7',
     Taskforce: '#A8552F',

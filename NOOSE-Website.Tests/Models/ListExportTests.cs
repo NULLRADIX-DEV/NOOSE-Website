@@ -39,9 +39,10 @@ public class ListExportTests
     [InlineData("Faction", "fraktionen")]
     [InlineData("PersonGroup", "personengruppen")]
     [InlineData("Party", "parteien")]
+    [InlineData("DrugRoute", "drogenrouten")]
     [InlineData(nameof(Case), "vorgaenge")]
     [InlineData("Operation", "operationen")]
-    public void TheSixRecordLists_AreExportable(string type, string slug)
+    public void TheSevenRecordLists_AreExportable(string type, string slug)
     {
         Assert.True(ExportableRecords.Contains(type));
         Assert.Equal(slug, ExportableRecords.Slug(type));

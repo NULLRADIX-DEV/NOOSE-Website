@@ -26,7 +26,6 @@ public static class SuggestionTypeDisplay
         SuggestionType.Vehicle,
         SuggestionType.Location,
         SuggestionType.Inventory,
-        SuggestionType.DrugRoute,
         SuggestionType.Kind,
         SuggestionType.PartyRole,
         SuggestionType.OperationType,

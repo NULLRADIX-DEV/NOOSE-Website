@@ -1,4 +1,3 @@
-using NOOSE_Website.Models.Factions;
 using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Tests.Services;
@@ -23,20 +22,5 @@ public sealed class DrugRouteRulesTests
     {
         Assert.Equal(string.Empty, DrugRouteRules.Key(null));
         Assert.Equal(string.Empty, DrugRouteRules.Key("   "));
-    }
-
-    [Fact]
-    public void A_list_keeps_each_route_once_and_the_first_spelling()
-    {
-        var routes = DrugRouteRules.Distinct(
-        [
-            new StockInput { Designation = "Kokain Nord", Quantity = "Hafen" },
-            new StockInput { Designation = "" },
-            new StockInput { Designation = " kokain  nord", Quantity = "Flughafen" },
-            new StockInput { Designation = "Meth Süd" },
-        ]);
-
-        Assert.Equal(["Kokain Nord", "Meth Süd"], routes.Select(r => r.Designation));
-        Assert.Equal("Hafen", routes[0].Quantity);
     }
 }

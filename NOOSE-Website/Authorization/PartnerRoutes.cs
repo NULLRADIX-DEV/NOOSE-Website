@@ -12,6 +12,7 @@ public static class PartnerRoutes
         "fraktionen",
         "personengruppen",
         "parteien",
+        "drogenrouten",
         "operationen",
         "vorgaenge",
         "taskforces",

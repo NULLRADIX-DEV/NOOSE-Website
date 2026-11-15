@@ -1,0 +1,254 @@
+@inject IDrugRouteService RouteService
+@inject IDrugRoutePhotoStorageService PhotoStorage
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <SectionHeader Title="@($"Stationen ({_stations.Count})")">
+        <Actions>
+            @if (_mayWrite)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLocationAlt" OnClick="AddAsync">
+                    Station hinzufügen
+                </MudButton>
+            }
+        </Actions>
+    </SectionHeader>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_stations.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Noch keine Station erfasst. Lege die Route Schritt für Schritt an, z. B. Sammeln → Verarbeiten → Verkauf.
+        </MudText>
+    }
+    else
+    {
+        @foreach (var s in _stations)
+        {
+            var index = _stations.IndexOf(s);
+            var photos = PhotosOf(s);
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
+                            <MudAvatar Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">@(index + 1)</MudAvatar>
+                            <MudIcon Icon="@DrugRouteStationKindDisplay.Icon(s.Kind)" Color="Color.Primary" Size="Size.Small" />
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@DrugRouteStationKindDisplay.Name(s.Kind)</MudChip>
+                            <MudText Typo="Typo.body2"><b>@s.Location</b></MudText>
+                        </MudStack>
+                        @if (_mayWrite)
+                        {
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(index == 0 || _busy)"
+                                               OnClick="@(() => MoveAsync(s, -1))" aria-label="Station nach oben" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(index == _stations.Count - 1 || _busy)"
+                                               OnClick="@(() => MoveAsync(s, 1))" aria-label="Station nach unten" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small"
+                                               OnClick="@(() => EditAsync(s))" aria-label="Station bearbeiten" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => RemoveAsync(s))" aria-label="Station entfernen" />
+                            </MudStack>
+                        }
+                    </MudStack>
+
+                    @if (!string.IsNullOrWhiteSpace(s.Description))
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="white-space:pre-line;">@s.Description</MudText>
+                    }
+
+                    @if (photos.Count > 0)
+                    {
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var photo in photos)
+                            {
+                                <div @onclick="@(() => OpenLightboxAsync(photos, photo))" style="cursor:pointer;">
+                                    <MudImage Src="@RecordAvatar.Url(nameof(DrugRoute), photo.Id)" Alt="@(photo.Caption ?? photo.OriginalName)"
+                                              Height="64" Width="64" ObjectFit="ObjectFit.Cover" Class="rounded" />
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    @if (_mayWrite)
+                    {
+                        <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="@(files => UploadAsync(s, files))" Accept="image/*" MaximumFileCount="10">
+                            <CustomContent>
+                                <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.AddAPhoto"
+                                           OnClick="@context.OpenFilePickerAsync" Disabled="@_busy" Class="align-self-start">
+                                    Foto zur Station
+                                </MudButton>
+                            </CustomContent>
+                            <SelectedTemplate />
+                        </MudFileUpload>
+                    }
+                </MudStack>
+            </MudPaper>
+            @if (index < _stations.Count - 1)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Class="align-self-center mud-text-secondary" />
+            }
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string RouteId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool _load = true;
+    private bool _busy;
+    private bool _mayWrite;
+    private List<DrugRouteStation> _stations = new();
+    private List<DrugRoutePhoto> _photos = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mayWrite = User.MayWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _stations = await RouteService.GetStationsAsync(RouteId, ViewerScope.From(User));
+        _photos = await RouteService.GetPhotosAsync(RouteId, ViewerScope.From(User));
+        _load = false;
+    }
+
+    private List<DrugRoutePhoto> PhotosOf(DrugRouteStation station)
+        => _photos.Where(p => p.StationId == station.Id).ToList();
+
+    private async Task ChangedAsync()
+    {
+        await LoadAsync();
+        await Changed.InvokeAsync();
+    }
+
+    private async Task AddAsync()
+    {
+        var input = await DrugRouteStationDialog.ShowAsync(DialogService);
+        if (input is null)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.StationAddAsync(RouteId, input, User);
+            Snackbar.Add("Station hinzugefügt.", Severity.Success);
+            await ChangedAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task EditAsync(DrugRouteStation s)
+    {
+        var current = new DrugRouteStationInput { Kind = s.Kind, Location = s.Location, Description = s.Description };
+        var input = await DrugRouteStationDialog.ShowAsync(DialogService, current);
+        if (input is null)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.StationChangeAsync(s.Id, input, User);
+            Snackbar.Add("Station aktualisiert.", Severity.Success);
+            await ChangedAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task MoveAsync(DrugRouteStation s, int direction)
+    {
+        _busy = true;
+        try
+        {
+            await RouteService.StationMoveAsync(s.Id, direction, User);
+            await ChangedAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RemoveAsync(DrugRouteStation s)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Station entfernen?",
+            $"„{s.Location}“ wird von der Route entfernt. Die Fotos der Station bleiben in der Galerie.", "Entfernen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.StationRemoveAsync(s.Id, User);
+            Snackbar.Add("Station entfernt.", Severity.Success);
+            await ChangedAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task UploadAsync(DrugRouteStation s, IReadOnlyList<IBrowserFile> files)
+    {
+        _busy = true;
+        try
+        {
+            var uploaded = 0;
+            foreach (var file in files)
+            {
+                if (!PhotoStorage.IsAllowedType(file.ContentType))
+                {
+                    Snackbar.Add($"'{file.Name}': Dateityp nicht erlaubt (nur Bilder).", Severity.Warning);
+                    continue;
+                }
+                if (file.Size > PhotoStorage.MaxBytes)
+                {
+                    Snackbar.Add($"'{file.Name}': zu groß (max. {PhotoStorage.MaxBytes / (1024 * 1024)} MB).", Severity.Warning);
+                    continue;
+                }
+                await using var stream = file.OpenReadStream(PhotoStorage.MaxBytes);
+                await RouteService.PhotoAddAsync(RouteId, s.Id, null, stream, file.Name, file.ContentType, file.Size, User);
+                uploaded++;
+            }
+
+            if (uploaded > 0)
+            {
+                Snackbar.Add(uploaded == 1 ? "Foto hochgeladen." : $"{uploaded} Fotos hochgeladen.", Severity.Success);
+                await ChangedAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload fehlgeschlagen: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task OpenLightboxAsync(List<DrugRoutePhoto> photos, DrugRoutePhoto photo)
+    {
+        var images = photos
+            .Select(p => new ImageLightbox.LightboxImage(RecordAvatar.Url(nameof(DrugRoute), p.Id)!, p.Caption ?? p.OriginalName))
+            .ToList();
+        await ImageLightbox.ShowAsync(DialogService, images, Math.Max(0, photos.IndexOf(photo)));
+    }
+}

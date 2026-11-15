@@ -2,6 +2,7 @@
 @inject IFactionService FactionService
 @inject IPersonGroupService GroupService
 @inject IPartyService PartyService
+@inject IDrugRouteService DrugRouteService
 @inject IAgentManagementService AgentService
 @inject IPersonDocService DocService
 @inject IObservationService ObservationService
@@ -92,6 +93,22 @@
                                 <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" Color="Color.Primary" />
                                 <MudText Typo="Typo.body2">@p.Name</MudText>
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.CaseNumber</MudText>
+                            </MudStack>
+                        </ItemTemplate>
+                    </MudAutocomplete>
+                    break;
+
+                case nameof(DrugRoute):
+                    <MudAutocomplete T="DrugRoute" Label="Drogenroute" @bind-Value="_drugRoute" AutoFocus="true"
+                                     SearchFunc="@SearchDrugRoutes" ToStringFunc="@(r => r?.Designation ?? string.Empty)"
+                                     Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
+                                     ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
+                                     Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Route">
+                        <ItemTemplate Context="r">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.Route" Size="Size.Small" Color="Color.Primary" />
+                                <MudText Typo="Typo.body2">@r.Designation</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@r.CaseNumber</MudText>
                             </MudStack>
                         </ItemTemplate>
                     </MudAutocomplete>
@@ -458,6 +475,7 @@
         new(nameof(Faction), "Fraktion"),
         new(nameof(PersonGroup), "Personengruppe"),
         new(nameof(Party), "Partei"),
+        new(nameof(DrugRoute), "Drogenroute"),
         new(nameof(Operation), "Operation"),
         new(nameof(Taskforce), "Taskforce"),
         new(nameof(Case), "Vorgang"),
@@ -532,6 +550,7 @@
     private Faction? _faction;
     private PersonGroup? _group;
     private Party? _party;
+    private DrugRoute? _drugRoute;
     private Operation? _operation;
     private Taskforce? _taskforce;
     private Case? _case;
@@ -563,6 +582,7 @@
         nameof(Faction) => _faction?.Id,
         nameof(PersonGroup) => _group?.Id,
         nameof(Party) => _party?.Id,
+        nameof(DrugRoute) => _drugRoute?.Id,
         nameof(Operation) => _operation?.Id,
         nameof(Taskforce) => _taskforce?.Id,
         nameof(Case) => _case?.Id,
@@ -584,7 +604,7 @@
 
     private async Task TypeSwitchedAsync()
     {
-        _person = null; _faction = null; _group = null; _party = null; _operation = null; _taskforce = null;
+        _person = null; _faction = null; _group = null; _party = null; _drugRoute = null; _operation = null; _taskforce = null;
         _case = null; _job = null; _agent = null; _doc = null; _observation = null; _law = null; _document = null;
         _bewerbung = null; _meeting = null; _tip = null; _ticket = null; _presentation = null;
         _regulation = null; _warrant = null;
@@ -639,6 +659,9 @@
 
     private async Task<IEnumerable<Party>> SearchParties(string value, CancellationToken token)
         => Allowed(nameof(Party), await PartyService.SearchAsync(value, IsLeadership, 20, token), p => p.Id);
+
+    private async Task<IEnumerable<DrugRoute>> SearchDrugRoutes(string value, CancellationToken token)
+        => Allowed(nameof(DrugRoute), await DrugRouteService.SearchAsync(value, IsLeadership, 20, token), r => r.Id);
 
     private async Task<IEnumerable<Operation>> SearchOperations(string value, CancellationToken token)
         => Allowed(nameof(Operation), await OperationService.SearchAsync(value, IsLeadership, 20, token), o => o.Id);
@@ -774,6 +797,7 @@
         nameof(Faction) => _faction?.Name,
         nameof(PersonGroup) => _group?.Name,
         nameof(Party) => _party?.Name,
+        nameof(DrugRoute) => _drugRoute?.Designation,
         nameof(Operation) => _operation?.Title,
         nameof(Taskforce) => _taskforce?.Name,
         nameof(Case) => _case?.Title,

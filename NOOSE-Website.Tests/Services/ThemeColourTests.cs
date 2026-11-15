@@ -205,7 +205,7 @@ public class ThemeColourTests
         var legend = Regex.Matches(Read("Components", "Pages", "Graph", "RelationGraph.razor"), @"new\(nameof\((\w+)\), ""[^""]+"", ""(#[0-9A-Fa-f]{6})""\)")
             .ToDictionary(m => m.Groups[1].Value, m => m.Groups[2].Value.ToUpperInvariant());
 
-        Assert.Equal(12, legend.Count);
+        Assert.Equal(13, legend.Count);
         foreach (var (type, hex) in legend)
         {
             Assert.True(js.TryGetValue(type, out var scripted), $"{type} missing in graph.js");

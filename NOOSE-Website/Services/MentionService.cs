@@ -5,6 +5,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -30,7 +31,7 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
     // releasable record types whose name a partner mention may reveal once released; all other types are hidden from partners
     private static readonly string[] PartnerReleasableMentionTypes =
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute),
         nameof(Operation), nameof(Case), nameof(Taskforce), nameof(Document),
     };
 

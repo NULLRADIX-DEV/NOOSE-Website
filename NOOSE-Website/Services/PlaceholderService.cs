@@ -5,6 +5,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Jobs;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -120,6 +121,11 @@ public partial class PlaceholderService(IDbContextFactory<AppDbContext> dbFactor
             case nameof(Party):
             {
                 var x = await db.Parties.Where(p => p.Id == id).Select(p => new { p.Name, p.CaseNumber }).FirstOrDefaultAsync(ct);
+                return x is null ? null : (x.Name ?? string.Empty, x.CaseNumber ?? string.Empty);
+            }
+            case nameof(DrugRoute):
+            {
+                var x = await db.DrugRoutes.Where(r => r.Id == id).Select(r => new { Name = r.Designation, r.CaseNumber }).FirstOrDefaultAsync(ct);
                 return x is null ? null : (x.Name ?? string.Empty, x.CaseNumber ?? string.Empty);
             }
             case nameof(Operation):

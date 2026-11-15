@@ -1,6 +1,5 @@
 @page "/fraktionen/neu"
 @page "/fraktionen/{Id}/bearbeiten"
-@using System.Net
 @inject IFactionService FactionService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -119,7 +118,6 @@ else
                 WeaponStock = f.WeaponStock.Select(w => new StockInput { Designation = w.Designation, Quantity = w.Quantity }).ToList(),
                 Inventory = f.Inventory.Select(l => new StockInput { Designation = l.Designation, Quantity = l.Quantity }).ToList(),
                 // Quantity field carries the note for drug routes
-                DrugRoutes = f.DrugRoutes.Select(d => new StockInput { Designation = d.Designation, Quantity = d.Note }).ToList(),
             };
         }
         _loadedSecrecy = _input?.SecrecyLevel ?? DocumentClassification.None;
@@ -151,16 +149,6 @@ else
         _saves = true;
         try
         {
-            // a route belongs to one faction; the service refuses what was not agreed here
-            var conflicts = await FactionService.GetDrugRouteConflictsAsync(IsEdit ? Id : null,
-                _input.DrugRoutes.Select(d => d.Designation), _user);
-            if (conflicts.Count > 0 && !await ConfirmTakeoversAsync(conflicts))
-            {
-                _saves = false;
-                return;
-            }
-            _input.ConfirmedRouteTakeovers = conflicts.Select(c => c.Key).Distinct().ToList();
-
             if (IsEdit)
             {
                 await FactionService.RefreshAsync(Id!, _input, _user);
@@ -181,31 +169,5 @@ else
             Snackbar.Add(ex.Message, Severity.Error);
             _saves = false;
         }
-    }
-
-    /// <summary>Asks before a route moves over from the faction holding it; a holder out of reach only gets explained.</summary>
-    private async Task<bool> ConfirmTakeoversAsync(IReadOnlyList<DrugRouteConflict> conflicts)
-    {
-        static string Line(DrugRouteConflict c) => c.HolderName is { } name
-            ? $"<li>„{WebUtility.HtmlEncode(c.Designation)}“ – Fraktion „{WebUtility.HtmlEncode(name)}“</li>"
-            : $"<li>„{WebUtility.HtmlEncode(c.Designation)}“ – eine Fraktion, die du nicht einsehen kannst</li>";
-
-        var blocked = conflicts.Where(c => !c.MayTakeOver).ToList();
-        if (blocked.Count > 0)
-        {
-            await DialogService.ShowMessageBoxAsync("Route gehört einer anderen Fraktion",
-                (MarkupString)($"<p>Eine Route gehört immer nur einer Fraktion. Diese kannst du nicht übernehmen:</p>"
-                    + $"<ul>{string.Concat(blocked.Select(Line))}</ul>"
-                    + "<p>Trag sie hier aus, um zu speichern, oder wende dich an die Führung.</p>"),
-                yesText: "Verstanden");
-            return false;
-        }
-
-        var answer = await DialogService.ShowMessageBoxAsync("Routen übernehmen?",
-            (MarkupString)($"<p>Eine Route gehört immer nur einer Fraktion. Diese gehören derzeit einer anderen:</p>"
-                + $"<ul>{string.Concat(conflicts.Select(Line))}</ul>"
-                + "<p>Beim Speichern gehen sie an diese Fraktion über und werden dort ausgetragen.</p>"),
-            yesText: "Übernehmen und speichern", cancelText: "Abbrechen");
-        return answer == true;
     }
 }

@@ -187,6 +187,20 @@ public class PersonMergeService(
             }
         }
 
+        var targetRoutes = await db.DrugRoutePeople.Where(m => m.PersonId == targetId)
+            .Select(m => m.DrugRouteId).ToListAsync(cancellationToken);
+        foreach (var entry in await db.DrugRoutePeople.Where(m => m.PersonId == sourceId).ToListAsync(cancellationToken))
+        {
+            if (targetRoutes.Contains(entry.DrugRouteId))
+            {
+                db.DrugRoutePeople.Remove(entry);
+            }
+            else
+            {
+                entry.PersonId = targetId;
+            }
+        }
+
         // ---- polymorphic references (EntityType/Id == Person/sourceId): reassign ----
         const string type = nameof(Person);
 

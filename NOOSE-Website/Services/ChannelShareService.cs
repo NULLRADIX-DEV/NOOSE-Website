@@ -5,6 +5,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -177,6 +178,8 @@ public sealed class ChannelShareService(
                 .Select(x => new Shareable(x.Name, x.CaseNumber)).FirstOrDefaultAsync(cancellationToken),
             nameof(Party) => await db.Parties.AsNoTracking().OnlyUnrestricted().Where(x => x.Id == recordId)
                 .Select(x => new Shareable(x.Name, x.CaseNumber)).FirstOrDefaultAsync(cancellationToken),
+            nameof(DrugRoute) => await db.DrugRoutes.AsNoTracking().OnlyUnrestricted().Where(x => x.Id == recordId)
+                .Select(x => new Shareable(x.Designation, x.CaseNumber)).FirstOrDefaultAsync(cancellationToken),
             nameof(Case) => await db.Cases.AsNoTracking().OnlyUnrestricted().Where(x => x.Id == recordId)
                 .Select(x => new Shareable(x.Title, x.CaseNumber)).FirstOrDefaultAsync(cancellationToken),
             nameof(Operation) => await db.Operations.AsNoTracking().OnlyUnrestricted().Where(x => x.Id == recordId)
