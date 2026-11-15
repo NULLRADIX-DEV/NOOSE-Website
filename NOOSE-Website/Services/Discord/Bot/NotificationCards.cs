@@ -31,7 +31,7 @@ public static class NotificationCards
 
     /// <summary>The card of a category that carries no data beyond its notice; the headline only where the caller allows it.</summary>
     public static IReadOnlyList<IMessageComponentProperties> Generic(NotificationType type, string baseUrl, string? href,
-        string? headline, string ping)
+        string? headline, string ping, bool acknowledgeable = false)
     {
         var (accent, emoji, title) = Style(type);
         var body = DiscordWebhookService.Notice(type);
@@ -41,7 +41,7 @@ public static class NotificationCards
             body += $"\n**{line}**";
         }
         return Assemble(accent, ping, DiscordCards.HeaderWithThumbnail(emoji, title, null, LogoUrl(baseUrl)), body,
-            Buttons(type, href, baseUrl));
+            Buttons(type, href, baseUrl, acknowledgeable));
     }
 
     /// <summary>The personnel-file entry; pings the subject agent.</summary>
@@ -73,13 +73,13 @@ public static class NotificationCards
     }
 
     /// <summary>The official termination notice; the chips are mention markup that pings nobody inside a card.</summary>
-    public static IReadOnlyList<IMessageComponentProperties> Termination(string subjectChip, string? executorChip,
-        DateTime at, string reason, string? link)
+    public static IReadOnlyList<IMessageComponentProperties> Termination(string subjectDisplay, string? subjectChip,
+        string? executorChip, DateTime at, string reason, string? link)
     {
         var (accent, emoji, title) = Style(NotificationType.AgentTerminated);
         var body = "> Hiermit wird die **Kündigung** des folgenden Mitglieds offiziell bekannt gegeben.\n"
             + DiscordCards.Fields(
-                ("👤 Name", Chip(subjectChip)),
+                ("👤 Name", Subject(subjectDisplay, subjectChip)),
                 ("📅 Datum", Stamp(at, "dddd, d. MMMM yyyy HH:mm")),
                 ("👮 Ausgeführt von", Chip(executorChip)),
                 ("📋 Begründung", Dash(Reason(reason))));
@@ -119,8 +119,9 @@ public static class NotificationCards
 
     // ---------------------------------------------------------------- buttons
 
-    /// <summary>The button row of a category: its actions where the href names a record, then "Öffnen".</summary>
-    public static ActionRowProperties? Buttons(NotificationType type, string? href, string? baseUrl = null)
+    /// <summary>The button row of a category: its actions where the href names a record, then "Öffnen"; an announcement offers "Quittieren" only when it is acknowledgeable.</summary>
+    public static ActionRowProperties? Buttons(NotificationType type, string? href, string? baseUrl = null,
+        bool acknowledgeable = false)
     {
         var root = string.IsNullOrWhiteSpace(baseUrl) ? DiscordWebhookConfig.DefaultBaseUrl : baseUrl;
         var link = DiscordWebhookService.Link(root, href) ?? DiscordWebhookService.Link(root, DiscordWebhookService.FallbackRoute(type));
@@ -130,7 +131,9 @@ public static class NotificationCards
             items.Add(type switch
             {
                 NotificationType.JobAssigned or NotificationType.JobDueSoon => ActionButton("cjd", "Erledigt", "✅", id),
-                NotificationType.Announcement or NotificationType.AcknowledgmentReminder => ActionButton("cack", "Quittieren", "✍️", id),
+                // a reminder exists only for announcements that need it
+                NotificationType.Announcement when acknowledgeable => ActionButton("cack", "Quittieren", "✍️", id),
+                NotificationType.AcknowledgmentReminder => ActionButton("cack", "Quittieren", "✍️", id),
                 NotificationType.PublicTipCreated => ActionButton("ctip", "Übernehmen", "🙋", id),
                 NotificationType.PublicTicketCreated => ActionButton("ctk", "Übernehmen", "🙋", id),
                 NotificationType.Recruiting => ActionButton("cbw", "Übernehmen", "🙋", id),
@@ -368,13 +371,20 @@ public static class NotificationCards
     }
 
     // chips stay chips
-    private static string Chip(string? value)
+    private static string Chip(string? value) => MentionChip(value) ?? Dash(DiscordCards.Inline(value));
+
+    // bold name, chip beside it
+    private static string Subject(string? display, string? chip)
+        => $"**{Dash(DiscordCards.Inline(display, 200))}**" + (MentionChip(chip) is { } mention ? $" ( {mention} )" : string.Empty);
+
+    // exactly a user mention, else null
+    private static string? MentionChip(string? value)
     {
         var chip = value?.Trim();
         return chip is { Length: > 3 } && chip.StartsWith("<@", StringComparison.Ordinal) && chip.EndsWith('>')
             && DiscordWebhookService.IsSnowflake(chip[2..^1]) && chip.Length <= MaxSnowflakeChars + 3
                 ? chip
-                : Dash(DiscordCards.Inline(value));
+                : null;
     }
 
     // typed text

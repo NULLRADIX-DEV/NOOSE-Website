@@ -213,13 +213,21 @@ public class NotificationCardsTests
 
     public static IEnumerable<object[]> ButtonCases()
     {
-        static object[] Case(NotificationType type, string? href, params string[] ids) => [type, href!, ids];
+        static object[] Case(NotificationType type, string? href, params string[] ids) => [type, href!, false, ids];
+        static object[] AckCase(NotificationType type, string? href, params string[] ids) => [type, href!, true, ids];
         static string Details(NotificationType type, string id) => $"fib:nd:{(int)type}:{id}";
 
         yield return Case(NotificationType.JobAssigned, "/aufgaben/abc", "fib:cjd:abc", Details(NotificationType.JobAssigned, "abc"));
         yield return Case(NotificationType.JobDueSoon, "/aufgaben/abc", "fib:cjd:abc", Details(NotificationType.JobDueSoon, "abc"));
-        yield return Case(NotificationType.Announcement, "/brett/a1", "fib:cack:a1", Details(NotificationType.Announcement, "a1"));
+        // acknowledge only where the announcement asks for it
+        yield return AckCase(NotificationType.Announcement, "/brett/a1", "fib:cack:a1", Details(NotificationType.Announcement, "a1"));
+        yield return Case(NotificationType.Announcement, "/brett/a1", Details(NotificationType.Announcement, "a1"));
+        // a reminder exists only for those, so it always acknowledges
         yield return Case(NotificationType.AcknowledgmentReminder, "/brett/a1", "fib:cack:a1");
+        yield return AckCase(NotificationType.AcknowledgmentReminder, "/brett/a1", "fib:cack:a1");
+        // the flag is no reason for a button where there is nothing to acknowledge
+        yield return AckCase(NotificationType.JobAssigned, "/aufgaben/abc", "fib:cjd:abc", Details(NotificationType.JobAssigned, "abc"));
+        yield return AckCase(NotificationType.Announcement, "/brett/");
         yield return Case(NotificationType.AppointmentAssigned, "/kalender/k1", "fib:cdates");
         yield return Case(NotificationType.MeetingScheduled, "/besprechungen/b1", "fib:cdates");
         yield return Case(NotificationType.MeetingReminder, "/besprechungen/b1", "fib:cdates");
@@ -260,9 +268,9 @@ public class NotificationCardsTests
 
     [Theory]
     [MemberData(nameof(ButtonCases))]
-    public void Buttons_follow_the_table(NotificationType type, string? href, string[] expectedIds)
+    public void Buttons_follow_the_table(NotificationType type, string? href, bool acknowledgeable, string[] expectedIds)
     {
-        var row = NotificationCards.Buttons(type, href);
+        var row = NotificationCards.Buttons(type, href, acknowledgeable: acknowledgeable);
 
         Assert.NotNull(row);
         Assert.Equal(expectedIds, row!.Components.OfType<ButtonProperties>().Select(b => b.CustomId).ToArray());
@@ -307,6 +315,17 @@ public class NotificationCardsTests
     }
 
     [Fact]
+    public void An_announcement_card_asks_for_acknowledgment_only_when_it_needs_one()
+    {
+        var plain = NotificationCards.Generic(NotificationType.Announcement, BaseUrl, "/brett/a1", null, "");
+        var needed = NotificationCards.Generic(NotificationType.Announcement, BaseUrl, "/brett/a1", null, "", acknowledgeable: true);
+
+        Assert.Equal([$"fib:nd:{(int)NotificationType.Announcement}:a1"], CustomIds(plain));
+        Assert.Equal(["fib:cack:a1", $"fib:nd:{(int)NotificationType.Announcement}:a1"], CustomIds(needed));
+        Assert.Equal(BaseUrl + "/brett/a1", Assert.Single(Links(needed)).Url);
+    }
+
+    [Fact]
     public void Custom_ids_fit()
     {
         var ids = new List<string>();
@@ -315,8 +334,8 @@ public class NotificationCardsTests
             foreach (var collection in new[] { "aufgaben", "brett", "bewerbungen", "hinweise", "tickets", "personen", "tests", "kalender" })
             {
                 var href = $"/{collection}/{Guid}";
-                ids.AddRange(CustomIds(NotificationCards.Generic(type, BaseUrl, href, null, "")));
-                ids.AddRange(NotificationCards.Buttons(type, href)!.Components.OfType<ButtonProperties>().Select(b => b.CustomId));
+                ids.AddRange(CustomIds(NotificationCards.Generic(type, BaseUrl, href, null, "", acknowledgeable: true)));
+                ids.AddRange(NotificationCards.Buttons(type, href, acknowledgeable: true)!.Components.OfType<ButtonProperties>().Select(b => b.CustomId));
             }
         }
 
@@ -325,6 +344,7 @@ public class NotificationCardsTests
         // longest shape present
         Assert.Contains(ids, id => id.StartsWith("fib:nd:") && id.EndsWith(":" + Guid));
         Assert.Contains(ids, id => id == $"fib:cjd:{Guid}");
+        Assert.Contains(ids, id => id == $"fib:cack:{Guid}");
     }
 
     // ---------------------------------------------------------------- pings
@@ -403,7 +423,7 @@ public class NotificationCardsTests
     public void Cards_fit_text_limit()
     {
         var reason = new string('x', 10_000);
-        var termination = NotificationCards.Termination("<@1>", "<@2>", Moment, reason, BaseUrl + "/personal/p1");
+        var termination = NotificationCards.Termination("Max", "<@1>", "<@2>", Moment, reason, BaseUrl + "/personal/p1");
         var entry = NotificationCards.PersonnelEntry("<@1>", "Max", "Verwarnung", Moment, reason, "A, B", BaseUrl + "/personal/p1");
         var decoration = NotificationCards.Decoration("<@1>", "Falke", "Verdienstkreuz", Moment, reason, "Chef", BaseUrl + "/personal/p1");
         var custom = NotificationCards.Custom(NotificationType.Announcement, reason, BaseUrl + "/bestenliste", "<@&1>");
@@ -513,14 +533,15 @@ public class NotificationCardsTests
     [Fact]
     public void A_termination_shows_chips_and_pings_nobody()
     {
-        var card = NotificationCards.Termination("<@1>", "<@2>", new DateTime(2026, 11, 13, 17, 30, 0, DateTimeKind.Utc),
+        var card = NotificationCards.Termination("Max Mustermann", "<@1>", "<@2>",
+            new DateTime(2026, 11, 13, 17, 30, 0, DateTimeKind.Utc),
             "Verstoß gegen <@3> die Dienstordnung", BaseUrl + "/personal/p1");
 
         var everything = Everything(card);
         Assert.Contains("### ⚠️ Kündigung", Texts(card));
         Assert.Contains("> Hiermit wird die **Kündigung** des folgenden Mitglieds offiziell bekannt gegeben.", everything);
-        // chips kept
-        Assert.Contains("**👤 Name:** <@1>", everything);
+        // name in bold, chip beside it
+        Assert.Contains("**👤 Name:** **Max Mustermann** ( <@1> )", everything);
         Assert.Contains("**👮 Ausgeführt von:** <@2>", everything);
         // UTC to Berlin
         Assert.Contains("**📅 Datum:** Freitag, 13. November 2026 18:30", everything);
@@ -534,21 +555,40 @@ public class NotificationCardsTests
     }
 
     [Fact]
-    public void A_termination_name_that_is_no_chip_is_typed_text()
+    public void A_termination_without_a_chip_names_the_subject_in_bold_alone()
     {
-        var card = NotificationCards.Termination("**Max** <@5> @everyone", "<@6> <@7>", Moment, "Grund", null);
+        var card = NotificationCards.Termination("Max Mustermann", null, null, Moment, "Grund", null);
 
         var body = Body(card);
-        Assert.DoesNotContain("**Max**", body);
-        Assert.DoesNotContain("<@5>", body);
-        Assert.DoesNotContain("<@6>", body);
-        Assert.Contains("\\@everyone", body);
+        Assert.Contains("**👤 Name:** **Max Mustermann**\n", body);
+        Assert.DoesNotContain("( ", body);
+        Assert.DoesNotContain("<@", Everything(card));
+    }
+
+    [Fact]
+    public void A_termination_name_and_executor_are_typed_text()
+    {
+        var card = NotificationCards.Termination("**Max** <@5> @everyone", "kein Chip <@8>", "<@6> <@7>", Moment, "Grund", null);
+
+        var body = Body(card);
+        // bold around the escaped name only; a chip that is none is dropped
+        Assert.Contains("**👤 Name:** **\\*\\*Max\\*\\* \\<\\@5\\> \\@everyone**\n", body);
+        Assert.DoesNotContain("( ", body);
+        Assert.DoesNotContain("<@", Everything(card));
+    }
+
+    [Fact]
+    public void A_termination_with_a_blank_name_reads_as_a_dash()
+    {
+        var card = NotificationCards.Termination("  ", "<@1>", null, Moment, "Grund", null);
+
+        Assert.Contains("**👤 Name:** **—** ( <@1> )", Body(card));
     }
 
     [Fact]
     public void A_termination_without_executor_reads_as_a_dash()
     {
-        var card = NotificationCards.Termination("Max", null, Moment, "Grund", null);
+        var card = NotificationCards.Termination("Max", null, null, Moment, "Grund", null);
 
         Assert.Contains("**👮 Ausgeführt von:** —", Body(card));
         Assert.Empty(Links(card));
