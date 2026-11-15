@@ -427,6 +427,8 @@ builder.Services.AddHostedService<DiscordDmWorker>();
 builder.Services.AddSingleton<IDiscordBotRoutes, DiscordBotRoutes>();
 // bot post queue
 builder.Services.AddSingleton<IDiscordPostQueue, DiscordPostQueue>();
+// DVO sample post
+builder.Services.AddScoped<NOOSE_Website.Services.Discord.Bot.IRegulationTestPost, NOOSE_Website.Services.Discord.Bot.RegulationTestPost>();
 // slash commands, live boards, status; gateway only with a bot token
 builder.Services.AddFibDiscordBot(builder.Configuration);
 // per-process share quota

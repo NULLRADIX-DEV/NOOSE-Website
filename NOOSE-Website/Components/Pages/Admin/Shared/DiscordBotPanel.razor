@@ -1,6 +1,7 @@
 @* Discord bot: switch, live board and command list channels, share channels, link preview, gateway status and command registration. Admins edit, leadership reads. *@
 @using NOOSE_Website.Services.Discord.Bot
 @inject IDiscordBotSettingsService BotSettings
+@inject IRegulationTestPost RegulationTest
 @inject DiscordBotStatus BotStatus
 @inject IServiceProvider Services
 @inject ISnackbar Snackbar
@@ -83,7 +84,13 @@ else
                           Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
                 Geänderte, neue und aufgehobene Absätze der Dienstverordnung, gesammelt 15 Minuten nach der letzten Änderung in einem Beitrag, mit Ping der Ankündigungsrolle. Korrekturen stehen kurz unter „Sonstiges“. Leer heißt: aus.
+                „Beispiel senden“ postet einen als Test markierten Beitrag in den gespeicherten Kanal, ohne jemanden zu pingen.
             </MudText>
+            @if (_mayEdit)
+            {
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Send"
+                           OnClick="SendRegulationSampleAsync" Disabled="_busy" Class="mb-4">Beispiel senden</MudButton>
+            }
             <MudTextField T="string" @bind-Value="_shareChannels" Label="Teilen nur in diesen Kanälen" Variant="Variant.Outlined"
                           Disabled="@(!_mayEdit)" Lines="2" Class="mb-1" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
@@ -168,6 +175,34 @@ else
                 DiscordBotSettingsService.ParseId(_dvoChannel)), _user);
             Snackbar.Add("Gespeichert.", Severity.Success);
             await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SendRegulationSampleAsync()
+    {
+        if (!_mayEdit)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var outcome = await RegulationTest.SendAsync(_user);
+            var (text, severity) = outcome switch
+            {
+                RegulationTestOutcome.Sent => ("Beispiel gesendet. Niemand wurde gepingt.", Severity.Success),
+                RegulationTestOutcome.NoChannel => ("Kein DVO-Kanal gespeichert (erst speichern).", Severity.Warning),
+                _ => ("Der Bot ist aus oder läuft nicht.", Severity.Warning),
+            };
+            Snackbar.Add(text, severity);
         }
         catch (Exception ex)
         {

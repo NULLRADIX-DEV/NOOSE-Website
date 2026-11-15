@@ -487,6 +487,43 @@ public class RegulationChangePostTests
     }
 
     [Fact]
+    public async Task The_sample_post_goes_to_the_dvo_channel_without_pings()
+    {
+        using var ctx = new SqliteTestContext();
+        var sender = new FakeSender();
+        await using var services = Services(ctx, sender);
+        var test = new RegulationTestPost(services.GetRequiredService<IDiscordBotSettingsService>(),
+            services.GetRequiredService<IDiscordWebhookService>(), ctx.Factory, services);
+
+        var outcome = await test.SendAsync(ClaimsPrincipalBuilder.Agent().AsAdmin());
+
+        Assert.Equal(RegulationTestOutcome.Sent, outcome);
+        Assert.NotEmpty(sender.Sent);
+        Assert.All(sender.Sent, s =>
+        {
+            Assert.Equal(9UL, s.Channel);
+            Assert.False(s.Mentions.Everyone);
+            Assert.Empty(s.Mentions.AllowedRoles!);
+            Assert.Empty(s.Mentions.AllowedUsers!);
+        });
+        Assert.Contains("TEST", string.Join("\n", sender.Sent.Select(s => Everything(s.Card))));
+    }
+
+    [Fact]
+    public async Task The_sample_post_needs_a_channel_and_an_admin()
+    {
+        using var ctx = new SqliteTestContext();
+        var sender = new FakeSender();
+        await using var services = Services(ctx, sender, channel: null);
+        var test = new RegulationTestPost(services.GetRequiredService<IDiscordBotSettingsService>(),
+            services.GetRequiredService<IDiscordWebhookService>(), ctx.Factory, services);
+
+        Assert.Equal(RegulationTestOutcome.NoChannel, await test.SendAsync(ClaimsPrincipalBuilder.Agent().AsAdmin()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => test.SendAsync(ClaimsPrincipalBuilder.Agent()));
+        Assert.Empty(sender.Sent);
+    }
+
+    [Fact]
     public async Task Worker_bot_off_forgets_the_state()
     {
         using var ctx = new SqliteTestContext();

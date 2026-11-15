@@ -677,27 +677,55 @@ public partial class DiscordWebhookService(
         Permission.RequireLeadership(actor);
 
         var config = await GetConfigAsync(cancellationToken);
-        if (!config.Webhooks.TryGetValue(type, out var url) || string.IsNullOrWhiteSpace(url))
+        var url = config.Webhooks.GetValueOrDefault(type);
+        var hasUrl = !string.IsNullOrWhiteSpace(url);
+        // alarm channel wins
+        var channel = type == NotificationType.EmergencyAlarm ? await TestAlarmChannelAsync(cancellationToken) : null;
+        if (channel is null && hasUrl)
         {
-            return false;
+            channel = await BotChannelAsync(url!, cancellationToken);
         }
-        var text = $"🔔 Test-Benachrichtigung ({NotificationTypeDisplay.Name(type)}) – die Anbindung funktioniert.";
         // bot token only
-        if (await BotChannelAsync(url, cancellationToken) is { } channel && services.GetService<IDiscordBotSender>() is { } sender)
+        if (channel is { } target && services.GetService<IDiscordBotSender>() is { } sender)
         {
             try
             {
-                await sender.SendAsync(channel, NotificationCards.Share(text), AllowedMentionsProperties.None,
-                    cancellationToken: cancellationToken);
+                var card = NotificationSamples.Card(type, config.SiteBaseUrl,
+                    await RegulationTestPost.TesterDiscordIdAsync(dbFactory, actor, cancellationToken),
+                    config.Roles.GetValueOrDefault(type), DateTime.UtcNow);
+                await sender.SendAsync(target, card, AllowedMentionsProperties.None, cancellationToken: cancellationToken);
                 return true;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                logger.LogWarning("Discord bot test post failed ({Error}).", ex.GetType().Name);
-                return false;
+                // reason for the admin
+                var reason = DiscordBotStatus.Describe(ex);
+                logger.LogWarning("Discord bot test post failed ({Error}).", reason);
+                throw new InvalidOperationException(
+                    $"Der Bot konnte die Testkarte nicht senden ({reason}). Kanalrechte des Bots prüfen.", ex);
             }
         }
-        return await PostAsync(url, TextPayload(text, MentionSpec.None), cancellationToken);
+        if (!hasUrl)
+        {
+            return false;
+        }
+        var text = $"🔔 Test-Benachrichtigung ({NotificationTypeDisplay.Name(type)}) – die Anbindung funktioniert.";
+        return await PostAsync(url!, TextPayload(text, MentionSpec.None), cancellationToken);
+    }
+
+    // null: webhook posts
+    private async Task<ulong?> TestAlarmChannelAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await routes.AlarmChannelAsync(cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            /* best effort */
+            logger.LogWarning("Discord alarm route failed ({Error}).", ex.GetType().Name);
+            return null;
+        }
     }
 
     private async Task<DiscordWebhookConfig> GetCachedConfigAsync(CancellationToken cancellationToken)
