@@ -23,6 +23,7 @@ public sealed class DiscordBotRouter(
     PersonalCommands personal,
     LeadershipCommands leadership,
     CaptureCommands capture,
+    ChannelCardCommands channelCards,
     ITestLockService testLocks)
 {
     /// <summary>Pages behind a command; a running test that locks the page locks the command too.</summary>
@@ -183,6 +184,14 @@ public sealed class DiscordBotRouter(
                 _ => personal.TermineAsync(call, "heute"),
             },
             "al" => capture.AlarmAnswerAsync(call, args.Arg(0), args.Arg(1)),
+            // channel cards
+            "cjd" => channelCards.JobDoneAsync(call, args.Arg(0)),
+            "cack" => channelCards.AcknowledgeAsync(call, args.Arg(0)),
+            "cdates" => personal.TermineAsync(call),
+            "ctip" => channelCards.TipAsync(call, args.Arg(0)),
+            "ctk" => channelCards.TicketAsync(call, args.Arg(0)),
+            "cbw" => channelCards.ApplicationAsync(call, args.Arg(0)),
+            "nd" => channelCards.DetailsAsync(call, args.Arg(0), args.Arg(1)),
             "dvo" => first is null ? Task.FromResult(BotReply.Error("Bitte einen Absatz wählen.")) : knowledge.DvoParagraphAsync(first, call),
             "pick" => capture.AttachPickAsync(call, args.Arg(0), first),
             _ => Task.FromResult(BotReply.Error("Unbekannte Aktion.")),
