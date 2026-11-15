@@ -21,6 +21,7 @@ public class ActivityStatisticsService(
         ("Faction", "Fraktionen"),
         ("PersonGroup", "Personengruppen"),
         ("Party", "Parteien"),
+        ("DrugRoute", "Drogenrouten"),
         ("Operation", "Operationen"),
         ("Case", "Vorgänge"),
         ("Taskforce", "Taskforces"),

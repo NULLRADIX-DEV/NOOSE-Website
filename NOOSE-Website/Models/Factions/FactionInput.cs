@@ -34,12 +34,6 @@ public class FactionInput
     public List<StockInput> WeaponStock { get; set; } = new();
     public List<StockInput> Inventory { get; set; } = new();
 
-    /// <summary>Drug routes as a generic multi-field; the extra field carries the note.</summary>
-    public List<StockInput> DrugRoutes { get; set; } = new();
-
-    /// <summary>Route keys the actor agreed to take over from the faction holding them now.</summary>
-    public List<string> ConfirmedRouteTakeovers { get; set; } = new();
-
     /// <summary>Members captured at creation time; further maintained on the detail page.</summary>
     public List<MemberInput> Members { get; set; } = new();
 }

@@ -3,6 +3,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Decorations;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
@@ -18,7 +19,7 @@ using FeedbackEntry = NOOSE_Website.Data.Entities.Feedback.Feedback;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Demo data for the internal areas the demo database never had: treasury, evidence, financing, abductions, feedback, informants, meetings, absences and badges.</summary>
+/// <summary>Demo data for the internal areas the demo database never had: treasury, evidence, financing, abductions, drug routes, feedback, informants, meetings, absences and badges.</summary>
 public partial class DemoDataService
 {
     private const string EvidencePrefix = "ASS";
@@ -369,6 +370,48 @@ public partial class DemoDataService
             ClearedById = DemoIdentity.AgentId,
         });
         return added + 1;
+    }
+
+    private async Task<int> SeedDrugRoutesAsync(
+        AppDbContext db, Dictionary<string, Person> people, Dictionary<string, Faction> factions, CancellationToken ct)
+    {
+        var existing = (await db.DrugRoutes.IgnoreQueryFilters().Select(r => r.Designation).ToListAsync(ct))
+            .Select(DrugRouteRules.Key)
+            .ToHashSet();
+        var added = 0;
+        foreach (var spec in DemoDataSeed.DrugRoutes)
+        {
+            if (existing.Contains(DrugRouteRules.Key(spec.Designation)))
+            {
+                continue;
+            }
+            var route = new DrugRoute
+            {
+                CaseNumber = await caseNumbers.NextAsync(db, "DR", ct),
+                Designation = spec.Designation,
+                Substance = spec.Substance,
+                Description = spec.Description,
+                Findings = spec.Findings,
+                FactionId = factions.TryGetValue(spec.Faction, out var faction) ? faction.Id : null,
+                Classification = Classification.SuspicionCase,
+                CreatedById = DemoIdentity.AgentId,
+            };
+            var order = 0;
+            foreach (var (kind, location, description) in spec.Stations)
+            {
+                route.Stations.Add(new DrugRouteStation { SortOrder = ++order, Kind = kind, Location = location, Description = description });
+            }
+            foreach (var (name, role) in spec.People)
+            {
+                if (people.TryGetValue(name, out var person))
+                {
+                    route.People.Add(new DrugRoutePerson { PersonId = person.Id, Role = role });
+                }
+            }
+            db.DrugRoutes.Add(route);
+            added += 1 + route.Stations.Count + route.People.Count;
+        }
+        return added;
     }
 
     private static async Task<int> SeedFeedbackAsync(AppDbContext db, List<TimeStamp> stamps, CancellationToken ct)

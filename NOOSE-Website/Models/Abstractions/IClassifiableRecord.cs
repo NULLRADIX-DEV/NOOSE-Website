@@ -1,6 +1,6 @@
 namespace NOOSE_Website.Models.Abstractions;
 
-/// <summary>Marks a record that carries the three secrecy flags: Person, Faction, PersonGroup, Party, Operation, Case.</summary>
+/// <summary>Marks a record that carries the three secrecy flags: Person, Faction, PersonGroup, Party, DrugRoute, Operation, Case.</summary>
 /// <remarks>
 /// Exists so <see cref="Services.RecordVisibility"/> can state the rule once instead of six times. Documents look
 /// similar but are NOT this: there <c>IsClassified</c> means leadership-exclusive, here it means restricted at all —

@@ -29,6 +29,7 @@ public class TrashServiceTests
         Substitute.For<IFactionService>(),
         Substitute.For<IPersonGroupService>(),
         Substitute.For<IPartyService>(),
+        Substitute.For<IDrugRouteService>(),
         _cases,
         Substitute.For<IOperationService>(),
         Substitute.For<ITaskforceService>(),

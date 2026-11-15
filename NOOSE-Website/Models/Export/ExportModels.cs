@@ -1,5 +1,6 @@
 using System.Globalization;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -25,6 +26,7 @@ public static class ExportableRecords
         [nameof(Faction)] = "fraktionen",
         [nameof(PersonGroup)] = "personengruppen",
         [nameof(Party)] = "parteien",
+        [nameof(DrugRoute)] = "drogenrouten",
         [nameof(Case)] = "vorgaenge",
         [nameof(Operation)] = "operationen",
     };

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Routing;
 using MudBlazor;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -54,6 +55,8 @@ public static class NavCatalog
             Description: "Lose Zusammenschlüsse ohne feste Fraktionsstruktur"),
         new NavEntry("parteien", "/parteien", Icons.Material.Filled.AccountBalance, "Parteien", NavSection.Akten, NavArea.Akten,
             Description: "Politische Parteien mit Mitgliedern und Ausrichtung"),
+        new NavEntry("drogenrouten", "/drogenrouten", Icons.Material.Filled.Route, "Drogenrouten", NavSection.Akten, NavArea.Akten,
+            Description: "Routen des Drogenhandels mit Stationen, Beweisfotos und beteiligten Personen"),
         new NavEntry("asservatenkammer", "/asservatenkammer", Icons.Material.Filled.Inventory2, "Asservatenkammer", NavSection.Akten, NavArea.Dienststelle,
             Description: "Ein- und Auslagerung von Gegenständen mit Bestand, Bild und Besitzer"),
 
@@ -232,6 +235,7 @@ public static class NavCatalog
         nameof(Faction) => Icons.Material.Filled.Groups,
         nameof(PersonGroup) => Icons.Material.Filled.Diversity3,
         nameof(Party) => Icons.Material.Filled.AccountBalance,
+        nameof(DrugRoute) => Icons.Material.Filled.Route,
         nameof(Operation) => Icons.Material.Filled.Radar,
         nameof(Taskforce) => Icons.Material.Filled.Groups2,
         nameof(Case) => Icons.Material.Filled.FolderSpecial,

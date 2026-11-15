@@ -15,6 +15,9 @@ public class FileUploadOptions
     /// <summary>Parties upload path.</summary>
     public string PartiesPath { get; set; } = "App_Data/uploads/parteien";
 
+    /// <summary>Drug route evidence photos path.</summary>
+    public string DrugRoutesPath { get; set; } = "App_Data/uploads/drogenrouten";
+
     /// <summary>Evidence pictures of investigations; own base path, partners read them through the investigation's rights.</summary>
     public string InvestigationsPath { get; set; } = "App_Data/uploads/ermittlungen";
 

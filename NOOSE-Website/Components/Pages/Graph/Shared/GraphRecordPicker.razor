@@ -3,6 +3,7 @@
 @inject IFactionService FactionService
 @inject IPersonGroupService GroupService
 @inject IPartyService PartyService
+@inject IDrugRouteService DrugRouteService
 @inject IOperationService OperationService
 @inject ICaseService CaseService
 @inject ITaskforceService TaskforceService
@@ -52,6 +53,13 @@ else
                              Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" CoerceText="false"
                              ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true" Style="min-width:240px;"
                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.AccountBalance" />
+            break;
+        case nameof(DrugRoute):
+            <MudAutocomplete T="DrugRoute" Label="@Label" @bind-Value="_drugRoute" @bind-Value:after="Emit"
+                             SearchFunc="@SearchDrugRoute" ToStringFunc="@(r => r?.Designation ?? string.Empty)"
+                             Variant="Variant.Outlined" Margin="Margin.Dense" Dense="true" Clearable="true" CoerceText="false"
+                             ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true" Style="min-width:240px;"
+                             Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Route" />
             break;
         case nameof(Operation):
             <MudAutocomplete T="Operation" Label="@Label" @bind-Value="_operation" @bind-Value:after="Emit"
@@ -109,6 +117,7 @@ else
         new(nameof(Faction), "Fraktion"),
         new(nameof(PersonGroup), "Personengruppe"),
         new(nameof(Party), "Partei"),
+        new(nameof(DrugRoute), "Drogenroute"),
         new(nameof(Operation), "Operation"),
         new(nameof(Case), "Vorgang"),
         new(nameof(Taskforce), "Taskforce"),
@@ -119,6 +128,7 @@ else
     private Faction? _faction;
     private PersonGroup? _group;
     private Party? _party;
+    private DrugRoute? _drugRoute;
     private Operation? _operation;
     private Case? _case;
     private Taskforce? _taskforce;
@@ -147,6 +157,8 @@ else
         => await GroupService.SearchAsync(value, IsLeadership, 20, token);
     private async Task<IEnumerable<Party>> SearchParty(string value, CancellationToken token)
         => await PartyService.SearchAsync(value, IsLeadership, 20, token);
+    private async Task<IEnumerable<DrugRoute>> SearchDrugRoute(string value, CancellationToken token)
+        => await DrugRouteService.SearchAsync(value, IsLeadership, 20, token);
     private async Task<IEnumerable<Operation>> SearchOperation(string value, CancellationToken token)
         => await OperationService.SearchAsync(value, IsLeadership, 20, token);
     private async Task<IEnumerable<Case>> SearchCase(string value, CancellationToken token)
@@ -156,7 +168,7 @@ else
 
     private async Task TypeSwitchedAsync()
     {
-        _person = null; _faction = null; _group = null; _party = null; _operation = null; _case = null; _taskforce = null;
+        _person = null; _faction = null; _group = null; _party = null; _drugRoute = null; _operation = null; _case = null; _taskforce = null;
         await Emit();
     }
 
@@ -168,6 +180,7 @@ else
             nameof(Faction) when _faction is not null => new GraphRecordChoice(nameof(Faction), _faction.Id, _faction.Name),
             nameof(PersonGroup) when _group is not null => new GraphRecordChoice(nameof(PersonGroup), _group.Id, _group.Name),
             nameof(Party) when _party is not null => new GraphRecordChoice(nameof(Party), _party.Id, _party.Name),
+            nameof(DrugRoute) when _drugRoute is not null => new GraphRecordChoice(nameof(DrugRoute), _drugRoute.Id, _drugRoute.Designation),
             nameof(Operation) when _operation is not null => new GraphRecordChoice(nameof(Operation), _operation.Id, _operation.Title),
             nameof(Case) when _case is not null => new GraphRecordChoice(nameof(Case), _case.Id, _case.Title),
             nameof(Taskforce) when _taskforce is not null => new GraphRecordChoice(nameof(Taskforce), _taskforce.Id, _taskforce.Name),

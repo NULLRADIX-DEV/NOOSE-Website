@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Parties;
@@ -75,6 +76,19 @@ internal static class GraphEdgeLoader
             {
                 edges.Add(new RawEdge($"{nameof(Person)}:{m.PersonId}", $"{nameof(Party)}:{m.OrgId}",
                     m.IsLead ? "Leitung" : null, LinkKind.Default, true));
+            }
+            // a drug route hangs on its faction and on the people involved
+            foreach (var r in await db.DrugRoutes.Where(r => r.FactionId != null)
+                .Select(r => new { r.Id, r.FactionId }).ToListAsync(cancellationToken))
+            {
+                edges.Add(new RawEdge($"{nameof(DrugRoute)}:{r.Id}", $"{nameof(Faction)}:{r.FactionId}",
+                    null, LinkKind.Default, true));
+            }
+            foreach (var m in await db.DrugRoutePeople
+                .Select(m => new { m.PersonId, m.DrugRouteId, m.Role }).ToListAsync(cancellationToken))
+            {
+                edges.Add(new RawEdge($"{nameof(Person)}:{m.PersonId}", $"{nameof(DrugRoute)}:{m.DrugRouteId}",
+                    string.IsNullOrWhiteSpace(m.Role) ? null : m.Role, LinkKind.Default, true));
             }
         }
 

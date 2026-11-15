@@ -18,6 +18,7 @@ public static class SearchProviderRegistration
         services.AddScoped<ISearchProvider, FactionSearchProvider>();
         services.AddScoped<ISearchProvider, PersonGroupSearchProvider>();
         services.AddScoped<ISearchProvider, PartySearchProvider>();
+        services.AddScoped<ISearchProvider, DrugRouteSearchProvider>();
         services.AddScoped<ISearchProvider, OperationSearchProvider>();
         services.AddScoped<ISearchProvider, CaseSearchProvider>();
         services.AddScoped<ISearchProvider, TaskforceSearchProvider>();

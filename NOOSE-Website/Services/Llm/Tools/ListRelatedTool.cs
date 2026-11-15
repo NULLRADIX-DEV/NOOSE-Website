@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Parties;
@@ -24,8 +25,8 @@ public sealed class ListRelatedTool(IDbContextFactory<AppDbContext> dbFactory) :
 
     public string Description =>
         "Listet alle Verbindungen einer Akte auf: Mitgliedschaften (bei einer Person ihre Fraktionen, "
-        + "Personengruppen und Parteien mit Rang; bei einer Fraktion, Personengruppe oder Partei ihre "
-        + "Mitglieder), Beziehungen zwischen Personen (Feind, Verbündeter, Familie, …) und manuell gesetzte "
+        + "Personengruppen, Parteien und Drogenrouten mit Rang; bei einer Fraktion, Personengruppe, Partei "
+        + "oder Drogenroute ihre Mitglieder bzw. Beteiligten), Beziehungen zwischen Personen (Feind, Verbündeter, Familie, …) und manuell gesetzte "
         + "Verknüpfungen zu Vorgängen, Operationen und anderen Akten. "
         + "Nutze dies, um zu klären, wer zu wem gehört. Für die Frage, wie zwei bestimmte Akten "
         + "zusammenhängen, nimm stattdessen finde_verbindungsweg.";
@@ -122,6 +123,16 @@ public sealed class ListRelatedTool(IDbContextFactory<AppDbContext> dbFactory) :
                 m.Party != null && m.Party.IsHRBClassified,
                 "Rolle", m.Role, m.IsLead))
             .Take(max).ToListAsync(ct));
+        rows.AddRange(await db.DrugRoutePeople.AsNoTracking().Where(m => m.PersonId == personId)
+            .Select(m => new Related(
+                "Zugehörigkeiten", "Beteiligt", nameof(DrugRoute), m.DrugRouteId,
+                m.DrugRoute != null ? m.DrugRoute.Designation : null,
+                m.DrugRoute != null ? m.DrugRoute.CaseNumber : null,
+                m.DrugRoute != null && m.DrugRoute.IsClassified,
+                m.DrugRoute != null && m.DrugRoute.IsTRUClassified,
+                m.DrugRoute != null && m.DrugRoute.IsHRBClassified,
+                "Rolle", m.Role))
+            .Take(max).ToListAsync(ct));
         return rows;
     }
 
@@ -162,6 +173,16 @@ public sealed class ListRelatedTool(IDbContextFactory<AppDbContext> dbFactory) :
                     m.Person != null && m.Person.IsTRUClassified,
                     m.Person != null && m.Person.IsHRBClassified,
                     "Rolle", m.Role, m.IsLead))
+                .Take(max).ToListAsync(ct),
+            nameof(DrugRoute) => await db.DrugRoutePeople.AsNoTracking().Where(m => m.DrugRouteId == id)
+                .Select(m => new Related(
+                    "Beteiligte", "Beteiligt", nameof(Person), m.PersonId,
+                    m.Person != null ? m.Person.Name : null,
+                    m.Person != null ? m.Person.CaseNumber : null,
+                    m.Person != null && m.Person.IsClassified,
+                    m.Person != null && m.Person.IsTRUClassified,
+                    m.Person != null && m.Person.IsHRBClassified,
+                    "Rolle", m.Role))
                 .Take(max).ToListAsync(ct),
             _ => [],
         };

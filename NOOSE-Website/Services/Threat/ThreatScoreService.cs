@@ -631,7 +631,7 @@ public class ThreatScoreService(
 
         var weapons = await db.FactionWeaponStocks.Where(w => w.FactionId == factionId).Select(w => w.Designation).ToListAsync(ct);
         var stock = await db.FactionInventories.Where(l => l.FactionId == factionId).Select(l => l.Designation).ToListAsync(ct);
-        var routes = await db.FactionDrugRoutes.Where(d => d.FactionId == factionId).Select(d => d.Designation).ToListAsync(ct);
+        var routes = await db.DrugRoutes.OnlyActive().Where(d => d.FactionId == factionId).Select(d => d.Designation).ToListAsync(ct);
 
         // Activity heat is driven by the AgentActivities linked to this faction.
         var activityIds = await db.AgentActivityLinks

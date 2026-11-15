@@ -3,6 +3,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Jobs;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -125,6 +126,16 @@ public static class RecordsReference
                 .Select(p => new { p.Id, p.Name, p.CaseNumber, p.IsClassified }).ToListAsync(ct))
             {
                 map[(nameof(Party), x.Id)] = new($"{x.Name} ({x.CaseNumber})", x.IsClassified, SearchNavigation.For(nameof(Party), x.Id));
+            }
+        }
+
+        var drugRouteIds = OpenIds(nameof(DrugRoute));
+        if (drugRouteIds.Count > 0)
+        {
+            foreach (var x in await db.DrugRoutes.Where(r => drugRouteIds.Contains(r.Id))
+                .Select(r => new { r.Id, r.Designation, r.CaseNumber, r.IsClassified }).ToListAsync(ct))
+            {
+                map[(nameof(DrugRoute), x.Id)] = new($"{x.Designation} ({x.CaseNumber})", x.IsClassified, SearchNavigation.For(nameof(DrugRoute), x.Id));
             }
         }
 

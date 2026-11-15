@@ -5,6 +5,7 @@ using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Changelog;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Handbook;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
@@ -41,6 +42,8 @@ public static class TrashProjection
     public static TrashItem Group(PersonGroup x) => new("personengruppen", x.Id, x.CaseNumber, x.Name, null, x.DeletedAt);
 
     public static TrashItem Party(Party x) => new("parteien", x.Id, x.CaseNumber, x.Name, null, x.DeletedAt);
+
+    public static TrashItem DrugRoute(DrugRoute x) => new("drogenrouten", x.Id, x.CaseNumber, x.Designation, null, x.DeletedAt);
 
     public static TrashItem Taskforce(Taskforce x) => new("taskforces", x.Id, x.CaseNumber, x.Name, null, x.DeletedAt);
 

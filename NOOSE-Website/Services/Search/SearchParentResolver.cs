@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
@@ -115,6 +116,18 @@ public static class SearchParentResolver
                          .Select(p => new { p.Id, p.Name, p.CaseNumber }).ToListAsync(cancellationToken))
             {
                 Put(nameof(Party), x.Id, x.Name, x.CaseNumber);
+            }
+        }
+        if (Ids(nameof(DrugRoute)) is { Count: > 0 } drugRouteIds)
+        {
+            var q = scope.PartnerAgency is { } agency
+                ? db.DrugRoutes.OnlyPartnerVisible(db, agency, scope.MeId)
+                : db.DrugRoutes.OnlyVisible(scope);
+            q = includeArchived ? q : q.OnlyActive();
+            foreach (var x in await q.Where(r => drugRouteIds.Contains(r.Id))
+                         .Select(r => new { r.Id, r.Designation, r.CaseNumber }).ToListAsync(cancellationToken))
+            {
+                Put(nameof(DrugRoute), x.Id, x.Designation, x.CaseNumber);
             }
         }
         if (Ids(nameof(Operation)) is { Count: > 0 } operationIds)

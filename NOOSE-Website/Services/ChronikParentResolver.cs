@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -42,6 +43,9 @@ public static class ChronikParentResolver
         [nameof(PartyMember)] = nameof(Party),
         [nameof(PartyAgent)] = nameof(Party),
         [nameof(PartyPhoto)] = nameof(Party),
+        [nameof(DrugRouteStation)] = nameof(DrugRoute),
+        [nameof(DrugRoutePerson)] = nameof(DrugRoute),
+        [nameof(DrugRoutePhoto)] = nameof(DrugRoute),
         [nameof(OperationAgent)] = nameof(Operation),
         [nameof(CaseAgent)] = nameof(Case),
         [nameof(TaskforceAgent)] = nameof(Taskforce),
@@ -166,6 +170,12 @@ public static class ChronikParentResolver
             .Where(a => i.Contains(a.Id)).Select(a => new Pair(a.Id, a.PartyId)));
         await FanInAsync(nameof(PartyPhoto), nameof(Party), i => db.PartyPhotos.IgnoreQueryFilters()
             .Where(f => i.Contains(f.Id)).Select(f => new Pair(f.Id, f.PartyId)));
+        await FanInAsync(nameof(DrugRouteStation), nameof(DrugRoute), i => db.DrugRouteStations.IgnoreQueryFilters()
+            .Where(s => i.Contains(s.Id)).Select(s => new Pair(s.Id, s.DrugRouteId)));
+        await FanInAsync(nameof(DrugRoutePerson), nameof(DrugRoute), i => db.DrugRoutePeople.IgnoreQueryFilters()
+            .Where(p => i.Contains(p.Id)).Select(p => new Pair(p.Id, p.DrugRouteId)));
+        await FanInAsync(nameof(DrugRoutePhoto), nameof(DrugRoute), i => db.DrugRoutePhotos.IgnoreQueryFilters()
+            .Where(f => i.Contains(f.Id)).Select(f => new Pair(f.Id, f.DrugRouteId)));
         await FanInAsync(nameof(OperationAgent), nameof(Operation), i => db.OperationAgents.IgnoreQueryFilters()
             .Where(a => i.Contains(a.Id)).Select(a => new Pair(a.Id, a.OperationId)));
         await FanInAsync(nameof(CaseAgent), nameof(Case), i => db.CaseAgents.IgnoreQueryFilters()

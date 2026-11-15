@@ -1,5 +1,6 @@
 @page "/fraktionen/{Id}"
 @inject IFactionService FactionService
+@inject IDrugRouteService DrugRouteService
 @inject IAccessLogService AccessLog
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -186,7 +187,7 @@ else
                         <ProfileList Title="Ränge" Values="@_faction.Ranks.OrderBy(r => r.Order).Select(r => r.Designation)" />
                         @if (TabOn("bestaende"))
                         {
-                            <ProfileList Title="Drogenrouten" Values="StockTexts(_faction.DrugRoutes.Select(d => (d.Designation, d.Note)))" />
+                            <ProfileList Title="Drogenrouten" Values="@_routes.Where(r => !r.IsArchived).Select(r => r.Designation)" />
                         }
                         @if (TabOn("mitglieder"))
                         {
@@ -234,9 +235,9 @@ else
                 {
                 <RecordSection Group="Struktur" Slug="bestaende" Label="Bestände" Icon="@Icons.Material.Filled.Inventory2">
                     <MudStack Spacing="3">
-                        <ProfileList Title="WeaponStock" Values="StockTexts(_faction.WeaponStock.Select(w => (w.Designation, w.Quantity)))" />
-                        <ProfileList Title="Inventory" Values="StockTexts(_faction.Inventory.Select(l => (l.Designation, l.Quantity)))" />
-                        <ProfileList Title="DrugRoutes" Values="StockTexts(_faction.DrugRoutes.Select(d => (d.Designation, d.Note)))" />
+                        <ProfileList Title="Waffenbestand" Values="StockTexts(_faction.WeaponStock.Select(w => (w.Designation, w.Quantity)))" />
+                        <ProfileList Title="Inventar" Values="StockTexts(_faction.Inventory.Select(l => (l.Designation, l.Quantity)))" />
+                        <FactionDrugRoutesPanel FactionId="@_faction.Id" Routes="_routes" MayCreate="@(!_isPartner && _user.MayWrite() && !_faction.IsArchived)" />
                     </MudStack>
                 </RecordSection>
                 }
@@ -339,6 +340,7 @@ else
     private List<string> _ranks = new();
     private List<ClassificationHistory> _classificationHistory = new();
     private ClaimsPrincipal _user = default!;
+    private List<DrugRoute> _routes = new();
     private Guid _historyKey = Guid.NewGuid();
     private string? _loadedId;
     // last view of the previous visit, read before this one is logged
@@ -413,6 +415,7 @@ else
             _classificationHistory = await FactionService.GetClassificationHistoryAsync(_faction.Id, scope);
             _members = await FactionService.GetMembersAsync(_faction.Id, scope);
             _memberCount = _members.Count;
+            _routes = await DrugRouteService.GetForFactionAsync(_faction.Id, scope);
             // partners: skip agent fan-out
             if (!_isPartner)
             {

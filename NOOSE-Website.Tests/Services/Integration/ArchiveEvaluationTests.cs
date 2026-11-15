@@ -1,5 +1,6 @@
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -29,6 +30,7 @@ public sealed class ArchiveEvaluationTests
             [nameof(Faction)] = settings,
             [nameof(PersonGroup)] = settings,
             [nameof(Party)] = settings,
+            [nameof(DrugRoute)] = settings,
             [nameof(Operation)] = settings,
             [nameof(Taskforce)] = settings,
             [nameof(Case)] = settings,

@@ -3813,6 +3813,328 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("Ehrungen");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoute", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<bool>("AgingDisabled")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("VeralterungDeaktiviert");
+
+                    b.Property<string>("ArchiveReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("Archivgrund");
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ArchiviertAm");
+
+                    b.Property<string>("ArchivedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ArchiviertVonId");
+
+                    b.Property<string>("CaseNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("Aktenzeichen");
+
+                    b.Property<int>("Classification")
+                        .HasColumnType("int")
+                        .HasColumnName("Einstufung");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)")
+                        .HasColumnName("Beschreibung");
+
+                    b.Property<string>("Designation")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Bezeichnung");
+
+                    b.Property<string>("FactionId")
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("FraktionId");
+
+                    b.Property<string>("Findings")
+                        .HasColumnType("longtext")
+                        .HasColumnName("Erkenntnisse");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstArchiviert");
+
+                    b.Property<bool>("IsClassified")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstVerschlusssache");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<bool>("IsHRBClassified")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstVerschlusssacheHRB");
+
+                    b.Property<bool>("IsTRUClassified")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstVerschlusssacheTRU");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Bemerkungen");
+
+                    b.Property<string>("Substance")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Substanz");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseNumber")
+                        .IsUnique();
+
+                    b.HasIndex("Designation");
+
+                    b.HasIndex("FactionId");
+
+                    b.HasIndex("IsArchived");
+
+                    b.HasIndex("IsClassified");
+
+                    b.ToTable("Drogenrouten");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoutePerson", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("DrugRouteId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("DrogenrouteId");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("PersonId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Rolle");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonId");
+
+                    b.HasIndex("DrugRouteId", "PersonId");
+
+                    b.ToTable("DrogenroutenPersonen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoutePhoto", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("Bildunterschrift");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("DrugRouteId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("DrogenrouteId");
+
+                    b.Property<string>("FileNameSaved")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("DateinameGespeichert");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<bool>("IsTitleImage")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstTitelbild");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<string>("OriginalName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("varchar(260)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("GroesseBytes");
+
+                    b.Property<string>("StationId")
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("StationId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DrugRouteId");
+
+                    b.HasIndex("StationId");
+
+                    b.ToTable("DrogenroutenFotos");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRouteStation", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(4000)
+                        .HasColumnType("varchar(4000)")
+                        .HasColumnName("Beschreibung");
+
+                    b.Property<string>("DrugRouteId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("DrogenrouteId");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int")
+                        .HasColumnName("Art");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Ort");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int")
+                        .HasColumnName("Reihenfolge");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DrugRouteId", "SortOrder");
+
+                    b.ToTable("DrogenroutenStationen");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>
                 {
                     b.Property<string>("Id")
@@ -14176,6 +14498,57 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Decoration");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoute", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Factions.Faction", "Faction")
+                        .WithMany()
+                        .HasForeignKey("FactionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Faction");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoutePerson", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoute", "DrugRoute")
+                        .WithMany("People")
+                        .HasForeignKey("DrugRouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NOOSE_Website.Data.Entities.People.Person", "Person")
+                        .WithMany()
+                        .HasForeignKey("PersonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DrugRoute");
+
+                    b.Navigation("Person");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoutePhoto", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoute", "DrugRoute")
+                        .WithMany("Photos")
+                        .HasForeignKey("DrugRouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DrugRoute");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRouteStation", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoute", "DrugRoute")
+                        .WithMany("Stations")
+                        .HasForeignKey("DrugRouteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DrugRoute");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>
                 {
                     b.HasOne("NOOSE_Website.Data.Entities.Agent", "HandlerAgent")
@@ -14227,7 +14600,7 @@ namespace NOOSE_Website.Data.Migrations
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Factions.FactionDrugRoute", b =>
                 {
                     b.HasOne("NOOSE_Website.Data.Entities.Factions.Faction", "Faction")
-                        .WithMany("DrugRoutes")
+                        .WithMany()
                         .HasForeignKey("FactionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -15757,6 +16130,15 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Entries");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.DrugRoutes.DrugRoute", b =>
+                {
+                    b.Navigation("People");
+
+                    b.Navigation("Photos");
+
+                    b.Navigation("Stations");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Evidence.EvidenceEntry", b =>
                 {
                     b.Navigation("Lines");
@@ -15765,8 +16147,6 @@ namespace NOOSE_Website.Data.Migrations
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Factions.Faction", b =>
                 {
                     b.Navigation("Agents");
-
-                    b.Navigation("DrugRoutes");
 
                     b.Navigation("Inventory");
 

@@ -1,3 +1,4 @@
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Parties;
@@ -15,6 +16,7 @@ public static class RecordAvatar
         [nameof(Faction)] = "/dateien/fraktionen/foto",
         [nameof(PersonGroup)] = "/dateien/personengruppen/foto",
         [nameof(Party)] = "/dateien/parteien/foto",
+        [nameof(DrugRoute)] = "/dateien/drogenrouten/foto",
     };
 
     /// <summary>Serving route for one gallery photo; null when the type has no gallery or no photo is given.</summary>

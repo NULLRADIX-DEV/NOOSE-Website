@@ -403,4 +403,29 @@ internal static class DemoDataSeed
         new("Marcus Johnson", 3, 2, "Grove Street", "Versammlung mit ca. 12 Personen, vereinzelt Waffen sichtbar.", "Observation abgebrochen, Enttarnung drohte."),
         new("Dimitri Volkov", 20, 4, "Hafen, Lager 7", "Container-Übernahme bei Nacht.", "Kennzeichen notiert."),
     ];
+
+    // ---- Drug routes -------------------------------------------------------
+
+    internal sealed record DrugRouteSpec(
+        string Designation, string Faction, string Substance, string Description, string? Findings,
+        (DrugRouteStationKind Kind, string Location, string? Description)[] Stations,
+        (string Person, string Role)[] People);
+
+    public static readonly DrugRouteSpec[] DrugRoutes =
+    [
+        new("Rancho-Route", "Los Santos Vagos", "Kokain",
+            "Kokain kommt per Boot nach Paleto Bay, wird in Sandy Shores gestreckt und über ein Lagerhaus in Rancho in East LS verkauft.",
+            "<p>Die Vagos fahren die Ware nachts in zwei Fahrzeugen, ein Vorausfahrzeug sichert die Strecke ab.</p>",
+            [
+                (DrugRouteStationKind.Handover, "Steg in Paleto Bay", "Übernahme vom Boot, meist zwischen 2 und 4 Uhr."),
+                (DrugRouteStationKind.Processing, "Trailer in Sandy Shores", "Strecken und Abpacken in kleine Einheiten."),
+                (DrugRouteStationKind.Storage, "Lagerhaus Rancho", "Zwischenlager, bei der Razzia teilweise ausgehoben."),
+                (DrugRouteStationKind.Sale, "Straßenecken East LS", "Verkauf durch Soldados in kleinen Mengen."),
+            ],
+            [
+                ("Hector Rodriguez", "Organisator"),
+                ("Miguel Rodriguez", "Fahrer"),
+                ("Ricardo Mendez", "Verkäufer"),
+            ]),
+    ];
 }

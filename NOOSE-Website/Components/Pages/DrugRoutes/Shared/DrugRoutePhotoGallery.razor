@@ -1,0 +1,231 @@
+@inject IDrugRouteService RouteService
+@inject IDrugRoutePhotoStorageService FileStorage
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IPartnerShareService PartnerShareService
+
+<MudStack Spacing="3">
+    <SectionHeader Title="@($"Beweisfotos ({_photos.Count})")">
+        <Actions>
+            @if (_mayWrite)
+            {
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadAsync" Accept="image/*" MaximumFileCount="20">
+                    <CustomContent>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Upload"
+                                   OnClick="@context.OpenFilePickerAsync" Disabled="_load">
+                            Fotos hochladen
+                        </MudButton>
+                    </CustomContent>
+                    <SelectedTemplate />
+                </MudFileUpload>
+            }
+        </Actions>
+    </SectionHeader>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+
+    @if (_photos.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Fotos.</MudText>
+    }
+    else
+    {
+        <div class="d-flex flex-wrap gap-3">
+            @foreach (var photo in _photos)
+            {
+                <MudPaper Class="pa-1" Elevation="2" Style="width:160px;">
+                    <div @onclick="@(() => OpenLightboxAsync(photo))" style="position:relative;cursor:pointer;">
+                        <MudImage Src="@RecordAvatar.Url(nameof(DrugRoute), photo.Id)" Alt="@(photo.Caption ?? photo.OriginalName)"
+                                  Height="120" Width="150" ObjectFit="ObjectFit.Cover" Class="rounded" />
+                        @if (photo.IsTitleImage)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Filled"
+                                     Icon="@Icons.Material.Filled.Star"
+                                     Style="position:absolute;top:4px;left:4px;margin:0;">Titelbild</MudChip>
+                        }
+                    </div>
+                    @if (StationOf(photo) is { } station)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                                 Icon="@DrugRouteStationKindDisplay.Icon(station.Kind)" Class="mx-1 mt-1 mb-0"
+                                 Style="max-width:148px;">@station.Location</MudChip>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(photo.Caption))
+                    {
+                        <MudText Typo="Typo.caption" Class="px-1 pt-1">@photo.Caption</MudText>
+                    }
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="px-1">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            @photo.OriginalName
+                        </MudText>
+                        <MudStack Row="true" Spacing="0" AlignItems="AlignItems.Center">
+                            <PartnerChildShareButton Show="_canShareChildren" ChildType="@nameof(DrugRoutePhoto)" ChildId="@photo.Id" />
+                            @if (_mayWrite)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.EditNote" Color="Color.Default" Size="Size.Small"
+                                               OnClick="@(() => CaptionAsync(photo))" aria-label="Bildunterschrift bearbeiten" />
+                                @if (!photo.IsTitleImage)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Outlined.StarBorder" Color="Color.Primary" Size="Size.Small"
+                                                   OnClick="@(() => AsTitleImageAsync(photo))" aria-label="Als Titelbild setzen" />
+                                }
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                               OnClick="@(() => RemoveAsync(photo))" aria-label="Foto löschen" />
+                            }
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+            }
+        </div>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string RouteId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private List<DrugRoutePhoto> _photos = new();
+    private List<DrugRouteStation> _stations = new();
+    private bool _load;
+    private bool _mayWrite;
+    private bool _canShareChildren;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mayWrite = User.MayWrite();
+        // leadership: per-item release only matters when the record is shell-released
+        if (User.IsLeadership())
+        {
+            _canShareChildren = (await PartnerShareService.GetForRecordAsync(nameof(DrugRoute), RouteId))
+                .Any(s => s.Released && !s.IncludesChildren);
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _photos = await RouteService.GetPhotosAsync(RouteId, ViewerScope.From(User));
+        _stations = await RouteService.GetStationsAsync(RouteId, ViewerScope.From(User));
+    }
+
+    private DrugRouteStation? StationOf(DrugRoutePhoto photo)
+        => photo.StationId is { } id ? _stations.FirstOrDefault(s => s.Id == id) : null;
+
+    private async Task OpenLightboxAsync(DrugRoutePhoto photo)
+    {
+        var images = _photos
+            .Select(p => new ImageLightbox.LightboxImage(RecordAvatar.Url(nameof(DrugRoute), p.Id)!, CaptionOf(p)))
+            .ToList();
+        var start = _photos.IndexOf(photo);
+        await ImageLightbox.ShowAsync(DialogService, images, Math.Max(0, start));
+    }
+
+    // caption, place, file name
+    private string CaptionOf(DrugRoutePhoto photo)
+    {
+        var place = StationOf(photo)?.Location;
+        return !string.IsNullOrWhiteSpace(photo.Caption)
+            ? (place is null ? photo.Caption : $"{photo.Caption} · {place}")
+            : place ?? photo.OriginalName;
+    }
+
+    private async Task UploadAsync(IReadOnlyList<IBrowserFile> files)
+    {
+        _load = true;
+        try
+        {
+            var uploaded = 0;
+            foreach (var file in files)
+            {
+                if (!FileStorage.IsAllowedType(file.ContentType))
+                {
+                    Snackbar.Add($"'{file.Name}': Dateityp nicht erlaubt (nur Bilder).", Severity.Warning);
+                    continue;
+                }
+                if (file.Size > FileStorage.MaxBytes)
+                {
+                    Snackbar.Add($"'{file.Name}': zu groß (max. {FileStorage.MaxBytes / (1024 * 1024)} MB).", Severity.Warning);
+                    continue;
+                }
+                await using var stream = file.OpenReadStream(FileStorage.MaxBytes);
+                await RouteService.PhotoAddAsync(RouteId, null, null, stream, file.Name, file.ContentType, file.Size, User);
+                uploaded++;
+            }
+
+            if (uploaded > 0)
+            {
+                Snackbar.Add(uploaded == 1 ? "Foto hochgeladen." : $"{uploaded} Fotos hochgeladen.", Severity.Success);
+                await LoadAsync();
+                await Changed.InvokeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload fehlgeschlagen: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _load = false;
+        }
+    }
+
+    private async Task CaptionAsync(DrugRoutePhoto photo)
+    {
+        var caption = await ReasonDialog.ShowAsync(DialogService, "Bildunterschrift", null, confirmText: "Speichern",
+            label: "Bildunterschrift", preset: photo.Caption, lines: 1, maxLength: 300);
+        if (caption is null)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.PhotoCaptionSetAsync(photo.Id, caption, User);
+            Snackbar.Add("Bildunterschrift gespeichert.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task AsTitleImageAsync(DrugRoutePhoto photo)
+    {
+        try
+        {
+            await RouteService.AsTitleImageSetAsync(photo.Id, User);
+            Snackbar.Add("Als Titelbild gesetzt.", Severity.Success);
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task RemoveAsync(DrugRoutePhoto photo)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Foto löschen?",
+            $"'{photo.OriginalName}' wird dauerhaft gelöscht.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.PhotoRemoveAsync(photo.Id, User);
+            Snackbar.Add("Foto gelöscht.", Severity.Success);
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

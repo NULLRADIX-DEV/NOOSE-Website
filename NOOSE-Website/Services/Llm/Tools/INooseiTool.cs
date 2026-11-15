@@ -11,6 +11,7 @@ using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.CounterIntel;
 using NOOSE_Website.Data.Entities.Evidence;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
 using NOOSE_Website.Data.Entities.Groups;
@@ -219,6 +220,7 @@ public static class NooseiRecordTypes
         [nameof(Faction)] = NooseiUse.Read | NooseiUse.List | NooseiUse.Chronicle,
         [nameof(PersonGroup)] = NooseiUse.Read | NooseiUse.List | NooseiUse.Chronicle,
         [nameof(Party)] = NooseiUse.Read | NooseiUse.List | NooseiUse.Chronicle,
+        [nameof(DrugRoute)] = NooseiUse.Read | NooseiUse.List | NooseiUse.Chronicle,
         [nameof(Operation)] = NooseiUse.Read | NooseiUse.List | NooseiUse.Chronicle,
         [nameof(Case)] = NooseiUse.Read | NooseiUse.List | NooseiUse.Chronicle,
         [nameof(Law)] = NooseiUse.Read | NooseiUse.List | NooseiUse.Chronicle,

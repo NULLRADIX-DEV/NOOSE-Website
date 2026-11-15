@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -41,10 +42,10 @@ public static class ChannelShareRules
     /// <summary>Audit type of the channel list, a config row without a table of its own.</summary>
     public const string AuditType = "DiscordShareChannels";
 
-    /// <summary>The six classifiable record types; each has a detail page and the same secrecy flags.</summary>
+    /// <summary>The classifiable record types; each has a detail page and the same secrecy flags.</summary>
     public static readonly IReadOnlySet<string> ShareableTypes = new HashSet<string>(StringComparer.Ordinal)
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(Case), nameof(Operation),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute), nameof(Case), nameof(Operation),
     };
 
     private static readonly HashSet<string> WebhookHosts = new(StringComparer.OrdinalIgnoreCase)

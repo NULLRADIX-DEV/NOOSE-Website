@@ -152,6 +152,10 @@ public static class PublicVisibility
             ["PartyMember"] = "Mitgliederliste; nach außen nie.",
             ["PartyAgent"] = Assignment,
             ["PartyPhoto"] = "Bilddatei der Akte; nach außen nur über den geprüften Publikations-Pfad.",
+            ["DrugRoute"] = InternalRecord,
+            ["DrugRouteStation"] = Operational,
+            ["DrugRoutePerson"] = "Liste der beteiligten Personen; nach außen nie.",
+            ["DrugRoutePhoto"] = "Beweisfoto der Akte; nach außen nie.",
 
             // --- casework ---
             ["Case"] = InternalRecord,

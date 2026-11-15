@@ -29,7 +29,7 @@ public static class MergedPageSections
 
     public static readonly string[] Trash =
     [
-        "personen", "fraktionen", "personengruppen", "parteien",
+        "personen", "fraktionen", "personengruppen", "parteien", "drogenrouten",
         "vorgaenge", "operationen", "taskforces", "aufgaben",
         "brett", "kalender", "besprechungen", "aktivitaeten", "abmeldungen", "entfuehrungen",
         "schusswaffengebrauch",

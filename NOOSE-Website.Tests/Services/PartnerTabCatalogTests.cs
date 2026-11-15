@@ -11,6 +11,7 @@ public class PartnerTabCatalogTests
         new object[] { "fraktionen", "Faction" },
         new object[] { "personengruppen", "PersonGroup" },
         new object[] { "parteien", "Party" },
+        new object[] { "drogenrouten", "DrugRoute" },
         new object[] { "operationen", "Operation" },
         new object[] { "vorgaenge", "Case" },
         new object[] { "taskforces", "Taskforce" },
@@ -21,9 +22,9 @@ public class PartnerTabCatalogTests
     // --- All catalog integrity ---
 
     [Fact]
-    public void All_contains_all_nine_releasable_types()
+    public void All_contains_all_ten_releasable_types()
     {
-        Assert.Equal(9, PartnerTabCatalog.All.Count);
+        Assert.Equal(10, PartnerTabCatalog.All.Count);
     }
 
     [Fact]

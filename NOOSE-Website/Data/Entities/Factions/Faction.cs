@@ -123,7 +123,6 @@ public class Faction : IAuditable, ISoftDelete, IClassifiableRecord, IArchivable
     public List<FactionRank> Ranks { get; set; } = new();
     public List<FactionWeaponStock> WeaponStock { get; set; } = new();
     public List<FactionInventory> Inventory { get; set; } = new();
-    public List<FactionDrugRoute> DrugRoutes { get; set; } = new();
     public List<FactionMember> Members { get; set; } = new();
     public List<FactionAgent> Agents { get; set; } = new();
 

@@ -188,7 +188,7 @@ public class RecordVisibilityTests
     // ---- every classifiable entity really implements the marker ----
 
     [Fact]
-    public void All_six_record_types_carry_the_marker_interface()
+    public void All_seven_record_types_carry_the_marker_interface()
     {
         var marked = typeof(AppDbContext).Assembly.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false } && typeof(IClassifiableRecord).IsAssignableFrom(t))
@@ -196,6 +196,6 @@ public class RecordVisibilityTests
             .OrderBy(n => n)
             .ToArray();
 
-        Assert.Equal(new[] { "Case", "Faction", "Operation", "Party", "Person", "PersonGroup" }, marked);
+        Assert.Equal(new[] { "Case", "DrugRoute", "Faction", "Operation", "Party", "Person", "PersonGroup" }, marked);
     }
 }

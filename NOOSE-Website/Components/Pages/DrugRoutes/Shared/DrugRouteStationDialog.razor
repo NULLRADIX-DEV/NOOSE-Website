@@ -1,0 +1,77 @@
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3" Style="min-width:360px;" Class="noose-min-breite-frei">
+            <MudSelect T="DrugRouteStationKind" @bind-Value="_kind" Label="Art" Variant="Variant.Outlined"
+                       ToStringFunc="@(k => DrugRouteStationKindDisplay.Name(k))">
+                @foreach (var k in DrugRouteStationKindDisplay.All)
+                {
+                    <MudSelectItem T="DrugRouteStationKind" Value="@k">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@DrugRouteStationKindDisplay.Icon(k)" Size="Size.Small" />
+                            <MudText Typo="Typo.body2">@DrugRouteStationKindDisplay.Name(k)</MudText>
+                        </MudStack>
+                    </MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField @bind-Value="_location" Label="Ort" Variant="Variant.Outlined" Immediate="true" AutoFocus="true"
+                          MaxLength="200" Required="true" RequiredError="Der Ort ist erforderlich"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Place"
+                          HelperText="Wo die Station liegt, z. B. Straße, Gebäude oder Gebiet." />
+            <MudTextField @bind-Value="_description" Label="Beschreibung (optional)" Variant="Variant.Outlined" Lines="2"
+                          Sizing="InputSizing.Auto" MaxLines="8" MaxLength="4000" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="@(string.IsNullOrWhiteSpace(_location))">
+            @(Initial is null ? "Hinzufügen" : "Speichern")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    /// <summary>The station being edited; null adds a new one.</summary>
+    [Parameter] public DrugRouteStationInput? Initial { get; set; }
+
+    private DrugRouteStationKind _kind = DrugRouteStationKind.Other;
+    private string? _location;
+    private string? _description;
+
+    protected override void OnInitialized()
+    {
+        if (Initial is null)
+        {
+            return;
+        }
+        _kind = Initial.Kind;
+        _location = Initial.Location;
+        _description = Initial.Description;
+    }
+
+    private void Save()
+    {
+        if (string.IsNullOrWhiteSpace(_location))
+        {
+            return;
+        }
+        MudDialog.Close(DialogResult.Ok(new DrugRouteStationInput
+        {
+            Kind = _kind,
+            Location = _location.Trim(),
+            Description = _description,
+        }));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    public static async Task<DrugRouteStationInput?> ShowAsync(IDialogService dialog, DrugRouteStationInput? initial = null)
+    {
+        var parameters = new DialogParameters<DrugRouteStationDialog> { { x => x.Initial, initial } };
+        var reference = await dialog.ShowAsync<DrugRouteStationDialog>(
+            initial is null ? "Station hinzufügen" : "Station bearbeiten", parameters);
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: DrugRouteStationInput e } ? e : null;
+    }
+}

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -31,13 +32,13 @@ public sealed class RecencyServiceTests : IDisposable
     // ---------------------------------------------------------------- SupportedTypes
 
     [Fact]
-    public void SupportedTypes_ExposesAllSevenRecordTypes()
+    public void SupportedTypes_ExposesAllEightRecordTypes()
     {
         var svc = NewService();
 
         var types = svc.SupportedTypes;
 
-        Assert.Equal(7, types.Count);
+        Assert.Equal(8, types.Count);
         Assert.Contains(types, t => t.Type == nameof(Person) && t.DefaultWarningDays == 30 && t.DefaultStaleDays == 90);
         Assert.Contains(types, t => t.Type == nameof(Faction) && t.DefaultWarningDays == 60 && t.DefaultStaleDays == 180);
         Assert.Contains(types, t => t.Type == nameof(Case));
@@ -53,7 +54,7 @@ public sealed class RecencyServiceTests : IDisposable
 
         var all = await svc.GetAllSettingsAsync();
 
-        Assert.Equal(7, all.Count);
+        Assert.Equal(8, all.Count);
         var person = all[nameof(Person)];
         Assert.Equal(30, person.WarningDays);
         Assert.Equal(90, person.StaleDays);
@@ -309,6 +310,7 @@ public sealed class RecencyServiceTests : IDisposable
     [InlineData(nameof(Faction))]
     [InlineData(nameof(PersonGroup))]
     [InlineData(nameof(Party))]
+    [InlineData(nameof(DrugRoute))]
     [InlineData(nameof(Operation))]
     [InlineData(nameof(Taskforce))]
     [InlineData(nameof(Case))]
@@ -392,6 +394,7 @@ public sealed class RecencyServiceTests : IDisposable
             case nameof(Faction): db.Factions.Add(Seed.Faction(id)); break;
             case nameof(PersonGroup): db.PersonGroups.Add(new PersonGroup { Id = id, Name = "Gruppe" }); break;
             case nameof(Party): db.Parties.Add(new Party { Id = id, Name = "Partei" }); break;
+            case nameof(DrugRoute): db.DrugRoutes.Add(new DrugRoute { Id = id, Designation = "Route" }); break;
             case nameof(Operation): db.Operations.Add(new Operation { Id = id, Title = "Operation" }); break;
             case nameof(Taskforce): db.Taskforces.Add(new Taskforce { Id = id, Name = "Taskforce" }); break;
             case nameof(Case): db.Cases.Add(Seed.Case(id)); break;
@@ -405,6 +408,7 @@ public sealed class RecencyServiceTests : IDisposable
         nameof(Faction) => (await db.Factions.FirstAsync(x => x.Id == id)).AgingDisabled,
         nameof(PersonGroup) => (await db.PersonGroups.FirstAsync(x => x.Id == id)).AgingDisabled,
         nameof(Party) => (await db.Parties.FirstAsync(x => x.Id == id)).AgingDisabled,
+        nameof(DrugRoute) => (await db.DrugRoutes.FirstAsync(x => x.Id == id)).AgingDisabled,
         nameof(Operation) => (await db.Operations.FirstAsync(x => x.Id == id)).AgingDisabled,
         nameof(Taskforce) => (await db.Taskforces.FirstAsync(x => x.Id == id)).AgingDisabled,
         nameof(Case) => (await db.Cases.FirstAsync(x => x.Id == id)).AgingDisabled,

@@ -1,0 +1,143 @@
+@inject IDrugRouteService RouteService
+@inject IPersonService PersonService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <SectionHeader Title="@($"Beteiligte Personen ({_people.Count})")">
+        <Actions>
+            @if (_mayWrite)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="AddAsync">
+                    Person hinzufügen
+                </MudButton>
+            }
+        </Actions>
+    </SectionHeader>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_people.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Person erfasst.</MudText>
+    }
+    else
+    {
+        @foreach (var p in _people)
+        {
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-eintrag noose-eintrag-titel">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge" Color="Color.Primary" Size="Size.Small" />
+                        <MudLink Href="@($"/personen/{p.PersonId}")" Typo="Typo.body2"><b>@p.Person?.Name</b></MudLink>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Person?.CaseNumber</MudText>
+                        @if (!string.IsNullOrWhiteSpace(p.Role))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@p.Role</MudChip>
+                        }
+                    </MudStack>
+                    @if (_mayWrite)
+                    {
+                        <MudStack Row="true" Spacing="0">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small"
+                                           OnClick="@(() => EditAsync(p))" aria-label="Rolle bearbeiten" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => RemoveAsync(p))" aria-label="Person entfernen" />
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string RouteId { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool _load = true;
+    private bool _mayWrite;
+    private List<DrugRoutePerson> _people = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mayWrite = User.MayWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _people = await RouteService.GetPeopleAsync(RouteId, ViewerScope.From(User));
+        _load = false;
+    }
+
+    private async Task AddAsync()
+    {
+        var exclusion = _people.Select(p => p.PersonId).ToList();
+        var input = await DrugRoutePersonDialog.ShowAsync(DialogService, User.IsLeadership(), exclusion);
+        if (input is null)
+        {
+            return;
+        }
+        // duplicate check
+        if (!await DuplicateCheck.MayNewRecordCreateAsync(DialogService, PersonService, input.NewPersonName, User.IsLeadership()))
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.PersonAddAsync(RouteId, input, User);
+            Snackbar.Add("Person hinzugefügt.", Severity.Success);
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task EditAsync(DrugRoutePerson p)
+    {
+        var input = await DrugRoutePersonDialog.ShowToEditAsync(DialogService, p.Person?.Name ?? "—", p.Role);
+        if (input is null)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.PersonChangeAsync(p.Id, input.Role, User);
+            Snackbar.Add("Rolle aktualisiert.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task RemoveAsync(DrugRoutePerson p)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Person entfernen?",
+            $"„{p.Person?.Name}“ wird von der Route entfernt.", "Entfernen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await RouteService.PersonRemoveAsync(p.Id, User);
+            Snackbar.Add("Person entfernt.", Severity.Success);
+            await LoadAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -19,11 +19,6 @@ public interface IFactionService
     Task<Faction> CreateAsync(FactionInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RefreshAsync(string id, FactionInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Routes among these that another active faction holds; the save asks the same and refuses unconfirmed ones.</summary>
-    /// <param name="factionId">The faction being saved; null for a new one.</param>
-    Task<List<DrugRouteConflict>> GetDrugRouteConflictsAsync(string? factionId, IEnumerable<string> designations,
-        ClaimsPrincipal actor, CancellationToken cancellationToken = default);
-
     /// <summary>Moves the record to the trash; the reason is required and lands on its timeline.</summary>
     Task DeleteAsync(string id, string reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task RestoreAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);

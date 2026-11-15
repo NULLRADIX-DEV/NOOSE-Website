@@ -5,6 +5,7 @@ using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -35,7 +36,7 @@ public static class NooseiProposalRules
     /// <summary>Types the reference resolver names; a card needs a name.</summary>
     private static readonly IReadOnlySet<string> Nameable = new HashSet<string>(StringComparer.Ordinal)
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(Operation), nameof(Taskforce),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute), nameof(Operation), nameof(Taskforce),
         nameof(Case), nameof(Job), nameof(Appointment), nameof(Meeting), nameof(Document), nameof(Hinweis),
         nameof(Ticket), nameof(Agent),
     };
