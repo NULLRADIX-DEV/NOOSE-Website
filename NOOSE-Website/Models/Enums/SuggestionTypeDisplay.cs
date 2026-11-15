@@ -19,7 +19,10 @@ public static class SuggestionTypeDisplay
         _ => "—",
     };
 
-    /// <summary>All types in panel display order.</summary>
+    /// <summary>Types no panel offers any more; the number stays taken.</summary>
+    public static readonly IReadOnlySet<SuggestionType> Retired = new HashSet<SuggestionType> { SuggestionType.DrugRoute };
+
+    /// <summary>All live types in panel display order.</summary>
     public static readonly IReadOnlyList<SuggestionType> All = new[]
     {
         SuggestionType.Weapon,

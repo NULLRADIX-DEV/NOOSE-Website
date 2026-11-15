@@ -51,6 +51,7 @@ public class DrugRouteService(
         {
             r.Faction = null;
         }
+        await PartnerTrimChildrenAsync(db, routes, scope, cancellationToken);
         return routes;
     }
 
@@ -70,6 +71,7 @@ public class DrugRouteService(
         {
             route.Faction = null;
         }
+        await PartnerTrimChildrenAsync(db, [route], scope, cancellationToken);
         return route;
     }
 
@@ -97,12 +99,14 @@ public class DrugRouteService(
     public async Task<List<DrugRoute>> GetForFactionAsync(string factionId, ViewerScope scope, CancellationToken cancellationToken = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return await VisibleRoutes(db, scope)
+        var routes = await VisibleRoutes(db, scope)
             .Where(r => r.FactionId == factionId)
             .Include(r => r.Stations)
             .OrderBy(r => r.IsArchived)
             .ThenBy(r => r.Designation)
             .ToListAsync(cancellationToken);
+        await PartnerTrimChildrenAsync(db, routes, scope, cancellationToken);
+        return routes;
     }
 
     public async Task<List<DrugRoute>> GetForPersonAsync(string personId, ViewerScope scope, CancellationToken cancellationToken = default)
@@ -351,6 +355,24 @@ public class DrugRouteService(
         var visible = await PartnerVisibility.VisibleChildIdsAsync(db, childType,
             rows.Select(r => (nameof(DrugRoute), routeId, id(r))).ToList(), agency, scope.MeId, cancellationToken);
         return rows.Where(r => visible.Contains(id(r))).ToList();
+    }
+
+    /// <summary>Loaded stations and photos of a partner's routes shrink to the released ones, so counts and title images don't leak.</summary>
+    private static async Task PartnerTrimChildrenAsync(AppDbContext db, IReadOnlyList<DrugRoute> routes, ViewerScope scope, CancellationToken cancellationToken)
+    {
+        if (scope.PartnerAgency is not { } agency || routes.Count == 0)
+        {
+            return;
+        }
+        var stations = routes.SelectMany(r => r.Stations.Select(s => (nameof(DrugRoute), r.Id, s.Id))).ToList();
+        var photos = routes.SelectMany(r => r.Photos.Select(f => (nameof(DrugRoute), r.Id, f.Id))).ToList();
+        var visibleStations = await PartnerVisibility.VisibleChildIdsAsync(db, nameof(DrugRouteStation), stations, agency, scope.MeId, cancellationToken);
+        var visiblePhotos = await PartnerVisibility.VisibleChildIdsAsync(db, nameof(DrugRoutePhoto), photos, agency, scope.MeId, cancellationToken);
+        foreach (var r in routes)
+        {
+            r.Stations = r.Stations.Where(s => visibleStations.Contains(s.Id)).ToList();
+            r.Photos = r.Photos.Where(f => visiblePhotos.Contains(f.Id)).ToList();
+        }
     }
 
     public async Task<DrugRouteStation> StationAddAsync(string routeId, DrugRouteStationInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

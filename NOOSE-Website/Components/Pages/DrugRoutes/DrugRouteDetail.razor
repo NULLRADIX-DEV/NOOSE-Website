@@ -76,7 +76,7 @@ else
                                OnClick="ArchiveAsync">Archivieren</MudButton>
                 }
             </AuthorizeView>
-            <AuthorizeView Policy="@Policies.Leadership">
+            <AuthorizeView Policy="@Policies.LeadershipWrite">
                 <MudButton Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Delete" OnClick="DeleteAsync">Löschen</MudButton>
             </AuthorizeView>
         </div>
@@ -100,7 +100,7 @@ else
                     <MudMenuItem Icon="@Icons.Material.Filled.Archive" OnClick="ArchiveAsync">Archivieren</MudMenuItem>
                 }
             </AuthorizeView>
-            <AuthorizeView Policy="@Policies.Leadership">
+            <AuthorizeView Policy="@Policies.LeadershipWrite">
                 <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
             </AuthorizeView>
         </HeaderMenu>

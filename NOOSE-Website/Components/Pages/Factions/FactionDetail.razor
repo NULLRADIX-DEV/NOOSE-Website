@@ -237,7 +237,7 @@ else
                     <MudStack Spacing="3">
                         <ProfileList Title="Waffenbestand" Values="StockTexts(_faction.WeaponStock.Select(w => (w.Designation, w.Quantity)))" />
                         <ProfileList Title="Inventar" Values="StockTexts(_faction.Inventory.Select(l => (l.Designation, l.Quantity)))" />
-                        <FactionDrugRoutesPanel FactionId="@_faction.Id" Routes="_routes" MayCreate="@(!_isPartner && !_faction.IsArchived)" />
+                        <FactionDrugRoutesPanel FactionId="@_faction.Id" Routes="_routes" MayCreate="@(!_isPartner && _user.MayWrite() && !_faction.IsArchived)" />
                     </MudStack>
                 </RecordSection>
                 }

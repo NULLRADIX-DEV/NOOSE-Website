@@ -79,7 +79,7 @@
                     Zuletzt aktualisiert: @((Route.ModifiedAt ?? Route.CreatedAt).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))
                 </MudText>
             </MudStack>
-            <AuthorizeView Policy="@Policies.Leadership">
+            <AuthorizeView Policy="@Policies.LeadershipWrite">
                 <MudSwitch T="bool" Value="Route.AgingDisabled" ValueChanged="ToggleAgingAsync"
                            Color="Color.Info" Size="Size.Small" Label="Veralterung deaktiviert" />
             </AuthorizeView>

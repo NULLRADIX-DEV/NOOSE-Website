@@ -3877,8 +3877,7 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnName("FraktionId");
 
                     b.Property<string>("Findings")
-                        .HasMaxLength(8000)
-                        .HasColumnType("varchar(8000)")
+                        .HasColumnType("longtext")
                         .HasColumnName("Erkenntnisse");
 
                     b.Property<bool>("IsArchived")

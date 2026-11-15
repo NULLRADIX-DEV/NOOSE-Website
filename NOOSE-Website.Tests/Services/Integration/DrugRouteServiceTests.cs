@@ -285,4 +285,54 @@ public sealed class DrugRouteServiceTests
         using var db = ctx.NewContext();
         Assert.Empty(db.DrugRouteStations);
     }
+
+    // ---- partners ----
+
+    private static ViewerScope PartnerScope()
+        => new(MayClassifiedRead: false, MayAllTaskforces: false, MeId: "partner", PartnerAgency: PartnerAgency.Parlament);
+
+    private static async Task<(DrugRoute Route, DrugRouteStation Released, DrugRoutePhoto ReleasedPhoto)> SeedPartnerRouteAsync(
+        SqliteTestContext ctx, DrugRouteService svc, bool whole)
+    {
+        SeedFactions(ctx);
+        var route = await svc.CreateAsync(Input("Kokain Nord", "a"), Leader());
+        var released = await svc.StationAddAsync(route.Id, new() { Location = "Hafen" }, Leader());
+        await svc.StationAddAsync(route.Id, new() { Location = "Labor" }, Leader());
+        await svc.PhotoAddAsync(route.Id, null, null, new MemoryStream([1]), "a.jpg", "image/jpeg", 1, Leader());
+        var releasedPhoto = await svc.PhotoAddAsync(route.Id, null, null, new MemoryStream([1]), "b.jpg", "image/jpeg", 1, Leader());
+        using var db = ctx.NewContext();
+        db.PartnerShares.Add(new() { EntityType = nameof(DrugRoute), EntityId = route.Id, Agency = PartnerAgency.Parlament, IncludesChildren = whole });
+        db.PartnerShares.Add(new() { EntityType = nameof(DrugRouteStation), EntityId = released.Id, Agency = PartnerAgency.Parlament });
+        db.PartnerShares.Add(new() { EntityType = nameof(DrugRoutePhoto), EntityId = releasedPhoto.Id, Agency = PartnerAgency.Parlament });
+        db.SaveChanges();
+        return (route, released, releasedPhoto);
+    }
+
+    [Fact]
+    public async Task A_partner_list_counts_only_released_stations_and_photos()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = NewService(ctx);
+        var (route, released, releasedPhoto) = await SeedPartnerRouteAsync(ctx, svc, whole: false);
+
+        var listed = Assert.Single(await svc.GetListAsync(PartnerScope()));
+        Assert.Equal(released.Id, Assert.Single(listed.Stations).Id);
+        Assert.Equal(releasedPhoto.Id, Assert.Single(listed.Photos).Id);
+        var onFaction = Assert.Single(await svc.GetForFactionAsync("a", PartnerScope()));
+        Assert.Equal(released.Id, Assert.Single(onFaction.Stations).Id);
+        var detail = await svc.GetDetailAsync(route.Id, PartnerScope());
+        Assert.Equal(releasedPhoto.Id, Assert.Single(detail!.Photos).Id);
+    }
+
+    [Fact]
+    public async Task A_route_released_whole_shows_the_partner_every_station_and_photo()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = NewService(ctx);
+        await SeedPartnerRouteAsync(ctx, svc, whole: true);
+
+        var listed = Assert.Single(await svc.GetListAsync(PartnerScope()));
+        Assert.Equal(2, listed.Stations.Count);
+        Assert.Equal(2, listed.Photos.Count);
+    }
 }

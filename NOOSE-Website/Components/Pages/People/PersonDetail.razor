@@ -296,7 +296,7 @@ else
                 {
                 <RecordSection Group="Ermittlung" Slug="zugehoerigkeit" Label="Zugehörigkeit" Icon="@Icons.Material.Filled.Groups">
                     <AffiliationsPanel PersonId="@_person.Id" User="_user" Changed="NewLoadAsync" @key="_historyKey" />
-                    <PersonDrugRoutesPanel PersonId="@_person.Id" User="_user" @key="_historyKey" />
+                    <PersonDrugRoutesPanel PersonId="@_person.Id" User="_user" @key="@($"drogenrouten-{_historyKey}")" />
                 </RecordSection>
                 }
                 @if (TabOn("kommentare"))

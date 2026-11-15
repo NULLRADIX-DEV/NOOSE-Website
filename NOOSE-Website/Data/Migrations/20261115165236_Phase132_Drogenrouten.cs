@@ -25,7 +25,7 @@ namespace NOOSE_Website.Data.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Beschreibung = table.Column<string>(type: "varchar(4000)", maxLength: 4000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Erkenntnisse = table.Column<string>(type: "varchar(8000)", maxLength: 8000, nullable: true)
+                    Erkenntnisse = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Bemerkungen = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),

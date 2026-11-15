@@ -1043,7 +1043,6 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(d => d.Designation).HasMaxLength(200).IsRequired();
             b.Property(d => d.Substance).HasMaxLength(100);
             b.Property(d => d.Description).HasMaxLength(4000);
-            b.Property(d => d.Findings).HasMaxLength(8000);
             b.Property(d => d.Remarks).HasMaxLength(2000);
             b.Property(d => d.ArchiveReason).HasMaxLength(300);
             b.HasIndex(d => d.CaseNumber).IsUnique();
