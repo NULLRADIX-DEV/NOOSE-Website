@@ -489,6 +489,11 @@ public class DiscordWebhookRoutingTests
         var call = Assert.Single(sender.ReceivedCalls());
         var args = call.GetArguments();
         Assert.Equal(Channel, args[0]);
+        // sample, not text
+        var card = Assert.IsAssignableFrom<IReadOnlyList<IMessageComponentProperties>>(args[1]);
+        Assert.Contains("fib:cjd:test", string.Join("\n", card.OfType<ComponentContainerProperties>()
+            .SelectMany(c => c.Components).OfType<ActionRowProperties>().SelectMany(r => r.Components)
+            .OfType<ButtonProperties>().Select(b => b.CustomId)));
         var mentions = Assert.IsType<AllowedMentionsProperties>(args[2]);
         Assert.False(mentions.Everyone);
         // null allows all
@@ -507,9 +512,10 @@ public class DiscordWebhookRoutingTests
         var services = new ServiceCollection().AddSingleton(sender).BuildServiceProvider();
         var host = await HostAsync(ctx, NotificationType.JobAssigned, services: services);
 
-        var ok = await host.Service.TestAsync(NotificationType.JobAssigned, Leadership);
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => host.Service.TestAsync(NotificationType.JobAssigned, Leadership));
 
-        Assert.False(ok);
+        Assert.Contains("Testkarte", refused.Message);
         Assert.Empty(host.Handler.Posts);
     }
 

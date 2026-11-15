@@ -6,6 +6,7 @@ using NetCord;
 using NetCord.Rest;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Public;
@@ -15,6 +16,9 @@ namespace NOOSE_Website.Services.Discord.Bot;
 /// <summary>One faction on the faction board, as every internal agent may see it.</summary>
 public sealed record FactionBoardEntry(string Id, string Name, string CaseNumber, int Score, string? Kind,
     int? EstimatedMembers, IReadOnlyList<string> Routes);
+
+/// <summary>One alarmed agent on the alarm card.</summary>
+public sealed record AlarmCardRow(EmergencyAlarmAnswer? Answer, string Codename, string? DiscordId);
 
 /// <summary>A rendered board and the hash that decides whether Discord needs an edit.</summary>
 public sealed record BoardCard(IReadOnlyList<IMessageComponentProperties> Components, string Hash);
@@ -45,20 +49,27 @@ public sealed class DiscordLiveBoards(
         }
         var rows = await db.EmergencyAlarmRecipients.AsNoTracking()
             .Where(r => r.AlarmId == alarmId)
-            .Select(r => new { r.Answer, Codename = r.Agent!.Codename, r.Agent.DiscordId })
+            .Select(r => new AlarmCardRow(r.Answer, r.Agent!.Codename, r.Agent.DiscordId))
             .ToListAsync(ct);
+        var baseUrl = (await webhook.GetConfigAsync(ct)).SiteBaseUrl.TrimEnd('/');
+        var (card, open) = RenderAlarm(alarm, rows, baseUrl, DateTime.UtcNow);
+        return (card, open, alarm.TriggeredAt);
+    }
+
+    /// <summary>The alarm card from loaded rows; pure.</summary>
+    public static (BoardCard Card, bool IsOpen) RenderAlarm(EmergencyAlarm alarm, IReadOnlyList<AlarmCardRow> rows,
+        string baseUrl, DateTime now)
+    {
         // stable order
         var alarmed = rows.Select(r => r.DiscordId)
             .Where(id => DiscordWebhookService.IsSnowflake(id) && id!.Length <= MaxSnowflakeChars)
             .Distinct()
             .Order(StringComparer.Ordinal)
             .ToList();
-        var now = DateTime.UtcNow;
         var open = EmergencyAlarmRules.IsOpen(alarm, now);
         var coming = rows.Where(r => r.Answer == EmergencyAlarmAnswer.Coming).Select(r => r.Codename).OrderBy(n => n).ToList();
         var notComing = rows.Where(r => r.Answer == EmergencyAlarmAnswer.NotComing).Select(r => r.Codename).OrderBy(n => n).ToList();
         var waiting = rows.Count(r => r.Answer is null);
-        var baseUrl = (await webhook.GetConfigAsync(ct)).SiteBaseUrl.TrimEnd('/');
 
         string Names(List<string> names) => names.Count == 0 ? "—" : string.Join(", ", names.Take(30).Select(n => DiscordCards.Inline(n, 30)))
             + (names.Count > 30 ? $" (+{names.Count - 30})" : "");
@@ -86,7 +97,7 @@ public sealed class DiscordLiveBoards(
         var hash = Hash($"{alarm.Id}|{open}|{alarm.EndedAt}|{string.Join(",", coming)}|{string.Join(",", notComing)}|{waiting}|{alarm.Situation}|{alarm.Location}|{string.Join(",", alarmed)}");
         IMessageComponentProperties[] alarmBoard = [card];
         DiscordCards.FitText(alarmBoard);
-        return (new BoardCard(alarmBoard, hash), open, alarm.TriggeredAt);
+        return (new BoardCard(alarmBoard, hash), open);
     }
 
     /// <summary>The alarmed as mention chips, at most a hundred; the chips ping only when the send allows it.</summary>
