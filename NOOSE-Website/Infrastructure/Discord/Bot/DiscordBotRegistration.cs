@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
+using NOOSE_Website.Services;
 using NOOSE_Website.Services.Discord.Bot;
 
 namespace NOOSE_Website.Infrastructure.Discord.Bot;
@@ -50,6 +51,9 @@ public static class DiscordBotRegistration
         services.AddGatewayHandler<DiscordDisconnectHandler>(ServiceLifetime.Singleton);
         services.AddSingleton<DiscordCommandRegistrar>();
         services.AddHostedService<DiscordBotWorker>();
+        // sends queued posts
+        services.AddSingleton<IDiscordBotSender, DiscordBotSender>();
+        services.AddHostedService<DiscordPostWorker>();
         return services;
     }
 }
