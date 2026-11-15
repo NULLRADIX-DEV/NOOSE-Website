@@ -179,7 +179,7 @@ public sealed class CaptureCommands(
         var link = await records.LinkAsync($"/einsatzalarme/{id}", call.Ct);
         return BotReply.Of(DiscordCards.Card(DiscordCards.Danger,
             DiscordCards.Header("🚨", "Einsatzalarm ausgelöst", target is { } t ? $"nur {DivisionDisplay.Name(t)}" : "alle verfügbaren Agenten"),
-            DiscordCards.Text("Die Gerufenen sind benachrichtigt. Die Rückmeldungen siehst du auf der Alarmtafel und auf der Seite."),
+            DiscordCards.Text("Die Gerufenen sind benachrichtigt. Die Rückmeldungen siehst du auf der Alarmkarte und auf der Seite."),
             DiscordCards.Row(DiscordCards.Open(link, "Alarm öffnen"))));
     }
 
@@ -188,8 +188,8 @@ public sealed class CaptureCommands(
         var value = answer == "1" ? EmergencyAlarmAnswer.Coming : EmergencyAlarmAnswer.NotComing;
         await alarms.RespondAsync(alarmId, value, call.User, call.Ct);
         return value == EmergencyAlarmAnswer.Coming
-            ? BotReply.Done("Du kommst. Die Alarmtafel ist aktualisiert.")
-            : BotReply.Info("Du kommst nicht. Die Alarmtafel ist aktualisiert.");
+            ? BotReply.Done("Du kommst. Die Alarmkarte ist aktualisiert.")
+            : BotReply.Info("Du kommst nicht. Die Alarmkarte ist aktualisiert.");
     }
 
     // ---------------------------------------------------------------- attach a Discord message

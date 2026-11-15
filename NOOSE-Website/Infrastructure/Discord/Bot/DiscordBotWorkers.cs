@@ -59,11 +59,12 @@ public sealed class DiscordCommandRegistrar(GatewayClient client, DiscordBotStat
     }
 }
 
-/// <summary>Presence, live wanted board and live alarm boards; one per host instance like the other workers.</summary>
+/// <summary>Presence, live wanted board and the live edits of the alarm cards; one per host instance like the other workers.</summary>
 public sealed class DiscordBotWorker(
     GatewayClient client,
     IServiceScopeFactory scopeFactory,
     EmergencyAlarmBroadcaster alarms,
+    IDiscordAlarmCards alarmCards,
     DiscordBotStatus status,
     ILogger<DiscordBotWorker> logger) : BackgroundService
 {
@@ -350,52 +351,16 @@ public sealed class DiscordBotWorker(
                     var settings = await scope.ServiceProvider.GetRequiredService<IDiscordBotSettingsService>().GetAsync(stoppingToken);
                     if (settings.Enabled)
                     {
-                        await UpdateAlarmBoardAsync(scope.ServiceProvider.GetRequiredService<DiscordLiveBoards>(), settings, id, stoppingToken);
+                        // edits only
+                        await alarmCards.UpdateAsync(id, stoppingToken);
                     }
                 }
                 catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
                 {
-                    status.Fail("Alarmtafel", ex);
-                    logger.LogWarning("Discord alarm board failed: {Error}", DiscordBotStatus.Describe(ex));
+                    status.Fail("Alarmkarte", ex);
+                    logger.LogWarning("Discord alarm card failed: {Error}", DiscordBotStatus.Describe(ex));
                 }
             }
         }
-    }
-
-    private async Task UpdateAlarmBoardAsync(DiscordLiveBoards boards, DiscordBotSettings settings, string alarmId, CancellationToken ct)
-    {
-        var rendered = await boards.RenderAlarmAsync(alarmId, ct);
-        if (rendered is not { } alarm)
-        {
-            return;
-        }
-        var stored = await boards.GetAlarmBoardAsync(alarmId, ct);
-        if (stored is { } current)
-        {
-            if (current.Hash == alarm.Card.Hash)
-            {
-                return;
-            }
-            await client.Rest.ModifyMessageAsync(current.Channel, current.Message, m =>
-            {
-                m.Components = alarm.Card.Components;
-                m.Flags = MessageFlags.IsComponentsV2;
-                m.AllowedMentions = AllowedMentionsProperties.None;
-            }, cancellationToken: ct);
-            await boards.SetAlarmBoardAsync(alarmId, current.Channel, current.Message, alarm.Card.Hash, ct);
-            return;
-        }
-        // a new board only for a fresh, open alarm
-        if (settings.AlarmChannelId is not { } channel || !alarm.IsOpen || DateTime.UtcNow - alarm.TriggeredAt > TimeSpan.FromMinutes(5))
-        {
-            return;
-        }
-        var message = await client.Rest.SendMessageAsync(channel, new MessageProperties
-        {
-            Components = alarm.Card.Components,
-            Flags = MessageFlags.IsComponentsV2,
-            AllowedMentions = AllowedMentionsProperties.None,
-        }, cancellationToken: ct);
-        await boards.SetAlarmBoardAsync(alarmId, channel, message.Id, alarm.Card.Hash, ct);
     }
 }

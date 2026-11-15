@@ -31,6 +31,9 @@ public class DiscordPostQueueTests
         /// <summary>The exception a send to this channel throws, if any.</summary>
         public Func<ulong, Exception?> Failure { get; set; } = _ => null;
 
+        /// <summary>The exception a plain text send throws, if any.</summary>
+        public Func<string, Exception?> TextFailure { get; set; } = _ => null;
+
         /// <summary>Holds a send until it is released or cancelled.</summary>
         public Func<ulong, CancellationToken, Task>? Hold { get; set; }
 
@@ -72,6 +75,10 @@ public class DiscordPostQueueTests
             {
                 throw failure;
             }
+            if (message.Text is { } text && TextFailure(text) is { } textFailure)
+            {
+                throw textFailure;
+            }
             Messages.Enqueue(message);
             _sent.Release();
         }
@@ -112,14 +119,37 @@ public class DiscordPostQueueTests
             => Lines.Enqueue(formatter(state, exception) + (exception is null ? "" : " | " + exception));
     }
 
+    /// <summary>Hands alarm posts to the sender as plain cards, or throws what the test sets.</summary>
+    private sealed class FakeAlarmCards(FakeSender sender) : IDiscordAlarmCards
+    {
+        public Exception? Failure { get; set; }
+
+        public ConcurrentQueue<string> Handled { get; } = new();
+
+        public async Task HandleAsync(DiscordPost post, CancellationToken cancellationToken = default)
+        {
+            Handled.Enqueue(post.AlarmId!);
+            if (Failure is { } failure)
+            {
+                throw failure;
+            }
+            await sender.SendAsync(post.ChannelId, post.Card, AllowedMentionsProperties.None, cancellationToken: cancellationToken);
+        }
+
+        public Task UpdateAsync(string alarmId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
     private sealed class Host : IAsyncDisposable
     {
         public Host()
         {
             var factory = Substitute.For<IHttpClientFactory>();
             factory.CreateClient("discord").Returns(_ => new HttpClient(Handler, disposeHandler: false));
-            Worker = new DiscordPostWorker(Queue, Sender, Routes, factory, Log);
+            Alarms = new FakeAlarmCards(Sender);
+            Worker = new DiscordPostWorker(Queue, Sender, Routes, factory, Alarms, Log);
         }
+
+        public FakeAlarmCards Alarms { get; }
 
         public DiscordPostQueue Queue { get; } = new();
 
@@ -422,6 +452,58 @@ public class DiscordPostQueueTests
             Assert.Empty(line.Mentions.AllowedRoles!);
         }
         Assert.Equal(users, sent.SelectMany(m => m.Mentions.AllowedUsers!).ToList());
+    }
+
+    // ---------------------------------------------------------------- after the card
+
+    [Fact]
+    public async Task A_failing_ping_line_after_the_card_neither_falls_back_nor_marks_failing()
+    {
+        await using var host = new Host();
+        var users = Users(250);
+        var lines = NotificationCards.PingLines(users.Select(u => u.ToString()).ToList());
+        Assert.Equal(2, lines.Rest.Count);
+        host.Sender.TextFailure = text => text == lines.Rest[0] ? Rest(HttpStatusCode.Forbidden, 50013) : null;
+        await host.Worker.StartAsync(CancellationToken.None);
+
+        host.Queue.Enqueue(Post(users: users, extraPings: lines.Rest, fallback: Fallback("webhook")));
+        host.Queue.Enqueue(Post(channel: Marker));
+        await host.Sender.WaitForSendAsync(Marker);
+
+        var sent = host.Sender.Messages.Where(m => m.Channel == Channel).ToList();
+        Assert.NotNull(sent[0].Card);
+        Assert.Equal([lines.Rest[1]], sent.Skip(1).Select(m => m.Text));
+        Assert.Empty(host.Handler.Posts);
+        host.Routes.DidNotReceiveWithAnyArgs().MarkFailing(default!);
+        Assert.Contains("403", host.Logged);
+        Assert.DoesNotContain("secret-token", host.Logged);
+    }
+
+    [Fact]
+    public async Task An_alarm_post_goes_to_the_alarm_cards()
+    {
+        await using var host = new Host();
+        await host.Worker.StartAsync(CancellationToken.None);
+
+        host.Queue.Enqueue(Post(alarmId: "alarm-1", fallback: Fallback("webhook")));
+        await host.Sender.WaitForSendAsync(Channel);
+
+        Assert.Equal(["alarm-1"], host.Alarms.Handled);
+        Assert.Empty(host.Handler.Posts);
+    }
+
+    [Fact]
+    public async Task An_alarm_card_that_fails_before_anyone_is_pinged_uses_the_webhook()
+    {
+        await using var host = new Host();
+        host.Alarms.Failure = Rest(HttpStatusCode.Forbidden, 50013);
+        await host.Worker.StartAsync(CancellationToken.None);
+
+        host.Queue.Enqueue(Post(alarmId: "alarm-1", fallback: Fallback("webhook")));
+        await host.Handler.WaitForPostsAsync(1);
+
+        Assert.Equal("webhook", Content(host.Handler.Posts.Single().Body));
+        host.Routes.Received(1).MarkFailing(Hook);
     }
 
     // ---------------------------------------------------------------- stopping

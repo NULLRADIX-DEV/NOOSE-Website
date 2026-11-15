@@ -59,10 +59,10 @@ else
 
         <MudPaper Class="pa-4" Elevation="2">
             <MudText Typo="Typo.h6" Class="mb-2">Kanäle</MudText>
-            <MudTextField T="string" @bind-Value="_alarmChannel" Label="Kanal-ID der Alarmtafel" Variant="Variant.Outlined"
+            <MudTextField T="string" @bind-Value="_alarmChannel" Label="Alarmkanal (leer = Kanal des Alarm-Webhooks)" Variant="Variant.Outlined"
                           Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />
             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
-                Jeder Einsatzalarm erscheint dort als Tafel mit „Komme“/„Komme nicht“, die sich bei jeder Antwort aktualisiert.
+                Jeder Einsatzalarm erscheint dort als eine Karte mit „Komme“/„Komme nicht“, die die Gerufenen anpingt und sich bei jeder Antwort aktualisiert.
             </MudText>
             <MudTextField T="string" @bind-Value="_wantedChannel" Label="Kanal-ID der Fahndungstafel" Variant="Variant.Outlined"
                           Disabled="@(!_mayEdit)" MaxLength="20" Class="mb-1" />

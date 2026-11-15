@@ -202,6 +202,7 @@ public static class NotificationCards
         NotificationType.Recruiting => "bewerbungen",
         NotificationType.PublicTipCreated => "hinweise",
         NotificationType.PublicTicketCreated => "tickets",
+        NotificationType.EmergencyAlarm => "einsatzalarme",
         _ => null,
     };
 

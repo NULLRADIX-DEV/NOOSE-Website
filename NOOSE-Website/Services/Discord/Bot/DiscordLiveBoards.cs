@@ -28,6 +28,10 @@ public sealed class DiscordLiveBoards(
 {
     private const int MaxBoards = 50;
 
+    // Discord's mention limit
+    private const int MaxAlarmedChips = 100;
+    private const int MaxSnowflakeChars = 20;
+
     // ---------------------------------------------------------------- alarm board
 
     /// <summary>The alarm as a live card, or null when it does not exist.</summary>
@@ -41,8 +45,14 @@ public sealed class DiscordLiveBoards(
         }
         var rows = await db.EmergencyAlarmRecipients.AsNoTracking()
             .Where(r => r.AlarmId == alarmId)
-            .Select(r => new { r.Answer, Codename = r.Agent!.Codename })
+            .Select(r => new { r.Answer, Codename = r.Agent!.Codename, r.Agent.DiscordId })
             .ToListAsync(ct);
+        // stable order
+        var alarmed = rows.Select(r => r.DiscordId)
+            .Where(id => DiscordWebhookService.IsSnowflake(id) && id!.Length <= MaxSnowflakeChars)
+            .Distinct()
+            .Order(StringComparer.Ordinal)
+            .ToList();
         var now = DateTime.UtcNow;
         var open = EmergencyAlarmRules.IsOpen(alarm, now);
         var coming = rows.Where(r => r.Answer == EmergencyAlarmAnswer.Coming).Select(r => r.Codename).OrderBy(n => n).ToList();
@@ -63,6 +73,7 @@ public sealed class DiscordLiveBoards(
             DiscordCards.Text($"-# ausgelöst von {DiscordCards.Inline(alarm.TriggeredByName, 40)} {DiscordCards.When(alarm.TriggeredAt)}"
                 + $" · {(alarm.Target is { } t ? DivisionDisplay.Name(t) : "alle Abteilungen")}"
                 + (alarm.IsEmergency ? " · ⚠️ Gefahr im Verzug" : "") + $" · {state}"),
+            alarmed.Count == 0 ? null : DiscordCards.Text(AlarmedLine(alarmed)),
             DiscordCards.Line(),
             DiscordCards.Text($"✅ **Kommen ({coming.Count})**\n{Names(coming)}\n\n❌ **Kommen nicht ({notComing.Count})**\n{Names(notComing)}\n\n⏳ **Offen:** {waiting}"),
             DiscordCards.Line(),
@@ -72,11 +83,20 @@ public sealed class DiscordLiveBoards(
                 DiscordCards.Open($"{baseUrl}/einsatzalarme/{alarm.Id}", "Alarm öffnen")),
         };
         var card = DiscordCards.Card(open ? DiscordCards.Danger : DiscordCards.Steel, parts);
-        var hash = Hash($"{alarm.Id}|{open}|{alarm.EndedAt}|{string.Join(",", coming)}|{string.Join(",", notComing)}|{waiting}|{alarm.Situation}|{alarm.Location}");
+        var hash = Hash($"{alarm.Id}|{open}|{alarm.EndedAt}|{string.Join(",", coming)}|{string.Join(",", notComing)}|{waiting}|{alarm.Situation}|{alarm.Location}|{string.Join(",", alarmed)}");
         IMessageComponentProperties[] alarmBoard = [card];
         DiscordCards.FitText(alarmBoard);
         return (new BoardCard(alarmBoard, hash), open, alarm.TriggeredAt);
     }
+
+    /// <summary>The alarmed as mention chips, at most a hundred; the chips ping only when the send allows it.</summary>
+    private static string AlarmedLine(IReadOnlyList<string> discordIds)
+        => "-# Alarmiert: " + string.Join(' ', discordIds.Take(MaxAlarmedChips).Select(id => $"<@{id}>"))
+            + (discordIds.Count > MaxAlarmedChips ? $" +{discordIds.Count - MaxAlarmedChips} weitere" : "");
+
+    /// <summary>Whether an alarm already has its card; read without a scope, so the webhook service can ask.</summary>
+    public static async Task<bool> HasAlarmBoardAsync(IDbContextFactory<AppDbContext> dbFactory, string alarmId, CancellationToken ct)
+        => (await ReadAlarmBoardsAsync(dbFactory, ct)).TryGetValue(alarmId, out var value) && Parse(value) is not null;
 
     public async Task<int> CountOpenAlarmsAsync(CancellationToken ct)
     {
@@ -87,20 +107,21 @@ public sealed class DiscordLiveBoards(
 
     /// <summary>"channelId|messageId|hash" of an alarm's board, or null.</summary>
     public async Task<(ulong Channel, ulong Message, string Hash)?> GetAlarmBoardAsync(string alarmId, CancellationToken ct)
-        => (await ReadAlarmBoardsAsync(ct)).TryGetValue(alarmId, out var value) && Parse(value) is { } parsed ? parsed : null;
+        => (await ReadAlarmBoardsAsync(dbFactory, ct)).TryGetValue(alarmId, out var value) && Parse(value) is { } parsed ? parsed : null;
 
+    /// <summary>Stores an alarm card; callers serialise, it is read-modify-write.</summary>
     public async Task SetAlarmBoardAsync(string alarmId, ulong channel, ulong message, string hash, CancellationToken ct)
     {
-        var boards = await ReadAlarmBoardsAsync(ct);
+        var boards = await ReadAlarmBoardsAsync(dbFactory, ct);
         boards[alarmId] = $"{channel}|{message}|{hash}";
         // the oldest fall off; a board that old no longer changes
         var kept = boards.TakeLast(MaxBoards).ToDictionary(p => p.Key, p => p.Value);
         await WriteAsync(SystemSettingKeys.DiscordBotAlarmBoards, JsonSerializer.Serialize(kept), ct);
     }
 
-    private async Task<Dictionary<string, string>> ReadAlarmBoardsAsync(CancellationToken ct)
+    private static async Task<Dictionary<string, string>> ReadAlarmBoardsAsync(IDbContextFactory<AppDbContext> dbFactory, CancellationToken ct)
     {
-        var json = await ReadAsync(SystemSettingKeys.DiscordBotAlarmBoards, ct);
+        var json = await ReadAsync(dbFactory, SystemSettingKeys.DiscordBotAlarmBoards, ct);
         try
         {
             return string.IsNullOrWhiteSpace(json) ? new() : JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new();
@@ -302,7 +323,9 @@ public sealed class DiscordLiveBoards(
 
     internal static string Hash(string text) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..16];
 
-    private async Task<string?> ReadAsync(string key, CancellationToken ct)
+    private Task<string?> ReadAsync(string key, CancellationToken ct) => ReadAsync(dbFactory, key, ct);
+
+    private static async Task<string?> ReadAsync(IDbContextFactory<AppDbContext> dbFactory, string key, CancellationToken ct)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         return await db.SystemSettings.AsNoTracking().Where(s => s.Key == key).Select(s => s.Value).FirstOrDefaultAsync(ct);

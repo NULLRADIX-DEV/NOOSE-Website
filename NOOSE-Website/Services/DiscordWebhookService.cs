@@ -48,18 +48,19 @@ public partial class DiscordWebhookService(
                 return;
             }
             var config = await GetCachedConfigAsync(cancellationToken);
+            // also without webhooks
+            if (type == NotificationType.EmergencyAlarm && await AlarmRouteAsync(href, cancellationToken) is { } alarm)
+            {
+                await EnqueueAlarmAsync(alarm, config, href, recipientAgentIds, headline, cancellationToken);
+                return;
+            }
             if (!config.Enabled || !config.Webhooks.TryGetValue(type, out var url) || string.IsNullOrWhiteSpace(url))
             {
                 return;
             }
-            var shown = ShouldIncludeHeadline(type, config, headline) ? headline : null;
-            var content = shown is not null
-                ? ComposeHeadline(shown, config.SiteBaseUrl, href)
-                : Compose(type, config.SiteBaseUrl, href);
-            var pings = await ResolvePingsAsync(type, recipientAgentIds, config, cancellationToken);
-            // a long ping list goes out as several posts, or Discord refuses the whole message
-            var payloads = Batches(pings, content.Length).Select(mention => TextPayload(content, mention)).ToList();
-            if (await BotChannelAsync(url, cancellationToken) is { } channel)
+            var (shown, pings, payloads) = await TextPostAsync(type, config, href, recipientAgentIds, headline, cancellationToken);
+            // alarm without card
+            if (type != NotificationType.EmergencyAlarm && await BotChannelAsync(url, cancellationToken) is { } channel)
             {
                 var acknowledgeable = type == NotificationType.Announcement && await NeedsAcknowledgmentAsync(href, cancellationToken);
                 EnqueueCard(type, channel, url, payloads, pings,
@@ -76,6 +77,21 @@ public partial class DiscordWebhookService(
             /* best effort */
             logger.LogWarning(ex, "Discord webhook push for {Type} failed.", type);
         }
+    }
+
+    /// <summary>Today's text post of a category: the headline shown, the pings and one payload per ping batch.</summary>
+    private async Task<(string? Shown, Pings Pings, List<object> Payloads)> TextPostAsync(NotificationType type,
+        DiscordWebhookConfig config, string? href, IReadOnlyCollection<string>? recipientAgentIds, string? headline,
+        CancellationToken cancellationToken)
+    {
+        var shown = ShouldIncludeHeadline(type, config, headline) ? headline : null;
+        var content = shown is not null
+            ? ComposeHeadline(shown, config.SiteBaseUrl, href)
+            : Compose(type, config.SiteBaseUrl, href);
+        var pings = await ResolvePingsAsync(type, recipientAgentIds, config, cancellationToken);
+        // a long ping list goes out as several posts, or Discord refuses the whole message
+        var payloads = Batches(pings, content.Length).Select(mention => TextPayload(content, mention)).ToList();
+        return (shown, pings, payloads);
     }
 
     // rich "EINTRAG" embed to the personnel channel; pings only the subject agent

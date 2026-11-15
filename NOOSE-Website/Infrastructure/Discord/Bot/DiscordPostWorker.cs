@@ -5,17 +5,21 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Infrastructure.Discord.Bot;
 
-/// <summary>Sends queued posts as bot cards, alarms first; a failed send goes to the webhook instead.</summary>
+/// <summary>Sends queued posts as bot cards, alarms first; a send that fails before the card is out goes to the webhook instead.</summary>
 public sealed partial class DiscordPostWorker(
     IDiscordPostQueue queue,
     IDiscordBotSender sender,
     IDiscordBotRoutes routes,
     IHttpClientFactory httpFactory,
+    IDiscordAlarmCards alarmCards,
     ILogger<DiscordPostWorker> logger) : BackgroundService
 {
     // Discord's user limit
     private const int MaxMentions = 100;
     private static readonly TimeSpan DrainFor = TimeSpan.FromSeconds(10);
+
+    /// <summary>A hanging call must not hold up the alarms behind it.</summary>
+    internal static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(30);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -70,30 +74,32 @@ public sealed partial class DiscordPostWorker(
         }
     }
 
+    /// <summary>Throws only while the card is not out; the ping lines after it fail one by one.</summary>
     private async Task SendAsync(DiscordPost post, CancellationToken cancellationToken)
     {
-        await sender.SendAsync(post.ChannelId, post.Card, Mentions(post.PingUsers, post.PingRole), cancellationToken: cancellationToken);
-        foreach (var line in post.ExtraPings)
+        if (post.AlarmId is not null)
         {
-            await sender.SendTextAsync(post.ChannelId, line, Mentions(ChipsOf(line), null), cancellationToken: cancellationToken);
+            await alarmCards.HandleAsync(post, cancellationToken);
+            return;
         }
+        await TimedAsync(t => sender.SendAsync(post.ChannelId, post.Card, Mentions(post.PingUsers, post.PingRole), cancellationToken: t),
+            cancellationToken);
+        await SendPingLinesAsync(sender, logger, post.Category, post.ChannelId, post.ExtraPings, cancellationToken);
     }
 
     /// <summary>The webhook posts what the bot could not; a channel problem keeps the next posts there for a while.</summary>
     private async Task FallBackAsync(DiscordPost post, Exception failure, CancellationToken cancellationToken)
     {
-        // status only
-        var reason = failure is RestException rest ? $"{(int)rest.StatusCode}/{rest.Error?.Code.ToString() ?? "-"}" : failure.GetType().Name;
         if (post.Fallback is not { } fallback)
         {
-            logger.LogWarning("Discord bot post for {Type} failed ({Reason}), no webhook to fall back to.", post.Category, reason);
+            logger.LogWarning("Discord bot post for {Type} failed ({Reason}), no webhook to fall back to.", post.Category, Reason(failure));
             return;
         }
         if (failure is RestException problem && DiscordSendFailure.IsChannelProblem((int)problem.StatusCode, problem.Error?.Code))
         {
             routes.MarkFailing(fallback.Url);
         }
-        logger.LogWarning("Discord bot post for {Type} failed ({Reason}), using the webhook.", post.Category, reason);
+        logger.LogWarning("Discord bot post for {Type} failed ({Reason}), using the webhook.", post.Category, Reason(failure));
 
         var client = httpFactory.CreateClient("discord");
         foreach (var payload in fallback.Payloads)
@@ -117,8 +123,46 @@ public sealed partial class DiscordPostWorker(
         }
     }
 
+    /// <summary>Plain ping lines under a card that is already out: a failing line is logged and skipped, never a fallback.</summary>
+    internal static async Task SendPingLinesAsync(IDiscordBotSender sender, ILogger logger, Models.Enums.NotificationType category,
+        ulong channelId, IEnumerable<string> lines, CancellationToken cancellationToken)
+    {
+        foreach (var line in lines)
+        {
+            try
+            {
+                await TimedAsync(t => sender.SendTextAsync(channelId, line, Mentions(ChipsOf(line), null), cancellationToken: t),
+                    cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+            {
+                logger.LogWarning("Discord ping line for {Type} failed ({Reason}), the card is out.", category, Reason(ex));
+            }
+        }
+    }
+
+    /// <summary>One bot call with its own time limit; a timeout counts as a failure, the stop token keeps its meaning.</summary>
+    internal static async Task<T> TimedAsync<T>(Func<CancellationToken, Task<T>> call, CancellationToken cancellationToken)
+    {
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        limit.CancelAfter(SendTimeout);
+        return await call(limit.Token);
+    }
+
+    /// <inheritdoc cref="TimedAsync{T}" />
+    internal static Task TimedAsync(Func<CancellationToken, Task> call, CancellationToken cancellationToken)
+        => TimedAsync(async t =>
+        {
+            await call(t);
+            return true;
+        }, cancellationToken);
+
+    /// <summary>Status and Discord code, never the message (it may echo the URL).</summary>
+    internal static string Reason(Exception failure)
+        => failure is RestException rest ? $"{(int)rest.StatusCode}/{rest.Error?.Code.ToString() ?? "-"}" : failure.GetType().Name;
+
     /// <summary>Allow-list of exactly these users and this role; empty lists, never null.</summary>
-    private static AllowedMentionsProperties Mentions(IEnumerable<ulong> users, ulong? role) => new()
+    internal static AllowedMentionsProperties Mentions(IEnumerable<ulong> users, ulong? role) => new()
     {
         // default allows everyone
         Everyone = false,
@@ -126,9 +170,9 @@ public sealed partial class DiscordPostWorker(
         AllowedRoles = role is { } id ? [id] : [],
     };
 
-    /// <summary>The users one ping line mentions.</summary>
-    private static IEnumerable<ulong> ChipsOf(string line)
-        => UserMention().Matches(line).Select(m => ulong.TryParse(m.Groups[1].ValueSpan, out var id) ? id : 0).Where(id => id != 0);
+    /// <summary>The users one text mentions.</summary>
+    internal static IEnumerable<ulong> ChipsOf(string text)
+        => UserMention().Matches(text).Select(m => ulong.TryParse(m.Groups[1].ValueSpan, out var id) ? id : 0).Where(id => id != 0);
 
     // role pings excluded
     [GeneratedRegex(@"<@(\d{1,20})>")]

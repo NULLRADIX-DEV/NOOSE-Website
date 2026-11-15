@@ -75,7 +75,9 @@ public class DiscordWebhookRoutingTests
         var handler = new CapturingHandler();
         var factory = Substitute.For<IHttpClientFactory>();
         factory.CreateClient("discord").Returns(_ => new HttpClient(handler, disposeHandler: false));
-        var routes = new FakeBotRoutes { Route = route ?? ToBot };
+        var chosen = route ?? ToBot;
+        // like the real routes
+        var routes = new FakeBotRoutes { Route = chosen, AlarmChannel = chosen.State == BotRouteState.Bot ? chosen.ChannelId : null };
         var queue = new DiscordPostQueue();
         var service = new DiscordWebhookService(factory, ctx.Factory, new MemoryCache(new MemoryCacheOptions()),
             NullLogger<DiscordWebhookService>.Instance, routes, queue,
@@ -325,8 +327,9 @@ public class DiscordWebhookRoutingTests
     {
         using var ctx = new SqliteTestContext();
         var host = await HostAsync(ctx, type, includeHeadline: includeHeadline);
+        var href = type == NotificationType.EmergencyAlarm ? "/einsatzalarme/x1" : "/x/1";
 
-        await host.Service.PushAsync(type, "/x/1", ["a1"], "Titel der Meldung");
+        await host.Service.PushAsync(type, href, ["a1"], "Titel der Meldung");
 
         var post = Queued(host);
         Assert.Equal(shown, Everything(post).Contains("Titel der Meldung"));

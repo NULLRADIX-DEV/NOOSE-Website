@@ -54,6 +54,7 @@ public static class DiscordBotRegistration
         services.AddHostedService<DiscordBotWorker>();
         // sends queued posts
         services.AddSingleton<IDiscordBotSender, DiscordBotSender>();
+        services.AddSingleton<IDiscordAlarmCards, DiscordAlarmCards>();
         services.AddHostedService<DiscordPostWorker>();
         return services;
     }
