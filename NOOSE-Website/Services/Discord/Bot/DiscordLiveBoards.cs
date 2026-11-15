@@ -275,8 +275,13 @@ public sealed class DiscordLiveBoards(
         return new BoardCard(board, hash);
     }
 
-    public async Task<(ulong Channel, ulong Message, string Hash)?> GetFactionBoardAsync(CancellationToken ct)
-        => Parse(await ReadAsync(SystemSettingKeys.DiscordBotFactionBoardState, ct));
+    public Task<(ulong Channel, ulong Message, string Hash)?> GetFactionBoardAsync(CancellationToken ct)
+        => ReadFactionBoardAsync(dbFactory, ct);
+
+    /// <summary>The stored faction board, read without a scope so the threat board service can ask.</summary>
+    public static async Task<(ulong Channel, ulong Message, string Hash)?> ReadFactionBoardAsync(
+        IDbContextFactory<AppDbContext> dbFactory, CancellationToken ct)
+        => Parse(await ReadAsync(dbFactory, SystemSettingKeys.DiscordBotFactionBoardState, ct));
 
     public Task SetFactionBoardAsync(ulong channel, ulong message, string hash, CancellationToken ct)
         => WriteAsync(SystemSettingKeys.DiscordBotFactionBoardState, $"{channel}|{message}|{hash}", ct);

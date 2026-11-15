@@ -182,10 +182,27 @@ public sealed class DiscordBotWorker(
 
     private async Task UpdateFactionBoardAsync(IServiceProvider services, CancellationToken ct)
     {
-        var channel = await services.GetRequiredService<IDiscordBotRoutes>().FactionBoardChannelAsync(ct);
+        var routes = services.GetRequiredService<IDiscordBotRoutes>();
+        var channel = await routes.FactionBoardChannelAsync(ct);
         var boards = services.GetRequiredService<DiscordLiveBoards>();
-        await KeepPinnedBoardAsync(channel, await boards.GetFactionBoardAsync(ct),
-            () => boards.RenderFactionsAsync(ct), boards.SetFactionBoardAsync, boards.ClearFactionBoardAsync, ct);
+        try
+        {
+            await KeepPinnedBoardAsync(channel, await boards.GetFactionBoardAsync(ct),
+                () => boards.RenderFactionsAsync(ct), boards.SetFactionBoardAsync, boards.ClearFactionBoardAsync, ct);
+        }
+        catch (RestException ex)
+        {
+            // the threat board webhook takes over
+            var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
+            var config = await services.GetRequiredService<IDiscordWebhookService>().GetConfigAsync(ct);
+            if (DiscordSendFailure.FactionBoardFallback(settings.FactionChannelId,
+                    config.Webhooks.GetValueOrDefault(Models.Enums.NotificationType.FactionThreatBoard),
+                    (int)ex.StatusCode, ex.Error?.Code) is { } webhookUrl)
+            {
+                routes.MarkFailing(webhookUrl);
+            }
+            throw;
+        }
     }
 
     /// <summary>

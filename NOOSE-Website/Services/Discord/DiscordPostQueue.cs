@@ -94,4 +94,10 @@ public static class DiscordSendFailure
     /// <summary>True when the bot cannot write there until someone fixes the channel: 403, 404 or one of Discord's channel codes.</summary>
     public static bool IsChannelProblem(int status, int? code)
         => status is 403 or 404 || (code is { } c && ChannelCodes.Contains(c));
+
+    /// <summary>The threat board webhook that takes over when the bot cannot write into a channel derived from it; else null.</summary>
+    public static string? FactionBoardFallback(ulong? explicitChannel, string? threatBoardWebhook, int status, int? code)
+        => explicitChannel is null && !string.IsNullOrWhiteSpace(threatBoardWebhook) && IsChannelProblem(status, code)
+            ? threatBoardWebhook
+            : null;
 }

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using NetCord.Rest;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -64,6 +65,14 @@ public sealed class FactionBoardMergeTests : IDisposable
             .Where(s => s.Key == SystemSettingKeys.DiscordThreatBoardMessage).Select(s => s.Value).SingleOrDefault());
     }
 
+    // the bot's pinned board, as its worker stores it
+    private void StoreBotBoard(ulong channel)
+    {
+        using var db = _ctx.NewContext();
+        db.SystemSettings.Add(new SystemSetting { Key = SystemSettingKeys.DiscordBotFactionBoardState, Value = $"{channel}|1|hash" });
+        db.SaveChanges();
+    }
+
     // the Discord traffic in order, without the config reads in between
     private List<string> DiscordCalls()
         => _discord.ReceivedCalls()
@@ -91,6 +100,7 @@ public sealed class FactionBoardMergeTests : IDisposable
         Assert.Equal(new ThreatBoardMessage("555", Hook), StoredBoard());
 
         _routes.FactionBoard = 9;
+        StoreBotBoard(9);
         Assert.Equal(ThreatBoardOutcome.Off, await _service.RunAsync());
         Assert.Equal(ThreatBoardOutcome.Off, await _service.RunAsync(force: true));
 
@@ -98,6 +108,51 @@ public sealed class FactionBoardMergeTests : IDisposable
         Assert.Equal(["Post", "Delete"], DiscordCalls());
         await _discord.Received(1).DeleteThreatBoardAsync(Hook, "555", Arg.Any<CancellationToken>());
         Assert.Null(StoredBoard());
+    }
+
+    [Fact]
+    public async Task Webhook_board_stays_until_the_bot_board_is_posted()
+    {
+        SeedFaction("vagos", "Vagos", 97);
+        await _service.RunAsync();
+
+        // a channel is resolved, but the bot has posted nothing there yet (wrong id, missing right)
+        _routes.FactionBoard = 9;
+        Assert.Equal(ThreatBoardOutcome.Unchanged, await _service.RunAsync());
+        SetScore("vagos", 95);
+        Assert.Equal(ThreatBoardOutcome.Edited, await _service.RunAsync());
+        Assert.Equal(["Post", "Edit"], DiscordCalls());
+        Assert.Equal(new ThreatBoardMessage("555", Hook), StoredBoard());
+
+        StoreBotBoard(9);
+        Assert.Equal(ThreatBoardOutcome.Off, await _service.RunAsync());
+        Assert.Equal(["Post", "Edit", "Delete"], DiscordCalls());
+        Assert.Null(StoredBoard());
+    }
+
+    [Fact]
+    public async Task Webhook_board_posts_while_the_bot_has_no_board_yet()
+    {
+        SeedFaction("vagos", "Vagos", 97);
+        _routes.FactionBoard = 9;
+
+        Assert.Equal(ThreatBoardOutcome.Posted, await _service.RunAsync());
+
+        Assert.Equal(new ThreatBoardMessage("555", Hook), StoredBoard());
+    }
+
+    [Fact]
+    public async Task Webhook_board_stays_while_the_bot_board_is_in_another_channel()
+    {
+        SeedFaction("vagos", "Vagos", 97);
+        await _service.RunAsync();
+
+        _routes.FactionBoard = 9;
+        StoreBotBoard(8);
+        Assert.Equal(ThreatBoardOutcome.Unchanged, await _service.RunAsync());
+
+        Assert.Equal(["Post"], DiscordCalls());
+        Assert.Equal(new ThreatBoardMessage("555", Hook), StoredBoard());
     }
 
     [Fact]
@@ -121,6 +176,7 @@ public sealed class FactionBoardMergeTests : IDisposable
         SeedFaction("vagos", "Vagos", 97);
         await _service.RunAsync();
         _routes.FactionBoard = 9;
+        StoreBotBoard(9);
         await _service.RunAsync();
         _discord.PostThreatBoardAsync(Arg.Any<string>(), Arg.Any<ThreatBoardEmbed>(), Arg.Any<CancellationToken>()).Returns("777");
 
@@ -142,6 +198,7 @@ public sealed class FactionBoardMergeTests : IDisposable
             .Returns(ThreatBoardRemoval.Failed);
 
         _routes.FactionBoard = 9;
+        StoreBotBoard(9);
         Assert.Equal(ThreatBoardOutcome.Failed, await service.RunAsync());
         Assert.Equal(new ThreatBoardMessage("555", Hook), StoredBoard());
         clock.Now += FactionThreatBoardService.RetireGiveUpAfter + TimeSpan.FromMinutes(1);
@@ -189,6 +246,20 @@ public sealed class FactionBoardMergeTests : IDisposable
         Assert.Equal(Text(first).Contains("Vagos"), Text(second).Contains("Vagos"));
         Assert.NotEqual(first.Hash, second.Hash);
     }
+
+    // the worker has no seam without a gateway client, so its decision is a pure helper
+    [Theory]
+    [InlineData(null, Hook, 403, null, Hook)]
+    [InlineData(null, Hook, 404, 10003, Hook)]
+    [InlineData(null, Hook, 400, 50013, Hook)]
+    [InlineData(null, Hook, 500, null, null)]
+    [InlineData(null, Hook, 429, null, null)]
+    [InlineData(666UL, Hook, 403, 50013, null)]
+    [InlineData(null, null, 403, null, null)]
+    [InlineData(null, "  ", 403, null, null)]
+    public void A_channel_problem_hands_a_webhook_derived_board_back_to_the_webhook(
+        ulong? explicitChannel, string? webhook, int status, int? code, string? expected)
+        => Assert.Equal(expected, DiscordSendFailure.FactionBoardFallback(explicitChannel, webhook, status, code));
 
     private sealed class ManualClock(DateTimeOffset now) : TimeProvider
     {

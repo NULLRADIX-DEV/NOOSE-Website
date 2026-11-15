@@ -5,6 +5,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services.Discord.Bot;
 
 namespace NOOSE_Website.Services;
 
@@ -49,8 +50,7 @@ public sealed class FactionThreatBoardService(
     private async Task<ThreatBoardOutcome> RunLockedAsync(bool force, CancellationToken cancellationToken)
     {
         var config = await discord.GetConfigAsync(cancellationToken);
-        // bot board replaces it
-        var botOwnsBoard = await routes.FactionBoardChannelAsync(cancellationToken) is not null;
+        var botOwnsBoard = await BotBoardIsUpAsync(cancellationToken);
         var url = !botOwnsBoard && config.Enabled && config.Webhooks.GetValueOrDefault(NotificationType.FactionThreatBoard) is { Length: > 0 } u
             ? u
             : null;
@@ -122,6 +122,12 @@ public sealed class FactionThreatBoardService(
         }
         return ThreatBoardOutcome.Posted;
     }
+
+    /// <summary>True once the bot's board stands in the channel it owns; before that this board stays, so nothing is lost.</summary>
+    private async Task<bool> BotBoardIsUpAsync(CancellationToken cancellationToken)
+        => await routes.FactionBoardChannelAsync(cancellationToken) is { } channel
+            && await DiscordLiveBoards.ReadFactionBoardAsync(dbFactory, cancellationToken) is { } board
+            && board.Channel == channel;
 
     private async Task<ThreatBoardRemoval> RetireAsync(ThreatBoardMessage old, string? currentUrl, CancellationToken cancellationToken)
     {
