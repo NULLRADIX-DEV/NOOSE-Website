@@ -10,8 +10,8 @@ namespace NOOSE_Website.Services;
 
 /// <inheritdoc cref="IFactionThreatBoardService" />
 public sealed class FactionThreatBoardService(
-    IDbContextFactory<AppDbContext> dbFactory, IDiscordWebhookService discord, ILogger<FactionThreatBoardService> logger,
-    TimeProvider? clock = null)
+    IDbContextFactory<AppDbContext> dbFactory, IDiscordWebhookService discord, IDiscordBotRoutes routes,
+    ILogger<FactionThreatBoardService> logger, TimeProvider? clock = null)
     : IFactionThreatBoardService
 {
     // the worker and the settings button must never both post a first board
@@ -49,7 +49,9 @@ public sealed class FactionThreatBoardService(
     private async Task<ThreatBoardOutcome> RunLockedAsync(bool force, CancellationToken cancellationToken)
     {
         var config = await discord.GetConfigAsync(cancellationToken);
-        var url = config.Enabled && config.Webhooks.GetValueOrDefault(NotificationType.FactionThreatBoard) is { Length: > 0 } u
+        // bot board replaces it
+        var botOwnsBoard = await routes.FactionBoardChannelAsync(cancellationToken) is not null;
+        var url = !botOwnsBoard && config.Enabled && config.Webhooks.GetValueOrDefault(NotificationType.FactionThreatBoard) is { Length: > 0 } u
             ? u
             : null;
 

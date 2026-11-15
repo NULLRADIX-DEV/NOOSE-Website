@@ -4,6 +4,7 @@ using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
 using NetCord.Rest;
 using NOOSE_Website.Infrastructure.Chat;
+using NOOSE_Website.Services;
 using NOOSE_Website.Services.Discord.Bot;
 using NOOSE_Website.Services.Public;
 
@@ -87,6 +88,7 @@ public sealed class DiscordBotWorker(
             await Task.WhenAll(ConnectAsync(stoppingToken),
                 LoopAsync("Status", PresenceEvery, UpdatePresenceAsync, stoppingToken),
                 LoopAsync("Fahndungstafel", WantedEvery, UpdateWantedBoardAsync, stoppingToken),
+                LoopAsync("Fraktionstafel", WantedEvery, UpdateFactionBoardAsync, stoppingToken),
                 LoopAsync("Befehlsliste", CommandsEvery, UpdateCommandsBoardAsync, stoppingToken),
                 AlarmLoopAsync(stoppingToken));
         }
@@ -180,9 +182,9 @@ public sealed class DiscordBotWorker(
 
     private async Task UpdateFactionBoardAsync(IServiceProvider services, CancellationToken ct)
     {
-        var settings = await services.GetRequiredService<IDiscordBotSettingsService>().GetAsync(ct);
+        var channel = await services.GetRequiredService<IDiscordBotRoutes>().FactionBoardChannelAsync(ct);
         var boards = services.GetRequiredService<DiscordLiveBoards>();
-        await KeepPinnedBoardAsync(settings.FactionChannelId, await boards.GetFactionBoardAsync(ct),
+        await KeepPinnedBoardAsync(channel, await boards.GetFactionBoardAsync(ct),
             () => boards.RenderFactionsAsync(ct), boards.SetFactionBoardAsync, boards.ClearFactionBoardAsync, ct);
     }
 

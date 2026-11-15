@@ -196,17 +196,17 @@ public sealed class DiscordLiveBoards(
     /// <summary>Factions listed behind the most dangerous one.</summary>
     public const int FactionRunnersUp = 5;
 
-    /// <summary>
-    /// The most dangerous factions, picked like the threat list: no VS, no state factions, nothing archived, only a
-    /// stated score. Highest first; name and id break ties so the order never flips between passes.
-    /// </summary>
+    /// <summary>The factions above the threat list's threshold, picked like it: no VS, no state factions, nothing archived.</summary>
     public async Task<BoardCard> RenderFactionsAsync(CancellationToken ct)
     {
+        var config = await webhook.GetConfigAsync(ct);
+        var threshold = config.ThreatBoardThreshold;
+        // highest first; name and id keep the order stable
         await using var db = await dbFactory.CreateDbContextAsync(ct);
         var top = await db.Factions.AsNoTracking()
             .OnlyActive()
             .OnlyUnrestricted()
-            .Where(f => !f.IsStateFaction && f.ThreatScore != null && f.ThreatScore > 0)
+            .Where(f => !f.IsStateFaction && f.ThreatScore != null && f.ThreatScore > threshold)
             .OrderByDescending(f => f.ThreatScore).ThenBy(f => f.Name).ThenBy(f => f.Id)
             .Take(FactionRunnersUp + 1)
             .Select(f => new
@@ -215,23 +215,22 @@ public sealed class DiscordLiveBoards(
                 Routes = f.DrugRoutes.OrderBy(r => r.Designation).Select(r => r.Designation).Take(6).ToList(),
             })
             .ToListAsync(ct);
-        var baseUrl = (await webhook.GetConfigAsync(ct)).SiteBaseUrl.TrimEnd('/');
         return RenderFactions(top.Select(f => new FactionBoardEntry(f.Id, f.Name, f.CaseNumber, f.Score, f.Kind,
-            f.EstimatedMemberCount, f.Routes)).ToList(), baseUrl, DateTime.UtcNow);
+            f.EstimatedMemberCount, f.Routes)).ToList(), threshold, config.SiteBaseUrl.TrimEnd('/'), DateTime.UtcNow);
     }
 
     /// <summary>The board for an ordered list; the time stamp is shown but not hashed, so a quiet list is not edited.</summary>
-    public static BoardCard RenderFactions(IReadOnlyList<FactionBoardEntry> ordered, string baseUrl, DateTime now)
+    public static BoardCard RenderFactions(IReadOnlyList<FactionBoardEntry> ordered, int threshold, string baseUrl, DateTime now)
     {
         var parts = new List<IComponentContainerComponentProperties?>
         {
-            DiscordCards.Text($"# ☠️ Gefährlichste Fraktion\n-# nach Bedrohungs-Score, ohne Verschlusssachen · aktualisiert {DiscordCards.When(now)}"),
+            DiscordCards.Text($"# ☠️ Gefährlichste Fraktion\n-# nach Bedrohungs-Score über {threshold}, ohne Verschlusssachen · aktualisiert {DiscordCards.When(now)}"),
             DiscordCards.Line(),
         };
         string? leadUrl = null;
         if (ordered.Count == 0)
         {
-            parts.Add(DiscordCards.Text("✅ Gerade hat keine Fraktion einen Bedrohungs-Score."));
+            parts.Add(DiscordCards.Text($"✅ Gerade steht keine Fraktion über {threshold} auf der Tafel."));
         }
         else
         {
@@ -267,7 +266,7 @@ public sealed class DiscordLiveBoards(
         parts.Add(DiscordCards.Row(
             leadUrl is null ? null : DiscordCards.Open(leadUrl, "Akte öffnen"),
             DiscordCards.Open($"{baseUrl}/fraktionen", "Alle Fraktionen")));
-        var hash = Hash(baseUrl + "#" + string.Join("|", ordered.Select(f =>
+        var hash = Hash(baseUrl + "#" + threshold + "#" + string.Join("|", ordered.Select(f =>
             $"{f.Id}\t{f.Name}\t{f.CaseNumber}\t{f.Score}\t{f.Kind}\t{f.EstimatedMembers}\t{string.Join(",", f.Routes)}")));
         var accent = ordered.Count == 0 ? DiscordCards.Success
             : HazardLevelLogic.From(ordered[0].Score) >= HazardLevel.High ? DiscordCards.Danger : DiscordCards.Warning;
