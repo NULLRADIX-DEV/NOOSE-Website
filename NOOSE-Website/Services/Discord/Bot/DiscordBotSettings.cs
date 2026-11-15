@@ -16,7 +16,8 @@ public sealed record DiscordBotSettings(
     IReadOnlyList<ulong> ShareChannelIds,
     bool LinkPreview,
     ulong? CommandsChannelId = null,
-    ulong? FactionChannelId = null)
+    ulong? FactionChannelId = null,
+    ulong? DvoChannelId = null)
 {
     public static readonly DiscordBotSettings Off = new(false, null, null, [], false);
 
@@ -45,7 +46,7 @@ public sealed class DiscordBotSettingsService(IDbContextFactory<AppDbContext> db
         SystemSettingKeys.DiscordBotEnabled, SystemSettingKeys.DiscordBotAlarmChannel,
         SystemSettingKeys.DiscordBotWantedChannel, SystemSettingKeys.DiscordBotShareChannels,
         SystemSettingKeys.DiscordBotLinkPreview, SystemSettingKeys.DiscordBotCommandsChannel,
-        SystemSettingKeys.DiscordBotFactionChannel,
+        SystemSettingKeys.DiscordBotFactionChannel, SystemSettingKeys.DiscordBotDvoChannel,
     ];
 
     public async Task<DiscordBotSettings> GetAsync(CancellationToken cancellationToken = default)
@@ -65,7 +66,8 @@ public sealed class DiscordBotSettingsService(IDbContextFactory<AppDbContext> db
             ParseIds(values.GetValueOrDefault(SystemSettingKeys.DiscordBotShareChannels)),
             IsOn(values.GetValueOrDefault(SystemSettingKeys.DiscordBotLinkPreview)),
             ParseId(values.GetValueOrDefault(SystemSettingKeys.DiscordBotCommandsChannel)),
-            ParseId(values.GetValueOrDefault(SystemSettingKeys.DiscordBotFactionChannel)));
+            ParseId(values.GetValueOrDefault(SystemSettingKeys.DiscordBotFactionChannel)),
+            ParseId(values.GetValueOrDefault(SystemSettingKeys.DiscordBotDvoChannel)));
         cache.Set(CacheKey, settings, CacheFor);
         return settings;
     }
@@ -84,6 +86,7 @@ public sealed class DiscordBotSettingsService(IDbContextFactory<AppDbContext> db
         await SetAsync(db, SystemSettingKeys.DiscordBotLinkPreview, settings.LinkPreview ? "true" : "false", cancellationToken);
         await SetAsync(db, SystemSettingKeys.DiscordBotCommandsChannel, Format(settings.CommandsChannelId), cancellationToken);
         await SetAsync(db, SystemSettingKeys.DiscordBotFactionChannel, Format(settings.FactionChannelId), cancellationToken);
+        await SetAsync(db, SystemSettingKeys.DiscordBotDvoChannel, Format(settings.DvoChannelId), cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         cache.Remove(CacheKey);
     }

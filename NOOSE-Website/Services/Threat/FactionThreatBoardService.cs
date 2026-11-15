@@ -5,13 +5,14 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services.Discord.Bot;
 
 namespace NOOSE_Website.Services;
 
 /// <inheritdoc cref="IFactionThreatBoardService" />
 public sealed class FactionThreatBoardService(
-    IDbContextFactory<AppDbContext> dbFactory, IDiscordWebhookService discord, ILogger<FactionThreatBoardService> logger,
-    TimeProvider? clock = null)
+    IDbContextFactory<AppDbContext> dbFactory, IDiscordWebhookService discord, IDiscordBotRoutes routes,
+    ILogger<FactionThreatBoardService> logger, TimeProvider? clock = null)
     : IFactionThreatBoardService
 {
     // the worker and the settings button must never both post a first board
@@ -49,7 +50,8 @@ public sealed class FactionThreatBoardService(
     private async Task<ThreatBoardOutcome> RunLockedAsync(bool force, CancellationToken cancellationToken)
     {
         var config = await discord.GetConfigAsync(cancellationToken);
-        var url = config.Enabled && config.Webhooks.GetValueOrDefault(NotificationType.FactionThreatBoard) is { Length: > 0 } u
+        var botOwnsBoard = await BotBoardIsUpAsync(cancellationToken);
+        var url = !botOwnsBoard && config.Enabled && config.Webhooks.GetValueOrDefault(NotificationType.FactionThreatBoard) is { Length: > 0 } u
             ? u
             : null;
 
@@ -120,6 +122,12 @@ public sealed class FactionThreatBoardService(
         }
         return ThreatBoardOutcome.Posted;
     }
+
+    /// <summary>True once the bot board stands in its channel.</summary>
+    private async Task<bool> BotBoardIsUpAsync(CancellationToken cancellationToken)
+        => await routes.FactionBoardChannelAsync(cancellationToken) is { } channel
+            && await DiscordLiveBoards.ReadFactionBoardAsync(dbFactory, cancellationToken) is { } board
+            && board.Channel == channel;
 
     private async Task<ThreatBoardRemoval> RetireAsync(ThreatBoardMessage old, string? currentUrl, CancellationToken cancellationToken)
     {
