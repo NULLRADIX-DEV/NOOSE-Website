@@ -718,7 +718,7 @@ public class DiscordWebhookService(
     }
 
     // category landing page used when a notification carries no record link
-    private static string FallbackRoute(NotificationType type) => type switch
+    internal static string FallbackRoute(NotificationType type) => type switch
     {
         NotificationType.Announcement => "/brett",
         NotificationType.SituationReport => "/lageberichte",
@@ -751,7 +751,7 @@ public class DiscordWebhookService(
         _ => "/dashboard",
     };
 
-    private static string Notice(NotificationType type) => type switch
+    internal static string Notice(NotificationType type) => type switch
     {
         NotificationType.Announcement => "📢 Neue Ankündigung im Schwarzen Brett.",
         NotificationType.Followup => "⏰ Eine Wiedervorlage ist fällig.",

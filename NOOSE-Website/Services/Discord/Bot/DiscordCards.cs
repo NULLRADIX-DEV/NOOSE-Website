@@ -16,9 +16,13 @@ public static class DiscordCards
     public static readonly Color Orange = new(0xEF6C00);
     public static readonly Color Success = new(0x2E7D32);
     public static readonly Color Steel = new(0x546E7A);
+    public static readonly Color Gold = new(0xC9A227);
 
     /// <summary>Discord's limit on text across one components-v2 message.</summary>
     public const int MaxText = 4000;
+
+    /// <summary>The FIB logo under wwwroot; the site's base url goes in front.</summary>
+    public const string Logo = "/FibIcon.png";
 
     public const string Footer = "-# 🛡️ FIB · Federal Investigation Bureau";
 
