@@ -7,10 +7,12 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using NetCord.Rest;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services.Discord.Bot;
 using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Services;
@@ -21,7 +23,10 @@ public class DiscordWebhookService(
     IHttpClientFactory httpFactory,
     IDbContextFactory<AppDbContext> dbFactory,
     IMemoryCache cache,
-    ILogger<DiscordWebhookService> logger) : IDiscordWebhookService
+    ILogger<DiscordWebhookService> logger,
+    IDiscordBotRoutes routes,
+    IDiscordPostQueue queue,
+    IServiceProvider services) : IDiscordWebhookService
 {
     private const string CacheKey = "DiscordWebhookConfig";
 
@@ -47,13 +52,23 @@ public class DiscordWebhookService(
             {
                 return;
             }
-            var content = ShouldIncludeHeadline(type, config, headline)
-                ? ComposeHeadline(headline!, config.SiteBaseUrl, href)
+            var shown = ShouldIncludeHeadline(type, config, headline) ? headline : null;
+            var content = shown is not null
+                ? ComposeHeadline(shown, config.SiteBaseUrl, href)
                 : Compose(type, config.SiteBaseUrl, href);
+            var pings = await ResolvePingsAsync(type, recipientAgentIds, config, cancellationToken);
             // a long ping list goes out as several posts, or Discord refuses the whole message
-            foreach (var mention in await ResolveMentionsAsync(type, recipientAgentIds, config, content.Length, cancellationToken))
+            var payloads = Batches(pings, content.Length).Select(mention => TextPayload(content, mention)).ToList();
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
             {
-                await SendAsync(url, content, mention, cancellationToken);
+                var acknowledgeable = type == NotificationType.Announcement && await NeedsAcknowledgmentAsync(href, cancellationToken);
+                EnqueueCard(type, channel, url, payloads, pings,
+                    ping => NotificationCards.Generic(type, config.SiteBaseUrl, href, shown, ping, acknowledgeable));
+                return;
+            }
+            foreach (var payload in payloads)
+            {
+                await PostAsync(url, payload, cancellationToken);
             }
         }
         catch (Exception ex)
@@ -98,7 +113,14 @@ public class DiscordWebhookService(
                     new { name = "👮 Auszuführender", value = Field(executors), inline = false },
                 },
             };
-            await SendEmbedAsync(url, mention, embed, cancellationToken);
+            var payload = EmbedPayload(mention, embed);
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
+            {
+                EnqueueCard(NotificationType.PersonnelEntry, channel, url, [payload], new Pings(subjectIds, null),
+                    ping => NotificationCards.PersonnelEntry(ping, subjectDisplay, artLabel, entryDate, reasonPlain, executors, link));
+                return;
+            }
+            await PostAsync(url, payload, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -145,7 +167,15 @@ public class DiscordWebhookService(
                 footer = new { text = "Federal Investigation Bureau" },
                 fields = fields.ToArray(),
             };
-            await SendEmbedAsync(url, mention, embed, cancellationToken);
+            var payload = EmbedPayload(mention, embed);
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
+            {
+                EnqueueCard(NotificationType.DecorationAwarded, channel, url, [payload], new Pings(recipientIds, null),
+                    ping => NotificationCards.Decoration(ping, recipientCodename, decorationName, awardedOn, citationPlain,
+                        awardedByName, link));
+                return;
+            }
+            await PostAsync(url, payload, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -213,7 +243,16 @@ public class DiscordWebhookService(
                 },
             };
             // no ping: MentionSpec.None still carries the empty allow-list, so the chips stay inert
-            await SendEmbedAsync(url, MentionSpec.None, embed, cancellationToken);
+            var payload = EmbedPayload(MentionSpec.None, embed);
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
+            {
+                // chip or name
+                EnqueueCard(NotificationType.AgentTerminated, channel, url, [payload], Pings.None,
+                    _ => NotificationCards.Termination(subjectDisplay, subjectMention, executorMention ?? executorDisplay,
+                        terminatedAt, reasonPlain, link));
+                return;
+            }
+            await PostAsync(url, payload, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -238,10 +277,17 @@ public class DiscordWebhookService(
             }
             var link = Link(config.SiteBaseUrl, href);
             var body = link is null ? content : $"{content}\n{link}";
-            var sent = true;
-            foreach (var mention in await ResolveMentionsAsync(type, null, config, body.Length, cancellationToken))
+            var pings = await ResolvePingsAsync(type, null, config, cancellationToken);
+            var payloads = Batches(pings, body.Length).Select(mention => TextPayload(body, mention)).ToList();
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
             {
-                sent &= await SendAsync(url, body, mention, cancellationToken);
+                EnqueueCard(type, channel, url, payloads, pings, ping => NotificationCards.Custom(type, content, link, ping));
+                return true;
+            }
+            var sent = true;
+            foreach (var payload in payloads)
+            {
+                sent &= await PostAsync(url, payload, cancellationToken);
             }
             return sent;
         }
@@ -262,7 +308,15 @@ public class DiscordWebhookService(
             {
                 return false;
             }
-            return await SendAsync(webhookUrl, content, MentionSpec.None, cancellationToken);
+            var payload = TextPayload(content, MentionSpec.None);
+            if (await BotChannelAsync(webhookUrl, cancellationToken) is { } channel)
+            {
+                // text holds link
+                EnqueueCard(NotificationType.RecordModified, channel, webhookUrl, [payload], Pings.None,
+                    _ => NotificationCards.Share(content));
+                return true;
+            }
+            return await PostAsync(webhookUrl, payload, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -288,10 +342,17 @@ public class DiscordWebhookService(
                 return false;
             }
             var embed = WantedEmbed(card, config.SiteBaseUrl);
-            var sent = true;
-            foreach (var mention in await ResolveMentionsAsync(type, null, config, 0, cancellationToken))
+            var pings = await ResolvePingsAsync(type, null, config, cancellationToken);
+            var payloads = Batches(pings, 0).Select(mention => EmbedPayload(mention, embed)).ToList();
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
             {
-                sent &= await SendEmbedAsync(url, mention, embed, cancellationToken);
+                EnqueueCard(type, channel, url, payloads, pings, ping => NotificationCards.Wanted(card, config.SiteBaseUrl, ping));
+                return true;
+            }
+            var sent = true;
+            foreach (var payload in payloads)
+            {
+                sent &= await PostAsync(url, payload, cancellationToken);
             }
             return sent;
         }
@@ -323,7 +384,15 @@ public class DiscordWebhookService(
             var ids = discordUserIds.Where(IsSnowflake).Distinct().Take(100).ToList();
             var link = Link(config.SiteBaseUrl, href);
             var body = link is null ? content : $"{content}\n{link}";
-            return await SendAsync(url, body, MentionSpec.Inline(ids), cancellationToken);
+            var payload = TextPayload(body, MentionSpec.Inline(ids));
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
+            {
+                // lines hold mentions
+                EnqueueCard(NotificationType.PingDigest, channel, url, [payload], new Pings(ids, null),
+                    _ => NotificationCards.Digest(content, link));
+                return true;
+            }
+            return await PostAsync(url, payload, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -466,25 +535,72 @@ public class DiscordWebhookService(
         return ids.Count > 0 ? $"<@{ids[0]}>" : null;
     }
 
-    // personal categories ping the recipients, one post per batch; broadcast categories ping the configured role
-    private async Task<IReadOnlyList<MentionSpec>> ResolveMentionsAsync(NotificationType type,
-        IReadOnlyCollection<string>? recipientAgentIds, DiscordWebhookConfig config, int bodyLength,
-        CancellationToken cancellationToken)
+    // personal categories ping the recipients; broadcast categories ping the configured role
+    private async Task<Pings> ResolvePingsAsync(NotificationType type, IReadOnlyCollection<string>? recipientAgentIds,
+        DiscordWebhookConfig config, CancellationToken cancellationToken)
     {
         if (DiscordRouting.PingsRole(type))
         {
             var roleId = config.Roles.GetValueOrDefault(type);
-            return [IsSnowflake(roleId) ? MentionSpec.Role(roleId!) : MentionSpec.None];
+            return new Pings([], IsSnowflake(roleId) ? roleId : null);
         }
         if (DiscordRouting.PingsRecipients(type) && recipientAgentIds is { Count: > 0 })
         {
-            var ids = await ResolveDiscordIdsAsync(recipientAgentIds, cancellationToken);
-            if (ids.Count > 0)
-            {
-                return MentionBatches(ids, bodyLength).Select(batch => MentionSpec.Users(batch)).ToList();
-            }
+            return new Pings(await ResolveDiscordIdsAsync(recipientAgentIds, cancellationToken), null);
         }
-        return [MentionSpec.None];
+        return Pings.None;
+    }
+
+    // one post per batch
+    private static IReadOnlyList<MentionSpec> Batches(Pings pings, int bodyLength)
+    {
+        if (pings.Role is { } roleId)
+        {
+            return [MentionSpec.Role(roleId)];
+        }
+        return pings.Users.Count > 0
+            ? MentionBatches(pings.Users, bodyLength).Select(batch => MentionSpec.Users(batch)).ToList()
+            : [MentionSpec.None];
+    }
+
+    // null: webhook posts
+    private async Task<ulong?> BotChannelAsync(string url, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var route = await routes.ForWebhookAsync(url, cancellationToken);
+            return route is { State: BotRouteState.Bot, ChannelId: { } channel } ? channel : null;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            /* best effort */
+            logger.LogWarning("Discord bot route failed ({Error}).", ex.GetType().Name);
+            return null;
+        }
+    }
+
+    /// <summary>Queues one bot post: the card's ping line and the extra ping lines come from the same recipient list.</summary>
+    private void EnqueueCard(NotificationType type, ulong channelId, string url, IReadOnlyList<object> payloads,
+        Pings pings, Func<string, IReadOnlyList<IMessageComponentProperties>> card)
+    {
+        // ulong range only
+        var users = pings.Users.Where(id => ulong.TryParse(id, out _)).ToList();
+        var lines = NotificationCards.PingLines(users);
+        var role = ulong.TryParse(pings.Role, out var parsed) ? parsed : (ulong?)null;
+        var ping = role is null ? lines.First : NotificationCards.RolePing(pings.Role!);
+        queue.Enqueue(new DiscordPost(type, channelId, card(ping), users.Select(ulong.Parse).ToList(), role, lines.Rest,
+            new WebhookFallback(url, payloads)));
+    }
+
+    // ack button gate
+    private async Task<bool> NeedsAcknowledgmentAsync(string? href, CancellationToken cancellationToken)
+    {
+        if (NotificationCards.RecordId(NotificationType.Announcement, href) is not { } id)
+        {
+            return false;
+        }
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await db.Announcements.AsNoTracking().AnyAsync(a => a.Id == id && a.AcknowledgmentRequired, cancellationToken);
     }
 
     /// <summary>Splits a ping list into batches that each fit one message beside a body of the given length.</summary>
@@ -601,9 +717,23 @@ public class DiscordWebhookService(
         {
             return false;
         }
-        return await SendAsync(url,
-            $"🔔 Test-Benachrichtigung ({NotificationTypeDisplay.Name(type)}) – die Anbindung funktioniert.",
-            MentionSpec.None, cancellationToken);
+        var text = $"🔔 Test-Benachrichtigung ({NotificationTypeDisplay.Name(type)}) – die Anbindung funktioniert.";
+        // bot token only
+        if (await BotChannelAsync(url, cancellationToken) is { } channel && services.GetService<IDiscordBotSender>() is { } sender)
+        {
+            try
+            {
+                await sender.SendAsync(channel, NotificationCards.Share(text), AllowedMentionsProperties.None,
+                    cancellationToken: cancellationToken);
+                return true;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogWarning("Discord bot test post failed ({Error}).", ex.GetType().Name);
+                return false;
+            }
+        }
+        return await PostAsync(url, TextPayload(text, MentionSpec.None), cancellationToken);
     }
 
     private async Task<DiscordWebhookConfig> GetCachedConfigAsync(CancellationToken cancellationToken)
@@ -618,38 +748,30 @@ public class DiscordWebhookService(
     }
 
     // body stays app-authored and identity-free; the optional prefix pings the target, and allowed_mentions is an explicit allow-list so nothing else (e.g. @everyone) can resolve
-    private async Task<bool> SendAsync(string url, string content, MentionSpec mention, CancellationToken cancellationToken)
+    private static object TextPayload(string content, MentionSpec mention) => new
     {
-        var payload = new
-        {
-            content = mention.Prefix.Length > 0 ? $"{mention.Prefix} {content}" : content,
-            username = "FIB",
-            allowed_mentions = mention.AllowedMentions,
-        };
+        content = mention.Prefix.Length > 0 ? $"{mention.Prefix} {content}" : content,
+        username = "FIB",
+        allowed_mentions = mention.AllowedMentions,
+    };
+
+    // embed payload with an optional ping prefix; allowed_mentions stays an explicit allow-list
+    private static object EmbedPayload(MentionSpec mention, object embed) => new
+    {
+        content = mention.Prefix.Length > 0 ? mention.Prefix : (string?)null,
+        username = "FIB",
+        embeds = new[] { embed },
+        allowed_mentions = mention.AllowedMentions,
+    };
+
+    // shared with fallback
+    private async Task<bool> PostAsync(string url, object payload, CancellationToken cancellationToken)
+    {
         var client = httpFactory.CreateClient("discord");
         using var response = await client.PostAsJsonAsync(url, payload, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
             logger.LogWarning("Discord webhook returned {Status}.", (int)response.StatusCode);
-        }
-        return response.IsSuccessStatusCode;
-    }
-
-    // embed payload with an optional ping prefix; allowed_mentions stays an explicit allow-list
-    private async Task<bool> SendEmbedAsync(string url, MentionSpec mention, object embed, CancellationToken cancellationToken)
-    {
-        var payload = new
-        {
-            content = mention.Prefix.Length > 0 ? mention.Prefix : (string?)null,
-            username = "FIB",
-            embeds = new[] { embed },
-            allowed_mentions = mention.AllowedMentions,
-        };
-        var client = httpFactory.CreateClient("discord");
-        using var response = await client.PostAsJsonAsync(url, payload, cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            logger.LogWarning("Discord webhook (embed) returned {Status}.", (int)response.StatusCode);
         }
         return response.IsSuccessStatusCode;
     }
@@ -838,6 +960,12 @@ public class DiscordWebhookService(
         {
             row.Value = value;
         }
+    }
+
+    // users or role
+    private readonly record struct Pings(IReadOnlyList<string> Users, string? Role)
+    {
+        public static Pings None => new([], null);
     }
 
     // ping prefix + matching allow-list; allow-lists (not parse) keep the ping scoped to exactly these targets

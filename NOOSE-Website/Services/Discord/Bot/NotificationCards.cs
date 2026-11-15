@@ -166,7 +166,7 @@ public static class NotificationCards
             or NotificationType.TestAssigned or NotificationType.TestDueReminder;
 
     // id from href
-    private static string? RecordId(NotificationType type, string? href)
+    internal static string? RecordId(NotificationType type, string? href)
     {
         if (string.IsNullOrWhiteSpace(href))
         {

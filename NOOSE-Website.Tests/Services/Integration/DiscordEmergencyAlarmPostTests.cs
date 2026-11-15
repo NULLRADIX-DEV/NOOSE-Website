@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Models.Common;
@@ -54,7 +55,8 @@ public sealed class DiscordEmergencyAlarmPostTests
         var factory = Substitute.For<IHttpClientFactory>();
         factory.CreateClient("discord").Returns(_ => new HttpClient(handler, disposeHandler: false));
         var service = new DiscordWebhookService(factory, ctx.Factory, new MemoryCache(new MemoryCacheOptions()),
-            NullLogger<DiscordWebhookService>.Instance);
+            NullLogger<DiscordWebhookService>.Instance, new FakeBotRoutes(), new DiscordPostQueue(),
+            new ServiceCollection().BuildServiceProvider());
         return (service, handler);
     }
 
