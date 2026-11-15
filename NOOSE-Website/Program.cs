@@ -419,6 +419,10 @@ builder.Services.AddScoped<IDiscordMembershipCheck, DiscordMembershipCheck>();
 builder.Services.AddScoped<IApplicantDmNotifier, ApplicantDmNotifier>();
 builder.Services.AddSingleton<IDiscordDmQueue, DiscordDmQueue>();
 builder.Services.AddHostedService<DiscordDmWorker>();
+// webhook to channel
+builder.Services.AddSingleton<IDiscordBotRoutes, DiscordBotRoutes>();
+// bot post queue
+builder.Services.AddSingleton<IDiscordPostQueue, DiscordPostQueue>();
 // slash commands, live boards, status; gateway only with a bot token
 builder.Services.AddFibDiscordBot(builder.Configuration);
 // per-process share quota

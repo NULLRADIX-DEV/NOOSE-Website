@@ -33,7 +33,7 @@ public sealed class FactionThreatBoardServiceTests : IDisposable
             .Returns(ThreatBoardEdit.Edited);
         _discord.DeleteThreatBoardAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(ThreatBoardRemoval.Removed);
-        _service = new FactionThreatBoardService(_ctx.Factory, _discord, NullLogger<FactionThreatBoardService>.Instance);
+        _service = new FactionThreatBoardService(_ctx.Factory, _discord, new FakeBotRoutes(), NullLogger<FactionThreatBoardService>.Instance);
     }
 
     public void Dispose() => _ctx.Dispose();
@@ -310,7 +310,7 @@ public sealed class FactionThreatBoardServiceTests : IDisposable
     public async Task A_removal_that_keeps_failing_is_given_up_after_an_hour()
     {
         var clock = new ManualClock(DateTimeOffset.UtcNow);
-        var service = new FactionThreatBoardService(_ctx.Factory, _discord, NullLogger<FactionThreatBoardService>.Instance, clock);
+        var service = new FactionThreatBoardService(_ctx.Factory, _discord, new FakeBotRoutes(), NullLogger<FactionThreatBoardService>.Instance, clock);
         SeedFaction("vagos", "Vagos", 97);
         await service.RunAsync();
         DeleteAnswers(ThreatBoardRemoval.Failed);
@@ -348,6 +348,7 @@ public sealed class FactionThreatBoardServiceTests : IDisposable
         services.AddLogging();
         services.AddSingleton<IDbContextFactory<AppDbContext>>(_ctx.Factory);
         services.AddScoped(_ => _discord);
+        services.AddSingleton<IDiscordBotRoutes>(new FakeBotRoutes());
         services.AddScoped<IFactionThreatBoardService, FactionThreatBoardService>();
         services.AddHostedService<FactionThreatBoardWorker>();
         await using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });

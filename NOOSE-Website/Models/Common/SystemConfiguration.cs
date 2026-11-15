@@ -107,6 +107,12 @@ public static class SystemSettingKeys
     /// <summary>Live alarm boards as JSON alarmId → "channelId|messageId"; worker state, not user-edited.</summary>
     public const string DiscordBotAlarmBoards = "DiscordBotAlarmTafeln";
 
+    /// <summary>Channel id where the bot posts service regulation changes; unset means off.</summary>
+    public const string DiscordBotDvoChannel = "DiscordBotDvoKanal";
+
+    /// <summary>UTC time of the last regulation change already posted; worker state, not user-edited.</summary>
+    public const string DiscordDvoState = "DiscordDvoStand";
+
     // periodic top-3 agent announcement; the interval also drives its wording
     public const string BestAgentEnabled = "BesterAgentAktiv";
     public const string BestAgentIntervalDays = "BesterAgentIntervallTage";

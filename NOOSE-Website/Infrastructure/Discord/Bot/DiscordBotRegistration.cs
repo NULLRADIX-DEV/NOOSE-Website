@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
+using NOOSE_Website.Services;
 using NOOSE_Website.Services.Discord.Bot;
 
 namespace NOOSE_Website.Infrastructure.Discord.Bot;
@@ -22,8 +23,10 @@ public static class DiscordBotRegistration
         services.AddScoped<PersonalCommands>();
         services.AddScoped<LeadershipCommands>();
         services.AddScoped<CaptureCommands>();
+        services.AddScoped<ChannelCardCommands>();
         services.AddScoped<DiscordBotRouter>();
         services.AddScoped<DiscordLiveBoards>();
+        services.AddScoped<IRegulationChangeCollector, RegulationChangeCollector>();
         services.AddHttpClient(CaptureCommands.CdnClient, client => client.Timeout = TimeSpan.FromSeconds(15))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false })
             .RemoveAllLoggers();
@@ -50,6 +53,10 @@ public static class DiscordBotRegistration
         services.AddGatewayHandler<DiscordDisconnectHandler>(ServiceLifetime.Singleton);
         services.AddSingleton<DiscordCommandRegistrar>();
         services.AddHostedService<DiscordBotWorker>();
+        // sends queued posts
+        services.AddSingleton<IDiscordBotSender, DiscordBotSender>();
+        services.AddSingleton<IDiscordAlarmCards, DiscordAlarmCards>();
+        services.AddHostedService<DiscordPostWorker>();
         return services;
     }
 }

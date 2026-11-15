@@ -208,7 +208,7 @@ public class DiscordBotTests
             Entry("3", "Marabunta", 30),
         };
 
-        var board = DiscordLiveBoards.RenderFactions(ordered, "https://fibhq.com", now);
+        var board = DiscordLiveBoards.RenderFactions(ordered, 20, "https://fibhq.com", now);
         var text = BoardText(board);
         Assert.Contains("## Los Santos Vagos", text);
         Assert.Contains("Bedrohung 82/100", text);
@@ -219,11 +219,11 @@ public class DiscordBotTests
         Assert.True(text.IndexOf("Los Santos Vagos", StringComparison.Ordinal) < text.IndexOf("Ballas", StringComparison.Ordinal));
 
         // the time stamp alone never causes an edit, a changed score does
-        Assert.Equal(board.Hash, DiscordLiveBoards.RenderFactions(ordered, "https://fibhq.com", now.AddHours(3)).Hash);
+        Assert.Equal(board.Hash, DiscordLiveBoards.RenderFactions(ordered, 20, "https://fibhq.com", now.AddHours(3)).Hash);
         var changed = ordered.Select(f => f.Id == "2" ? f with { Score = 62 } : f).ToList();
-        Assert.NotEqual(board.Hash, DiscordLiveBoards.RenderFactions(changed, "https://fibhq.com", now).Hash);
+        Assert.NotEqual(board.Hash, DiscordLiveBoards.RenderFactions(changed, 20, "https://fibhq.com", now).Hash);
 
-        Assert.Contains("keine Fraktion", BoardText(DiscordLiveBoards.RenderFactions([], "https://fibhq.com", now)));
+        Assert.Contains("keine Fraktion", BoardText(DiscordLiveBoards.RenderFactions([], 20, "https://fibhq.com", now)));
     }
 
     private static string BoardText(BoardCard board) => string.Concat(board.Components.OfType<ComponentContainerProperties>()
