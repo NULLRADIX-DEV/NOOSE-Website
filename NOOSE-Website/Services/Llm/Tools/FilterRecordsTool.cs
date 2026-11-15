@@ -20,6 +20,7 @@ public sealed class FilterRecordsTool(
     IFactionService factions,
     IPersonGroupService groups,
     IPartyService parties,
+    IDrugRouteService drugRoutes,
     ICaseService cases,
     IOperationService operations,
     ILawService laws,
@@ -186,6 +187,10 @@ public sealed class FilterRecordsTool(
         nameof(Data.Entities.Parties.Party) => (await parties.GetListAsync(scope, cancellationToken: cancellationToken))
             .Select(p => new Row(p.Id, p.Name, p.CaseNumber, p.Classification, p.SecrecyLevel, null,
                 p.ModifiedAt, p.CreatedAt))
+            .ToList(),
+        nameof(Data.Entities.DrugRoutes.DrugRoute) => (await drugRoutes.GetListAsync(scope, cancellationToken: cancellationToken))
+            .Select(r => new Row(r.Id, r.Designation, r.CaseNumber, r.Classification, r.SecrecyLevel, null,
+                r.ModifiedAt, r.CreatedAt, string.IsNullOrWhiteSpace(r.Substance) ? null : "Substanz: " + r.Substance))
             .ToList(),
         nameof(Data.Entities.Cases.Case) => (await cases.GetListAsync(scope, cancellationToken: cancellationToken))
             .Select(c => new Row(c.Id, c.Title, c.CaseNumber, c.Classification, c.SecrecyLevel, null,

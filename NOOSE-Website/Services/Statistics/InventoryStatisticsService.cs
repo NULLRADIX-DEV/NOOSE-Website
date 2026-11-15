@@ -41,6 +41,9 @@ public class InventoryStatisticsService(
                 new("Parteien", StatisticsBuckets.Count(await db.Parties
                     .Where(p => (scope.IncludeClassified || !p.IsClassified) && p.CreatedAt >= start)
                     .Select(p => p.CreatedAt).ToListAsync(cancellationToken), buckets)),
+                new("Drogenrouten", StatisticsBuckets.Count(await db.DrugRoutes
+                    .Where(r => (scope.IncludeClassified || !r.IsClassified) && r.CreatedAt >= start)
+                    .Select(r => r.CreatedAt).ToListAsync(cancellationToken), buckets)),
                 new("Operationen", StatisticsBuckets.Count(await db.Operations
                     .Where(o => (scope.IncludeClassified || !o.IsClassified) && o.CreatedAt >= start)
                     .Select(o => o.CreatedAt).ToListAsync(cancellationToken), buckets)),
@@ -187,6 +190,9 @@ public class InventoryStatisticsService(
             ("Party", "Parteien", "/parteien", () => db.Parties
                 .Where(p => scope.IncludeClassified || !p.IsClassified)
                 .Select(p => p.ModifiedAt ?? p.CreatedAt).ToListAsync(cancellationToken)),
+            ("DrugRoute", "Drogenrouten", "/drogenrouten", () => db.DrugRoutes.OnlyActive()
+                .Where(r => scope.IncludeClassified || !r.IsClassified)
+                .Select(r => r.ModifiedAt ?? r.CreatedAt).ToListAsync(cancellationToken)),
             ("Operation", "Operationen", "/operationen", () => db.Operations
                 .Where(o => scope.IncludeClassified || !o.IsClassified)
                 .Select(o => o.ModifiedAt ?? o.CreatedAt).ToListAsync(cancellationToken)),

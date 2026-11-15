@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities.Activities;
 using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.CounterIntel;
 using NOOSE_Website.Data.Entities.Regulation;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -109,6 +110,10 @@ public static class Visibility
                 .Where(p => p.Id == entityId)
                 .Select(p => new SecrecyRow(p.IsClassified, p.IsTRUClassified, p.IsHRBClassified))
                 .FirstOrDefaultAsync(cancellationToken),
+            nameof(DrugRoute) => await db.DrugRoutes
+                .Where(r => r.Id == entityId)
+                .Select(r => new SecrecyRow(r.IsClassified, r.IsTRUClassified, r.IsHRBClassified))
+                .FirstOrDefaultAsync(cancellationToken),
             nameof(Operation) => await db.Operations
                 .Where(o => o.Id == entityId)
                 .Select(o => new SecrecyRow(o.IsClassified, o.IsTRUClassified, o.IsHRBClassified))
@@ -122,7 +127,7 @@ public static class Visibility
 
         // classifiable types: visible per the viewer's secrecy scope (null = not found)
         if (entityType is nameof(Person) or nameof(Faction) or nameof(PersonGroup)
-            or nameof(Party) or nameof(Operation) or nameof(Case))
+            or nameof(Party) or nameof(DrugRoute) or nameof(Operation) or nameof(Case))
         {
             return row is not null && RecordVisibility.IsVisible(scope, row.Classified, row.Tru, row.Hrb);
         }

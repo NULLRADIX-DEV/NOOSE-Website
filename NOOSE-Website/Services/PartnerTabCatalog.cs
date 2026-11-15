@@ -1,5 +1,6 @@
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -52,6 +53,12 @@ public static class PartnerTabCatalog
             new("doks", "Doks"), new("beziehungen", "Beziehungen"), new("quellen", "Quellen"),
             new("wiedervorlagen", "Wiedervorlagen"), new("kommentare", "Kommentare"), new("zusatzfelder", "Zusatzfelder"),
             new("historie", "Zeitstrahl"),
+        }),
+        new PartnerRecordType(nameof(DrugRoute), "drogenrouten", "Drogenrouten", new PartnerTab[]
+        {
+            new("uebersicht", "Übersicht"), new("stationen", "Stationen"), new("personen", "Beteiligte Personen"),
+            new("fotos", "Beweisfotos"), new("einstufung", "Einstufung"), new("verknuepfungen", "Verknüpfungen"),
+            new("kommentare", "Kommentare"), new("historie", "Zeitstrahl"),
         }),
         new PartnerRecordType(nameof(Operation), "operationen", "Operationen", new PartnerTab[]
         {

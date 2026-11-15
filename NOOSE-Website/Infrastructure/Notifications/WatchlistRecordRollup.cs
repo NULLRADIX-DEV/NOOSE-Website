@@ -6,6 +6,7 @@ using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Requests;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Notifications;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
 using NOOSE_Website.Data.Entities.Groups;
@@ -37,6 +38,7 @@ public static class WatchlistRecordRollup
             case Faction f: return One(nameof(Faction), f.Id);
             case PersonGroup g: return One(nameof(PersonGroup), g.Id);
             case Party pa: return One(nameof(Party), pa.Id);
+            case DrugRoute dr: return One(nameof(DrugRoute), dr.Id);
             case Operation o: return One(nameof(Operation), o.Id);
             case Case v: return One(nameof(Case), v.Id);
             case Taskforce t: return One(nameof(Taskforce), t.Id);
@@ -50,6 +52,8 @@ public static class WatchlistRecordRollup
             case PersonGroupAgent ga: return One(nameof(PersonGroup), ga.PersonGroupId);
             case PartyMember pm: return One(nameof(Party), pm.PartyId);
             case PartyAgent paa: return One(nameof(Party), paa.PartyId);
+            case DrugRouteStation drs: return One(nameof(DrugRoute), drs.DrugRouteId);
+            case DrugRoutePerson drp: return One(nameof(DrugRoute), drp.DrugRouteId);
             case OperationAgent oa: return One(nameof(Operation), oa.OperationId);
             case OperationLogEntry ol: return One(nameof(Operation), ol.OperationId);
             case CaseAgent va: return One(nameof(Case), va.CaseId);
@@ -75,12 +79,13 @@ public static class WatchlistRecordRollup
             case PersonRelation pb: return Two((nameof(Person), pb.PersonAId), (nameof(Person), pb.PersonBId));
 
             // not watchable
-            // a gallery photo is file material, but no follower wants a push per upload; the four galleries
+            // a gallery photo is file material, but no follower wants a push per upload; the galleries
             // stay silent alike
             case PersonPhoto:
             case FactionPhoto:
             case PersonGroupPhoto:
             case PartyPhoto:
+            case DrugRoutePhoto:
             // the objection is two hops from a file (notice, then record) and this map has no database; the
             // publication of the notice stays the watchable event
             case FahndungEinspruch:

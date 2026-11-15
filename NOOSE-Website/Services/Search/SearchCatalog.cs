@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.CounterIntel;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Feedback;
 using NOOSE_Website.Data.Entities.Informants;
@@ -424,6 +425,12 @@ public static class SearchCatalog
             Icons.Material.Filled.Gavel, SearchHitShape.Record,
             SearchTraits.Quick,
             "/dienstverordnung/absatz/{0}"),
+        // appended like everything after the public area, never next to Party: the order is the NOOSEI schema prefix
+        new(nameof(DrugRoute), "Drogenroute", "Drogenrouten", SearchGroup.Records,
+            Icons.Material.Filled.Route, SearchHitShape.Record,
+            SearchTraits.Tagged | SearchTraits.Fuzzy | SearchTraits.Quick | SearchTraits.SideIndexed
+                | SearchTraits.Partner | SearchTraits.Assistant,
+            "/drogenrouten/{0}"),
     ];
 
     /// <summary>Entities deliberately left out of the search, each with the reason.</summary>
@@ -484,6 +491,9 @@ public static class SearchCatalog
             ["FactionInventory"] = "Bestandszeile; die Fraktionsakte trägt den Text.",
             ["FactionWeaponStock"] = "Bestandszeile; die Fraktionsakte trägt den Text.",
             ["FactionDrugRoute"] = "Bestandszeile; die Fraktionsakte trägt den Text.",
+            ["DrugRouteStation"] = "Station einer Drogenroute; die Route ist die Kategorie, Ort und Beschreibung sind kein eigener Treffer.",
+            ["DrugRoutePerson"] = "Beteiligung; die Person und die Drogenroute sind je eigene Kategorien.",
+            ["DrugRoutePhoto"] = "Binärdatei ohne Text.",
             ["ClassificationHistory"] = "Einstufungs-Verlauf; die Akte selbst ist durchsuchbar.",
             ["AgentRankHistory"] = "Dienstgrad-Verlauf; die Personalakte ist durchsuchbar.",
             ["AgentEvaluation"] = "Beurteilungen liest nur der Agent selbst und die Personalseite; die Suche würde sie allen zeigen.",

@@ -1,0 +1,102 @@
+@inject IFactionService FactionService
+
+<MudGrid>
+    <MudItem xs="12" md="8">
+        <MudTextField @bind-Value="Input.Designation" Label="Bezeichnung" Required="true" RequiredError="Bezeichnung ist erforderlich"
+                      Variant="Variant.Outlined" MaxLength="200" />
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudTextField @bind-Value="Input.Substance" Label="Substanz" Placeholder="Kokain, Meth …"
+                      Variant="Variant.Outlined" MaxLength="100" />
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudAutocomplete T="Faction" Label="Fraktion" Value="_faction" ValueChanged="FactionChanged"
+                         SearchFunc="@SearchFactions" ToStringFunc="@(f => f?.Name ?? string.Empty)"
+                         Variant="Variant.Outlined" Clearable="true" CoerceText="false" CoerceValue="false"
+                         ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true"
+                         Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Groups"
+                         HelperText="Leer lassen, solange die betreibende Fraktion unbekannt ist.">
+            <ItemTemplate Context="f">
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Size="Size.Small" Color="Color.Primary" />
+                    <MudText Typo="Typo.body2">@f.Name</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@f.CaseNumber</MudText>
+                </MudStack>
+            </ItemTemplate>
+        </MudAutocomplete>
+    </MudItem>
+
+    @if (ShowClassification)
+    {
+        <MudItem xs="12" md="6">
+            <MudSelect T="Classification" @bind-Value="Input.Classification" Label="Einstufung" Variant="Variant.Outlined">
+                @foreach (var e in ClassificationDisplay.All)
+                {
+                    <MudSelectItem Value="e" Disabled="@(e == Classification.SecuredStateThreatening && !MayHighest)">
+                        @ClassificationDisplay.Name(e)
+                    </MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
+    @if (SecrecyOptions.Count > 1)
+    {
+        <MudItem xs="12" md="6">
+            <MudSelect T="DocumentClassification" @bind-Value="Input.SecrecyLevel" Label="Verschluss-Stufe"
+                       Variant="Variant.Outlined" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Lock"
+                       HelperText="Bestimmt, wer die Akte sehen darf.">
+                @foreach (var o in SecrecyOptions)
+                {
+                    <MudSelectItem T="DocumentClassification" Value="@o">@DocumentClassificationDisplay.Label(o)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+    }
+
+    <MudItem xs="12">
+        <MentionInput Text="@(Input.Description ?? string.Empty)" TextChanged="@(v => Input.Description = v)"
+                      DraftKey='@DraftKeys.In(DraftScope, "description")'
+                      Label="Beschreibung" Lines="3" MaxLength="4000" HelperText="@MentionInput.Hint" />
+    </MudItem>
+    <MudItem xs="12">
+        <MentionInput Text="@(Input.Findings ?? string.Empty)" TextChanged="@(v => Input.Findings = v)"
+                      DraftKey='@DraftKeys.In(DraftScope, "findings")'
+                      Label="Erkenntnisse" Lines="6" MaxLength="8000"
+                      HelperText="Was über den Weg der Route bekannt ist, wer sie nutzt und wie sie abgesichert wird." />
+    </MudItem>
+    <MudItem xs="12">
+        <MentionInput Text="@(Input.Remarks ?? string.Empty)" TextChanged="@(v => Input.Remarks = v)"
+                      DraftKey='@DraftKeys.In(DraftScope, "remarks")'
+                      Label="Bemerkungen" Lines="3" MaxLength="2000"
+                      HelperText="Interne Vermerke (getrennt von Beschreibung und Erkenntnissen)." />
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public DrugRouteInput Input { get; set; } = default!;
+    /// <summary>Browser draft scope of the text fields.</summary>
+    [Parameter] public string? DraftScope { get; set; }
+
+    [Parameter] public bool ShowClassification { get; set; }
+    [Parameter] public bool MayHighest { get; set; }
+    [Parameter] public bool IsLeadership { get; set; }
+    /// <summary>Secrecy levels the user may assign.</summary>
+    [Parameter] public IReadOnlyList<DocumentClassification> SecrecyOptions { get; set; } = Array.Empty<DocumentClassification>();
+
+    private Faction? _faction;
+
+    // stub for the picker
+    protected override void OnInitialized()
+        => _faction = Input.FactionId is { } id ? new Faction { Id = id, Name = Input.FactionName ?? string.Empty } : null;
+
+    private void FactionChanged(Faction? faction)
+    {
+        _faction = faction;
+        Input.FactionId = faction?.Id;
+        Input.FactionName = faction?.Name;
+    }
+
+    private async Task<IEnumerable<Faction>> SearchFactions(string value, CancellationToken token)
+        => await FactionService.SearchAsync(value, IsLeadership, 20, token);
+}

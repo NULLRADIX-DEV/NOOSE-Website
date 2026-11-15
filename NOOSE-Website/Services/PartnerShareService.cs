@@ -5,6 +5,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -290,6 +291,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
             nameof(Faction) => await db.Factions.Select(f => f.Id).ToListAsync(cancellationToken),
             nameof(PersonGroup) => await db.PersonGroups.Select(g => g.Id).ToListAsync(cancellationToken),
             nameof(Party) => await db.Parties.Select(p => p.Id).ToListAsync(cancellationToken),
+            nameof(DrugRoute) => await db.DrugRoutes.Select(r => r.Id).ToListAsync(cancellationToken),
             nameof(Operation) => await db.Operations.Select(o => o.Id).ToListAsync(cancellationToken),
             nameof(Case) => await db.Cases.Select(c => c.Id).ToListAsync(cancellationToken),
             // taskforce-internal docs are shared per-document only, never via bulk type-release
@@ -305,6 +307,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
             nameof(Faction) => await db.Factions.CountAsync(cancellationToken),
             nameof(PersonGroup) => await db.PersonGroups.CountAsync(cancellationToken),
             nameof(Party) => await db.Parties.CountAsync(cancellationToken),
+            nameof(DrugRoute) => await db.DrugRoutes.CountAsync(cancellationToken),
             nameof(Operation) => await db.Operations.CountAsync(cancellationToken),
             nameof(Case) => await db.Cases.CountAsync(cancellationToken),
             nameof(Document) => await db.Documents.CountAsync(d => d.OwnerTaskforceId == null, cancellationToken),
@@ -710,6 +713,8 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
                 .Select(g => g.Name + " (" + g.CaseNumber + ")").FirstOrDefaultAsync(ct) ?? entityId,
             nameof(Party) => await db.Parties.Where(p => p.Id == entityId)
                 .Select(p => p.Name + " (" + p.CaseNumber + ")").FirstOrDefaultAsync(ct) ?? entityId,
+            nameof(DrugRoute) => await db.DrugRoutes.Where(r => r.Id == entityId)
+                .Select(r => r.Designation + " (" + r.CaseNumber + ")").FirstOrDefaultAsync(ct) ?? entityId,
             nameof(Operation) => await db.Operations.Where(o => o.Id == entityId)
                 .Select(o => o.Title + " (" + o.CaseNumber + ")").FirstOrDefaultAsync(ct) ?? entityId,
             nameof(Case) => await db.Cases.Where(c => c.Id == entityId)

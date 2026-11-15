@@ -1,6 +1,7 @@
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
@@ -43,6 +44,8 @@ public static class SearchIndexProjection
             new[] { g.Name }, new[] { g.Name, g.Description, g.Targets, g.CaseNumber }),
         Party p => Build(nameof(Party), p.Id, p.Id,
             new[] { p.Name }, new[] { p.Name, p.Description, p.Targets, p.Remarks, p.CaseNumber }),
+        DrugRoute r => Build(nameof(DrugRoute), r.Id, r.Id,
+            new[] { r.Designation }, new[] { r.Designation, r.Substance, r.Description, r.Findings, r.Remarks, r.CaseNumber }),
         Operation o => Build(nameof(Operation), o.Id, o.Id,
             new[] { o.Title }, new[] { o.Title, o.Type, o.Location, o.Expiry, o.Result, o.Remarks, o.CaseNumber }),
         Taskforce t => Build(nameof(Taskforce), t.Id, t.Id,

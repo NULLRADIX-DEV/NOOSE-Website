@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Requests;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -195,6 +196,11 @@ public class RequestService(IDbContextFactory<AppDbContext> dbFactory, INotifica
                 var party = await db.Parties.FirstOrDefaultAsync(x => x.Id == request.TargetId, cancellationToken);
                 if (party is null) return false;
                 party.Classification = request.TargetClassification;
+                return true;
+            case nameof(DrugRoute):
+                var drugRoute = await db.DrugRoutes.FirstOrDefaultAsync(x => x.Id == request.TargetId, cancellationToken);
+                if (drugRoute is null) return false;
+                drugRoute.Classification = request.TargetClassification;
                 return true;
             case nameof(Operation):
                 var operation = await db.Operations.FirstOrDefaultAsync(x => x.Id == request.TargetId, cancellationToken);

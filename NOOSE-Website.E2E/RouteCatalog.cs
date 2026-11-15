@@ -21,6 +21,7 @@ public static class RouteCatalog
         ("/fraktionen", "/fraktionen/"),
         ("/personengruppen", "/personengruppen/"),
         ("/parteien", "/parteien/"),
+        ("/drogenrouten", "/drogenrouten/"),
         ("/vorgaenge", "/vorgaenge/"),
         ("/operationen", "/operationen/"),
         ("/taskforces", "/taskforces/"),

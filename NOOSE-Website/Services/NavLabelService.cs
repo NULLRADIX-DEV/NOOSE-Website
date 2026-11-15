@@ -52,6 +52,7 @@ public class NavLabelService(IDbContextFactory<AppDbContext> dbFactory) : INavLa
             "Faction" => await db.Factions.Where(x => x.Id == id).Select(x => x.Name).FirstOrDefaultAsync(cancellationToken),
             "PersonGroup" => await db.PersonGroups.Where(x => x.Id == id).Select(x => x.Name).FirstOrDefaultAsync(cancellationToken),
             "Party" => await db.Parties.Where(x => x.Id == id).Select(x => x.Name).FirstOrDefaultAsync(cancellationToken),
+            "DrugRoute" => await db.DrugRoutes.Where(x => x.Id == id).Select(x => x.Designation).FirstOrDefaultAsync(cancellationToken),
             "Operation" => await db.Operations.Where(x => x.Id == id).Select(x => x.Title).FirstOrDefaultAsync(cancellationToken),
             "Case" => await db.Cases.Where(x => x.Id == id).Select(x => x.Title).FirstOrDefaultAsync(cancellationToken),
             "Document" => await db.Documents.Where(x => x.Id == id).Select(x => x.Title).FirstOrDefaultAsync(cancellationToken),

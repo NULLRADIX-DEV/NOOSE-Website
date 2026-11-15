@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -37,7 +38,7 @@ public sealed class DashboardServiceTests
         return (svc, requests, recency);
     }
 
-    // The service indexes settings[nameof(T)] for every dashboard type; supply all seven keys.
+    // The service indexes settings[nameof(T)] for every dashboard type; supply all eight keys.
     private static IReadOnlyDictionary<string, RecencySettings> SettingsFor(
         int warningDays = 10, int staleDays = 30, bool agingDisabled = false)
     {
@@ -48,6 +49,7 @@ public sealed class DashboardServiceTests
             [nameof(Faction)] = s,
             [nameof(PersonGroup)] = s,
             [nameof(Party)] = s,
+            [nameof(DrugRoute)] = s,
             [nameof(Operation)] = s,
             [nameof(Taskforce)] = s,
             [nameof(Case)] = s,

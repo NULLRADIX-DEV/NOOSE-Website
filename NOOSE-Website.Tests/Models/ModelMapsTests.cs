@@ -15,6 +15,7 @@ public class ModelMapsTests
     [InlineData("Faction", "/fraktionen/")]
     [InlineData("PersonGroup", "/personengruppen/")]
     [InlineData("Party", "/parteien/")]
+    [InlineData("DrugRoute", "/drogenrouten/")]
     [InlineData("Operation", "/operationen/")]
     [InlineData("AgentActivity", "/aktivitaeten/")]
     [InlineData("Taskforce", "/taskforces/")]

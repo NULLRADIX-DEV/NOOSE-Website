@@ -41,7 +41,6 @@ public class FactionService(
             .Include(f => f.Ranks)
             .Include(f => f.WeaponStock)
             .Include(f => f.Inventory)
-            .Include(f => f.DrugRoutes)
             .Include(f => f.Photos)
             .AsSplitQuery()
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
@@ -91,8 +90,6 @@ public class FactionService(
         Permission.RequireMayAssignClassification(actor, input.SecrecyLevel);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        // held until the commit: the new rows stay invisible to a parallel check before that
-        using var routeLock = await RouteLock.EnterAsync(cancellationToken);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
         var faction = new Faction
@@ -121,7 +118,6 @@ public class FactionService(
             db.ClassificationHistory.Add(ClassificationHelper.Entry(nameof(Faction), faction.Id, input.Classification, input.ClassificationJustification, actor));
         }
 
-        var gaveRoutes = await TakeOverRoutesAsync(db, faction, input, actor, cancellationToken);
         db.Factions.Add(faction);
         await db.SaveChangesAsync(cancellationToken);
 
@@ -194,8 +190,6 @@ public class FactionService(
         }
 
         await tx.CommitAsync(cancellationToken);
-        routeLock.Dispose();
-        await RoutesGivenAwayAsync(db, gaveRoutes, cancellationToken);
         // Initial threat score now that classification/members/stocks exist.
         await threat.NewCalculateAsync(faction.Id, cancellationToken);
         await MentionNotify.DeltaAsync(notifications, null, MentionScope(faction), "einer Fraktionsakte",
@@ -212,7 +206,6 @@ public class FactionService(
             .Include(f => f.Ranks)
             .Include(f => f.WeaponStock)
             .Include(f => f.Inventory)
-            .Include(f => f.DrugRoutes)
             .AsSplitQuery()
             .FirstOrDefaultAsync(f => f.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Fraktion '{id}' nicht gefunden.");
@@ -247,7 +240,6 @@ public class FactionService(
         db.FactionRanks.RemoveRange(faction.Ranks);
         db.FactionWeaponStocks.RemoveRange(faction.WeaponStock);
         db.FactionInventories.RemoveRange(faction.Inventory);
-        db.FactionDrugRoutes.RemoveRange(faction.DrugRoutes);
         ChildrenMap(faction, input);
         await SuggestionsStageAsync(db, faction, cancellationToken);
 
@@ -266,17 +258,11 @@ public class FactionService(
             }
         }
 
-        List<string> gaveRoutes;
-        using (await RouteLock.EnterAsync(cancellationToken))
-        {
-            gaveRoutes = await TakeOverRoutesAsync(db, faction, input, actor, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
-        }
+        await db.SaveChangesAsync(cancellationToken);
         if (!StockSnapshot(faction).SequenceEqual(stockBefore, StringComparer.Ordinal))
         {
             await FactionRecency.StampAsync(db, id, FactionRecencyFacet.Stock, cancellationToken);
         }
-        await RoutesGivenAwayAsync(db, gaveRoutes, cancellationToken);
         // Master data affects the score.
         await threat.NewCalculateAsync(id, cancellationToken);
         await MentionNotify.DeltaAsync(notifications, oldMentions, MentionScope(faction), "einer Fraktionsakte",
@@ -321,17 +307,7 @@ public class FactionService(
         faction.IsDeleted = false;
         faction.DeletedAt = null;
         faction.DeletedById = null;
-        bool dropped;
-        using (await RouteLock.EnterAsync(cancellationToken))
-        {
-            // still archived: it holds nothing yet, the unarchive decides
-            dropped = !faction.IsArchived && await DropTakenRoutesAsync(db, id, actor, cancellationToken);
-            await db.SaveChangesAsync(cancellationToken);
-        }
-        if (dropped)
-        {
-            await RoutesGivenAwayAsync(db, [id], cancellationToken);
-        }
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ArchiveAsync(string id, string? reason, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -351,30 +327,17 @@ public class FactionService(
         {
             throw new UnauthorizedAccessException("Diese Akte ist für dich nicht zugänglich.");
         }
-        var dropped = false;
-        using (await RouteLock.EnterAsync(cancellationToken))
+        if (!await RecordArchive.SetArchivedAsync<Faction>(db, id, archived, reason, actor, cancellationToken))
         {
-            if (!await RecordArchive.SetArchivedAsync<Faction>(db, id, archived, reason, actor, cancellationToken))
-            {
-                return;
-            }
-            // ExecuteUpdate bypasses the audit interceptor, so the row is written by hand
-            var note = archived && !string.IsNullOrWhiteSpace(reason)
-                ? ManualAudit.Change("Archivgrund", null, reason.Trim())
-                : null;
-            db.AuditLogs.Add(ManualAudit.Row(nameof(Faction), id,
-                archived ? AuditAction.Archived : AuditAction.Unarchived, actor, note));
-            // archiving gives the routes free; coming back cannot take one another faction holds meanwhile
-            if (!archived)
-            {
-                dropped = await DropTakenRoutesAsync(db, id, actor, cancellationToken);
-            }
-            await db.SaveChangesAsync(cancellationToken);
+            return;
         }
-        if (dropped)
-        {
-            await RoutesGivenAwayAsync(db, [id], cancellationToken);
-        }
+        // ExecuteUpdate bypasses the audit interceptor, so the row is written by hand
+        var note = archived && !string.IsNullOrWhiteSpace(reason)
+            ? ManualAudit.Change("Archivgrund", null, reason.Trim())
+            : null;
+        db.AuditLogs.Add(ManualAudit.Row(nameof(Faction), id,
+            archived ? AuditAction.Archived : AuditAction.Unarchived, actor, note));
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task ClassificationSetAsync(string id, Classification @new, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -968,7 +931,6 @@ public class FactionService(
     private static List<string> StockSnapshot(Faction faction)
         => faction.WeaponStock.Select(w => $"W|{w.Designation}|{w.Quantity}")
             .Concat(faction.Inventory.Select(l => $"L|{l.Designation}|{l.Quantity}"))
-            .Concat(faction.DrugRoutes.Select(d => $"D|{d.Designation}|{d.Note}"))
             .OrderBy(x => x, StringComparer.Ordinal)
             .ToList();
 
@@ -986,178 +948,6 @@ public class FactionService(
             .Where(l => !string.IsNullOrWhiteSpace(l.Designation))
             .Select(l => new FactionInventory { FactionId = faction.Id, Designation = l.Designation.Trim(), Quantity = l.Quantity.TrimToNull() })
             .ToList();
-        // Drug routes share the generic stock input; its quantity field carries the note here.
-        faction.DrugRoutes = DrugRouteRules.Distinct(input.DrugRoutes)
-            .Select(d => new FactionDrugRoute { FactionId = faction.Id, Designation = d.Designation.Trim(), Note = d.Quantity.TrimToNull() })
-            .ToList();
-    }
-
-    // one process, one gate: two saves must not both find a route free and both take it
-    private static readonly SemaphoreSlim RouteGate = new(1, 1);
-
-    /// <summary>Holds <see cref="RouteGate"/>; releasing twice is harmless, so an early release can stand beside the using.</summary>
-    private sealed class RouteLock : IDisposable
-    {
-        private int _released;
-
-        public static async Task<RouteLock> EnterAsync(CancellationToken cancellationToken)
-        {
-            await RouteGate.WaitAsync(cancellationToken);
-            return new RouteLock();
-        }
-
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref _released, 1) == 0)
-            {
-                RouteGate.Release();
-            }
-        }
-    }
-
-    public async Task<List<DrugRouteConflict>> GetDrugRouteConflictsAsync(string? factionId, IEnumerable<string> designations,
-        ClaimsPrincipal actor, CancellationToken cancellationToken = default)
-    {
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        return (await RouteConflictsAsync(db, factionId, designations, actor, cancellationToken))
-            .Select(c => c.Conflict)
-            .ToList();
-    }
-
-    /// <summary>One faction holding a wanted route: what the actor is told, the rows that would move, and whether
-    /// the holder is open to every agent (only then may another file's history name it).</summary>
-    private sealed record RouteHolding(DrugRouteConflict Conflict, List<string> RowIds, bool HolderOpen);
-
-    /// <summary>Every holding of a wanted route by another active faction.</summary>
-    private static async Task<List<RouteHolding>> RouteConflictsAsync(AppDbContext db,
-        string? factionId, IEnumerable<string> designations, ClaimsPrincipal actor, CancellationToken cancellationToken)
-    {
-        var wanted = designations.Select(DrugRouteRules.Key).Where(k => k.Length > 0).ToHashSet(StringComparer.Ordinal);
-        if (wanted.Count == 0)
-        {
-            return [];
-        }
-
-        // trash (query filter) and archive give a route free
-        var held = await (
-                from d in db.FactionDrugRoutes
-                join f in db.Factions.OnlyActive() on d.FactionId equals f.Id
-                where factionId == null || d.FactionId != factionId
-                select new { d.Id, d.FactionId, f.Name, f.SecrecyLevel, d.Designation })
-            .ToListAsync(cancellationToken);
-
-        var scope = ViewerScope.From(actor);
-        var audience = DocumentViewerScope.From(actor);
-        var result = new List<RouteHolding>();
-        foreach (var holding in held
-                     .Where(h => wanted.Contains(DrugRouteRules.Key(h.Designation)))
-                     .GroupBy(h => (Key: DrugRouteRules.Key(h.Designation), h.FactionId))
-                     .OrderBy(g => g.Key.Key, StringComparer.Ordinal))
-        {
-            var first = holding.First();
-            // a holder the actor cannot see stays unnamed, and its route cannot be taken blindly
-            var visible = audience.CanSee(first.SecrecyLevel)
-                && await Visibility.IsRecordVisibleAsync(db, nameof(Faction), first.FactionId, scope, cancellationToken);
-            result.Add(new RouteHolding(new DrugRouteConflict(holding.Key.Key, first.Designation,
-                    visible ? first.FactionId : null, visible ? first.Name : null, visible),
-                holding.Select(h => h.Id).ToList(),
-                first.SecrecyLevel == DocumentClassification.None));
-        }
-        return result;
-    }
-
-    /// <summary>Moves the confirmed routes over from their holders or refuses the save; runs inside <see cref="RouteGate"/>, before the save.</summary>
-    /// <returns>The factions that gave a route away.</returns>
-    private static async Task<List<string>> TakeOverRoutesAsync(AppDbContext db, Faction faction, FactionInput input,
-        ClaimsPrincipal actor, CancellationToken cancellationToken)
-    {
-        var conflicts = await RouteConflictsAsync(db, faction.Id, faction.DrugRoutes.Select(d => d.Designation), actor, cancellationToken);
-        if (conflicts.Count == 0)
-        {
-            return [];
-        }
-
-        var confirmed = input.ConfirmedRouteTakeovers.Select(DrugRouteRules.Key).ToHashSet(StringComparer.Ordinal);
-        var refused = conflicts
-            .Where(c => !c.Conflict.MayTakeOver || !confirmed.Contains(c.Conflict.Key))
-            .Select(c => c.Conflict)
-            .ToList();
-        if (refused.Count > 0)
-        {
-            throw new DrugRouteConflictException(refused);
-        }
-
-        var rowIds = conflicts.SelectMany(c => c.RowIds).ToList();
-        db.FactionDrugRoutes.RemoveRange(await db.FactionDrugRoutes.Where(d => rowIds.Contains(d.Id)).ToListAsync(cancellationToken));
-        // each history is read by everyone who sees that file, so a classified other side stays unnamed
-        const string Unnamed = "einer anderen Fraktion";
-        var takerOpen = faction.SecrecyLevel == DocumentClassification.None;
-        foreach (var (c, _, holderOpen) in conflicts)
-        {
-            var taken = faction.DrugRoutes.First(d => DrugRouteRules.Key(d.Designation) == c.Key).Designation;
-            // route rows carry no audit of their own, so both files get a line by hand
-            db.AuditLogs.Add(ManualAudit.Row(nameof(Faction), c.HolderId!, AuditAction.Modified, actor,
-                new Dictionary<string, object?[]>
-                {
-                    ["Drogenroute"] = [c.Designation, null],
-                    ["Übergeben an"] = [null, takerOpen ? faction.Name : Unnamed],
-                }));
-            db.AuditLogs.Add(ManualAudit.Row(nameof(Faction), faction.Id, AuditAction.Modified, actor,
-                new Dictionary<string, object?[]>
-                {
-                    ["Drogenroute übernommen"] = [null, taken],
-                    ["Von"] = [null, holderOpen ? c.HolderName : Unnamed],
-                }));
-        }
-        return conflicts.Select(c => c.Conflict.HolderId!).Distinct().ToList();
-    }
-
-    /// <summary>A faction that lost a route: its stock light and its score follow.</summary>
-    private async Task RoutesGivenAwayAsync(AppDbContext db, IEnumerable<string> factionIds, CancellationToken cancellationToken)
-    {
-        foreach (var id in factionIds)
-        {
-            await FactionRecency.StampAsync(db, id, FactionRecencyFacet.Stock, cancellationToken);
-            await threat.NewCalculateAsync(id, cancellationToken);
-        }
-    }
-
-    /// <summary>A faction coming back from trash or archive drops the routes another active faction holds meanwhile.</summary>
-    /// <returns>Whether a route was dropped; the caller saves.</returns>
-    private static async Task<bool> DropTakenRoutesAsync(AppDbContext db, string factionId, ClaimsPrincipal actor,
-        CancellationToken cancellationToken)
-    {
-        var own = await db.FactionDrugRoutes.Where(d => d.FactionId == factionId).ToListAsync(cancellationToken);
-        if (own.Count == 0)
-        {
-            return false;
-        }
-        var taken = (await (
-                    from d in db.FactionDrugRoutes
-                    join f in db.Factions.OnlyActive() on d.FactionId equals f.Id
-                    where d.FactionId != factionId
-                    select d.Designation)
-                .ToListAsync(cancellationToken))
-            .Select(DrugRouteRules.Key)
-            .ToHashSet(StringComparer.Ordinal);
-        var lost = own.Where(d => taken.Contains(DrugRouteRules.Key(d.Designation))).ToList();
-        if (lost.Count == 0)
-        {
-            return false;
-        }
-
-        db.FactionDrugRoutes.RemoveRange(lost);
-        foreach (var d in lost)
-        {
-            // the other faction stays unnamed: it may be classified for whoever reads this history
-            db.AuditLogs.Add(ManualAudit.Row(nameof(Faction), factionId, AuditAction.Modified, actor,
-                new Dictionary<string, object?[]>
-                {
-                    ["Drogenroute"] = [d.Designation, null],
-                    ["Grund"] = [null, "inzwischen bei einer anderen Fraktion"],
-                }));
-        }
-        return true;
     }
 
     /// <summary>Stages stock designations into the shared suggestion catalog; classified factions are excluded, staged within the caller's SaveChanges.</summary>
@@ -1173,7 +963,6 @@ public class FactionService(
         }
         await suggestion.StageAsync(db, SuggestionType.Weapon, faction.WeaponStock.Select(w => w.Designation), cancellationToken);
         await suggestion.StageAsync(db, SuggestionType.Inventory, faction.Inventory.Select(l => l.Designation), cancellationToken);
-        await suggestion.StageAsync(db, SuggestionType.DrugRoute, faction.DrugRoutes.Select(d => d.Designation), cancellationToken);
     }
 
     /// <summary>Syncs the person's automatic faction-colleague links: a link exists iff two people share at least one faction. Called after every membership change.</summary>

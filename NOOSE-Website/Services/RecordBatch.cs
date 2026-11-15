@@ -3,6 +3,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
@@ -49,7 +50,7 @@ public static class RecordBatch
     {
         nameof(Case), nameof(Operation), nameof(Taskforce), nameof(Job),
         nameof(Person), nameof(Meeting), nameof(Law), nameof(Bewerbung), nameof(Presentation),
-        nameof(Warrant), nameof(RegulationParagraph),
+        nameof(Warrant), nameof(RegulationParagraph), nameof(DrugRoute),
     };
 
     private static readonly IReadOnlySet<string> Involved = LinkService.InvolvedTypes.ToHashSet(StringComparer.Ordinal);
@@ -73,7 +74,7 @@ public static class RecordBatch
     /// <summary>Types that may be followed: the records that carry a follow button.</summary>
     public static readonly IReadOnlySet<string> Followable = new HashSet<string>(StringComparer.Ordinal)
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute),
         nameof(Operation), nameof(Case), nameof(Taskforce), nameof(Agent),
     };
 

@@ -15,7 +15,7 @@ public sealed class SearchIndexBackfillWorker(IServiceScopeFactory scopeFactory,
     /// <summary>Bump whenever <see cref="SearchIndexProjection"/> gains or changes a type. A stored version below this
     /// re-runs the whole pass; the pass wipes both tables first, so re-running is idempotent. Without this an existing
     /// installation would index zero rows of a newly added type — phonetic recall would just look flaky for months.</summary>
-    public const int Version = 5;
+    public const int Version = 6;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -55,6 +55,7 @@ public sealed class SearchIndexBackfillWorker(IServiceScopeFactory scopeFactory,
             total += await IndexAllAsync(db, db.Factions, stoppingToken);
             total += await IndexAllAsync(db, db.PersonGroups, stoppingToken);
             total += await IndexAllAsync(db, db.Parties, stoppingToken);
+            total += await IndexAllAsync(db, db.DrugRoutes, stoppingToken);
             total += await IndexAllAsync(db, db.Operations, stoppingToken);
             total += await IndexAllAsync(db, db.Taskforces, stoppingToken);
             total += await IndexAllAsync(db, db.Cases, stoppingToken);

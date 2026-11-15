@@ -4,6 +4,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Jobs;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
@@ -40,7 +41,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         nameof(Operation), nameof(Taskforce), nameof(Case), nameof(Agent),
         nameof(PersonDoc), nameof(Observation), nameof(Job), nameof(Law), nameof(Document),
         nameof(Bewerbung), nameof(Meeting), nameof(MeetingAgendaItem), nameof(Hinweis), nameof(Ticket),
-        nameof(Presentation), nameof(Warrant), nameof(RegulationParagraph),
+        nameof(Presentation), nameof(Warrant), nameof(RegulationParagraph), nameof(DrugRoute),
     ];
 
     /// <summary>Known types the scope-free <see cref="RecordsReference"/> also names, for mentions and compromises.</summary>
@@ -116,6 +117,13 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
                      .Select(p => new { p.Id, p.Name, p.CaseNumber, p.IsClassified }).ToListAsync(cancellationToken))
         {
             targets[(nameof(Party), x.Id)] = ($"{x.Name} ({x.CaseNumber})", x.IsClassified, $"/parteien/{x.Id}");
+        }
+
+        var drugRouteIds = pairs.Where(p => p.OtherType == nameof(DrugRoute)).Select(p => p.OtherId).Distinct().ToList();
+        foreach (var x in await db.DrugRoutes.Where(r => drugRouteIds.Contains(r.Id))
+                     .Select(r => new { r.Id, r.Designation, r.CaseNumber, r.IsClassified }).ToListAsync(cancellationToken))
+        {
+            targets[(nameof(DrugRoute), x.Id)] = ($"{x.Designation} ({x.CaseNumber})", x.IsClassified, $"/drogenrouten/{x.Id}");
         }
 
         var operationIds = pairs.Where(p => p.OtherType == nameof(Operation)).Select(p => p.OtherId).Distinct().ToList();
@@ -298,7 +306,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         if (scope.PartnerAgency is { } agency)
         {
             releasedTargets = new();
-            foreach (var t in new[] { nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(Operation), nameof(Case), nameof(Law) })
+            foreach (var t in new[] { nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute), nameof(Operation), nameof(Case), nameof(Law) })
             {
                 var ids = pairs.Where(p => p.OtherType == t).Select(p => p.OtherId).Distinct().ToList();
                 foreach (var id in await PartnerVisibility.ReleasedParentIdsAsync(db, t, ids, agency, scope.MeId, cancellationToken))
@@ -361,7 +369,7 @@ public class LinkService(IDbContextFactory<AppDbContext> dbFactory, IThreatScore
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
         // don't let forged calls link to a classified/restricted target the actor can't see
-        if (targetType is nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party)
+        if (targetType is nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party) or nameof(DrugRoute)
                 or nameof(Operation) or nameof(Taskforce) or nameof(Job) or nameof(Case) or nameof(Document) or nameof(Bewerbung)
                 or nameof(Meeting) or nameof(MeetingAgendaItem) or nameof(Hinweis) or nameof(Ticket)
                 or nameof(Presentation) or nameof(Warrant) or nameof(RegulationParagraph)

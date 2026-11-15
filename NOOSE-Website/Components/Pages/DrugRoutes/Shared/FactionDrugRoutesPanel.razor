@@ -1,0 +1,42 @@
+@* the routes a faction runs, as links to their own files *@
+<MudStack Spacing="1">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.subtitle2">Drogenrouten</MudText>
+        @if (MayCreate)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add"
+                       Href="@($"/drogenrouten/neu?fraktion={Uri.EscapeDataString(FactionId)}")">Neue Drogenroute</MudButton>
+        }
+    </MudStack>
+    @if (Routes.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Drogenroute erfasst.</MudText>
+    }
+    else
+    {
+        @foreach (var r in Routes)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                <MudIcon Icon="@Icons.Material.Filled.Route" Size="Size.Small" Class="mud-text-secondary" />
+                <MudLink Href="@($"/drogenrouten/{r.Id}")" Typo="Typo.body2">@r.Designation</MudLink>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                    @r.CaseNumber@(r.Substance is { } s ? $" · {s}" : "")@(r.Stations.Count > 0 ? $" · {r.Stations.Count} {(r.Stations.Count == 1 ? "Station" : "Stationen")}" : "")
+                </MudText>
+                @if (r.IsArchived)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">Archiviert</MudChip>
+                }
+                @if (r.IsRestricted)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Small" Color="Color.Warning" />
+                }
+            </MudStack>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string FactionId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public List<DrugRoute> Routes { get; set; } = new();
+    [Parameter] public bool MayCreate { get; set; }
+}

@@ -170,6 +170,7 @@ public class CounterIntelService(IDbContextFactory<AppDbContext> dbFactory, ICou
         nameof(NOOSE_Website.Data.Entities.Factions.Faction) => $"/fraktionen/{id}",
         nameof(NOOSE_Website.Data.Entities.Groups.PersonGroup) => $"/personengruppen/{id}",
         nameof(NOOSE_Website.Data.Entities.Parties.Party) => $"/parteien/{id}",
+        nameof(NOOSE_Website.Data.Entities.DrugRoutes.DrugRoute) => $"/drogenrouten/{id}",
         nameof(NOOSE_Website.Data.Entities.Operations.Operation) => $"/operationen/{id}",
         nameof(NOOSE_Website.Data.Entities.Cases.Case) => $"/vorgaenge/{id}",
         nameof(NOOSE_Website.Data.Entities.Taskforces.Taskforce) => $"/taskforces/{id}",

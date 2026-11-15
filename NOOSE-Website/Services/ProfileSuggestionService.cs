@@ -108,18 +108,6 @@ public class ProfileSuggestionService(IDbContextFactory<AppDbContext> dbFactory)
         {
             throw new InvalidOperationException($"Der Wert „{newValue}“ existiert bereits.");
         }
-        // the catalog misses classified routes, so the route table itself is asked; a merge would give one route to two factions
-        if (entry.Type == SuggestionType.DrugRoute && DrugRouteRules.Key(newValue) != DrugRouteRules.Key(entry.Value))
-        {
-            var key = DrugRouteRules.Key(newValue);
-            var inUse = await db.FactionDrugRoutes.Select(d => d.Designation).Distinct().ToListAsync(cancellationToken);
-            if (inUse.Any(d => DrugRouteRules.Key(d) == key))
-            {
-                throw new InvalidOperationException(
-                    $"Eine Route „{newValue}“ ist schon eingetragen. Umbenennen würde zwei Routen zusammenlegen – trag eine davon zuerst aus.");
-            }
-        }
-
         var oldValue = entry.Value;
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
         entry.Value = newValue;
@@ -210,10 +198,6 @@ public class ProfileSuggestionService(IDbContextFactory<AppDbContext> dbFactory)
                 await db.FactionInventories.IgnoreQueryFilters().Where(l => l.Designation == oldValue)
                     .ExecuteUpdateAsync(s => s.SetProperty(l => l.Designation, newValue), cancellationToken);
                 break;
-            case SuggestionType.DrugRoute:
-                await db.FactionDrugRoutes.IgnoreQueryFilters().Where(d => d.Designation == oldValue)
-                    .ExecuteUpdateAsync(s => s.SetProperty(d => d.Designation, newValue), cancellationToken);
-                break;
             case SuggestionType.Kind:
                 await db.Factions.IgnoreQueryFilters().Where(f => f.Kind == oldValue)
                     .ExecuteUpdateAsync(s => s.SetProperty(f => f.Kind, newValue), cancellationToken);
@@ -265,10 +249,6 @@ public class ProfileSuggestionService(IDbContextFactory<AppDbContext> dbFactory)
                 await db.FactionInventories.IgnoreQueryFilters().Where(l => l.Designation == value)
                     .ExecuteDeleteAsync(cancellationToken);
                 break;
-            case SuggestionType.DrugRoute:
-                await db.FactionDrugRoutes.IgnoreQueryFilters().Where(d => d.Designation == value)
-                    .ExecuteDeleteAsync(cancellationToken);
-                break;
             case SuggestionType.Kind:
                 await db.Factions.IgnoreQueryFilters().Where(f => f.Kind == value)
                     .ExecuteUpdateAsync(s => s.SetProperty(f => f.Kind, (string?)null), cancellationToken);
@@ -314,9 +294,6 @@ public class ProfileSuggestionService(IDbContextFactory<AppDbContext> dbFactory)
                 break;
             case SuggestionType.Inventory:
                 await MergeCountsAsync(db.FactionInventories.IgnoreQueryFilters().Select(l => l.Designation), map, cancellationToken);
-                break;
-            case SuggestionType.DrugRoute:
-                await MergeCountsAsync(db.FactionDrugRoutes.IgnoreQueryFilters().Select(d => d.Designation), map, cancellationToken);
                 break;
             case SuggestionType.Kind:
                 await MergeCountsAsync(db.Factions.IgnoreQueryFilters().Where(f => f.Kind != null).Select(f => f.Kind!), map, cancellationToken);

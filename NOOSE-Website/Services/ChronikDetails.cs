@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -95,6 +96,18 @@ public static class ChronikDetails
             }
         }
 
+        var stationIds = Ids(nameof(DrugRouteStation));
+        if (stationIds.Count > 0)
+        {
+            foreach (var x in await db.DrugRouteStations.IgnoreQueryFilters().Where(s => stationIds.Contains(s.Id))
+                .Select(s => new { s.Id, s.Kind, s.Location }).ToListAsync(cancellationToken))
+            {
+                var kind = DrugRouteStationKindDisplay.Name(x.Kind);
+                map[(nameof(DrugRouteStation), x.Id)] = new Detail(
+                    string.IsNullOrWhiteSpace(x.Location) ? kind : $"{kind}: {TimelineDisplay.Truncate(x.Location)}");
+            }
+        }
+
         // ---- details that name another record; the caller must run them through its visibility gate ----
 
         var relationIds = Ids(nameof(PersonRelation));
@@ -125,6 +138,8 @@ public static class ChronikDetails
         await MemberAsync(nameof(PersonGroupMember), i => db.PersonGroupMembers.IgnoreQueryFilters()
             .Where(m => i.Contains(m.Id)).Select(m => new MemberRow(m.Id, m.PersonId, m.Role)));
         await MemberAsync(nameof(PartyMember), i => db.PartyMembers.IgnoreQueryFilters()
+            .Where(m => i.Contains(m.Id)).Select(m => new MemberRow(m.Id, m.PersonId, m.Role)));
+        await MemberAsync(nameof(DrugRoutePerson), i => db.DrugRoutePeople.IgnoreQueryFilters()
             .Where(m => i.Contains(m.Id)).Select(m => new MemberRow(m.Id, m.PersonId, m.Role)));
 
         // ---- agent assignments: codenames are internal-visible, no gate needed ----

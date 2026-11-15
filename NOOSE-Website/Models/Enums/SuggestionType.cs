@@ -11,6 +11,7 @@ public enum SuggestionType
     PartyRole = 5,
     OperationType = 6,
     CaseType = 7,
+    /// <summary>Retired: routes are own records now; kept so stored rows keep their number.</summary>
     DrugRoute = 8,
     FinancingCategory = 9,
     EvidenceCategory = 10,

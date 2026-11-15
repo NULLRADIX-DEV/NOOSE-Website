@@ -38,6 +38,7 @@ public static class ShortcutRoutes
         ["fraktionen"] = "Fraktion",
         ["personengruppen"] = "Personengruppe",
         ["parteien"] = "Partei",
+        ["drogenrouten"] = "Drogenroute",
         ["operationen"] = "Operation",
         ["taskforces"] = "Taskforce",
         ["vorgaenge"] = "Vorgang",
@@ -55,7 +56,7 @@ public static class ShortcutRoutes
     /// </remarks>
     private static readonly IReadOnlySet<string> Editable = new HashSet<string>(StringComparer.Ordinal)
     {
-        "personen", "fraktionen", "personengruppen", "parteien", "vorgaenge", "operationen", "taskforces",
+        "personen", "fraktionen", "personengruppen", "parteien", "drogenrouten", "vorgaenge", "operationen", "taskforces",
         "entfuehrungen", "informanten",
     };
 

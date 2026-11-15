@@ -1,0 +1,168 @@
+@page "/drogenrouten/{Id}/druck"
+@layout PrintLayout
+@inject IDrugRouteService RouteService
+@inject IPartnerVisibilityPolicyService PartnerPolicy
+@inject ILinkService LinkService
+@inject ICommentService CommentService
+@inject IAccessLogService AccessLog
+
+<PageTitle>@(_route is null ? "Druckansicht" : $"Drogenroutenakte {_route.CaseNumber}") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_route is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Diese Akte existiert nicht (mehr) oder ist nicht sichtbar.</MudAlert>
+}
+else
+{
+    <PrintFrame Title="@($"Drogenroutenakte {_route.CaseNumber}")" BackHref="@($"/drogenrouten/{Id}")"
+                PrintedBy="@_printBy" IsClassified="_route.IsClassified">
+        <section>
+            <h2>Stammdaten</h2>
+            <table class="druck-felder">
+                <tbody>
+                    <tr><th>Bezeichnung</th><td>@_route.Designation</td></tr>
+                    <tr><th>Aktenzeichen</th><td>@_route.CaseNumber</td></tr>
+                    <tr><th>Substanz</th><td>@(string.IsNullOrWhiteSpace(_route.Substance) ? "—" : _route.Substance)</td></tr>
+                    <tr><th>Fraktion</th><td>@(_route.Faction?.Name ?? (_route.FactionId is null ? "unbekannt" : "nicht einsehbar"))</td></tr>
+                    @if (TabOn("einstufung"))
+                    {
+                        <tr><th>Einstufung</th><td>@ClassificationDisplay.Name(_route.Classification)</td></tr>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_route.Description))
+                    {
+                        <tr><th>Beschreibung</th><td class="druck-mehrzeilig"><MentionDisplay Text="@_route.Description" Plain="true" /></td></tr>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_route.Findings))
+                    {
+                        <tr><th>Erkenntnisse</th><td class="druck-mehrzeilig"><MentionDisplay Text="@_route.Findings" Plain="true" /></td></tr>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_route.Remarks))
+                    {
+                        <tr><th>Bemerkungen</th><td class="druck-mehrzeilig"><MentionDisplay Text="@_route.Remarks" Plain="true" /></td></tr>
+                    }
+                    @if (TabOn("fotos"))
+                    {
+                        <tr><th>Beweisfotos</th><td>@_photoCount</td></tr>
+                    }
+                    <tr><th>Zuletzt aktualisiert</th><td>@((_route.ModifiedAt ?? _route.CreatedAt).ToLocalTime().ToString("dd.MM.yyyy HH:mm"))</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        @if (_stations.Count > 0)
+        {
+            <section>
+                <h2>Stationen (@_stations.Count)</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Nr.</th><th>Art</th><th>Ort</th><th>Beschreibung</th>@if (TabOn("fotos")) { <th>Fotos</th> }</tr></thead>
+                    <tbody>
+                        @foreach (var s in _stations)
+                        {
+                            <tr>
+                                <td>@(_stations.IndexOf(s) + 1)</td>
+                                <td>@DrugRouteStationKindDisplay.Name(s.Kind)</td>
+                                <td>@s.Location</td>
+                                <td class="druck-mehrzeilig">@(string.IsNullOrWhiteSpace(s.Description) ? "—" : s.Description)</td>
+                                @if (TabOn("fotos"))
+                                {
+                                    <td>@(_photos.Count(p => p.StationId == s.Id))</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+
+        @if (_people.Count > 0)
+        {
+            <section>
+                <h2>Beteiligte Personen (@_people.Count)</h2>
+                <table class="druck-tabelle">
+                    <thead><tr><th>Name</th><th>Aktenzeichen</th><th>Rolle</th></tr></thead>
+                    <tbody>
+                        @foreach (var p in _people)
+                        {
+                            <tr>
+                                <td>@(p.Person?.Name ?? "—")</td>
+                                <td>@(p.Person?.CaseNumber ?? "—")</td>
+                                <td>@(string.IsNullOrWhiteSpace(p.Role) ? "—" : p.Role)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+
+        <PrintClassificationHistory Entries="_classificationHistory" />
+        <PrintLinks Entries="_links" />
+        <PrintComments Entries="_comments" />
+    </PrintFrame>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private string? _printBy;
+    private DrugRoute? _route;
+    private List<DrugRouteStation> _stations = new();
+    private List<DrugRoutePerson> _people = new();
+    private List<DrugRoutePhoto> _photos = new();
+    private int _photoCount;
+    private List<ClassificationHistory> _classificationHistory = new();
+    private List<LinkDisplay> _links = new();
+    private List<Comment> _comments = new();
+
+    private IReadOnlySet<string>? _visibleTabs;
+
+    /// <summary>Partner tab gate.</summary>
+    private bool TabOn(string slug) => _visibleTabs is null || _visibleTabs.Contains(slug);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        var isLeadership = user.IsLeadership();
+        _printBy = user.GetCodename();
+
+        var scope = ViewerScope.From(user);
+        _route = await RouteService.GetDetailAsync(Id, scope);
+        if (_route is not null)
+        {
+            _visibleTabs = user.IsPartner()
+                ? await PartnerPolicy.GetVisibleTabsAsync(user, nameof(DrugRoute), Id)
+                : null;
+            // partner tab gate
+            if (TabOn("einstufung"))
+            {
+                _classificationHistory = await RouteService.GetClassificationHistoryAsync(Id, scope);
+            }
+            if (TabOn("stationen"))
+            {
+                _stations = await RouteService.GetStationsAsync(Id, ViewerScope.From(user));
+            }
+            if (TabOn("personen"))
+            {
+                _people = await RouteService.GetPeopleAsync(Id, scope);
+            }
+            if (TabOn("fotos"))
+            {
+                _photos = await RouteService.GetPhotosAsync(Id, ViewerScope.From(user));
+                _photoCount = _photos.Count;
+            }
+            // partners: core only
+            if (!user.IsPartner())
+            {
+                _links = await LinkService.GetForRecordAsync(nameof(DrugRoute), Id, scope);
+                _comments = await CommentService.GetForRecordAsync(nameof(DrugRoute), Id, isLeadership);
+            }
+            await AccessLog.LogViewAsync(nameof(DrugRoute), Id);
+        }
+        _load = false;
+    }
+}

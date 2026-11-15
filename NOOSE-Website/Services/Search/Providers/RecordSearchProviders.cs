@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -381,6 +382,91 @@ public sealed class PartySearchProvider(IDbContextFactory<AppDbContext> dbFactor
             var tagIds = query.TagIds;
             q = q.Where(p => db.TagMappings.Any(z =>
                 z.EntityType == nameof(Party) && z.EntityId == p.Id && tagIds.Contains(z.TagId)));
+        }
+        return q;
+    }
+}
+
+/// <summary>Drug routes: designation, substance, description, findings, remarks.</summary>
+public sealed class DrugRouteSearchProvider(IDbContextFactory<AppDbContext> dbFactory) : ISearchProvider
+{
+    public string Category => nameof(DrugRoute);
+
+    public PartnerAccess Partner => PartnerAccess.ViaShare;
+
+    public bool AppliesTo(SearchViewer viewer) => true;
+
+    public async Task<IReadOnlyList<SearchHit>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var q = Visible(db, query);
+        if (query.HasText)
+        {
+            var s = query.Text;
+            q = q.Where(r => r.Designation.Contains(s) || r.CaseNumber.Contains(s)
+                || (r.Substance != null && r.Substance.Contains(s))
+                || (r.Description != null && r.Description.Contains(s))
+                || (r.Findings != null && r.Findings.Contains(s))
+                || (r.Remarks != null && r.Remarks.Contains(s)));
+        }
+        var hits = await q.OrderBy(r => r.Designation).Take(query.PerCategory)
+            .Select(r => new SearchHit(nameof(DrugRoute), r.Id, r.Designation, r.Description ?? string.Empty, r.CaseNumber))
+            .ToListAsync(cancellationToken);
+
+        if (!query.WantsFuzzy(hits.Count))
+        {
+            return hits;
+        }
+        var raw = await Visible(db, query).OrderByDescending(r => r.ModifiedAt ?? r.CreatedAt).Take(query.FuzzyCandidates)
+            .Select(r => new { r.Id, r.Designation, r.CaseNumber, r.Substance, r.Description, r.Findings, r.Remarks })
+            .ToListAsync(cancellationToken);
+        var candidates = raw.Select(x => new SearchProviderKit.Candidate(x.Id, x.Designation, x.CaseNumber, x.Description ?? string.Empty,
+            query.Deep
+                ? TextSimilarity.Tokens(x.Designation, x.CaseNumber, x.Substance, x.Description, x.Findings, x.Remarks)
+                : TextSimilarity.Tokens(x.Designation, x.CaseNumber)));
+        return SearchProviderKit.FuzzySupplement(nameof(DrugRoute), hits, query, candidates);
+    }
+
+    public async Task<IReadOnlyList<SearchHit>> ResolveIdsAsync(
+        SearchQuery query, IReadOnlyCollection<string> ids, int take, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await Visible(db, query).Where(r => ids.Contains(r.Id)).Take(take)
+            .Select(r => new SearchHit(nameof(DrugRoute), r.Id, r.Designation, r.Description ?? string.Empty, r.CaseNumber))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<QuickHit>> QuickAsync(SearchQuery query, int max, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var s = query.Text;
+        var hits = await Visible(db, query).Where(r => r.Designation.Contains(s) || r.CaseNumber.Contains(s))
+            .OrderBy(r => r.Designation).Take(max)
+            .Select(r => new QuickHit(nameof(DrugRoute), r.Id, r.Designation, r.CaseNumber))
+            .ToListAsync(cancellationToken);
+        if (hits.Count >= max)
+        {
+            return hits;
+        }
+        var candidates = await Visible(db, query).OrderBy(r => r.Designation).Take(query.FuzzyCandidates)
+            .Select(r => new { r.Id, r.Designation, r.CaseNumber }).ToListAsync(cancellationToken);
+        return SearchProviderKit.QuickFuzzy(nameof(DrugRoute), hits, query,
+            candidates.Select(x => (x.Id, x.Designation, x.CaseNumber)), max);
+    }
+
+    private static IQueryable<DrugRoute> Visible(AppDbContext db, SearchQuery query)
+    {
+        var scope = query.Scope;
+        var q = scope.PartnerAgency is { } agency
+            ? db.DrugRoutes.OnlyPartnerVisible(db, agency, scope.MeId)
+            : db.DrugRoutes.OnlyVisible(scope);
+        // one line for both waves: SearchAsync, ResolveIdsAsync, QuickAsync and the fuzzy pass come through here
+        q = query.IncludeArchived ? q : q.OnlyActive();
+        if (query.HasTags)
+        {
+            var tagIds = query.TagIds;
+            q = q.Where(r => db.TagMappings.Any(z =>
+                z.EntityType == nameof(DrugRoute) && z.EntityId == r.Id && tagIds.Contains(z.TagId)));
         }
         return q;
     }

@@ -1,3 +1,4 @@
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
@@ -17,7 +18,7 @@ public static class PartnerVisibility
 {
     /// <summary>Record types that can be released to partners; everything else is never partner-visible.</summary>
     public static bool IsReleasableType(string entityType) => entityType is
-        nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party)
+        nameof(Person) or nameof(Faction) or nameof(PersonGroup) or nameof(Party) or nameof(DrugRoute)
         or nameof(Operation) or nameof(Case) or nameof(Document) or nameof(Law)
         or nameof(Taskforce);
 
@@ -68,6 +69,8 @@ public static class PartnerVisibility
             nameof(PersonGroup) => await db.PersonGroups.Where(g => g.Id == entityId)
                 .OnlyPartnerVisible(db, agency, partnerAgentId).AnyAsync(cancellationToken),
             nameof(Party) => await db.Parties.Where(p => p.Id == entityId)
+                .OnlyPartnerVisible(db, agency, partnerAgentId).AnyAsync(cancellationToken),
+            nameof(DrugRoute) => await db.DrugRoutes.Where(r => r.Id == entityId)
                 .OnlyPartnerVisible(db, agency, partnerAgentId).AnyAsync(cancellationToken),
             nameof(Operation) => await db.Operations.Where(o => o.Id == entityId)
                 .OnlyPartnerVisible(db, agency, partnerAgentId).AnyAsync(cancellationToken),
@@ -379,6 +382,14 @@ public static class PartnerVisibility
         var shared = SharedIds(db, agency, partnerAgentId, nameof(Party));
         return query.Where(p => !p.IsClassified
             && (shared.Contains(p.Id) || rules.Any(r => r == PartnerRuleScope.All)));
+    }
+
+    public static IQueryable<DrugRoute> OnlyPartnerVisible(this IQueryable<DrugRoute> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)
+    {
+        var rules = RuleScopes(db, agency, partnerAgentId, nameof(DrugRoute));
+        var shared = SharedIds(db, agency, partnerAgentId, nameof(DrugRoute));
+        return query.Where(r => !r.IsClassified
+            && (shared.Contains(r.Id) || rules.Any(x => x == PartnerRuleScope.All)));
     }
 
     public static IQueryable<Operation> OnlyPartnerVisible(this IQueryable<Operation> query, AppDbContext db, PartnerAgency agency, string? partnerAgentId)

@@ -3,6 +3,7 @@ using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Investigations;
@@ -25,6 +26,7 @@ public static class MentionVisuals
         nameof(Faction) => Icons.Material.Filled.Groups,
         nameof(PersonGroup) => Icons.Material.Filled.Diversity3,
         nameof(Party) => Icons.Material.Filled.AccountBalance,
+        nameof(DrugRoute) => Icons.Material.Filled.Route,
         nameof(Operation) => Icons.Material.Filled.Radar,
         nameof(Taskforce) => Icons.Material.Filled.Groups2,
         nameof(Case) => Icons.Material.Filled.FolderSpecial,
@@ -52,6 +54,7 @@ public static class MentionVisuals
         nameof(Faction) => "Fraktion",
         nameof(PersonGroup) => "Gruppe",
         nameof(Party) => "Partei",
+        nameof(DrugRoute) => "Drogenroute",
         nameof(Operation) => "Operation",
         nameof(Taskforce) => "Taskforce",
         nameof(Case) => "Vorgang",

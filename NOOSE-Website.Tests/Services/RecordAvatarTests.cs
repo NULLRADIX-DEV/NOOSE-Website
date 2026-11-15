@@ -13,6 +13,7 @@ public class RecordAvatarTests
     [InlineData(nameof(Faction), "/dateien/fraktionen/foto/ph1")]
     [InlineData(nameof(PersonGroup), "/dateien/personengruppen/foto/ph1")]
     [InlineData(nameof(Party), "/dateien/parteien/foto/ph1")]
+    [InlineData("DrugRoute", "/dateien/drogenrouten/foto/ph1")]
     public void Url_ServesTheRecordTypesGallery(string entityType, string expected)
         => Assert.Equal(expected, RecordAvatar.Url(entityType, "ph1"));
 

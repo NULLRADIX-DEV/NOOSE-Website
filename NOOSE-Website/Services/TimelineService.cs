@@ -4,6 +4,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Jobs;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
 using NOOSE_Website.Data.Entities.Groups;
@@ -393,6 +394,12 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
                 ids.UnionWith(await db.PartyAgents.IgnoreQueryFilters().Where(a => a.PartyId == id).Select(a => a.Id).ToListAsync(ct));
                 ids.UnionWith(await db.PartyPhotos.IgnoreQueryFilters().Where(f => f.PartyId == id).Select(f => f.Id).ToListAsync(ct));
                 types.AddRange([nameof(PartyMember), nameof(PartyAgent), nameof(PartyPhoto)]);
+                break;
+            case nameof(DrugRoute):
+                ids.UnionWith(await db.DrugRouteStations.IgnoreQueryFilters().Where(s => s.DrugRouteId == id).Select(s => s.Id).ToListAsync(ct));
+                ids.UnionWith(await db.DrugRoutePeople.IgnoreQueryFilters().Where(p => p.DrugRouteId == id).Select(p => p.Id).ToListAsync(ct));
+                ids.UnionWith(await db.DrugRoutePhotos.IgnoreQueryFilters().Where(f => f.DrugRouteId == id).Select(f => f.Id).ToListAsync(ct));
+                types.AddRange([nameof(DrugRouteStation), nameof(DrugRoutePerson), nameof(DrugRoutePhoto)]);
                 break;
             case nameof(Operation):
                 ids.UnionWith(await db.OperationAgents.IgnoreQueryFilters().Where(a => a.OperationId == id).Select(a => a.Id).ToListAsync(ct));

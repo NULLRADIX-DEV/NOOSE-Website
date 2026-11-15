@@ -30,13 +30,13 @@ public sealed class SinceLastVisitScanTests
         => Regex.Match(text, $"<{component}\\b[^>]*/>").Value;
 
     [Fact]
-    public void The_seven_records_are_found()
+    public void The_eight_records_are_found()
     {
         // if this ever drops, the guards below have quietly stopped guarding anything
         var names = RecordsWithATimelineSection().Select(r => Path.GetFileName(r.Name)).Order().ToArray();
 
         Assert.Equal(
-            ["CaseDetail.razor", "FactionDetail.razor", "GroupDetail.razor", "OperationDetail.razor",
+            ["CaseDetail.razor", "DrugRouteDetail.razor", "FactionDetail.razor", "GroupDetail.razor", "OperationDetail.razor",
              "PartyDetail.razor", "PersonDetail.razor", "TaskforceDetail.razor"],
             names);
     }

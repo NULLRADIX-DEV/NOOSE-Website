@@ -1,5 +1,6 @@
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -36,7 +37,7 @@ public static class QuickCapture
     /// </remarks>
     public static readonly IReadOnlySet<string> CommentTargets = new HashSet<string>(StringComparer.Ordinal)
     {
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(Operation),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute), nameof(Operation),
         nameof(Case), nameof(Taskforce), nameof(Job), nameof(Meeting),
     };
 

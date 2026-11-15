@@ -4,6 +4,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
@@ -36,6 +37,7 @@ public static partial class DossierContextBuilder
             nameof(Faction) => await BuildFactionAsync(db, entityId, scope, cancellationToken),
             nameof(PersonGroup) => await BuildPersonGroupAsync(db, entityId, scope, cancellationToken),
             nameof(Party) => await BuildPartyAsync(db, entityId, scope, cancellationToken),
+            nameof(DrugRoute) => await BuildDrugRouteAsync(db, entityId, scope, cancellationToken),
             nameof(Operation) => await BuildOperationAsync(db, entityId, scope, cancellationToken),
             nameof(Case) => await BuildCaseAsync(db, entityId, scope, cancellationToken),
             nameof(Taskforce) => await BuildTaskforceAsync(db, entityId, scope, cancellationToken),
@@ -350,7 +352,7 @@ public static partial class DossierContextBuilder
         {
             Line(sb, "Lagerbestände", inventory.ToString());
         }
-        var routes = await db.FactionDrugRoutes.AsNoTracking().Where(x => x.FactionId == id).CountAsync(ct);
+        var routes = await db.DrugRoutes.AsNoTracking().OnlyActive().Where(x => x.FactionId == id).CountAsync(ct);
         if (routes > 0)
         {
             Line(sb, "Drogenrouten", routes.ToString());
@@ -461,6 +463,98 @@ public static partial class DossierContextBuilder
 
         await AppendAttachmentsAsync(sb, db, nameof(Party), id, includeClassificationHistory: true, view, ct);
         return new DossierContext($"{p.Name} ({p.CaseNumber})", sb.ToString(), p.IsRestricted);
+    }
+
+    static async Task<DossierContext?> BuildDrugRouteAsync(AppDbContext db, string id, ViewerScope? scope, CancellationToken ct)
+    {
+        var r = await db.DrugRoutes.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (r is null)
+        {
+            return null;
+        }
+        var view = scope ?? DossierScope.ForRecord(r.SecrecyLevel);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Drogenroute");
+        Line(sb, "Aktenzeichen", r.CaseNumber);
+        Line(sb, "Bezeichnung", r.Designation);
+        Line(sb, "Substanz", r.Substance);
+        Line(sb, "Einstufung", ClassificationDisplay.Name(r.Classification));
+        Line(sb, "Verschlusssache", r.IsRestricted ? $"Ja ({r.SecrecyLevel})" : "Nein");
+        Line(sb, "Archiviert", r.IsArchived);
+
+        // the running faction is named only where the viewer may see its own file
+        if (r.FactionId is not null)
+        {
+            var faction = await db.Factions.AsNoTracking().Where(x => x.Id == r.FactionId)
+                .Select(x => new { x.Name, x.IsClassified, x.IsTRUClassified, x.IsHRBClassified }).FirstOrDefaultAsync(ct);
+            if (faction is not null)
+            {
+                Line(sb, "Fraktion",
+                    view.CanSee(DossierScope.LevelOf(faction.IsClassified, faction.IsTRUClassified, faction.IsHRBClassified))
+                        ? faction.Name : "(Verschlusssache)");
+            }
+        }
+        Line(sb, "Beschreibung", r.Description);
+        Line(sb, "Erkenntnisse", r.Findings);
+        Line(sb, "Bemerkungen", r.Remarks);
+
+        var (stations, stationsTotal) = await TakeAsync(
+            db.DrugRouteStations.AsNoTracking().Where(x => x.DrugRouteId == id)
+                .OrderBy(x => x.SortOrder).Select(x => new { x.Kind, x.Location, x.Description }), ct);
+        if (stationsTotal > 0)
+        {
+            sb.AppendLine($"— Stationen ({stationsTotal}) —");
+            var step = 0;
+            foreach (var s in stations)
+            {
+                step++;
+                sb.Append(step).Append(". ").Append(DrugRouteStationKindDisplay.Name(s.Kind)).Append(": ")
+                    .Append(string.IsNullOrWhiteSpace(s.Location) ? "(Ort unbekannt)" : Free(s.Location));
+                if (Free(s.Description) is { Length: > 0 } detail)
+                {
+                    sb.Append(" — ").Append(detail);
+                }
+                sb.AppendLine();
+            }
+        }
+
+        // reuses the member renderer: the person's own secrecy masks the name, the role stands in the role column
+        var people = db.DrugRoutePeople.AsNoTracking().Where(x => x.DrugRouteId == id)
+            .Select(x => new MemberProj
+            {
+                Name = x.Person != null ? x.Person.Name : null,
+                Classified = x.Person != null && x.Person.IsClassified,
+                Tru = x.Person != null && x.Person.IsTRUClassified,
+                Hrb = x.Person != null && x.Person.IsHRBClassified,
+                RoleOrRank = x.Role,
+                IsLead = false,
+            });
+        var (peopleRows, peopleTotal) = await TakeAsync(people, ct);
+        if (peopleTotal > 0)
+        {
+            sb.AppendLine($"— Beteiligte Personen ({peopleTotal}) —");
+            foreach (var m in peopleRows)
+            {
+                var shown = string.IsNullOrWhiteSpace(m.Name) ? "(unbekannt)"
+                    : view.CanSee(DossierScope.LevelOf(m.Classified, m.Tru, m.Hrb)) ? m.Name : "(Verschlusssache)";
+                sb.Append("• ").Append(shown);
+                if (!string.IsNullOrWhiteSpace(m.RoleOrRank))
+                {
+                    sb.Append(" | Rolle: ").Append(Free(m.RoleOrRank));
+                }
+                sb.AppendLine();
+            }
+        }
+
+        var photos = await db.DrugRoutePhotos.AsNoTracking().Where(x => x.DrugRouteId == id).CountAsync(ct);
+        if (photos > 0)
+        {
+            Line(sb, "Fotos", photos.ToString());
+        }
+
+        await AppendAttachmentsAsync(sb, db, nameof(DrugRoute), id, includeClassificationHistory: true, view, ct);
+        return new DossierContext($"{r.Designation} ({r.CaseNumber})", sb.ToString(), r.IsRestricted);
     }
 
     static async Task<DossierContext?> BuildOperationAsync(AppDbContext db, string id, ViewerScope? scope, CancellationToken ct)
@@ -724,6 +818,19 @@ public static partial class DossierContextBuilder
                 RoleLabel = "Rolle",
                 RoleOrRank = m.Role,
                 IsLead = m.IsLead,
+            }).Take(Cap(25)).ToListAsync(ct));
+        rows.AddRange(await db.DrugRoutePeople.AsNoTracking().Where(m => m.PersonId == personId)
+            .Select(m => new AffiliationProj
+            {
+                Kind = "Drogenroute",
+                Name = m.DrugRoute != null ? m.DrugRoute.Designation : null,
+                CaseNumber = m.DrugRoute != null ? m.DrugRoute.CaseNumber : null,
+                Classified = m.DrugRoute != null && m.DrugRoute.IsClassified,
+                Tru = m.DrugRoute != null && m.DrugRoute.IsTRUClassified,
+                Hrb = m.DrugRoute != null && m.DrugRoute.IsHRBClassified,
+                RoleLabel = "Rolle",
+                RoleOrRank = m.Role,
+                IsLead = false,
             }).Take(Cap(25)).ToListAsync(ct));
 
         if (rows.Count == 0)

@@ -5,6 +5,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Investigations;
@@ -45,7 +46,7 @@ public class InvestigationLinkService(IDbContextFactory<AppDbContext> dbFactory)
     /// their own page, so a link there would be visible from the file only.</remarks>
     public static readonly IReadOnlyList<string> RecordTypes =
     [
-        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(Operation), nameof(Taskforce),
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(DrugRoute), nameof(Operation), nameof(Taskforce),
         nameof(Case), nameof(Job), nameof(Appointment), nameof(Meeting), nameof(MeetingAgendaItem), nameof(Law),
         nameof(Bewerbung), nameof(Warrant), nameof(Hinweis), nameof(RegulationParagraph), nameof(Presentation),
         nameof(Investigation),
@@ -403,6 +404,7 @@ public class InvestigationLinkService(IDbContextFactory<AppDbContext> dbFactory)
                 nameof(Faction) => await db.Factions.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, me).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(PersonGroup) => await db.PersonGroups.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, me).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Party) => await db.Parties.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, me).Select(x => x.Id).ToListAsync(cancellationToken),
+                nameof(DrugRoute) => await db.DrugRoutes.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, me).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Operation) => await db.Operations.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, me).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Case) => await db.Cases.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, me).Select(x => x.Id).ToListAsync(cancellationToken),
                 nameof(Taskforce) => await db.Taskforces.Where(x => ids.Contains(x.Id)).OnlyPartnerVisible(db, agency, me).Select(x => x.Id).ToListAsync(cancellationToken),
@@ -416,6 +418,7 @@ public class InvestigationLinkService(IDbContextFactory<AppDbContext> dbFactory)
             nameof(Faction) => await db.Factions.Where(x => ids.Contains(x.Id)).OnlyVisible(scope).Select(x => x.Id).ToListAsync(cancellationToken),
             nameof(PersonGroup) => await db.PersonGroups.Where(x => ids.Contains(x.Id)).OnlyVisible(scope).Select(x => x.Id).ToListAsync(cancellationToken),
             nameof(Party) => await db.Parties.Where(x => ids.Contains(x.Id)).OnlyVisible(scope).Select(x => x.Id).ToListAsync(cancellationToken),
+            nameof(DrugRoute) => await db.DrugRoutes.Where(x => ids.Contains(x.Id)).OnlyVisible(scope).Select(x => x.Id).ToListAsync(cancellationToken),
             nameof(Operation) => await db.Operations.Where(x => ids.Contains(x.Id)).OnlyVisible(scope).Select(x => x.Id).ToListAsync(cancellationToken),
             nameof(Case) => await db.Cases.Where(x => ids.Contains(x.Id)).OnlyVisible(scope).Select(x => x.Id).ToListAsync(cancellationToken),
             nameof(Law) => await db.Laws.Where(x => ids.Contains(x.Id)).Select(x => x.Id).ToListAsync(cancellationToken),

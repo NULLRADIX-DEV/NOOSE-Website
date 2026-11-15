@@ -1,3 +1,4 @@
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using Microsoft.EntityFrameworkCore;
 using NetCord;
 using NetCord.Rest;
@@ -19,11 +20,11 @@ public sealed class RecordCommands(
     BotScratch scratch,
     IPersonService people,
     IFactionService factions,
+    IDrugRouteService drugRoutes,
     ISearchService search,
     IPublicWantedService publicWanted,
     ISystemSettingService systemSettings,
-    IFileStorageService files,
-    IDbContextFactory<AppDbContext> dbFactory)
+    IFileStorageService files)
 {
     private const long MaxPhotoBytes = 8 * 1024 * 1024;
     private const long MaxPhotosTotal = 8 * 1024 * 1024;
@@ -210,9 +211,10 @@ public sealed class RecordCommands(
             ("Erkennungsfarbe", DiscordCards.Inline(faction.RecognitionColor, 40)),
             ("Älteste Pflege", $"{FactionRecencyFacetDisplay.Name(oldest)} {DiscordCards.When(FactionRecency.RefreshedAt(faction, oldest))}"))));
 
-        if (faction.DrugRoutes.Count > 0)
+        var routes = (await drugRoutes.GetForFactionAsync(faction.Id, call.Scope, call.Ct)).Where(r => !r.IsArchived).ToList();
+        if (routes.Count > 0)
         {
-            parts.Add(DiscordCards.Text("**🧪 Drogenrouten:** " + string.Join(", ", faction.DrugRoutes.Take(8).Select(r => DiscordCards.Inline(r.Designation, 40)))));
+            parts.Add(DiscordCards.Text("**🧪 Drogenrouten:** " + string.Join(", ", routes.Take(8).Select(r => DiscordCards.Inline(r.Designation, 40)))));
         }
         var description = DiscordCards.PlainFromHtml(faction.Description, 400);
         if (description.Length > 0)
@@ -402,49 +404,45 @@ public sealed class RecordCommands(
         {
             return BotReply.Error("Bitte eine Route angeben.");
         }
-        var conflicts = await factions.GetDrugRouteConflictsAsync(null, [name], call.User, call.Ct);
-        var holder = conflicts.FirstOrDefault(c => c.HolderId is not null);
-        if (holder is null && BotFuzzy.Single(await VisibleRoutesAsync(call), name, r => [r]) is { } corrected
-            && !string.Equals(corrected, name, StringComparison.OrdinalIgnoreCase))
+        var visible = await VisibleRoutesAsync(call);
+        var route = visible.FirstOrDefault(r => DrugRouteRules.Key(r.Designation) == DrugRouteRules.Key(name));
+        if (route is null && BotFuzzy.Single(visible, name, r => [r.Designation]) is { } corrected)
         {
             // typed with a typo: answer for the one route it clearly meant
-            name = corrected;
-            holder = (await factions.GetDrugRouteConflictsAsync(null, [name], call.User, call.Ct)).FirstOrDefault(c => c.HolderId is not null);
+            route = corrected;
         }
-        var parts = new List<IComponentContainerComponentProperties?> { DiscordCards.Header("🧪", name, "Drogenroute"), DiscordCards.Line() };
-        // a holder the caller may not see comes back without id, and reads like no holder at all
-        if (holder?.HolderName is null)
+        var parts = new List<IComponentContainerComponentProperties?> { DiscordCards.Header("🧪", route?.Designation ?? name, "Drogenroute"), DiscordCards.Line() };
+        if (route is null)
         {
-            parts.Add(DiscordCards.Text("Diese Route hält derzeit keine Fraktion, die du sehen darfst."));
+            parts.Add(DiscordCards.Text("Zu dieser Route gibt es keine Akte, die du sehen darfst."));
             return BotReply.Of(DiscordCards.Card(DiscordCards.Steel, parts));
         }
-        var link = await records.RecordLinkAsync(nameof(Faction), holder.HolderId!, call.Ct);
-        parts.Add(DiscordCards.Text($"Gehalten von **{DiscordCards.Inline(holder.HolderName, 80)}**"));
+        var detail = await drugRoutes.GetDetailAsync(route.Id, call.Scope, call.Ct);
+        parts.Add(DiscordCards.Text(DiscordCards.Fields(
+            ("Aktenzeichen", route.CaseNumber),
+            ("Substanz", DiscordCards.Inline(route.Substance, 60)),
+            ("Stationen", route.Stations.Count == 0 ? null : string.Join(" → ", route.Stations
+                .OrderBy(s => s.SortOrder).Take(8).Select(s => DiscordCards.Inline(s.Location, 40)))),
+            ("Betrieben von", detail?.Faction is { } f ? DiscordCards.Inline(f.Name, 80) : "unbekannt"))));
+        var link = await records.RecordLinkAsync(nameof(DrugRoute), route.Id, call.Ct);
         parts.Add(DiscordCards.Row(
-            DiscordCards.Button(BotIds.Make("card", nameof(Faction), holder.HolderId), "Fraktionskarte", "🏴", ButtonStyle.Primary),
+            detail?.Faction is { } holder
+                ? DiscordCards.Button(BotIds.Make("card", nameof(Faction), holder.Id), "Fraktionskarte", "🏴", ButtonStyle.Primary)
+                : null,
             link is null ? null : DiscordCards.Open(link)));
         return BotReply.Of(DiscordCards.Card(DiscordCards.Bronze, parts));
     }
 
     public async Task<BotReply> RouteSuggestAsync(BotCall call)
     {
-        var routes = (await VisibleRoutesAsync(call)).OrderBy(r => r, StringComparer.OrdinalIgnoreCase);
+        var routes = (await VisibleRoutesAsync(call)).Select(r => r.Designation).OrderBy(r => r, StringComparer.OrdinalIgnoreCase);
         return BotReply.Autocomplete(BotFuzzy.Rank(routes, call.Options.Text("name"), r => [r])
             .Select(r => new ApplicationCommandOptionChoiceProperties(DiscordCards.Clip(r, 100), DiscordCards.Clip(r, 100))));
     }
 
-    /// <summary>Route names held by factions the caller may see.</summary>
-    private async Task<List<string>> VisibleRoutesAsync(BotCall call)
-    {
-        var visible = (await factions.GetListAsync(call.Scope, cancellationToken: call.Ct)).Select(f => f.Id).ToList();
-        await using var db = await dbFactory.CreateDbContextAsync(call.Ct);
-        return (await db.FactionDrugRoutes.AsNoTracking()
-                .Where(r => visible.Contains(r.FactionId))
-                .Select(r => r.Designation)
-                .ToListAsync(call.Ct))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
+    /// <summary>Active route files the caller may see.</summary>
+    private Task<List<DrugRoute>> VisibleRoutesAsync(BotCall call)
+        => drugRoutes.GetListAsync(call.Scope, cancellationToken: call.Ct);
 
     // ---------------------------------------------------------------- helpers
 

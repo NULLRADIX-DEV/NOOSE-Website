@@ -13,6 +13,7 @@ using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Activities;
 using NOOSE_Website.Data.Entities.Parties;
+using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.People;
@@ -110,6 +111,12 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<PartyMember> PartyMembers => Set<PartyMember>();
     public DbSet<PartyAgent> PartyAgents => Set<PartyAgent>();
     public DbSet<PartyPhoto> PartyPhotos => Set<PartyPhoto>();
+
+    // drug routes
+    public DbSet<DrugRoute> DrugRoutes => Set<DrugRoute>();
+    public DbSet<DrugRouteStation> DrugRouteStations => Set<DrugRouteStation>();
+    public DbSet<DrugRoutePerson> DrugRoutePeople => Set<DrugRoutePerson>();
+    public DbSet<DrugRoutePhoto> DrugRoutePhotos => Set<DrugRoutePhoto>();
 
     // operations
     public DbSet<Operation> Operations => Set<Operation>();
@@ -894,8 +901,6 @@ public class AppDbContext : IdentityDbContext<Agent>
                 .HasForeignKey(w => w.FactionId).OnDelete(DeleteBehavior.Cascade);
             b.HasMany(f => f.Inventory).WithOne(l => l.Faction!)
                 .HasForeignKey(l => l.FactionId).OnDelete(DeleteBehavior.Cascade);
-            b.HasMany(f => f.DrugRoutes).WithOne(d => d.Faction!)
-                .HasForeignKey(d => d.FactionId).OnDelete(DeleteBehavior.Cascade);
             b.HasMany(f => f.Members).WithOne(m => m.Faction!)
                 .HasForeignKey(m => m.FactionId).OnDelete(DeleteBehavior.Cascade);
             b.HasMany(f => f.Agents).WithOne(a => a.Faction!)
@@ -958,6 +963,8 @@ public class AppDbContext : IdentityDbContext<Agent>
         {
             b.Property(d => d.Designation).HasMaxLength(200).IsRequired();
             b.Property(d => d.Note).HasMaxLength(200);
+            b.HasOne(d => d.Faction).WithMany()
+                .HasForeignKey(d => d.FactionId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<FactionMember>(b =>
@@ -1028,6 +1035,58 @@ public class AppDbContext : IdentityDbContext<Agent>
                 .HasForeignKey(m => m.PartyId).OnDelete(DeleteBehavior.Cascade);
             b.HasMany(p => p.Agents).WithOne(a => a.Party!)
                 .HasForeignKey(a => a.PartyId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DrugRoute>(b =>
+        {
+            b.Property(d => d.CaseNumber).HasMaxLength(32).IsRequired();
+            b.Property(d => d.Designation).HasMaxLength(200).IsRequired();
+            b.Property(d => d.Substance).HasMaxLength(100);
+            b.Property(d => d.Description).HasMaxLength(4000);
+            b.Property(d => d.Remarks).HasMaxLength(2000);
+            b.Property(d => d.ArchiveReason).HasMaxLength(300);
+            b.HasIndex(d => d.CaseNumber).IsUnique();
+            b.HasIndex(d => d.IsArchived);
+            b.HasIndex(d => d.Designation);
+            b.HasIndex(d => d.IsClassified);
+            b.HasIndex(d => d.FactionId);
+
+            b.HasOne(d => d.Faction).WithMany()
+                .HasForeignKey(d => d.FactionId).OnDelete(DeleteBehavior.SetNull);
+            b.HasMany(d => d.Stations).WithOne(s => s.DrugRoute!)
+                .HasForeignKey(s => s.DrugRouteId).OnDelete(DeleteBehavior.Cascade);
+            b.HasMany(d => d.People).WithOne(p => p.DrugRoute!)
+                .HasForeignKey(p => p.DrugRouteId).OnDelete(DeleteBehavior.Cascade);
+            b.HasMany(d => d.Photos).WithOne(f => f.DrugRoute!)
+                .HasForeignKey(f => f.DrugRouteId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DrugRouteStation>(b =>
+        {
+            b.Property(s => s.Location).HasMaxLength(200).IsRequired();
+            b.Property(s => s.Description).HasMaxLength(4000);
+            b.HasIndex(s => new { s.DrugRouteId, s.SortOrder });
+        });
+
+        modelBuilder.Entity<DrugRoutePerson>(b =>
+        {
+            b.Property(m => m.Role).HasMaxLength(100);
+            b.HasOne(m => m.Person).WithMany()
+                .HasForeignKey(m => m.PersonId).OnDelete(DeleteBehavior.Restrict);
+            // no unique: soft-delete safe
+            b.HasIndex(m => new { m.DrugRouteId, m.PersonId });
+            b.HasIndex(m => m.PersonId);
+        });
+
+        modelBuilder.Entity<DrugRoutePhoto>(b =>
+        {
+            b.Property(f => f.Caption).HasMaxLength(300);
+            b.Property(f => f.FileNameSaved).HasMaxLength(128);
+            b.Property(f => f.OriginalName).HasMaxLength(260);
+            b.Property(f => f.ContentType).HasMaxLength(100);
+            b.Property(f => f.CreatedById).HasMaxLength(64);
+            b.HasIndex(f => f.DrugRouteId);
+            b.HasIndex(f => f.StationId);
         });
 
         modelBuilder.Entity<PartyMember>(b =>
