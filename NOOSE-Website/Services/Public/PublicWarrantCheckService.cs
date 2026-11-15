@@ -43,7 +43,7 @@ public sealed class PublicWarrantCheckService(
             warrant.ValidUntil,
             warrant.CancelledAt,
             string.IsNullOrWhiteSpace(warrant.DeciderName) ? null : warrant.DeciderName.Trim(),
-            warrant.DeciderRank is { } rank ? RankDisplay.Name(rank) : null,
+            warrant.DeciderRank is { } rank ? RankDisplay.Name(rank) : warrant.DeciderFunction,
             warrant.DecidedAt);
     }
 

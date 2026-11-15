@@ -89,7 +89,7 @@ public class PartnerAgencyProfileService(IDbContextFactory<AppDbContext> dbFacto
     }
 
     /// <summary>A rule names a releasable type and a scope that type supports.</summary>
-    private static void Validate(PartnerRuleView rule)
+    internal static void Validate(PartnerRuleView rule)
     {
         if (!PartnerTabCatalog.All.Any(t => t.TypeKey == rule.EntityType))
         {

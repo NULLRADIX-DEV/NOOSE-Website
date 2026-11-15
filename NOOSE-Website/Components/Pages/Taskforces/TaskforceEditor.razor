@@ -104,6 +104,7 @@ else
                 Scope = t.Scope,
                 Remarks = t.Remarks,
                 IsClassified = t.IsClassified,
+                PartnerAgencies = t.PartnerAgencies.Select(p => p.Agency).ToList(),
             };
         }
         _loadedSecrecy = CriticalChange.TaskforceLevel(_input?.IsClassified == true);

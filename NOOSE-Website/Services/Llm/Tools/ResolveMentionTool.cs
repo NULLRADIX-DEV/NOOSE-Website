@@ -38,8 +38,10 @@ public sealed class ResolveMentionTool(IMentionService mentions) : INooseiTool
             return NooseiToolResult.Empty("Erwähnungen");
         }
 
+        // investigation titles never reach the model, not even for leadership
         var segments = await mentions.ResolveAsync(
-            text, context.Scope.MayClassifiedRead, context.Scope.MeId, cancellationToken, context.Scope.PartnerAgency);
+            text, context.Scope.MayClassifiedRead, context.Scope.MeId, cancellationToken, context.Scope.PartnerAgency,
+            investigations: false);
 
         var sb = new StringBuilder();
         foreach (var segment in segments)

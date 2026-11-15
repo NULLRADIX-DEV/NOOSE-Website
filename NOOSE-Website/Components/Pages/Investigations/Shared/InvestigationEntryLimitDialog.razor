@@ -1,0 +1,45 @@
+@* Pick the participants one entry is limited to; nothing picked lifts the limit. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            Ohne Auswahl sieht den Eintrag jeder, der den Tab lesen darf. Mit Auswahl nur die gewählten Beteiligten,
+            dazu wer die Ermittlung verwaltet.
+        </MudText>
+        <MudStack Spacing="0">
+            @foreach (var option in Options)
+            {
+                <MudCheckBox T="bool" Value="@IsPicked(option)" ValueChanged="@(v => Toggle(option, v))" Color="Color.Primary" Label="@option.Label" />
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="@(() => MudDialog.Close(DialogResult.Ok<IReadOnlyList<InvestigationTarget>>(_picked)))">Übernehmen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public IReadOnlyList<InvestigationTarget> Options { get; set; } = Array.Empty<InvestigationTarget>();
+    [Parameter] public IReadOnlyList<InvestigationTarget> Selected { get; set; } = Array.Empty<InvestigationTarget>();
+
+    private List<InvestigationTarget> _picked = new();
+
+    protected override void OnInitialized()
+        => _picked = Options.Where(o => Selected.Any(s => Same(s, o))).ToList();
+
+    private static bool Same(InvestigationTarget a, InvestigationTarget b)
+        => (a.AgentId != null && a.AgentId == b.AgentId) || (a.PartnerUnitId != null && a.AgentId == null && b.AgentId == null && a.PartnerUnitId == b.PartnerUnitId);
+
+    private bool IsPicked(InvestigationTarget option) => _picked.Any(p => Same(p, option));
+
+    private void Toggle(InvestigationTarget option, bool on)
+    {
+        _picked.RemoveAll(p => Same(p, option));
+        if (on)
+        {
+            _picked.Add(option);
+        }
+    }
+}

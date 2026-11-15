@@ -1,0 +1,54 @@
+@* Brings a deep-linked entry into view once its section has rendered; renders nothing itself. *@
+@inject IScrollManager Scroll
+
+@code {
+    /// <summary>Entry id to scroll to; the page passes it only to the section that holds the row, null does nothing.</summary>
+    /// <remarks>
+    /// MudBlazor scrolls the whole document into view when the selector finds nothing, so this must only ever name a
+    /// row that is in the rendered section. The page checks that against the viewer's own detail.
+    /// </remarks>
+    [Parameter] public string? Target { get; set; }
+
+    /// <summary>Raised once the scroll ran, so switching tabs later does not jump back to the entry.</summary>
+    [Parameter] public EventCallback Done { get; set; }
+
+    private string? _scrolled;
+
+    // once the page has cleared the target, following the same reference again must scroll again
+    protected override void OnParametersSet()
+    {
+        if (Target is null)
+        {
+            _scrolled = null;
+        }
+    }
+
+    // after render, not in OnParametersSet: the section's rows are only in the browser once this batch is applied
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Target is null)
+        {
+            return;
+        }
+        if (Target == _scrolled)
+        {
+            // already there; still report, so the page never keeps a pending scroll that jumps on a later tab switch
+            await Done.InvokeAsync();
+            return;
+        }
+        _scrolled = Target;
+        try
+        {
+            await Scroll.ScrollIntoViewAsync($"#{InvestigationTexts.Anchor(Target)}", ScrollBehavior.Smooth);
+        }
+        catch (JSDisconnectedException)
+        {
+            /* circuit gone */
+        }
+        catch (InvalidOperationException)
+        {
+            /* prerendering: no browser yet */
+        }
+        await Done.InvokeAsync();
+    }
+}

@@ -45,6 +45,7 @@ public class TrashServiceTests
         Substitute.For<IKassenService>(),
         Substitute.For<IFinancingService>(),
         Substitute.For<IWarrantService>(),
+        Substitute.For<IInvestigationService>(),
         Substitute.For<IFeedbackService>(),
         Substitute.For<IPublicPageService>(),
         Substitute.For<IPublicWantedService>(),

@@ -1,4 +1,4 @@
-@* Everything about one partner agency: its profile, which records are released, and what each rank sees of them. *@
+@* Everything about one partner agency: its profile, its units, which records are released, and what each unit sees of them. *@
 
 <MudPaper Class="pa-4 mb-6" Elevation="2">
     <MudSelect T="PartnerAgency" @bind-Value="_agency" Label="Behörde"
@@ -18,16 +18,23 @@
 
 <MudDivider Class="my-8" />
 
+<MudText Typo="Typo.h6" Class="mb-2">Einheiten</MudText>
+<PartnerUnitsEditor Agency="_agency" OnChanged="@(() => _unitVersion++)" />
+
+<MudDivider Class="my-8" />
+
 <MudText Typo="Typo.h6" Class="mb-2">Freigegebene Akten</MudText>
 <PartnerReleaseEditor @key="_releaseVersion" Agency="_agency" />
 
 <MudDivider Class="my-8" />
 
-<MudText Typo="Typo.h6" Class="mb-2">Sichtbarkeit je Rang</MudText>
-<PartnerVisibilityEditor Agency="_agency" />
+<MudText Typo="Typo.h6" Class="mb-2">Sichtbarkeit je Einheit</MudText>
+<PartnerVisibilityEditor Agency="_agency" Version="_unitVersion" />
 
 @code {
     private PartnerAgency _agency = PartnerAgency.DoJ;
     // remounts release editor
     private int _releaseVersion;
+    // reloads unit pickers
+    private int _unitVersion;
 }

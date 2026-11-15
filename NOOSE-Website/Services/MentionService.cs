@@ -34,7 +34,7 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
         nameof(Operation), nameof(Case), nameof(Taskforce), nameof(Document),
     };
 
-    public async Task<IReadOnlyList<MentionSegment>> ResolveAsync(string? text, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null)
+    public async Task<IReadOnlyList<MentionSegment>> ResolveAsync(string? text, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null, bool investigations = true)
     {
         if (string.IsNullOrEmpty(text))
         {
@@ -48,16 +48,11 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
 
         var refs = tokens.Select(t => (t.Type, t.Id)).Distinct().ToList();
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        // foreign taskforces stay unresolved -> shown as unavailable chip
-        var map = await RecordsReference.ResolveAsync(db, refs, cancellationToken, mayAllTaskforces: isLeadership, meId: meId);
-        if (partnerAgency is { } agency)
-        {
-            await ApplyPartnerScopeAsync(db, map, agency, meId, cancellationToken);
-        }
+        var map = await ResolveMapAsync(db, refs, isLeadership, meId, partnerAgency, investigations, cancellationToken);
         return Segment(text, tokens, map, isLeadership);
     }
 
-    public async Task<IReadOnlyList<IReadOnlyList<MentionSegment>>> ResolveManyAsync(IReadOnlyList<string?> texts, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null)
+    public async Task<IReadOnlyList<IReadOnlyList<MentionSegment>>> ResolveManyAsync(IReadOnlyList<string?> texts, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null, bool investigations = true)
     {
         // collect all tokens from all texts and resolve in one query
         var tokenPerText = texts.Select(MentionParser.Parse).ToList();
@@ -71,12 +66,7 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
         else
         {
             await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-            // foreign taskforces stay unresolved
-            map = await RecordsReference.ResolveAsync(db, refs, cancellationToken, mayAllTaskforces: isLeadership, meId: meId);
-            if (partnerAgency is { } agency)
-            {
-                await ApplyPartnerScopeAsync(db, map, agency, meId, cancellationToken);
-            }
+            map = await ResolveMapAsync(db, refs, isLeadership, meId, partnerAgency, investigations, cancellationToken);
         }
 
         var result = new List<IReadOnlyList<MentionSegment>>(texts.Count);
@@ -87,7 +77,7 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
         return result;
     }
 
-    public async Task<string> ResolveHtmlAsync(string? html, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null, bool plain = false)
+    public async Task<string> ResolveHtmlAsync(string? html, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null, bool plain = false, bool investigations = true)
     {
         var refs = MentionHtml.Refs(html);
         if (refs.Count == 0)
@@ -95,16 +85,11 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
             return html ?? string.Empty;
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        // foreign taskforces stay unresolved -> shown as unavailable
-        var map = await RecordsReference.ResolveAsync(db, refs, cancellationToken, mayAllTaskforces: isLeadership, meId: meId);
-        if (partnerAgency is { } agency)
-        {
-            await ApplyPartnerScopeAsync(db, map, agency, meId, cancellationToken);
-        }
+        var map = await ResolveMapAsync(db, refs, isLeadership, meId, partnerAgency, investigations, cancellationToken);
         return MentionHtml.Rewrite(html, map, isLeadership, plain);
     }
 
-    public async Task<IReadOnlyDictionary<string, string>> HtmlLabelsAsync(string? html, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null)
+    public async Task<IReadOnlyDictionary<string, string>> HtmlLabelsAsync(string? html, bool isLeadership, string? meId, CancellationToken cancellationToken = default, PartnerAgency? partnerAgency = null, bool investigations = true)
     {
         var labels = new Dictionary<string, string>(StringComparer.Ordinal);
         var refs = MentionHtml.Refs(html);
@@ -113,11 +98,7 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
             return labels;
         }
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var map = await RecordsReference.ResolveAsync(db, refs, cancellationToken, mayAllTaskforces: isLeadership, meId: meId);
-        if (partnerAgency is { } agency)
-        {
-            await ApplyPartnerScopeAsync(db, map, agency, meId, cancellationToken);
-        }
+        var map = await ResolveMapAsync(db, refs, isLeadership, meId, partnerAgency, investigations, cancellationToken);
         foreach (var (type, id) in refs)
         {
             // every ref gets a chip: an unlabelled token would sit in the editor as loose text the writer can break
@@ -126,6 +107,30 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
                 : MissingLabel;
         }
         return labels;
+    }
+
+    /// <summary>The one resolution behind every entry point: records, then the partner filter, then investigations.</summary>
+    /// <remarks>Investigation references come last on purpose: the partner filter drops every type it does not know,
+    /// and investigations decide their own audience through participation, read from the account row.</remarks>
+    private static async Task<Dictionary<(string, string), RecordsReference.Resolution>> ResolveMapAsync(
+        AppDbContext db, IReadOnlyCollection<(string Type, string Id)> refs, bool isLeadership, string? meId,
+        PartnerAgency? partnerAgency, bool investigations, CancellationToken cancellationToken)
+    {
+        // foreign taskforces stay unresolved -> shown as unavailable chip
+        var map = await RecordsReference.ResolveAsync(db, refs, cancellationToken, mayAllTaskforces: isLeadership, meId: meId);
+        if (partnerAgency is { } agency)
+        {
+            await ApplyPartnerScopeAsync(db, map, agency, meId, cancellationToken);
+        }
+        if (investigations && refs.Any(r => InvestigationReferences.IsType(r.Type)))
+        {
+            var scope = new ViewerScope(isLeadership, isLeadership, meId, partnerAgency);
+            foreach (var (key, value) in await InvestigationReferences.ResolveAsync(db, refs, scope, cancellationToken))
+            {
+                map[key] = value;
+            }
+        }
+        return map;
     }
 
     /// <summary>Drops resolved mentions a partner may not see (unreleased, classified, or a non-releasable type) so they render as a neutral unavailable chip — no name, Aktenzeichen or link.</summary>
@@ -192,8 +197,9 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
             }
             else
             {
-                // target deleted/unknown
-                segments.Add(new MentionSegment(true, MissingLabel, tok.Type, null, false));
+                // target deleted/unknown; an investigation type alone would already say an item of one is meant
+                segments.Add(new MentionSegment(true, MissingLabel,
+                    InvestigationReferences.IsType(tok.Type) ? null : tok.Type, null, false));
             }
             pos = tok.Start + tok.Length;
         }
@@ -204,7 +210,8 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
         return segments;
     }
 
-    public async Task<List<MentionHit>> CandidatesAsync(string? text, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    public async Task<List<MentionHit>> CandidatesAsync(string? text, ClaimsPrincipal actor, MentionSource source = MentionSource.Default,
+        string? contextInvestigationId = null, CancellationToken cancellationToken = default)
     {
         var s = text?.Trim();
         if (string.IsNullOrEmpty(s))
@@ -212,10 +219,32 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
             return new();
         }
 
+        var investigations = source != MentionSource.Assistant;
+        // a partner gets files and entries only, whatever the caller says: the other groups are not partner-scoped
+        if (actor.IsPartner())
+        {
+            if (!investigations)
+            {
+                return new();
+            }
+            await using var partnerDb = await dbFactory.CreateDbContextAsync(cancellationToken);
+            return await InvestigationReferences.CandidatesAsync(partnerDb, s, ViewerScope.From(actor), contextInvestigationId, cancellationToken);
+        }
+
         var mayClassifiedRead = actor.MayClassifiedRead();
         var mayRealName = actor.MayRealNameSee();
         var meId = actor.GetAgentId();
         var hit = new List<MentionHit>();
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var investigationHits = investigations
+            ? await InvestigationReferences.CandidatesAsync(db, s, ViewerScope.From(actor), contextInvestigationId, cancellationToken)
+            : new List<MentionHit>();
+        // inside a file its own references matter most
+        if (source == MentionSource.InvestigationField)
+        {
+            hit.AddRange(investigationHits);
+        }
 
         // records via quick search, classification- and taskforce-membership-filtered
         var records = await search.QuickSearchAsync(s, actor, 8, cancellationToken);
@@ -229,18 +258,20 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
                 && Guid.TryParse(a.TargetId, out _))
             .Select(a => new MentionHit(a.Category, a.TargetId, a.Name, a.CaseNumber)));
 
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-
-        // real name gated by mayRealName, kept separate from the classified-read flag.
-        // Deliberately NOT AgentSelection.OnlySelectable: partners stay mentionable here.
-        var agents = await db.Users
-            .Where(u => u.Status == AgentStatus.Active && !u.IsTeamLead
-                && (u.Codename.Contains(s) || (mayRealName && u.RealName != null && u.RealName.Contains(s))))
-            .OrderBy(u => u.Codename).Take(CandidatesPerGroup)
-            .Select(u => new { u.Id, u.Codename, u.RealName }).ToListAsync(cancellationToken);
-        hit.AddRange(agents.Select(a => new MentionHit(nameof(Agent), a.Id,
-            string.IsNullOrWhiteSpace(a.Codename) ? "(unbenannter Agent)" : a.Codename,
-            mayRealName ? a.RealName : null)));
+        // an investigation text notifies nobody, so it offers nobody to notify
+        if (source != MentionSource.InvestigationField)
+        {
+            // real name gated by mayRealName, kept separate from the classified-read flag.
+            // Deliberately NOT AgentSelection.OnlySelectable: partners stay mentionable here.
+            var agents = await db.Users
+                .Where(u => u.Status == AgentStatus.Active && !u.IsTeamLead
+                    && (u.Codename.Contains(s) || (mayRealName && u.RealName != null && u.RealName.Contains(s))))
+                .OrderBy(u => u.Codename).Take(CandidatesPerGroup)
+                .Select(u => new { u.Id, u.Codename, u.RealName }).ToListAsync(cancellationToken);
+            hit.AddRange(agents.Select(a => new MentionHit(nameof(Agent), a.Id,
+                string.IsNullOrWhiteSpace(a.Codename) ? "(unbenannter Agent)" : a.Codename,
+                mayRealName ? a.RealName : null)));
+        }
 
         // sources by title; visibility derived from the parent record
         var sourcesRaw = await db.Sources.Where(q => q.Title.Contains(s))
@@ -267,6 +298,10 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
             }
         }
 
+        if (source != MentionSource.InvestigationField)
+        {
+            hit.AddRange(investigationHits);
+        }
         return hit;
     }
 }

@@ -47,6 +47,8 @@ public class PersonMergeService(
         // trashed ones too, or a restore would hang off the merged-away file
         await db.Warrants.IgnoreQueryFilters().Where(w => w.PersonId == sourceId)
             .ExecuteUpdateAsync(s => s.SetProperty(w => w.PersonId, targetId), cancellationToken);
+        await db.InvestigationPeople.IgnoreQueryFilters().Where(p => p.PersonId == sourceId)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.PersonId, targetId), cancellationToken);
 
         // ---- profile children with case-insensitive dedup ----
         static string Norm(string? s) => (s ?? string.Empty).Trim().ToLowerInvariant();
@@ -263,6 +265,23 @@ public class PersonMergeService(
             if (link.SourceType == link.TargetType && link.SourceId == link.TargetId)
             {
                 db.Links.Remove(link);
+            }
+        }
+
+        // investigation links live apart from the link engine; a file linked to both keeps one row
+        var linkedFiles = await db.InvestigationLinks.Where(l => l.RecordType == type && l.RecordId == targetId)
+            .Select(l => l.InvestigationId).ToListAsync(cancellationToken);
+        foreach (var link in await db.InvestigationLinks.Where(l => l.RecordType == type && l.RecordId == sourceId)
+                     .ToListAsync(cancellationToken))
+        {
+            if (linkedFiles.Contains(link.InvestigationId))
+            {
+                db.InvestigationLinks.Remove(link);
+            }
+            else
+            {
+                link.RecordId = targetId;
+                linkedFiles.Add(link.InvestigationId);
             }
         }
 

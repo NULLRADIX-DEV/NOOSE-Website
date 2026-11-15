@@ -139,7 +139,7 @@ public class TrainingModuleService(IDbContextFactory<AppDbContext> dbFactory) : 
         Permission.RequireHrbOrLeadershipWrite(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        // the training catalogue is NOOSE-internal; partners carry a PartnerRank, not a NOOSE Rank
+        // the training catalogue is NOOSE-internal; partners carry a partner unit, not a FIB Rank
         if (!await db.Users.OnlySelectable().AnyAsync(u => u.Id == agentId, cancellationToken))
         {
             throw new InvalidOperationException("Module können nur für aktive FIB-Agents markiert werden.");

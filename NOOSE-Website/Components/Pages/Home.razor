@@ -10,6 +10,8 @@
 @using NOOSE_Website.Navigation
 @inject IPartnerVisibilityPolicyService PartnerPolicy
 @inject IPartnerAgencyProfileService PartnerProfiles
+@inject IInvestigationService Investigations
+@inject IWarrantService Warrants
 
 <PageTitle>Dashboard · FIB</PageTitle>
 
@@ -33,10 +35,36 @@
 
 @if (_isPartner)
 {
+    @if (_toSign.Count > 0)
+    {
+        <MudPaper Class="pa-6 mb-4" Elevation="2">
+            <SectionHeader Title="Zu zeichnen" Icon="@Icons.Material.Filled.Draw" Class="mb-2" />
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                Anordnungen aus Ermittlungen, in denen Sie Staatsanwalt sind. Ihre Unterschrift genügt, damit sie gilt.
+            </MudText>
+            <WarrantTable Rows="_toSign" ShowPerson="true" />
+        </MudPaper>
+    }
+    @if (_myInvestigations.Count > 0)
+    {
+        <MudPaper Class="pa-6 mb-4" Elevation="2">
+            <SectionHeader Title="Meine Ermittlungen" Icon="@Icons.Material.Filled.Gavel" Class="mb-2" />
+            <MudStack Spacing="1">
+                @foreach (var inv in _myInvestigations.Take(8))
+                {
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="noose-eintrag">
+                        <MudLink Href="@($"/ermittlungen/{inv.Id}")">@inv.CaseNumber</MudLink>
+                        <MudText Typo="Typo.body2">@inv.Title</MudText>
+                        <InvestigationStatusChip Status="inv.Status" />
+                    </MudStack>
+                }
+            </MudStack>
+        </MudPaper>
+    }
     <MudPaper Class="pa-6" Elevation="2">
-        <SectionHeader Title="Partner-Lesezugriff" Icon="@Icons.Material.Filled.Lock" Class="mb-2" />
+        <SectionHeader Title="Partner-Zugang" Icon="@Icons.Material.Filled.Handshake" Class="mb-2" />
         <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-            Willkommen. Sie sehen ausschließlich die für Ihre Behörde freigegebenen Akten – schreibgeschützt.
+            Willkommen. Sie sehen die für Sie freigegebenen Akten und die Ermittlungen, an denen Sie beteiligt sind.
         </MudText>
         <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
             @foreach (var entry in _partnerEntries)
@@ -63,7 +91,7 @@ else
     </MudItem>
     <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.FolderSpecial" Label="Offene Vorgänge" Value="@Number(k => k.OpenCases)"
-                  Href="/vorgaenge" Hint="Ermittlungsakten, die noch nicht abgeschlossen sind" />
+                  Href="/vorgaenge" Hint="Sammelakten, die noch nicht abgeschlossen sind" />
     </MudItem>
     <MudItem xs="6" sm="6" md="3">
         <StatTile Icon="@Icons.Material.Filled.Inbox" Colour="Color.Warning" Label="Offene Anträge" Value="@Number(k => k.OpenRequests)"
@@ -295,6 +323,9 @@ else if (_distributions is { } v)
     private static readonly string[] _coloursOutcome = { "#8C7757", "#3FB950", "#D29922", "#F85149" };
     private static readonly string[] _coloursRequests = { "#8C7757", "#3FB950", "#9A59CF", "#D29922", "#F85149" };
 
+    private List<WarrantView> _toSign = new();
+    private List<InvestigationListItem> _myInvestigations = new();
+
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
@@ -304,6 +335,8 @@ else if (_distributions is { } v)
             // partner-safe landing
             _partnerEntries = NavCatalog.PartnerRecordEntries(
                 await PartnerPolicy.GetAllowedTypesAsync(user), await PartnerProfiles.GetFeaturesAsync(user));
+            _toSign = await Warrants.GetToSignAsync(user);
+            _myInvestigations = (await Investigations.GetListAsync(user)).Where(i => InvestigationDisplay.IsOpen(i.Status)).ToList();
             _load = false;
             return;
         }

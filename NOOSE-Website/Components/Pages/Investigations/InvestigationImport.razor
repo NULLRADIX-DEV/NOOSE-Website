@@ -1,0 +1,199 @@
+@page "/ermittlungen/import"
+@* open to partners with the right to open investigations; the create path of the service decides *@
+@using NOOSE_Website.Services.Investigations
+@inject IInvestigationService Investigations
+@inject ILawService LawService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>Ermittlung aus Excel übernehmen · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.UploadFile" Title="Ermittlung aus Excel übernehmen" BackHref="/ermittlungen"
+            Subtitle="Lädt eine Ermittlungsakte der DoJ im bisherigen Excel-Format und legt sie nach deiner Prüfung als Ermittlung an. Die Datei selbst wird nicht gespeichert." />
+
+@if (_taskforces.Count == 0 && !_load)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">Du darfst an keiner Taskforce eine Ermittlung anlegen.</MudAlert>
+}
+else if (_draft is null)
+{
+    <MudPaper Class="pa-6" Elevation="1">
+        <MudFileUpload T="IBrowserFile" Accept=".xlsx" FilesChanged="UploadAsync" MaximumFileCount="1">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.UploadFile" Disabled="_busy">Excel-Datei wählen (.xlsx, höchstens 5 MB)</MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        @if (_busy)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-3" />
+        }
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-3">
+            Gelesen werden die Blätter Deckblatt (Aktenzeichen, Status, Staatsanwalt, Tatvorwurf, Tathergang, To-Do, Notizen), Zeugenliste,
+            Beweismittelprotokoll, Vernehmung Beschuldigter und Zeugenvernehmungen. Felder werden an ihrer Beschriftung erkannt.
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    var d = _draft;
+    @foreach (var warning in d.Warnings)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Variant="Variant.Outlined" Class="mb-2">@warning</MudAlert>
+    }
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.h6" Class="mb-2">Deckblatt</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="6"><MudTextField @bind-Value="d.Title" Label="Titel" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" @bind-Value="_taskforceId" Label="Taskforce" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var tf in _taskforces)
+                    {
+                        <MudSelectItem T="string" Value="@tf.Id">@tf.Label</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" md="3"><MudTextField @bind-Value="d.SidCaseNumber" Label="Az. SID" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            <MudItem xs="6" md="3"><MudTextField @bind-Value="d.FiveNetCaseNumber" Label="Az. 5Net" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            <MudItem xs="6" md="3">
+                <MudSelect T="InvestigationStatus" @bind-Value="d.Status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var s in InvestigationDisplay.Statuses)
+                    {
+                        <MudSelectItem T="InvestigationStatus" Value="s">@InvestigationDisplay.Name(s)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="6" md="3"><MudTextField T="string" Value="@(d.OpenedAt?.ToLocalTime().ToString("dd.MM.yyyy") ?? "—")" Label="Datum" ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+            <MudItem xs="12"><MudTextField @bind-Value="d.Indictment" Label="Anklage" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
+        </MudGrid>
+        @if (d.Prosecutor is not null)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+                Staatsanwalt laut Datei: <b>@d.Prosecutor</b>. Konten werden nicht automatisch zugeordnet; nach dem Anlegen im Tab „Beteiligte &amp; Zugriff“ eintragen.
+            </MudText>
+        }
+    </MudPaper>
+
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudText Typo="Typo.h6" Class="mb-2">Inhalt</MudText>
+        <MudSimpleTable Dense="true">
+            <tbody>
+                <tr><th>Tatvorwurf</th><td>@d.Charges.Count (@_matchedLaws im Gesetzbuch gefunden)</td></tr>
+                <tr><th>Tathergang</th><td>@(d.NarrativeHtml is null ? "—" : "übernommen")</td></tr>
+                <tr><th>Zeugen &amp; Beschuldigte</th><td>@d.People.Count</td></tr>
+                <tr><th>Beweismittel</th><td>@d.Evidence.Count</td></tr>
+                <tr><th>Vernehmungen</th><td>@d.Interrogations.Count (@d.Interrogations.Sum(v => v.Entries.Count) Fragen)</td></tr>
+                <tr><th>To-Do</th><td>@d.Tasks.Count (@d.Tasks.Count(t => t.Done) erledigt)</td></tr>
+                <tr><th>Notizen</th><td>@d.Notes.Count</td></tr>
+            </tbody>
+        </MudSimpleTable>
+        @if (d.Charges.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-3">Tatvorwurf</MudText>
+            @foreach (var c in d.Charges)
+            {
+                <MudText Typo="Typo.body2">@c.Paragraph @c.LawBook – @c.Description (@InvestigationDisplay.Name(c.Check))@(c.LawId is null ? "" : " ✓")</MudText>
+            }
+        }
+        @if (d.People.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-3">Personen</MudText>
+            <MudText Typo="Typo.body2">@string.Join(", ", d.People.Select(p => $"{p.Name} ({p.Role})"))</MudText>
+        }
+    </MudPaper>
+
+    <MudStack Row="true" Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Check" OnClick="CreateAsync"
+                   Disabled="@(_busy || _taskforceId is null)">Als Ermittlung anlegen</MudButton>
+        <MudButton OnClick="@(() => _draft = null)">Andere Datei</MudButton>
+    </MudStack>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = default!;
+    private bool _load = true;
+    private bool _busy;
+    private List<(string Id, string Label)> _taskforces = new();
+    private string? _taskforceId;
+    private InvestigationImportDraft? _draft;
+    private int _matchedLaws;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _taskforces = await Investigations.GetCreatableTaskforcesAsync(_user);
+        _taskforceId = _taskforces.FirstOrDefault().Id;
+        _load = false;
+    }
+
+    private async Task UploadAsync(IBrowserFile? file)
+    {
+        if (file is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            using var buffer = new MemoryStream();
+            // the browser stream reads async only; the cap is enforced here and again in the reader
+            await using (var upload = file.OpenReadStream(XlsxReader.MaxFileBytes))
+            {
+                await upload.CopyToAsync(buffer);
+            }
+            buffer.Position = 0;
+            var draft = InvestigationWorkbookImporter.Read(buffer);
+            await MatchLawsAsync(draft);
+            _draft = draft;
+        }
+        catch (Exception ex) when (ex is InvalidDataException or IOException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>Links a charge to the law book when book and paragraph match a catalog entry.</summary>
+    private async Task MatchLawsAsync(InvestigationImportDraft draft)
+    {
+        var laws = await LawService.GetListAsync();
+        static string Key(string book, string paragraph)
+            => $"{book.Trim().ToUpperInvariant()}|{new string(paragraph.Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant()}";
+        var byKey = laws.GroupBy(l => Key(l.LawBook, l.Paragraph)).ToDictionary(g => g.Key, g => g.First());
+        _matchedLaws = 0;
+        for (var i = 0; i < draft.Charges.Count; i++)
+        {
+            var c = draft.Charges[i];
+            if (byKey.TryGetValue(Key(c.LawBook, c.Paragraph), out var law))
+            {
+                draft.Charges[i] = c with { LawId = law.Id, Description = string.IsNullOrWhiteSpace(c.Description) ? law.Title : c.Description };
+                _matchedLaws++;
+            }
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (_draft is not { } d || _taskforceId is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            var input = new InvestigationInput(d.Title, _taskforceId, d.SidCaseNumber, d.FiveNetCaseNumber, d.Status, d.OpenedAt ?? DateTime.UtcNow, d.Indictment);
+            var id = await Investigations.CreateWithContentAsync(input, d.NarrativeHtml, d.Charges, d.People, d.Evidence, d.Interrogations, d.Tasks, d.Notes, _user);
+            Snackbar.Add("Ermittlung übernommen. Trage jetzt die Beteiligten ein.", Severity.Success);
+            Nav.NavigateTo($"/ermittlungen/{id}?tab={InvestigationTabs.Participants}");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            _busy = false;
+        }
+    }
+}

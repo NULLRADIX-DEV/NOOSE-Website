@@ -1,5 +1,6 @@
 @* Release dialog; leadership sees full release UI, others see a request form. *@
 @inject IPartnerShareService ShareService
+@inject IPartnerUnitService Units
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -47,6 +48,43 @@
 
             <MudDivider Class="my-4" />
 
+            <MudText Typo="Typo.subtitle1" Class="mb-1">Einheiten</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                Geben Sie die Akte nur einer Einheit frei, etwa der SID oder der Staatsanwaltschaft der DoJ.
+            </MudText>
+            @foreach (var us in _unitShares)
+            {
+                <MudPaper Class="pa-3 mb-2" Outlined="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                        <div class="noose-eintrag-titel">
+                            <MudText Typo="Typo.subtitle2">@PartnerUnitDisplay.OfAccount(us.Agency, us.UnitId)</MudText>
+                        </div>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudCheckBox T="bool" Value="us.IncludesChildren" ValueChanged="@(v => ApplyUnitAsync(us.UnitId, true, v, false, us.ValidUntil))"
+                                         Color="Color.Primary" Label="Ganze Akte" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                           OnClick="@(() => ApplyUnitAsync(us.UnitId, false, false, false, null))" aria-label="Einheiten-Freigabe entfernen" />
+                        </MudStack>
+                    </MudStack>
+                    <div class="mt-2">
+                        <PartnerShareExpiryPicker Value="us.ValidUntil"
+                                                  ValueChanged="@(v => ApplyUnitAsync(us.UnitId, true, us.IncludesChildren, true, v))" />
+                    </div>
+                </MudPaper>
+            }
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="noose-eintrag">
+                <MudSelect T="string" Value="@((string?)null)" ValueChanged="@(id => ApplyUnitAsync(id, true, false, true, _newUnitExpiry))"
+                           Label="Einheit hinzufügen" Dense="true" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:220px;">
+                    @foreach (var unit in _units.Where(u => _unitShares.All(s => s.UnitId != u.Id)))
+                    {
+                        <MudSelectItem T="string" Value="@unit.Id">@unit.FullName</MudSelectItem>
+                    }
+                </MudSelect>
+                <PartnerShareExpiryPicker Value="_newUnitExpiry" Label="Gültigkeit" ValueChanged="@(v => _newUnitExpiry = v)" />
+            </MudStack>
+
+            <MudDivider Class="my-4" />
+
             <MudText Typo="Typo.subtitle1" Class="mb-1">Einzelne Partner-Konten</MudText>
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                 Geben Sie die Akte zusätzlich gezielt für einzelne Partner frei – unabhängig von der Behörden-Freigabe.
@@ -58,7 +96,7 @@
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
                         <div class="noose-eintrag-titel">
                             <MudText Typo="Typo.subtitle2">@ind.Codename</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@PartnerRankDisplay.Full(ind.Agency, ind.Rank)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@PartnerUnitDisplay.OfAccount(ind.Agency, ind.UnitId)</MudText>
                         </div>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
                             <MudCheckBox T="bool" Value="ind.IncludesChildren" ValueChanged="@(v => IndividualChildrenChanged(ind, v))"
@@ -80,7 +118,7 @@
             <MudAutocomplete T="PartnerAccountOption" Label="Partner-Konto hinzufügen" Class="mt-2"
                              Value="_toAdd" ValueChanged="OnPartnerSelected"
                              SearchFunc="SearchPartners" Dense="true" ResetValueOnEmptyText="true"
-                             ToStringFunc="@(o => o is null ? string.Empty : $"{o.Codename} · {PartnerRankDisplay.Full(o.Agency, o.Rank)}")"
+                             ToStringFunc="@(o => o is null ? string.Empty : $"{o.Codename} · {PartnerUnitDisplay.OfAccount(o.Agency, o.UnitId)}")"
                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.PersonAdd" />
         }
         else
@@ -108,7 +146,7 @@
                 <MudAutocomplete T="PartnerAccountOption" Label="Partner-Konto" Variant="Variant.Outlined" Class="mb-3"
                                  @bind-Value="_reqPartner" SearchFunc="SearchPartners" Dense="true" ResetValueOnEmptyText="true"
                                  Required="true"
-                                 ToStringFunc="@(o => o is null ? string.Empty : $"{o.Codename} · {PartnerRankDisplay.Full(o.Agency, o.Rank)}")"
+                                 ToStringFunc="@(o => o is null ? string.Empty : $"{o.Codename} · {PartnerUnitDisplay.OfAccount(o.Agency, o.UnitId)}")"
                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.PersonAdd" />
             }
             <MudCheckBox T="bool" @bind-Value="_reqIncludesChildren" Color="Color.Primary" Label="Ganze Akte (inklusive Unterpunkte)" Class="mb-3" />
@@ -140,6 +178,9 @@
     private ClaimsPrincipal _user = default!;
     private List<PartnerShareState> _states = new();
     private List<PartnerIndividualShareState> _individual = new();
+    private List<PartnerUnitShareState> _unitShares = new();
+    private IReadOnlyList<PartnerUnitView> _units = Array.Empty<PartnerUnitView>();
+    private DateTime? _newUnitExpiry;
     private IReadOnlyList<PartnerAccountOption> _partners = new List<PartnerAccountOption>();
     private PartnerAccountOption? _toAdd;
 
@@ -182,6 +223,31 @@
     {
         _states = (await ShareService.GetForRecordAsync(EntityType, EntityId)).ToList();
         _individual = (await ShareService.GetIndividualSharesForRecordAsync(EntityType, EntityId)).ToList();
+        _unitShares = (await ShareService.GetUnitSharesAsync(EntityType, EntityId)).ToList();
+        _units = await Units.GetAllAsync();
+    }
+
+    private async Task ApplyUnitAsync(string? unitId, bool released, bool includesChildren, bool setExpiry, DateTime? validUntil)
+    {
+        if (unitId is null)
+        {
+            return;
+        }
+        try
+        {
+            var isNew = _unitShares.All(s => s.UnitId != unitId);
+            await ShareService.SetUnitAsync(EntityType, EntityId, unitId, released, includesChildren, setExpiry, validUntil, _user);
+            if (isNew)
+            {
+                _newUnitExpiry = null;
+            }
+            await ReloadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            await ReloadAsync();
+        }
     }
 
     private async Task ReleasedChanged(PartnerShareState st, bool released)

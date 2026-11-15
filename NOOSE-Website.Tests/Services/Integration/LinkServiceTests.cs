@@ -572,4 +572,23 @@ public sealed class LinkServiceTests
         Assert.True(await check.Links.AnyAsync(x => x.Id == link.Id));
         await threat.DidNotReceive().NewCalculateAsync(Arg.Any<string>());
     }
+
+    // ---- investigations are mentioned, never linked ----
+
+    [Theory]
+    [InlineData("Investigation", "Person")]
+    [InlineData("Person", "Investigation")]
+    [InlineData("InvestigationEvidence", "Person")]
+    [InlineData("Person", "InvestigationNote")]
+    public async Task CreateAsync_RejectsAnInvestigationEnd(string sourceType, string targetType)
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _) = NewService(ctx);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            svc.CreateAsync(sourceType, "a1", targetType, "b1", null, Leader()));
+
+        using var check = ctx.NewContext();
+        Assert.False(await check.Links.AnyAsync());
+    }
 }

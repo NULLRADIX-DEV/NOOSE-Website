@@ -25,7 +25,7 @@ public interface IAgentManagementService
         string? mentorId = null);
 
     /// <summary>Release a pending account as an external partner; no rank or internal flags, read-only on released records.</summary>
-    Task ReleaseAsPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor);
+    Task ReleaseAsPartnerAsync(string agentId, string partnerUnitId, bool isUnitLead, ClaimsPrincipal actor);
 
     /// <summary>Reject a registration; status becomes Blocked with a reason.</summary>
     Task RejectAsync(string agentId, string reason, ClaimsPrincipal actor);
@@ -74,13 +74,13 @@ public interface IAgentManagementService
     /// <remarks>A rank that moves the agent into a full unit needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
     Task RankChangeAsync(string agentId, Rank rank, bool confirmOverLimit, ClaimsPrincipal actor);
 
-    /// <summary>Change a partner account's partner rank; refreshes the claims.</summary>
-    Task SetPartnerRankAsync(string agentId, PartnerRank partnerRank, ClaimsPrincipal actor);
+    /// <summary>Move a partner account to another unit of its agency and set its lead flag; refreshes the claims.</summary>
+    Task SetPartnerUnitAsync(string agentId, string partnerUnitId, bool isUnitLead, ClaimsPrincipal actor);
 
     /// <summary>Switch an active account to a partner agency (also used to change the agency of an existing
     /// partner). Clears the internal rank, division and Administration Division/team-lead/admin flags; forces re-login.</summary>
     /// <remarks>An agent with a rank passes <see cref="PromotionRules.MayConvertToPartner"/> first.</remarks>
-    Task ConvertToPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor);
+    Task ConvertToPartnerAsync(string agentId, string partnerUnitId, bool isUnitLead, ClaimsPrincipal actor);
 
     /// <summary>Switch an active partner account back to an internal FIB agent with the given rank; forces re-login.</summary>
     /// <remarks>Passes the fine rank gate like a first release and starts in the CID, or in their division for a Section Chief. A full unit needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>

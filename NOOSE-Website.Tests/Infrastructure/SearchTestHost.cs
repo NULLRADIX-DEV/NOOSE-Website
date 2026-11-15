@@ -53,19 +53,6 @@ public static class SearchTestHost
     /// <summary>The default: no partner rank is configured, so no rank narrows anything.</summary>
     public sealed class UnrestrictedPartnerPolicy : IPartnerVisibilityPolicyService
     {
-        public Task<PartnerVisibilityConfig> GetAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(new PartnerVisibilityConfig());
-
-        public Task<PartnerRankVisibility?> GetRankAsync(
-            NOOSE_Website.Models.Enums.PartnerAgency agency, NOOSE_Website.Models.Enums.PartnerRank rank,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult<PartnerRankVisibility?>(null);
-
-        public Task SaveRankAsync(
-            NOOSE_Website.Models.Enums.PartnerAgency agency, NOOSE_Website.Models.Enums.PartnerRank rank,
-            PartnerRankVisibility? visibility, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
-
         public Task<IReadOnlySet<string>?> GetAllowedTypesAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlySet<string>?>(null);
 
@@ -78,19 +65,6 @@ public static class SearchTestHost
     public sealed class RankRestrictedPartnerPolicy(params string[] allowed) : IPartnerVisibilityPolicyService
     {
         private readonly IReadOnlySet<string> _allowed = allowed.ToHashSet(StringComparer.Ordinal);
-
-        public Task<PartnerVisibilityConfig> GetAsync(CancellationToken cancellationToken = default)
-            => Task.FromResult(new PartnerVisibilityConfig());
-
-        public Task<PartnerRankVisibility?> GetRankAsync(
-            NOOSE_Website.Models.Enums.PartnerAgency agency, NOOSE_Website.Models.Enums.PartnerRank rank,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult<PartnerRankVisibility?>(null);
-
-        public Task SaveRankAsync(
-            NOOSE_Website.Models.Enums.PartnerAgency agency, NOOSE_Website.Models.Enums.PartnerRank rank,
-            PartnerRankVisibility? visibility, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
 
         public Task<IReadOnlySet<string>?> GetAllowedTypesAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
             => Task.FromResult<IReadOnlySet<string>?>(user.IsPartner() ? _allowed : null);

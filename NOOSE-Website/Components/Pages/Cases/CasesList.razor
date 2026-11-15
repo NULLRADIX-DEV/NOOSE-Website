@@ -8,7 +8,7 @@
 <PageTitle>Vorgänge · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.FolderSpecial" Title="Vorgänge"
-            Subtitle="Übergeordnete Ermittlungsakte: bündelt Personen, Operationen, Observationen und Doks zu einem Vorgang mit eigenem Status.">
+            Subtitle="Sammelakte: bündelt Personen, Operationen, Observationen und Doks zu einem Vorgang mit eigenem Status.">
     <MoreActions>
         <SavedViewButton BaseRoute="/vorgaenge" Filters="FilterState" OnApply="ApplyViewAsync" />
         <ListExportButton T="CaseRow" RecordType="@nameof(Case)" Items="@(() => _grid?.FilteredItems ?? [])" Columns="ExportColumns" Disabled="_load" />

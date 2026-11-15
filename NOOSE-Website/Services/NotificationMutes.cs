@@ -58,6 +58,9 @@ public static class NotificationMutes
             NotificationType.HandoverReceived,
             NotificationType.RecordKeeperAssigned,
             NotificationType.TaskforceChat,
+            NotificationType.InvestigationParticipation,
+            NotificationType.InvestigationTask,
+            NotificationType.WarrantToSign,
         ]),
         new("Termine und Besprechungen", MudBlazor.Icons.Material.Filled.Event,
         [

@@ -41,6 +41,10 @@ public static class AuditDisplay
         "DecorationId", "AnnouncementId", "AwardedById", "RecipientRank", "SignatoryRank",
         // a warrant's decider is logged by name; the cited paragraphs by their snapshot text
         "DeciderId", "DeciderRank", "LawIds",
+        // investigation bookkeeping: the label of the row already names the entry
+        "InvestigationId", "InvestigationPersonId", "LawId", "PartnerUnitId", "ItemType", "ItemId", "SortOrder", "AssigneeId",
+        // a linked record's id; participants may not see that record
+        "RecordId",
     };
 
     // Document bodies, layouts and score snapshots are unreadable as a before/after pair and swamp
@@ -102,6 +106,12 @@ public static class AuditDisplay
         ["Text"] = "Text", ["Note"] = "Notiz", ["Reason"] = "Grund", ["Url"] = "Link",
         ["Frequency"] = "Frequenz", ["Scope"] = "Bereich", ["Agency"] = "Partnerbehörde",
         ["TaskforceId"] = "Taskforce",
+        // investigations
+        ["SidCaseNumber"] = "Az. SID", ["FiveNetCaseNumber"] = "Az. 5Net", ["OpenedAt"] = "Eröffnet", ["Indictment"] = "Anklage",
+        ["Paragraph"] = "Paragraf", ["LawBook"] = "Gesetzbuch", ["Check"] = "Prüfung", ["Phone"] = "Telefon",
+        ["Number"] = "Nr.", ["Owner"] = "Besitzer", ["Officer"] = "Sichernder Beamter", ["SecuredAt"] = "Datum",
+        ["Summons"] = "Vorladung", ["HeldAt"] = "Zeitpunkt", ["Officers"] = "Beamte", ["ProsecutorPresent"] = "Staatsanwalt anwesend",
+        ["ProtocolReference"] = "Protokoll-Verweis", ["Usable"] = "Verwertbar",
         ["Outcome"] = "Maßnahme-Ausgang", ["TruthSerum"] = "Wahrheitsserum",
         ["MemoryDeleted"] = "Gedächtnisverlust", ["ReceivedInformation"] = "Erhaltene Informationen",
         ["Timestamp"] = "Zeitpunkt", ["OrgType"] = "Verknüpfte Org (Typ)",
@@ -198,7 +208,9 @@ public static class AuditDisplay
     private static bool IsHiddenFor(string field, string? entityType)
         => (entityType == nameof(Warrant) && field == "CaseId")
            // names stand beside ids
-           || (IsRegulationType(entityType) && field is "RepealedById" or "SectionId" or "ParagraphId" or "PublishedById");
+           || (IsRegulationType(entityType) && field is "RepealedById" or "SectionId" or "ParagraphId" or "PublishedById")
+           // a link's label describes the linked record, which a history reader may not be allowed to see
+           || (entityType == nameof(Data.Entities.Investigations.InvestigationLink) && field == "Label");
 
     /// <summary>Parses JSON into field changes; empty on null/invalid.
     /// <paramref name="maxValueLength"/> above zero clips long values — for feeds, not for the audit log itself.
@@ -231,12 +243,15 @@ public static class AuditDisplay
             {
                 continue;
             }
-            var alt = Clip(values.Length > 0 ? Format(field, values[0], entityType) : "—", maxValueLength);
-            var @new = Clip(values.Length > 1 ? Format(field, values[1], entityType) : "—", maxValueLength);
+            var alt = Clip(Neutral(values.Length > 0 ? Format(field, values[0], entityType) : "—"), maxValueLength);
+            var @new = Clip(Neutral(values.Length > 1 ? Format(field, values[1], entityType) : "—"), maxValueLength);
             list.Add(new FieldChange(LabelOf(field, entityType), alt, @new));
         }
         return list;
     }
+
+    // a history reader may not see what the reference points at, so it never learns which item it was
+    private static string Neutral(string value) => MentionParser.Neutralize(value, InvestigationReferences.IsType);
 
     private static string Clip(string value, int max)
         => max <= 0 || value.Length <= max ? value : string.Concat(value.AsSpan(0, max), "…");
@@ -303,6 +318,12 @@ public static class AuditDisplay
             => TicketAbschlussgrundDisplay.Name((TicketAbschlussgrund)n),
         "Status" when entityType == nameof(Warrant) => WarrantStatusDisplay.Name((WarrantStatus)n),
         "Type" when entityType == nameof(Warrant) => WarrantTypeDisplay.Name((WarrantType)n),
+        // the investigation's own enums; their history passes the entity type
+        "Status" when entityType == "Investigation" => InvestigationDisplay.Name((InvestigationStatus)n),
+        "Status" when entityType == "InvestigationPerson" => InvestigationDisplay.Name((InvestigationPersonStatus)n),
+        "Status" when entityType == "InvestigationEvidence" => InvestigationDisplay.Name((InvestigationEvidenceStatus)n),
+        "Check" when entityType == "InvestigationCharge" => InvestigationDisplay.Name((InvestigationChargeCheck)n),
+        "Role" when entityType == "InvestigationParticipant" => InvestigationDisplay.Name((InvestigationRole)n),
         _ => n.ToString(),
     };
 

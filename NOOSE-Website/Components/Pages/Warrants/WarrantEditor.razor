@@ -1,7 +1,8 @@
 @page "/anordnungen/neu"
-@attribute [Authorize(Policy = Policies.InternalAgent)]
+@* no internal-only policy: from an investigation, partners with edit on its warrants tab request too; the service decides *@
 @using NOOSE_Website.Data.Entities.Cases
 @inject IWarrantService WarrantService
+@inject IInvestigationService InvestigationService
 @inject ILawService LawService
 @inject NavigationManager Nav
 @inject ISnackbar Snackbar
@@ -11,12 +12,16 @@
 <PageTitle>Anordnung beantragen · FIB</PageTitle>
 
 <PageHeader Icon="@Icons.Material.Filled.Approval" Title="Anordnung beantragen" BackHref="@BackHref"
-            Subtitle="Der Antrag geht an die Führung. Erst mit ihrer Unterschrift gilt die Anordnung und lässt sich drucken." />
+            Subtitle="@(PreInvestigationId is null
+                ? "Der Antrag geht an die Führung. Erst mit ihrer Unterschrift gilt die Anordnung und lässt sich drucken."
+                : "Der Antrag geht an den zuständigen Staatsanwalt und die FIB-Führung. Eine Unterschrift genügt.")" />
 
 @if (!_mayRequest)
 {
     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-        Anordnungen beantragen nur aktive interne Agenten mit Schreibrecht.
+        @(PreInvestigationId is null
+            ? "Anordnungen beantragen nur aktive interne Agenten mit Schreibrecht."
+            : "In dieser Ermittlung darfst du keine Anordnungen beantragen.")
     </MudAlert>
 }
 else if (_load)
@@ -35,10 +40,29 @@ else
                     }
                 </MudSelect>
 
-                <QuickRecordPicker Allowed="PersonOnly" Value="_person" ValueChanged="@(h => _person = h)"
-                                   Label="Betroffene Person" HelperText="Die Anordnung ist nie weiter sichtbar als diese Akte." />
-                <QuickRecordPicker Allowed="CaseOnly" Value="_case" ValueChanged="@(h => _case = h)"
-                                   Label="Vorgang (optional)" HelperText="Ist ein Vorgang gewählt, begrenzt auch er, wer die Anordnung sieht." />
+                @if (PreInvestigationId is null)
+                {
+                    <QuickRecordPicker Allowed="PersonOnly" Value="_person" ValueChanged="@(h => _person = h)"
+                                       Label="Betroffene Person" HelperText="Die Anordnung ist nie weiter sichtbar als diese Akte." />
+                    <QuickRecordPicker Allowed="CaseOnly" Value="_case" ValueChanged="@(h => _case = h)"
+                                       Label="Vorgang (optional)" HelperText="Ist ein Vorgang gewählt, begrenzt auch er, wer die Anordnung sieht." />
+                }
+                else
+                {
+                    <MudSelect T="string" Value="_person?.TargetId" ValueChanged="PickInvestigationPerson" Label="Betroffene Person"
+                               Variant="Variant.Outlined" HelperText="Personen der Ermittlung, die mit einer Personenakte verknüpft sind.">
+                        @foreach (var t in _targets)
+                        {
+                            <MudSelectItem T="string" Value="@t.Id">@t.Name (@t.CaseNumber)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (_targets.Count == 0)
+                    {
+                        <MudAlert Severity="Severity.Info" Dense="true" Variant="Variant.Outlined">
+                            In der Ermittlung ist noch keine Person mit einer Personenakte verknüpft. Das FIB verknüpft sie im Tab „Zeugen &amp; Beschuldigte“.
+                        </MudAlert>
+                    }
+                }
 
                 <TextDraft DraftKey='@DraftKeys.In(DraftScope, "gegenstand")' OnRestore="@(t => _input.Subject = t)">
                     <MudTextField @bind-Value="_input.Subject" Label="Gegenstand" Variant="Variant.Outlined" Lines="3"
@@ -109,6 +133,9 @@ else
 
     [SupplyParameterFromQuery(Name = "person")] public string? PrePersonId { get; set; }
     [SupplyParameterFromQuery(Name = "vorgang")] public string? PreCaseId { get; set; }
+    [SupplyParameterFromQuery(Name = "ermittlung")] public string? PreInvestigationId { get; set; }
+
+    private List<WarrantTarget> _targets = new();
 
     private const string DraftScope = "anordnung:neu";
     private static readonly IReadOnlySet<string> PersonOnly = new HashSet<string> { nameof(Person) };
@@ -126,7 +153,8 @@ else
     private Law? _lawPick;
     private readonly List<Law> _laws = new();
 
-    private string BackHref => PrePersonId is { Length: > 0 } person ? $"/personen/{person}?tab=anordnungen"
+    private string BackHref => PreInvestigationId is { Length: > 0 } inv ? $"/ermittlungen/{inv}?tab=anordnungen"
+        : PrePersonId is { Length: > 0 } person ? $"/personen/{person}?tab=anordnungen"
         : PreCaseId is { Length: > 0 } caseId ? $"/vorgaenge/{caseId}?tab=anordnungen"
         : "/anordnungen";
 
@@ -138,17 +166,34 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
-        var key = $"{PrePersonId}|{PreCaseId}";
+        var key = $"{PrePersonId}|{PreCaseId}|{PreInvestigationId}";
         if (_loadedKey == key)
         {
             return;
         }
         _loadedKey = key;
         _load = true;
-        _person = await HitAsync(nameof(Person), PrePersonId);
-        _case = await HitAsync(nameof(Case), PreCaseId);
+        if (PreInvestigationId is { Length: > 0 } inv)
+        {
+            var access = await InvestigationService.GetAccessAsync(inv, _user);
+            _mayRequest = access.CanEdit(InvestigationTabs.Warrants) && !_user.IsTeamLead();
+            _targets = _mayRequest ? await WarrantService.GetInvestigationTargetsAsync(inv, _user) : new();
+            _input.InvestigationId = inv;
+            _person = _targets.FirstOrDefault(t => t.Id == PrePersonId) is { } pre
+                ? new QuickHit(nameof(Person), pre.Id, pre.Name, pre.CaseNumber) : null;
+            _case = null;
+        }
+        else
+        {
+            _mayRequest = _user.MayWarrantRequest();
+            _person = await HitAsync(nameof(Person), PrePersonId);
+            _case = await HitAsync(nameof(Case), PreCaseId);
+        }
         _load = false;
     }
+
+    private void PickInvestigationPerson(string? id)
+        => _person = _targets.FirstOrDefault(t => t.Id == id) is { } t ? new QuickHit(nameof(Person), t.Id, t.Name, t.CaseNumber) : null;
 
     private async Task<QuickHit?> HitAsync(string type, string? id)
     {

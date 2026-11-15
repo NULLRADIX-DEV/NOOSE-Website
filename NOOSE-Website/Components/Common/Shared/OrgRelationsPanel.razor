@@ -50,6 +50,9 @@
             }
         </MudStack>
     }
+
+    @* files live apart from the link engine and are filtered by participation *@
+    <RecordInvestigationLinks EntityType="@EntityType" EntityId="@EntityId" User="User" MayWrite="_mayWrite" />
 </MudStack>
 
 @code {

@@ -1,5 +1,6 @@
-@* Dialog to change an active account's affiliation: internal NOOSE agent (with rank) or a partner
-   agency (DoJ/LSPD/LSMD) with a partner rank. Switching to a partner clears the internal rank/flags. *@
+@* Dialog to change an active account's affiliation: internal agent (with rank) or a unit of a partner agency.
+   Switching to a partner clears the internal rank and flags. *@
+@inject IPartnerUnitService Units
 
 <MudDialog>
     <DialogContent>
@@ -18,18 +19,13 @@
 
             @if (_isPartner)
             {
-                <MudSelect T="PartnerAgency" @bind-Value="_agency" Label="Behörde" Variant="Variant.Outlined" Dense="true">
-                    @foreach (var ag in PartnerAgencyDisplay.All)
+                <MudSelect T="string" @bind-Value="_unitId" Label="Behörde und Einheit" Variant="Variant.Outlined" Dense="true">
+                    @foreach (var unit in _units)
                     {
-                        <MudSelectItem Value="ag">@PartnerAgencyDisplay.Name(ag)</MudSelectItem>
+                        <MudSelectItem T="string" Value="@unit.Id">@unit.FullName</MudSelectItem>
                     }
                 </MudSelect>
-                <MudSelect T="PartnerRank" @bind-Value="_partnerRank" Label="Partner-Rang" Variant="Variant.Outlined" Dense="true">
-                    @foreach (var pr in PartnerRankDisplay.All)
-                    {
-                        <MudSelectItem Value="pr">@PartnerRankDisplay.Full(_agency, pr)</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudCheckBox T="bool" @bind-Value="_isUnitLead" Color="Color.Primary" Label="Leitung der Einheit" />
             }
             else
             {
@@ -54,7 +50,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Abbrechen</MudButton>
         <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Confirm"
-                   Disabled="@(!_isPartner && _ranks.Count == 0)">Übernehmen</MudButton>
+                   Disabled="@((!_isPartner && _ranks.Count == 0) || (_isPartner && _unitId is null))">Übernehmen</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -63,12 +59,14 @@
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     [Parameter] public PartnerAgency? CurrentAgency { get; set; }
-    [Parameter] public PartnerRank? CurrentPartnerRank { get; set; }
+    [Parameter] public string? CurrentUnitId { get; set; }
+    [Parameter] public bool CurrentUnitLead { get; set; }
     [Parameter] public Rank? CurrentRank { get; set; }
 
     private bool _isPartner;
-    private PartnerAgency _agency = PartnerAgency.DoJ;
-    private PartnerRank _partnerRank = PartnerRank.Member;
+    private IReadOnlyList<PartnerUnitView> _units = Array.Empty<PartnerUnitView>();
+    private string? _unitId;
+    private bool _isUnitLead;
     private Rank _rank = Rank.Trainee;
     private IReadOnlyList<Rank> _ranks = [];
 
@@ -79,13 +77,14 @@
         var division = PromotionRules.ReleaseDivision(viewer);
         _ranks = PromotionRules.AssignableRanks(viewer, division, null).Where(r => DivisionRules.MayHold(division, r)).ToList();
         _isPartner = CurrentAgency is not null;
-        _agency = CurrentAgency ?? PartnerAgency.DoJ;
-        _partnerRank = CurrentPartnerRank ?? PartnerRank.Member;
+        _units = await Units.GetAllAsync();
+        _unitId = _units.Any(u => u.Id == CurrentUnitId) ? CurrentUnitId : _units.FirstOrDefault()?.Id;
+        _isUnitLead = CurrentUnitLead;
         _rank = CurrentRank is { } current && _ranks.Contains(current) ? current : _ranks.FirstOrDefault(Rank.Trainee);
     }
 
     private void Confirm()
-        => MudDialog.Close(DialogResult.Ok(new AgentAffiliation(_isPartner ? _agency : null, _partnerRank, _rank)));
+        => MudDialog.Close(DialogResult.Ok(new AgentAffiliation(_isPartner ? _unitId : null, _isUnitLead, _rank)));
 
     private void Cancel() => MudDialog.Cancel();
 
@@ -95,7 +94,8 @@
         var parameters = new DialogParameters<AgentAffiliationDialog>
         {
             { x => x.CurrentAgency, agent.PartnerAgency },
-            { x => x.CurrentPartnerRank, agent.PartnerRank },
+            { x => x.CurrentUnitId, agent.PartnerUnitId },
+            { x => x.CurrentUnitLead, agent.IsPartnerUnitLead },
             { x => x.CurrentRank, agent.Rank },
         };
         var reference = await dialog.ShowAsync<AgentAffiliationDialog>("Zugehörigkeit ändern", parameters);
@@ -103,6 +103,6 @@
         return result is { Canceled: false, Data: AgentAffiliation a } ? a : null;
     }
 
-    /// <summary>Result of the affiliation dialog. Agency null = internal NOOSE agent (Rank applies).</summary>
-    public record AgentAffiliation(PartnerAgency? Agency, PartnerRank PartnerRank, Rank Rank);
+    /// <summary>Result of the affiliation dialog. Unit null = internal agent (Rank applies).</summary>
+    public record AgentAffiliation(string? PartnerUnitId, bool IsUnitLead, Rank Rank);
 }

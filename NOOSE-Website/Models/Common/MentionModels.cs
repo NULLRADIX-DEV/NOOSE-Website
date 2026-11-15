@@ -8,3 +8,16 @@ public record MentionSegment(bool IsReference, string Text, string? Type = null,
 
 /// <summary>A suggestion in the @-mention picker.</summary>
 public record MentionHit(string Type, string Id, string Display, string? Sub);
+
+/// <summary>Where an @-picker sits; decides which candidate groups it may offer.</summary>
+public enum MentionSource
+{
+    /// <summary>Any ordinary text field: records, agents, sources and investigations.</summary>
+    Default,
+
+    /// <summary>A text of an investigation file: no agents, since nothing there notifies them.</summary>
+    InvestigationField,
+
+    /// <summary>The FIBI chat: no investigations, the assistant never reads them.</summary>
+    Assistant,
+}

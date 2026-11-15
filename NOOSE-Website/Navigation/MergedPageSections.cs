@@ -34,7 +34,7 @@ public static class MergedPageSections
         "brett", "kalender", "besprechungen", "aktivitaeten", "abmeldungen", "entfuehrungen",
         "schusswaffengebrauch",
         "praesentationen", "informanten", "funk",
-        "asservate-items", "asservate-eintraege", "kasse-buchungen", "finanzierungen", "anordnungen",
+        "asservate-items", "asservate-eintraege", "kasse-buchungen", "finanzierungen", "anordnungen", "ermittlungen",
         "feedback", "oeffentliche-seiten", "oeffentliche-fahndungen", "oeffentliche-fraktionsprofile",
         "hinweise", "tickets", "fahndungs-einsprueche", "pressemitteilungen", "oeffentliche-warnungen", "oeffentliche-lageberichte",
         "neuerungen", "handbuch-kapitel", "handbuch-artikel", "gesetzbuecher", "gesetze", "dienstverordnung",

@@ -3,6 +3,7 @@
 @inject IAgentManagementService AgentService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IPartnerUnitService Units
 @using NOOSE_Website.Models.Navigation
 
 <PageTitle>Agenten-Verwaltung · FIB</PageTitle>
@@ -55,13 +56,13 @@ else
                     <MudSelectItem T="PartnerAgency?" Value="@ag">@PartnerAgencyDisplay.Name(ag)</MudSelectItem>
                 }
             </MudSelect>
-            <MudSelect T="PartnerRank?" Value="_rankFilter" ValueChanged="@(v => _rankFilter = v)"
-                       Label="Rang" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                       Style="min-width:160px;" Class="@FilterClass">
-                <MudSelectItem T="PartnerRank?" Value="@((PartnerRank?)null)">Alle Ränge</MudSelectItem>
-                @foreach (var pr in PartnerRankDisplay.All)
+            <MudSelect T="string" Value="_unitFilter" ValueChanged="@(v => _unitFilter = v)"
+                       Label="Einheit" Clearable="true" Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                       Style="min-width:180px;" Class="@FilterClass">
+                <MudSelectItem T="string" Value="@((string?)null)">Alle Einheiten</MudSelectItem>
+                @foreach (var unit in _units.Where(u => _agencyFilter is null || u.Agency == _agencyFilter))
                 {
-                    <MudSelectItem T="PartnerRank?" Value="@pr">@pr</MudSelectItem>
+                    <MudSelectItem T="string" Value="@unit.Id">@unit.FullName</MudSelectItem>
                 }
             </MudSelect>
         </MudStack>
@@ -95,7 +96,7 @@ else
                 }
                 @if (context.PartnerAgency is { } partnerAgency)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Class="mt-1">Partner · @PartnerRankDisplay.Full(partnerAgency, context.PartnerRank)</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Class="mt-1">Partner · @UnitName(partnerAgency, context.PartnerUnitId)@(context.IsPartnerUnitLead ? " · Leitung" : "")</MudChip>
                 }
                 @if (context.Status == AgentStatus.Blocked && !string.IsNullOrWhiteSpace(context.BlockedReason))
                 {
@@ -111,15 +112,22 @@ else
             <MudTd DataLabel="Dienstgrad" Class="@Col("dienstgrad")">
                 @if (context.PartnerAgency is { } partnerAgency)
                 {
-                    <MudSelect T="PartnerRank" Value="@(context.PartnerRank ?? PartnerRank.Member)"
-                               ValueChanged="@(pr => PartnerRankChange(context, pr))"
-                               Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
-                               Disabled="@(context.Status != AgentStatus.Active)">
-                        @foreach (var pr in PartnerRankDisplay.All)
-                        {
-                            <MudSelectItem Value="pr">@PartnerRankDisplay.Full(partnerAgency, pr)</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                        <MudSelect T="string" Value="@context.PartnerUnitId"
+                                   ValueChanged="@(id => PartnerUnitChange(context, id, context.IsPartnerUnitLead))"
+                                   Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined"
+                                   Disabled="@(context.Status != AgentStatus.Active)">
+                            @foreach (var unit in _units.Where(u => u.Agency == partnerAgency))
+                            {
+                                <MudSelectItem T="string" Value="@unit.Id">@unit.Name</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudTooltip Text="Leitung der Einheit">
+                            <MudCheckBox T="bool" Value="@context.IsPartnerUnitLead" Dense="true" Color="Color.Primary"
+                                         ValueChanged="@(lead => PartnerUnitChange(context, context.PartnerUnitId, lead))"
+                                         Disabled="@(context.Status != AgentStatus.Active || context.PartnerUnitId is null)" />
+                        </MudTooltip>
+                    </MudStack>
                 }
                 else
                 {
@@ -299,11 +307,12 @@ else
     // partner-tab filters
     private string _search = string.Empty;
     private PartnerAgency? _agencyFilter;
-    private PartnerRank? _rankFilter;
+    private string? _unitFilter;
+    private IReadOnlyList<PartnerUnitView> _units = Array.Empty<PartnerUnitView>();
 
     // phones only: whether the two partner selects are unfolded under the search
     private bool _filtersOpen;
-    private int ActiveFilterCount => (_agencyFilter is null ? 0 : 1) + (_rankFilter is null ? 0 : 1);
+    private int ActiveFilterCount => (_agencyFilter is null ? 0 : 1) + (_unitFilter is null ? 0 : 1);
     private string FilterClass => _filtersOpen ? "noose-filter-feld" : "noose-filter-feld noose-filter-zu";
 
     /// <summary>The table's columns for the phone column picker, in table order.</summary>
@@ -340,9 +349,9 @@ else
             {
                 query = query.Where(a => a.PartnerAgency == agency);
             }
-            if (_rankFilter is { } rank)
+            if (_unitFilter is { } unit)
             {
-                query = query.Where(a => a.PartnerRank == rank);
+                query = query.Where(a => a.PartnerUnitId == unit);
             }
             if (!string.IsNullOrWhiteSpace(_search))
             {
@@ -372,6 +381,7 @@ else
     private async Task LoadAsync()
     {
         _load = true;
+        _units = await Units.GetAllAsync();
         _agents = await AgentService.GetAllAsync();
         _load = false;
     }
@@ -407,10 +417,11 @@ else
         var user = (await AuthStateTask).User;
         try
         {
-            if (result.Agency is { } agency)
+            if (result.PartnerUnitId is { } unitId)
             {
-                await AgentService.ConvertToPartnerAsync(agent.Id, agency, result.PartnerRank, user);
-                Snackbar.Add($"{DisplayName(agent)}: Zugehörigkeit auf {PartnerRankDisplay.Full(agency, result.PartnerRank)} gesetzt.", Severity.Success);
+                await AgentService.ConvertToPartnerAsync(agent.Id, unitId, result.IsUnitLead, user);
+                var unit = _units.FirstOrDefault(u => u.Id == unitId);
+                Snackbar.Add($"{DisplayName(agent)}: Zugehörigkeit auf {unit?.FullName ?? "Partner"} gesetzt.", Severity.Success);
             }
             else
             {
@@ -450,17 +461,20 @@ else
         await LoadAsync();
     }
 
-    private async Task PartnerRankChange(Agent agent, PartnerRank rank)
+    private string UnitName(PartnerAgency agency, string? unitId)
+        => _units.FirstOrDefault(u => u.Id == unitId)?.FullName ?? PartnerAgencyDisplay.Name(agency);
+
+    private async Task PartnerUnitChange(Agent agent, string? unitId, bool lead)
     {
-        if (agent.PartnerRank == rank)
+        if (unitId is null || (agent.PartnerUnitId == unitId && agent.IsPartnerUnitLead == lead))
         {
             return;
         }
         var user = (await AuthStateTask).User;
         try
         {
-            await AgentService.SetPartnerRankAsync(agent.Id, rank, user);
-            Snackbar.Add($"{DisplayName(agent)}: Partner-Rang auf {PartnerRankDisplay.Full(agent.PartnerAgency, rank)} gesetzt.", Severity.Success);
+            await AgentService.SetPartnerUnitAsync(agent.Id, unitId, lead, user);
+            Snackbar.Add($"{DisplayName(agent)}: {UnitName(agent.PartnerAgency ?? PartnerAgency.DoJ, unitId)}{(lead ? ", Leitung" : "")} gesetzt.", Severity.Success);
         }
         catch (Exception ex)
         {

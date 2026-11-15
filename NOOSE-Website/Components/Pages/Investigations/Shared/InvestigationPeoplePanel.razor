@@ -1,0 +1,230 @@
+@* Witness list with the accused: role, phone, status and an optional person file. *@
+@inject IInvestigationService Investigations
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IMentionService MentionService
+
+@{ var mayEdit = Detail.Access.CanEdit(InvestigationTabs.People); }
+
+@if (Detail.People.Count == 0 && _edit is null)
+{
+    <EmptyState Icon="@Icons.Material.Outlined.Groups" Title="Noch niemand eingetragen" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true" Class="noose-ermittlung-tabelle">
+        <thead>
+            <tr><th>Name</th><th class="noose-mobil-aus">Telefon</th><th class="noose-mobil-aus">Rolle</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Detail.People)
+            {
+                <tr id="@InvestigationTexts.Anchor(p.Id)" style="@InvestigationTexts.HighlightStyle(p.Id, Highlight)">
+                    <td>
+                        @if (p.PersonId is { } personId && p.PersonCaseNumber is not null && !User.IsPartner())
+                        {
+                            <MudLink Href="@($"/personen/{personId}")">@p.Name</MudLink>
+                        }
+                        else
+                        {
+                            @p.Name
+                        }
+                        @* below 600px role and phone stand under the name instead of in their own columns *@
+                        <div class="noose-nur-handy">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.Role@(p.Phone is null ? "" : $" · {p.Phone}")</MudText>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(p.Note))
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block"><InvestigationText Text="@p.Note" Resolved="_resolved" /></MudText>
+                        }
+                    </td>
+                    <td class="noose-mobil-aus">@(p.Phone ?? "—")</td>
+                    <td class="noose-mobil-aus">@p.Role</td>
+                    <td>
+                        <InvestigationQuickChoice TValue="InvestigationPersonStatus" Value="p.Status" Items="InvestigationDisplay.PersonStatuses"
+                                                  Name="InvestigationDisplay.Name" Colour="StatusColour" Enabled="mayEdit" Hint="Status ändern"
+                                                  Picked="@(s => SetStatusAsync(p, s))" />
+                    </td>
+                    <td class="text-right">
+                        <InvestigationRowActions Detail="Detail" ItemType="@nameof(InvestigationPerson)" ItemId="@p.Id" User="User" Changed="Changed"
+                                                 MayEdit="mayEdit" OnEdit="@(() => Edit(p))" OnDelete="@(() => DeleteAsync(p.Id))" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@if (mayEdit)
+{
+    @if (_edit is null)
+    {
+        <MudButton Class="mt-3" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="@(() => Edit(null))">Person eintragen</MudButton>
+    }
+    else
+    {
+        <MudPaper Class="pa-3 mt-3" Outlined="true">
+            <MudGrid Spacing="2">
+                @if (!User.IsPartner())
+                {
+                    <MudItem xs="12">
+                        <QuickRecordPicker Allowed="PersonOnly" Value="_edit.Person" ValueChanged="PickPerson" Label="Personenakte (optional)"
+                                           HelperText="Übernimmt den Namen. Nötig, damit eine Anordnung gegen diese Person beantragt werden kann." />
+                    </MudItem>
+                }
+                <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Name" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+                <MudItem xs="12" md="3"><MudTextField @bind-Value="_edit.Phone" Label="Telefon" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="64" /></MudItem>
+                <MudItem xs="12" md="2">
+                    <MudAutocomplete T="string" @bind-Value="_edit.Role" Label="Rolle" SearchFunc="Roles" CoerceText="true" CoerceValue="true"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="100" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect T="InvestigationPersonStatus" @bind-Value="_edit.Status" Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var s in InvestigationDisplay.PersonStatuses)
+                        {
+                            <MudSelectItem T="InvestigationPersonStatus" Value="s">@InvestigationDisplay.Name(s)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MentionInput Text="@(_edit.Note ?? string.Empty)" TextChanged="@(t => { if (_edit is not null) _edit.Note = t; })"
+                                  Label="Notiz" Lines="1" MaxLength="@InvestigationService.PersonNoteMaxLength"
+                                  MentionSource="MentionSource.InvestigationField" MentionContext="@Detail.Id" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" Spacing="2" Class="mt-2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+                <MudButton OnClick="@(() => _edit = null)">Abbrechen</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    /// <summary>Entry a reference points at (?eintrag=); marked in the list.</summary>
+    [Parameter] public string? Highlight { get; set; }
+
+    private InvestigationDetail? _resolvedFor;
+    private IReadOnlyDictionary<string, IReadOnlyList<MentionSegment>> _resolved = new Dictionary<string, IReadOnlyList<MentionSegment>>();
+
+    // one batch per loaded detail; a reload hands in a new instance
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ReferenceEquals(_resolvedFor, Detail))
+        {
+            return;
+        }
+        _resolvedFor = Detail;
+        _resolved = await InvestigationTexts.ResolveAsync(MentionService, User, Detail.People.Select(p => p.Note));
+    }
+
+    private static readonly IReadOnlySet<string> PersonOnly = new HashSet<string> { "Person" };
+    private static readonly string[] RoleSuggestions = CasePersonRoles.Suggestions.Concat(new[] { "Beamter", "Sachverständiger" }).Distinct().ToArray();
+
+    private sealed class EditState
+    {
+        public string? Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string Role { get; set; } = "Zeuge";
+        public InvestigationPersonStatus Status { get; set; }
+        public QuickHit? Person { get; set; }
+        public string? Note { get; set; }
+    }
+
+    private EditState? _edit;
+    private bool _busy;
+
+    private static Color StatusColour(InvestigationPersonStatus s) => s switch
+    {
+        InvestigationPersonStatus.StatementTaken => Color.Success,
+        InvestigationPersonStatus.NotUsable => Color.Error,
+        InvestigationPersonStatus.Contacted or InvestigationPersonStatus.Cautioned => Color.Info,
+        _ => Color.Default,
+    };
+
+    private Task<IEnumerable<string>> Roles(string value, CancellationToken token)
+        => Task.FromResult(string.IsNullOrWhiteSpace(value) ? RoleSuggestions.AsEnumerable()
+            : RoleSuggestions.Where(r => r.Contains(value, StringComparison.OrdinalIgnoreCase)).Append(value).Distinct());
+
+    private void Edit(InvestigationPersonView? p)
+        => _edit = p is null ? new EditState()
+            : new EditState
+            {
+                Id = p.Id, Name = p.Name, Phone = p.Phone, Role = p.Role, Status = p.Status, Note = p.Note,
+                Person = p.PersonId is null ? null : new QuickHit("Person", p.PersonId, p.Name, p.PersonCaseNumber ?? string.Empty),
+            };
+
+    private void PickPerson(QuickHit? hit)
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        // the file's name replaces an empty field or the one the previous pick filled in
+        if (hit is not null && (string.IsNullOrWhiteSpace(_edit.Name) || _edit.Name == _edit.Person?.Name))
+        {
+            _edit.Name = hit.Name;
+        }
+        _edit.Person = hit;
+    }
+
+    private async Task SetStatusAsync(InvestigationPersonView p, InvestigationPersonStatus status)
+    {
+        try
+        {
+            await Investigations.SavePersonAsync(Detail.Id,
+                new InvestigationPersonInput(p.Id, p.Name, p.PersonId, p.Phone, p.Role, status, p.Note), User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            await Investigations.SavePersonAsync(Detail.Id,
+                new InvestigationPersonInput(_edit.Id, _edit.Name, _edit.Person?.TargetId, _edit.Phone, _edit.Role, _edit.Status, _edit.Note), User);
+            _edit = null;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task DeleteAsync(string id)
+    {
+        if (await DialogService.ShowMessageBoxAsync("Person austragen", "Die Person wird aus der Liste entfernt.", yesText: "Löschen", cancelText: "Abbrechen") != true)
+        {
+            return;
+        }
+        try
+        {
+            await Investigations.DeleteEntryAsync(Detail.Id, nameof(InvestigationPerson), id, User);
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

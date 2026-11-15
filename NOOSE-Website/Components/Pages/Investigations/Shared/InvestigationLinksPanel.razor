@@ -1,0 +1,196 @@
+@* The file's own links area: records and other files, each only when the viewer may open it. *@
+@inject IInvestigationLinkService Links
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
+        <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@_list.Count)</MudText>
+        @if (_mayEdit)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLink" OnClick="AddAsync">
+                Akte verknüpfen
+            </MudButton>
+        }
+    </MudStack>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_list.Count == 0)
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            Noch nichts verknüpft. Verknüpfe Personen, Organisationen, Vorgänge, Operationen oder andere Ermittlungen.
+        </MudText>
+    }
+    else
+    {
+        @foreach (var group in _grouped)
+        {
+            <div>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mb-1">
+                    <MudIcon Icon="@TypeIcon(group.Key)" Color="Color.Primary" Size="Size.Small" />
+                    <MudText Typo="Typo.subtitle2">@TypePlural(group.Key) (@group.Count())</MudText>
+                </MudStack>
+                @foreach (var v in group)
+                {
+                    <MudPaper Class="pa-3 mb-2" Elevation="1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap noose-eintrag-titel">
+                                @if (v.Href is not null)
+                                {
+                                    <MudLink Href="@v.Href" Typo="Typo.body2"><b>@v.Display</b></MudLink>
+                                }
+                                else
+                                {
+                                    <MudText Typo="Typo.body2"><b>@v.Display</b></MudText>
+                                }
+                                @if (_editing == v.LinkId)
+                                {
+                                    <MudTextField @bind-Value="_editLabel" Label="Bezeichnung" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                  MaxLength="@InvestigationLinkService.LabelMaxLength" Class="noose-min-breite-frei" />
+                                }
+                                else if (!string.IsNullOrWhiteSpace(v.Label))
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default">@v.Label</MudChip>
+                                }
+                            </MudStack>
+                            <MudStack Row="true" Spacing="0">
+                                @if (_editing == v.LinkId)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Check" Color="Color.Primary" Size="Size.Small"
+                                                   OnClick="@(() => SaveLabelAsync(v))" aria-label="Bezeichnung speichern" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                                   OnClick="@(() => _editing = null)" aria-label="Abbrechen" />
+                                }
+                                else
+                                {
+                                    @if (v.MayEditLabel)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small"
+                                                       OnClick="@(() => StartEdit(v))" aria-label="Bezeichnung bearbeiten" />
+                                    }
+                                    @if (v.MayRemove)
+                                    {
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                       OnClick="@(() => RemoveAsync(v))" aria-label="Verknüpfung entfernen" />
+                                    }
+                                }
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </div>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _mayEdit;
+    private string? _loadedId;
+    private List<InvestigationLinkedRecord> _list = new();
+    private string? _editing;
+    private string? _editLabel;
+
+    // the order of the record links panel, files last
+    private static readonly string[] _order =
+    {
+        nameof(Person), nameof(Faction), nameof(PersonGroup), nameof(Party), nameof(Operation), nameof(Case),
+        nameof(Taskforce), nameof(Warrant), nameof(Law), nameof(Job), nameof(Appointment), nameof(Meeting), nameof(MeetingAgendaItem),
+        nameof(Hinweis), nameof(Bewerbung), nameof(RegulationParagraph), nameof(Presentation), nameof(Investigation),
+    };
+
+    private IEnumerable<IGrouping<string, InvestigationLinkedRecord>> _grouped =>
+        _list.GroupBy(v => v.Type)
+            .OrderBy(g => Array.IndexOf(_order, g.Key) is var i && i >= 0 ? i : int.MaxValue)
+            .ThenBy(g => g.Key);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _mayEdit = Detail.Access.CanEdit(InvestigationTabs.Overview);
+        if (_loadedId == Detail.Id)
+        {
+            return;
+        }
+        _loadedId = Detail.Id;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _list = await Links.GetForInvestigationAsync(Detail.Id, User);
+        _load = false;
+    }
+
+    private async Task AddAsync()
+    {
+        var choice = await InvestigationLinkDialog.ShowAsync(DialogService, "Akte verknüpfen",
+            offerRecords: true, offerFiles: true, editableOnly: false, excludeId: Detail.Id,
+            linked: _list.Select(v => (v.Type, v.Id)).ToHashSet());
+        if (choice is null)
+        {
+            return;
+        }
+        try
+        {
+            await Links.CreateAsync(Detail.Id, choice.Type, choice.Id, choice.Label, User);
+            Snackbar.Add("Akte verknüpft.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void StartEdit(InvestigationLinkedRecord v)
+    {
+        _editing = v.LinkId;
+        _editLabel = v.Label;
+    }
+
+    private async Task SaveLabelAsync(InvestigationLinkedRecord v)
+    {
+        try
+        {
+            await Links.UpdateLabelAsync(v.LinkId, _editLabel, User);
+            _editing = null;
+            Snackbar.Add("Bezeichnung gespeichert.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task RemoveAsync(InvestigationLinkedRecord v)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Verknüpfung entfernen?",
+            $"„{v.Display}“ wird von der Ermittlung gelöst.", "Entfernen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await Links.RemoveAsync(v.LinkId, User);
+            Snackbar.Add("Verknüpfung entfernt.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private static string TypePlural(string type) => type == nameof(Investigation) ? "Ermittlungen" : RecordTypeDisplay.Plural(type);
+
+    private static string TypeIcon(string type) => type == nameof(Investigation) ? Icons.Material.Filled.Gavel : RecordTypeDisplay.Icon(type);
+}

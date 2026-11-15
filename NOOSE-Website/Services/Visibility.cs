@@ -75,6 +75,11 @@ public static class Visibility
         {
             return await WarrantVisibility.IsVisibleAsync(db, entityId, scope, cancellationToken);
         }
+        // investigations: participants only (plus leadership and supervision); explicit, the tail would answer "visible"
+        if (entityType == nameof(Data.Entities.Investigations.Investigation))
+        {
+            return await InvestigationAccess.IsVisibleAsync(db, entityId, scope, cancellationToken);
+        }
         // documents: secrecy level alone is not the gate — the owning taskforce and per-agent revocation count too
         if (entityType == nameof(Document))
         {
@@ -203,6 +208,22 @@ public static class Visibility
             // "_ => true" would answer "visible" for a partner and for every uninvolved agent alike.
             case nameof(Ticket):
                 return await TicketVisibility.MayReadAsync(db, entityId, scope, cancellationToken);
+            // Investigation entries: file, tab and entry restriction, exactly as the file itself shows them. Named
+            // rather than left to the tail below, which would answer "visible" for every agent that asks by id.
+            case nameof(Data.Entities.Investigations.InvestigationCharge)
+                or nameof(Data.Entities.Investigations.InvestigationPerson)
+                or nameof(Data.Entities.Investigations.InvestigationEvidence)
+                or nameof(Data.Entities.Investigations.InvestigationInterrogation)
+                or nameof(Data.Entities.Investigations.InvestigationTask)
+                or nameof(Data.Entities.Investigations.InvestigationNote):
+                return await InvestigationReferences.IsEntryVisibleAsync(db, entityType, entityId, scope, cancellationToken);
+            // never addressed on their own: a photo follows its evidence, the rest are the file's machinery
+            case nameof(Data.Entities.Investigations.InvestigationEvidencePhoto)
+                or nameof(Data.Entities.Investigations.InvestigationInterrogationEntry)
+                or nameof(Data.Entities.Investigations.InvestigationParticipant)
+                or nameof(Data.Entities.Investigations.InvestigationItemRestriction)
+                or nameof(Data.Entities.Investigations.InvestigationLink):
+                return false;
         }
 
         // open to every internal agent, but named rather than left to the tail below: a type that falls through

@@ -1,0 +1,36 @@
+@* A status chip that changes the value with one click, for the values that move most often in a file. *@
+@typeparam TValue
+
+@if (Enabled)
+{
+    <MudMenu Dense="true" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft">
+        <ActivatorContent>
+            @* the chip keeps the click to itself, so it has to open the menu *@
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@Colour(Value)" OnClick="@context.ToggleAsync"
+                     Icon="@Icons.Material.Filled.ArrowDropDown" title="@Hint">@Name(Value)</MudChip>
+        </ActivatorContent>
+        <ChildContent>
+            @foreach (var item in Items)
+            {
+                <MudMenuItem OnClick="@(() => PickAsync(item))">@Name(item)</MudMenuItem>
+            }
+        </ChildContent>
+    </MudMenu>
+}
+else
+{
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@Colour(Value)">@Name(Value)</MudChip>
+}
+
+@code {
+    [Parameter, EditorRequired] public TValue Value { get; set; } = default!;
+    [Parameter, EditorRequired] public IEnumerable<TValue> Items { get; set; } = [];
+    [Parameter, EditorRequired] public Func<TValue, string> Name { get; set; } = v => v?.ToString() ?? string.Empty;
+    [Parameter] public Func<TValue, Color> Colour { get; set; } = _ => Color.Default;
+    [Parameter] public bool Enabled { get; set; }
+    [Parameter] public string Hint { get; set; } = "Ändern";
+    [Parameter] public EventCallback<TValue> Picked { get; set; }
+
+    private Task PickAsync(TValue item)
+        => EqualityComparer<TValue>.Default.Equals(item, Value) ? Task.CompletedTask : Picked.InvokeAsync(item);
+}

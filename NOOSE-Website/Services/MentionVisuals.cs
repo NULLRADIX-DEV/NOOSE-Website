@@ -5,6 +5,7 @@ using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Groups;
+using NOOSE_Website.Data.Entities.Investigations;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Meetings;
 using NOOSE_Website.Data.Entities.Operations;
@@ -36,6 +37,11 @@ public static class MentionVisuals
         // not a mention at all: the snippet list borrows this picker rather than cloning it
         nameof(TextSnippet) => Icons.Material.Filled.ShortText,
         nameof(Agent) => Icons.Material.Filled.Person,
+        // same icon as the menu entry
+        nameof(Investigation) => Icons.Material.Filled.Gavel,
+        // an entry wears the icon of its tab
+        _ when InvestigationReferences.IsType(type) && InvestigationTabs.ForChildType(type!) is { } slug
+            => InvestigationTabs.Find(slug)?.Icon ?? Icons.Material.Filled.Link,
         _ => Icons.Material.Filled.Link,
     };
 
@@ -56,6 +62,13 @@ public static class MentionVisuals
         nameof(Source) => "Quelle",
         nameof(Agent) => "Agent",
         nameof(TextSnippet) => "Baustein",
+        nameof(Investigation) => "Ermittlung",
+        nameof(InvestigationCharge) => "Ermittlung: Tatvorwurf",
+        nameof(InvestigationPerson) => "Ermittlung: Zeuge/Beschuldigter",
+        nameof(InvestigationEvidence) => "Ermittlung: Beweismittel",
+        nameof(InvestigationInterrogation) => "Ermittlung: Vernehmung",
+        nameof(InvestigationTask) => "Ermittlung: Aufgabe",
+        nameof(InvestigationNote) => "Ermittlung: Notiz",
         _ => "",
     };
 }

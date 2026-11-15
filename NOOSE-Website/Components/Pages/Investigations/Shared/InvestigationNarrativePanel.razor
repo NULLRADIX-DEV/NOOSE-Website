@@ -1,0 +1,69 @@
+@* Course of events as rich text, without images; @-references resolve per reader in RichHtml. *@
+@inject IInvestigationService Investigations
+@inject ISnackbar Snackbar
+
+@if (_editing)
+{
+    @* references to this or another file; the picker offers no agents here, the narrative notifies nobody *@
+    <RichTextEditor @ref="_editor" Value="@_html" MinHeight="260px" DraftKey="@($"ermittlung:{Detail.Id}:tathergang")"
+                    Mentions="true" MentionSource="MentionSource.InvestigationField" MentionContext="@Detail.Id"
+                    OnSaveRequested="SaveAsync" />
+    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">Bilder werden beim Speichern entfernt; Fotos gehören als Beweismittel in die Akte.</MudText>
+    <MudStack Row="true" Spacing="2" Class="mt-2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_busy">Speichern</MudButton>
+        <MudButton OnClick="@(() => _editing = false)">Abbrechen</MudButton>
+    </MudStack>
+}
+else
+{
+    @if (string.IsNullOrWhiteSpace(Detail.NarrativeHtml))
+    {
+        <EmptyState Icon="@Icons.Material.Outlined.Article" Title="Noch kein Tathergang" />
+    }
+    else
+    {
+        <RichHtml Html="@Detail.NarrativeHtml" User="User" />
+    }
+    @if (Detail.Access.CanEdit(InvestigationTabs.Narrative))
+    {
+        <MudButton Class="mt-3" Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Edit"
+                   OnClick="@(() => { _html = Detail.NarrativeHtml; _editing = true; })">Tathergang bearbeiten</MudButton>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public InvestigationDetail Detail { get; set; } = default!;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private bool _editing;
+    private bool _busy;
+    private string? _html;
+    private RichTextEditor? _editor;
+
+    private async Task SaveAsync()
+    {
+        if (_editor is null || _busy)
+        {
+            return;
+        }
+        _busy = true;
+        try
+        {
+            // the editor reports its content lazily; read it fresh, as every other editor page does
+            var html = await _editor.GetHtmlAsync();
+            await Investigations.SetNarrativeAsync(Detail.Id, html, User);
+            await _editor.MarkSavedAsync();
+            _editing = false;
+            await Changed.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or KeyNotFoundException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

@@ -82,7 +82,7 @@ else
                 </AuthorizeView>
             </MudStack>
 
-            @if (_links.Count == 0)
+            @if (_links.Count == 0 && _fileLinks == 0)
             {
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     Noch keine Verknüpfungen – verbinde den Paragrafen z. B. mit einem Vorgang oder Dok.
@@ -118,6 +118,12 @@ else
                     </MudPaper>
                 }
             }
+
+            @* files live apart from the link engine and are filtered by participation; WriteAccess is MayWrite *@
+            <div class="no-print">
+                <RecordInvestigationLinks EntityType="@nameof(Law)" EntityId="@Id" User="_user" MayWrite="@_user.MayWrite()"
+                                          CountChanged="@(n => _fileLinks = n)" />
+            </div>
         </MudStack>
     </MudPaper>
     }
@@ -131,6 +137,9 @@ else
     private bool _isPartner;
     private Law? _law;
     private List<LinkDisplay> _links = new();
+
+    // linked files, listed by their own group (not printed, so not in the header count); only the empty text asks
+    private int _fileLinks;
     private ClaimsPrincipal _user = default!;
 
     protected override async Task OnInitializedAsync()

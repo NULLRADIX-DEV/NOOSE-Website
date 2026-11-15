@@ -14,6 +14,7 @@ using NOOSE_Website.Components;
 using NOOSE_Website.Components.Account;
 using NOOSE_Website.Components.Factions;
 using NOOSE_Website.Components.Groups;
+using NOOSE_Website.Components.Investigations;
 using NOOSE_Website.Components.Parties;
 using NOOSE_Website.Components.People;
 using NOOSE_Website.Components.Common;
@@ -190,6 +191,7 @@ builder.Services.AddScoped<ISourcesStorageService, SourcesStorageService>();
 builder.Services.AddScoped<IFactionPhotoStorageService, FactionPhotoStorageService>();
 builder.Services.AddScoped<IPersonGroupPhotoStorageService, PersonGroupPhotoStorageService>();
 builder.Services.AddScoped<IPartyPhotoStorageService, PartyPhotoStorageService>();
+builder.Services.AddScoped<IInvestigationPhotoStorageService, InvestigationPhotoStorageService>();
 builder.Services.AddScoped<IEvidenceImageStorageService, EvidenceImageStorageService>();
 builder.Services.AddScoped<IAgentAvatarStorageService, AgentAvatarStorageService>();
 builder.Services.AddScoped<IPublicWantedPhotoStorageService, PublicWantedPhotoStorageService>();
@@ -211,6 +213,8 @@ builder.Services.AddScoped<IFinancingCatalogService, FinancingCatalogService>();
 builder.Services.AddScoped<IFinancingBudgetService, FinancingBudgetService>();
 builder.Services.AddScoped<IFinancingService, FinancingService>();
 builder.Services.AddScoped<IWarrantService, WarrantService>();
+builder.Services.AddScoped<IInvestigationService, InvestigationService>();
+builder.Services.AddScoped<IInvestigationLinkService, InvestigationLinkService>();
 builder.Services.AddScoped<IProfileSuggestionService, ProfileSuggestionService>();
 builder.Services.AddScoped<IValueListLabelService, ValueListLabelService>();
 builder.Services.AddScoped<IDocTemplateService, DocTemplateService>();
@@ -447,6 +451,7 @@ builder.Services.AddScoped<INavPreferencesService, NavPreferencesService>();
 builder.Services.AddScoped<INavLabelService, NavLabelService>();
 builder.Services.AddScoped<IPartnerVisibilityPolicyService, PartnerVisibilityPolicyService>();
 builder.Services.AddScoped<IPartnerAgencyProfileService, PartnerAgencyProfileService>();
+builder.Services.AddScoped<IPartnerUnitService, PartnerUnitService>();
 builder.Services.AddScoped<ILawService, LawService>();
 builder.Services.AddScoped<IRadioService, RadioService>();
 builder.Services.AddScoped<NOOSE_Website.Services.Changelog.IChangelogService,
@@ -650,6 +655,7 @@ app.MapNooseSourcesFileEndpoints();
 app.MapNooseFactionsFileEndpoints();
 app.MapNooseGroupsFileEndpoints();
 app.MapNoosePartiesFileEndpoints();
+app.MapNooseInvestigationFileEndpoints();
 app.MapNooseEvidenceFileEndpoints();
 app.MapNooseLibraryFileEndpoints();
 app.MapNooseSystemEndpoints();
@@ -720,6 +726,9 @@ using (var scope = app.Services.CreateScope())
 
     // seed one starting template per kind (only while the table is empty; a deleted one stays deleted)
     await SeedAsync("Bürger-Vorlagen", () => NOOSE_Website.Infrastructure.PublicTemplateSeeder.SeedAsync(db));
+
+    // partner accounts an older build left without a unit, and the old per-tier allowlist (idempotent)
+    await SeedAsync("Partner-Einheiten", () => NOOSE_Website.Services.PartnerUnitService.SyncAsync(db));
 
     // warm the static enum-label overrides so display classes show custom names
     var labelRows = await db.EnumLabelOverrides.Select(o => new { o.List, o.Key, o.Label }).ToListAsync();

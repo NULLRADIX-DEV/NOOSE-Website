@@ -58,7 +58,9 @@ public static class NavCatalog
             Description: "Ein- und Auslagerung von Gegenständen mit Bestand, Bild und Besitzer"),
 
         new NavEntry("vorgaenge", "/vorgaenge", Icons.Material.Filled.FolderSpecial, "Vorgänge", NavSection.VorgaengeEinsaetze, NavArea.Akten,
-            Description: "Übergeordnete Ermittlungsakte, die mehrere Akten bündelt"),
+            Description: "Sammelakte, die mehrere Akten bündelt"),
+        new NavEntry("ermittlungen", "/ermittlungen", Icons.Material.Filled.Gavel, "Ermittlungen", NavSection.VorgaengeEinsaetze, NavArea.Akten,
+            Description: "Ermittlungsakten mit der DoJ: Tatvorwurf, Zeugen, Beweise, Vernehmungen, nur für Beteiligte"),
         new NavEntry("operationen", "/operationen", Icons.Material.Filled.Radar, "Operationen", NavSection.VorgaengeEinsaetze, NavArea.Akten,
             Description: "Einsatzbericht zu einem konkreten Einsatz mit Ort und Zeit"),
         new NavEntry("einsatzalarme", "/einsatzalarme", Icons.Material.Filled.NotificationsActive, "Einsatzalarme", NavSection.VorgaengeEinsaetze, NavArea.Akten,
@@ -199,12 +201,20 @@ public static class NavCatalog
                 list.Add(new NavEntry("partner." + t.TypeKey, "/" + t.RoutePrefix, PartnerIcon(t.TypeKey), t.DisplayName, NavSection.Partner, NavArea.Partner));
             }
         }
+        // participation, not a release: the policy adds the key when the account sees or may open one
+        if (allowedTypes?.Contains(InvestigationTypeKey) == true)
+        {
+            list.Add(new NavEntry("partner.Investigation", "/ermittlungen", Icons.Material.Filled.Gavel, "Ermittlungen", NavSection.Partner, NavArea.Partner));
+        }
         foreach (var f in PartnerFeaturePages.Where(f => features.HasFlag(f.Feature)))
         {
             list.Add(new NavEntry(f.Key, f.Href, f.Icon, f.Label, NavSection.Partner, NavArea.Partner));
         }
         return list;
     }
+
+    /// <summary>Type key of the investigation file in a partner's allowed set.</summary>
+    public const string InvestigationTypeKey = "Investigation";
 
     private static readonly (PartnerFeature Feature, string Key, string Href, string Icon, string Label)[] PartnerFeaturePages =
     {

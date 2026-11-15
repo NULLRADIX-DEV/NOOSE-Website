@@ -11,7 +11,6 @@ public static class AuthorizationRegistration
     public static IServiceCollection AddNooseAuthorization(this IServiceCollection services)
     {
         services.AddScoped<IAuthorizationHandler, RankAuthorizationHandler>();
-        services.AddScoped<IAuthorizationHandler, PartnerRankAuthorizationHandler>();
 
         services.AddAuthorizationBuilder()
             .AddPolicy(Policies.ActiveAgent, p => p

@@ -231,6 +231,10 @@ else
                 <RecordSection Group="Ermittlung" Slug="anordnungen" Label="Anordnungen" Icon="@Icons.Material.Filled.Approval">
                     <WarrantsPanel PersonId="@_person.Id" User="_user" />
                 </RecordSection>
+                @* internal only and outside _tabs/PartnerTabCatalog: lists only investigations the viewer takes part in *@
+                <RecordSection Group="Ermittlung" Slug="ermittlungen" Label="Ermittlungen" Icon="@Icons.Material.Filled.Gavel">
+                    <PersonInvestigationsPanel PersonId="@_person.Id" User="_user" />
+                </RecordSection>
                 }
                 @if (TabOn("einstufung"))
                 {

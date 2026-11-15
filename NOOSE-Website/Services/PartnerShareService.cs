@@ -56,9 +56,75 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
             .Where(s => s.EntityType == entityType && s.EntityId == entityId && s.PartnerAgentId != null)
             .Join(db.Users.AsNoTracking(), s => s.PartnerAgentId, a => a.Id, (s, a) => new { s, a })
             .OrderBy(x => x.a.Codename)
-            .Select(x => new PartnerIndividualShareState(x.a.Id, x.a.Codename, x.s.Agency, x.a.PartnerRank, x.s.IncludesChildren, x.s.ValidUntil))
+            .Select(x => new PartnerIndividualShareState(x.a.Id, x.a.Codename, x.s.Agency, x.a.PartnerUnitId, x.s.IncludesChildren, x.s.ValidUntil))
             .ToListAsync(cancellationToken);
         return rows;
+    }
+
+    public async Task<IReadOnlyList<PartnerUnitShareState>> GetUnitSharesAsync(string entityType, string entityId, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var now = DateTime.UtcNow;
+        return await db.PartnerUnitShares.AsNoTracking()
+            .Where(s => s.EntityType == entityType && s.EntityId == entityId && (s.ValidUntil == null || s.ValidUntil > now))
+            .Join(db.PartnerUnits.AsNoTracking(), s => s.PartnerUnitId, u => u.Id, (s, u) => new { s, u })
+            .OrderBy(x => x.u.Agency).ThenBy(x => x.u.SortOrder)
+            .Select(x => new PartnerUnitShareState(x.u.Id, x.u.Agency, x.s.IncludesChildren, x.s.ValidUntil))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task SetUnitAsync(string entityType, string entityId, string partnerUnitId, bool released, bool includesChildren,
+        bool setExpiry, DateTime? validUntil, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireLeadership(actor);
+        var now = DateTime.UtcNow;
+        var end = setExpiry ? PartnerShareExpiry.Require(validUntil, now) : null;
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var unit = await db.PartnerUnits.AsNoTracking().FirstOrDefaultAsync(u => u.Id == partnerUnitId, cancellationToken)
+            ?? throw new InvalidOperationException("Diese Einheit gibt es nicht.");
+        var label = PartnerUnitDisplay.Full(unit.Agency, unit.Name);
+        var row = await db.PartnerUnitShares
+            .FirstOrDefaultAsync(s => s.EntityType == entityType && s.EntityId == entityId && s.PartnerUnitId == partnerUnitId, cancellationToken);
+        if (released)
+        {
+            if (row is null)
+            {
+                db.PartnerUnitShares.Add(new PartnerUnitShare
+                {
+                    EntityType = entityType, EntityId = entityId, PartnerUnitId = partnerUnitId,
+                    IncludesChildren = includesChildren, ValidUntil = end,
+                });
+                db.AuditLogs.Add(RecordRow(entityType, entityId, label, actor, null, "freigegeben, " + PartnerShareExpiry.Until(end)));
+            }
+            else
+            {
+                var wasActive = PartnerShareExpiry.IsActive(row.ValidUntil, now);
+                var before = wasActive ? PartnerShareExpiry.Until(row.ValidUntil) : null;
+                row.IncludesChildren = includesChildren;
+                if (setExpiry)
+                {
+                    row.ValidUntil = end;
+                }
+                else if (!wasActive)
+                {
+                    row.ValidUntil = null;
+                }
+                var after = PartnerShareExpiry.Until(row.ValidUntil);
+                if (before != after)
+                {
+                    db.AuditLogs.Add(RecordRow(entityType, entityId, label, actor,
+                        before is null ? null : "freigegeben, " + before, "freigegeben, " + after));
+                }
+            }
+        }
+        else if (row is not null)
+        {
+            var wasActive = PartnerShareExpiry.IsActive(row.ValidUntil, now);
+            db.PartnerUnitShares.Remove(row);
+            db.AuditLogs.Add(RecordRow(entityType, entityId, label, actor,
+                wasActive ? "freigegeben, " + PartnerShareExpiry.Until(row.ValidUntil) : "abgelaufen", "entzogen"));
+        }
+        await db.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<PartnerAccountOption>> GetSelectablePartnersAsync(CancellationToken cancellationToken = default)
@@ -67,7 +133,7 @@ public class PartnerShareService(IDbContextFactory<AppDbContext> dbFactory, INot
         return await db.Users.AsNoTracking()
             .Where(a => a.PartnerAgency != null && a.Status == AgentStatus.Active)
             .OrderBy(a => a.PartnerAgency).ThenBy(a => a.Codename)
-            .Select(a => new PartnerAccountOption(a.Id, a.Codename, a.PartnerAgency!.Value, a.PartnerRank))
+            .Select(a => new PartnerAccountOption(a.Id, a.Codename, a.PartnerAgency!.Value, a.PartnerUnitId))
             .ToListAsync(cancellationToken);
     }
 

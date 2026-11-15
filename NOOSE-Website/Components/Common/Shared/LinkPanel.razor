@@ -14,7 +14,7 @@
 
     <MudStack Spacing="3">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-kopf-umbruch">
-            <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@_manual.Count)</MudText>
+            <MudText Typo="Typo.subtitle1">Verknüpfte Akten (@(_manual.Count + _fileLinks))</MudText>
             @if (_mayWrite)
             {
                 <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AddLink" OnClick="NewLinkAsync">
@@ -27,7 +27,7 @@
         {
             <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
         }
-        else if (_manual.Count == 0)
+        else if (_manual.Count == 0 && _fileLinks == 0)
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Verknüpfungen erfasst.</MudText>
         }
@@ -62,6 +62,10 @@
                 </MudPaper>
             }
         }
+
+        @* files live apart from the link engine and are filtered by participation *@
+        <RecordInvestigationLinks EntityType="@nameof(Person)" EntityId="@PersonId" User="User" MayWrite="_mayWrite"
+                                  CountChanged="@(n => _fileLinks = n)" />
     </MudStack>
 
     <MudDivider />
@@ -184,6 +188,9 @@
     private bool _mayGraph;
     private List<RelationDisplay> _relations = new();
     private List<LinkDisplay> _manual = new();
+
+    // linked files, listed by their own group; counted here so the empty text never contradicts them
+    private int _fileLinks;
     private List<LinkDisplay> _colleagues = new();
     private List<DerivedRelation> _derived = new();
 

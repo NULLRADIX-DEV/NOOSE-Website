@@ -111,6 +111,10 @@ public static class TrashProjection
         => new("anordnungen", x.Warrant.Id, x.Warrant.CaseNumber, WarrantTypeDisplay.Name(x.Warrant.Type),
             Join(x.PersonName, WarrantStateDisplay.Name(x.State)), x.Warrant.DeletedAt);
 
+    public static TrashItem Investigation(Data.Entities.Investigations.Investigation x)
+        => new("ermittlungen", x.Id, x.CaseNumber, x.Title, Join(x.SidCaseNumber is null ? null : $"Az. SID {x.SidCaseNumber}",
+            InvestigationDisplay.Name(x.Status)), x.DeletedAt);
+
     // feedback carries no Aktenzeichen; the kind plus a text snippet identifies the row
     public static TrashItem Feedback(FeedbackEntity x)
         => new("feedback", x.Id, null,

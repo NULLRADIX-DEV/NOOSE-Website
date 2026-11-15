@@ -66,6 +66,14 @@ public class Warrant : IAuditable, ISoftDelete
     [Column("EntscheiderDienstgrad")]
     public Rank? DeciderRank { get; set; }
 
+    /// <summary>Function of a partner signer (e.g. "DoJ · State Attorney Office"); null for a FIB signature.</summary>
+    [Column("EntscheiderFunktion")]
+    public string? DeciderFunction { get; set; }
+
+    /// <summary>Investigation the order belongs to; its participants see and its prosecutor signs it.</summary>
+    [Column("ErmittlungId")]
+    public string? InvestigationId { get; set; }
+
     [Column("EntschiedenAm")]
     public DateTime? DecidedAt { get; set; }
 

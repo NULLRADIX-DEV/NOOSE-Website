@@ -11,6 +11,9 @@ public class TaskforceInput
     public string? Remarks { get; set; }
     public bool IsClassified { get; set; }
 
+    /// <summary>Partner agencies taking part; kept only for a cross-agency taskforce.</summary>
+    public List<PartnerAgency> PartnerAgencies { get; set; } = new();
+
     /// <summary>Why the secrecy level is loosened; required by the service when the audience widens.</summary>
     public string? SecrecyReason { get; set; }
 }

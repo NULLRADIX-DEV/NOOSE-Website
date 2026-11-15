@@ -28,6 +28,12 @@
             <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
                 @TaskforceScopeDisplay.Name(Taskforce.Scope)
             </MudChip>
+            @foreach (var partner in Taskforce.PartnerAgencies)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Handshake">
+                    @PartnerAgencyDisplay.Name(partner.Agency)
+                </MudChip>
+            }
         </MudStack>
         </div>
 

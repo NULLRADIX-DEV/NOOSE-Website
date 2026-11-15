@@ -20,7 +20,7 @@
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">(@a.RealName)</MudText>
                         }
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(a.PartnerAgency is { } ag ? PartnerRankDisplay.Full(ag, a.PartnerRank) : DivisionRules.RankName(a))</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@(a.PartnerAgency is { } ag ? PartnerUnitDisplay.OfAccount(ag, a.PartnerUnitId) : DivisionRules.RankName(a))</MudText>
                         @if (Direction(a) is { } unit)
                         {
                             <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary">@unit</MudChip>

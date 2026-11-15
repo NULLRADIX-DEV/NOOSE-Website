@@ -46,7 +46,16 @@ public sealed class ClaimsPrincipalBuilder
     public ClaimsPrincipalBuilder AsPartner(PartnerAgency agency, PartnerRank rank)
     {
         Set(AgentClaimTypes.PartnerAgency, ((int)agency).ToString(CultureInfo.InvariantCulture));
-        return Set(AgentClaimTypes.PartnerRank, ((int)rank).ToString(CultureInfo.InvariantCulture));
+        Set(AgentClaimTypes.PartnerRank, ((int)rank).ToString(CultureInfo.InvariantCulture));
+        return Set(AgentClaimTypes.PartnerUnit, NOOSE_Website.Services.PartnerUnits.ForLegacy(agency, rank));
+    }
+
+    /// <summary>Partner of a given unit; lead flag optional.</summary>
+    public ClaimsPrincipalBuilder AsPartnerUnit(PartnerAgency agency, string unitId, bool lead = false)
+    {
+        Set(AgentClaimTypes.PartnerAgency, ((int)agency).ToString(CultureInfo.InvariantCulture));
+        Set(AgentClaimTypes.PartnerUnit, unitId);
+        return Set(AgentClaimTypes.IsPartnerUnitLead, lead ? "true" : "false");
     }
 
     /// <summary>Write a raw claim value verbatim (for boundary cases like malformed claims).</summary>

@@ -1,16 +1,16 @@
-@* Sign, refuse or cancel a warrant; renders nothing for anyone who may not sign. *@
+@* Sign, refuse or cancel a warrant; renders nothing for anyone who may not decide it (FIB leadership, or the prosecutor of its investigation). *@
 @inject IWarrantService WarrantService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject SharesBroadcaster SharesBroadcaster
 
-@if (User.MayWarrantSign())
+@if (MayDecide)
 {
     @if (View.State == WarrantState.Requested)
     {
         @if (IsOwn)
         {
-            <MudTooltip Text="Die eigene Anordnung unterzeichnet eine andere Führungskraft.">
+            <MudTooltip Text="Die eigene Anordnung unterzeichnet jemand anderes.">
                 <MudButton Size="@Size" Variant="Variant.Filled" Color="Color.Success" Disabled="true" Class="mr-2"
                            StartIcon="@Icons.Material.Filled.Approval">Unterzeichnen</MudButton>
             </MudTooltip>
@@ -23,7 +23,7 @@
         <MudButton Size="@Size" Variant="Variant.Outlined" Color="Color.Error" Disabled="_busy"
                    StartIcon="@Icons.Material.Filled.Close" OnClick="RejectAsync">Ablehnen</MudButton>
     }
-    else if (View.State == WarrantState.Valid)
+    else if (View.State == WarrantState.Valid && View.MayCancel)
     {
         <MudButton Size="@Size" Variant="Variant.Outlined" Color="Color.Warning" Disabled="_busy"
                    StartIcon="@Icons.Material.Filled.Block" OnClick="CancelAsync">Aufheben</MudButton>
@@ -41,6 +41,9 @@
     private bool _busy;
 
     private bool IsOwn => !string.IsNullOrEmpty(View.Warrant.CreatedById) && View.Warrant.CreatedById == User.GetAgentId();
+
+    // the service decides per warrant; the own request still shows the button greyed out
+    private bool MayDecide => View.MaySign || View.MayCancel || (IsOwn && View.State == WarrantState.Requested && User.MayWarrantSign());
 
     private async Task SignAsync()
     {

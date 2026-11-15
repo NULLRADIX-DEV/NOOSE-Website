@@ -35,6 +35,15 @@ public static class PartnerRoutes
     // create routes a partner may open despite the blanket create-block (document authoring is universal)
     private static readonly string[] AuthoringRoutes = { "dokumente/neu" };
 
+    /// <summary>
+    /// The investigation files run with the DoJ and their warrants: open to partners including create and edit,
+    /// because participation, not a release, decides. Every page and the service check the rights themselves
+    /// (InvestigationAccess); the warrant list stays internal.
+    /// </summary>
+    private static bool IsCollaborationRoute(string path)
+        => path == "ermittlungen" || path.StartsWith("ermittlungen/")
+            || (path.StartsWith("anordnungen/") && !path.EndsWith("/papierkorb"));
+
     /// <summary>True for the document editor (create or edit); per-record ownership is enforced server-side.</summary>
     private static bool IsDocumentAuthoringRoute(string path)
         => AuthoringRoutes.Contains(path)
@@ -48,7 +57,7 @@ public static class PartnerRoutes
         {
             return true;
         }
-        if (IsDocumentAuthoringRoute(path))
+        if (IsDocumentAuthoringRoute(path) || IsCollaborationRoute(path))
         {
             return true;
         }

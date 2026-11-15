@@ -160,7 +160,7 @@ internal static class GlossaryContent
             "Eine politische Organisation mit Mitgliedern und Ausrichtung, getrennt von den Fraktionen geführt.",
             ArticleKey: "art-parteien"),
         new("beg-vorgang", "Vorgang",
-            "Die übergeordnete Ermittlungsakte, die mehrere Akten zu einem Fall bündelt.",
+            "Die Sammelakte, die mehrere Akten zu einem Fall bündelt.",
             ArticleKey: "art-vorgaenge"),
         new("beg-operation", "Operation",
             "Ein einzelner Einsatz mit Ort, Zeit, Beteiligten und Ergebnis.",

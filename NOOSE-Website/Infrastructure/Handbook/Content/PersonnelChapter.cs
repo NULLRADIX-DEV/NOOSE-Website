@@ -414,8 +414,12 @@ internal static class PersonnelChapter
                 die erst später angelegt werden. Beim Parlament sind das zum Beispiel alle Badfraks und
                 deren aktuelle Mitglieder.</li>
                 </ul>
-                <p>Die <strong>Typ-Erlaubnis</strong> je Rang schränkt danach nur noch ein; sie gibt nichts
-                frei. Verschlusssachen sieht ein Partner nie.</p>
+                <p>Jedes Partnerkonto gehört zu einer <strong>Einheit</strong> seiner Behörde, bei der DoJ etwa SID,
+                State Attorney Office oder Chief. Beide Freigaben gehen an eine Behörde, eine Einheit oder ein einzelnes
+                Konto. Die <strong>Typ-Erlaubnis</strong> je Einheit schränkt danach nur noch ein; sie gibt nichts
+                frei. Verschlusssachen sieht ein Partner nie. Ein Konto kann als <strong>Leitung</strong> seiner Einheit
+                markiert sein; ob eine Leitung alle Ermittlungen der beteiligten Taskforces sieht, stellt die Einheit
+                ein.</p>
                 <p>Eine Einzelfreigabe lässt sich <strong>befristen</strong>: beim Freigeben wählst du
                 1 Tag, 7 Tage, 30 Tage, ein Datum oder unbegrenzt. Mit dem Ablauf endet der Zugriff sofort; im
                 Verlauf der Akte steht, dass die Freigabe abgelaufen ist. Die Frist lässt sich später
@@ -430,8 +434,9 @@ internal static class PersonnelChapter
                 <p>Über <em>Freigaben anfragen</em> bittet eine Behörde in eigenen Worten um weitere Akten. Die
                 Anfrage landet im Eingang unter <em>Anfragen von Partnern</em>. Wer sie genehmigt, wählt die passende
                 Akte aus und gibt sie damit frei; die Behörde bekommt Bescheid.</p>
-                <p>Partner dürfen wenig schreiben: Dokumente, Quellen, Beiträge im Taskforce-Chat und Anfragen. Alles
-                andere ist für sie nur zu lesen.</p>
+                <p>Partner dürfen wenig schreiben: Dokumente, Quellen, Beiträge im Taskforce-Chat, Anfragen und in
+                <em>Ermittlungen</em>, an denen sie beteiligt sind, die Tabs, die sie bearbeiten dürfen. Alles andere ist
+                für sie nur zu lesen.</p>
                 """,
                 DiagramKey: "partner-freigabe",
                 NavKey: "admin.freigaben"),

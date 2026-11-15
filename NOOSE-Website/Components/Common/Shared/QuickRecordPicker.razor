@@ -44,6 +44,9 @@
     /// <summary>How many hits to show at once.</summary>
     [Parameter] public int Max { get; set; } = 8;
 
+    /// <summary>Records never offered, e.g. those already linked; dropped before the cap so they free their slot.</summary>
+    [Parameter] public IReadOnlySet<(string Type, string Id)>? Exclude { get; set; }
+
     private ClaimsPrincipal? _user;
 
     protected override async Task OnInitializedAsync() => _user = (await AuthStateTask).User;
@@ -60,7 +63,8 @@
             // ask for more than we show: the quick search spreads its slots across every category,
             // so a request the size of the list would leave almost nothing after the filter
             var hits = await SearchService.QuickSearchAsync(text, _user, QuickCapture.FetchCount(Max, Allowed), token);
-            return QuickCapture.Only(hits, Allowed, Max);
+            return QuickCapture.Only(Exclude is { Count: > 0 } skip ? hits.Where(h => !skip.Contains((h.Category, h.TargetId))) : hits,
+                Allowed, Max);
         }
         catch (Exception ex)
         {

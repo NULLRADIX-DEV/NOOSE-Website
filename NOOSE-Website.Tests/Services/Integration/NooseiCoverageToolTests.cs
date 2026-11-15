@@ -440,7 +440,7 @@ public sealed class NooseiCoverageToolTests
         var hidden = Guid.NewGuid().ToString();
         var mentions = Substitute.For<IMentionService>();
         mentions.ResolveAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<string>(),
-                Arg.Any<CancellationToken>(), Arg.Any<PartnerAgency?>())
+                Arg.Any<CancellationToken>(), Arg.Any<PartnerAgency?>(), Arg.Any<bool>())
             .Returns(Task.FromResult<IReadOnlyList<MentionSegment>>(
             [
                 new(true, "Otto Offen", "Person", $"/personen/{id}"),

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Infrastructure.Audit;
@@ -130,15 +131,14 @@ public class AgentManagementService(
         await NotifyMentorAsync(mentor, agent);
     }
 
-    public async Task ReleaseAsPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor)
+    public async Task ReleaseAsPartnerAsync(string agentId, string partnerUnitId, bool isUnitLead, ClaimsPrincipal actor)
     {
         Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
+        var unit = await AssignUnitAsync(agent, partnerUnitId, isUnitLead);
         agent.Status = AgentStatus.Active;
-        agent.PartnerAgency = agency;
-        agent.PartnerRank = partnerRank;
         // partners hold no internal rank/flags
         agent.Rank = null;
         DivisionRules.Clear(agent);
@@ -149,7 +149,7 @@ public class AgentManagementService(
         agent.ReleasedById = actor.GetAgentId();
         agent.BlockedReason = null;
 
-        Audit(agent, AuditAction.Modified, actor, $"Als Partner freigegeben ({PartnerRankDisplay.Full(agency, partnerRank)})");
+        Audit(agent, AuditAction.Modified, actor, $"Als Partner freigegeben ({UnitLabel(unit, isUnitLead)})");
         await Save(agent, newStamp: true);
 
         try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Dein Partner-Zugang wurde freigegeben.", "/"); }
@@ -197,6 +197,8 @@ public class AgentManagementService(
         agent.Status = AgentStatus.Active;
         agent.PartnerAgency = null;
         agent.PartnerRank = null;
+        agent.PartnerUnitId = null;
+        agent.IsPartnerUnitLead = false;
         agent.Rank = rank;
         DivisionRules.Apply(agent, division);
         agent.IsHRB = isHRB;
@@ -527,8 +529,9 @@ public class AgentManagementService(
         await Save(agent, newStamp: true);
     }
 
-    public async Task SetPartnerRankAsync(string agentId, PartnerRank partnerRank, ClaimsPrincipal actor)
+    public async Task SetPartnerUnitAsync(string agentId, string partnerUnitId, bool isUnitLead, ClaimsPrincipal actor)
     {
+        Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
 
         var agent = await GetOrThrow(agentId);
@@ -536,13 +539,35 @@ public class AgentManagementService(
         {
             throw new InvalidOperationException("Dieser Account ist kein Partner-Konto.");
         }
-        agent.PartnerRank = partnerRank;
+        var unit = await db.PartnerUnits.FirstOrDefaultAsync(u => u.Id == partnerUnitId)
+            ?? throw new InvalidOperationException("Diese Einheit gibt es nicht.");
+        if (unit.Agency != agency)
+        {
+            throw new InvalidOperationException("Die Behörde wechselt man über „Zugehörigkeit ändern“.");
+        }
+        await AssignUnitAsync(agent, partnerUnitId, isUnitLead);
 
-        Audit(agent, AuditAction.Modified, actor, $"Partner-Rang → {PartnerRankDisplay.Full(agency, partnerRank)}");
+        Audit(agent, AuditAction.Modified, actor, $"Partner-Einheit → {UnitLabel(unit, isUnitLead)}");
         await Save(agent, newStamp: true);
     }
 
-    public async Task ConvertToPartnerAsync(string agentId, PartnerAgency agency, PartnerRank partnerRank, ClaimsPrincipal actor)
+    /// <summary>Puts the account into a live unit; agency and the old tier follow the unit.</summary>
+    private async Task<PartnerUnit> AssignUnitAsync(Agent agent, string partnerUnitId, bool isUnitLead)
+    {
+        var unit = await db.PartnerUnits.FirstOrDefaultAsync(u => u.Id == partnerUnitId)
+            ?? throw new InvalidOperationException("Diese Einheit gibt es nicht.");
+        agent.PartnerAgency = unit.Agency;
+        agent.PartnerUnitId = unit.Id;
+        agent.IsPartnerUnitLead = isUnitLead;
+        // an older build reads the tier
+        agent.PartnerRank = unit.LegacyRank;
+        return unit;
+    }
+
+    private static string UnitLabel(PartnerUnit unit, bool isUnitLead)
+        => PartnerUnitDisplay.Full(unit.Agency, unit.Name) + (isUnitLead ? ", Leitung" : string.Empty);
+
+    public async Task ConvertToPartnerAsync(string agentId, string partnerUnitId, bool isUnitLead, ClaimsPrincipal actor)
     {
         Permission.RequireWriteAccess(actor);
         Permission.RequireLeadership(actor);
@@ -572,15 +597,14 @@ public class AgentManagementService(
             }
         }
 
-        agent.PartnerAgency = agency;
-        agent.PartnerRank = partnerRank;
+        var unit = await AssignUnitAsync(agent, partnerUnitId, isUnitLead);
         agent.Rank = null;
         DivisionRules.Clear(agent);
         agent.IsHRB = false;
         agent.IsTeamLead = false;
         agent.IsAdmin = false;
 
-        Audit(agent, AuditAction.Modified, actor, $"Zugehörigkeit → Partner ({PartnerRankDisplay.Full(agency, partnerRank)})");
+        Audit(agent, AuditAction.Modified, actor, $"Zugehörigkeit → Partner ({UnitLabel(unit, isUnitLead)})");
         await Save(agent, newStamp: true);
 
         try { await notifications.NotifyAsync(agent.Id, NotificationType.Account, "Deine Zugehörigkeit wurde auf einen Partner-Zugang umgestellt.", "/"); }
@@ -611,6 +635,8 @@ public class AgentManagementService(
 
         agent.PartnerAgency = null;
         agent.PartnerRank = null;
+        agent.PartnerUnitId = null;
+        agent.IsPartnerUnitLead = false;
         agent.Rank = rank;
         // moving on from the start division is a division change
         DivisionRules.Apply(agent, division);
@@ -1067,6 +1093,11 @@ public class AgentManagementService(
         await db.OperationAgents.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.CaseAgents.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.TaskforceAgents.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.InvestigationParticipants.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.InvestigationItemRestrictions.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        // the task stays, only the assignment goes
+        await db.InvestigationTasks.IgnoreQueryFilters().Where(x => x.AssigneeId == agentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AssigneeId, (string?)null), cancellationToken);
         await db.JobAssignments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AppointmentAssignments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AnnouncementAcknowledgments.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
