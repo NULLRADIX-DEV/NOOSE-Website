@@ -65,6 +65,8 @@ public class RegulationChangePostTests
     {
         Assert.Equal("a **b** ~~c~~", RegulationChangePost.Markdown($"a {Ins}b</ins> {Del}c</del>"));
         Assert.Equal("eins **zwei**\ndrei", RegulationChangePost.Markdown($"<p>eins {Ins}zwei</ins></p><p>drei</p>"));
+        // old and new apart
+        Assert.Equal("a ~~alt~~ **neu**.", RegulationChangePost.Markdown($"a {Del}alt</del>{Ins}neu</ins>."));
         // tags stripped, escaped
         Assert.Equal(@"x \*y\* **\<z\>**", RegulationChangePost.Markdown($"<p><span>x</span> *y* {Ins}&lt;z&gt;</ins></p>"));
         // spaces outside marks

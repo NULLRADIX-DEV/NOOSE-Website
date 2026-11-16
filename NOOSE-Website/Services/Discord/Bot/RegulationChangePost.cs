@@ -230,6 +230,11 @@ public static partial class RegulationChangePost
         }
         var lead = text.Length - text.TrimStart().Length;
         var trail = text.Length - text.TrimEnd().Length;
+        // old and new never glue
+        if (mark == "**" && lead == 0 && line.Length >= 2 && line[^1] == '~' && line[^2] == '~')
+        {
+            line.Append(' ');
+        }
         line.Append(text, 0, lead).Append(mark).Append(DiscordCards.Escape(core)).Append(mark).Append(text, text.Length - trail, trail);
     }
 }

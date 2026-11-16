@@ -773,6 +773,9 @@ public static class ChangelogContent
                 + "Antwort, sobald die Administration sie freigegeben hat.", "Partner"),
             Besser("3.0.60-administration-ab-trainee", "Schon ein Trainee kann in die Administration Division, und wer "
                 + "herabgestuft wird, bleibt dort.", "Personal"),
+            Besser("3.0.61-dvo-aenderungen-lesbar", "Wird ein Absatz der Dienstverordnung umgeschrieben, zeigt der Vergleich "
+                + "erst den alten Text durchgestrichen und dann den neuen fett, statt beides Wort für Wort zu mischen.",
+                "Dienstverordnung"),
         ]),
     ];
 }
