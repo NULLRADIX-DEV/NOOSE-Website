@@ -91,10 +91,10 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     private sealed record Shot(string? Path, byte[]? Png);
 
     /// <summary>
-    /// Wanted additions that master cannot have yet, hidden on both sides; a mask would paint a box master lacks.
+    /// Wanted additions that master cannot have yet, removed from the layout on both sides; a mask would paint a box master lacks.
     /// Empty this once master carries them.
     /// </summary>
-    private const string HiddenSinceMaster = ".noose-nav-rail [aria-label='Administration'] { visibility: hidden !important; }";
+    private const string HiddenSinceMaster = ".noose-nav-rail [aria-label='Administration'] { display: none !important; }";
 
     private async Task<Shot> ShootAsync(string baseUrl, Target target, DateTime now)
     {
