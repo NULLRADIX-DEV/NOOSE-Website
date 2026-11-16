@@ -2,7 +2,9 @@
 @attribute [Authorize(Policy = Policies.AdministrationWorkspace)]
 @using NOOSE_Website.Components.Pages.Administration.Shared
 @using NOOSE_Website.Services.Administration
+@implements IDisposable
 @inject IAdministrationChatService ChatService
+@inject AdministrationChatBroadcaster Broadcaster
 
 <PageTitle>Administration · FIB</PageTitle>
 
@@ -84,5 +86,30 @@
     {
         _user = (await AuthStateTask).User;
         _chatUnread = (await ChatService.GetReadStateAsync(_user)).Unread;
+        Broadcaster.Modified += OnChatChanged;
+        Broadcaster.ReadMarked += OnChatChanged;
+    }
+
+    // a new message or the own read mark; the count is cheap enough to reload on either
+    private void OnChatChanged(string room)
+    {
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                if (_user is not null)
+                {
+                    _chatUnread = (await ChatService.GetReadStateAsync(_user)).Unread;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (InvalidOperationException) { /* circuit gone */ }
+    }
+
+    public void Dispose()
+    {
+        Broadcaster.Modified -= OnChatChanged;
+        Broadcaster.ReadMarked -= OnChatChanged;
     }
 }

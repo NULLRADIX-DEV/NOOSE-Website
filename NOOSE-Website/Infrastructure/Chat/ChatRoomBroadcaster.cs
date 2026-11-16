@@ -51,4 +51,10 @@ public abstract class ChatRoomBroadcaster
 public sealed class TaskforceChatBroadcaster : ChatRoomBroadcaster;
 
 /// <summary>Live updates of the one Administration chat; the room is the workspace id.</summary>
-public sealed class AdministrationChatBroadcaster : ChatRoomBroadcaster;
+public sealed class AdministrationChatBroadcaster : ChatRoomBroadcaster
+{
+    /// <summary>Fired with the agent id whose read mark moved; kept apart from Modified, which the chat panel answers by marking read.</summary>
+    public event Action<string>? ReadMarked;
+
+    public void ReportRead(string agentId) => ReadMarked?.Invoke(agentId);
+}

@@ -159,8 +159,20 @@ public class ServiceReferenceService(IDbContextFactory<AppDbContext> dbFactory) 
         {
             return;
         }
+        await RequireMayManageAsync(db, actor, row.AgentId, cancellationToken);
         db.ServiceReferences.Remove(row);
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    // the issue rule for every later write: never the own file, never a relative's
+    private static async Task RequireMayManageAsync(AppDbContext db, ClaimsPrincipal actor, string agentId,
+        CancellationToken cancellationToken)
+    {
+        if (!ServiceReferenceRules.MayIssue(actor, agentId))
+        {
+            throw new UnauthorizedAccessException("Das eigene Dienstzeugnis verwaltet jemand anderes.");
+        }
+        await PersonalRelationRules.RequireNotRelatedAsync(db, actor, agentId, cancellationToken);
     }
 
     public async Task<List<ServiceReference>> GetTrashAsync(CancellationToken cancellationToken = default)
@@ -182,6 +194,7 @@ public class ServiceReferenceService(IDbContextFactory<AppDbContext> dbFactory) 
         {
             return;
         }
+        await RequireMayManageAsync(db, actor, row.AgentId, cancellationToken);
         row.IsDeleted = false;
         row.DeletedAt = null;
         row.DeletedById = null;

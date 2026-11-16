@@ -444,6 +444,7 @@
             FinancingBroadcaster.Modified += OnFinancingModified;
             TipsBroadcaster.Modified += OnTipsModified;
             AdministrationChatBroadcaster.Modified += OnAdministrationChatModified;
+            AdministrationChatBroadcaster.ReadMarked += OnAdministrationChatRead;
         }
         await LoadSharesAsync();
         await LoadAcknowledgmentsAsync();
@@ -644,7 +645,16 @@
         catch (InvalidOperationException) { /* circuit gone */ }
     }
 
-    // new chat messages and the own read mark both report here
+    // only the own mark counts, another reader changes nothing here
+    private void OnAdministrationChatRead(string agentId)
+    {
+        if (string.Equals(agentId, _agentId, StringComparison.Ordinal))
+        {
+            OnAdministrationChatModified(agentId);
+        }
+    }
+
+    // new chat messages reload the count
     private void OnAdministrationChatModified(string room)
     {
         try
@@ -713,5 +723,6 @@
         FinancingBroadcaster.Modified -= OnFinancingModified;
         TipsBroadcaster.Modified -= OnTipsModified;
         AdministrationChatBroadcaster.Modified -= OnAdministrationChatModified;
+        AdministrationChatBroadcaster.ReadMarked -= OnAdministrationChatRead;
     }
 }

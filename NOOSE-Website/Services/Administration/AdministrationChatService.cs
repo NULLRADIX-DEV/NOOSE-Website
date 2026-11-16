@@ -101,6 +101,8 @@ public class AdministrationChatService(IDbContextFactory<AppDbContext> dbFactory
             catch (DbUpdateException) { /* ignore */ }
         }
 
+        broadcaster.ReportRead(meId);
+
         try
         {
             await notifications.TargetAsReadMarkAsync(actor, NotificationType.AdministrationChat,

@@ -36,7 +36,7 @@ public sealed record DisciplinaryView(DisciplinaryProceeding Row, string Codenam
 
 public sealed record TransferRow(string Id, string AgentId, string AgentName, Division? From, Division To, string Reason,
     TransferRequestStatus Status, string? RequesterName, DateTime CreatedAt, string? HearingNote, string? HearingByName,
-    DateTime? HearingAt, string? DecisionNote, string? DecidedByName, DateTime? DecidedAt);
+    DateTime? HearingAt, string? DecisionNote, string? DecidedByName, DateTime? DecidedAt, string? RequesterId);
 
 public sealed record TransferHistoryRow(string AgentId, string AgentName, Division? From, Division? To, DateTime At,
     string? ByName);

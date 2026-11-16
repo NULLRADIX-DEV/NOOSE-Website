@@ -54,7 +54,7 @@ public class TransferService(IDbContextFactory<AppDbContext> dbFactory, IAgentMa
         return rows
             .Select(t => new TransferRow(t.Id, t.AgentId, names.GetValueOrDefault(t.AgentId, "—"), t.FromDivision,
                 t.ToDivision, t.Reason, t.Status, t.RequesterName, t.CreatedAt, t.HearingNote, t.HearingByName, t.HearingAt,
-                t.DecisionNote, t.DecidedByName, t.DecidedAt))
+                t.DecisionNote, t.DecidedByName, t.DecidedAt, t.CreatedById))
             .ToList();
     }
 
@@ -182,15 +182,41 @@ public class TransferService(IDbContextFactory<AppDbContext> dbFactory, IAgentMa
             throw new InvalidOperationException("Vor der Genehmigung hört die Administration den Agenten an.");
         }
 
+        // claim first: a second decider finds the row closed and stops
+        var outcome = grant ? TransferRequestStatus.Granted : TransferRequestStatus.Refused;
+        var before = row.Status;
+        var claimed = await db.TransferRequests
+            .Where(t => t.Id == id && t.Status == before)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(t => t.Status, outcome)
+                .SetProperty(t => t.DecisionNote, text)
+                .SetProperty(t => t.DecidedByName, actor.GetCodename())
+                .SetProperty(t => t.DecidedAt, DateTime.UtcNow), cancellationToken);
+        if (claimed == 0)
+        {
+            throw new InvalidOperationException("Über diesen Antrag wurde gerade entschieden.");
+        }
         if (grant)
         {
-            // the division write keeps the seat check; a refusal leaves the request untouched
-            await agents.DivisionSetAsync(row.AgentId, row.ToDivision, confirmOverLimit, actor, row.Id);
+            try
+            {
+                // the division write keeps the seat check
+                await agents.DivisionSetAsync(row.AgentId, row.ToDivision, confirmOverLimit, actor, row.Id);
+            }
+            catch
+            {
+                // refused (seat limit, rank): the request goes back to where it was
+                await db.TransferRequests.Where(t => t.Id == id)
+                    .ExecuteUpdateAsync(s => s
+                        .SetProperty(t => t.Status, before)
+                        .SetProperty(t => t.DecisionNote, (string?)null)
+                        .SetProperty(t => t.DecidedByName, (string?)null)
+                        .SetProperty(t => t.DecidedAt, (DateTime?)null), CancellationToken.None);
+                throw;
+            }
         }
-        row.Status = grant ? TransferRequestStatus.Granted : TransferRequestStatus.Refused;
-        row.DecisionNote = text;
-        row.DecidedByName = actor.GetCodename();
-        row.DecidedAt = DateTime.UtcNow;
+        db.AuditLogs.Add(ManualAudit.Row(nameof(TransferRequest), id, AuditAction.Modified, actor,
+            ManualAudit.Change("Status", AdministrationDisplay.Name(before), AdministrationDisplay.Name(outcome))));
         await db.SaveChangesAsync(CancellationToken.None);
 
         try

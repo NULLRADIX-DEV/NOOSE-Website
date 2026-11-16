@@ -198,8 +198,9 @@ public class NotificationService(
         // active recipients only
         var recipient = await db.Users
             .Where(u => agentIds.Contains(u.Id) && u.Status == AgentStatus.Active)
-            .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency })
+            .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency, u.IsHRB, u.IsTeamLead })
             .ToListAsync(cancellationToken);
+        var administrationTarget = Administration.AdministrationTypes.Contains(targetType);
 
         var notified = new List<string>();
         foreach (var e in recipient)
@@ -211,6 +212,15 @@ public class NotificationService(
                 if (childType is not null
                     || !await Visibility.IsRecordVisibleAsync(db, targetType, targetId,
                         new ViewerScope(false, false, e.Id, agency), cancellationToken))
+                {
+                    continue;
+                }
+            }
+            else if (administrationTarget)
+            {
+                // the bool shim carries no workspace flags and would answer "hidden" for every recipient
+                var scope = Administration.AdministrationTypes.ScopeOf(e.Id, e.Rank, e.IsAdmin, e.IsHRB, e.IsTeamLead);
+                if (!await Visibility.IsRecordVisibleAsync(db, targetType, targetId, scope, cancellationToken))
                 {
                     continue;
                 }

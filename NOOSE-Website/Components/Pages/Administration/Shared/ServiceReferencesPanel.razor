@@ -74,7 +74,7 @@
                 <MudTd>
                     <MudIconButton Icon="@Icons.Material.Filled.Print" Size="Size.Small" Href="@($"/administration/dienstzeugnis/{r.Id}/druck")"
                                    Target="_blank" aria-label="Dienstzeugnis drucken" />
-                    @if (User.MayAdministrationWrite())
+                    @if (ServiceReferenceRules.MayIssue(User, r.AgentId))
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                        OnClick="@(() => DeleteAsync(r))" aria-label="Dienstzeugnis löschen" />

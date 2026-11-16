@@ -249,3 +249,33 @@ public static class AdministrationChatRules
 
     public const string Href = "/administration?tab=chat";
 }
+
+/// <summary>The record types of the workspace and the viewer scope of a recipient who is not signed in right now.</summary>
+public static class AdministrationTypes
+{
+    private static readonly HashSet<string> Types = new(StringComparer.Ordinal)
+    {
+        nameof(Data.Entities.Administration.AdministrationWorkspace),
+        nameof(Data.Entities.Administration.AdministrationMessage),
+        nameof(Data.Entities.Administration.DisciplinaryProceeding),
+        nameof(Data.Entities.Administration.TransferRequest),
+        nameof(Data.Entities.Administration.DivisionTransfer),
+        nameof(Data.Entities.Administration.ServiceReference),
+        nameof(Data.Entities.Administration.AgentRelationship),
+        nameof(Data.Entities.Administration.DecorationProposal),
+        nameof(Data.Entities.Administration.ParliamentaryInquiry),
+    };
+
+    public static bool Contains(string type) => Types.Contains(type);
+
+    /// <summary>Scope of an active internal agent from the row, mirroring the claims of <see cref="ViewerScope.From"/>.</summary>
+    public static ViewerScope ScopeOf(string agentId, Rank? rank, bool isAdmin, bool isHrb, bool isTeamLead)
+    {
+        var reader = isTeamLead && !isAdmin;
+        var leadership = isAdmin || rank is >= Rank.SectionChief;
+        var member = isHrb || DivisionRules.IsBoard(rank) || isAdmin;
+        return new ViewerScope(leadership || reader, leadership || reader, agentId, null,
+            IsHrb: isHrb, IsLeadership: leadership, IsAdmin: isAdmin, Rank: rank, IsInternalAgent: true,
+            MayAdministration: member || reader, IsAdministrationMember: member);
+    }
+}

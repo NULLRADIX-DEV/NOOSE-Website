@@ -185,6 +185,12 @@ else
         }
         _loadedId = Id;
         _user = (await AuthStateTask).User;
+        _closing = false;
+        _decide = false;
+        _measure = null;
+        _facts = null;
+        _reasoning = null;
+        _notice = DisciplinaryRules.DefaultRightsNotice;
         await LoadAsync();
     }
 
@@ -230,7 +236,7 @@ else
             {
                 Decide = _decide,
                 Measure = _measure,
-                Facts = _facts ?? "",
+                Facts = _decide ? _facts ?? "" : "",
                 Reasoning = _reasoning ?? "",
                 RightsNotice = _notice ?? "",
             }, _user);

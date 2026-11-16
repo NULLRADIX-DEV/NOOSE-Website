@@ -4,6 +4,8 @@
 @inject IDisciplinaryService Disciplinary
 
 <MudStack Spacing="4">
+    @if (!TransfersOnly)
+    {
     <div>
         <SectionHeader Title="Disziplinarverfahren" Icon="@Icons.Material.Filled.Gavel" />
         @if (_proceedings is null)
@@ -32,22 +34,29 @@
             }
         }
     </div>
+    }
     <div>
         <SectionHeader Title="Versetzungen" Icon="@Icons.Material.Filled.SwapHoriz" />
         <TransfersPanel User="User" AgentId="@AgentId" />
     </div>
+    @if (!TransfersOnly)
+    {
     <div>
         <SectionHeader Title="Dienstzeugnisse" Icon="@Icons.Material.Filled.WorkspacePremium" />
         <ServiceReferencesPanel User="User" AgentId="@AgentId" />
     </div>
+    }
 </MudStack>
 
 @code {
     [Parameter, EditorRequired] public string AgentId { get; set; } = string.Empty;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
+    /// <summary>Leadership outside the workspace: only the transfer requests it may file and follow.</summary>
+    [Parameter] public bool TransfersOnly { get; set; }
+
     private IReadOnlyList<DisciplinaryRow>? _proceedings;
 
     protected override async Task OnParametersSetAsync()
-        => _proceedings = await Disciplinary.GetForAgentAsync(AgentId, User);
+        => _proceedings = TransfersOnly ? [] : await Disciplinary.GetForAgentAsync(AgentId, User);
 }

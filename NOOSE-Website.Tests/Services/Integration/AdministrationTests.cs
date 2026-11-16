@@ -233,6 +233,34 @@ public class AdministrationTests
     }
 
     [Fact]
+    public async Task An_administration_member_does_not_hear_their_own_transfer()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "hrb", hrb: true);
+        var svc = new TransferService(ctx.Factory, Substitute.For<IAgentManagementService>(),
+            Substitute.For<INotificationService>(), NullLogger<TransferService>.Instance);
+
+        var id = await svc.RequestAsync(new TransferInput { AgentId = "hrb", ToDivision = Division.Ctd, Reason = "Wechsel" }, Hrb());
+
+        var ex = await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.HearAsync(id, "angehört", Hrb()));
+        Assert.Contains("eigene", ex.Message);
+    }
+
+    [Fact]
+    public async Task The_related_side_does_not_remove_its_own_relationship()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "hrb", hrb: true);
+        SeedAgent(ctx, "partner");
+        var svc = Workspace(ctx);
+        var id = await svc.AddRelationshipAsync(new RelationshipInput { AgentAId = "hrb", AgentBId = "partner" }, Board());
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.RemoveRelationshipAsync(id, Hrb()));
+        await svc.RemoveRelationshipAsync(id, Board());
+        Assert.Empty(await svc.GetRelationshipsAsync(Board()));
+    }
+
+    [Fact]
     public async Task Only_the_agent_leadership_or_administration_may_request_a_transfer()
     {
         using var ctx = new SqliteTestContext();
@@ -260,6 +288,9 @@ public class AdministrationTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             svc.FileAsync(new ParliamentInput { Title = "T", Question = "Q" }, lspd));
         var id = await svc.FileAsync(new ParliamentInput { Title = "Haushalt", Question = "Wie viel?" }, mp);
+        SeedAgent(ctx, "hrb", hrb: true);
+        await svc.AssignAsync(id, "hrb", Hrb());
+        Assert.Equal("hrb", (await svc.GetAsync(id, Hrb()))!.Row.AssignedToId);
 
         await svc.AnswerAsync(id, "Entwurf", publish: false, Hrb());
         Assert.Null((await svc.GetAsync(id, mp))!.Row.Answer);
@@ -270,6 +301,7 @@ public class AdministrationTests
         var view = await svc.GetAsync(id, mp);
         Assert.Equal("Antwort", view!.Row.Answer);
         Assert.Null(view.Row.AssignedToId);
+        Assert.Null(view.Row.AnsweredByName);
         Assert.False(view.MayAnswer);
     }
 

@@ -195,9 +195,10 @@ public class DisciplinaryService(IDbContextFactory<AppDbContext> dbFactory, ICas
     public async Task CloseAsync(string id, DisciplinaryCloseInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         Permission.RequireAdministrationWrite(actor);
-        var facts = Html(input.Facts);
+        var facts = input.Decide ? Html(input.Facts) : null;
         var reasoning = Html(input.Reasoning) ?? throw new InvalidOperationException("Bitte die Entscheidung begründen.");
-        var notice = Html(input.RightsNotice);
+        // a plain text field, shown as plain text
+        var notice = AdministrationService.Trimmed(input.RightsNotice, DisciplinaryRules.MaxTextLength, "Die Belehrung");
         if (input.Decide)
         {
             if (input.Measure is null)

@@ -190,9 +190,12 @@ else
                 </MudTabPanel>
                 <MudTabPanel Text="Auszeichnungen" Icon="@Icons.Material.Filled.EmojiEvents">
                     <DecorationsPanel Agent="_agent" />
-                    <div class="mt-4">
-                        <NOOSE_Website.Components.Pages.Administration.Shared.DecorationProposeForm User="_user" AgentId="@_agent.Id" />
-                    </div>
+                    @if (AgentSelection.IsSelectable(_agent))
+                    {
+                        <div class="mt-4">
+                            <NOOSE_Website.Components.Pages.Administration.Shared.DecorationProposeForm User="_user" AgentId="@_agent.Id" />
+                        </div>
+                    }
                     <SectionHeader Icon="@Icons.Material.Filled.EmojiEvents" Title="Abzeichen" Class="mt-6 mb-2" />
                     <AgentBadgesPanel AgentId="@_agent.Id" />
                 </MudTabPanel>
@@ -210,7 +213,8 @@ else
                 @if (_mayAdministration)
                 {
                     <MudTabPanel Text="Administration" Icon="@Icons.Material.Filled.AssuredWorkload">
-                        <NOOSE_Website.Components.Pages.Administration.Shared.PersonnelAdministrationPanel AgentId="@_agent.Id" User="_user" />
+                        <NOOSE_Website.Components.Pages.Administration.Shared.PersonnelAdministrationPanel AgentId="@_agent.Id" User="_user"
+                            TransfersOnly="@(!_administrationFull)" />
                     </MudTabPanel>
                 }
                 @if (_isLeadership)
@@ -263,6 +267,7 @@ else
     private bool _mayFirearmUse;
     private bool _mayEvaluations;
     private bool _mayAdministration;
+    private bool _administrationFull;
 
     // the service ID card has its own gate: the agent's own, leadership and the Administration Division
     private bool MayServiceId => _agent is not null && ServiceIdRules.IsHolder(_agent) && ServiceIdRules.MayPrint(_user, _agent.Id);
@@ -272,8 +277,10 @@ else
     {
         _mayFirearmUse = FirearmUseRules.MayRead(_user, AgentId);
         _mayEvaluations = EvaluationRules.MayRead(_user, AgentId);
-        _mayAdministration = _user.IsInternalAgent()
+        _administrationFull = _user.IsInternalAgent()
             && (_user.MayAdministrationRead() || string.Equals(_user.GetAgentId(), AgentId, StringComparison.OrdinalIgnoreCase));
+        // leadership may file a transfer for anyone, so it gets that part of the tab
+        _mayAdministration = _administrationFull || NOOSE_Website.Services.Administration.TransferRules.MayRequest(_user, AgentId);
         _tabs =
         [
             .. _maySupervise ? new[] { "dienstaufsicht" } : [],

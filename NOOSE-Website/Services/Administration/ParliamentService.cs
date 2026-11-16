@@ -59,7 +59,8 @@ public class ParliamentService(IDbContextFactory<AppDbContext> dbFactory, ICaseN
             : await AdministrationService.NamesAsync(db, rows.Select(r => r.AssignedToId ?? string.Empty), cancellationToken);
         var now = DateTime.UtcNow;
         return rows
-            .Select(p => new ParliamentRow(p.Id, p.CaseNumber, p.Title, p.Status, p.ReceivedAt, p.DueAt, p.SubmitterName,
+            .Select(p => new ParliamentRow(p.Id, p.CaseNumber, p.Title, p.Status, p.ReceivedAt, p.DueAt,
+                scope.IsPartner && !p.FromParliament ? null : p.SubmitterName,
                 p.AssignedToId is { } a ? names.GetValueOrDefault(a) : null, p.AnsweredAt,
                 p.DueAt < now && p.Status is ParliamentaryInquiryStatus.Received or ParliamentaryInquiryStatus.InProgress))
             .ToList();
@@ -90,7 +91,13 @@ public class ParliamentService(IDbContextFactory<AppDbContext> dbFactory, ICaseN
         }
         if (scope.IsPartner)
         {
+            // agent codenames stay in the house
             row.AssignedToId = null;
+            row.AnsweredByName = null;
+            if (!row.FromParliament)
+            {
+                row.SubmitterName = null;
+            }
         }
         return new ParliamentView(row, assigned, actor.MayAdministrationWrite());
     }
@@ -154,7 +161,7 @@ public class ParliamentService(IDbContextFactory<AppDbContext> dbFactory, ICaseN
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var row = await OpenAsync(db, id, cancellationToken);
         if (!string.IsNullOrEmpty(agentId)
-            && !await db.Users.OnlySelectable().AnyAsync(u => u.Id == agentId && (u.IsHRB || u.Rank >= DivisionRules.BoardFloor), cancellationToken))
+            && !await db.Users.OnlySelectable().AnyAsync(u => u.Id == agentId && (u.IsHRB || u.IsAdmin || u.Rank >= DivisionRules.BoardFloor), cancellationToken))
         {
             throw new InvalidOperationException("Bearbeiten kann nur ein Mitglied der Administration oder des Boards.");
         }

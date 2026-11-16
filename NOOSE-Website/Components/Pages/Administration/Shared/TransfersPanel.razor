@@ -170,7 +170,8 @@
 
     private bool MayWithdraw(TransferRow r)
         => User.MayWrite() && (User.MayAdministrationWrite()
-            || string.Equals(User.GetAgentId(), r.AgentId, StringComparison.OrdinalIgnoreCase));
+            || string.Equals(User.GetAgentId(), r.AgentId, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(User.GetAgentId(), r.RequesterId, StringComparison.OrdinalIgnoreCase));
 
     private async Task RequestAsync()
     {

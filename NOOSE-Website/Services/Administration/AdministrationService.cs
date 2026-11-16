@@ -173,12 +173,22 @@ public class AdministrationService(IDbContextFactory<AppDbContext> dbFactory, ID
             .Where(u => ids.Contains(u.Id))
             .Select(u => new { u.Id, u.Codename, u.Rank })
             .ToDictionaryAsync(u => u.Id, cancellationToken);
-        var blocked = await db.DisciplinaryProceedings.AsNoTracking()
+        var pending = await db.DisciplinaryProceedings.AsNoTracking()
             .Where(d => ids.Contains(d.AgentId)
                 && (d.Status == DisciplinaryStatus.Open || d.Status == DisciplinaryStatus.Suspended))
-            .Select(d => d.AgentId)
-            .Distinct()
+            .Select(d => new { d.AgentId, d.Status })
             .ToListAsync(cancellationToken);
+        // the chip names a running proceeding, so only who may see it gets it; the decision refuses either way
+        var scope = ViewerScope.From(actor);
+        var blocked = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var p in pending)
+        {
+            if (!blocked.Contains(p.AgentId)
+                && await DisciplinaryRules.MaySeeAsync(db, p.AgentId, p.Status, scope, cancellationToken))
+            {
+                blocked.Add(p.AgentId);
+            }
+        }
         return open
             .Select(r =>
             {
@@ -215,13 +225,16 @@ public class AdministrationService(IDbContextFactory<AppDbContext> dbFactory, ID
         }
         var note = Trimmed(input.Note, PersonalRelationRules.MaxNoteLength, "Die Notiz");
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        // the stored spelling of the ids, so the pair order matches every later lookup
         var found = await db.Users.OnlySelectable()
-            .CountAsync(u => u.Id == input.AgentAId || u.Id == input.AgentBId, cancellationToken);
-        if (found != 2)
+            .Where(u => u.Id == input.AgentAId || u.Id == input.AgentBId)
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+        if (found.Count != 2)
         {
             throw new InvalidOperationException("Beziehungen werden nur zwischen aktiven Agenten erfasst.");
         }
-        var (a, b) = PersonalRelationRules.Pair(input.AgentAId, input.AgentBId);
+        var (a, b) = PersonalRelationRules.Pair(found[0], found[1]);
         if (await db.AgentRelationships.AnyAsync(r => r.AgentAId == a && r.AgentBId == b, cancellationToken))
         {
             throw new InvalidOperationException("Für diese beiden ist bereits eine Beziehung erfasst.");
@@ -247,6 +260,13 @@ public class AdministrationService(IDbContextFactory<AppDbContext> dbFactory, ID
         if (row is null)
         {
             return;
+        }
+        // otherwise the biased side lifts its own block
+        var me = actor.GetAgentId();
+        if (string.Equals(me, row.AgentAId, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(me, row.AgentBId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException("Eine eigene Personalbeziehung entfernt jemand anderes.");
         }
         db.AgentRelationships.Remove(row);
         await db.SaveChangesAsync(cancellationToken);
