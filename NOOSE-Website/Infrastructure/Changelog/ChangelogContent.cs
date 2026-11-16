@@ -762,6 +762,9 @@ public static class ChangelogContent
             Neu("3.0.56-drogenrouten", "Drogenrouten haben eine eigene Akte mit Stationen in Reihenfolge, Beweisfotos je "
                 + "Station, beteiligten Personen und der Fraktion, die sie betreibt. Die bisherigen Routen der Fraktionen "
                 + "sind als Akten übernommen, und die Fraktionsakte zeigt sie unter Bestände.", "Akten"),
+            Besser("3.0.57-dvo-aenderungen-lesbar", "Wird ein Absatz der Dienstverordnung umgeschrieben, zeigt der Vergleich "
+                + "erst den alten Text durchgestrichen und dann den neuen fett, statt beides Wort für Wort zu mischen.",
+                "Dienstverordnung"),
         ]),
     ];
 }

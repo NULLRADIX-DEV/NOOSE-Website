@@ -226,32 +226,93 @@ public static partial class HtmlDiff
         return ops;
     }
 
-    /// <summary>Renders the ops as text with ins/del marks; deletions sit where they were removed.</summary>
+    /// <summary>Kept text, or one change hunk shown as removed then added.</summary>
+    private sealed class Segment(string equal)
+    {
+        public bool IsEqual { get; init; } = true;
+        public StringBuilder Equal { get; } = new(equal);
+        public StringBuilder Removed { get; } = new();
+        public StringBuilder Added { get; } = new();
+        public int Weight => Math.Max(Removed.Length, Added.Length);
+    }
+
+    /// <summary>Equal runs and change hunks; neighbouring deletes and inserts share one hunk.</summary>
+    private static List<Segment> Segments(List<Edit> ops)
+    {
+        var segments = new List<Segment>();
+        foreach (var op in ops)
+        {
+            var last = segments.Count > 0 ? segments[^1] : null;
+            if (op.Kind == EditKind.Equal)
+            {
+                if (last is { IsEqual: true })
+                {
+                    last.Equal.Append(op.Text);
+                }
+                else
+                {
+                    segments.Add(new Segment(op.Text));
+                }
+                continue;
+            }
+            if (last is null or { IsEqual: true })
+            {
+                segments.Add(last = new Segment("") { IsEqual = false });
+            }
+            (op.Kind == EditKind.Insert ? last.Added : last.Removed).Append(op.Text);
+        }
+        return segments;
+    }
+
+    /// <summary>Folds short kept text between two hunks into one hunk, so a rewrite reads as old then new.</summary>
+    /// <remarks>Rule from diff-match-patch's semantic cleanup: kept text no longer than the change on either side.</remarks>
+    private static List<Segment> Cleanup(List<Segment> segments)
+    {
+        var merged = true;
+        while (merged)
+        {
+            merged = false;
+            for (var i = 1; i < segments.Count - 1; i++)
+            {
+                var (left, equal, right) = (segments[i - 1], segments[i], segments[i + 1]);
+                if (!equal.IsEqual || left.IsEqual || right.IsEqual)
+                {
+                    continue;
+                }
+                var kept = equal.Equal.ToString();
+                // paragraph breaks stay visible
+                if (kept.Contains('\n') || kept.Length > Math.Min(left.Weight, right.Weight))
+                {
+                    continue;
+                }
+                left.Removed.Append(kept).Append(right.Removed);
+                left.Added.Append(kept).Append(right.Added);
+                segments.RemoveRange(i, 2);
+                merged = true;
+                i--;
+            }
+        }
+        return segments;
+    }
+
+    /// <summary>Renders the hunks as text with del then ins marks, at the place of the change.</summary>
     private static string Render(List<Edit> ops)
     {
         var sb = new StringBuilder();
-        var i = 0;
-        while (i < ops.Count)
+        foreach (var segment in Cleanup(Segments(ops)))
         {
-            var kind = ops[i].Kind;
-            var run = new StringBuilder();
-            while (i < ops.Count && ops[i].Kind == kind)
+            if (segment.IsEqual)
             {
-                run.Append(ops[i].Text);
-                i++;
+                sb.Append(System.Net.WebUtility.HtmlEncode(segment.Equal.ToString()));
+                continue;
             }
-            var text = System.Net.WebUtility.HtmlEncode(run.ToString());
-            switch (kind)
+            if (segment.Removed.Length > 0)
             {
-                case EditKind.Insert:
-                    sb.Append("<ins class=\"noosei-neu\">").Append(text).Append("</ins>");
-                    break;
-                case EditKind.Delete:
-                    sb.Append("<del class=\"noosei-weg\">").Append(text).Append("</del>");
-                    break;
-                default:
-                    sb.Append(text);
-                    break;
+                sb.Append("<del class=\"noosei-weg\">").Append(System.Net.WebUtility.HtmlEncode(segment.Removed.ToString())).Append("</del>");
+            }
+            if (segment.Added.Length > 0)
+            {
+                sb.Append("<ins class=\"noosei-neu\">").Append(System.Net.WebUtility.HtmlEncode(segment.Added.ToString())).Append("</ins>");
             }
         }
         return HtmlCleanup.CleanDiff("<p>" + sb.ToString().Replace("\n", "</p><p>") + "</p>");

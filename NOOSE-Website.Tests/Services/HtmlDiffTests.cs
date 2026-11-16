@@ -91,6 +91,39 @@ public class HtmlDiffTests
     }
 
     [Fact]
+    public void Compare_ShowsARewrite_AsOldThenNew_NotAsWordSalad()
+    {
+        var diff = HtmlDiff.Compare(
+            "<p>Trainees sind im Dienst ausschließlich dazu verpflichtet, Kleidung mit der unverkennbaren Aufschrift oder der "
+            + "offiziellen Abkürzung des Federal Investigation Bureau zu tragen.</p>",
+            "<p>Trainees sind an der Kleiderordnung der Criminal Investigation Division gebunden.</p>");
+
+        Assert.Equal(
+            "<p>Trainees sind <del class=\"noosei-weg\">im Dienst ausschließlich dazu verpflichtet, Kleidung mit der "
+            + "unverkennbaren Aufschrift oder der offiziellen Abkürzung des Federal Investigation Bureau zu tragen</del>"
+            + "<ins class=\"noosei-neu\">an der Kleiderordnung der Criminal Investigation Division gebunden</ins>.</p>",
+            diff.Html);
+    }
+
+    [Fact]
+    public void Compare_KeepsSeparateCorrections_Apart()
+    {
+        var diff = HtmlDiff.Compare(
+            "<p>Der Verdächtige wurde gestren am Hafen festgenomen.</p>",
+            "<p>Der Verdächtige wurde gestern am Hafen festgenommen.</p>");
+
+        Assert.Contains("<ins class=\"noosei-neu\">gestern</ins> am Hafen <del", diff.Html);
+    }
+
+    [Fact]
+    public void Compare_NeverFoldsAParagraphBreak()
+    {
+        var diff = HtmlDiff.Compare("<p>alt eins</p><p>alt zwei</p>", "<p>neu eins</p><p>neu zwei</p>");
+
+        Assert.Equal(2, diff.Html.Split("<p>").Length - 1);
+    }
+
+    [Fact]
     public void Fingerprint_ListsBlockTagsInOrder()
     {
         Assert.Equal("h2,p,li,li", HtmlDiff.Fingerprint("<h2>T</h2><p>A</p><ul><li>1</li><li>2</li></ul>"));
