@@ -94,7 +94,7 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     /// Wanted additions that master cannot have yet, removed from the layout on both sides; a mask would paint a box master lacks.
     /// Empty this once master carries them.
     /// </summary>
-    private const string HiddenSinceMaster = ".noose-nav-rail [aria-label='Administration'] { display: none !important; }";
+    private const string HiddenSinceMaster = ".noose-nav-rail .mud-tooltip-root:has([aria-label='Administration']) { display: none !important; }";
 
     private async Task<Shot> ShootAsync(string baseUrl, Target target, DateTime now)
     {
