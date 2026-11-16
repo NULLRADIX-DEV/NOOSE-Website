@@ -171,9 +171,9 @@ internal static class GettingStartedChapter
                 <strong>Abteilung</strong>: CID, CTD oder HRT, und ab Assistant Director das Board of Directors.
                 Drittens deine <strong>Kennzeichen</strong>: Admin und Administration Division.</p>
                 <p>Ein Kennzeichen ist <strong>technisch</strong> nichts anderes als ein eigenes Feld am Konto;
-                es entsteht nicht aus deinem Dienstgrad. Eine Schwelle gibt es trotzdem: <strong>HRT und
-                Administration Division lassen sich erst ab Special Agent setzen</strong>, darunter lehnt die
-                Seite beides ab.</p>
+                es entsteht nicht aus deinem Dienstgrad. Die Administration Division steht jedem Dienstgrad offen,
+                auch dem Trainee. Nur das <strong>HRT lässt sich erst ab Special Agent setzen</strong>, darunter
+                lehnt die Seite es ab.</p>
                 <p>Ab <strong>Section Chief</strong> (im HRT <strong>Commanding Operator</strong>) zählst du zur <strong>Führung</strong>. Das
                 ist die Schwelle, ab der Verschlusssachen, Klarnamen und die meisten Entscheidungen sichtbar
                 werden. Das Kennzeichen <strong>Admin</strong> überspringt jede Rangprüfung - ein Admin gilt

@@ -309,11 +309,11 @@ internal static class PersonnelChapter
                 Admins; das Board selbst ergibt sich aus dem Dienstgrad. Kennzeichen sind Admin, die
                 Administration Division und die Nur-Lese-Aufsicht. Sie sind keine Dienstgrade - ein Deputy
                 Director muss nicht in der Administration Division sein, und ein Special Agent kann es sein.</p>
-                <p>Für <strong>HRT und Administration Division</strong> gilt dabei eine Schwelle: beides lässt
-                sich erst ab dem Dienstgrad <strong>Special Agent</strong> setzen. Bei einem Trainee sind die
-                beiden Auswahlen deshalb gesperrt. Wird jemand unter diese Schwelle
-                herabgestuft, wechselt er aus dem HRT in die CID und verliert die Administration Division; das
-                kommt ins Protokoll.</p>
+                <p>Für das <strong>HRT</strong> gilt dabei eine Schwelle: es lässt sich erst ab dem Dienstgrad
+                <strong>Special Agent</strong> setzen. Bei einem Trainee ist die Auswahl deshalb gesperrt. Wird
+                jemand unter diese Schwelle herabgestuft, wechselt er aus dem HRT in die CID; das kommt ins
+                Protokoll. Die <strong>Administration Division</strong> steht dagegen jedem Dienstgrad offen,
+                auch dem Trainee, und bleibt bei einer Herabstufung erhalten.</p>
                 <p>Die Abteilungen haben <strong>Platzgrenzen</strong>: Board 4, HRT 9, CID 21, CTD 6. Ist eine
                 Einheit voll, fragt die Seite ausdrücklich nach, bevor jemand darüber hinaus eingeteilt wird.</p>
                 <p>Jede Änderung an Dienstgrad, Kennzeichen oder Status meldet den Betroffenen einmal ab. Das

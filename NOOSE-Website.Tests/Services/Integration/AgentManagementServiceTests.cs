@@ -809,25 +809,34 @@ public class AgentManagementServiceTests
         Assert.False(a.IsTRU);
     }
 
-    [Theory]
-    [InlineData(null)]
-    [InlineData(Rank.Trainee)]
-    public async Task HrbSetAsync_BelowSpecialAgent_Throws(Rank? rank)
+    [Fact]
+    public async Task HrbSetAsync_WithoutRank_Throws()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: rank));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: null));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => f.Svc.HrbSetAsync("t", true, Admin()));
         Assert.False(Reload(f, "t").IsHRB);
     }
 
-    /// <summary>A legacy flag below the threshold has to stay removable, or the account is stuck with it.</summary>
     [Fact]
-    public async Task HrbSetAsync_ClearingIsAllowedBelowTheThreshold()
+    public async Task HrbSetAsync_TraineeMayJoin()
     {
         using var f = Make();
-        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee, cfg: a => a.IsHRB = true));
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
+
+        await f.Svc.HrbSetAsync("t", true, Admin());
+
+        Assert.True(Reload(f, "t").IsHRB);
+    }
+
+    /// <summary>A legacy flag on a rankless account has to stay removable, or the account is stuck with it.</summary>
+    [Fact]
+    public async Task HrbSetAsync_ClearingIsAllowedWithoutRank()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: null, cfg: a => a.IsHRB = true));
 
         await f.Svc.HrbSetAsync("t", false, Admin());
 
@@ -845,14 +854,16 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task ReleaseAsync_TraineeWithDepartment_Throws()
+    public async Task ReleaseAsync_TraineeIntoTheAdministration()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Pending));
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
-            () => f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, isHRB: true, confirmOverLimit: false, Admin()));
-        Assert.Equal(AgentStatus.Pending, Reload(f, "t").Status);
+        await f.Svc.ReleaseAsync("t", Rank.Trainee, Division.Cid, isHRB: true, confirmOverLimit: false, Admin());
+
+        var a = Reload(f, "t");
+        Assert.Equal(AgentStatus.Active, a.Status);
+        Assert.True(a.IsHRB);
     }
 
     [Fact]
@@ -882,9 +893,9 @@ public class AgentManagementServiceTests
         Assert.True(a.IsHRB);
     }
 
-    /// <summary>A demotion has to take the departments with it; otherwise the flag keeps opening every gate of the Administration Division.</summary>
+    /// <summary>A demotion below Special Agent takes the HRT with it; the Administration Division stays.</summary>
     [Fact]
-    public async Task RankChangeAsync_DemotionBelowThreshold_DropsDepartments()
+    public async Task RankChangeAsync_DemotionToTrainee_LeavesTheHrtKeepsTheAdministration()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent,
@@ -896,7 +907,7 @@ public class AgentManagementServiceTests
         Assert.Equal(Rank.Trainee, a.Rank);
         Assert.Equal(Division.Cid, a.Division);
         Assert.False(a.IsTRU);
-        Assert.False(a.IsHRB);
+        Assert.True(a.IsHRB);
     }
 
     [Fact]
@@ -1776,7 +1787,7 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task PromotionDecideAsync_DemotionBelowThreshold_DropsDepartments()
+    public async Task PromotionDecideAsync_DemotionToTrainee_KeepsTheAdministration()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent,
@@ -1794,7 +1805,7 @@ public class AgentManagementServiceTests
 
         var a = Reload(f, "t");
         Assert.Equal(Rank.Trainee, a.Rank);
-        Assert.False(a.IsHRB);
+        Assert.True(a.IsHRB);
     }
 
     [Fact]

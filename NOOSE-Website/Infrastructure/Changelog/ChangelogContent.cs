@@ -771,6 +771,8 @@ public static class ChangelogContent
                 + "Dienstzeugnisse findest du dort im Reiter Administration.", "Personal"),
             Neu("3.0.59-parlament", "Das Parlament stellt seine Anfragen jetzt direkt auf der Seite und liest dort die "
                 + "Antwort, sobald die Administration sie freigegeben hat.", "Partner"),
+            Besser("3.0.60-administration-ab-trainee", "Schon ein Trainee kann in die Administration Division, und wer "
+                + "herabgestuft wird, bleibt dort.", "Personal"),
         ]),
     ];
 }

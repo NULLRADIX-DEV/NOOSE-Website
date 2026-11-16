@@ -627,6 +627,8 @@ public class AgentManagementService(
         var division = PromotionRules.ReleaseDivision(standing);
         DivisionRules.RequireMayHold(division, rank);
         PromotionRules.RequireMayAssign(standing, DivisionRules.Normalize(rank, division), agent.Rank, rank);
+        await PersonalRelationRules.RequireNotRelatedAsync(db, actor, agent.Id);
+        await DisciplinaryRules.RequireNoOpenProceedingAsync(db, agent.Id, null, rank);
         if (agent.Status != AgentStatus.Active)
         {
             throw new InvalidOperationException("Die Zugehörigkeit kann nur für aktive Konten geändert werden.");
@@ -737,16 +739,14 @@ public class AgentManagementService(
         var lost = new List<string>(2);
         if (homeBefore == Division.Hrt && agent.Division != Division.Hrt)
         {
-            lost.Add("Abteilung HRT → CID");
+            lost.Add($"Abteilung HRT → CID (Dienstgrad unter {RankDisplay.DefaultName(DivisionRules.HrtMinimumRank)})");
         }
         if (agent.IsHRB && !DepartmentRules.MayHold(agent.Rank))
         {
             agent.IsHRB = false;
             lost.Add("Administration Division entfernt");
         }
-        return lost.Count == 0
-            ? string.Empty
-            : $"; {string.Join("; ", lost)} (Dienstgrad unter {RankDisplay.DefaultName(DepartmentRules.MinimumRank)})";
+        return lost.Count == 0 ? string.Empty : $"; {string.Join("; ", lost)}";
     }
 
     /// <summary>Count the new seat against the limit of its unit; throws unless confirmed. Runs before the first mutation, so a refusal leaves the tracked row untouched.</summary>

@@ -51,7 +51,7 @@ internal static class DutyRegulationChapter
                 Director oder höher ist, sitzt im Board. Seine bisherige Abteilung merkt sich die Seite trotzdem;
                 wird jemand später wieder unter den Assistant Director gestuft, kehrt er dorthin zurück.</p>
                 <p>Die <strong>Administration Division</strong> ist keine Abteilung, sondern ein zusätzliches
-                Kennzeichen am Konto, das es erst ab Special Agent gibt. Wer es trägt, behält seine Abteilung.
+                Kennzeichen am Konto, das es schon ab Trainee gibt. Wer es trägt, behält seine Abteilung.
                 Auf der Seite darf er Bewerbungen bearbeiten, Tests zuweisen, Ausbildungsmodule abhaken und das
                 Handbuch pflegen.</p>
                 <p>Die Plätze je Einheit sind ein <strong>weiches Limit</strong>: Board 4, HRT 9, CID 21, CTD 6;
