@@ -110,6 +110,17 @@ public static class WatchlistRecordRollup
             case Absence:
             // a firearm report is for the leadership overview and the bell, not for followers of a personnel file
             case FirearmUse:
+            // the Administration workspace is not followed; personnel matters never fan out to watchers
+            case Data.Entities.Administration.AdministrationWorkspace:
+            case Data.Entities.Administration.AdministrationMessage:
+            case Data.Entities.Administration.AdministrationChatRead:
+            case Data.Entities.Administration.DisciplinaryProceeding:
+            case Data.Entities.Administration.TransferRequest:
+            case Data.Entities.Administration.DivisionTransfer:
+            case Data.Entities.Administration.ServiceReference:
+            case Data.Entities.Administration.AgentRelationship:
+            case Data.Entities.Administration.DecorationProposal:
+            case Data.Entities.Administration.ParliamentaryInquiry:
             // funding is deliberately not watchable: followers of a personnel file must not be
             // pushed another agent's budget details
             case FinancingRequest:

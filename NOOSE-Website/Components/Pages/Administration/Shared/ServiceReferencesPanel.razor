@@ -1,0 +1,177 @@
+@* Service references: issued by the Administration, printable, read by the agent too. AgentId narrows to one file. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IServiceReferenceService References
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    @if (_mayIssue)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">Dienstzeugnis ausstellen</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    @if (AgentId is null)
+                    {
+                        <AdministrationAgentPicker Label="Agent" Value="_agent" ValueChanged="AgentPickedAsync" Class="noose-breite-frei" />
+                    }
+                    <MudSelect T="ServiceReferenceReason" @bind-Value="_reason" Label="Anlass" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:160px;">
+                        @foreach (var r in Enum.GetValues<ServiceReferenceReason>())
+                        {
+                            <MudSelectItem Value="@r">@AdministrationDisplay.Name(r)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudSelect T="EvaluationGrade?" @bind-Value="_grade" Label="Gesamtnote" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:180px;" Clearable="true"
+                               HelperText="@(_suggested is { } s ? $"Aus den Beurteilungen: {EvaluationGradeDisplay.Name(s)}" : null)">
+                        @foreach (var g in EvaluationGradeDisplay.All)
+                        {
+                            <MudSelectItem T="EvaluationGrade?" Value="@g">@EvaluationGradeDisplay.Name(g)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudDatePicker @bind-Date="_issuedOn" Label="Ausgestellt am" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Class="noose-breite-frei" Style="min-width:160px;" ShowToolbar="false" />
+                </MudStack>
+                <RichTextEditor @ref="_editor" @bind-Value="_text" MinHeight="220px"
+                                DraftKey="@($"dienstzeugnis:{AgentId ?? "neu"}")" />
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.WorkspacePremium"
+                               OnClick="IssueAsync" Disabled="@(_saves || string.IsNullOrWhiteSpace(_text) || (AgentId is null && _agent is null))">
+                        Ausstellen
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
+            <HeaderContent>
+                @if (AgentId is null)
+                {
+                    <MudTh>Agent</MudTh>
+                }
+                <MudTh>Anlass</MudTh>
+                <MudTh>Note</MudTh>
+                <MudTh Class="noose-mobil-aus">Ausgestellt</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="r">
+                @if (AgentId is null)
+                {
+                    <MudTd><MudLink Href="@($"/personal/{r.AgentId}")">@r.AgentName</MudLink></MudTd>
+                }
+                <MudTd>@AdministrationDisplay.Name(r.Reason)</MudTd>
+                <MudTd>@(r.Grade is { } g ? EvaluationGradeDisplay.Name(g) : "—")</MudTd>
+                <MudTd Class="noose-mobil-aus">@r.IssuedOn.ToString("dd.MM.yyyy") · @(r.IssuedByName ?? "—")</MudTd>
+                <MudTd>
+                    <MudIconButton Icon="@Icons.Material.Filled.Print" Size="Size.Small" Href="@($"/administration/dienstzeugnis/{r.Id}/druck")"
+                                   Target="_blank" aria-label="Dienstzeugnis drucken" />
+                    @if (User.MayAdministrationWrite())
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => DeleteAsync(r))" aria-label="Dienstzeugnis löschen" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch kein Dienstzeugnis ausgestellt.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public string? AgentId { get; set; }
+
+    private IReadOnlyList<ServiceReferenceRow>? _rows;
+    private bool _mayIssue;
+    private bool _saves;
+    private Agent? _agent;
+    private ServiceReferenceReason _reason = ServiceReferenceReason.OnRequest;
+    private EvaluationGrade? _grade;
+    private EvaluationGrade? _suggested;
+    private DateTime? _issuedOn = DateTime.Today;
+    private string? _text;
+    private RichTextEditor? _editor;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _mayIssue = AgentId is null ? User.MayAdministrationWrite() : ServiceReferenceRules.MayIssue(User, AgentId);
+        if (_mayIssue && AgentId is not null)
+        {
+            _suggested = await References.SuggestGradeAsync(AgentId, User);
+            _grade ??= _suggested;
+        }
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _rows = await References.GetListAsync(User, AgentId);
+
+    private async Task AgentPickedAsync(Agent? agent)
+    {
+        _agent = agent;
+        _suggested = agent is null ? null : await References.SuggestGradeAsync(agent.Id, User);
+        _grade = _suggested;
+    }
+
+    private async Task IssueAsync()
+    {
+        var agentId = AgentId ?? _agent?.Id;
+        if (agentId is null)
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            await References.IssueAsync(new ServiceReferenceInput
+            {
+                AgentId = agentId,
+                Reason = _reason,
+                Grade = _grade,
+                TextHtml = _text ?? "",
+                IssuedOn = _issuedOn,
+            }, User);
+            if (_editor is not null)
+            {
+                await _editor.MarkSavedAsync();
+            }
+            _text = null;
+            _agent = null;
+            Snackbar.Add("Dienstzeugnis ausgestellt.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+
+    private async Task DeleteAsync(ServiceReferenceRow r)
+    {
+        if (!await ConfirmDialog.ShowAsync(DialogService, "Dienstzeugnis löschen?",
+                "Es kommt in den Papierkorb und lässt sich dort wiederherstellen.", "Löschen"))
+        {
+            return;
+        }
+        try
+        {
+            await References.DeleteAsync(r.Id, User);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

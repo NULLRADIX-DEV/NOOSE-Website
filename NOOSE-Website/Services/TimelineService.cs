@@ -436,6 +436,17 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
                 ids.UnionWith(await db.FinancingRequestLines.Where(l => l.RequestId == id).Select(l => l.Id).ToListAsync(ct));
                 types.Add(nameof(FinancingRequestLine));
                 break;
+            // the workspace gathers its registers; proceedings keep their own timeline and stay out
+            case nameof(Data.Entities.Administration.AdministrationWorkspace):
+                ids.UnionWith(await db.TransferRequests.IgnoreQueryFilters().Select(t => t.Id).ToListAsync(ct));
+                ids.UnionWith(await db.ServiceReferences.IgnoreQueryFilters().Select(r => r.Id).ToListAsync(ct));
+                ids.UnionWith(await db.AgentRelationships.IgnoreQueryFilters().Select(r => r.Id).ToListAsync(ct));
+                ids.UnionWith(await db.DecorationProposals.IgnoreQueryFilters().Select(p => p.Id).ToListAsync(ct));
+                ids.UnionWith(await db.ParliamentaryInquiries.IgnoreQueryFilters().Select(p => p.Id).ToListAsync(ct));
+                types.AddRange([nameof(Data.Entities.Administration.TransferRequest), nameof(Data.Entities.Administration.ServiceReference),
+                    nameof(Data.Entities.Administration.AgentRelationship), nameof(Data.Entities.Administration.DecorationProposal),
+                    nameof(Data.Entities.Administration.ParliamentaryInquiry)]);
+                break;
         }
 
         // polymorphic attachment: custom-field values on any record type

@@ -62,6 +62,9 @@ public class TrashServiceTests
         Substitute.For<ILawService>(),
         Substitute.For<IPresentationService>(),
         _firearmUses,
+        Substitute.For<NOOSE_Website.Services.Administration.IDisciplinaryService>(),
+        Substitute.For<NOOSE_Website.Services.Administration.IServiceReferenceService>(),
+        Substitute.For<NOOSE_Website.Services.Administration.IParliamentService>(),
         _regulation);
 
     [Fact]

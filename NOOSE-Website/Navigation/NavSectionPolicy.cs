@@ -12,6 +12,7 @@ public static class NavSectionPolicy
         NavSection.VerwaltungBewerbungen => Policies.HrbOrLeadership,
         NavSection.VerwaltungFuehrung => Policies.LeadershipPage,
         NavSection.VerwaltungAdmin => Policies.AdminPage,
+        NavSection.Administration => Policies.AdministrationWorkspace,
         NavSection.Partner => Policies.PartnerView,
         _ => Policies.InternalAgent,
     };
@@ -31,6 +32,7 @@ public static class NavSectionPolicy
         NavSection.VerwaltungBewerbungen => "Verwaltung · Bewerbungen",
         NavSection.VerwaltungFuehrung => "Verwaltung · Führung",
         NavSection.VerwaltungAdmin => "Verwaltung · Admin",
+        NavSection.Administration => "Administration",
         NavSection.Partner => "Freigegebene Akten",
         _ => string.Empty,
     };
@@ -43,5 +45,6 @@ public static class NavSectionPolicy
         NavSection.Fahndung, NavSection.Wissen, NavSection.Analyse, NavSection.Dienststelle,
         NavSection.VerwaltungFreigaben, NavSection.VerwaltungBewerbungen,
         NavSection.VerwaltungFuehrung, NavSection.VerwaltungAdmin,
+        NavSection.Administration,
     ];
 }

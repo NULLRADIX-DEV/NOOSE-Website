@@ -38,6 +38,8 @@ public class ReadOnlyBarrierInterceptor(ICurrentUserService currentUserService) 
         typeof(Document),
         typeof(Source),
         typeof(TaskforceMessage),
+        // only parliament accounts get past the service guard
+        typeof(Data.Entities.Administration.ParliamentaryInquiry),
     ];
 
     // What an account files out of its own CIVILIAN identity — the identity itself, its tickets and its tips.

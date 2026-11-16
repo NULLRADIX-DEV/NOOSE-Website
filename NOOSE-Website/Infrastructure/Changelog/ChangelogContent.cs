@@ -762,6 +762,15 @@ public static class ChangelogContent
             Neu("3.0.56-drogenrouten", "Drogenrouten haben eine eigene Akte mit Stationen in Reihenfolge, Beweisfotos je "
                 + "Station, beteiligten Personen und der Fraktion, die sie betreibt. Die bisherigen Routen der Fraktionen "
                 + "sind als Akten übernommen, und die Fraktionsakte zeigt sie unter Bestände.", "Akten"),
+            Neu("3.0.57-administration", "Die Administration Division hat links in der Leiste einen eigenen Bereich mit "
+                + "Chat, Informationen, Personalbeziehungen, Sicherheitsüberprüfungen, Beurteilungen, Beförderungen, "
+                + "Versetzungen, Ehrungsvorschlägen, Dienstzeugnissen, Disziplinarverfahren, Presse und parlamentarischen "
+                + "Anfragen.", "Personal"),
+            Neu("3.0.58-versetzung-und-vorschlag", "In deiner Personalakte kannst du eine Versetzung beantragen und "
+                + "Kollegen für ein Ehrenzeichen vorschlagen. Ergebnisse von Disziplinarverfahren und deine "
+                + "Dienstzeugnisse findest du dort im Reiter Administration.", "Personal"),
+            Neu("3.0.59-parlament", "Das Parlament stellt seine Anfragen jetzt direkt auf der Seite und liest dort die "
+                + "Antwort, sobald die Administration sie freigegeben hat.", "Partner"),
         ]),
     ];
 }

@@ -207,6 +207,27 @@ public enum NotificationType
 
     /// <summary>A warrant of the recipient's investigation waits for the prosecutor's signature. Bell only.</summary>
     WarrantToSign = 60,
+
+    /// <summary>New messages in the Administration chat, once until read. Bell only: who sits in the division stays in the house.</summary>
+    AdministrationChat = 61,
+
+    /// <summary>A disciplinary proceeding against the recipient was closed. Bell only, never a channel.</summary>
+    DisciplinaryConcluded = 62,
+
+    /// <summary>A transfer request waits for the Administration's hearing or the Board's decision. Bell only.</summary>
+    TransferRequested = 63,
+
+    /// <summary>The recipient's transfer request was decided. Bell only.</summary>
+    TransferDecided = 64,
+
+    /// <summary>A parliamentary inquiry came in. Bell only.</summary>
+    ParliamentInquiryReceived = 65,
+
+    /// <summary>A parliamentary inquiry was answered; goes to the parliament accounts. Bell only.</summary>
+    ParliamentInquiryAnswered = 66,
+
+    /// <summary>Someone proposed an agent for a decoration. Bell only.</summary>
+    DecorationProposed = 67,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -275,6 +296,13 @@ public static class NotificationTypeDisplay
         NotificationType.InvestigationParticipation => "Ermittlung",
         NotificationType.InvestigationTask => "Aufgabe in einer Ermittlung",
         NotificationType.WarrantToSign => "Anordnung zu zeichnen",
+        NotificationType.AdministrationChat => "Administration-Chat",
+        NotificationType.DisciplinaryConcluded => "Disziplinarverfahren abgeschlossen",
+        NotificationType.TransferRequested => "Versetzungsantrag",
+        NotificationType.TransferDecided => "Versetzung entschieden",
+        NotificationType.ParliamentInquiryReceived => "Parlamentarische Anfrage",
+        NotificationType.ParliamentInquiryAnswered => "Anfrage beantwortet",
+        NotificationType.DecorationProposed => "Ehrungsvorschlag",
         _ => "Benachrichtigung",
     };
 
@@ -342,6 +370,13 @@ public static class NotificationTypeDisplay
         NotificationType.InvestigationParticipation => Icons.Material.Filled.Gavel,
         NotificationType.InvestigationTask => Icons.Material.Filled.Checklist,
         NotificationType.WarrantToSign => Icons.Material.Filled.Draw,
+        NotificationType.AdministrationChat => Icons.Material.Filled.MarkUnreadChatAlt,
+        NotificationType.DisciplinaryConcluded => Icons.Material.Filled.Gavel,
+        NotificationType.TransferRequested => Icons.Material.Filled.SwapHoriz,
+        NotificationType.TransferDecided => Icons.Material.Filled.SwapHoriz,
+        NotificationType.ParliamentInquiryReceived => Icons.Material.Filled.AccountBalance,
+        NotificationType.ParliamentInquiryAnswered => Icons.Material.Filled.AccountBalance,
+        NotificationType.DecorationProposed => Icons.Material.Filled.MilitaryTech,
         _ => Icons.Material.Filled.Notifications,
     };
 }

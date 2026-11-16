@@ -1,0 +1,53 @@
+@* The Administration's side of one personnel file: closed proceedings, transfers and service references. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IDisciplinaryService Disciplinary
+
+<MudStack Spacing="4">
+    <div>
+        <SectionHeader Title="Disziplinarverfahren" Icon="@Icons.Material.Filled.Gavel" />
+        @if (_proceedings is null)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_proceedings.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Kein abgeschlossenes Verfahren.</MudText>
+        }
+        else
+        {
+            @foreach (var p in _proceedings)
+            {
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                    <MudLink Href="@DisciplinaryService.Href(p.Id)">@p.CaseNumber</MudLink>
+                    <MudChip T="string" Size="Size.Small" Color="@AdministrationDisplay.Color(p.Status)" Variant="Variant.Text">
+                        @AdministrationDisplay.Name(p.Status)
+                    </MudChip>
+                    @if (p.Measure is { } m)
+                    {
+                        <MudText Typo="Typo.body2">@AdministrationDisplay.Name(m)</MudText>
+                    }
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">@p.ClosedAt?.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+                </MudStack>
+            }
+        }
+    </div>
+    <div>
+        <SectionHeader Title="Versetzungen" Icon="@Icons.Material.Filled.SwapHoriz" />
+        <TransfersPanel User="User" AgentId="@AgentId" />
+    </div>
+    <div>
+        <SectionHeader Title="Dienstzeugnisse" Icon="@Icons.Material.Filled.WorkspacePremium" />
+        <ServiceReferencesPanel User="User" AgentId="@AgentId" />
+    </div>
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public string AgentId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<DisciplinaryRow>? _proceedings;
+
+    protected override async Task OnParametersSetAsync()
+        => _proceedings = await Disciplinary.GetForAgentAsync(AgentId, User);
+}

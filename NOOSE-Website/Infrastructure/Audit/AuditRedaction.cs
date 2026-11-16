@@ -1,4 +1,5 @@
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Data.Entities.Administration;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.Personnel;
@@ -53,6 +54,25 @@ public static class AuditRedaction
         $"{nameof(Document)}.{nameof(Document.ImportedHtml)}",
         // a credential: even the hash of the calendar feed link stays out of a house-wide protocol
         $"{nameof(Agent)}.{nameof(Agent.CalendarFeedTokenHash)}",
+        // the Administration workspace is closed to most readers of the protocol: discipline, private relations,
+        // hearings, references and the division's own chat stay out of it
+        $"{nameof(AdministrationWorkspace)}.{nameof(AdministrationWorkspace.InformationHtml)}",
+        $"{nameof(AdministrationMessage)}.{nameof(AdministrationMessage.Text)}",
+        $"{nameof(DisciplinaryProceeding)}.{nameof(DisciplinaryProceeding.Grounds)}",
+        $"{nameof(DisciplinaryProceeding)}.{nameof(DisciplinaryProceeding.Facts)}",
+        $"{nameof(DisciplinaryProceeding)}.{nameof(DisciplinaryProceeding.Reasoning)}",
+        $"{nameof(DisciplinaryProceeding)}.{nameof(DisciplinaryProceeding.RightsNotice)}",
+        $"{nameof(DisciplinaryProceeding)}.{nameof(DisciplinaryProceeding.Measure)}",
+        $"{nameof(TransferRequest)}.{nameof(TransferRequest.Reason)}",
+        $"{nameof(TransferRequest)}.{nameof(TransferRequest.HearingNote)}",
+        $"{nameof(TransferRequest)}.{nameof(TransferRequest.DecisionNote)}",
+        $"{nameof(ServiceReference)}.{nameof(ServiceReference.TextHtml)}",
+        $"{nameof(ServiceReference)}.{nameof(ServiceReference.Grade)}",
+        $"{nameof(AgentRelationship)}.{nameof(AgentRelationship.Kind)}",
+        $"{nameof(AgentRelationship)}.{nameof(AgentRelationship.Note)}",
+        $"{nameof(DecorationProposal)}.{nameof(DecorationProposal.Reason)}",
+        $"{nameof(ParliamentaryInquiry)}.{nameof(ParliamentaryInquiry.Question)}",
+        $"{nameof(ParliamentaryInquiry)}.{nameof(ParliamentaryInquiry.Answer)}",
     };
 
     /// <summary>Whether this field's before/after pair stays out of the audit row.</summary>

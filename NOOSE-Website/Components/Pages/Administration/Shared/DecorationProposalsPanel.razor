@@ -1,0 +1,100 @@
+@* Proposals for a decoration: any agent proposes someone else, the Administration awards or refuses. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Models.Decorations
+@using NOOSE_Website.Services.Administration
+@using NOOSE_Website.Services.Decorations
+@inject IAdministrationService AdministrationService
+@inject IDecorationService DecorationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <DecorationProposeForm User="User" Proposed="LoadAsync" />
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <SectionHeader Title="Vorschläge" Icon="@Icons.Material.Filled.MilitaryTech" />
+        @if (_rows.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Vorschläge.</MudText>
+        }
+        @foreach (var p in _rows)
+        {
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudStack Spacing="1">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        <MudLink Href="@($"/personal/{p.AgentId}?tab=auszeichnungen")"><b>@p.AgentName</b></MudLink>
+                        <MudText Typo="Typo.body2">@p.DecorationName</MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@AdministrationDisplay.Color(p.Status)" Variant="Variant.Text">
+                            @AdministrationDisplay.Name(p.Status)
+                        </MudChip>
+                        <MudSpacer />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @p.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy") · vorgeschlagen von @(p.ProposerName ?? "—")
+                        </MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Style="white-space:pre-line;">@p.Reason</MudText>
+                    @if (p.DecidedAt is not null)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            Entschieden von @p.DecidedByName am @p.DecidedAt?.ToLocalTime().ToString("dd.MM.yyyy")
+                        </MudText>
+                    }
+                    @if (p.Status == DecorationProposalStatus.Open && DecorationProposalRules.MayDecide(User, p.AgentId))
+                    {
+                        <MudStack Row="true" Spacing="2">
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.MilitaryTech" OnClick="@(() => DecideAsync(p, true))">Verleihen</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                                       OnClick="@(() => DecideAsync(p, false))">Ablehnen</MudButton>
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<DecorationProposalRow>? _rows;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync() => _rows = await AdministrationService.GetProposalsAsync(User);
+
+    private async Task DecideAsync(DecorationProposalRow p, bool accept)
+    {
+        string? citation = null;
+        if (accept)
+        {
+            citation = await ReasonDialog.ShowAsync(DialogService, "Ehrenzeichen verleihen",
+                $"{p.DecorationName} an {p.AgentName}. Der Verleihungstext steht auf der Urkunde und am Schwarzen Brett.",
+                "Verleihen", "Verleihungstext", mandatoryReason: true, preset: p.Reason, lines: 5,
+                maxLength: DecorationRules.MaxCitationLength);
+            if (citation is null)
+            {
+                return;
+            }
+        }
+        else if (!await ConfirmDialog.ShowAsync(DialogService, "Vorschlag ablehnen?",
+                     $"{p.DecorationName} für {p.AgentName} wird nicht verliehen.", "Ablehnen"))
+        {
+            return;
+        }
+        try
+        {
+            await AdministrationService.DecideProposalAsync(p.Id, accept, citation, User);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -235,8 +235,7 @@ public class DecorationService(
         CancellationToken cancellationToken = default)
     {
         // write guard first: the read-only supervision and the demo visitor stop here, not at the rank check
-        Permission.RequireWriteAccess(actor);
-        Permission.RequireLeadership(actor);
+        Permission.RequirePersonnelWrite(actor);
 
         var actorId = actor.GetAgentId();
         if (string.Equals(actorId, input.AgentId, StringComparison.Ordinal))
@@ -255,6 +254,7 @@ public class DecorationService(
         {
             throw new InvalidOperationException("Ein Ehrenzeichen kann man sich nicht selbst verleihen.");
         }
+        await Administration.PersonalRelationRules.RequireNotRelatedAsync(db, actor, agent.Id, cancellationToken);
         var decoration = await db.Decorations
             .FirstOrDefaultAsync(d => d.Id == input.DecorationId && d.IsActive, cancellationToken)
             ?? throw new InvalidOperationException("Dieses Ehrenzeichen kann nicht (mehr) verliehen werden.");
@@ -326,8 +326,7 @@ public class DecorationService(
     public async Task UpdateAsync(string id, DecorationAwardInput input, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
-        Permission.RequireWriteAccess(actor);
-        Permission.RequireLeadership(actor);
+        Permission.RequirePersonnelWrite(actor);
 
         var day = CeremonyDay(input.AwardedOn);
         var citation = Citation(input.Citation);
@@ -384,8 +383,7 @@ public class DecorationService(
     public async Task RevokeAsync(string id, string reason, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
     {
-        Permission.RequireWriteAccess(actor);
-        Permission.RequireLeadership(actor);
+        Permission.RequirePersonnelWrite(actor);
 
         var why = DecorationRules.NormalizeText(reason);
         if (why.Length == 0)

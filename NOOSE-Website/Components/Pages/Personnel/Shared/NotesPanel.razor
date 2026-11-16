@@ -7,7 +7,7 @@
 @inject ISnackbar Snackbar
 
 <MudStack Spacing="3">
-    <AuthorizeView Policy="@Policies.LeadershipWrite">
+    <AuthorizeView Policy="@Policies.PersonnelWrite">
         <MudPaper Class="pa-3" Elevation="1">
             <MudStack Spacing="2">
                 <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
@@ -101,7 +101,7 @@
                             @(string.IsNullOrWhiteSpace(v.AuthorName) ? "—" : v.AuthorName) · erfasst @v.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
                         </MudText>
                     </div>
-                    <AuthorizeView Policy="@Policies.LeadershipWrite">
+                    <AuthorizeView Policy="@Policies.PersonnelWrite">
                         <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                        OnClick="@(() => DeleteAsync(v))" aria-label="Eintrag löschen" />
                     </AuthorizeView>
@@ -142,7 +142,7 @@
         _agents = await AgentService.GetSelectableAsync();
         // name lookup, not a picker: already-recorded executors must still render
         _agentNames = (await AgentService.GetAllAsync()).ToDictionary(a => a.Id, a => a.Codename);
-        if (_user.IsLeadership())
+        if (_user.MayPersonnelWrite())
         {
             await LoadTemplatesAsync();
         }

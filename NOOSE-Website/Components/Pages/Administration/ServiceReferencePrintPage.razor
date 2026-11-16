@@ -1,0 +1,105 @@
+@* A printed service reference: ranks, divisions and decorations up to the issue date, then the Administration's text. *@
+@page "/administration/dienstzeugnis/{Id}/druck"
+@layout PrintLayout
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IServiceReferenceService References
+
+<PageTitle>Dienstzeugnis · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_print is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Dieses Dienstzeugnis existiert nicht oder ist für dich nicht einsehbar.</MudAlert>
+}
+else
+{
+    var row = _print.Row;
+    <PrintFrame Title="Dienstzeugnis" BackHref="@($"/personal/{row.AgentId}")" PrintedBy="@_printBy" IsClassified="false">
+        <section>
+            <table class="druck-felder">
+                <tbody>
+                    <tr><th>Name</th><td>@_print.Name</td></tr>
+                    <tr><th>Dienstgrad</th><td>@RankDisplay.Name(row.RankSnapshot)</td></tr>
+                    <tr><th>Abteilung</th><td>@(row.DivisionSnapshot is { } d ? DivisionDisplay.Name(d) : "—")</td></tr>
+                    @if (row.ServiceStart is { } start)
+                    {
+                        <tr><th>Im Dienst seit</th><td>@start.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
+                    }
+                    <tr><th>Anlass</th><td>@AdministrationDisplay.Name(row.Reason)</td></tr>
+                    @if (row.Grade is { } g)
+                    {
+                        <tr><th>Gesamtbewertung</th><td>@EvaluationGradeDisplay.Name(g)</td></tr>
+                    }
+                    <tr><th>Ausgestellt</th><td>@row.IssuedOn.ToString("dd.MM.yyyy"), @(row.IssuedByName ?? "—"), Administration Division</td></tr>
+                </tbody>
+            </table>
+        </section>
+        @if (_print.Ranks.Count > 0)
+        {
+            <section>
+                <h2>Dienstgrade</h2>
+                <table class="druck-felder">
+                    <tbody>
+                        @foreach (var h in _print.Ranks)
+                        {
+                            <tr><th>@h.Timestamp.ToLocalTime().ToString("dd.MM.yyyy")</th><td>@RankDisplay.Name(h.New)</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        @if (_print.Transfers.Count > 0)
+        {
+            <section>
+                <h2>Verwendungen</h2>
+                <table class="druck-felder">
+                    <tbody>
+                        @foreach (var t in _print.Transfers)
+                        {
+                            <tr><th>@t.At.ToLocalTime().ToString("dd.MM.yyyy")</th><td>@(t.ToDivision is { } to ? DivisionDisplay.Name(to) : "—")</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        @if (_print.Decorations.Count > 0)
+        {
+            <section>
+                <h2>Auszeichnungen</h2>
+                <table class="druck-felder">
+                    <tbody>
+                        @foreach (var (name, on) in _print.Decorations)
+                        {
+                            <tr><th>@on.ToString("dd.MM.yyyy")</th><td>@name</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        <section>
+            <h2>Beurteilung</h2>
+            <RichHtml Html="@row.TextHtml" Plain="true" />
+        </section>
+    </PrintFrame>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private string? _printBy;
+    private ServiceReferencePrint? _print;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _printBy = user.GetCodename();
+        _print = await References.GetPrintAsync(Id, user);
+        _load = false;
+    }
+}

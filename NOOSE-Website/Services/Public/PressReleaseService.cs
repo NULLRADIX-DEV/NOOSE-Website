@@ -63,7 +63,7 @@ public class PressReleaseService(
 
     public async Task<IReadOnlyList<PressEdit>> GetAllAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireClassifiedRead(actor);
+        Permission.RequirePressRead(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // projected rather than Include'd: only the codename is wanted, and pulling the whole identity user would
@@ -114,7 +114,7 @@ public class PressReleaseService(
 
     public async Task<PressDraft?> GetDraftAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireClassifiedRead(actor);
+        Permission.RequirePressRead(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.Pressemitteilungen

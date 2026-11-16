@@ -185,6 +185,23 @@ public static class AgentPrincipalExtensions
     /// <summary>May access recruiting management = HRB member or leadership.</summary>
     public static bool IsHrbOrLeadership(this ClaimsPrincipal user) => user.IsHRB() || user.IsLeadership();
 
+    /// <summary>Works in the Administration Division workspace = the division, the Board or an admin; never a partner. Sole source of this rule.</summary>
+    /// <remarks>A Section Chief without the flag stays out on purpose: proceedings against Administration staff belong to the Board.</remarks>
+    public static bool IsAdministrationMember(this ClaimsPrincipal user)
+        => !user.IsPartner() && (user.IsHRB() || user.IsBoard() || user.IsAdmin());
+
+    /// <summary>May open the Administration workspace = a member or the read-only supervision.</summary>
+    public static bool MayAdministrationRead(this ClaimsPrincipal user)
+        => user.IsAdministrationMember() || user.IsOnlyReader();
+
+    /// <summary>May write in the Administration workspace = a member who may write at all.</summary>
+    public static bool MayAdministrationWrite(this ClaimsPrincipal user)
+        => user.MayWrite() && user.IsAdministrationMember();
+
+    /// <summary>May write personnel matters (notes, promotion requests, awards) = leadership or the Administration Division, both with write access.</summary>
+    public static bool MayPersonnelWrite(this ClaimsPrincipal user)
+        => user.MayWrite() && !user.IsPartner() && (user.IsLeadership() || user.IsAdministrationMember());
+
     /// <summary>Citizen (status Civilian): public-area account only, never an agent and never an applicant.</summary>
     public static bool IsCitizen(this ClaimsPrincipal user) => user.GetStatus() == AgentStatus.Civilian;
 

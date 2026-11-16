@@ -43,6 +43,19 @@ public static class TimelineDisplay
             _ => action.ToString(),
         };
 
+        switch (entityType)
+        {
+            case nameof(Data.Entities.Administration.TransferRequest):
+                return (TimelineCategory.Change, $"Versetzungsantrag {Verb("gestellt", "gelöscht")}");
+            case nameof(Data.Entities.Administration.ServiceReference):
+                return (TimelineCategory.Change, $"Dienstzeugnis {Verb("ausgestellt", "gelöscht")}");
+            case nameof(Data.Entities.Administration.AgentRelationship):
+                return (TimelineCategory.Change, $"Personalbeziehung {Verb("erfasst", "entfernt")}");
+            case nameof(Data.Entities.Administration.DecorationProposal):
+                return (TimelineCategory.Change, $"Ehrungsvorschlag {Verb("eingereicht", "gelöscht")}");
+            case nameof(Data.Entities.Administration.ParliamentaryInquiry):
+                return (TimelineCategory.Change, $"Parlamentarische Anfrage {Verb("eingegangen", "gelöscht")}");
+        }
         if (entityType == nameof(PersonDoc))
         {
             return (TimelineCategory.Doc, $"Dok {Verb("angelegt", "gelöscht")}");

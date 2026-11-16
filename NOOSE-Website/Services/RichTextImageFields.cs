@@ -25,6 +25,9 @@ public static class RichTextImageFields
         [typeof(Announcement)] = ["Content"],
         [typeof(AgentNote)] = ["Text"],
         [typeof(AgentEvaluation)] = ["Text"],
+        [typeof(Data.Entities.Administration.AdministrationWorkspace)] = ["InformationHtml"],
+        [typeof(Data.Entities.Administration.DisciplinaryProceeding)] = ["Grounds", "Facts", "Reasoning"],
+        [typeof(Data.Entities.Administration.ServiceReference)] = ["TextHtml"],
         [typeof(PresentationSlide)] = ["BodyHtml"],
     };
 

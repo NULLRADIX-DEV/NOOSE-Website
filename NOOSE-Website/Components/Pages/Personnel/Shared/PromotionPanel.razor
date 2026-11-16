@@ -10,7 +10,7 @@
         <MudText Typo="Typo.subtitle1">Beförderungsanträge (@_requests.Count)</MudText>
         @if (_mayRequest)
         {
-            <AuthorizeView Policy="@Policies.LeadershipWrite">
+            <AuthorizeView Policy="@Policies.PersonnelWrite">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.TrendingUp"
                            OnClick="RequestAsync">Beförderung beantragen</MudButton>
             </AuthorizeView>

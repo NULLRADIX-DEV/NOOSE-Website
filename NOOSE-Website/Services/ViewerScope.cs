@@ -16,10 +16,13 @@ namespace NOOSE_Website.Services;
 /// <param name="IsInternalAgent">An in-house account. Its own field because <c>!IsPartner</c> is WIDER than the
 /// rule — a citizen and an applicant are not partners either — so the audiences addressed as "every internal agent"
 /// cannot be expressed without it. Trailing and defaulted false, which fails closed.</param>
+/// <param name="MayAdministration">Opens the Administration workspace (division, Board, admin, supervision). Defaulted false.</param>
+/// <param name="IsAdministrationMember">Works in it: the same without the supervision. Defaulted false.</param>
 public readonly record struct ViewerScope(
     bool MayClassifiedRead, bool MayAllTaskforces, string? MeId, PartnerAgency? PartnerAgency,
     bool IsTru = false, bool IsHrb = false, bool IsLeadership = false, bool MayAgenda = false,
-    bool IsAdmin = false, Rank? Rank = null, bool MayRealName = false, bool IsInternalAgent = false)
+    bool IsAdmin = false, Rank? Rank = null, bool MayRealName = false, bool IsInternalAgent = false,
+    bool MayAdministration = false, bool IsAdministrationMember = false)
 {
     /// <summary>External partner viewer.</summary>
     public bool IsPartner => PartnerAgency is not null;
@@ -31,7 +34,8 @@ public readonly record struct ViewerScope(
     public static ViewerScope From(ClaimsPrincipal user)
         => new(user.MayClassifiedRead(), user.MayAllTaskforcesSee(), user.GetAgentId(), user.GetPartnerAgency(),
                user.IsTRU(), user.IsHRB(), user.IsLeadership(), user.MayMeetingRead(), user.IsAdmin(),
-               user.GetRank(), user.MayRealNameSee(), user.IsInternalAgent());
+               user.GetRank(), user.MayRealNameSee(), user.IsInternalAgent(),
+               user.MayAdministrationRead(), user.IsAdministrationMember());
 
     /// <summary>The same viewer as the document library sees them. Two scopes exist because the library reads the
     /// three secrecy flags differently; this is the bridge, not a merge.</summary>

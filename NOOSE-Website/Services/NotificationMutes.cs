@@ -23,6 +23,8 @@ public static class NotificationMutes
         // a summons that muting would defeat; the by-agent notice is leadership's only sign of an unapproved alarm
         NotificationType.EmergencyAlarm,
         NotificationType.EmergencyAlarmByAgent,
+        // the outcome of proceedings against you
+        NotificationType.DisciplinaryConcluded,
     ];
 
     /// <summary>Discord-only categories; they never reach the bell, so there is nothing to silence.</summary>
@@ -88,6 +90,15 @@ public static class NotificationMutes
             NotificationType.FollowupEscalated,
             NotificationType.DecorationAwarded,
             NotificationType.FirearmUseReported,
+        ]),
+        new("Administration", MudBlazor.Icons.Material.Filled.AssuredWorkload,
+        [
+            NotificationType.AdministrationChat,
+            NotificationType.TransferRequested,
+            NotificationType.TransferDecided,
+            NotificationType.DecorationProposed,
+            NotificationType.ParliamentInquiryReceived,
+            NotificationType.ParliamentInquiryAnswered,
         ]),
         new("Öffentlichkeit und Bürgerkontakt", MudBlazor.Icons.Material.Filled.Public,
         [

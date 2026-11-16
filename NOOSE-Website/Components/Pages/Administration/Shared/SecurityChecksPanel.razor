@@ -1,0 +1,63 @@
+@* Applications in the security check and the last month's verdicts; the work itself stays on the application. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IAdministrationService AdministrationService
+
+<MudStack Spacing="3">
+    <SectionHeader Title="Sicherheitsüberprüfungen" Icon="@Icons.Material.Filled.Security">
+        <Actions>
+            <MudButton Variant="Variant.Outlined" Size="Size.Small" Href="/bewerbungen" StartIcon="@Icons.Material.Filled.HowToReg">
+                Zum Bewerbungswesen
+            </MudButton>
+        </Actions>
+    </SectionHeader>
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
+            <HeaderContent>
+                <MudTh>Bewerbung</MudTh>
+                <MudTh>Stand</MudTh>
+                <MudTh Class="noose-mobil-aus">Eingereicht</MudTh>
+                <MudTh Class="noose-mobil-aus">Zuständig</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="r">
+                <MudTd>
+                    <MudLink Href="@($"/bewerbungen/{r.Id}")">@r.CaseNumber</MudLink>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@r.Name</MudText>
+                </MudTd>
+                <MudTd>
+                    @if (r.Passed is true)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Bestanden</MudChip>
+                    }
+                    else if (r.Passed is false)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">Nicht bestanden</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">Läuft</MudChip>
+                    }
+                </MudTd>
+                <MudTd Class="noose-mobil-aus">@r.SubmittedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
+                <MudTd Class="noose-mobil-aus">@(r.AssignedAgentName ?? "—")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Gerade läuft keine Sicherheitsüberprüfung.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<SecurityCheckRow>? _rows;
+
+    protected override async Task OnInitializedAsync() => _rows = await AdministrationService.GetSecurityChecksAsync(User);
+}

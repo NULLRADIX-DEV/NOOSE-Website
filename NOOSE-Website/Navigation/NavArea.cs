@@ -11,6 +11,7 @@ public enum NavArea
     Ermittlung,
     Dienststelle,
     MeinDienst,
+    Administration,
     Verwaltung,
     Partner,
 }
@@ -25,6 +26,7 @@ public static class NavAreaCatalog
         NavArea.Ermittlung,
         NavArea.Dienststelle,
         NavArea.MeinDienst,
+        NavArea.Administration,
         NavArea.Verwaltung,
     ];
 
@@ -35,6 +37,7 @@ public static class NavAreaCatalog
         NavArea.Ermittlung => "Ermittlung & Wissen",
         NavArea.Dienststelle => "Dienststelle",
         NavArea.MeinDienst => "Mein Dienst",
+        NavArea.Administration => "Administration",
         NavArea.Verwaltung => "Verwaltung",
         NavArea.Partner => "Freigegebene Akten",
         _ => string.Empty,
@@ -47,6 +50,7 @@ public static class NavAreaCatalog
         NavArea.Ermittlung => Icons.Material.Filled.TravelExplore,
         NavArea.Dienststelle => Icons.Material.Filled.AccountBalance,
         NavArea.MeinDienst => Icons.Material.Filled.AccountCircle,
+        NavArea.Administration => Icons.Material.Filled.AssuredWorkload,
         NavArea.Verwaltung => Icons.Material.Filled.AdminPanelSettings,
         NavArea.Partner => Icons.Material.Filled.FolderShared,
         _ => Icons.Material.Filled.Folder,

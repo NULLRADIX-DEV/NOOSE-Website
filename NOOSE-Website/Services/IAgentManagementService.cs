@@ -92,7 +92,8 @@ public interface IAgentManagementService
 
     /// <summary>Move an agent to a division; Board or admin only. Writes the TRU flag with it and ends the agent's sessions.</summary>
     /// <remarks>A full division needs <paramref name="confirmOverLimit"/>, else a <see cref="DivisionLimitExceededException"/> asks for it.</remarks>
-    Task DivisionSetAsync(string agentId, Division division, bool confirmOverLimit, ClaimsPrincipal actor);
+    Task DivisionSetAsync(string agentId, Division division, bool confirmOverLimit, ClaimsPrincipal actor,
+        string? transferRequestId = null);
 
     /// <summary>Set the Administration Division flag.</summary>
     Task HrbSetAsync(string agentId, bool isHRB, ClaimsPrincipal actor);

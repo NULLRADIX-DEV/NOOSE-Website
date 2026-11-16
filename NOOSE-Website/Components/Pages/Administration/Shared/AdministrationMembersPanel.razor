@@ -1,0 +1,43 @@
+@* Who works in the workspace: the division first, then the Board, which handles proceedings against the division. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IAdministrationService AdministrationService
+
+<MudStack Spacing="3">
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <SectionHeader Title="@($"Administration Division ({_rows.Count(r => r.IsHrb)})")" Icon="@Icons.Material.Filled.ManageAccounts" />
+        @Table(_rows.Where(r => r.IsHrb).ToList(), "Noch niemand trägt das Kennzeichen der Administration Division.")
+
+        <SectionHeader Title="@($"Board ({_rows.Count(r => !r.IsHrb)})")" Icon="@Icons.Material.Filled.AccountBalance" Class="mt-4" />
+        @Table(_rows.Where(r => !r.IsHrb).ToList(), "Kein weiteres Board-Mitglied.")
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<AdministrationMemberRow>? _rows;
+
+    protected override async Task OnInitializedAsync() => _rows = await AdministrationService.GetMembersAsync(User);
+
+    private RenderFragment Table(IReadOnlyList<AdministrationMemberRow> rows, string empty) => @<MudTable Items="rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
+        <HeaderContent>
+            <MudTh>Codename</MudTh>
+            <MudTh>Dienstgrad</MudTh>
+            <MudTh Class="noose-mobil-aus">Abteilung</MudTh>
+        </HeaderContent>
+        <RowTemplate Context="r">
+            <MudTd><MudLink Href="@($"/personal/{r.Id}")">@r.Codename</MudLink></MudTd>
+            <MudTd>@RankDisplay.Name(r.Rank, r.Division)</MudTd>
+            <MudTd Class="noose-mobil-aus">@(r.IsBoard ? "Board" : r.Division is { } d ? DivisionDisplay.Name(d) : "—")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@empty</MudText>
+        </NoRecordsContent>
+    </MudTable>;
+}

@@ -190,6 +190,9 @@ else
                 </MudTabPanel>
                 <MudTabPanel Text="Auszeichnungen" Icon="@Icons.Material.Filled.EmojiEvents">
                     <DecorationsPanel Agent="_agent" />
+                    <div class="mt-4">
+                        <NOOSE_Website.Components.Pages.Administration.Shared.DecorationProposeForm User="_user" AgentId="@_agent.Id" />
+                    </div>
                     <SectionHeader Icon="@Icons.Material.Filled.EmojiEvents" Title="Abzeichen" Class="mt-6 mb-2" />
                     <AgentBadgesPanel AgentId="@_agent.Id" />
                 </MudTabPanel>
@@ -201,6 +204,13 @@ else
                 {
                     <MudTabPanel Text="Schusswaffengebrauch" Icon="@Icons.Material.Filled.GpsFixed">
                         <FirearmUsePanel AgentId="@_agent.Id" />
+                    </MudTabPanel>
+                }
+                @* the agent's own file and the Administration workspace only *@
+                @if (_mayAdministration)
+                {
+                    <MudTabPanel Text="Administration" Icon="@Icons.Material.Filled.AssuredWorkload">
+                        <NOOSE_Website.Components.Pages.Administration.Shared.PersonnelAdministrationPanel AgentId="@_agent.Id" User="_user" />
                     </MudTabPanel>
                 }
                 @if (_isLeadership)
@@ -252,6 +262,7 @@ else
 
     private bool _mayFirearmUse;
     private bool _mayEvaluations;
+    private bool _mayAdministration;
 
     // the service ID card has its own gate: the agent's own, leadership and the Administration Division
     private bool MayServiceId => _agent is not null && ServiceIdRules.IsHolder(_agent) && ServiceIdRules.MayPrint(_user, _agent.Id);
@@ -261,6 +272,8 @@ else
     {
         _mayFirearmUse = FirearmUseRules.MayRead(_user, AgentId);
         _mayEvaluations = EvaluationRules.MayRead(_user, AgentId);
+        _mayAdministration = _user.IsInternalAgent()
+            && (_user.MayAdministrationRead() || string.Equals(_user.GetAgentId(), AgentId, StringComparison.OrdinalIgnoreCase));
         _tabs =
         [
             .. _maySupervise ? new[] { "dienstaufsicht" } : [],
@@ -269,6 +282,7 @@ else
             "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen",
             "entfuehrungen",
             .. _mayFirearmUse ? new[] { "schusswaffengebrauch" } : [],
+            .. _mayAdministration ? new[] { "administration" } : [],
             .. _isLeadership ? new[] { "kommentare" } : [],
         ];
     }

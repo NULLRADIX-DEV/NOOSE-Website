@@ -43,6 +43,8 @@ public static class PartnerRoutes
     /// </summary>
     private static bool IsCollaborationRoute(string path)
         => path == "ermittlungen" || path.StartsWith("ermittlungen/")
+            // parliament's inquiries; the page and the service admit the parliament agency only
+            || path == "parlament" || path.StartsWith("parlament/")
             || (path.StartsWith("anordnungen/") && !path.EndsWith("/papierkorb"));
 
     /// <summary>True for the document editor (create or edit); per-record ownership is enforced server-side.</summary>

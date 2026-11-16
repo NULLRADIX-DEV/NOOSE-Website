@@ -1,0 +1,63 @@
+@* Latest evaluation per agent, overdue and negative ones first; writing stays on the personnel file. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IAdministrationService AdministrationService
+
+<MudStack Spacing="3">
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+        Markiert ist, wer seit mehr als @NOOSE_Website.Services.Administration.AdministrationService.EvaluationStaleAfter.Days Tagen keine Beurteilung hat oder
+        zuletzt mangelhaft oder ungenügend beurteilt wurde. Beurteilt wird in der Personalakte.
+    </MudAlert>
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
+            <HeaderContent>
+                <MudTh>Agent</MudTh>
+                <MudTh>Letzte Note</MudTh>
+                <MudTh Class="noose-mobil-aus">Vom</MudTh>
+                <MudTh>Hinweis</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="r">
+                <MudTd><MudLink Href="@($"/personal/{r.AgentId}?tab=beurteilungen")">@r.Codename</MudLink></MudTd>
+                <MudTd>
+                    @if (r.LastGrade is { } g)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="@EvaluationGradeDisplay.ChipColor(g)" Variant="Variant.Text">
+                            @EvaluationGradeDisplay.Name(g)
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </MudTd>
+                <MudTd Class="noose-mobil-aus">@(r.LastDate?.ToString("dd.MM.yyyy") ?? "—")</MudTd>
+                <MudTd>
+                    @if (r.Negative)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">Negativ</MudChip>
+                    }
+                    @if (r.Stale)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                            @(r.LastDate is null ? "Keine" : "Überfällig")
+                        </MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<EvaluationOverviewRow>? _rows;
+
+    protected override async Task OnInitializedAsync() => _rows = await AdministrationService.GetEvaluationOverviewAsync(User);
+}

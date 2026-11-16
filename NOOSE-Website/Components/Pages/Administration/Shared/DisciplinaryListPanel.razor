@@ -1,0 +1,133 @@
+@* Running or closed disciplinary proceedings; Closed=false also offers opening a new one. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IDisciplinaryService Disciplinary
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    @if (!Closed && _mayOpen)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">Verfahren einleiten</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+                    <AdministrationAgentPicker Label="Gegen" Value="_agent" ValueChanged="AgentPickedAsync" Class="noose-breite-frei"
+                                               Exclude="@(_meId is null ? null : new[] { _meId })" />
+                    <MudCheckBox T="bool" @bind-Value="_simplified" Disabled="@(!_mayBeSimplified)"
+                                 Label="Vereinfachte Anhörung (Trainee oder Probezeit)" />
+                    <MudCheckBox T="bool" @bind-Value="_suspended" Label="Vorläufig suspendiert" />
+                </MudStack>
+                <RichTextEditor @ref="_editor" @bind-Value="_grounds" MinHeight="160px" DraftKey="disziplinar:neu:anlass" />
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Gavel"
+                               OnClick="OpenAsync" Disabled="@(_saves || _agent is null || string.IsNullOrWhiteSpace(_grounds))">
+                        Verfahren einleiten
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None"
+                  OnRowClick="@((TableRowClickEventArgs<DisciplinaryRow> e) => Nav.NavigateTo(DisciplinaryService.Href(e.Item!.Id)))"
+                  RowStyle="cursor:pointer;">
+            <HeaderContent>
+                <MudTh>Aktenzeichen</MudTh>
+                <MudTh>Gegen</MudTh>
+                <MudTh>Stand</MudTh>
+                <MudTh Class="noose-mobil-aus">@(Closed ? "Abgeschlossen" : "Eingeleitet")</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="r">
+                <MudTd>@r.CaseNumber</MudTd>
+                <MudTd>@r.AgentName</MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Color="@AdministrationDisplay.Color(r.Status)" Variant="Variant.Text">
+                        @AdministrationDisplay.Name(r.Status)
+                    </MudChip>
+                    @if (r.Measure is { } m)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@AdministrationDisplay.Name(m)</MudText>
+                    }
+                    @if (r.ProvisionallySuspended)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">Suspendiert</MudChip>
+                    }
+                </MudTd>
+                <MudTd Class="noose-mobil-aus">@((Closed ? r.ClosedAt : r.OpenedAt)?.ToLocalTime().ToString("dd.MM.yyyy"))</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    @(Closed ? "Noch kein Verfahren abgeschlossen." : "Kein Verfahren läuft.")
+                </MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public bool Closed { get; set; }
+
+    private IReadOnlyList<DisciplinaryRow>? _rows;
+    private bool _mayOpen;
+    private bool _saves;
+    private string? _meId;
+    private Agent? _agent;
+    private bool _mayBeSimplified;
+    private bool _simplified;
+    private bool _suspended;
+    private string? _grounds;
+    private RichTextEditor? _editor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _meId = User.GetAgentId();
+        _mayOpen = User.MayAdministrationWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _rows = await Disciplinary.GetListAsync(Closed, User);
+
+    private async Task AgentPickedAsync(Agent? agent)
+    {
+        _agent = agent;
+        _mayBeSimplified = agent is not null && await Disciplinary.QualifiesForSimplifiedAsync(agent.Id);
+        _simplified = _mayBeSimplified;
+    }
+
+    private async Task OpenAsync()
+    {
+        if (_agent is null)
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            var id = await Disciplinary.OpenAsync(new DisciplinaryOpenInput
+            {
+                AgentId = _agent.Id,
+                Grounds = _grounds ?? "",
+                Simplified = _simplified,
+                ProvisionallySuspended = _suspended,
+            }, User);
+            if (_editor is not null)
+            {
+                await _editor.MarkSavedAsync();
+            }
+            Nav.NavigateTo(DisciplinaryService.Href(id));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+}

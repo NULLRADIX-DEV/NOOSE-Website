@@ -1,0 +1,94 @@
+@* The division's own notes: duties, contacts, procedures. Read by the workspace, written by its members. *@
+@using NOOSE_Website.Services.Administration
+@inject IAdministrationService AdministrationService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <SectionHeader Title="Informationen" Icon="@Icons.Material.Filled.Info">
+        <Actions>
+            @if (_mayWrite && !_editing)
+            {
+                <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit"
+                           OnClick="@(() => _editing = true)">Bearbeiten</MudButton>
+            }
+        </Actions>
+    </SectionHeader>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_editing)
+    {
+        <RichTextEditor @ref="_editor" @bind-Value="_draft" MinHeight="300px" DraftKey="administration:informationen"
+                        OnSaveRequested="SaveAsync" />
+        <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+            <MudButton Variant="Variant.Text" OnClick="Cancel">Abbrechen</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="SaveAsync" Disabled="_saves">Speichern</MudButton>
+        </MudStack>
+    }
+    else if (string.IsNullOrWhiteSpace(_html))
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Info" Title="Noch keine Informationen"
+                    Text="Hier stehen Zuständigkeiten, Abläufe und Ansprechpartner der Administration Division." />
+    }
+    else
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <RichHtml Html="@_html" User="User" />
+        </MudPaper>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _editing;
+    private bool _saves;
+    private bool _mayWrite;
+    private string? _html;
+    private string? _draft;
+    private RichTextEditor? _editor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mayWrite = User.MayAdministrationWrite();
+        _html = await AdministrationService.GetInformationAsync(User);
+        _draft = _html;
+        _load = false;
+    }
+
+    private void Cancel()
+    {
+        _draft = _html;
+        _editing = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_saves)
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            await AdministrationService.SaveInformationAsync(_draft ?? string.Empty, User);
+            if (_editor is not null)
+            {
+                await _editor.MarkSavedAsync();
+            }
+            _html = await AdministrationService.GetInformationAsync(User);
+            _draft = _html;
+            _editing = false;
+            Snackbar.Add("Gespeichert.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+}

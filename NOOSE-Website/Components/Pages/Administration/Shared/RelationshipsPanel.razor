@@ -1,0 +1,146 @@
+@* Reported relationships between agents; each side is biased in the other's personnel matters. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IAdministrationService AdministrationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+        Ehen, Beziehungen und enge Verwandtschaft unter Agents werden der Administration gemeldet. Wer mit jemandem in
+        Beziehung steht, darf ihn weder befördern noch beurteilen noch ein Verfahren gegen ihn führen.
+    </MudAlert>
+
+    @if (_mayWrite)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudStack Spacing="2">
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <AdministrationAgentPicker Label="Agent" @bind-Value="_a" Class="noose-breite-frei" />
+                    <AdministrationAgentPicker Label="steht in Beziehung zu" @bind-Value="_b" Class="noose-breite-frei"
+                                               Exclude="@(_a is null ? null : new[] { _a.Id })" />
+                    <MudSelect T="AgentRelationshipKind" @bind-Value="_kind" Label="Art" Variant="Variant.Outlined"
+                               Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:180px;">
+                        @foreach (var k in Enum.GetValues<AgentRelationshipKind>())
+                        {
+                            <MudSelectItem Value="@k">@AdministrationDisplay.Name(k)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudDatePicker @bind-Date="_since" Label="Seit (optional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                   Class="noose-breite-frei" Style="min-width:160px;" ShowToolbar="false" />
+                </MudStack>
+                <MudTextField @bind-Value="_note" Label="Notiz (optional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              MaxLength="@PersonalRelationRules.MaxNoteLength" Immediate="true" />
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                               OnClick="AddAsync" Disabled="@(_saves || _a is null || _b is null)">Beziehung erfassen</MudButton>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
+            <HeaderContent>
+                <MudTh>Agents</MudTh>
+                <MudTh>Art</MudTh>
+                <MudTh Class="noose-mobil-aus">Seit</MudTh>
+                <MudTh Class="noose-mobil-aus">Notiz</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <RowTemplate Context="r">
+                <MudTd>
+                    <MudLink Href="@($"/personal/{r.AgentAId}")">@r.AgentAName</MudLink> ·
+                    <MudLink Href="@($"/personal/{r.AgentBId}")">@r.AgentBName</MudLink>
+                </MudTd>
+                <MudTd>@AdministrationDisplay.Name(r.Kind)</MudTd>
+                <MudTd Class="noose-mobil-aus">@(r.Since?.ToString("dd.MM.yyyy") ?? "—")</MudTd>
+                <MudTd Class="noose-mobil-aus">@r.Note</MudTd>
+                <MudTd>
+                    @if (_mayWrite)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => RemoveAsync(r))" aria-label="Beziehung entfernen" />
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Personalbeziehungen erfasst.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<RelationshipRow>? _rows;
+    private bool _mayWrite;
+    private bool _saves;
+    private Agent? _a;
+    private Agent? _b;
+    private AgentRelationshipKind _kind = AgentRelationshipKind.Partnership;
+    private DateTime? _since;
+    private string? _note;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mayWrite = User.MayAdministrationWrite();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _rows = await AdministrationService.GetRelationshipsAsync(User);
+
+    private async Task AddAsync()
+    {
+        if (_a is null || _b is null)
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            await AdministrationService.AddRelationshipAsync(new RelationshipInput
+            {
+                AgentAId = _a.Id,
+                AgentBId = _b.Id,
+                Kind = _kind,
+                Since = _since,
+                Note = _note,
+            }, User);
+            _a = _b = null;
+            _note = null;
+            _since = null;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+
+    private async Task RemoveAsync(RelationshipRow row)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Beziehung entfernen?",
+            $"{row.AgentAName} und {row.AgentBName} gelten danach nicht mehr als befangen.", "Entfernen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await AdministrationService.RemoveRelationshipAsync(row.Id, User);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

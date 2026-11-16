@@ -33,6 +33,7 @@ public static class MergedPageSections
         "vorgaenge", "operationen", "taskforces", "aufgaben",
         "brett", "kalender", "besprechungen", "aktivitaeten", "abmeldungen", "entfuehrungen",
         "schusswaffengebrauch",
+        "disziplinarverfahren", "dienstzeugnisse", "parlamentarische-anfragen",
         "praesentationen", "informanten", "funk",
         "asservate-items", "asservate-eintraege", "kasse-buchungen", "finanzierungen", "anordnungen", "ermittlungen",
         "feedback", "oeffentliche-seiten", "oeffentliche-fahndungen", "oeffentliche-fraktionsprofile",

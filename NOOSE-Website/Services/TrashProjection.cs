@@ -90,6 +90,16 @@ public static class TrashProjection
     public static TrashItem FirearmUse(Data.Entities.Personnel.FirearmUse x)
         => new("schusswaffengebrauch", x.Id, null, x.Agent?.Codename ?? x.AgentId, Moment(x.Timestamp), x.DeletedAt);
 
+    // case number only: the trash list is read beyond the Administration, and who it was against stays there
+    public static TrashItem DisciplinaryProceeding(Data.Entities.Administration.DisciplinaryProceeding x)
+        => new("disziplinarverfahren", x.Id, x.CaseNumber, "Disziplinarverfahren", null, x.DeletedAt);
+
+    public static TrashItem ServiceReference(Data.Entities.Administration.ServiceReference x)
+        => new("dienstzeugnisse", x.Id, null, "Dienstzeugnis", Moment(x.IssuedOn), x.DeletedAt);
+
+    public static TrashItem ParliamentaryInquiry(Data.Entities.Administration.ParliamentaryInquiry x)
+        => new("parlamentarische-anfragen", x.Id, x.CaseNumber, x.Title, null, x.DeletedAt);
+
     public static TrashItem Informant(InformantTrashItem x)
         => new("informanten", x.Id, x.CaseNumber, x.Name, x.Detail, x.DeletedAt);
 

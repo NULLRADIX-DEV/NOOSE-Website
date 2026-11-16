@@ -94,6 +94,15 @@ public static class Policies
     /// </remarks>
     public const string HrbOrLeadershipWrite = "HrbOderFuehrungSchreiben";
 
+    /// <summary>Administration workspace: the division, the Board, admins and the read-only supervision.</summary>
+    public const string AdministrationWorkspace = "Administration";
+
+    /// <summary>The write half of <see cref="AdministrationWorkspace"/>; mirrors <c>Permission.RequireAdministrationWrite</c>.</summary>
+    public const string AdministrationWrite = "AdministrationSchreiben";
+
+    /// <summary>Personnel writes (notes, promotion requests, awards): leadership or Administration; mirrors <c>Permission.RequirePersonnelWrite</c>.</summary>
+    public const string PersonnelWrite = "PersonalSchreiben";
+
     /// <summary>Citizen portal access: signed in with status Civilian.</summary>
     public const string CitizenPortal = "BuergerPortal";
 }
