@@ -26,8 +26,9 @@ public static class NavAreaCatalog
         NavArea.Ermittlung,
         NavArea.Dienststelle,
         NavArea.MeinDienst,
-        NavArea.Administration,
         NavArea.Verwaltung,
+        // last, so the areas above keep their place
+        NavArea.Administration,
     ];
 
     public static string Name(NavArea area) => area switch

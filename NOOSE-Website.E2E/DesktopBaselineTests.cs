@@ -90,6 +90,12 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
 
     private sealed record Shot(string? Path, byte[]? Png);
 
+    /// <summary>
+    /// Wanted additions that master cannot have yet, hidden on both sides; a mask would paint a box master lacks.
+    /// Empty this once master carries them.
+    /// </summary>
+    private const string HiddenSinceMaster = ".noose-nav-rail [aria-label='Administration'] { visibility: hidden !important; }";
+
     private async Task<Shot> ShootAsync(string baseUrl, Target target, DateTime now)
     {
         var page = await fixture.NewPageAsync(Width, Height, baseUrl);
@@ -118,6 +124,7 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
             if (target.SortBy is not null && target.Route is not null)
                 await SortByAsync(page, target.SortBy);
             await page.EvaluateAsync(MarkMasksScript);
+            await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = HiddenSinceMaster });
             var mask = target.Masks is null ? "[data-e2e-mask]" : string.Join(", ", ["[data-e2e-mask]", .. target.Masks]);
             var png = await page.ScreenshotAsync(new PageScreenshotOptions
             {
