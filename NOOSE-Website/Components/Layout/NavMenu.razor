@@ -135,6 +135,7 @@
     [Inject] private AcknowledgmentBroadcaster AcknowledgmentBroadcaster { get; set; } = default!;
     [Inject] private FinancingBroadcaster FinancingBroadcaster { get; set; } = default!;
     [Inject] private TipsBroadcaster TipsBroadcaster { get; set; } = default!;
+    [Inject] private AdministrationChatBroadcaster AdministrationChatBroadcaster { get; set; } = default!;
     [Inject] private IFinancingService FinancingService { get; set; } = default!;
     [Inject] private IWarrantService WarrantService { get; set; } = default!;
     [Inject] private NOOSE_Website.Services.Public.ITipService TipService { get; set; } = default!;
@@ -442,6 +443,7 @@
             AcknowledgmentBroadcaster.Modified += OnAcknowledgmentModified;
             FinancingBroadcaster.Modified += OnFinancingModified;
             TipsBroadcaster.Modified += OnTipsModified;
+            AdministrationChatBroadcaster.Modified += OnAdministrationChatModified;
         }
         await LoadSharesAsync();
         await LoadAcknowledgmentsAsync();
@@ -642,6 +644,20 @@
         catch (InvalidOperationException) { /* circuit gone */ }
     }
 
+    // new chat messages and the own read mark both report here
+    private void OnAdministrationChatModified(string room)
+    {
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                await LoadAdministrationChatAsync();
+                StateHasChanged();
+            });
+        }
+        catch (InvalidOperationException) { /* circuit gone */ }
+    }
+
     // the count was only ever read while the drawer was being built, so it stood still for the whole session
     private void OnTipsModified(string tipId, string caseNumber, TipMessageAudience? audience)
     {
@@ -696,5 +712,6 @@
         AcknowledgmentBroadcaster.Modified -= OnAcknowledgmentModified;
         FinancingBroadcaster.Modified -= OnFinancingModified;
         TipsBroadcaster.Modified -= OnTipsModified;
+        AdministrationChatBroadcaster.Modified -= OnAdministrationChatModified;
     }
 }
