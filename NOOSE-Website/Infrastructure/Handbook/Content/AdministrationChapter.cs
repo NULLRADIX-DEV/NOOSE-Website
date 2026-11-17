@@ -17,11 +17,12 @@ internal static class AdministrationChapter
                 <p>Die <strong>Administration Division</strong> hat links in der Leiste einen eigenen Bereich. Ihn
                 sehen die Mitglieder der Administration, das Board und die Admins. Alle anderen sehen das Symbol gar
                 nicht.</p>
-                <p>Unter <em>Übersicht &amp; Chat</em> findest du den <strong>internen Chat</strong> der Abteilung,
-                die <em>Informationen</em> (Zuständigkeiten, Abläufe, Ansprechpartner, frei bearbeitbar), die Liste
-                der <em>Zugeteilten Agents</em> und die <em>Personalbeziehungen</em>. Neue Nachrichten im Chat zeigt
+                <p>Das Menü ist nach Aufgaben gegliedert, jeder Eintrag ist eine eigene Seite. Unter
+                <em>Allgemeines</em> findest du den <strong>internen Chat</strong> der Abteilung, die <em>Informationen</em>
+                (Zuständigkeiten, Abläufe, Ansprechpartner, frei bearbeitbar), die <em>Zugeteilten Agents</em> und die
+                <em>Personalbeziehungen</em>. Neue Nachrichten im Chat zeigt
                 der Menüeintrag als Zahl, und die Glocke meldet sich einmal, bis du den Chat wieder gelesen hast.</p>
-                <p>Unten im Bereich stehen wie in jeder Akte <em>Zeitstrahl</em>, <em>Wiedervorlagen</em> und
+                <p>Unter <em>Verlauf</em> stehen wie in jeder Akte <em>Zeitstrahl</em>, <em>Wiedervorlagen</em> und
                 <em>Kommentare</em>. Der Zeitstrahl sammelt Versetzungen, Dienstzeugnisse, Beziehungen,
                 Ehrungsvorschläge und parlamentarische Anfragen. Disziplinarverfahren haben ihren eigenen.</p>
                 <p><strong>Personalbeziehungen</strong> sind Ehen, Partnerschaften und enge Verwandtschaft unter
@@ -33,7 +34,7 @@ internal static class AdministrationChapter
                 Steps:
                 [
                     new Step("AssuredWorkload", "Bereich öffnen",
-                        "Links in der Leiste das Symbol der Administration, dann Übersicht & Chat."),
+                        "Links in der Leiste das Symbol der Administration, dann Chat."),
                     new Step("Forum", "Chat lesen",
                         "Neue Nachrichten stehen unter der Linie Neu seit deinem letzten Besuch."),
                     new Step("Favorite", "Beziehung erfassen",
@@ -43,11 +44,11 @@ internal static class AdministrationChapter
             new Article("art-administration-personalgewinnung", "personalgewinnung", "Personalgewinnung",
                 "Die laufenden Sicherheitsüberprüfungen auf einen Blick.",
                 """
-                <p>Unter <em>Personalgewinnung</em> stehen alle Bewerbungen, die gerade in der
+                <p>Unter <em>Sicherheitsüberprüfungen</em> stehen alle Bewerbungen, die gerade in der
                 <strong>Sicherheitsüberprüfung</strong> sind, und die Ergebnisse des letzten Monats. Ein Klick öffnet
                 die Bewerbung. Dort wird geprüft und entschieden, wie bisher im Bewerbungswesen.</p>
                 """,
-                NavKey: "administration.personalgewinnung"),
+                NavKey: "administration.sicherheitspruefungen"),
 
             new Article("art-administration-personalwesen", "personalwesen", "Personalwesen",
                 "Beurteilungen, Beförderungen, Versetzungen, Auszeichnungen und Dienstzeugnisse.",
@@ -68,7 +69,7 @@ internal static class AdministrationChapter
                 Dienstgrade, Verwendungen und Auszeichnungen bis zum Ausstellungstag. Der Agent sieht seine
                 Zeugnisse in der eigenen Personalakte.</p>
                 """,
-                NavKey: "administration.personalwesen",
+                NavKey: "administration.beurteilungen",
                 Steps:
                 [
                     new Step("SwapHoriz", "Versetzung beantragen",
@@ -98,7 +99,7 @@ internal static class AdministrationChapter
                 <p>Eine Maßnahme wie eine Degradierung setzt die Seite nicht selbst um. Das geschieht wie bisher in der
                 Agenten-Verwaltung.</p>
                 """,
-                NavKey: "administration.disziplinar",
+                NavKey: "administration.ermittlungsverfahren",
                 Steps:
                 [
                     new Step("Gavel", "Verfahren einleiten",
@@ -119,7 +120,7 @@ internal static class AdministrationChapter
                 Fristen sind rot. Wer sie bearbeitet, übernimmt sie, schreibt eine Antwort und gibt sie frei. Erst
                 dann sieht das Parlament die Antwort.</p>
                 """,
-                NavKey: "administration.oeffentlichkeit"),
+                NavKey: "administration.presse"),
 
             new Article("art-parlament-anfragen", "parlamentarische-anfragen", "Parlamentarische Anfragen stellen",
                 "Für Partnerkonten des Parlaments: Anfragen an das FIB und ihre Antworten.",

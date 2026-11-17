@@ -31,4 +31,5 @@ public sealed record NavEntry(
     NavArea Area,
     NavLinkMatch Match = NavLinkMatch.Prefix,
     string? BadgeKey = null,
-    string? Description = null);
+    string? Description = null,
+    string? Group = null);
