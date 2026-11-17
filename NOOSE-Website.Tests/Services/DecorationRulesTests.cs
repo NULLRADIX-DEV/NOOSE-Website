@@ -59,10 +59,18 @@ public sealed class DecorationRulesTests
         var recipient = ClaimsPrincipalBuilder.Agent("held").WithRank(Rank.Trainee).Build();
         var colleague = ClaimsPrincipalBuilder.Agent("other").WithRank(Rank.Trainee).Build();
 
-        Assert.True(DecorationRules.MayChooseRealName(leader, "held"));
-        Assert.False(DecorationRules.MayChooseRealName(supervision, "held"));
-        Assert.True(DecorationRules.MayChooseRealName(recipient, "held"));
-        Assert.False(DecorationRules.MayChooseRealName(colleague, "held"));
+        var held = Seed.Agent("held", Rank.Trainee);
+        Assert.True(DecorationRules.MayChooseRealName(leader, held));
+        Assert.False(DecorationRules.MayChooseRealName(supervision, held));
+        Assert.True(DecorationRules.MayChooseRealName(recipient, held));
+        Assert.False(DecorationRules.MayChooseRealName(colleague, held));
+
+        // HRT and CTD stay codename-only below leadership
+        var special = ClaimsPrincipalBuilder.Agent("sa").WithRank(Rank.SpecialAgent).Build();
+        var hrt = Seed.Agent("hrt", Rank.SpecialAgent, configure: a => a.Division = Division.Hrt);
+        Assert.True(DecorationRules.MayChooseRealName(special, held));
+        Assert.False(DecorationRules.MayChooseRealName(special, hrt));
+        Assert.True(DecorationRules.MayChooseRealName(leader, hrt));
     }
 
     [Fact]

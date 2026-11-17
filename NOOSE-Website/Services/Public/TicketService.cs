@@ -269,13 +269,19 @@ public class TicketService(
         {
             return [];
         }
-        var mayRealName = actor.MayRealNameSee();
-        return await db.TicketBeteiligte.AsNoTracking()
+        var realNames = RealNameScope.For(actor);
+        var rows = await db.TicketBeteiligte.AsNoTracking()
             .Where(p => p.TicketId == id)
             .OrderBy(p => p.CreatedAt)
-            .Select(p => new TicketParticipantRow(p.Id, p.AgentId, p.Agent!.Codename,
-                mayRealName ? p.Agent!.RealName : null, p.CreatedAt))
+            .Select(p => new
+            {
+                p.Id, p.AgentId, p.Agent!.Codename, p.Agent.RealName, p.Agent.Rank, p.Agent.Division, p.Agent.IsTRU,
+                IsPartner = p.Agent.PartnerAgency != null, p.CreatedAt,
+            })
             .ToListAsync(cancellationToken);
+        return rows.Select(p => new TicketParticipantRow(p.Id, p.AgentId, p.Codename,
+                realNames.Of(p.AgentId, p.RealName, p.Rank, p.Division, p.IsTRU, p.IsPartner), p.CreatedAt))
+            .ToList();
     }
 
     public Task AddParticipantAsync(string id, string agentId, ClaimsPrincipal actor,

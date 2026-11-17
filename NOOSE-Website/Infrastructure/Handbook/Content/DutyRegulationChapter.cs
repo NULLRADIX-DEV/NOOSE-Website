@@ -28,10 +28,10 @@ internal static class DutyRegulationChapter
                 <p>An einige Dienstgrade knüpft die Seite selbst Rechte:</p>
                 <ul>
                 <li><strong>Special Agent</strong> (Operator): HRT und Administration Division lassen sich
-                setzen, und die Klarnamen der Kollegen werden sichtbar.</li>
+                setzen, und die Klarnamen der Kollegen werden sichtbar, außer denen aus HRT und CTD.</li>
                 <li><strong>Senior Special Agent</strong> (Senior Operator): die höchste Einstufung vergeben,
                 selbst veröffentlichen und aus der Kasse auszahlen.</li>
-                <li><strong>Section Chief</strong> (Commanding Operator): Beginn der Führung. Verschlusssachen
+                <li><strong>Section Chief</strong> (Commanding Operator): Beginn der Führung. Verschlusssachen und die Klarnamen aus HRT und CTD
                 werden sichtbar, Beförderungsanträge stellen und in der eigenen Abteilung über
                 Beförderungen bis zum Special Agent in Charge entscheiden.</li>
                 <li><strong>Assistant Director</strong> und darüber: das Board of Directors. Es entscheidet über

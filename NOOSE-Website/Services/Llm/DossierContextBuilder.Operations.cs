@@ -238,15 +238,16 @@ public static partial class DossierContextBuilder
             return null;
         }
         var view = scope ?? DossierScope.ForRecord(DocumentClassification.Leadership);
-        var title = AgentNameDisplay.Pick(a.Codename, a.RealName, view.MayRealName);
+        var realName = RealNameScope.For(view).Of(a);
+        var title = AgentNameDisplay.Pick(a.Codename, realName, realName is not null);
 
         var sb = new StringBuilder();
         sb.AppendLine("Personalakte");
         Line(sb, "Codename", a.Codename);
-        // real name never reaches trainees, partners or supervision; MayRealName is the one flag for that
-        if (view.MayRealName)
+        // RealNameScope keeps trainees, partners, supervision and HRT/CTD below leadership out
+        if (realName is not null)
         {
-            Line(sb, "Klarname", a.RealName);
+            Line(sb, "Klarname", realName);
         }
         Line(sb, "Dienstnummer", a.BadgeNumber);
         Line(sb, "Dienstgrad", a.Rank is not null ? DivisionRules.RankName(a) : null);

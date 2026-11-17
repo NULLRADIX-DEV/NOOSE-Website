@@ -144,7 +144,7 @@ else
     <MudGrid>
         <MudItem xs="12" md="4" lg="3">
             <div class="akte-steckkarte">
-                <AgentProfileCard Agent="_agent" MayRealName="_mayRealName"
+                <AgentProfileCard Agent="_agent" RealNames="_realNames"
                                   MayRemove="@(_isLeadership && _user.MayWrite())" OnRemove="AvatarRemove" />
             </div>
         </MudItem>
@@ -242,7 +242,7 @@ else
     private bool _mayPersonnelRead;
     private int _onboardingDone;
     private int _onboardingTotal;
-    private bool _mayRealName;
+    private RealNameScope _realNames;
     private bool _mayWrite;
     private Agent? _agent;
     private ClaimsPrincipal _user = default!;
@@ -262,7 +262,7 @@ else
         _user = (await AuthStateTask).User;
         _isLeadership = _user.IsLeadership();
         _isHrbOrLeadership = _user.IsHrbOrLeadership();
-        _mayRealName = _user.MayRealNameSee();
+        _realNames = RealNameScope.For(_user);
         _mayWrite = _user.MayWrite();
         _maySupervise = _user.MayPersonnelRead();
         _mayPersonnelRead = _user.MayPersonnelRead();
@@ -361,8 +361,8 @@ else
                                  && _agent is { Status: not AgentStatus.Applicant }
                                  && _agent.Id != _user.GetAgentId();
 
-    private string Display(Agent agent) => _mayRealName && !string.IsNullOrWhiteSpace(agent.RealName)
-        ? $"{agent.RealName} ({agent.Codename})"
+    private string Display(Agent agent) => _realNames.Of(agent) is { } real
+        ? $"{real} ({agent.Codename})"
         : agent.Codename;
 
     private async Task HandOverAsync(bool quietWhenEmpty)
@@ -372,7 +372,7 @@ else
             return;
         }
         await HandoverDialog.OfferAsync(DialogService, HandoverService, Snackbar, _agent.Id, Display(_agent),
-            _mayRealName, _user, quietWhenEmpty);
+            _realNames, _user, quietWhenEmpty);
     }
 
     private async Task Terminate()

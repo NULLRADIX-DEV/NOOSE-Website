@@ -126,12 +126,13 @@ public class ServiceReferenceService(IDbContextFactory<AppDbContext> dbFactory) 
         }
         var agent = await db.Users.AsNoTracking()
             .Where(u => u.Id == row.AgentId)
-            .Select(u => new { u.Codename, u.RealName })
+            .Select(u => new { u.Codename, u.RealName, u.Rank, u.Division, u.IsTRU })
             .FirstOrDefaultAsync(cancellationToken);
         var own = string.Equals(scope.MeId, row.AgentId, StringComparison.OrdinalIgnoreCase);
-        var name = (own || actor.MayRealNameSee()) && !string.IsNullOrWhiteSpace(agent?.RealName)
-            ? agent.RealName!
-            : agent?.Codename ?? "—";
+        var shown = own
+            ? agent?.RealName
+            : RealNameScope.For(actor).Of(row.AgentId, agent?.RealName, agent?.Rank, agent?.Division, agent?.IsTRU ?? false);
+        var name = !string.IsNullOrWhiteSpace(shown) ? shown : agent?.Codename ?? "—";
         var ranks = await db.AgentRankHistories.AsNoTracking()
             .Where(h => h.AgentId == row.AgentId && h.Timestamp <= row.IssuedOn.AddDays(1))
             .OrderBy(h => h.Timestamp)

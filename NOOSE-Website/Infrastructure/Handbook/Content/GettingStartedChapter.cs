@@ -143,8 +143,9 @@ internal static class GettingStartedChapter
                 Codename ist der Name, unter dem dich alle anderen in der Behörde sehen - in Kommentaren, im
                 Protokoll, in Auswahllisten.</p>
                 <p>Dein <strong>Klarname</strong> ist etwas anderes. Ihn sehen intern alle ab Special Agent,
-                hinter deinem Codenamen. Ein Trainee, die Aufsicht und die Partnerbehörden sehen ihn nicht, und
-                nach außen geht er nur, wenn du dich auf die öffentliche Mitarbeiterliste setzt.</p>
+                hinter deinem Codenamen. Ein Trainee, die Aufsicht und die Partnerbehörden sehen ihn nicht. Bist du
+                im HRT oder in der CTD, sieht ihn wie bisher nur die Führung. Nach außen geht er nur, wenn du dich
+                auf die öffentliche Mitarbeiterliste setzt.</p>
                 <p>Daneben steht deine <strong>Dienstnummer</strong> - eine römische Zahl von I bis XL. Sie ist
                 die interne Kennung, vor allem im Funk, und jede ist nur einmal vergeben. Ändern lässt sie die
                 Führung; unterhalb davon stellst du einen Änderungswunsch.</p>

@@ -14,9 +14,9 @@
             <MudLink Href="@($"/personal/{Agent.Id}")" Typo="Typo.body1">
                 <b>@(string.IsNullOrWhiteSpace(Agent.Codename) ? "Unbenannter Agent" : Agent.Codename)</b>
             </MudLink>
-            @if (MayRealName && !string.IsNullOrWhiteSpace(Agent.RealName))
+            @if (RealNames.Of(Agent) is { } shownRealName)
             {
-                <MudText Typo="Typo.caption" Class="mud-text-secondary">@Agent.RealName</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@shownRealName</MudText>
             }
             <MudStack Row="true" Spacing="1" Class="flex-wrap mt-1" AlignItems="AlignItems.Center">
                 @if (ShowRank)
@@ -46,7 +46,7 @@
 
 @code {
     [Parameter, EditorRequired] public Agent Agent { get; set; } = default!;
-    [Parameter] public bool MayRealName { get; set; }
+    [Parameter] public RealNameScope RealNames { get; set; }
     [Parameter] public bool ShowRank { get; set; } = true;
     [Parameter] public string? RoleText { get; set; }
     [Parameter] public bool IsLead { get; set; }

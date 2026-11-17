@@ -27,9 +27,9 @@
 
         <div class="noose-steckbrief-name">
             <MudText Typo="Typo.h5">@(string.IsNullOrWhiteSpace(Agent.Codename) ? "Unbenannter Agent" : Agent.Codename)</MudText>
-            @if (MayRealName && !string.IsNullOrWhiteSpace(Agent.RealName))
+            @if (RealNames.Of(Agent) is { } shownRealName)
             {
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">@Agent.RealName</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">@shownRealName</MudText>
             }
             @if (!string.IsNullOrWhiteSpace(Agent.BadgeNumber))
             {
@@ -61,7 +61,7 @@
             }
         </MudStack>
 
-        @if (!string.IsNullOrWhiteSpace(Agent.DiscordUsername) && MayRealName)
+        @if (!string.IsNullOrWhiteSpace(Agent.DiscordUsername) && RealNames.MaySee(Agent))
         {
             <MudText Typo="Typo.caption" Class="mud-text-secondary">Discord: @Agent.DiscordUsername</MudText>
         }
@@ -70,7 +70,7 @@
 
 @code {
     [Parameter, EditorRequired] public Agent Agent { get; set; } = default!;
-    [Parameter] public bool MayRealName { get; set; }
+    [Parameter] public RealNameScope RealNames { get; set; }
 
     /// <summary>Shows the moderation button; the page decides who may and runs the service call.</summary>
     [Parameter] public bool MayRemove { get; set; }

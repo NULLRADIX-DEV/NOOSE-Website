@@ -90,9 +90,9 @@ else
             <HeaderContent>
                 <MudTh Class="@Col("codename")"><MudTableSortLabel T="Agent" SortBy="@(x => x.Codename)">Codename</MudTableSortLabel></MudTh>
                 <MudTh Class="@Col("dienstnummer")"><MudTableSortLabel T="Agent" SortBy="@(x => x.BadgeNumber)">Dienstnummer</MudTableSortLabel></MudTh>
-                @if (_mayRealName)
+                @if (_realNames.Regular)
                 {
-                    <MudTh Class="@Col("klarname")"><MudTableSortLabel T="Agent" SortBy="@(x => x.RealName)">Klarname</MudTableSortLabel></MudTh>
+                    <MudTh Class="@Col("klarname")"><MudTableSortLabel T="Agent" SortBy="@(x => _realNames.Of(x))">Klarname</MudTableSortLabel></MudTh>
                 }
                 @if (_tab == TabTerminated)
                 {
@@ -122,9 +122,9 @@ else
                     </MudLink>
                 </MudTd>
                 <MudTd DataLabel="Dienstnummer" Class="@Col("dienstnummer")"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.BadgeNumber ?? "—")</MudText></MudTd>
-                @if (_mayRealName)
+                @if (_realNames.Regular)
                 {
-                    <MudTd DataLabel="Klarname" Class="@Col("klarname")"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(context.RealName ?? "—")</MudText></MudTd>
+                    <MudTd DataLabel="Klarname" Class="@Col("klarname")"><MudText Typo="Typo.body2" Class="mud-text-secondary">@(_realNames.Of(context) ?? "—")</MudText></MudTd>
                 }
                 @if (_tab == TabTerminated)
                 {
@@ -171,7 +171,7 @@ else
     private int TabTerminated => _isLeadership ? 3 : _mayPersonnelRead ? 2 : -1;
 
     private bool _load = true;
-    private bool _mayRealName;
+    private RealNameScope _realNames;
     private bool _isLeadership;
     private bool _mayPersonnelRead;
     private string _search = string.Empty;
@@ -233,7 +233,7 @@ else
                 var s = _search.Trim();
                 query = query.Where(a => (a.Codename ?? string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase)
                                        || (a.BadgeNumber ?? string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase)
-                                       || (_mayRealName && (a.RealName ?? string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase)));
+                                       || ((_realNames.Of(a) ?? string.Empty).Contains(s, StringComparison.OrdinalIgnoreCase)));
             }
             return query;
         }
@@ -246,10 +246,9 @@ else
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
-        _mayRealName = _user.MayRealNameSee();
+        _realNames = RealNameScope.For(_user);
         _isLeadership = _user.IsLeadership();
-        _mayPersonnelRead = _user.MayPersonnelRead();
-        _phoneColumnSet = _mayRealName ? PhoneColumns : PhoneColumns.Where(c => c.Key != "klarname").ToList();
+        _phoneColumnSet = _realNames.Regular ? PhoneColumns : PhoneColumns.Where(c => c.Key != "klarname").ToList();
         await LoadAsync();
         _load = false;
     }

@@ -72,7 +72,7 @@
     private async Task AssignAsync()
     {
         var exclusion = _participant.Select(z => z.AgentId).ToList();
-        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, User.MayRealNameSee(), false,
+        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, RealNameScope.For(User), false,
             referenceDay: StartDay);
         if (choice is null)
         {

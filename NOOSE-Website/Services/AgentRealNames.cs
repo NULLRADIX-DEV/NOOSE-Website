@@ -50,30 +50,41 @@ public sealed class AgentRealNames(
         {
             return None;
         }
-        if (!user.MayRealNameSee())
+        var scope = RealNameScope.For(user);
+        if (!scope.Regular)
         {
             return None;
         }
-        if (cache.TryGetValue(CacheKey, out IReadOnlyDictionary<string, string>? hit) && hit is not null)
+        if (!cache.TryGetValue(CacheKey, out IReadOnlyList<Entry>? all) || all is null)
         {
-            return hit;
+            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+            all = await LoadAllAsync(db, cancellationToken);
+            cache.Set(CacheKey, all, Ttl);
         }
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var map = await LoadAsync(db, cancellationToken);
-        cache.Set(CacheKey, map, Ttl);
-        return map;
+        return Visible(all, scope);
     }
 
+    /// <summary>Real names this scope may read, by account id.</summary>
+    public static async Task<IReadOnlyDictionary<string, string>> LoadAsync(AppDbContext db, RealNameScope scope,
+        CancellationToken cancellationToken = default)
+        => Visible(await LoadAllAsync(db, cancellationToken), scope);
+
+    private sealed record Entry(string Id, string RealName, OrgUnit Unit);
+
+    private static IReadOnlyDictionary<string, string> Visible(IReadOnlyList<Entry> all, RealNameScope scope)
+        => all.Where(e => scope.MaySee(e.Id, e.Unit)).ToDictionary(e => e.Id, e => e.RealName, StringComparer.Ordinal);
+
     /// <summary>Released in-house accounts only: never supervision, partners or citizen accounts.</summary>
-    public static async Task<IReadOnlyDictionary<string, string>> LoadAsync(AppDbContext db, CancellationToken cancellationToken = default)
+    private static async Task<IReadOnlyList<Entry>> LoadAllAsync(AppDbContext db, CancellationToken cancellationToken)
     {
         var rows = await db.Users
             .Where(a => a.Rank != null && a.PartnerAgency == null && !a.IsTeamLead
                         && a.RealName != null && a.RealName != "")
-            .Select(a => new { a.Id, a.RealName })
+            .Select(a => new { a.Id, a.RealName, a.Rank, a.Division, a.IsTRU })
             .ToListAsync(cancellationToken);
         return rows
             .Where(r => !string.IsNullOrWhiteSpace(r.RealName))
-            .ToDictionary(r => r.Id, r => r.RealName!.Trim(), StringComparer.Ordinal);
+            .Select(r => new Entry(r.Id, r.RealName!.Trim(), DivisionRules.Of(r.Rank, r.Division, r.IsTRU)))
+            .ToList();
     }
 }

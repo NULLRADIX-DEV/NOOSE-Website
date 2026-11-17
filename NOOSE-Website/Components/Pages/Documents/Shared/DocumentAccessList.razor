@@ -36,9 +36,9 @@
                         <div>
                             <MudText Typo="Typo.body2" Style="@(e.Excluded ? "text-decoration:line-through;" : null)">
                                 @e.Codename
-                                @if (_mayRealName && !string.IsNullOrWhiteSpace(e.RealName))
+                                @if (_realNames.Of(e.AgentId, e.RealName, e.Unit) is { } shownRealName)
                                 {
-                                    <span class="mud-text-secondary"> (@e.RealName)</span>
+                                    <span class="mud-text-secondary"> (@shownRealName)</span>
                                 }
                             </MudText>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@RankDisplay.Name(e.Rank)</MudText>
@@ -72,7 +72,7 @@
 
     private bool _load = true;
     private bool _busy;
-    private bool _mayRealName;
+    private RealNameScope _realNames;
     private ClaimsPrincipal _user = default!;
     private IReadOnlyList<DocumentAccessEntry> _entries = new List<DocumentAccessEntry>();
     private int _revokedCount;
@@ -80,7 +80,7 @@
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
-        _mayRealName = _user.MayRealNameSee();
+        _realNames = RealNameScope.For(_user);
         Broadcaster.Modified += OnModified;
         await LoadAsync();
     }

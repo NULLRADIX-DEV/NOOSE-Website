@@ -45,7 +45,7 @@ public sealed class ServiceIdService(
 
         var card = new ServiceIdCard(
             agent.Id,
-            AgentNameDisplay.Pick(agent.Codename, agent.RealName, viewer.MayRealNameSee()),
+            AgentNameDisplay.Pick(agent.Codename, RealNameScope.For(viewer).Of(agent), true),
             RankDisplay.Name(agent.Rank),
             DivisionRules.Of(agent) is { IsNone: false } unit ? DivisionRules.LongLabel(unit) : null,
             number,

@@ -228,7 +228,7 @@ else
 
     private async Task MeasureAsync(MeetingAgendaItem item)
     {
-        var input = await MeetingMeasureDialog.ShowAsync(DialogService, item.Title, User.MayRealNameSee());
+        var input = await MeetingMeasureDialog.ShowAsync(DialogService, item.Title, RealNameScope.For(User));
         if (input is null)
         {
             return;

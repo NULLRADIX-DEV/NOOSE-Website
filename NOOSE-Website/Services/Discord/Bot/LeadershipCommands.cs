@@ -95,7 +95,7 @@ public sealed class LeadershipCommands(
                 ("Dienstgrad", DivisionRules.RankName(agent)),
                 ("Abteilung", unit.IsBoard ? "Board" + (unit.Home is { } h ? $" (Heimat {DivisionDisplay.Name(h)})" : "") : unit.Home is { } home ? DivisionDisplay.Name(home) : "—"),
                 ("Dienstnummer", DiscordCards.Inline(agent.BadgeNumber, 20)),
-                ("Klarname", call.User.MayRealNameSee() ? DiscordCards.Inline(agent.RealName, 60) : null),
+                ("Klarname", RealNameScope.For(call.User).Of(agent) is { } realName ? DiscordCards.Inline(realName, 60) : null),
                 ("Discord", DiscordWebhookService.IsSnowflake(agent.DiscordId) ? $"<@{agent.DiscordId}>" : null)),
         };
         var flags = new List<string>();

@@ -325,7 +325,7 @@ else
     private async Task AssignToAsync()
     {
         string[] exclusion = _ticket?.HandlerId is { Length: > 0 } handler ? [handler] : [];
-        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, _user.MayRealNameSee(), false);
+        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, RealNameScope.For(_user), false);
         if (choice is null)
         {
             return;
