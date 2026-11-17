@@ -3,6 +3,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
@@ -156,6 +157,32 @@ public sealed class FinancingRequestSearchProvider(IDbContextFactory<AppDbContex
         var rows = await q.OrderByDescending(f => f.CreatedAt).Take(query.PerCategory).ToListAsync(cancellationToken);
         return rows.Select(f => new SearchHit(nameof(FinancingRequest), f.Id,
                 $"Finanzierung · {FinancingStatusDisplay.Name(f.Status)}", f.Justification, f.CaseNumber))
+            .ToList();
+    }
+}
+
+/// <summary>Food requests: the requester's own, plus everything for leadership and read-only supervision.</summary>
+public sealed class FoodRequestSearchProvider(IDbContextFactory<AppDbContext> dbFactory) : ISearchProvider
+{
+    public string Category => nameof(FoodRequest);
+
+    public PartnerAccess Partner => PartnerAccess.Never;
+
+    public bool AppliesTo(SearchViewer viewer) => !viewer.IsPartner;
+
+    public async Task<IReadOnlyList<SearchHit>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var scope = query.Scope;
+        var q = db.FoodRequests.OnlyVisible(scope.MayClassifiedRead, scope.MeId);
+        if (query.HasText)
+        {
+            var s = query.Text;
+            q = q.Where(f => f.CaseNumber.Contains(s) || (f.Justification != null && f.Justification.Contains(s)));
+        }
+        var rows = await q.OrderByDescending(f => f.CreatedAt).Take(query.PerCategory).ToListAsync(cancellationToken);
+        return rows.Select(f => new SearchHit(nameof(FoodRequest), f.Id,
+                $"Verpflegung · {FoodRequestStatusDisplay.Name(f.Status)}", f.Justification ?? string.Empty, f.CaseNumber))
             .ToList();
     }
 }

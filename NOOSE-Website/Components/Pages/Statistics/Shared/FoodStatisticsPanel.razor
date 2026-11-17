@@ -1,0 +1,90 @@
+@* Food statistics: issued pieces over time, stages, top positions and weekly limit utilisation per rank. *@
+@using NOOSE_Website.Models.Dashboard
+@using NOOSE_Website.Models.Statistics
+@using NOOSE_Website.Services
+@using NOOSE_Website.Theme
+@inject IFoodStatisticsService Stats
+
+<div class="dashboard-seite">
+    @if (_first)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="6" sm="6" md="3">
+                <StatTile Icon="@Icons.Material.Filled.Restaurant" Colour="Color.Success"
+                          Label="Essen ausgegeben (Zeitraum)" Value="@_data.IssuedFood.ToString()" Href="/verpflegung" />
+            </MudItem>
+            <MudItem xs="6" sm="6" md="3">
+                <StatTile Icon="@Icons.Material.Filled.LocalDrink" Colour="Color.Primary"
+                          Label="Trinken ausgegeben (Zeitraum)" Value="@_data.IssuedDrink.ToString()" Href="/verpflegung" />
+            </MudItem>
+            <MudItem xs="6" sm="6" md="3">
+                <StatTile Icon="@Icons.Material.Filled.HourglassEmpty" Colour="Color.Info"
+                          Label="Offene Anforderungen" Value="@_data.OpenCount.ToString()" Href="/verpflegung" />
+            </MudItem>
+            <MudItem xs="6" sm="6" md="3">
+                @* hint must use the same denominator as the rate: decided, not all requests *@
+                <StatTile Icon="@Icons.Material.Filled.Close" Colour="Color.Warning"
+                          Label="Ablehnungsquote" Value="@_data.RejectionRate.ToString("P0")"
+                          Hint="@($"{_data.RejectedCount} von {_data.DecidedCount} entschiedenen")" />
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex">
+                <CategoryBarChart Title="Ausgegebene Verpflegung im Zeitverlauf"
+                                  Subtitle="Ausgegebene Stück Essen und Trinken"
+                                  Grid="@_data.IssuedOverTime"
+                                  YAxisTitle="Stück" Height="320px" Stale="@_stale" />
+            </MudItem>
+
+            <MudItem xs="12" md="6" Class="d-flex">
+                <DistributionChart Title="Anforderungen nach Status" Segments="@_data.ByStatus"
+                                   Colours="@_statusColours" Height="320px" />
+            </MudItem>
+            <MudItem xs="12" md="6" Class="d-flex">
+                <DistributionChart Title="Häufigste Positionen" Segments="@_data.TopItems"
+                                   Colours="@_itemColours" Height="320px" />
+            </MudItem>
+
+            <MudItem xs="12" md="6" Class="d-flex">
+                <CategoryBarChart Title="Essen: Wochenlimit je Dienstgrad"
+                                  Subtitle="Wochenlimit gegen Verbrauch in der laufenden Woche"
+                                  Grid="@_data.FoodUtilisationByRank"
+                                  YAxisTitle="Stück" Height="320px" Stale="@_stale" />
+            </MudItem>
+            <MudItem xs="12" md="6" Class="d-flex">
+                <CategoryBarChart Title="Trinken: Wochenlimit je Dienstgrad"
+                                  Subtitle="Wochenlimit gegen Verbrauch in der laufenden Woche"
+                                  Grid="@_data.DrinkUtilisationByRank"
+                                  YAxisTitle="Stück" Height="320px" Stale="@_stale" />
+            </MudItem>
+        </MudGrid>
+    }
+</div>
+
+@code {
+    [CascadingParameter] private StatisticsScope Scope { get; set; } = new(false, StatisticsRange.Months12);
+
+    private bool _first = true;
+    private bool _stale;
+    private string _loaded = string.Empty;
+    private FoodStatistics _data = FoodStatistics.Empty;
+
+    private static readonly string[] _itemColours = ChartPalette.Categorical;
+    private static readonly string[] _statusColours = ChartPalette.Series(FoodRequestStatusDisplay.All.Count);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loaded == Scope.CacheToken)
+        {
+            return;
+        }
+        _loaded = Scope.CacheToken;
+        _stale = !_first;
+        _data = await Stats.GetAsync(Scope);
+        _first = false;
+        _stale = false;
+    }
+}

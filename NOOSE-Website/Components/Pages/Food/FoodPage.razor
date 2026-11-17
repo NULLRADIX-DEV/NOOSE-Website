@@ -1,0 +1,131 @@
+@page "/verpflegung"
+@inject IFoodService FoodRequests
+@inject IFoodLimitService Limits
+
+<PageTitle>Verpflegung · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.Restaurant"
+            Title="Verpflegung"
+            Subtitle="Essen und Trinken anfordern, Wochenlimit im Blick behalten — ausgegeben wird aus der Asservatenkammer.">
+    <Actions>
+        @if (_mayRequest)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       Href="/verpflegung/neu">Neue Anforderung</MudButton>
+        }
+    </Actions>
+</PageHeader>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <RecordSectionRail>
+        <RecordSection Slug="meine" Label="Meine Anforderungen" Icon="@Icons.Material.Filled.Person">
+            @if (_isTeamLead)
+            {
+                <EmptyState Icon="@Icons.Material.Filled.VisibilityOff" Title="Kein eigenes Wochenlimit"
+                            Text="Die Team-Leitung ist Nur-Lese-Aufsicht: kein Wochenlimit, keine eigenen Anforderungen." />
+            }
+            else
+            {
+                <MudStack Spacing="3">
+                    <FoodLimitTiles Status="_limit" />
+                    <FoodRequestTable Rows="_own"
+                                      EmptyTitle="Noch keine eigenen Anforderungen"
+                                      EmptyText="Wähle Essen und Trinken aus dem Katalog und stelle deine erste Verpflegungsanforderung." />
+                </MudStack>
+            }
+        </RecordSection>
+
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="inbox">
+            <RecordSection Slug="alle" Label="Alle Anforderungen" Icon="@Icons.Material.Filled.Inbox">
+                <MudStack Spacing="3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-filterleiste">
+                        <MudSelect T="FoodRequestStatus?" Value="_filter" ValueChanged="OnFilterChangedAsync"
+                                   Label="Status" Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:280px"
+                                   Class="noose-filter-feld">
+                            <MudSelectItem T="FoodRequestStatus?" Value="@((FoodRequestStatus?)null)">Alle</MudSelectItem>
+                            @foreach (var status in FoodRequestStatusDisplay.All)
+                            {
+                                <MudSelectItem T="FoodRequestStatus?" Value="@status">@FoodRequestStatusDisplay.Name(status)</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudStack>
+                    <FoodRequestTable Rows="_all" ShowAgent="true"
+                                      EmptyTitle="Keine Anforderungen in diesem Status" />
+                </MudStack>
+            </RecordSection>
+        </AuthorizeView>
+
+        <RecordSection Slug="katalog" Label="Katalog" Icon="@Icons.Material.Filled.Inventory">
+            <FoodCatalogPanel />
+        </RecordSection>
+
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="limitSection">
+            <RecordSection Slug="limits" Label="Limits" Icon="@Icons.Material.Filled.Speed">
+                <FoodLimitsOverviewPanel Refresh="_refresh" />
+            </RecordSection>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="statsSection">
+            <RecordSection Slug="statistik" Label="Statistik" Icon="@Icons.Material.Filled.QueryStats">
+                <CascadingValue Value="_statsScope">
+                    <FoodStatisticsPanel />
+                </CascadingValue>
+            </RecordSection>
+        </AuthorizeView>
+
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="trashSection">
+            <RecordSection Slug="papierkorb" Label="Papierkorb" Icon="@Icons.Material.Filled.Delete">
+                <TrashPanel Kind="verpflegung" />
+            </RecordSection>
+        </AuthorizeView>
+    </RecordSectionRail>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _isTeamLead;
+    private bool _mayRequest;
+    private int _refresh;
+    private ClaimsPrincipal _user = default!;
+    private FoodLimitStatus _limit = FoodLimitStatus.Empty;
+    private List<FoodRequestDisplay> _own = new();
+    private List<FoodRequestDisplay> _all = new();
+    private FoodRequestStatus? _filter = FoodRequestStatus.Requested;
+    private readonly StatisticsScope _statsScope = new(false, StatisticsRange.Months12);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        // supervision has no limit of its own and cannot file, so skip both (the admin flag would
+        // otherwise let a team lead past MayWrite)
+        _isTeamLead = _user.IsTeamLead();
+        _mayRequest = _user.MayWrite() && !_isTeamLead;
+
+        var agentId = _user.GetAgentId();
+        if (!_isTeamLead && !string.IsNullOrEmpty(agentId))
+        {
+            _limit = await Limits.GetStatusAsync(agentId);
+            _own = await FoodRequests.GetOwnAsync(_user);
+        }
+
+        if (_user.MayClassifiedRead())
+        {
+            _all = await FoodRequests.GetVisibleAsync(_filter, _user);
+        }
+        _refresh++;
+        _load = false;
+    }
+
+    private async Task OnFilterChangedAsync(FoodRequestStatus? status)
+    {
+        _filter = status;
+        _all = await FoodRequests.GetVisibleAsync(_filter, _user);
+    }
+}

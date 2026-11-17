@@ -34,6 +34,7 @@ public sealed class ReadAreaTool(
     IDocTemplateService docTemplates,
     IKassenTemplateService kassenTemplates,
     IFinancingCatalogService financingCatalog,
+    IFoodCatalogService foodCatalog,
     ITagService tags,
     IBewerbungTestService bewerbungTests,
     IBewerbungssperreService bewerbungssperren,
@@ -484,7 +485,8 @@ public sealed class ReadAreaTool(
         var lib = await docTemplates.GetAllAsync(ct);
         var kas = await kassenTemplates.GetAllAsync(ct);
         var fin = await financingCatalog.GetAllAsync(ct);
-        if (docs.Count + acts.Count + pers.Count + lib.Count + kas.Count + fin.Count == 0)
+        var food = await foodCatalog.GetAllAsync(ct);
+        if (docs.Count + acts.Count + pers.Count + lib.Count + kas.Count + fin.Count + food.Count == 0)
         {
             return;
         }
@@ -498,6 +500,8 @@ public sealed class ReadAreaTool(
         Section(sb, "Kassen-Vorlagen", max, kas.Count,
             kas.Select(t => $"{Label(t.Name, t.IsActive)} | {KassenBuchungArtDisplay.Name(t.Kind)} {t.Amount:N0} $"));
         Section(sb, "Finanzierungs-Katalog", max, fin.Count, fin.Select(t => Label(t.Name, t.IsActive)));
+        Section(sb, "Verpflegungs-Katalog", max, food.Count,
+            food.Select(t => $"{Label(t.Name, t.Item.IsActive)} | {FoodKindDisplay.Name(t.Item.Kind)}"));
     }
 
     private async Task RecruitingAsync(StringBuilder sb, int max, ClaimsPrincipal actor, CancellationToken ct)

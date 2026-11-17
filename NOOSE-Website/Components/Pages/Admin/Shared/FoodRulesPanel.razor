@@ -1,0 +1,145 @@
+@* Weekly food and drink limit per division and rank; the rules behind every limit tile. *@
+@inject IFoodLimitConfigService Config
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <MudText Typo="Typo.h6">Wochenlimit je Abteilung und Dienstgrad</MudText>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+        So viel Essen und Trinken kann jeder Agent pro Kalenderwoche (Montag bis Sonntag) angenommen bekommen,
+        je nach Abteilung und Dienstgrad. Das Board gilt dabei für seine Heimatabteilung. Was nicht genutzt
+        wird, verfällt mit dem Wochenwechsel. Individuell gesetzte Limits in der Personalakte schlagen den Wert hier.
+    </MudText>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTabs Elevation="0" Rounded="true" TabPanelsClass="pt-3" @bind-ActivePanelIndex="_tab" Class="noose-reiter-handy">
+            @foreach (var division in DivisionDisplay.All)
+            {
+                var rows = _rows[division];
+                <MudTabPanel Text="@DivisionDisplay.Short(division)" Icon="@DivisionDisplay.Icon(division)">
+                    @* every field is needed, so phones get one card per rank instead of fewer columns; both bind the same rows *@
+                    <MudSimpleTable Dense="true" Striped="true" Class="noose-mobil-aus">
+                        <thead>
+                            <tr>
+                                <th>Dienstgrad</th>
+                                <th style="width:200px">Essen pro Woche</th>
+                                <th style="width:200px">Trinken pro Woche</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var (rank, limit) in rows)
+                            {
+                                <tr>
+                                    <td>@RankDisplay.Name(rank, division)</td>
+                                    <td>
+                                        <MudNumericField T="int" @bind-Value="limit.FoodPerWeek" Min="0"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </td>
+                                    <td>
+                                        <MudNumericField T="int" @bind-Value="limit.DrinkPerWeek" Min="0"
+                                                         Variant="Variant.Outlined" Margin="Margin.Dense" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                    <MudStack Spacing="2" Class="noose-nur-handy">
+                        @foreach (var (rank, limit) in rows)
+                        {
+                            <MudPaper Outlined="true" Class="pa-3">
+                                <MudText Typo="Typo.subtitle2" Class="mb-2">@RankDisplay.Name(rank, division)</MudText>
+                                <MudStack Spacing="2">
+                                    <MudNumericField T="int" @bind-Value="limit.FoodPerWeek" Min="0" Variant="Variant.Outlined"
+                                                     Margin="Margin.Dense" Label="Essen pro Woche" />
+                                    <MudNumericField T="int" @bind-Value="limit.DrinkPerWeek" Min="0" Variant="Variant.Outlined"
+                                                     Margin="Margin.Dense" Label="Trinken pro Woche" />
+                                </MudStack>
+                            </MudPaper>
+                        }
+                    </MudStack>
+                </MudTabPanel>
+            }
+        </MudTabs>
+
+        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2" Class="noose-kopf-umbruch">
+            <MudButton OnClick="Reset" StartIcon="@Icons.Material.Filled.RestartAlt">Auf Standard zurücksetzen</MudButton>
+            <AuthorizeView Policy="@Policies.Leadership" Context="save">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save"
+                           Disabled="_saving" OnClick="SaveAsync">Speichern</MudButton>
+            </AuthorizeView>
+        </MudStack>
+    }
+</MudStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _saving;
+    private ClaimsPrincipal _user = default!;
+    private int _tab;
+    // holdable ranks per division
+    private Dictionary<Division, List<(Rank Rank, FoodRankLimit Limit)>> _rows = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _load = true;
+        // editable read: never from the cache, or the form would show a stale state
+        var config = await Config.GetEditableAsync();
+        Fill(config);
+        _load = false;
+    }
+
+    private void Fill(FoodLimitConfig config)
+        => _rows = DivisionDisplay.All.ToDictionary(division => division, division => RankDisplay.All
+            .Where(rank => DivisionRules.MayHold(division, rank))
+            .Select(rank =>
+            {
+                var stored = config.For(rank, division);
+                return (rank, new FoodRankLimit { FoodPerWeek = stored.FoodPerWeek, DrinkPerWeek = stored.DrinkPerWeek });
+            })
+            .ToList());
+
+    private void Reset()
+    {
+        Fill(FoodLimitConfig.Default());
+        Snackbar.Add("Standardwerte eingesetzt — noch nicht gespeichert.", Severity.Info);
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            var config = new FoodLimitConfig
+            {
+                // CID doubles as fallback
+                Ranks = _rows[Division.Cid].ToDictionary(row => FoodLimitConfig.RankKey(row.Rank), row => row.Limit),
+                Divisions = _rows.ToDictionary(
+                    entry => FoodLimitConfig.DivisionKey(entry.Key),
+                    entry => entry.Value.ToDictionary(row => FoodLimitConfig.RankKey(row.Rank), row => row.Limit)),
+            };
+            await Config.SaveAsync(config, _user);
+            Snackbar.Add("Verpflegungs-Limits gespeichert.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

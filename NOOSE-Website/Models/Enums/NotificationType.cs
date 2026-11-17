@@ -232,6 +232,9 @@ public enum NotificationType
     /// <summary>An approved promotion request raised the recipient's rank. Bell for the recipient; the Discord post is
     /// its own card in a channel of its own that pings the recipient and carries the decider's reason.</summary>
     AgentPromoted = 68,
+
+    /// <summary>A food request was filed, decided or issued. Bell only.</summary>
+    Food = 69,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -283,6 +286,7 @@ public static class NotificationTypeDisplay
         NotificationType.NooseiAnomaly => "FIBI-Auffälligkeit",
         NotificationType.DecorationAwarded => "Ehrung",
         NotificationType.AgentPromoted => "Beförderung",
+        NotificationType.Food => "Verpflegung",
         NotificationType.InactivityNudge => "Rückmeldung erbeten",
         NotificationType.FactionThreatBoard => "Gefahrenlage (Fraktionen)",
         NotificationType.TestAssigned => "Test zugewiesen",
@@ -358,6 +362,7 @@ public static class NotificationTypeDisplay
         NotificationType.NooseiAnomaly => Icons.Material.Filled.DataUsage,
         NotificationType.DecorationAwarded => Icons.Material.Filled.MilitaryTech,
         NotificationType.AgentPromoted => Icons.Material.Filled.TrendingUp,
+        NotificationType.Food => Icons.Material.Filled.Restaurant,
         NotificationType.InactivityNudge => Icons.Material.Filled.ContactSupport,
         NotificationType.FactionThreatBoard => Icons.Material.Filled.Dangerous,
         NotificationType.TestAssigned => Icons.Material.Filled.Quiz,

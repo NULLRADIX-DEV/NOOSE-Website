@@ -1,0 +1,132 @@
+@* Approve a food request: cut quantities per line, note the decision, justify a limit overrun. *@
+
+@* a long form: full screen below 600px (noose-dialog-lang); the table keeps position and both quantities there *@
+<MudDialog Class="noose-dialog-lang">
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSimpleTable Dense="true" Striped="true">
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th class="noose-mobil-aus">Art</th>
+                        <th style="text-align:right">Angefordert</th>
+                        <th style="text-align:right">Genehmigt</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in Request.Lines)
+                    {
+                        var lineId = line.Id;
+                        <tr>
+                            <td>
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@FoodKindDisplay.Icon(line.Kind)" Size="Size.Small" Class="mud-text-secondary" />
+                                    <span>@line.ItemName</span>
+                                </MudStack>
+                            </td>
+                            <td class="noose-mobil-aus">@FoodKindDisplay.Name(line.Kind)</td>
+                            <td style="text-align:right">@line.Quantity</td>
+                            <td style="text-align:right; width:120px">
+                                <MudNumericField T="int" Value="@_quantities[lineId]" Min="0" Max="@line.Quantity"
+                                                 ValueChanged="@(v => SetQuantity(lineId, line.Quantity, v))"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+
+            <MudAlert Severity="@(HasOverrun ? Severity.Warning : Severity.Info)" Variant="Variant.Outlined" Dense="true">
+                <div>
+                    Essen <b>@Food</b> · Restlimit @Limit.Codename <b>@Limit.FoodRemaining</b>
+                    @if (FoodOverrun > 0)
+                    {
+                        <span> — <b>Überschreitung um @FoodOverrun</b></span>
+                    }
+                </div>
+                <div>
+                    Trinken <b>@Drink</b> · Restlimit @Limit.Codename <b>@Limit.DrinkRemaining</b>
+                    @if (DrinkOverrun > 0)
+                    {
+                        <span> — <b>Überschreitung um @DrinkOverrun</b></span>
+                    }
+                </div>
+            </MudAlert>
+
+            @if (HasOverrun)
+            {
+                <MentionInput @bind-Text="_overrunReason" Label="Begründung der Überschreitung"
+                              Lines="2" MaxLength="500" Required="true"
+                              RequiredError="Für eine Überschreitung ist eine Begründung nötig"
+                              HelperText="Wird an der Anforderung festgehalten und ist im Protokoll nachvollziehbar" />
+            }
+
+            <MentionInput @bind-Text="_note" Label="Notiz zur Entscheidung (optional)"
+                          Lines="2" MaxLength="2000" HelperText="@MentionInput.Hint" />
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Abbrechen</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Check"
+                   Disabled="@(Food + Drink <= 0 || (HasOverrun && string.IsNullOrWhiteSpace(_overrunReason)))"
+                   OnClick="Confirm">Annehmen</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public FoodRequest Request { get; set; } = default!;
+    [Parameter, EditorRequired] public FoodLimitStatus Limit { get; set; } = FoodLimitStatus.Empty;
+
+    private readonly Dictionary<string, int> _quantities = new();
+    private string? _note;
+    private string? _overrunReason;
+
+    private int Food => Sum(FoodKind.Food);
+
+    private int Drink => Sum(FoodKind.Drink);
+
+    // same rule as the service: only a kind actually granted can overrun
+    private int FoodOverrun => Food > 0 ? Math.Max(0, Food - Limit.FoodRemaining) : 0;
+
+    private int DrinkOverrun => Drink > 0 ? Math.Max(0, Drink - Limit.DrinkRemaining) : 0;
+
+    private bool HasOverrun => FoodOverrun > 0 || DrinkOverrun > 0;
+
+    protected override void OnInitialized()
+    {
+        foreach (var line in Request.Lines)
+        {
+            _quantities[line.Id] = line.Quantity;
+        }
+    }
+
+    private int Sum(FoodKind kind) => Request.Lines
+        .Where(l => l.Kind == kind)
+        .Sum(l => _quantities.GetValueOrDefault(l.Id));
+
+    // a typed value can leave Min/Max, which the service would reject
+    private void SetQuantity(string lineId, int requested, int value) => _quantities[lineId] = Math.Clamp(value, 0, requested);
+
+    private void Confirm()
+        => MudDialog.Close(DialogResult.Ok(new FoodDecisionInput
+        {
+            ApprovedQuantities = new Dictionary<string, int>(_quantities),
+            Note = _note,
+            OverrunReason = HasOverrun ? _overrunReason : null,
+        }));
+
+    /// <summary>Asks for the approval details; returns null when cancelled.</summary>
+    public static async Task<FoodDecisionInput?> ShowAsync(IDialogService dialog, FoodRequest request, FoodLimitStatus limit)
+    {
+        var parameters = new DialogParameters<FoodDecisionDialog>
+        {
+            { x => x.Request, request },
+            { x => x.Limit, limit },
+        };
+        var reference = await dialog.ShowAsync<FoodDecisionDialog>($"Anforderung {request.CaseNumber} annehmen", parameters);
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: FoodDecisionInput input } ? input : null;
+    }
+}

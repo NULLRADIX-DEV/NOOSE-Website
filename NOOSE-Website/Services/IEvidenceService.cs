@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Evidence;
@@ -34,6 +35,8 @@ public interface IEvidenceService
     Task<EvidenceEntry?> GetEntryAsync(string id, CancellationToken cancellationToken = default);
     Task<EvidenceEntryDisplay?> GetEntryDisplayAsync(string id, CancellationToken cancellationToken = default);
     Task<EvidenceEntry> CreateEntryAsync(EvidenceEntryInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+    /// <summary>Books an entry inside the caller's context and transaction, so a linked record commits with it.</summary>
+    Task<EvidenceEntry> CreateEntryAsync(AppDbContext db, EvidenceEntryInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task UpdateEntryAsync(string id, EvidenceEntryInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task DeleteEntryAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
     Task<List<EvidenceEntry>> GetEntryTrashAsync(CancellationToken cancellationToken = default);

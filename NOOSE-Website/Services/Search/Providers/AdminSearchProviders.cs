@@ -4,6 +4,7 @@ using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.CounterIntel;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Infrastructure;
@@ -304,6 +305,36 @@ public sealed class FinancingItemSearchProvider(IDbContextFactory<AppDbContext> 
                 string.Join(" · ", new[] { i.Category, i.Description }.Where(p => p != null)), string.Empty)
             {
                 Href = "/finanzierungen?tab=katalog",
+            })
+            .ToList();
+    }
+}
+
+/// <summary>Food catalogue items, found by the name of their evidence-room item.</summary>
+public sealed class FoodItemSearchProvider(IDbContextFactory<AppDbContext> dbFactory) : ISearchProvider
+{
+    public string Category => nameof(FoodItem);
+
+    public PartnerAccess Partner => PartnerAccess.Never;
+
+    public bool AppliesTo(SearchViewer viewer) => !viewer.IsPartner;
+
+    public async Task<IReadOnlyList<SearchHit>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var q = db.FoodItems.AsQueryable();
+        if (query.HasText)
+        {
+            var s = query.Text;
+            q = q.Where(i => i.EvidenceItem!.Name.Contains(s)
+                || (i.Description != null && i.Description.Contains(s)));
+        }
+        var rows = await q.OrderBy(i => i.Sorting).Take(query.PerCategory)
+            .Select(i => new { i.Id, Name = i.EvidenceItem!.Name, i.Kind, i.Description }).ToListAsync(cancellationToken);
+        return rows.Select(i => new SearchHit(nameof(FoodItem), i.Id, i.Name,
+                string.Join(" · ", new[] { FoodKindDisplay.Name(i.Kind), i.Description }.Where(p => p != null)), string.Empty)
+            {
+                Href = "/verpflegung?tab=katalog",
             })
             .ToList();
     }

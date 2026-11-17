@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Models.Food;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.People;
@@ -45,6 +46,7 @@ public static class NooseiToolHost
         IAbsenceService? absences = null,
         IAnnouncementService? announcements = null,
         IFinancingService? financing = null,
+        IFoodService? food = null,
         IBewerbungService? applications = null,
         ISystemSettingService? settings = null,
         IAgentActivityService? activities = null,
@@ -73,6 +75,7 @@ public static class NooseiToolHost
             absences ?? Substitute.For<IAbsenceService>(),
             announcements ?? Substitute.For<IAnnouncementService>(),
             financing ?? Substitute.For<IFinancingService>(),
+            food ?? Substitute.For<IFoodService>(),
             applications ?? Substitute.For<IBewerbungService>(),
             settings ?? Substitute.For<ISystemSettingService>(),
             activities ?? Substitute.For<IAgentActivityService>(),
@@ -101,6 +104,7 @@ public static class NooseiToolHost
         IDocTemplateService? docTemplates = null,
         IKassenTemplateService? kassenTemplates = null,
         IFinancingCatalogService? financingCatalog = null,
+        IFoodCatalogService? foodCatalog = null,
         ITagService? tags = null,
         IBewerbungTestService? bewerbungTests = null,
         IBewerbungssperreService? bewerbungssperren = null,
@@ -134,6 +138,8 @@ public static class NooseiToolHost
                 s.GetAllAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(new List<KassenBuchungVorlage>()))),
             financingCatalog ?? Quiet<IFinancingCatalogService>(s =>
                 s.GetAllAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(new List<FinancingItem>()))),
+            foodCatalog ?? Quiet<IFoodCatalogService>(s =>
+                s.GetAllAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(new List<FoodItemDisplay>()))),
             tags ?? Quiet<ITagService>(s =>
                 s.GetWithUsageAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult(new List<TagUsage>()))),
             bewerbungTests ?? Quiet<IBewerbungTestService>(s =>

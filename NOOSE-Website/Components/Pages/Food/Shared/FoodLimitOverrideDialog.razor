@@ -1,0 +1,71 @@
+@* Sets or clears an agent's individual weekly food and drink limits. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body2">
+                @Status.Codename · @RankDisplay.Name(Status.Rank) · Rang-Standard gilt, solange kein eigener Wert gesetzt ist.
+            </MudText>
+            <MudSwitch T="bool" @bind-Value="_useFood" Color="Color.Primary" Label="Individuelles Essenslimit verwenden" />
+            @if (_useFood)
+            {
+                <MudNumericField T="int" @bind-Value="_food" Min="0" Label="Essen pro Woche" Variant="Variant.Outlined" />
+            }
+            <MudSwitch T="bool" @bind-Value="_useDrink" Color="Color.Primary" Label="Individuelles Trinklimit verwenden" />
+            @if (_useDrink)
+            {
+                <MudNumericField T="int" @bind-Value="_drink" Min="0" Label="Trinken pro Woche" Variant="Variant.Outlined" />
+            }
+            @if (!_useFood && !_useDrink)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Der Agent erhält wieder die Limits seines Dienstgrades.
+                </MudAlert>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => MudDialog.Cancel())">Abbrechen</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save"
+                   OnClick="Confirm">Speichern</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public FoodLimitStatus Status { get; set; } = FoodLimitStatus.Empty;
+
+    /// <summary>A null limit means "back to the rank default".</summary>
+    public record Choice(int? Food, int? Drink);
+
+    private bool _useFood;
+    private bool _useDrink;
+    private int _food;
+    private int _drink;
+
+    protected override void OnInitialized()
+    {
+        _useFood = Status.FoodIsOverride;
+        _useDrink = Status.DrinkIsOverride;
+        _food = Status.FoodLimit;
+        _drink = Status.DrinkLimit;
+    }
+
+    private void Confirm()
+        => MudDialog.Close(DialogResult.Ok(new Choice(
+            _useFood ? Math.Max(0, _food) : null,
+            _useDrink ? Math.Max(0, _drink) : null)));
+
+    /// <summary>Asks for the individual limits; returns null when cancelled.</summary>
+    public static async Task<Choice?> ShowAsync(IDialogService dialog, FoodLimitStatus status)
+    {
+        var parameters = new DialogParameters<FoodLimitOverrideDialog>
+        {
+            { x => x.Status, status },
+        };
+        var reference = await dialog.ShowAsync<FoodLimitOverrideDialog>($"Wochenlimits von {status.Codename}", parameters);
+        var result = await reference.Result;
+        return result is { Canceled: false, Data: Choice choice } ? choice : null;
+    }
+}

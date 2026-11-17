@@ -25,7 +25,7 @@ public sealed class SearchRecordsTool(ISearchService search, ITagService tags) :
             "typen": { "type": "array", "items": { "type": "string", "enum": {{NooseiRecordTypes.SearchableEnumJson}} },
                        "description": "Auf diese Aktentypen einschränken; leer lassen für alle." },
             "stichworte": { "type": "array", "items": { "type": "string" },
-                            "description": "Nur Akten mit diesen Stichworten (Tags). Achtung: Mit Stichworten werden Gesetze, Asservate, Kassenbuchungen, Finanzierungsanträge und Entführungen gar nicht durchsucht — aus 0 Treffern folgt dort nichts." },
+                            "description": "Nur Akten mit diesen Stichworten (Tags). Achtung: Mit Stichworten werden Gesetze, Asservate, Kassenbuchungen, Finanzierungsanträge, Verpflegungsanforderungen und Entführungen gar nicht durchsucht — aus 0 Treffern folgt dort nichts." },
             "unscharf": { "type": "boolean", "description": "Tippfehler-Toleranz einschalten." },
             "max": { "type": "integer", "minimum": 1, "maximum": 25 }
           }

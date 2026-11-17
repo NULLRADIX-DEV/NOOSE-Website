@@ -134,9 +134,11 @@
     [Inject] private SharesBroadcaster SharesBroadcaster { get; set; } = default!;
     [Inject] private AcknowledgmentBroadcaster AcknowledgmentBroadcaster { get; set; } = default!;
     [Inject] private FinancingBroadcaster FinancingBroadcaster { get; set; } = default!;
+    [Inject] private FoodBroadcaster FoodBroadcaster { get; set; } = default!;
     [Inject] private TipsBroadcaster TipsBroadcaster { get; set; } = default!;
     [Inject] private AdministrationChatBroadcaster AdministrationChatBroadcaster { get; set; } = default!;
     [Inject] private IFinancingService FinancingService { get; set; } = default!;
+    [Inject] private IFoodService FoodRequests { get; set; } = default!;
     [Inject] private IWarrantService WarrantService { get; set; } = default!;
     [Inject] private NOOSE_Website.Services.Public.ITipService TipService { get; set; } = default!;
     [Inject] private IPartnerVisibilityPolicyService PartnerPolicy { get; set; } = default!;
@@ -151,6 +153,7 @@
     private int _openAcknowledgments;
     private int _openRegulation;
     private int _openFinancing;
+    private int _openFood;
     private int _openTips;
     private int _administrationUnread;
     private IReadOnlySet<string>? _allowedPartnerTypes;
@@ -259,6 +262,10 @@
         @if (entry.BadgeKey == "financing" && _openFinancing > 0)
         {
             <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2">@_openFinancing</MudChip>
+        }
+        @if (entry.BadgeKey == "food" && _openFood > 0)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2">@_openFood</MudChip>
         }
         @if (entry.BadgeKey == "tips" && _openTips > 0)
         {
@@ -464,6 +471,7 @@
             SharesBroadcaster.Modified += OnSharesModified;
             AcknowledgmentBroadcaster.Modified += OnAcknowledgmentModified;
             FinancingBroadcaster.Modified += OnFinancingModified;
+            FoodBroadcaster.Modified += OnFoodModified;
             TipsBroadcaster.Modified += OnTipsModified;
             AdministrationChatBroadcaster.Modified += OnAdministrationChatModified;
             AdministrationChatBroadcaster.ReadMarked += OnAdministrationChatRead;
@@ -472,6 +480,7 @@
         await LoadAcknowledgmentsAsync();
         await LoadRegulationAsync();
         await LoadFinancingAsync();
+        await LoadFoodAsync();
         await LoadTipsAsync();
         await LoadAdministrationChatAsync();
     }
@@ -614,6 +623,25 @@
         }
     }
 
+    // decorative badge: the entry is visible to every agent, but only deciders get a count
+    private async Task LoadFoodAsync()
+    {
+        if (_user is null || !_user.IsLeadership())
+        {
+            _openFood = 0;
+            return;
+        }
+        try
+        {
+            _openFood = await FoodRequests.GetOpenCountAsync();
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            Logger.LogWarning(ex, "Verpflegungs-Badge konnte nicht geladen werden.");
+        }
+    }
+
     // members who may write carry a read mark; the count refreshes with the next page load
     private async Task LoadAdministrationChatAsync()
     {
@@ -717,6 +745,19 @@
         catch (InvalidOperationException) { /* circuit gone */ }
     }
 
+    private void OnFoodModified()
+    {
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                await LoadFoodAsync();
+                StateHasChanged();
+            });
+        }
+        catch (InvalidOperationException) { /* circuit gone */ }
+    }
+
     // only react to this agent's own acknowledgment signal
     private void OnAcknowledgmentModified(string agentId)
     {
@@ -743,6 +784,7 @@
         SharesBroadcaster.Modified -= OnSharesModified;
         AcknowledgmentBroadcaster.Modified -= OnAcknowledgmentModified;
         FinancingBroadcaster.Modified -= OnFinancingModified;
+        FoodBroadcaster.Modified -= OnFoodModified;
         TipsBroadcaster.Modified -= OnTipsModified;
         AdministrationChatBroadcaster.Modified -= OnAdministrationChatModified;
         AdministrationChatBroadcaster.ReadMarked -= OnAdministrationChatRead;

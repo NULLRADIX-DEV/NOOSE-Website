@@ -8,6 +8,7 @@ using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Gamification;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Kasse;
@@ -19,11 +20,12 @@ using FeedbackEntry = NOOSE_Website.Data.Entities.Feedback.Feedback;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Demo data for the internal areas the demo database never had: treasury, evidence, financing, abductions, drug routes, feedback, informants, meetings, absences and badges.</summary>
+/// <summary>Demo data for the internal areas the demo database never had: treasury, evidence, financing, food, abductions, drug routes, feedback, informants, meetings, absences and badges.</summary>
 public partial class DemoDataService
 {
     private const string EvidencePrefix = "ASS";
     private const string FinancingPrefix = "FIN";
+    private const string FoodPrefix = "VER";
     private const string AbductionPrefix = "ENT";
     private const string InformantPrefix = "VP";
     private const string MeetingPrefix = "BS";
@@ -308,6 +310,177 @@ public partial class DemoDataService
                 Sorting = 0,
             });
             added += 2;
+        }
+        return added;
+    }
+
+    /// <summary>Food and drinks in the FIB stock, a small catalog and two requests, one issued against a real withdrawal.</summary>
+    private async Task<int> SeedFoodAsync(AppDbContext db, CancellationToken ct)
+    {
+        const string category = "Verpflegung";
+        (string Name, string Description, FoodKind Kind, int Deposited, int Max, int Sort)[] specs =
+        [
+            ("Sandwich, belegt", "Aus der Kantine, täglich frisch.", FoodKind.Food, 40, 3, 10),
+            ("Burger", "Vom Lieferdienst am Mission Row.", FoodKind.Food, 25, 2, 20),
+            ("Wasserflasche", "Stilles Wasser, 0,5 l.", FoodKind.Drink, 60, 4, 30),
+            ("Kaffee", "Thermobecher für lange Schichten.", FoodKind.Drink, 30, 2, 40),
+        ];
+
+        var suggestions = (await db.ProfileSuggestions
+                .Where(s => s.Type == SuggestionType.EvidenceCategory)
+                .Select(s => s.Value).ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var evidenceItems = (await db.EvidenceItems.IgnoreQueryFilters().ToListAsync(ct))
+            .GroupBy(i => i.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        var catalog = (await db.FoodItems.IgnoreQueryFilters().ToListAsync(ct))
+            .GroupBy(i => i.EvidenceItemId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var added = 0;
+        if (suggestions.Add(category))
+        {
+            db.ProfileSuggestions.Add(new ProfileSuggestion { Type = SuggestionType.EvidenceCategory, Value = category });
+            added++;
+        }
+
+        var fresh = new List<(EvidenceItem Item, int Deposited)>();
+        var positions = new Dictionary<string, FoodItem>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, description, kind, deposited, max, sort) in specs)
+        {
+            if (!evidenceItems.TryGetValue(name, out var evidenceItem))
+            {
+                evidenceItem = new EvidenceItem { Name = name, Category = category, Description = description };
+                db.EvidenceItems.Add(evidenceItem);
+                evidenceItems[name] = evidenceItem;
+                fresh.Add((evidenceItem, deposited));
+                added++;
+            }
+            if (!catalog.TryGetValue(evidenceItem.Id, out var position))
+            {
+                position = new FoodItem
+                {
+                    EvidenceItemId = evidenceItem.Id,
+                    Kind = kind,
+                    MaxQuantity = max,
+                    IsActive = true,
+                    Sorting = sort,
+                };
+                db.FoodItems.Add(position);
+                catalog[evidenceItem.Id] = position;
+                added++;
+            }
+            positions[name] = position;
+        }
+
+        if (fresh.Count > 0)
+        {
+            var deposit = new EvidenceEntry
+            {
+                CaseNumber = await caseNumbers.NextAsync(db, EvidencePrefix, ct),
+                Type = EvidenceEntryType.Deposit,
+                OwnerType = EvidenceService.NooseOwner,
+                OwnerId = null,
+                HandlerAgentId = DemoIdentity.AgentId,
+                Timestamp = DateTime.UtcNow.AddDays(-30),
+                Notes = "Einlagerung der Verpflegung für den Dienstbetrieb.",
+            };
+            db.EvidenceEntries.Add(deposit);
+            added++;
+            foreach (var (item, quantity) in fresh)
+            {
+                db.EvidenceEntryLines.Add(new EvidenceEntryLine { EntryId = deposit.Id, ItemId = item.Id, Quantity = quantity });
+                added++;
+            }
+        }
+
+        var existingRequests = (await db.FoodRequests.IgnoreQueryFilters()
+                .Select(r => r.Justification).ToListAsync(ct))
+            .OfType<string>()
+            .ToHashSet(StringComparer.Ordinal);
+
+        (string Justification, FoodRequestStatus Status, (string Name, int Quantity)[] Lines, int DaysAgo)[] requests =
+        [
+            ("Lange Observation in Sandy Shores, Ablösung erst am Morgen.",
+                FoodRequestStatus.Issued, [("Burger", 1), ("Kaffee", 2)], 3),
+            ("Nachtschicht am Hafen.",
+                FoodRequestStatus.Requested, [("Sandwich, belegt", 2), ("Wasserflasche", 2)], 0),
+        ];
+
+        foreach (var (justification, status, lines, daysAgo) in requests)
+        {
+            if (!existingRequests.Add(justification) || lines.Any(l => !positions.ContainsKey(l.Name)))
+            {
+                continue;
+            }
+            var issued = status == FoodRequestStatus.Issued;
+            var caseNumber = await caseNumbers.NextAsync(db, FoodPrefix, ct);
+            var filedAt = DateTime.UtcNow.AddDays(-daysAgo);
+            var request = new FoodRequest
+            {
+                CaseNumber = caseNumber,
+                AgentId = DemoIdentity.AgentId,
+                Status = status,
+                Justification = justification,
+            };
+            var sorting = 0;
+            foreach (var (name, quantity) in lines)
+            {
+                var position = positions[name];
+                request.Lines.Add(new FoodRequestLine
+                {
+                    RequestId = request.Id,
+                    ItemId = position.Id,
+                    EvidenceItemId = position.EvidenceItemId,
+                    ItemName = name,
+                    Kind = position.Kind,
+                    Quantity = quantity,
+                    ApprovedQuantity = issued ? quantity : null,
+                    Sorting = sorting++,
+                });
+            }
+            request.FoodRequested = request.Lines.Where(l => l.Kind == FoodKind.Food).Sum(l => l.Quantity);
+            request.DrinkRequested = request.Lines.Where(l => l.Kind == FoodKind.Drink).Sum(l => l.Quantity);
+
+            if (issued)
+            {
+                // linked like a real issue
+                var withdrawal = new EvidenceEntry
+                {
+                    CaseNumber = await caseNumbers.NextAsync(db, EvidencePrefix, ct),
+                    Type = EvidenceEntryType.Withdrawal,
+                    OwnerType = EvidenceService.NooseOwner,
+                    OwnerId = null,
+                    HandlerAgentId = DemoIdentity.AgentId,
+                    Timestamp = filedAt.AddHours(2),
+                    Notes = $"Verpflegung {caseNumber} · {DemoIdentity.Codename}",
+                };
+                db.EvidenceEntries.Add(withdrawal);
+                added++;
+                foreach (var line in request.Lines)
+                {
+                    db.EvidenceEntryLines.Add(new EvidenceEntryLine
+                    {
+                        EntryId = withdrawal.Id,
+                        ItemId = line.EvidenceItemId!,
+                        Quantity = line.Quantity,
+                    });
+                    added++;
+                }
+
+                request.FoodApproved = request.FoodRequested;
+                request.DrinkApproved = request.DrinkRequested;
+                request.LimitWeekStart = FoodWeek.StartOf(filedAt.ToLocalTime());
+                request.DeciderName = DemoIdentity.Codename;
+                request.DecidedAt = filedAt.AddHours(1);
+                request.DecisionNote = "Angenommen.";
+                request.IssuedAt = filedAt.AddHours(2);
+                request.IssuedByName = DemoIdentity.Codename;
+                request.EvidenceEntryId = withdrawal.Id;
+            }
+
+            db.FoodRequests.Add(request);
+            added += 1 + request.Lines.Count;
         }
         return added;
     }
