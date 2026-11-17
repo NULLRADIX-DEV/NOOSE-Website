@@ -243,8 +243,7 @@ public static partial class DossierContextBuilder
         var sb = new StringBuilder();
         sb.AppendLine("Personalakte");
         Line(sb, "Codename", a.Codename);
-        // the real name is leadership-only and never reaches the read-only supervision; MayRealName is the one
-        // flag that expresses that subtraction, so this must not fall back to a broader one
+        // real name never reaches trainees, partners or supervision; MayRealName is the one flag for that
         if (view.MayRealName)
         {
             Line(sb, "Klarname", a.RealName);

@@ -27,7 +27,8 @@ public sealed record ChronikEvent(
     string? ActorName,
     string? Href,
     bool RecordDeleted,
-    IReadOnlyList<AuditDisplay.FieldChange>? Changes = null);
+    IReadOnlyList<AuditDisplay.FieldChange>? Changes = null,
+    string? ActorId = null);
 
 /// <summary>Chronicle page: events newest first, plus the exclusive upper bound of the next page.</summary>
 public sealed record ChronikResult(

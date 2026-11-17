@@ -516,13 +516,42 @@ public class AgentPrincipalExtensionsTests
         Assert.False(user.MayAllTaskforcesSee());
     }
 
-    // ---------- MayRealNameSee (leadership && !onlyReader) ----------
+    // ---------- MayRealNameSee (internal, Special Agent up or admin, !onlyReader) ----------
 
     [Fact]
     public void MayRealNameSee_leadershipByRank_returnsTrue()
     {
         ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SectionChief).Build();
         Assert.True(user.MayRealNameSee());
+    }
+
+    [Fact]
+    public void MayRealNameSee_specialAgent_returnsTrue()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.SpecialAgent).Build();
+        Assert.True(user.MayRealNameSee());
+    }
+
+    [Fact]
+    public void MayRealNameSee_adminTrainee_returnsTrue()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Trainee).AsAdmin().Build();
+        Assert.True(user.MayRealNameSee());
+    }
+
+    [Fact]
+    public void MayRealNameSee_partner_returnsFalse()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director)
+            .AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build();
+        Assert.False(user.MayRealNameSee());
+    }
+
+    [Fact]
+    public void MayRealNameSee_blockedAgent_returnsFalse()
+    {
+        ClaimsPrincipal user = ClaimsPrincipalBuilder.Agent().WithRank(Rank.Director).WithStatus(AgentStatus.Blocked).Build();
+        Assert.False(user.MayRealNameSee());
     }
 
     [Fact]

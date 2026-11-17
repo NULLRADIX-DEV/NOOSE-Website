@@ -142,8 +142,9 @@ internal static class GettingStartedChapter
                 <p>Unter <em>Mein Profil</em> pflegst du deinen <strong>Codename</strong> und dein Foto. Der
                 Codename ist der Name, unter dem dich alle anderen in der Behörde sehen - in Kommentaren, im
                 Protokoll, in Auswahllisten.</p>
-                <p>Dein <strong>Klarname</strong> ist etwas anderes. Ihn sieht nur die Führung. Das ist keine
-                Kleinigkeit, sondern der Grund, warum die ganze Seite mit Codenamen arbeitet.</p>
+                <p>Dein <strong>Klarname</strong> ist etwas anderes. Ihn sehen intern alle ab Special Agent,
+                hinter deinem Codenamen. Ein Trainee, die Aufsicht und die Partnerbehörden sehen ihn nicht, und
+                nach außen geht er nur, wenn du dich auf die öffentliche Mitarbeiterliste setzt.</p>
                 <p>Daneben steht deine <strong>Dienstnummer</strong> - eine römische Zahl von I bis XL. Sie ist
                 die interne Kennung, vor allem im Funk, und jede ist nur einmal vergeben. Ändern lässt sie die
                 Führung; unterhalb davon stellst du einen Änderungswunsch.</p>
@@ -175,7 +176,7 @@ internal static class GettingStartedChapter
                 auch dem Trainee. Nur das <strong>HRT lässt sich erst ab Special Agent setzen</strong>, darunter
                 lehnt die Seite es ab.</p>
                 <p>Ab <strong>Section Chief</strong> (im HRT <strong>Commanding Operator</strong>) zählst du zur <strong>Führung</strong>. Das
-                ist die Schwelle, ab der Verschlusssachen, Klarnamen und die meisten Entscheidungen sichtbar
+                ist die Schwelle, ab der Verschlusssachen und die meisten Entscheidungen sichtbar
                 werden. Das Kennzeichen <strong>Admin</strong> überspringt jede Rangprüfung - ein Admin gilt
                 überall als Führung, unabhängig von seinem Dienstgrad.</p>
                 <p>Es gibt zusätzlich Konten, die <strong>alles lesen, aber nichts schreiben</strong> dürfen -

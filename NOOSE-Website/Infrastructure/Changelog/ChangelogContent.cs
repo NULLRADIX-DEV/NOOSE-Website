@@ -776,6 +776,8 @@ public static class ChangelogContent
             Besser("3.0.61-dvo-aenderungen-lesbar", "Wird ein Absatz der Dienstverordnung umgeschrieben, zeigt der Vergleich "
                 + "erst den alten Text durchgestrichen und dann den neuen fett, statt beides Wort für Wort zu mischen.",
                 "Dienstverordnung"),
+            Besser("3.0.62-klarnamen-intern", "Ab Special Agent siehst du den Klarnamen deiner Kollegen neben dem "
+                + "Codenamen, etwa im Protokoll, im Zeitstrahl einer Akte und in Kommentaren.", "Personal"),
         ]),
     ];
 }

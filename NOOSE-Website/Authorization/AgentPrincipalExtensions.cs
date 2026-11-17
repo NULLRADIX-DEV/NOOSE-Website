@@ -121,8 +121,10 @@ public static class AgentPrincipalExtensions
     public static bool MayAllTaskforcesSee(this ClaimsPrincipal user)
         => user.IsLeadership() || user.IsOnlyReader();
 
-    /// <summary>May see the otherwise-hidden real name = leadership/admin but never read-only supervision. Sole source of the real-name rule.</summary>
-    public static bool MayRealNameSee(this ClaimsPrincipal user) => user.IsLeadership() && !user.IsOnlyReader();
+    /// <summary>May see an agent's real name = internal agent from Special Agent up or admin, never read-only supervision. Sole source of the real-name rule.</summary>
+    public static bool MayRealNameSee(this ClaimsPrincipal user)
+        => user.IsInternalAgent() && !user.IsOnlyReader()
+           && (user.IsAdmin() || user.GetRank() is >= Rank.SpecialAgent);
 
     /// <summary>May use the counter-intelligence cockpit = leadership but never read-only supervision (it would audit itself). Sole source of this rule.</summary>
     public static bool MayCounterIntel(this ClaimsPrincipal user) => user.IsLeadership() && !user.IsOnlyReader();

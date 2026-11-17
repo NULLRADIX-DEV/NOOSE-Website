@@ -38,7 +38,7 @@
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="noose-eintrag">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="noose-eintrag noose-eintrag-titel">
                         <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small" Color="Color.Default" />
-                        <MudText Typo="Typo.body2"><b>@(string.IsNullOrWhiteSpace(e.K.AuthorName) ? "Unbekannt" : e.K.AuthorName)</b></MudText>
+                        <MudText Typo="Typo.body2"><b><AgentLabel Name="@e.K.AuthorName" AgentId="@e.K.CreatedById" Fallback="Unbekannt" /></b></MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                             · @e.K.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
                         </MudText>
