@@ -804,7 +804,7 @@ public static class ChangelogContent
             Besser("3.1.00-navigation-neu", "Das Menü links ist eine beschriftete Liste mit aufklappbaren Bereichen. "
                 + "Persönliches liegt hinter deinem Namen oben rechts, Handbuch, Gesetze und Dienstverordnung hinter dem "
                 + "Fragezeichen, und die Administration hat ihre Unterpunkte auf der eigenen Seite.", "Bedienung"),
-            Neu("3.0.72-bereichsuebersicht", "Ein Klick auf den Namen eines Bereichs im Menü öffnet seine Übersicht mit "
+            Neu("3.1.01-bereichsuebersicht", "Ein Klick auf den Namen eines Bereichs im Menü öffnet seine Übersicht mit "
                 + "allen Seiten als Kacheln und dem, was dort offen ist. Der Pfeil daneben klappt nur auf oder zu.",
                 "Bedienung"),
         ]),
