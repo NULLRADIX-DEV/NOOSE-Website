@@ -45,6 +45,8 @@ public static class NavCatalog
             Description: "Zugewiesene Tests ablegen; Administration Division und Führung vergeben und korrigieren"),
         new NavEntry("finanzierungen", "/finanzierungen", Icons.Material.Filled.RequestQuote, "Finanzierungen", NavSection.MeinDienst, NavArea.MeinDienst, BadgeKey: "financing",
             Description: "Finanzierungsanträge stellen und das eigene Monatsbudget einsehen"),
+        new NavEntry("verpflegung", "/verpflegung", Icons.Material.Filled.Restaurant, "Verpflegung", NavSection.MeinDienst, NavArea.MeinDienst, BadgeKey: "food",
+            Description: "Essen und Trinken anfordern und das eigene Wochenlimit einsehen"),
         new NavEntry("feedback", "/feedback", Icons.Material.Filled.Feedback, "Feedback", NavSection.MeinDienst, NavArea.MeinDienst, Description: "Feedback zur Website"),
 
         new NavEntry("personen", "/personen", Icons.Material.Filled.Badge, "Personen-Akten", NavSection.Akten, NavArea.Akten,

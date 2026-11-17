@@ -16,6 +16,7 @@ using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Feedback;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Gamification;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Llm;
@@ -181,6 +182,10 @@ public sealed class AgentDeletePartnerTests : IDisposable
         {
             AgentId = agentId, Year = 2026, Month = 3,
         });
+        db.FoodRequests.Add(new FoodRequest
+        {
+            CaseNumber = "FIB-VER-2026-0001", AgentId = agentId, Justification = "Nachtschicht",
+        });
         db.SaveChanges();
     }
 
@@ -246,6 +251,7 @@ public sealed class AgentDeletePartnerTests : IDisposable
         Assert.Null(Assert.Single(await check.AgentAbductions.IgnoreQueryFilters().ToListAsync()).VictimAgentId);
         Assert.Null(Assert.Single(await check.FinancingRequests.IgnoreQueryFilters().ToListAsync()).AgentId);
         Assert.Null(Assert.Single(await check.FinancingBudgetPeriods.ToListAsync()).AgentId);
+        Assert.Null(Assert.Single(await check.FoodRequests.IgnoreQueryFilters().ToListAsync()).AgentId);
     }
 
     /// <summary>The forensic trail is the whole point of a hard delete, so it has to survive the user row.</summary>

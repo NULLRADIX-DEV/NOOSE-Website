@@ -1,0 +1,365 @@
+@* The catalog of requestable food and drinks: everyone reads it, leadership maintains it. *@
+@implements IAsyncDisposable
+@inject IFoodCatalogService Catalog
+@inject IEvidenceService Evidence
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudStack Spacing="3">
+    <SectionHeader Title="Katalog">
+        <Actions>
+            @if (_mayManage)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                           OnClick="@(() => StartEditAsync(null))">Neue Position</MudButton>
+            }
+        </Actions>
+    </SectionHeader>
+
+    @if (_editing is not null)
+    {
+        <div @ref="_editorAnchor" style="scroll-margin-top:80px">
+        <MudPaper Class="pa-4" Elevation="1">
+            <MudForm @ref="_form">
+                <MudStack Spacing="3">
+                    <MudAutocomplete T="EvidenceItemDisplay" Value="_pickedItem" ValueChanged="OnItemPicked"
+                                     Label="Gegenstand der Asservatenkammer" SearchFunc="SearchItemsAsync"
+                                     ToStringFunc="@(i => i is null ? string.Empty : i.Item.Name)"
+                                     Required="true" RequiredError="Bitte einen Gegenstand wählen"
+                                     Clearable="true" ResetValueOnEmptyText="true" CoerceText="false" CoerceValue="false"
+                                     MaxItems="@MaxSuggestions" Variant="Variant.Outlined" Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Search"
+                                     HelperText="Bezeichnung, Bild und Bestand kommen aus der Asservatenkammer; ausgegeben wird aus dem FIB-Bestand.">
+                        <ItemTemplate Context="item">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Style="width:100%">
+                                <MudStack Spacing="0">
+                                    <MudText Typo="Typo.body2">@item.Item.Name</MudText>
+                                    @if (!string.IsNullOrWhiteSpace(item.Item.Category))
+                                    {
+                                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@item.Item.Category</MudText>
+                                    }
+                                </MudStack>
+                                <MudSpacer />
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">Bestand: @item.OnHand</MudText>
+                            </MudStack>
+                        </ItemTemplate>
+                        <NoItemsTemplate>
+                            <MudText Typo="Typo.caption" Class="pa-2 mud-text-secondary">
+                                Kein passender Gegenstand — bereits im Katalog stehende tauchen hier nicht auf.
+                            </MudText>
+                        </NoItemsTemplate>
+                    </MudAutocomplete>
+                    <MudGrid>
+                        <MudItem xs="12" md="6">
+                            <MudSelect T="FoodKind" @bind-Value="_editing.Kind" Label="Art" Variant="Variant.Outlined">
+                                @foreach (var kind in FoodKindDisplay.All)
+                                {
+                                    <MudSelectItem T="FoodKind" Value="@kind">@FoodKindDisplay.Name(kind)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudNumericField T="int" @bind-Value="_editing.MaxQuantity" Min="1"
+                                             Label="Max. Menge pro Anforderung" Variant="Variant.Outlined" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudTextField T="string" @bind-Value="_editing.Description" Label="Beschreibung / Hinweis"
+                                  Variant="Variant.Outlined" MaxLength="1000" Lines="2" />
+                    <MudGrid>
+                        <MudItem xs="6">
+                            <MudNumericField T="int" @bind-Value="_editing.Sorting" Min="0" Label="Sortierung" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="6" Class="d-flex align-center">
+                            <MudSwitch T="bool" @bind-Value="_editing.IsActive" Color="Color.Primary" Label="Aktiv" />
+                        </MudItem>
+                    </MudGrid>
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+                        <MudButton OnClick="CancelEdit">Abbrechen</MudButton>
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_saving"
+                                   StartIcon="@Icons.Material.Filled.Save">Speichern</MudButton>
+                    </MudStack>
+                </MudStack>
+            </MudForm>
+        </MudPaper>
+        </div>
+    }
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_rows.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Restaurant" Title="Kein Katalog"
+                    Text="Ohne hinterlegte Positionen kann niemand Verpflegung anfordern." />
+    }
+    else
+    {
+        @foreach (var group in _rows.GroupBy(i => i.Item.Kind).OrderBy(g => g.Key))
+        {
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-2">
+                <MudIcon Icon="@FoodKindDisplay.Icon(group.Key)" Size="Size.Small" Class="mud-text-secondary" />
+                <MudText Typo="Typo.subtitle2" Class="mud-text-secondary">@FoodKindDisplay.Name(group.Key)</MudText>
+            </MudStack>
+            @* phones keep the name, the stock and the actions *@
+            <MudSimpleTable Dense="true" Hover="true" Striped="true">
+                <thead>
+                    <tr>
+                        <th style="width:56px" class="noose-mobil-aus"></th>
+                        <th>Bezeichnung</th>
+                        <th style="text-align:right">Bestand</th>
+                        <th class="noose-mobil-aus" style="text-align:right">Max.</th>
+                        <th class="noose-mobil-aus">Aktiv</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in group)
+                    {
+                        var item = row.Item;
+                        <tr>
+                            <td class="noose-mobil-aus">
+                                @if (row.HasImage && _mayOpenEvidence)
+                                {
+                                    <MudImage Src="@($"/dateien/asservate/{item.EvidenceItemId}")" Height="40" Width="40"
+                                              ObjectFit="ObjectFit.Contain" Class="rounded" loading="lazy" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@FoodKindDisplay.Icon(item.Kind)" Color="Color.Default" />
+                                }
+                            </td>
+                            <td>
+                                @if (_mayOpenEvidence)
+                                {
+                                    <MudLink Href="@($"/asservatenkammer/item/{item.EvidenceItemId}")">@row.Name</MudLink>
+                                }
+                                else
+                                {
+                                    @row.Name
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@item.Description</MudText>
+                                }
+                            </td>
+                            <td style="text-align:right">
+                                <MudText Typo="Typo.body2" Color="@(row.OnHand > 0 ? Color.Default : Color.Error)">@row.OnHand</MudText>
+                            </td>
+                            <td class="noose-mobil-aus" style="text-align:right">@item.MaxQuantity</td>
+                            <td class="noose-mobil-aus">@(item.IsActive ? "Ja" : "Nein")</td>
+                            <td style="text-align:right; white-space:nowrap">
+                                @if (_mayManage)
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   OnClick="@(() => StartEditAsync(row))" aria-label="Bearbeiten" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                                   OnClick="@(() => DeleteAsync(row))" aria-label="Löschen" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    }
+</MudStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    /// <summary>Raised after any catalog change, so a parent can reload its choices.</summary>
+    [Parameter] public EventCallback OnChanged { get; set; }
+
+    private const int MaxSuggestions = 20;
+
+    private bool _load = true;
+    private bool _saving;
+    // the page is open to every agent, so the gate must carry BOTH conditions the service enforces
+    private bool _mayManage;
+    private bool _mayOpenEvidence;
+    private ClaimsPrincipal _user = default!;
+    private List<FoodItemDisplay> _rows = new();
+    // loaded lazily: only the editor needs the whole evidence catalog
+    private List<EvidenceItemDisplay>? _evidenceItems;
+
+    private MudForm _form = default!;
+    private FoodItemInput? _editing;
+    private string? _editingId;
+    private EvidenceItemDisplay? _pickedItem;
+    private IJSObjectReference? _module;
+    private ElementReference _editorAnchor;
+    private bool _scrollToEditor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        _mayManage = _user.IsLeadership() && _user.MayWrite();
+        _mayOpenEvidence = _user.IsInternalAgent();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _load = true;
+        _rows = await Catalog.GetAllAsync();
+        _load = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Bump ?v= when app.js changes
+                _module = await JS.InvokeAsync<IJSObjectReference>("import", "./app.js?v=4");
+            }
+            catch (JSDisconnectedException)
+            {
+                /* ignore */
+            }
+            return;
+        }
+        if (!_scrollToEditor || _editing is null)
+        {
+            return;
+        }
+        _scrollToEditor = false;
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("scrollToElement", _editorAnchor);
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            /* ignore */
+        }
+    }
+
+    private Task<IEnumerable<EvidenceItemDisplay>> SearchItemsAsync(string value, CancellationToken token)
+    {
+        // one catalog entry per item: hide items another position already books out of
+        var taken = _rows.Where(r => r.Item.Id != _editingId).Select(r => r.Item.EvidenceItemId).ToHashSet();
+        var pool = (_evidenceItems ?? []).Where(i => !taken.Contains(i.Item.Id));
+        var term = value?.Trim();
+        if (!string.IsNullOrEmpty(term))
+        {
+            pool = pool.Where(i => i.Item.Name.Contains(term, StringComparison.OrdinalIgnoreCase)
+                || (i.Item.Category?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false));
+        }
+        return Task.FromResult(pool.Take(MaxSuggestions));
+    }
+
+    private void OnItemPicked(EvidenceItemDisplay? item)
+    {
+        _pickedItem = item;
+        if (_editing is not null)
+        {
+            _editing.EvidenceItemId = item?.Item.Id ?? string.Empty;
+        }
+    }
+
+    private async Task StartEditAsync(FoodItemDisplay? row)
+    {
+        _evidenceItems ??= await Evidence.GetItemsAsync();
+        var item = row?.Item;
+        _editingId = item?.Id;
+        _editing = item is null
+            ? new FoodItemInput()
+            : new FoodItemInput
+            {
+                EvidenceItemId = item.EvidenceItemId,
+                Kind = item.Kind,
+                Description = item.Description,
+                MaxQuantity = item.MaxQuantity,
+                IsActive = item.IsActive,
+                Sorting = item.Sorting,
+            };
+        _pickedItem = item is null ? null : _evidenceItems.FirstOrDefault(i => i.Item.Id == item.EvidenceItemId);
+        // the editor sits above the list, so scroll back up to it
+        _scrollToEditor = true;
+    }
+
+    private void CancelEdit()
+    {
+        _editing = null;
+        _editingId = null;
+        _pickedItem = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_editing is null)
+        {
+            return;
+        }
+        await _form.ValidateAsync();
+        if (!_form.IsValid || string.IsNullOrEmpty(_editing.EvidenceItemId))
+        {
+            return;
+        }
+        _saving = true;
+        try
+        {
+            if (_editingId is null)
+            {
+                await Catalog.CreateAsync(_editing, _user);
+                Snackbar.Add("Position angelegt.", Severity.Success);
+            }
+            else
+            {
+                await Catalog.UpdateAsync(_editingId, _editing, _user);
+                Snackbar.Add("Position aktualisiert.", Severity.Success);
+            }
+            CancelEdit();
+            await ReloadAsync();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task DeleteAsync(FoodItemDisplay row)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Position löschen?",
+            $"„{row.Name}“ kann danach nicht mehr angefordert werden. Bereits gestellte Anforderungen behalten ihre Angaben, der Gegenstand bleibt in der Asservatenkammer.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await Catalog.DeleteAsync(row.Item.Id, _user);
+            Snackbar.Add("Position gelöscht.", Severity.Success);
+            await ReloadAsync();
+            await OnChanged.InvokeAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException) { /* ignore */ }
+        catch (Exception) { /* best effort */ }
+    }
+}

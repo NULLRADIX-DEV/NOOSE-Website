@@ -1,0 +1,27 @@
+@* Weekly food and drink allowance of one agent; reused on the food page, the request form and the personnel file. *@
+
+<MudGrid>
+    <MudItem xs="12" sm="6">
+        <StatTile Icon="@FoodKindDisplay.Icon(FoodKind.Food)" Colour="@TileColour(Status.FoodRemaining)"
+                  Label="Essen diese Woche" Value="@($"{Status.FoodConsumed} / {Status.FoodLimit}")"
+                  Hint="@Hint(Status.FoodRemaining, Status.FoodIsOverride)" />
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <StatTile Icon="@FoodKindDisplay.Icon(FoodKind.Drink)" Colour="@TileColour(Status.DrinkRemaining)"
+                  Label="Trinken diese Woche" Value="@($"{Status.DrinkConsumed} / {Status.DrinkLimit}")"
+                  Hint="@Hint(Status.DrinkRemaining, Status.DrinkIsOverride)" />
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Parameter, EditorRequired] public FoodLimitStatus Status { get; set; } = FoodLimitStatus.Empty;
+
+    private static Color TileColour(int remaining) => remaining > 0 ? Color.Success : Color.Error;
+
+    private string Hint(int remaining, bool isOverride)
+    {
+        var week = Status.WeekStart == DateTime.MinValue ? FoodWeek.Current() : Status.WeekStart;
+        var source = isOverride ? "individuell" : "nach Dienstgrad";
+        return $"Rest {remaining} · {source} · {FoodWeek.Label(week)}";
+    }
+}

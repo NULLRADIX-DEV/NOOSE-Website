@@ -286,6 +286,9 @@ public static class PublicVisibility
             ["FinancingRequest"] = Finance,
             ["FinancingRequestLine"] = Finance,
             ["FinancingBudgetPeriod"] = Finance,
+            ["FoodItem"] = Finance,
+            ["FoodRequest"] = Finance,
+            ["FoodRequestLine"] = Finance,
 
             // --- assistant ---
             ["LlmRequestLog"] = Assistant,

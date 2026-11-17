@@ -1,0 +1,78 @@
+@* Food requests as a flat table; every row links to its record, where the decisions happen.
+   Phones keep case number, status and the link; the other columns are on the record. *@
+
+@if (Rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Restaurant" Title="@EmptyTitle" Text="@EmptyText" />
+}
+else
+{
+    <MudSimpleTable Dense="true" Hover="true" Striped="true">
+        <thead>
+            <tr>
+                <th>Aktenzeichen</th>
+                @if (ShowAgent)
+                {
+                    <th class="noose-mobil-aus">Agent</th>
+                }
+                <th>Status</th>
+                <th class="noose-mobil-aus">Positionen</th>
+                <th class="noose-mobil-aus">Angefordert</th>
+                <th class="noose-mobil-aus">Genehmigt</th>
+                <th class="noose-mobil-aus">Gestellt</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Rows)
+            {
+                var request = row.Request;
+                <tr>
+                    <td style="white-space:nowrap">@request.CaseNumber</td>
+                    @if (ShowAgent)
+                    {
+                        <td class="noose-mobil-aus">@row.AgentCodename</td>
+                    }
+                    <td>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                 Color="@FoodRequestStatusDisplay.ChipColor(request.Status)"
+                                 Icon="@FoodRequestStatusDisplay.Icon(request.Status)">@FoodRequestStatusDisplay.Name(request.Status)</MudChip>
+                    </td>
+                    <td class="noose-mobil-aus">@Summary(request)</td>
+                    <td class="noose-mobil-aus">@FoodService.Summary(request.FoodRequested, request.DrinkRequested)</td>
+                    <td class="noose-mobil-aus">
+                        @(request.FoodApproved is null && request.DrinkApproved is null
+                            ? "—"
+                            : FoodService.Summary(request.FoodApproved ?? 0, request.DrinkApproved ?? 0))
+                    </td>
+                    <td class="noose-mobil-aus" style="white-space:nowrap">@request.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    <td style="text-align:right">
+                        <MudIconButton Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small"
+                                       Href="@($"/verpflegung/{request.Id}")" aria-label="Anforderung öffnen" />
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<FoodRequestDisplay> Rows { get; set; } = [];
+
+    /// <summary>Shows the requester column; off on the agent's own list, where it is always themselves.</summary>
+    [Parameter] public bool ShowAgent { get; set; }
+
+    [Parameter] public string EmptyTitle { get; set; } = "Keine Verpflegungsanforderungen";
+    [Parameter] public string? EmptyText { get; set; }
+
+    private static string Summary(FoodRequest request)
+    {
+        if (request.Lines.Count == 0)
+        {
+            return "—";
+        }
+        var first = request.Lines[0];
+        var head = $"{FoodService.EffectiveQuantity(first)}× {first.ItemName}";
+        return request.Lines.Count == 1 ? head : $"{head} +{request.Lines.Count - 1}";
+    }
+}

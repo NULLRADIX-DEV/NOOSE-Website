@@ -21,6 +21,9 @@ public enum HandoverKind
 
     /// <summary>Keeper or deputy of a person record.</summary>
     PersonRecord = 11,
+
+    /// <summary>Closes with the departure: the issue would go to the leaving agent.</summary>
+    FoodRequest = 12,
 }
 
 /// <summary>One thing still hanging on the leaving agent.</summary>
@@ -42,7 +45,7 @@ public sealed record HandoverResult(int Passed, int Closed);
 public static class HandoverDisplay
 {
     /// <summary>Kinds that close with the departure instead of passing to a successor.</summary>
-    public static bool Closes(HandoverKind kind) => kind is HandoverKind.FinancingRequest or HandoverKind.Appointment;
+    public static bool Closes(HandoverKind kind) => kind is HandoverKind.FinancingRequest or HandoverKind.FoodRequest or HandoverKind.Appointment;
 
     /// <summary>Section heading in the dialog.</summary>
     public static string Section(HandoverKind kind) => Plural(kind);
@@ -55,6 +58,8 @@ public static class HandoverDisplay
     {
         HandoverKind.FinancingRequest =>
             "Ohne Nachfolger: beantragte werden zurückgezogen, genehmigte abgelehnt, weil die Auszahlung an den Antragsteller geht.",
+        HandoverKind.FoodRequest =>
+            "Ohne Nachfolger: angeforderte werden zurückgezogen, angenommene abgelehnt, weil die Ausgabe an den Anfordernden geht.",
         HandoverKind.Appointment => "Ohne Nachfolger: die Teilnahme an künftigen Terminen wird gestrichen.",
         _ => string.Empty,
     };
@@ -86,6 +91,7 @@ public static class HandoverDisplay
         HandoverKind.FinancingRequest => "Finanzierungsantrag",
         HandoverKind.Appointment => "Termin",
         HandoverKind.PersonRecord => "Personenakte",
+        HandoverKind.FoodRequest => "Verpflegungsanforderung",
         _ => "Eintrag",
     };
 
@@ -103,6 +109,7 @@ public static class HandoverDisplay
         HandoverKind.FinancingRequest => "Finanzierungsanträge",
         HandoverKind.Appointment => "Termine",
         HandoverKind.PersonRecord => "Personenakten",
+        HandoverKind.FoodRequest => "Verpflegungsanforderungen",
         _ => "Einträge",
     };
 }

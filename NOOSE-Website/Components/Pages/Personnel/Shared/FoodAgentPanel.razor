@@ -1,0 +1,112 @@
+@* Weekly food and drink limits and recent requests of one agent; leadership can set individual limits here. *@
+@inject IFoodLimitService Limits
+@inject IFoodService FoodRequests
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (Agent.IsTeamLead)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.VisibilityOff" Title="Kein Wochenlimit"
+                    Text="Die Team-Leitung ist Nur-Lese-Aufsicht und fordert keine Verpflegung an." />
+    }
+    else if (!_maySee)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Lock" Title="Nicht öffentlich"
+                    Text="Wochenlimits und Verpflegungsanforderungen sieht nur der Agent selbst — und die Führung." />
+    }
+    else
+    {
+        <FoodLimitTiles Status="_limit" />
+
+        @if (_mayManage)
+        {
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
+                    <MudText Typo="Typo.body2">
+                        Essen pro Woche: <b>@_limit.FoodLimit</b> @Source(_limit.FoodIsOverride)
+                        · Trinken pro Woche: <b>@_limit.DrinkLimit</b> @Source(_limit.DrinkIsOverride)
+                    </MudText>
+                    <MudSpacer />
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Tune"
+                               OnClick="OverrideAsync">Limits anpassen</MudButton>
+                </MudStack>
+            </MudPaper>
+        }
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="noose-kopf-umbruch">
+            <MudText Typo="Typo.subtitle1">Letzte Anforderungen (@_requests.Count)</MudText>
+            <MudSpacer />
+            <MudButton Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Filled.ChevronRight"
+                       Href="/verpflegung">Alle Verpflegung</MudButton>
+        </MudStack>
+        <FoodRequestTable Rows="_requests"
+                          EmptyTitle="Keine Verpflegungsanforderungen"
+                          EmptyText="Dieser Agent hat noch nichts angefordert." />
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public Agent Agent { get; set; } = default!;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private const int MaxRequests = 10;
+
+    private bool _load = true;
+    private bool _maySee;
+    private bool _mayManage;
+    private ClaimsPrincipal _user = default!;
+    private FoodLimitStatus _limit = FoodLimitStatus.Empty;
+    private List<FoodRequestDisplay> _requests = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        await ReloadAsync();
+    }
+
+    private string Source(bool isOverride)
+        => isOverride ? "(individuell gesetzt)" : $"(Standard für {RankDisplay.Name(_limit.Rank)})";
+
+    private async Task ReloadAsync()
+    {
+        _load = true;
+        // the personnel file is open to every internal agent, but the limits are private
+        _maySee = _user.MayClassifiedRead() || _user.GetAgentId() == Agent.Id;
+        // read-only supervision sees the limits but must not get a control that always fails
+        _mayManage = _user.IsLeadership() && _user.MayWrite();
+        if (!_maySee || Agent.IsTeamLead)
+        {
+            _load = false;
+            return;
+        }
+        _limit = await Limits.GetStatusAsync(Agent.Id);
+        _requests = await FoodRequests.GetForAgentAsync(Agent.Id, MaxRequests, _user);
+        _load = false;
+    }
+
+    private async Task OverrideAsync()
+    {
+        var entered = await FoodLimitOverrideDialog.ShowAsync(DialogService, _limit);
+        if (entered is null)
+        {
+            return;
+        }
+        try
+        {
+            await Limits.SetOverrideAsync(Agent.Id, entered.Food, entered.Drink, _user);
+            Snackbar.Add(entered.Food is null && entered.Drink is null
+                ? "Limits auf den Rang-Standard zurückgesetzt."
+                : "Individuelle Limits gesetzt.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

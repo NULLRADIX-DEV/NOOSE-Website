@@ -53,6 +53,12 @@
             </RecordSection>
         </AuthorizeView>
 
+        <AuthorizeView Policy="@Policies.LeadershipPage" Context="verpflegungSection">
+            <RecordSection Slug="verpflegung" Label="Verpflegung" Icon="@Icons.Material.Filled.Restaurant">
+                <FoodStatisticsPanel />
+            </RecordSection>
+        </AuthorizeView>
+
         <AuthorizeView Policy="@Policies.LeadershipPage" Context="workforceSection">
             <RecordSection Slug="dienststelle" Label="Dienststelle" Icon="@Icons.Material.Filled.Groups2">
                 <WorkforcePanel />

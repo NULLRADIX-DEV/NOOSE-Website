@@ -1,6 +1,7 @@
 using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.DrugRoutes;
@@ -150,6 +151,14 @@ public static class TimelineDisplay
         if (entityType == nameof(FinancingRequestLine))
         {
             return (TimelineCategory.Change, $"Antragsposition {Verb("aufgenommen", "entfernt")}");
+        }
+        if (entityType == nameof(FoodRequest))
+        {
+            return (TimelineCategory.Change, $"Verpflegungsanforderung {Verb("gestellt", "gelöscht")}");
+        }
+        if (entityType == nameof(FoodRequestLine))
+        {
+            return (TimelineCategory.Change, $"Verpflegungsposition {Verb("aufgenommen", "entfernt")}");
         }
         // publish and retract both arrive here; the interceptor's Status old/new pair carries which one it was
         if (entityType == nameof(OeffentlicheFahndung))
