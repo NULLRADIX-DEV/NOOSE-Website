@@ -50,44 +50,53 @@
                     @* Small screens have no search field and no Ctrl+K, so open the palette here. *@
                     <MudIconButton Icon="@Icons.Material.Filled.Search" Color="Color.Inherit" OnClick="OpenPaletteAsync"
                                    Class="d-flex d-md-none" aria-label="Suchen und springen" title="Suchen und springen" />
+                    @* FIBI one click away; on phones it stays in the drawer's Analyse group *@
+                    <AuthorizeView Policy="@Policies.InternalAgent" Context="fibi">
+                        <MudTooltip Text="FIBI fragen" RootClass="noose-mobil-aus">
+                            <MudIconButton Icon="@Icons.Material.Filled.SmartToy" Color="Color.Inherit" Href="/ki-assistent"
+                                           aria-label="FIBI fragen" />
+                        </MudTooltip>
+                        @* phones read the same entries in the avatar menu below *@
+                        <HelpMenu Class="noose-mobil-aus" />
+                    </AuthorizeView>
                     <NotificationBell User="auth.User" />
-                    <MudLink Href="/profil" Underline="Underline.None" Color="Color.Inherit"
-                             Class="d-flex align-center noose-mobil-aus" title="Mein Profil">
-                        <MudStack Spacing="0" AlignItems="AlignItems.End" Class="d-none d-sm-flex mr-3">
-                            <MudText Typo="Typo.body2" Style="line-height:1.2;">@DisplayName(auth.User)</MudText>
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="line-height:1.2;">
-                                @RankRow(auth.User)
-                            </MudText>
-                        </MudStack>
-                        @AvatarOf(auth.User)
-                    </MudLink>
-                    <form method="post" action="/Account/Logout" class="noose-mobil-aus" onsubmit="if (window.nooseEntwuerfeLoeschen) { window.nooseEntwuerfeLoeschen(); }">
-                        <AntiforgeryToken />
-                        <MudIconButton ButtonType="ButtonType.Submit" Icon="@Icons.Material.Filled.Logout"
-                                       Color="Color.Inherit" aria-label="Abmelden" title="Abmelden" />
-                    </form>
-                    @* Phones: profile, quick add, firearm use and logout behind the avatar, each behind the same
-                       permission check as its app-bar button above. *@
-                    <MudMenu Class="noose-nur-handy" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    @* profile, personal lists and logout for every width; phones also find the bar's own buttons here *@
+                    <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                         <ActivatorContent>
-                            <MudIconButton OnClick="@context.ToggleAsync" Class="pa-0" aria-label="Profilmenü" title="Profilmenü">
+                            <MudButton OnClick="@context.ToggleAsync" Color="Color.Inherit" Variant="Variant.Text"
+                                       Class="pa-1 noose-avatar-knopf" aria-label="Profilmenü" title="Profilmenü">
+                                <MudStack Spacing="0" AlignItems="AlignItems.End" Class="d-none d-sm-flex mr-3">
+                                    <MudText Typo="Typo.body2" Style="line-height:1.2;text-transform:none;">@DisplayName(auth.User)</MudText>
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="line-height:1.2;text-transform:none;">
+                                        @RankRow(auth.User)
+                                    </MudText>
+                                </MudStack>
                                 @AvatarOf(auth.User)
-                            </MudIconButton>
+                            </MudButton>
                         </ActivatorContent>
                         <ChildContent>
-                            <div class="px-4 py-2">
+                            <div class="px-4 py-2 noose-nur-handy">
                                 <MudText Typo="Typo.body2" Style="line-height:1.2;">@DisplayName(auth.User)</MudText>
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="line-height:1.2;">
                                     @RankRow(auth.User)
                                 </MudText>
                             </div>
-                            <MudDivider />
-                            <MudMenuItem Icon="@Icons.Material.Filled.Person" Href="/profil">Mein Profil</MudMenuItem>
+                            @if (_isPartner)
+                            {
+                                <MudMenuItem Icon="@Icons.Material.Filled.AccountCircle" Href="/profil">Mein Profil</MudMenuItem>
+                            }
+                            <NavEntryMenu Area="NOOSE_Website.Navigation.NavArea.Ich" />
                             <AuthorizeView Policy="@Policies.WriteAccess" Context="schreibMenue">
-                                <MudMenuItem Icon="@Icons.Material.Filled.AddCircle" OnClick="QuickAddAsync">Schnellerfassung</MudMenuItem>
+                                <MudMenuItem Icon="@Icons.Material.Filled.AddCircle" OnClick="QuickAddAsync" Class="noose-nur-handy">Schnellerfassung</MudMenuItem>
                             </AuthorizeView>
-                            <FirearmUseButton AsMenuItem="true" />
+                            <FirearmUseButton AsMenuItem="true" Class="noose-nur-handy" />
+                            <AuthorizeView Policy="@Policies.InternalAgent" Context="hilfeHandy">
+                                <MudDivider Class="noose-nur-handy" />
+                                <MudText Typo="Typo.overline" Class="px-4 pt-1 mud-text-secondary noose-nur-handy">Hilfe &amp; Nachschlagen</MudText>
+                                <NavEntryMenu Area="NOOSE_Website.Navigation.NavArea.Hilfe" ItemClass="noose-nur-handy" />
+                            </AuthorizeView>
                             <MudDivider />
+                            <MudMenuItem Icon="@Icons.Material.Filled.Tune" OnClick="CustomizeNavAsync">Navigation anpassen</MudMenuItem>
                             <form method="post" action="/Account/Logout" onsubmit="if (window.nooseEntwuerfeLoeschen) { window.nooseEntwuerfeLoeschen(); }">
                                 <AntiforgeryToken />
                                 <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Text" Color="Color.Inherit"
@@ -101,10 +110,10 @@
         </AuthorizeView>
     </MudAppBar>
 
-    @* wide enough for the 64px area rail plus the entry panel; capped so it fits small phones *@
+    @* one labelled column; capped so it fits small phones *@
     <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always"
                Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
-               Width="300px" Class="noose-drawer" Style="max-width:88vw;">
+               Width="264px" Class="noose-drawer" Style="max-width:88vw;">
         @* signed in is not enough: a citizen on an internal URL lands here, and most sections only shut out partners *@
         <AuthorizeView Policy="@Policies.ActiveAgent">
             <Authorized>
@@ -310,6 +319,8 @@
     };
 
     private Task QuickAddAsync() => QuickAddDialog.ShowAsync(DialogService);
+
+    private Task CustomizeNavAsync() => NOOSE_Website.Components.Common.Navigation.NavCustomizeDialog.ShowAsync(DialogService);
 
     private void ToggleDrawer()
     {

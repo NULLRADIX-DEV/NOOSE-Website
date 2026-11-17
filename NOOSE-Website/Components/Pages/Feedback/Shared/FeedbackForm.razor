@@ -89,6 +89,7 @@
         }
         _areas = new List<NavArea> { NavArea.Primary }
             .Concat(NavAreaCatalog.Areas)
+            .Concat(NavAreaCatalog.MenuAreas)
             .Where(a => Permitted(a).Any())
             .ToList();
     }

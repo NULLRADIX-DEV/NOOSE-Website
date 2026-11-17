@@ -1,0 +1,18 @@
+@* The count chip next to a navigation entry or a collapsed group; nothing when there is nothing open. *@
+@if (Count > 0)
+{
+    <MudChip T="string" Size="Size.Small" Color="@ColorOf(BadgeKey)" Variant="Variant.Filled" Class="ml-2 noose-nav-badge">@Count</MudChip>
+}
+
+@code {
+    [Parameter] public string? BadgeKey { get; set; }
+    [Parameter] public int Count { get; set; }
+
+    /// <summary>Colour per badge kind; a group sum takes the most urgent of its entries.</summary>
+    public static Color ColorOf(string? badgeKey) => badgeKey switch
+    {
+        "shares" => Color.Error,
+        "acknowledgments" or "regulation" or "tips" => Color.Warning,
+        _ => Color.Info,
+    };
+}

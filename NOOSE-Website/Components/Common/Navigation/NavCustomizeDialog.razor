@@ -228,10 +228,13 @@
             }
             _zones = new List<NavArea> { NavArea.Primary }
                 .Concat(NavAreaCatalog.Areas)
+                .Concat(NavAreaCatalog.MenuAreas)
                 .Where(a => Permitted(a).Any())
                 .ToList();
             _menuItems = _zones.SelectMany(a => NavPersonalization.Ordered(Permitted(a), _prefs)).ToList();
-            _startOptions = _zones.SelectMany(Permitted).ToList();
+            // any page may be the landing page, listed in a menu or not
+            _startOptions = _zones.SelectMany(a => NavAreaCatalog.Entries(a)
+                .Where(e => _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section)))).ToList();
         }
 
         _favItems = _prefs.Favorites.ToList();
@@ -239,8 +242,9 @@
         _favContainer?.Refresh();
     }
 
+    // only what drawer and menus actually list can be hidden or moved there
     private IEnumerable<NavEntry> Permitted(NavArea area)
-        => NavAreaCatalog.Entries(area).Where(e => _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section)));
+        => NavAreaCatalog.ListedEntries(area).Where(e => _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section)));
 
     private RenderFragment MenuZone(NavArea area) =>@<div class="mb-2">
         <MudText Typo="Typo.caption" Class="mud-text-secondary">@NavAreaCatalog.Name(area)</MudText>

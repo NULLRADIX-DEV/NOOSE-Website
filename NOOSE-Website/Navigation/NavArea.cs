@@ -2,44 +2,49 @@ using MudBlazor;
 
 namespace NOOSE_Website.Navigation;
 
-/// <summary>Drawer area an entry is filed under; presentation only, unlike the policy-bearing NavSection.</summary>
+/// <summary>Where an entry shows up; presentation only, unlike the policy-bearing NavSection.</summary>
 public enum NavArea
 {
-    /// <summary>Pinned above the rail as plain links, not selectable as an area.</summary>
+    /// <summary>Plain links above the drawer groups.</summary>
     Primary,
     Akten,
     Ermittlung,
+    Analyse,
     Dienststelle,
-    MeinDienst,
-    Administration,
-    Verwaltung,
+    Leitung,
+    /// <summary>The avatar menu in the app bar.</summary>
+    Ich,
+    /// <summary>The help menu in the app bar.</summary>
+    Hilfe,
     Partner,
 }
 
-/// <summary>Display metadata for the drawer's area rail.</summary>
+/// <summary>Display metadata for the drawer groups and the app bar menus.</summary>
 public static class NavAreaCatalog
 {
-    /// <summary>Areas in rail order; Partner is runtime-only and never mixes with the others.</summary>
+    /// <summary>Drawer groups in order; Partner is runtime-only and never mixes with the others.</summary>
     public static readonly NavArea[] Areas =
     [
         NavArea.Akten,
         NavArea.Ermittlung,
+        NavArea.Analyse,
         NavArea.Dienststelle,
-        NavArea.MeinDienst,
-        NavArea.Verwaltung,
-        // last, so the areas above keep their place
-        NavArea.Administration,
+        NavArea.Leitung,
     ];
+
+    /// <summary>Areas rendered as app bar menus instead of drawer groups.</summary>
+    public static readonly NavArea[] MenuAreas = [NavArea.Ich, NavArea.Hilfe];
 
     public static string Name(NavArea area) => area switch
     {
         NavArea.Primary => "Allgemein",
         NavArea.Akten => "Akten",
-        NavArea.Ermittlung => "Ermittlung & Wissen",
+        NavArea.Ermittlung => "Ermittlung & Einsatz",
+        NavArea.Analyse => "Analyse",
         NavArea.Dienststelle => "Dienststelle",
-        NavArea.MeinDienst => "Mein Dienst",
-        NavArea.Administration => "Administration",
-        NavArea.Verwaltung => "Verwaltung",
+        NavArea.Leitung => "Leitung",
+        NavArea.Ich => "Mein Bereich",
+        NavArea.Hilfe => "Hilfe & Nachschlagen",
         NavArea.Partner => "Freigegebene Akten",
         _ => string.Empty,
     };
@@ -49,10 +54,11 @@ public static class NavAreaCatalog
         NavArea.Primary => Icons.Material.Filled.SpaceDashboard,
         NavArea.Akten => Icons.Material.Filled.FolderCopy,
         NavArea.Ermittlung => Icons.Material.Filled.TravelExplore,
+        NavArea.Analyse => Icons.Material.Filled.Insights,
         NavArea.Dienststelle => Icons.Material.Filled.AccountBalance,
-        NavArea.MeinDienst => Icons.Material.Filled.AccountCircle,
-        NavArea.Administration => Icons.Material.Filled.AssuredWorkload,
-        NavArea.Verwaltung => Icons.Material.Filled.AdminPanelSettings,
+        NavArea.Leitung => Icons.Material.Filled.AdminPanelSettings,
+        NavArea.Ich => Icons.Material.Filled.AccountCircle,
+        NavArea.Hilfe => Icons.Material.Filled.HelpOutline,
         NavArea.Partner => Icons.Material.Filled.FolderShared,
         _ => Icons.Material.Filled.Folder,
     };
@@ -61,7 +67,17 @@ public static class NavAreaCatalog
     public static IEnumerable<NavEntry> Entries(NavArea area)
         => NavCatalog.Internal.Where(e => e.Area == area);
 
+    /// <summary>Entries of one area that drawer or menu list; the rest stay reachable via search and their pages.</summary>
+    public static IEnumerable<NavEntry> ListedEntries(NavArea area)
+        => Entries(area).Where(e => e.InDrawer);
+
     /// <summary>Every policy the catalog gates on; the drawer evaluates each exactly once.</summary>
     public static readonly IReadOnlyList<string> DistinctPolicies =
         NavCatalog.Internal.Select(e => NavSectionPolicy.For(e.Section)).Distinct(StringComparer.Ordinal).ToList();
+
+    /// <summary>Drops entries whose twin the viewer may open as well, so one page shows up once.</summary>
+    public static IEnumerable<NavEntry> WithoutTwins(IEnumerable<NavEntry> entries, Func<NavEntry, bool> allowed)
+        => entries.Where(e => e.DrawerTwinOf is not { } twin
+                              || NavCatalog.ByKey(twin) is not { } t
+                              || !allowed(t));
 }

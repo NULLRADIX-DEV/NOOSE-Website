@@ -133,6 +133,20 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
     public Task SetDrawerOpenAsync(string agentId, bool open, CancellationToken cancellationToken = default)
         => MutateAsync(agentId, p => p.DrawerOpen = open, cancellationToken, notify: false);
 
+    public Task SetGroupOpenAsync(string agentId, string area, bool open, CancellationToken cancellationToken = default)
+        => MutateAsync(agentId, p =>
+        {
+            var token = NavPreferences.OpenGroupToken(area);
+            if (open)
+            {
+                p.CollapsedGroups.Add(token);
+            }
+            else
+            {
+                p.CollapsedGroups.Remove(token);
+            }
+        }, cancellationToken, notify: false);
+
     public Task SetLastAreaAsync(string agentId, string? area, CancellationToken cancellationToken = default)
         => MutateAsync(agentId, p => p.LastArea = string.IsNullOrWhiteSpace(area) ? null : area,
             cancellationToken, notify: false);

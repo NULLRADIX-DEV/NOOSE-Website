@@ -31,6 +31,9 @@ public interface INavPreferencesService
     /// <summary>Remember the drawer open state.</summary>
     Task SetDrawerOpenAsync(string agentId, bool open, CancellationToken cancellationToken = default);
 
+    /// <summary>Remember that a drawer group stays open beyond the page it belongs to.</summary>
+    Task SetGroupOpenAsync(string agentId, string area, bool open, CancellationToken cancellationToken = default);
+
     /// <summary>Remember the drawer area the user last looked at.</summary>
     Task SetLastAreaAsync(string agentId, string? area, CancellationToken cancellationToken = default);
 

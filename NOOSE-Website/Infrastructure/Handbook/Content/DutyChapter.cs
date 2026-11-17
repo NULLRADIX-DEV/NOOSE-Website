@@ -246,7 +246,7 @@ internal static class DutyChapter
                 <p>Trag die Meldung ein, sobald die Lage vorbei ist, solange du dich noch genau erinnerst.</p>
                 <p>Wer die Meldungen sieht, ist bewusst eng gefasst:</p>
                 <ul>
-                <li>Die Übersicht <em>Schusswaffengebrauch</em> unter <em>Verwaltung · Führung</em> zeigt alle
+                <li>Die Übersicht <em>Schusswaffengebrauch</em> im Bereich <em>Leitung</em> zeigt alle
                 Meldungen der Führung und der Aufsicht, filterbar nach Agent, Abteilung und Zeitraum. Die
                 Administration Division findet dieselbe Übersicht in ihrem eigenen Bereich.</li>
                 <li>Deine eigenen Meldungen stehen in einem eigenen Abschnitt deiner Personalakte. Bei anderen
@@ -351,7 +351,7 @@ internal static class DutyChapter
                 Steps:
                 [
                     new Step("Inbox", "Alle Benachrichtigungen öffnen",
-                        "Ganz unten in der Glocke - oder im Menü unter Mein Dienst."),
+                        "Ganz unten in der Glocke - oder im Menü hinter deinem Namen oben rechts."),
                     new Step("FilterAlt", "Eingrenzen",
                         "Nach Art, Zeitraum oder nur ungelesene. Den Filter kannst du dir als Ansicht merken."),
                     new Step("MarkEmailUnread", "Merker zurückholen",
@@ -379,7 +379,7 @@ internal static class DutyChapter
             new Article("art-feedback", "feedback", "Feedback zur Seite",
                 "Wenn etwas fehlt oder nicht funktioniert.",
                 """
-                <p>Unter <em>Feedback</em> im Bereich <em>Mein Dienst</em> meldest du, was an dieser Seite
+                <p>Unter <em>Feedback</em> hinter dem Fragezeichen oben rechts meldest du, was an dieser Seite
                 nicht stimmt oder fehlt: ein Fehler, ein Wunsch, eine Verständnisfrage.</p>
                 <p>Schreib dazu, <strong>was du tun wolltest</strong> und was stattdessen passiert ist. Das ist
                 der Unterschied zwischen einer Meldung, die sich beheben lässt, und einer, die zurückkommt.</p>

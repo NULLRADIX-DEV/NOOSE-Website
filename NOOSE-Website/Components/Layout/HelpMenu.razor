@@ -1,0 +1,38 @@
+@* App bar "?" menu: handbook, changelog, law book, service regulation and the other reference pages. *@
+@implements IDisposable
+@using NOOSE_Website.Navigation
+@inject NavBadgeState Badges
+
+<MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="@Class">
+    <ActivatorContent>
+        <MudBadge Content="@Open" Visible="@(Open > 0)" Color="Color.Warning" Overlap="true" Bordered="true">
+            <MudIconButton Icon="@Icons.Material.Filled.HelpOutline" Color="Color.Inherit" OnClick="@context.ToggleAsync"
+                           aria-label="Hilfe und Nachschlagen" title="Hilfe und Nachschlagen" />
+        </MudBadge>
+    </ActivatorContent>
+    <ChildContent>
+        <MudText Typo="Typo.overline" Class="d-block px-4 pt-1 mud-text-secondary">@NavAreaCatalog.Name(NavArea.Hilfe)</MudText>
+        <NavEntryMenu Area="NavArea.Hilfe" />
+    </ChildContent>
+</MudMenu>
+
+@code {
+    /// <summary>Classes on the menu root, e.g. a helper class that hides it on phones.</summary>
+    [Parameter] public string? Class { get; set; }
+
+    // unread directive sections are the only open item behind this menu
+    private int Open => Badges.Count("regulation");
+
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    // the drawer usually loads the counts first; asking again is free
+    protected override async Task OnInitializedAsync()
+    {
+        Badges.Changed += OnBadgesChanged;
+        await Badges.InitializeAsync((await AuthStateTask).User, RendererInfo.IsInteractive);
+    }
+
+    private void OnBadgesChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Badges.Changed -= OnBadgesChanged;
+}

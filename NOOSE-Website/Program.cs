@@ -463,6 +463,7 @@ builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddScoped<IDemoDataService, DemoDataService>();
 builder.Services.AddScoped<INavPreferencesService, NavPreferencesService>();
 builder.Services.AddScoped<INavLabelService, NavLabelService>();
+builder.Services.AddScoped<NavBadgeState>();
 builder.Services.AddScoped<IPartnerVisibilityPolicyService, PartnerVisibilityPolicyService>();
 builder.Services.AddScoped<IPartnerAgencyProfileService, PartnerAgencyProfileService>();
 builder.Services.AddScoped<IPartnerUnitService, PartnerUnitService>();

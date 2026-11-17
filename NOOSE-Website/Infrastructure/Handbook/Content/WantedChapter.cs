@@ -184,8 +184,8 @@ internal static class WantedChapter
                 im Änderungsprotokoll auf; wer nicht beteiligt ist, sieht sie nicht. Mitlesen darf die
                 Administration Division, in ihrem eigenen Bereich unter <em>Bürger-Tickets</em>. Antworten und
                 abschließen bleibt bei der Führung.</p>
-                <p>Bist du an einem Ticket beteiligt, findest du es unter <em>Meine Tickets</em> im Bereich
-                <em>Mein Dienst</em> - auch ohne Führungsrang.</p>
+                <p>Bist du an einem Ticket beteiligt, findest du es unter <em>Meine Tickets</em> im Menü hinter
+                deinem Namen oben rechts - auch ohne Führungsrang.</p>
                 """,
                 NavKey: "tickets"),
 

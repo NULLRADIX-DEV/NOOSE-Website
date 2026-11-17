@@ -294,7 +294,7 @@ internal static class RecordsChapter
                 <p>Wird sie fällig, bekommt der Zuständige eine Benachrichtigung - und die Wiedervorlage steht
                 auf seinem Lagezentrum, bis sie erledigt ist. Sie verschwindet nicht von selbst.</p>
                 <p>Alle Wiedervorlagen, für die du zuständig bist, stehen unter <em>Meine Wiedervorlagen</em> im
-                Bereich <em>Mein Dienst</em>, sortiert nach <strong>überfällig</strong>, <strong>heute</strong>,
+                Menü hinter deinem Namen oben rechts, sortiert nach <strong>überfällig</strong>, <strong>heute</strong>,
                 <strong>diese Woche</strong> (bis Sonntag) und <strong>später</strong>. Dort verschiebst du eine mit
                 einem Klick um <em>+1 Tag</em> oder <em>+1 Woche</em> oder hakst sie mit <em>Erledigt</em> ab, ohne
                 die Akte zu öffnen. Ist sie schon überfällig, zählt das Verschieben ab heute: <em>+1 Tag</em> heißt
