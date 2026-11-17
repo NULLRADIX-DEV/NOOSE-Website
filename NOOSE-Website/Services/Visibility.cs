@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Abductions;
+using NOOSE_Website.Data.Entities.Administration;
 using NOOSE_Website.Data.Entities.Absences;
 using NOOSE_Website.Data.Entities.Activities;
 using NOOSE_Website.Data.Entities.Announcements;
@@ -31,6 +32,7 @@ using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Public;
+using NOOSE_Website.Services.Administration;
 
 namespace NOOSE_Website.Services;
 
@@ -183,6 +185,53 @@ public static class Visibility
             case nameof(BewerbungTest):
                 return scope.MayRecruiting
                     && await db.BewerbungTests.AnyAsync(t => t.Id == entityId, cancellationToken);
+            // Administration workspace: the workspace itself and its registers, never the tail's "visible"
+            case nameof(AdministrationWorkspace):
+                return scope.MayAdministration && !scope.IsPartner
+                    && entityId == AdministrationWorkspace.SingletonId;
+            case nameof(AdministrationMessage):
+                return scope.MayAdministration && !scope.IsPartner
+                    && await db.AdministrationMessages.AnyAsync(m => m.Id == entityId, cancellationToken);
+            case nameof(AgentRelationship):
+                return scope.MayAdministration && !scope.IsPartner
+                    && await db.AgentRelationships.AnyAsync(r => r.Id == entityId, cancellationToken);
+            case nameof(DecorationProposal):
+                return scope.MayAdministration && !scope.IsPartner
+                    && await db.DecorationProposals.AnyAsync(p => p.Id == entityId, cancellationToken);
+            case nameof(ParliamentaryInquiry):
+                return ParliamentRules.MaySee(scope)
+                    && await db.ParliamentaryInquiries.AnyAsync(p => p.Id == entityId, cancellationToken);
+            case nameof(DisciplinaryProceeding):
+            {
+                var proceeding = await db.DisciplinaryProceedings.AsNoTracking()
+                    .Where(d => d.Id == entityId)
+                    .Select(d => new { d.AgentId, d.Status })
+                    .FirstOrDefaultAsync(cancellationToken);
+                return proceeding is not null
+                    && await DisciplinaryRules.MaySeeAsync(db, proceeding.AgentId, proceeding.Status, scope, cancellationToken);
+            }
+            case nameof(TransferRequest):
+            {
+                var transfer = await db.TransferRequests.AsNoTracking()
+                    .Where(t => t.Id == entityId)
+                    .Select(t => new { t.AgentId, t.CreatedById })
+                    .FirstOrDefaultAsync(cancellationToken);
+                return transfer is not null && TransferRules.MaySee(scope, transfer.AgentId, transfer.CreatedById);
+            }
+            case nameof(DivisionTransfer):
+            {
+                var agentId = await db.DivisionTransfers.AsNoTracking()
+                    .Where(t => t.Id == entityId).Select(t => t.AgentId).FirstOrDefaultAsync(cancellationToken);
+                return agentId is not null && ServiceReferenceRules.MaySee(scope, agentId);
+            }
+            case nameof(ServiceReference):
+            {
+                var agentId = await db.ServiceReferences.AsNoTracking()
+                    .Where(r => r.Id == entityId).Select(r => r.AgentId).FirstOrDefaultAsync(cancellationToken);
+                return agentId is not null && ServiceReferenceRules.MaySee(scope, agentId);
+            }
+            case nameof(AdministrationChatRead):
+                return false;
             // leadership-only material
             case nameof(SituationReport):
                 return scope.MayClassifiedRead

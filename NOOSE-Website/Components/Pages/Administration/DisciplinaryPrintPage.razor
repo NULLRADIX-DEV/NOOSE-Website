@@ -1,0 +1,82 @@
+@* The written notice of a closed proceeding: discontinuation or disciplinary order. *@
+@page "/administration/disziplinar/{Id}/druck"
+@layout PrintLayout
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IDisciplinaryService Disciplinary
+
+<PageTitle>@(_view is null ? "Druckansicht" : Heading) · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null || !DisciplinaryRules.IsClosed(_view.Row.Status))
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Gedruckt wird erst der Abschluss eines Verfahrens, das du einsehen darfst.
+    </MudAlert>
+}
+else
+{
+    var row = _view.Row;
+    <PrintFrame Title="@Heading" BackHref="@DisciplinaryService.Href(Id)" PrintedBy="@_printBy" IsClassified="false">
+        <section>
+            <table class="druck-felder">
+                <tbody>
+                    <tr><th>Aktenzeichen</th><td>@row.CaseNumber</td></tr>
+                    <tr><th>Name</th><td>@_view.Name</td></tr>
+                    <tr><th>Dienstgrad</th><td>@RankDisplay.Name(row.RankAtClose ?? _view.CurrentRank)</td></tr>
+                    @if (row.Measure is { } measure)
+                    {
+                        <tr><th>Maßnahme</th><td>@AdministrationDisplay.Name(measure)</td></tr>
+                    }
+                    <tr><th>Datum</th><td>@row.ClosedAt?.ToLocalTime().ToString("dd.MM.yyyy")</td></tr>
+                    <tr><th>Entschieden von</th><td>@(row.DecidedByName ?? "—"), Administration Division</td></tr>
+                </tbody>
+            </table>
+        </section>
+        @if (!string.IsNullOrWhiteSpace(row.Facts))
+        {
+            <section>
+                <h2>Sachverhalt</h2>
+                <RichHtml Html="@row.Facts" Plain="true" />
+            </section>
+        }
+        @if (!string.IsNullOrWhiteSpace(row.Reasoning))
+        {
+            <section>
+                <h2>Begründung</h2>
+                <RichHtml Html="@row.Reasoning" Plain="true" />
+            </section>
+        }
+        @if (row.Status == DisciplinaryStatus.Decided && !string.IsNullOrWhiteSpace(row.RightsNotice))
+        {
+            <section>
+                <h2>Belehrung</h2>
+                <p style="white-space:pre-line;">@row.RightsNotice</p>
+            </section>
+        }
+    </PrintFrame>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private string? _printBy;
+    private DisciplinaryView? _view;
+
+    private string Heading => _view?.Row.Status == DisciplinaryStatus.Decided
+        ? $"Disziplinarverfügung {_view.Row.CaseNumber}"
+        : $"Einstellungsbescheid {_view?.Row.CaseNumber}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        _printBy = user.GetCodename();
+        _view = await Disciplinary.GetAsync(Id, user);
+        _load = false;
+    }
+}

@@ -36,6 +36,8 @@ public sealed class MigrationModelTests : IDisposable
             ("Anordnungen", "EntscheiderDienstgrad"),
             ("Finanzierungspositionen", "MindestDienstgradCtd"),
             ("Finanzierungspositionen", "MindestDienstgradHrt"),
+            ("Disziplinarverfahren", "DienstgradBeiAbschluss"),
+            ("Dienstzeugnisse", "Dienstgrad"),
         ];
         var stored = new HashSet<(string Table, string Column)>();
         foreach (var entityType in _db.Model.GetEntityTypes())

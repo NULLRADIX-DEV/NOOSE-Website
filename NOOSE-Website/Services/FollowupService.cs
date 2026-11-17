@@ -366,7 +366,7 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
 
         var target = await db.Users.OnlySelectable()
             .Where(u => u.Id == agentId)
-            .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency })
+            .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency, u.IsHRB, u.IsTeamLead })
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException("Der gewählte Agent wurde nicht gefunden oder ist nicht zuteilbar.");
         // MariaDB ids ignore case
@@ -376,7 +376,8 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
         }
         // same rule as reminders
         if (!await Visibility.IsRecordVisibleAsync(db, w.EntityType, w.EntityId,
-                ReminderScope(target.Id, target.IsAdmin, target.Rank, target.PartnerAgency), cancellationToken))
+                ReminderScope(target.Id, target.IsAdmin, target.Rank, target.PartnerAgency, target.IsHRB, target.IsTeamLead),
+                cancellationToken))
         {
             throw new InvalidOperationException("Der gewählte Agent darf die Akte dieser Wiedervorlage nicht sehen.");
         }
@@ -455,12 +456,18 @@ public class FollowupService(IDbContextFactory<AppDbContext> dbFactory, INotific
     }
 
     /// <summary>The scope a reminder recipient is checked with; the due worker and reassigning share it.</summary>
-    public static ViewerScope ReminderScope(string agentId, bool isAdmin, Rank? rank, PartnerAgency? partnerAgency)
+    public static ViewerScope ReminderScope(string agentId, bool isAdmin, Rank? rank, PartnerAgency? partnerAgency,
+        bool isHrb = false, bool isTeamLead = false)
     {
         var leadership = isAdmin || rank is >= Rank.SectionChief;
+        var internalAgent = partnerAgency is null;
+        // the Administration workspace asks for its own flags; without them its follow-ups never reach anyone
+        var member = internalAgent && (isHrb || DivisionRules.IsBoard(rank) || isAdmin);
+        var reader = internalAgent && isTeamLead && !isAdmin;
         // else citizen tickets hide
         return new ViewerScope(leadership, leadership, agentId, null, MayAgenda: leadership,
-            IsInternalAgent: partnerAgency is null);
+            IsInternalAgent: internalAgent, IsHrb: isHrb, IsAdmin: isAdmin, Rank: rank, IsLeadership: leadership,
+            MayAdministration: member || reader, IsAdministrationMember: member);
     }
 
     /// <summary>Clears both stamps, written even if already null so a concurrent claim cannot survive.</summary>

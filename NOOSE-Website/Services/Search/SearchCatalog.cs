@@ -498,6 +498,16 @@ public static class SearchCatalog
             ["AgentRankHistory"] = "Dienstgrad-Verlauf; die Personalakte ist durchsuchbar.",
             ["AgentEvaluation"] = "Beurteilungen liest nur der Agent selbst und die Personalseite; die Suche würde sie allen zeigen.",
             ["AgentPromotionRequest"] = "Beförderungsantrag; die Personalakte ist durchsuchbar.",
+            ["AdministrationWorkspace"] = "Der eine Arbeitsbereich der Administration; er hat eine feste Adresse.",
+            ["AdministrationMessage"] = "Chat der Administration; Personalinterna gehören in keine Volltextsuche.",
+            ["AdministrationChatRead"] = "Lesemarke, kein Inhalt.",
+            ["DisciplinaryProceeding"] = "Disziplinarverfahren liest nur die Administration und nach Abschluss der Betroffene.",
+            ["TransferRequest"] = "Versetzungsantrag; die Personalakte ist durchsuchbar.",
+            ["DivisionTransfer"] = "Versetzungsverlauf; die Personalakte ist durchsuchbar.",
+            ["ServiceReference"] = "Dienstzeugnis; liest nur der Agent selbst und die Administration.",
+            ["AgentRelationship"] = "Personalbeziehungen sind Privates, das nur die Administration kennt.",
+            ["DecorationProposal"] = "Ehrungsvorschlag; die Ehrung selbst steht in der Personalakte.",
+            ["ParliamentaryInquiry"] = "Parlamentarische Anfrage; gelesen wird sie in der Administration und vom Parlament.",
             ["FirearmUse"] = "Meldung eines Schusswaffengebrauchs; gelesen wird sie auf /schusswaffengebrauch und in der "
                 + "eigenen Personalakte, eine Volltextsuche über Begründungen wäre ein Verzeichnis, wer wann geschossen hat.",
 

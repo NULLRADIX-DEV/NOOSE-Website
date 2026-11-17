@@ -80,6 +80,13 @@ public class DiscordWebhookModelsTests
         NotificationType.InvestigationParticipation,
         NotificationType.InvestigationTask,
         NotificationType.WarrantToSign,
+        NotificationType.AdministrationChat,
+        NotificationType.DisciplinaryConcluded,
+        NotificationType.TransferRequested,
+        NotificationType.TransferDecided,
+        NotificationType.ParliamentInquiryReceived,
+        NotificationType.ParliamentInquiryAnswered,
+        NotificationType.DecorationProposed,
     };
 
     // ----- IsRoutable: true branch -----

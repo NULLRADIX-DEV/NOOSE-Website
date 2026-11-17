@@ -378,6 +378,14 @@ builder.Services.AddScoped<ITaskforceService, TaskforceService>();
 builder.Services.AddScoped<ITaskforceChatService, TaskforceChatService>();
 builder.Services.AddScoped<IMentionService, MentionService>();
 builder.Services.AddSingleton<TaskforceChatBroadcaster>();
+// Administration Division workspace
+builder.Services.AddSingleton<AdministrationChatBroadcaster>();
+builder.Services.AddScoped<NOOSE_Website.Services.Administration.IAdministrationChatService, NOOSE_Website.Services.Administration.AdministrationChatService>();
+builder.Services.AddScoped<NOOSE_Website.Services.Administration.IAdministrationService, NOOSE_Website.Services.Administration.AdministrationService>();
+builder.Services.AddScoped<NOOSE_Website.Services.Administration.IDisciplinaryService, NOOSE_Website.Services.Administration.DisciplinaryService>();
+builder.Services.AddScoped<NOOSE_Website.Services.Administration.ITransferService, NOOSE_Website.Services.Administration.TransferService>();
+builder.Services.AddScoped<NOOSE_Website.Services.Administration.IServiceReferenceService, NOOSE_Website.Services.Administration.ServiceReferenceService>();
+builder.Services.AddScoped<NOOSE_Website.Services.Administration.IParliamentService, NOOSE_Website.Services.Administration.ParliamentService>();
 builder.Services.AddScoped<IOperationLogService, OperationLogService>();
 builder.Services.AddSingleton<OperationLogBroadcaster>();
 builder.Services.AddScoped<IEmergencyAlarmService, EmergencyAlarmService>();
@@ -735,6 +743,10 @@ using (var scope = app.Services.CreateScope())
 
     // partner accounts an older build left without a unit, and the old per-tier allowlist (idempotent)
     await SeedAsync("Partner-Einheiten", () => NOOSE_Website.Services.PartnerUnitService.SyncAsync(db));
+
+    // the one workspace row comments and follow-ups hang on (idempotent)
+    await SeedAsync("Administration", () => scope.ServiceProvider
+        .GetRequiredService<NOOSE_Website.Services.Administration.IAdministrationService>().EnsureWorkspaceAsync());
 
     // warm the static enum-label overrides so display classes show custom names
     var labelRows = await db.EnumLabelOverrides.Select(o => new { o.List, o.Key, o.Label }).ToListAsync();

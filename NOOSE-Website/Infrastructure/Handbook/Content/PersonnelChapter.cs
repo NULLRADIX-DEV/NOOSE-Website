@@ -34,7 +34,7 @@ internal static class PersonnelChapter
                 <p>Die Akte ist in <strong>Reiter</strong> gegliedert: <em>Dienstaufsicht</em> (vorn, für die
                 Führung), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beurteilungen</em>, <em>Beförderungen</em>,
                 <em>Finanzierung</em>, <em>KI-Kontingent</em>, <em>Module</em>, <em>Auszeichnungen</em>,
-                <em>Entführungen</em>, <em>Schusswaffengebrauch</em> und <em>Kommentare</em>. Oben auf der Akte
+                <em>Entführungen</em>, <em>Schusswaffengebrauch</em>, <em>Administration</em> und <em>Kommentare</em>. Oben auf der Akte
                 stehen die Knöpfe für Dienstausweis, Druckansicht und - wenn jemand geht - <em>Arbeit
                 übergeben</em>.</p>
                 <p>Sie ist der Führung vorbehalten. Deinen eigenen Stand siehst du in deinem Profil.</p>
@@ -161,8 +161,9 @@ internal static class PersonnelChapter
                 "Vom Antrag bis zum neuen Dienstgrad.",
                 """
                 <p>Eine <strong>Beförderung</strong> beginnt als Antrag: jemand aus der Führung (ab Section
-                Chief) schlägt einen Agenten für den nächsten Dienstgrad vor und begründet es. Der Antrag
-                steht dann zur Entscheidung.</p>
+                Chief) oder aus der Administration Division schlägt einen Agenten für den nächsten Dienstgrad vor
+                und begründet es. Der Antrag steht dann zur Entscheidung. Solange gegen den Agenten ein
+                Disziplinarverfahren läuft, lässt sich die Beförderung nicht genehmigen.</p>
                 <p>Entscheiden darf erst ab <strong>Section Chief</strong>, und nur so weit, wie der Dienstgrad
                 reicht: Das <strong>Board</strong> entscheidet für alle Abteilungen. Ein <strong>Section
                 Chief</strong> entscheidet nur in seiner eigenen Abteilung, und nur über Dienstgrade bis zum
@@ -188,8 +189,9 @@ internal static class PersonnelChapter
             new Article("art-ehrungen", "ehrungen-und-urkunden", "Ehrungen und Urkunden",
                 "Ehrenzeichen verleihen, bekanntgeben, aberkennen und als Urkunde drucken.",
                 """
-                <p>Die Führung kann einem Agenten ein <strong>Ehrenzeichen</strong> verleihen - etwa eine
-                Verdienst- oder Tapferkeitsmedaille. Welche es gibt, legt die Führung unter
+                <p>Die Führung und die Administration Division können einem Agenten ein <strong>Ehrenzeichen</strong>
+                verleihen - etwa eine Verdienst- oder Tapferkeitsmedaille. Jeder Agent kann einen Kollegen dafür
+                vorschlagen, im Reiter <em>Auszeichnungen</em> seiner Personalakte. Welche es gibt, legt die Führung unter
                 <em>Einstellungen → Ehrenzeichen</em> fest. Dort steht zu jedem auch ein Standardtext, der beim
                 Verleihen schon eingetragen ist.</p>
                 <p>Verliehen wird in der Personalakte, Reiter <em>Auszeichnungen</em>, über
@@ -307,11 +309,11 @@ internal static class PersonnelChapter
                 Admins; das Board selbst ergibt sich aus dem Dienstgrad. Kennzeichen sind Admin, die
                 Administration Division und die Nur-Lese-Aufsicht. Sie sind keine Dienstgrade - ein Deputy
                 Director muss nicht in der Administration Division sein, und ein Special Agent kann es sein.</p>
-                <p>Für <strong>HRT und Administration Division</strong> gilt dabei eine Schwelle: beides lässt
-                sich erst ab dem Dienstgrad <strong>Special Agent</strong> setzen. Bei einem Trainee sind die
-                beiden Auswahlen deshalb gesperrt. Wird jemand unter diese Schwelle
-                herabgestuft, wechselt er aus dem HRT in die CID und verliert die Administration Division; das
-                kommt ins Protokoll.</p>
+                <p>Für das <strong>HRT</strong> gilt dabei eine Schwelle: es lässt sich erst ab dem Dienstgrad
+                <strong>Special Agent</strong> setzen. Bei einem Trainee ist die Auswahl deshalb gesperrt. Wird
+                jemand unter diese Schwelle herabgestuft, wechselt er aus dem HRT in die CID; das kommt ins
+                Protokoll. Die <strong>Administration Division</strong> steht dagegen jedem Dienstgrad offen,
+                auch dem Trainee, und bleibt bei einer Herabstufung erhalten.</p>
                 <p>Die Abteilungen haben <strong>Platzgrenzen</strong>: Board 4, HRT 9, CID 21, CTD 6. Ist eine
                 Einheit voll, fragt die Seite ausdrücklich nach, bevor jemand darüber hinaus eingeteilt wird.</p>
                 <p>Jede Änderung an Dienstgrad, Kennzeichen oder Status meldet den Betroffenen einmal ab. Das

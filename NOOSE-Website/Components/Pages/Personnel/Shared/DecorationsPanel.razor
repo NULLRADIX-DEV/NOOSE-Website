@@ -101,8 +101,8 @@
 
     private string AgentId => Agent.Id;
 
-    // mirrors the service guards: leadership with write access, never on one's own file
-    private bool MayManage => _user.IsLeadership() && _user.MayWrite()
+    // mirrors the service guards: leadership or Administration with write access, never on one's own file
+    private bool MayManage => _user.MayPersonnelWrite()
         && !string.Equals(_user.GetAgentId(), AgentId, StringComparison.Ordinal);
 
     private bool MayAward => MayManage && AgentSelection.IsSelectable(Agent);

@@ -135,12 +135,14 @@
     [Inject] private AcknowledgmentBroadcaster AcknowledgmentBroadcaster { get; set; } = default!;
     [Inject] private FinancingBroadcaster FinancingBroadcaster { get; set; } = default!;
     [Inject] private TipsBroadcaster TipsBroadcaster { get; set; } = default!;
+    [Inject] private AdministrationChatBroadcaster AdministrationChatBroadcaster { get; set; } = default!;
     [Inject] private IFinancingService FinancingService { get; set; } = default!;
     [Inject] private IWarrantService WarrantService { get; set; } = default!;
     [Inject] private NOOSE_Website.Services.Public.ITipService TipService { get; set; } = default!;
     [Inject] private IPartnerVisibilityPolicyService PartnerPolicy { get; set; } = default!;
     [Inject] private IPartnerAgencyProfileService PartnerProfiles { get; set; } = default!;
     [Inject] private Microsoft.Extensions.Logging.ILogger<NavMenu> Logger { get; set; } = default!;
+    [Inject] private NOOSE_Website.Services.Administration.IAdministrationChatService AdministrationChat { get; set; } = default!;
 
     private ClaimsPrincipal? _user;
     private string? _agentId;
@@ -150,6 +152,7 @@
     private int _openRegulation;
     private int _openFinancing;
     private int _openTips;
+    private int _administrationUnread;
     private IReadOnlySet<string>? _allowedPartnerTypes;
     private IReadOnlyList<NavEntry> _partnerEntries = [];
     private string? _filter;
@@ -238,6 +241,10 @@
         @if (entry.BadgeKey == "tips" && _openTips > 0)
         {
             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ml-2">@_openTips</MudChip>
+        }
+        @if (entry.BadgeKey == "administration-chat" && _administrationUnread > 0)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2">@_administrationUnread</MudChip>
         }
     </MudNavLink>;
 
@@ -436,12 +443,15 @@
             AcknowledgmentBroadcaster.Modified += OnAcknowledgmentModified;
             FinancingBroadcaster.Modified += OnFinancingModified;
             TipsBroadcaster.Modified += OnTipsModified;
+            AdministrationChatBroadcaster.Modified += OnAdministrationChatModified;
+            AdministrationChatBroadcaster.ReadMarked += OnAdministrationChatRead;
         }
         await LoadSharesAsync();
         await LoadAcknowledgmentsAsync();
         await LoadRegulationAsync();
         await LoadFinancingAsync();
         await LoadTipsAsync();
+        await LoadAdministrationChatAsync();
     }
 
     // partners get one runtime area; internal agents get the areas holding at least one permitted entry
@@ -582,6 +592,25 @@
         }
     }
 
+    // members who may write carry a read mark; the count refreshes with the next page load
+    private async Task LoadAdministrationChatAsync()
+    {
+        if (_user is null || !_user.MayAdministrationWrite())
+        {
+            _administrationUnread = 0;
+            return;
+        }
+        try
+        {
+            _administrationUnread = (await AdministrationChat.GetReadStateAsync(_user)).Unread;
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            Logger.LogWarning(ex, "Administration-Badge konnte nicht geladen werden.");
+        }
+    }
+
     // every internal agent works the tip inbox, so every internal agent gets the count
     private async Task LoadTipsAsync()
     {
@@ -610,6 +639,29 @@
             _ = InvokeAsync(async () =>
             {
                 await LoadSharesAsync();
+                StateHasChanged();
+            });
+        }
+        catch (InvalidOperationException) { /* circuit gone */ }
+    }
+
+    // only the own mark counts, another reader changes nothing here
+    private void OnAdministrationChatRead(string agentId)
+    {
+        if (string.Equals(agentId, _agentId, StringComparison.Ordinal))
+        {
+            OnAdministrationChatModified(agentId);
+        }
+    }
+
+    // new chat messages reload the count
+    private void OnAdministrationChatModified(string room)
+    {
+        try
+        {
+            _ = InvokeAsync(async () =>
+            {
+                await LoadAdministrationChatAsync();
                 StateHasChanged();
             });
         }
@@ -670,5 +722,7 @@
         AcknowledgmentBroadcaster.Modified -= OnAcknowledgmentModified;
         FinancingBroadcaster.Modified -= OnFinancingModified;
         TipsBroadcaster.Modified -= OnTipsModified;
+        AdministrationChatBroadcaster.Modified -= OnAdministrationChatModified;
+        AdministrationChatBroadcaster.ReadMarked -= OnAdministrationChatRead;
     }
 }

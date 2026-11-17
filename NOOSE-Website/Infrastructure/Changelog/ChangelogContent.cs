@@ -762,7 +762,18 @@ public static class ChangelogContent
             Neu("3.0.56-drogenrouten", "Drogenrouten haben eine eigene Akte mit Stationen in Reihenfolge, Beweisfotos je "
                 + "Station, beteiligten Personen und der Fraktion, die sie betreibt. Die bisherigen Routen der Fraktionen "
                 + "sind als Akten übernommen, und die Fraktionsakte zeigt sie unter Bestände.", "Akten"),
-            Besser("3.0.57-dvo-aenderungen-lesbar", "Wird ein Absatz der Dienstverordnung umgeschrieben, zeigt der Vergleich "
+            Neu("3.0.57-administration", "Die Administration Division hat links in der Leiste einen eigenen Bereich mit "
+                + "Chat, Informationen, Personalbeziehungen, Sicherheitsüberprüfungen, Beurteilungen, Beförderungen, "
+                + "Versetzungen, Ehrungsvorschlägen, Dienstzeugnissen, Disziplinarverfahren, Presse und parlamentarischen "
+                + "Anfragen.", "Personal"),
+            Neu("3.0.58-versetzung-und-vorschlag", "In deiner Personalakte kannst du eine Versetzung beantragen und "
+                + "Kollegen für ein Ehrenzeichen vorschlagen. Ergebnisse von Disziplinarverfahren und deine "
+                + "Dienstzeugnisse findest du dort im Reiter Administration.", "Personal"),
+            Neu("3.0.59-parlament", "Das Parlament stellt seine Anfragen jetzt direkt auf der Seite und liest dort die "
+                + "Antwort, sobald die Administration sie freigegeben hat.", "Partner"),
+            Besser("3.0.60-administration-ab-trainee", "Schon ein Trainee kann in die Administration Division, und wer "
+                + "herabgestuft wird, bleibt dort.", "Personal"),
+            Besser("3.0.61-dvo-aenderungen-lesbar", "Wird ein Absatz der Dienstverordnung umgeschrieben, zeigt der Vergleich "
                 + "erst den alten Text durchgestrichen und dann den neuen fett, statt beides Wort für Wort zu mischen.",
                 "Dienstverordnung"),
         ]),

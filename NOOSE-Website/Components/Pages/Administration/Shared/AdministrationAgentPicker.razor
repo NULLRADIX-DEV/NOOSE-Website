@@ -1,0 +1,33 @@
+@* Picks an active FIB agent by codename; the offer list is AgentSelection's, so nobody hidden shows up. *@
+@inject IAgentManagementService AgentService
+
+<MudAutocomplete T="Agent" Label="@Label" Value="Value" ValueChanged="ValueChanged"
+                 SearchFunc="@SearchAgents" ToStringFunc="@(a => a?.Codename ?? string.Empty)"
+                 Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" CoerceText="false" CoerceValue="false"
+                 ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true" Class="@Class"
+                 Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
+
+@code {
+    [Parameter] public string Label { get; set; } = "Agent";
+    [Parameter] public Agent? Value { get; set; }
+    [Parameter] public EventCallback<Agent?> ValueChanged { get; set; }
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Agents to leave out, e.g. the one already picked in a pair.</summary>
+    [Parameter] public IReadOnlyCollection<string>? Exclude { get; set; }
+
+    private List<Agent> _all = new();
+
+    protected override async Task OnInitializedAsync() => _all = await AgentService.GetSelectableAsync();
+
+    private Task<IEnumerable<Agent>> SearchAgents(string value, CancellationToken token)
+    {
+        var search = value?.Trim() ?? string.Empty;
+        var hits = _all
+            .Where(a => Exclude is null || !Exclude.Contains(a.Id))
+            .Where(a => search.Length == 0 || a.Codename.Contains(search, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(a => a.Codename, StringComparer.OrdinalIgnoreCase)
+            .Take(50);
+        return Task.FromResult(hits);
+    }
+}

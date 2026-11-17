@@ -1,0 +1,21 @@
+@* Parliament's own view of its inquiries; the service admits the parliament agency and the Administration only. *@
+@page "/parlament"
+@using NOOSE_Website.Components.Pages.Administration.Shared
+
+<PageTitle>Parlamentarische Anfragen · FIB</PageTitle>
+
+<PageHeader Icon="@Icons.Material.Filled.AccountBalance" Title="Parlamentarische Anfragen"
+            Subtitle="Anfragen an das FIB stellen und die Antworten der Administration Division lesen" />
+
+@if (_user is not null)
+{
+    <ParliamentPanel User="_user" Partner="@_user.IsPartner()" />
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal? _user;
+
+    protected override async Task OnInitializedAsync() => _user = (await AuthStateTask).User;
+}

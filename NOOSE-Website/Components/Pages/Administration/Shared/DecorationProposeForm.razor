@@ -1,0 +1,103 @@
+@* Proposes an agent for a decoration; open to every internal writer, never for oneself. AgentId fixes the agent. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Models.Decorations
+@using NOOSE_Website.Services.Administration
+@using NOOSE_Website.Services.Decorations
+@inject IAdministrationService AdministrationService
+@inject IDecorationService DecorationService
+@inject ISnackbar Snackbar
+
+@if (_mayPropose)
+{
+    <MudPaper Class="pa-3" Elevation="1">
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.subtitle2">Für ein Ehrenzeichen vorschlagen</MudText>
+            <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                @if (AgentId is null)
+                {
+                    <AdministrationAgentPicker Label="Agent" @bind-Value="_agent" Class="noose-breite-frei"
+                                               Exclude="@(_meId is null ? null : new[] { _meId })" />
+                }
+                <MudSelect T="string" @bind-Value="_decorationId" Label="Ehrenzeichen" Variant="Variant.Outlined"
+                           Margin="Margin.Dense" Class="noose-breite-frei" Style="min-width:220px;">
+                    @foreach (var d in _catalog)
+                    {
+                        <MudSelectItem Value="@d.Id">@d.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudStack>
+            <TextDraft @ref="_draft" DraftKey="@DraftKey" OnRestore="@(t => _reason = t)">
+                <MudTextField @bind-Value="_reason" Label="Begründung" Variant="Variant.Outlined" Lines="3"
+                              MaxLength="@DecorationProposalRules.MaxReasonLength" Immediate="true" />
+            </TextDraft>
+            <div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                           OnClick="ProposeAsync"
+                           Disabled="@(_saves || string.IsNullOrWhiteSpace(_reason) || _decorationId is null || (AgentId is null && _agent is null))">
+                    Vorschlagen
+                </MudButton>
+            </div>
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+    [Parameter] public string? AgentId { get; set; }
+    [Parameter] public EventCallback Proposed { get; set; }
+
+    private IReadOnlyList<DecorationView> _catalog = [];
+    private bool _mayPropose;
+    private bool _saves;
+    private string? _meId;
+    private Agent? _agent;
+    private string? _decorationId;
+    private string? _reason;
+    private TextDraft? _draft;
+
+    private string DraftKey => $"ehrungsvorschlag:{AgentId ?? "neu"}:begruendung";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _meId = User.GetAgentId();
+        _mayPropose = AgentId is null
+            ? User.MayWrite() && User.IsInternalAgent()
+            : DecorationProposalRules.MayPropose(User, AgentId);
+        if (_mayPropose && _catalog.Count == 0)
+        {
+            _catalog = (await DecorationService.GetCatalogAsync(User)).Where(d => d.IsActive).OrderBy(d => d.Order).ToList();
+        }
+    }
+
+    private async Task ProposeAsync()
+    {
+        var agentId = AgentId ?? _agent?.Id;
+        if (agentId is null || _decorationId is null)
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            await AdministrationService.ProposeDecorationAsync(new DecorationProposalInput
+            {
+                AgentId = agentId,
+                DecorationId = _decorationId,
+                Reason = _reason ?? "",
+            }, User);
+            if (_draft is not null)
+            {
+                await _draft.MarkSavedAsync();
+            }
+            _reason = null;
+            _agent = null;
+            Snackbar.Add("Vorschlag eingereicht. Die Administration entscheidet.", Severity.Success);
+            await Proposed.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+}

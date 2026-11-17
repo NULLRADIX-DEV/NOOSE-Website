@@ -42,6 +42,15 @@ public static class AuditEntityDisplay
         "MeetingMeasure" => "Maßnahme (Besprechung)",
         "Absence" => "Abmeldung",
         "FirearmUse" => "Schusswaffengebrauch",
+        "AdministrationWorkspace" => "Administration (Arbeitsbereich)",
+        "AdministrationMessage" => "Administration-Chat",
+        "DisciplinaryProceeding" => "Disziplinarverfahren",
+        "TransferRequest" => "Versetzungsantrag",
+        "DivisionTransfer" => "Versetzung",
+        "ServiceReference" => "Dienstzeugnis",
+        "AgentRelationship" => "Personalbeziehung",
+        "DecorationProposal" => "Ehrungsvorschlag",
+        "ParliamentaryInquiry" => "Parlamentarische Anfrage",
         "Decoration" => "Ehrenzeichen",
         // no route: the row carries the award id, the personnel file needs the agent's
         "DecorationAward" => "Ehrung",
@@ -139,6 +148,13 @@ public static class AuditEntityDisplay
         "Absence" => "/abmeldungen/uebersicht",
         // a report has no detail page; the overview lists it
         "FirearmUse" => "/schusswaffengebrauch",
+        "AdministrationWorkspace" or "AdministrationMessage" => "/administration",
+        "DisciplinaryProceeding" => $"/administration/disziplinar/{id}",
+        "TransferRequest" or "DivisionTransfer" => "/administration?tab=versetzungen",
+        "ServiceReference" => "/administration?tab=dienstzeugnisse",
+        "AgentRelationship" => "/administration?tab=beziehungen",
+        "DecorationProposal" => "/administration?tab=auszeichnungen",
+        "ParliamentaryInquiry" => $"/administration/parlament/{id}",
         // feedback entries have no detail page either; point at the feedback hub
         "Feedback" => "/feedback",
         // a snippet has no page of its own; it lives in a section of the owner's profile

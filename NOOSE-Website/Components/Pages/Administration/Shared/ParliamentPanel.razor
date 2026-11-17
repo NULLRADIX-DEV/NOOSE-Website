@@ -1,0 +1,127 @@
+@* Parliamentary inquiries: list with deadline, record one on parliament's behalf. Shared by the partner page. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IParliamentService Parliament
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    @if (_mayFile)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">@(Partner ? "Anfrage stellen" : "Anfrage erfassen")</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudTextField @bind-Value="_title" Label="Titel" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                  MaxLength="@ParliamentRules.MaxTitleLength" Immediate="true" Class="noose-breite-frei" Style="min-width:260px;flex:1;" />
+                    @if (!Partner)
+                    {
+                        <MudDatePicker @bind-Date="_due" Label="Frist" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                       Class="noose-breite-frei" Style="min-width:160px;" ShowToolbar="false" />
+                    }
+                </MudStack>
+                <TextDraft @ref="_draft" DraftKey="@(Partner ? "parlament:anfrage" : "administration:parlament:anfrage")"
+                           OnRestore="@(t => _question = t)">
+                    <MudTextField @bind-Value="_question" Label="Anfrage" Variant="Variant.Outlined" Lines="5"
+                                  MaxLength="@ParliamentRules.MaxTextLength" Immediate="true" />
+                </TextDraft>
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                               OnClick="FileAsync" Disabled="@(_saves || string.IsNullOrWhiteSpace(_title) || string.IsNullOrWhiteSpace(_question))">
+                        @(Partner ? "Anfrage stellen" : "Erfassen")
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None"
+                  OnRowClick="@((TableRowClickEventArgs<ParliamentRow> e) => Nav.NavigateTo(Href(e.Item!.Id)))"
+                  RowStyle="cursor:pointer;">
+            <HeaderContent>
+                <MudTh>Anfrage</MudTh>
+                <MudTh>Stand</MudTh>
+                <MudTh Class="noose-mobil-aus">Eingang</MudTh>
+                <MudTh>Frist</MudTh>
+                @if (!Partner)
+                {
+                    <MudTh Class="noose-mobil-aus">Bearbeitung</MudTh>
+                }
+            </HeaderContent>
+            <RowTemplate Context="r">
+                <MudTd>
+                    <b>@r.Title</b>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@r.CaseNumber</MudText>
+                </MudTd>
+                <MudTd>
+                    <MudChip T="string" Size="Size.Small" Color="@AdministrationDisplay.Color(r.Status)" Variant="Variant.Text">
+                        @AdministrationDisplay.Name(r.Status)
+                    </MudChip>
+                </MudTd>
+                <MudTd Class="noose-mobil-aus">@r.ReceivedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
+                <MudTd>
+                    <MudText Typo="Typo.body2" Color="@(r.Overdue ? Color.Error : Color.Default)">@r.DueAt.ToLocalTime().ToString("dd.MM.yyyy")</MudText>
+                </MudTd>
+                @if (!Partner)
+                {
+                    <MudTd Class="noose-mobil-aus">@(r.AssignedToName ?? "—")</MudTd>
+                }
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Anfragen.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    /// <summary>The parliament's own view: answers only once released, no handler.</summary>
+    [Parameter] public bool Partner { get; set; }
+
+    private IReadOnlyList<ParliamentRow>? _rows;
+    private bool _mayFile;
+    private bool _saves;
+    private string? _title;
+    private string? _question;
+    private DateTime? _due = DateTime.Today.AddDays(ParliamentRules.DefaultDueDays);
+    private TextDraft? _draft;
+
+    private string Href(string id) => Partner ? ParliamentService.PartnerHref(id) : ParliamentService.InternalHref(id);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mayFile = ParliamentRules.MayFile(User);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync() => _rows = await Parliament.GetListAsync(User);
+
+    private async Task FileAsync()
+    {
+        _saves = true;
+        try
+        {
+            var due = _due is { } d ? d.Date.AddDays(1).AddSeconds(-1).ToUniversalTime() : (DateTime?)null;
+            var id = await Parliament.FileAsync(new ParliamentInput { Title = _title ?? "", Question = _question ?? "", DueAt = due }, User);
+            if (_draft is not null)
+            {
+                await _draft.MarkSavedAsync();
+            }
+            _title = _question = null;
+            Nav.NavigateTo(Href(id));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+}

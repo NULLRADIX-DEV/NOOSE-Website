@@ -267,6 +267,33 @@ public static class RecordsReference
             }
         }
 
+        // the workspace and its two files; callers filter visibility before they ask
+        if (OpenIds(nameof(Data.Entities.Administration.AdministrationWorkspace)).Count > 0)
+        {
+            map[(nameof(Data.Entities.Administration.AdministrationWorkspace), Data.Entities.Administration.AdministrationWorkspace.SingletonId)] =
+                new("Administration Division", false, "/administration");
+        }
+        var proceedingIds = OpenIds(nameof(Data.Entities.Administration.DisciplinaryProceeding));
+        if (proceedingIds.Count > 0)
+        {
+            foreach (var x in await db.DisciplinaryProceedings.Where(d => proceedingIds.Contains(d.Id))
+                .Select(d => new { d.Id, d.CaseNumber }).ToListAsync(ct))
+            {
+                map[(nameof(Data.Entities.Administration.DisciplinaryProceeding), x.Id)] = new(
+                    $"Disziplinarverfahren {x.CaseNumber}", false, Administration.DisciplinaryService.Href(x.Id));
+            }
+        }
+        var inquiryIds = OpenIds(nameof(Data.Entities.Administration.ParliamentaryInquiry));
+        if (inquiryIds.Count > 0)
+        {
+            foreach (var x in await db.ParliamentaryInquiries.Where(p => inquiryIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.CaseNumber }).ToListAsync(ct))
+            {
+                map[(nameof(Data.Entities.Administration.ParliamentaryInquiry), x.Id)] = new(
+                    $"Parlamentarische Anfrage {x.CaseNumber}", false, Administration.ParliamentService.InternalHref(x.Id));
+            }
+        }
+
         // codename, never real name
         var agentIds = OpenIds(nameof(Agent));
         if (agentIds.Count > 0)

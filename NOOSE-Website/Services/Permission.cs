@@ -390,10 +390,20 @@ public static class Permission
     /// </remarks>
     public static void RequirePressWrite(ClaimsPrincipal actor)
     {
-        if (!actor.IsInternalAgent() || !actor.MayWrite() || !actor.IsLeadership())
+        if (!actor.IsInternalAgent() || !actor.MayWrite() || !(actor.IsLeadership() || actor.IsAdministrationMember()))
         {
             throw new UnauthorizedAccessException(
-                "Pressemitteilungen schreibt und veröffentlicht nur die Führung.");
+                "Pressemitteilungen schreiben und veröffentlichen nur die Führung und die Administration Division.");
+        }
+    }
+
+    /// <summary>Require read access to press drafts: classified readers or the Administration workspace.</summary>
+    public static void RequirePressRead(ClaimsPrincipal actor)
+    {
+        if (!actor.MayClassifiedRead() && !actor.MayAdministrationRead())
+        {
+            throw new UnauthorizedAccessException(
+                "Pressemitteilungen sieht nur die Führung, die Aufsicht und die Administration Division.");
         }
     }
 
@@ -486,6 +496,38 @@ public static class Permission
         {
             throw new UnauthorizedAccessException(
                 "Diese Aktion ist der Administration Division und der Führung vorbehalten.");
+        }
+    }
+
+    /// <summary>Require read access to the Administration workspace.</summary>
+    public static void RequireAdministrationRead(ClaimsPrincipal actor)
+    {
+        if (!actor.MayAdministrationRead())
+        {
+            throw new UnauthorizedAccessException(
+                "Der Arbeitsbereich ist der Administration Division und dem Board vorbehalten.");
+        }
+    }
+
+    /// <summary>Require write access in the Administration workspace; write check first.</summary>
+    public static void RequireAdministrationWrite(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.IsAdministrationMember())
+        {
+            throw new UnauthorizedAccessException(
+                "Diese Aktion ist der Administration Division und dem Board vorbehalten.");
+        }
+    }
+
+    /// <summary>Require the right to write personnel matters: leadership or Administration; write check first.</summary>
+    public static void RequirePersonnelWrite(ClaimsPrincipal actor)
+    {
+        RequireWriteAccess(actor);
+        if (!actor.MayPersonnelWrite())
+        {
+            throw new UnauthorizedAccessException(
+                "Diese Aktion ist der Führung und der Administration Division vorbehalten.");
         }
     }
 

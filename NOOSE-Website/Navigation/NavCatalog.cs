@@ -132,6 +132,22 @@ public static class NavCatalog
         new NavEntry("bewerbungen", "/bewerbungen", Icons.Material.Filled.HowToReg, "Bewerbungen", NavSection.VerwaltungBewerbungen, NavArea.Verwaltung,
             Description: "Eingang, Sperren, Anschreiben-Vorlagen und Eignungstests"),
 
+        new NavEntry("administration", "/administration", Icons.Material.Filled.AssuredWorkload, "Übersicht & Chat",
+            NavSection.Administration, NavArea.Administration, NavLinkMatch.All, BadgeKey: "administration-chat",
+            Description: "Chat, Informationen, Zugeteilte Agents und Personalbeziehungen der Administration Division"),
+        new NavEntry("administration.personalgewinnung", "/administration?tab=sicherheitspruefungen", Icons.Material.Filled.Security,
+            "Personalgewinnung", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
+            Description: "Laufende und entschiedene Sicherheitsüberprüfungen"),
+        new NavEntry("administration.personalwesen", "/administration?tab=beurteilungen", Icons.Material.Filled.Badge,
+            "Personalwesen", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
+            Description: "Beurteilungen, Beförderungen, Versetzungen, Auszeichnungen und Dienstzeugnisse"),
+        new NavEntry("administration.disziplinar", "/administration?tab=ermittlungsverfahren", Icons.Material.Filled.Gavel,
+            "Disziplinarwesen", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
+            Description: "Ermittlungsverfahren und Disziplinarverfügungen"),
+        new NavEntry("administration.oeffentlichkeit", "/administration?tab=presse", Icons.Material.Filled.Campaign,
+            "Öffentlichkeit & Parlament", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
+            Description: "Pressemitteilungen und parlamentarische Anfragen"),
+
         new NavEntry("admin.agenten", "/admin/agenten", Icons.Material.Filled.ManageAccounts, "Agenten-Verwaltung", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Dienstgrad, Status und Rechte der Agenten setzen"),
         new NavEntry("kasse", "/kasse", Icons.Material.Filled.AccountBalanceWallet, "Kasse", NavSection.Dienststelle, NavArea.Dienststelle,
@@ -209,6 +225,10 @@ public static class NavCatalog
         {
             list.Add(new NavEntry("partner.Investigation", "/ermittlungen", Icons.Material.Filled.Gavel, "Ermittlungen", NavSection.Partner, NavArea.Partner));
         }
+        if (allowedTypes?.Contains(ParliamentTypeKey) == true)
+        {
+            list.Add(new NavEntry("partner.parlament", "/parlament", Icons.Material.Filled.AccountBalance, "Parlamentarische Anfragen", NavSection.Partner, NavArea.Partner));
+        }
         foreach (var f in PartnerFeaturePages.Where(f => features.HasFlag(f.Feature)))
         {
             list.Add(new NavEntry(f.Key, f.Href, f.Icon, f.Label, NavSection.Partner, NavArea.Partner));
@@ -218,6 +238,9 @@ public static class NavCatalog
 
     /// <summary>Type key of the investigation file in a partner's allowed set.</summary>
     public const string InvestigationTypeKey = "Investigation";
+
+    /// <summary>Type key of the parliamentary inquiries in a parliament account's allowed set.</summary>
+    public const string ParliamentTypeKey = "ParliamentaryInquiry";
 
     private static readonly (PartnerFeature Feature, string Key, string Href, string Icon, string Label)[] PartnerFeaturePages =
     {

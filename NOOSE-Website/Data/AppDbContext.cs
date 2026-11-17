@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Requests;
+using NOOSE_Website.Data.Entities.Administration;
 using NOOSE_Website.Data.Entities.Announcements;
 using NOOSE_Website.Data.Entities.Changelog;
 using NOOSE_Website.Data.Entities.Handbook;
@@ -197,6 +198,18 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<AgentEvaluation> AgentEvaluations => Set<AgentEvaluation>();
     public DbSet<AgentPromotionRequest> AgentPromotionRequests => Set<AgentPromotionRequest>();
     public DbSet<FirearmUse> FirearmUses => Set<FirearmUse>();
+
+    // Administration Division workspace
+    public DbSet<AdministrationWorkspace> AdministrationWorkspaces => Set<AdministrationWorkspace>();
+    public DbSet<AdministrationMessage> AdministrationMessages => Set<AdministrationMessage>();
+    public DbSet<AdministrationChatRead> AdministrationChatReads => Set<AdministrationChatRead>();
+    public DbSet<DisciplinaryProceeding> DisciplinaryProceedings => Set<DisciplinaryProceeding>();
+    public DbSet<TransferRequest> TransferRequests => Set<TransferRequest>();
+    public DbSet<DivisionTransfer> DivisionTransfers => Set<DivisionTransfer>();
+    public DbSet<ServiceReference> ServiceReferences => Set<ServiceReference>();
+    public DbSet<AgentRelationship> AgentRelationships => Set<AgentRelationship>();
+    public DbSet<DecorationProposal> DecorationProposals => Set<DecorationProposal>();
+    public DbSet<ParliamentaryInquiry> ParliamentaryInquiries => Set<ParliamentaryInquiry>();
 
     // training modules + per-agent completion
     public DbSet<TrainingModule> TrainingModules => Set<TrainingModule>();
@@ -2025,6 +2038,117 @@ public class AppDbContext : IdentityDbContext<Agent>
             // Restrict FK to identity Agent (no cascade from the user table)
             b.HasOne(f => f.Agent).WithMany()
                 .HasForeignKey(f => f.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AdministrationWorkspace>(b =>
+        {
+            b.Property(w => w.Id).HasMaxLength(64);
+            b.Property(w => w.InformationHtml).HasColumnType("longtext");
+        });
+
+        modelBuilder.Entity<AdministrationMessage>(b =>
+        {
+            b.Property(m => m.Text).HasMaxLength(4000).IsRequired();
+            b.Property(m => m.AuthorName).HasMaxLength(128);
+            b.HasIndex(m => m.CreatedAt);
+        });
+
+        modelBuilder.Entity<AdministrationChatRead>(b =>
+        {
+            b.Property(r => r.AgentId).HasMaxLength(64);
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(r => r.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DisciplinaryProceeding>(b =>
+        {
+            b.Property(d => d.CaseNumber).HasMaxLength(32).IsRequired();
+            b.HasIndex(d => d.CaseNumber).IsUnique();
+            b.Property(d => d.AgentId).HasMaxLength(64).IsRequired();
+            b.Property(d => d.Grounds).HasColumnType("longtext").IsRequired();
+            b.Property(d => d.Facts).HasColumnType("longtext");
+            b.Property(d => d.Reasoning).HasColumnType("longtext");
+            b.Property(d => d.RightsNotice).HasColumnType("longtext");
+            b.Property(d => d.DecidedByName).HasMaxLength(128);
+            b.HasIndex(d => new { d.AgentId, d.Status });
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(d => d.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TransferRequest>(b =>
+        {
+            b.Property(t => t.AgentId).HasMaxLength(64).IsRequired();
+            b.Property(t => t.Reason).HasMaxLength(Services.Administration.TransferRules.MaxTextLength).IsRequired();
+            b.Property(t => t.HearingNote).HasMaxLength(Services.Administration.TransferRules.MaxTextLength);
+            b.Property(t => t.DecisionNote).HasMaxLength(Services.Administration.TransferRules.MaxTextLength);
+            b.Property(t => t.RequesterName).HasMaxLength(128);
+            b.Property(t => t.HearingByName).HasMaxLength(128);
+            b.Property(t => t.DecidedByName).HasMaxLength(128);
+            b.HasIndex(t => new { t.AgentId, t.Status });
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(t => t.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DivisionTransfer>(b =>
+        {
+            b.Property(t => t.AgentId).HasMaxLength(64).IsRequired();
+            b.Property(t => t.ByName).HasMaxLength(128);
+            b.Property(t => t.RequestId).HasMaxLength(64);
+            b.HasIndex(t => new { t.AgentId, t.At });
+            b.HasIndex(t => t.At);
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(t => t.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ServiceReference>(b =>
+        {
+            b.Property(r => r.AgentId).HasMaxLength(64).IsRequired();
+            b.Property(r => r.TextHtml).HasColumnType("longtext").IsRequired();
+            b.Property(r => r.IssuedByName).HasMaxLength(128);
+            b.HasIndex(r => new { r.AgentId, r.IssuedOn });
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(r => r.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AgentRelationship>(b =>
+        {
+            b.Property(r => r.AgentAId).HasMaxLength(64).IsRequired();
+            b.Property(r => r.AgentBId).HasMaxLength(64).IsRequired();
+            b.Property(r => r.Note).HasMaxLength(1000);
+            b.HasIndex(r => new { r.AgentAId, r.AgentBId });
+            b.HasIndex(r => r.AgentBId);
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(r => r.AgentAId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(r => r.AgentBId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<DecorationProposal>(b =>
+        {
+            b.Property(p => p.AgentId).HasMaxLength(64).IsRequired();
+            b.Property(p => p.DecorationId).HasMaxLength(64).IsRequired();
+            b.Property(p => p.Reason).HasMaxLength(Services.Administration.DecorationProposalRules.MaxReasonLength).IsRequired();
+            b.Property(p => p.ProposerName).HasMaxLength(128);
+            b.Property(p => p.DecidedByName).HasMaxLength(128);
+            b.Property(p => p.AwardId).HasMaxLength(64);
+            b.HasIndex(p => new { p.Status, p.CreatedAt });
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(p => p.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ParliamentaryInquiry>(b =>
+        {
+            b.Property(p => p.CaseNumber).HasMaxLength(32).IsRequired();
+            b.HasIndex(p => p.CaseNumber).IsUnique();
+            b.Property(p => p.Title).HasMaxLength(200).IsRequired();
+            b.Property(p => p.Question).HasColumnType("longtext").IsRequired();
+            b.Property(p => p.Answer).HasColumnType("longtext");
+            b.Property(p => p.SubmitterName).HasMaxLength(128);
+            b.Property(p => p.AnsweredByName).HasMaxLength(128);
+            b.Property(p => p.AssignedToId).HasMaxLength(64);
+            b.HasIndex(p => new { p.Status, p.DueAt });
+            b.HasOne<Agent>().WithMany()
+                .HasForeignKey(p => p.AssignedToId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<AgentPromotionRequest>(b =>

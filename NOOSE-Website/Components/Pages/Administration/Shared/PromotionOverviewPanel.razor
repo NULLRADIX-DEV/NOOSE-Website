@@ -1,0 +1,50 @@
+@* Every open promotion request, read-only; a request is filed and decided on the personnel file. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IAdministrationService AdministrationService
+
+<MudStack Spacing="3">
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+        Beantragen kann die Administration in der Personalakte, entscheiden bleibt beim Section Chief und beim Board.
+        Ein laufendes Disziplinarverfahren sperrt die Beförderung.
+    </MudAlert>
+
+    @if (_rows is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
+            <HeaderContent>
+                <MudTh>Agent</MudTh>
+                <MudTh>Von → Nach</MudTh>
+                <MudTh Class="noose-mobil-aus">Beantragt</MudTh>
+                <MudTh>Hinweis</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="r">
+                <MudTd><MudLink Href="@($"/personal/{r.AgentId}?tab=befoerderungen")">@r.Codename</MudLink></MudTd>
+                <MudTd>@RankDisplay.Name(r.CurrentRank) → @RankDisplay.Name(r.TargetRank)</MudTd>
+                <MudTd Class="noose-mobil-aus">@r.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy") · @(r.RequesterName ?? "—")</MudTd>
+                <MudTd>
+                    @if (r.BlockedByProceeding)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.Gavel">Verfahren läuft</MudChip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Kein Beförderungsantrag offen.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private IReadOnlyList<PromotionOverviewRow>? _rows;
+
+    protected override async Task OnInitializedAsync() => _rows = await AdministrationService.GetOpenPromotionsAsync(User);
+}

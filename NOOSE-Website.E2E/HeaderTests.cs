@@ -54,7 +54,9 @@ public sealed class HeaderTests(E2EFixture fixture)
 
             var labels = header.GetProperty("labels").EnumerateArray().Select(e => e.GetString()).ToList();
             Assert.DoesNotContain("CSV", labels);
-            Assert.True(await page.Locator(MenuButton).IsVisibleAsync(), "⋮-Knopf fehlt in der ersten Auslieferung");
+            // waits for layout: a busy runner checked before the stylesheet applied; Blazor stays blocked meanwhile
+            await Assertions.Expect(page.Locator(MenuButton))
+                .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         }
         finally
         {

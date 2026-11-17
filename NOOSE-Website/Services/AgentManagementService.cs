@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities;
+using NOOSE_Website.Data.Entities.Administration;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Data.Entities.Recruiting;
@@ -13,6 +14,7 @@ using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Infrastructure.Discord;
 using NOOSE_Website.Infrastructure.Storage;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services.Administration;
 
 namespace NOOSE_Website.Services;
 
@@ -516,10 +518,13 @@ public class AgentManagementService(
         var home = before.Home;
         // fine gate, the socket takes any rank
         await RequireMayAssignAsync(actor, home, alt, rank);
+        await PersonalRelationRules.RequireNotRelatedAsync(db, actor, agent.Id);
+        await DisciplinaryRules.RequireNoOpenProceedingAsync(db, agent.Id, alt, rank);
         await RequireRankSeatAsync(agent, before, rank, confirmOverLimit);
         agent.Rank = rank;
         DivisionRules.Apply(agent, home);
         var lost = DepartmentsFollowRank(agent, home);
+        TransferEntryAdd(agent.Id, home, agent.Division, actor, null);
 
         if (alt != rank)
         {
@@ -622,6 +627,8 @@ public class AgentManagementService(
         var division = PromotionRules.ReleaseDivision(standing);
         DivisionRules.RequireMayHold(division, rank);
         PromotionRules.RequireMayAssign(standing, DivisionRules.Normalize(rank, division), agent.Rank, rank);
+        await PersonalRelationRules.RequireNotRelatedAsync(db, actor, agent.Id);
+        await DisciplinaryRules.RequireNoOpenProceedingAsync(db, agent.Id, null, rank);
         if (agent.Status != AgentStatus.Active)
         {
             throw new InvalidOperationException("Die Zugehörigkeit kann nur für aktive Konten geändert werden.");
@@ -666,8 +673,10 @@ public class AgentManagementService(
         var before = DivisionRules.Of(agent);
         // fine gate, before any mutation
         await RequireMayAssignAsync(actor, before.Home, agent.Rank, request.TargetRank);
+        await PersonalRelationRules.RequireNotRelatedAsync(db, actor, agent.Id);
         if (approved)
         {
+            await DisciplinaryRules.RequireNoOpenProceedingAsync(db, agent.Id, agent.Rank, request.TargetRank);
             await RequireRankSeatAsync(agent, before, request.TargetRank, confirmOverLimit);
         }
 
@@ -687,6 +696,7 @@ public class AgentManagementService(
             }
             // a request may also lower the rank; the departments cannot survive below their own threshold
             var lost = DepartmentsFollowRank(agent, home);
+            TransferEntryAdd(agent.Id, home, agent.Division, actor, null);
             Audit(agent, AuditAction.Modified, actor,
                 $"Beförderung genehmigt: {alt?.ToString() ?? "—"} → {request.TargetRank}{lost}");
             await Save(agent, newStamp: true);
@@ -729,16 +739,14 @@ public class AgentManagementService(
         var lost = new List<string>(2);
         if (homeBefore == Division.Hrt && agent.Division != Division.Hrt)
         {
-            lost.Add("Abteilung HRT → CID");
+            lost.Add($"Abteilung HRT → CID (Dienstgrad unter {RankDisplay.DefaultName(DivisionRules.HrtMinimumRank)})");
         }
         if (agent.IsHRB && !DepartmentRules.MayHold(agent.Rank))
         {
             agent.IsHRB = false;
             lost.Add("Administration Division entfernt");
         }
-        return lost.Count == 0
-            ? string.Empty
-            : $"; {string.Join("; ", lost)} (Dienstgrad unter {RankDisplay.DefaultName(DepartmentRules.MinimumRank)})";
+        return lost.Count == 0 ? string.Empty : $"; {string.Join("; ", lost)}";
     }
 
     /// <summary>Count the new seat against the limit of its unit; throws unless confirmed. Runs before the first mutation, so a refusal leaves the tracked row untouched.</summary>
@@ -753,7 +761,8 @@ public class AgentManagementService(
         DivisionRules.RequireSeat(after, taken, confirmOverLimit);
     }
 
-    public async Task DivisionSetAsync(string agentId, Division division, bool confirmOverLimit, ClaimsPrincipal actor)
+    public async Task DivisionSetAsync(string agentId, Division division, bool confirmOverLimit, ClaimsPrincipal actor,
+        string? transferRequestId = null)
     {
         Permission.RequireDivisionSet(actor);
 
@@ -770,6 +779,7 @@ public class AgentManagementService(
         await RequireSeatAsync(agent, after, counts: AgentSelection.IsSelectable(agent), confirmOverLimit, before);
 
         DivisionRules.Apply(agent, division);
+        TransferEntryAdd(agent.Id, before.Home, agent.Division, actor, transferRequestId);
 
         Audit(agent, AuditAction.Modified, actor,
             $"Abteilung {DivisionRules.Label(before)} → {DivisionRules.Label(after)}{(confirmOverLimit ? " (Limit bestätigt)" : "")}");
@@ -1125,6 +1135,17 @@ public class AgentManagementService(
         await db.Absences.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         // a firearm-use report is filed about this one agent and means nothing without the account
         await db.FirearmUses.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        // Administration files about this agent mean nothing without the account; an inquiry only loses its handler
+        await db.AdministrationChatReads.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.DisciplinaryProceedings.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.TransferRequests.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.DivisionTransfers.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.ServiceReferences.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.AgentRelationships.IgnoreQueryFilters().Where(x => x.AgentAId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.AgentRelationships.IgnoreQueryFilters().Where(x => x.AgentBId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.DecorationProposals.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
+        await db.ParliamentaryInquiries.IgnoreQueryFilters().Where(x => x.AssignedToId == agentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AssignedToId, (string?)null), cancellationToken);
         await db.Feedbacks.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.AgentBadges.IgnoreQueryFilters().Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
         await db.DecorationAwards.Where(x => x.AgentId == agentId).ExecuteDeleteAsync(cancellationToken);
@@ -1361,6 +1382,24 @@ public class AgentManagementService(
             ActorName = actor.GetCodename(),
             Reason = reason,
         });
+
+    /// <summary>History row for a home-division change; nothing when the division stays.</summary>
+    private void TransferEntryAdd(string agentId, Division? from, Division? to, ClaimsPrincipal actor, string? requestId)
+    {
+        if (from == to)
+        {
+            return;
+        }
+        db.DivisionTransfers.Add(new DivisionTransfer
+        {
+            AgentId = agentId,
+            FromDivision = from,
+            ToDivision = to,
+            At = DateTime.UtcNow,
+            ByName = actor.GetCodename(),
+            RequestId = requestId,
+        });
+    }
 
     private void Audit(Agent target, AuditAction action, ClaimsPrincipal actor, string hint)
         => Audit(target, action, actor.GetAgentId(), actor.GetCodename(),

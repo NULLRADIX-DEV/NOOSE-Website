@@ -46,6 +46,9 @@ public sealed class TrashService(
     ILawService laws,
     IPresentationService presentations,
     IFirearmUseService firearmUses,
+    Administration.IDisciplinaryService disciplinary,
+    Administration.IServiceReferenceService serviceReferences,
+    Administration.IParliamentService parliament,
     IRegulationService regulation) : ITrashService
 {
     /// <summary>Loading and restoring for one record type; Restore stays a domain-service call.</summary>
@@ -96,6 +99,15 @@ public sealed class TrashService(
         Source(new TrashKind("schusswaffengebrauch", "Schusswaffengebrauch", Icons.Material.Filled.GpsFixed,
                 "/schusswaffengebrauch"),
             firearmUses.GetTrashAsync, TrashProjection.FirearmUse, firearmUses.RestoreAsync),
+        Source(new TrashKind("disziplinarverfahren", "Disziplinarverfahren", Icons.Material.Filled.Gavel,
+                "/administration?tab=ermittlungsverfahren"),
+            disciplinary.GetTrashAsync, TrashProjection.DisciplinaryProceeding, disciplinary.RestoreAsync),
+        Source(new TrashKind("dienstzeugnisse", "Dienstzeugnisse", Icons.Material.Filled.WorkspacePremium,
+                "/administration?tab=dienstzeugnisse"),
+            serviceReferences.GetTrashAsync, TrashProjection.ServiceReference, serviceReferences.RestoreAsync),
+        Source(new TrashKind("parlamentarische-anfragen", "Parlamentarische Anfragen", Icons.Material.Filled.AccountBalance,
+                "/administration?tab=parlament"),
+            parliament.GetTrashAsync, TrashProjection.ParliamentaryInquiry, parliament.RestoreAsync),
         Source(new TrashKind("praesentationen", "Präsentationen", Icons.Material.Filled.CoPresent, "/praesentationen"),
             presentations.GetTrashAsync, TrashProjection.Presentation, presentations.RestoreAsync),
         Source(new TrashKind("informanten", "Informanten", Icons.Material.Filled.VisibilityOff, "/informanten"),

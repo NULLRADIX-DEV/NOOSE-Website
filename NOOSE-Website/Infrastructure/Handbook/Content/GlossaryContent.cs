@@ -51,7 +51,7 @@ internal static class GlossaryContent
             "Counterterrorism Division - eine der drei Abteilungen des FIB, neben CID und HRT. Sechs Plätze.",
             Synonyms: "Counterterrorism Division, Counter-Terrorism Division", ArticleKey: "art-dvo-abteilungen"),
         new("beg-administration-division", "Administration Division",
-            "Die Verwaltungsfunktion des FIB. Keine eigene Abteilung, sondern ein Kennzeichen ab Special Agent; auf der Seite bearbeitet sie Bewerbungen, Tests und Ausbildungsmodule.",
+            "Die Verwaltungsfunktion des FIB. Keine eigene Abteilung, sondern ein Kennzeichen, schon ab Trainee; auf der Seite bearbeitet sie Bewerbungen, Tests und Ausbildungsmodule.",
             ArticleKey: "art-dvo-abteilungen"),
         new("beg-board", "Board of Directors",
             "Director, Deputy Director und die Assistant Directors. Vier Plätze; wer Assistant Director oder höher ist, gehört dazu.",

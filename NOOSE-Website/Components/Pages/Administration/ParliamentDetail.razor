@@ -1,0 +1,197 @@
+@* One parliamentary inquiry: the Administration assigns and answers it; parliament reads the released answer. *@
+@page "/administration/parlament/{Id}"
+@page "/parlament/{Id}"
+@using NOOSE_Website.Data.Entities.Administration
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IParliamentService Parliament
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_view?.Row.CaseNumber ?? "Anfrage") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Anfrage nicht gefunden oder nicht einsehbar.</MudAlert>
+}
+else
+{
+    var row = _view.Row;
+    var open = row.Status is ParliamentaryInquiryStatus.Received or ParliamentaryInquiryStatus.InProgress;
+    <PageHeader Icon="@Icons.Material.Filled.AccountBalance" Title="@row.Title" Subtitle="@row.CaseNumber"
+                BackHref="@(_partner ? "/parlament" : "/administration?tab=parlament")">
+        <MoreActions>
+            @if (_view.MayAnswer && open)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Undo" OnClick="WithdrawAsync">Zurückziehen</MudButton>
+            }
+        </MoreActions>
+        <MoreActionsMenu>
+            @if (_view.MayAnswer && open)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Undo" OnClick="WithdrawAsync">Zurückziehen</MudMenuItem>
+            }
+        </MoreActionsMenu>
+    </PageHeader>
+
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Class="mb-3">
+        <MudChip T="string" Color="@AdministrationDisplay.Color(row.Status)" Variant="Variant.Text">@AdministrationDisplay.Name(row.Status)</MudChip>
+        <MudChip T="string" Variant="Variant.Text">Eingang @row.ReceivedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudChip>
+        <MudChip T="string" Variant="Variant.Text">Frist @row.DueAt.ToLocalTime().ToString("dd.MM.yyyy")</MudChip>
+        @if (!string.IsNullOrWhiteSpace(row.SubmitterName))
+        {
+            <MudChip T="string" Variant="Variant.Text">@(row.FromParliament ? "Gestellt von" : "Erfasst von") @row.SubmitterName</MudChip>
+        }
+    </MudStack>
+
+    <MudStack Spacing="3">
+        <SectionHeader Title="Anfrage" Icon="@Icons.Material.Filled.QuestionAnswer" />
+        <MudPaper Class="pa-3" Elevation="1"><MudText Typo="Typo.body1" Style="white-space:pre-line;">@row.Question</MudText></MudPaper>
+
+        @if (_view.MayAnswer && open)
+        {
+            <SectionHeader Title="Bearbeitung" Icon="@Icons.Material.Filled.Edit" />
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                <MudText Typo="Typo.body2">Bearbeitet von: @(_view.AssignedToName ?? "niemand")</MudText>
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" OnClick="AssignMeAsync">Übernehmen</MudButton>
+            </MudStack>
+            <TextDraft @ref="_draft" DraftKey="@($"parlament:{Id}:antwort")" OnRestore="@(t => _answer = t)">
+                <MudTextField @bind-Value="_answer" Label="Antwort" Variant="Variant.Outlined" Lines="8"
+                              MaxLength="@ParliamentRules.MaxTextLength" Immediate="true" />
+            </TextDraft>
+            <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                <MudButton Variant="Variant.Outlined" OnClick="@(() => AnswerAsync(false))" Disabled="_saves">Entwurf speichern</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                           OnClick="@(() => AnswerAsync(true))" Disabled="@(_saves || string.IsNullOrWhiteSpace(_answer))">
+                    Antwort freigeben
+                </MudButton>
+            </MudStack>
+        }
+        else if (!string.IsNullOrWhiteSpace(row.Answer))
+        {
+            <SectionHeader Title="Antwort" Icon="@Icons.Material.Filled.Reply" />
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudText Typo="Typo.body1" Style="white-space:pre-line;">@row.Answer</MudText>
+                @if (row.AnsweredAt is { } at)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Beantwortet am @at.ToLocalTime().ToString("dd.MM.yyyy")@(row.AnsweredByName is { } by ? $" von {by}" : "")
+                    </MudText>
+                }
+            </MudPaper>
+        }
+        else if (_partner)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                Die Administration Division bearbeitet die Anfrage. Die Antwort erscheint hier, sobald sie freigegeben ist.
+            </MudAlert>
+        }
+
+        @if (!_partner)
+        {
+            <RecordSectionRail>
+                <RecordSection Group="Verlauf" Slug="kommentare" Label="Interne Notizen" Icon="@Icons.Material.Filled.Comment">
+                    <CommentPanel EntityType="@nameof(ParliamentaryInquiry)" EntityId="@row.Id" User="_user" />
+                </RecordSection>
+                <RecordSection Group="Verlauf" Slug="wiedervorlagen" Label="Wiedervorlagen" Icon="@Icons.Material.Filled.EventRepeat">
+                    <FollowupPanel EntityType="@nameof(ParliamentaryInquiry)" EntityId="@row.Id" User="_user" />
+                </RecordSection>
+            </RecordSectionRail>
+        }
+    </MudStack>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    private ParliamentView? _view;
+    private bool _load = true;
+    private bool _partner;
+    private bool _saves;
+    private string? _answer;
+    private TextDraft? _draft;
+    private string? _loadedId;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _user = (await AuthStateTask).User;
+        _partner = _user.IsPartner();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _view = await Parliament.GetAsync(Id, _user);
+        _answer = _view?.Row.Answer;
+        _load = false;
+    }
+
+    private async Task AssignMeAsync()
+    {
+        try
+        {
+            await Parliament.AssignAsync(Id, _user.GetAgentId(), _user);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task AnswerAsync(bool publish)
+    {
+        if (publish && !await ConfirmDialog.ShowAsync(DialogService, "Antwort freigeben?",
+                "Das Parlament sieht die Antwort danach, und die Anfrage gilt als beantwortet.", "Freigeben"))
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            await Parliament.AnswerAsync(Id, _answer ?? "", publish, _user);
+            if (_draft is not null)
+            {
+                await _draft.MarkSavedAsync();
+            }
+            Snackbar.Add(publish ? "Antwort freigegeben." : "Entwurf gespeichert.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+
+    private async Task WithdrawAsync()
+    {
+        if (!await ConfirmDialog.ShowAsync(DialogService, "Anfrage zurückziehen?",
+                "Die Anfrage wird ohne Antwort abgeschlossen.", "Zurückziehen"))
+        {
+            return;
+        }
+        try
+        {
+            await Parliament.WithdrawAsync(Id, _user);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

@@ -65,6 +65,10 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
             {
                 all.Add(Navigation.NavCatalog.InvestigationTypeKey);
             }
+            if (agency == PartnerAgency.Parlament)
+            {
+                all.Add(Navigation.NavCatalog.ParliamentTypeKey);
+            }
             return all;
         }
 
@@ -82,6 +86,11 @@ public class PartnerVisibilityPolicyService(IDbContextFactory<AppDbContext> dbFa
         if (investigations)
         {
             allowed.Add(Navigation.NavCatalog.InvestigationTypeKey);
+        }
+        // the agency itself, not a release: parliament files its own inquiries
+        if (agency == PartnerAgency.Parlament)
+        {
+            allowed.Add(Navigation.NavCatalog.ParliamentTypeKey);
         }
         return allowed;
     }

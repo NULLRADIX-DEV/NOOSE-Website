@@ -1,0 +1,282 @@
+@page "/administration/disziplinar/{Id}"
+@using NOOSE_Website.Data.Entities.Administration
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject IDisciplinaryService Disciplinary
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_view?.Row.CaseNumber ?? "Disziplinarverfahren") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_view is null)
+{
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+        Verfahren nicht gefunden oder für dich nicht einsehbar.
+    </MudAlert>
+}
+else
+{
+    var row = _view.Row;
+    <PageHeader Icon="@Icons.Material.Filled.Gavel" Title="@($"Disziplinarverfahren {row.CaseNumber}")"
+                Subtitle="@($"gegen {_view.Codename}")" BackHref="@(_own ? $"/personal/{row.AgentId}" : "/administration?tab=ermittlungsverfahren")">
+        <Actions>
+            @if (DisciplinaryRules.IsClosed(row.Status))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Print" Target="_blank"
+                           Href="@($"/administration/disziplinar/{row.Id}/druck")">Drucken</MudButton>
+            }
+            @if (_view.MayHandle && DisciplinaryRules.IsPending(row.Status))
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@(row.Status == DisciplinaryStatus.Suspended ? Icons.Material.Filled.PlayArrow : Icons.Material.Filled.Pause)"
+                           OnClick="ToggleSuspendAsync">@(row.Status == DisciplinaryStatus.Suspended ? "Fortsetzen" : "Aussetzen")</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.TaskAlt"
+                           OnClick="@(() => _closing = !_closing)">Abschließen</MudButton>
+            }
+        </Actions>
+        <MoreActions>
+            @if (_view.MayHandle)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete"
+                           OnClick="DeleteAsync">Löschen</MudButton>
+            }
+        </MoreActions>
+        <MoreActionsMenu>
+            @if (_view.MayHandle)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Löschen</MudMenuItem>
+            }
+        </MoreActionsMenu>
+    </PageHeader>
+
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" Class="mb-3">
+        <MudChip T="string" Color="@AdministrationDisplay.Color(row.Status)" Variant="Variant.Text">@AdministrationDisplay.Name(row.Status)</MudChip>
+        @if (row.Simplified)
+        {
+            <MudChip T="string" Variant="Variant.Text">Vereinfachte Anhörung</MudChip>
+        }
+        @if (row.ProvisionallySuspended)
+        {
+            <MudChip T="string" Color="Color.Error" Variant="Variant.Text">Vorläufig suspendiert</MudChip>
+        }
+        <MudChip T="string" Variant="Variant.Text">Eingeleitet @row.OpenedAt.ToLocalTime().ToString("dd.MM.yyyy")</MudChip>
+        @if (row.ClosedAt is { } closed)
+        {
+            <MudChip T="string" Variant="Variant.Text">Abgeschlossen @closed.ToLocalTime().ToString("dd.MM.yyyy") von @row.DecidedByName</MudChip>
+        }
+    </MudStack>
+
+    @if (_closing && _view.MayHandle)
+    {
+        <MudPaper Class="pa-3 mb-4" Elevation="1">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle1">Verfahren abschließen</MudText>
+                <MudRadioGroup T="bool" @bind-Value="_decide">
+                    <MudRadio T="bool" Value="false">Einstellen (kein Dienstvergehen oder keine Ahndung geboten)</MudRadio>
+                    <MudRadio T="bool" Value="true">Disziplinarverfügung erlassen</MudRadio>
+                </MudRadioGroup>
+                @if (_decide)
+                {
+                    <MudSelect T="DisciplinaryMeasure?" @bind-Value="_measure" Label="Maßnahme" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var m in AdministrationDisplay.Measures)
+                        {
+                            <MudSelectItem T="DisciplinaryMeasure?" Value="@m">@AdministrationDisplay.Name(m)</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudText Typo="Typo.subtitle2">Sachverhalt</MudText>
+                    <RichTextEditor @ref="_factsEditor" @bind-Value="_facts" MinHeight="140px" DraftKey="@($"disziplinar:{Id}:sachverhalt")" />
+                }
+                <MudText Typo="Typo.subtitle2">Begründung</MudText>
+                <RichTextEditor @ref="_reasonEditor" @bind-Value="_reasoning" MinHeight="140px" DraftKey="@($"disziplinar:{Id}:begruendung")" />
+                @if (_decide)
+                {
+                    <TextDraft @ref="_noticeDraft" DraftKey="@($"disziplinar:{Id}:belehrung")" OnRestore="@(t => _notice = t)">
+                        <MudTextField @bind-Value="_notice" Label="Belehrung" Variant="Variant.Outlined" Lines="3" Immediate="true" />
+                    </TextDraft>
+                }
+                <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd">
+                    <MudButton Variant="Variant.Text" OnClick="@(() => _closing = false)">Abbrechen</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="@(_decide ? Color.Error : Color.Success)" OnClick="CloseAsync" Disabled="_saves">
+                        @(_decide ? "Verfügung erlassen" : "Einstellen")
+                    </MudButton>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+
+    <RecordSectionRail>
+        <RecordSection Group="Verfahren" Slug="verfahren" Label="Verfahren" Icon="@Icons.Material.Filled.Gavel">
+            <MudStack Spacing="3">
+                @if (!_own)
+                {
+                    <SectionHeader Title="Anlass" Icon="@Icons.Material.Filled.Flag" />
+                    <MudPaper Class="pa-3" Elevation="1"><RichHtml Html="@row.Grounds" User="_user" /></MudPaper>
+                }
+                @if (row.Measure is { } measure)
+                {
+                    <SectionHeader Title="Maßnahme" Icon="@Icons.Material.Filled.Rule" />
+                    <MudText Typo="Typo.body1"><b>@AdministrationDisplay.Name(measure)</b></MudText>
+                }
+                @if (!string.IsNullOrWhiteSpace(row.Facts))
+                {
+                    <SectionHeader Title="Sachverhalt" Icon="@Icons.Material.Filled.Description" />
+                    <MudPaper Class="pa-3" Elevation="1"><RichHtml Html="@row.Facts" User="_user" /></MudPaper>
+                }
+                @if (!string.IsNullOrWhiteSpace(row.Reasoning))
+                {
+                    <SectionHeader Title="Begründung" Icon="@Icons.Material.Filled.Notes" />
+                    <MudPaper Class="pa-3" Elevation="1"><RichHtml Html="@row.Reasoning" User="_user" /></MudPaper>
+                }
+                @if (!string.IsNullOrWhiteSpace(row.RightsNotice) && row.Status == DisciplinaryStatus.Decided)
+                {
+                    <SectionHeader Title="Belehrung" Icon="@Icons.Material.Filled.Info" />
+                    <MudText Typo="Typo.body2" Style="white-space:pre-line;">@row.RightsNotice</MudText>
+                }
+            </MudStack>
+        </RecordSection>
+        @if (!_own)
+        {
+            <RecordSection Group="Akte" Slug="quellen" Label="Quellen" Icon="@Icons.Material.Filled.AttachFile">
+                <SourcesPanel EntityType="@nameof(DisciplinaryProceeding)" EntityId="@row.Id" User="_user" />
+            </RecordSection>
+            <RecordSection Group="Verlauf" Slug="kommentare" Label="Ermittlungsnotizen" Icon="@Icons.Material.Filled.Comment">
+                <CommentPanel EntityType="@nameof(DisciplinaryProceeding)" EntityId="@row.Id" User="_user" />
+            </RecordSection>
+            <RecordSection Group="Verlauf" Slug="wiedervorlagen" Label="Wiedervorlagen" Icon="@Icons.Material.Filled.EventRepeat">
+                <FollowupPanel EntityType="@nameof(DisciplinaryProceeding)" EntityId="@row.Id" User="_user" />
+            </RecordSection>
+            <RecordSection Group="Verlauf" Slug="historie" Label="Zeitstrahl" Icon="@Icons.Material.Filled.Timeline">
+                <TimelinePanel EntityType="@nameof(DisciplinaryProceeding)" EntityId="@row.Id" User="_user" @key="_historyKey" />
+            </RecordSection>
+        }
+    </RecordSectionRail>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private ClaimsPrincipal _user = new();
+    private DisciplinaryView? _view;
+    private bool _load = true;
+    private bool _own;
+    private bool _closing;
+    private bool _saves;
+    private bool _decide;
+    private DisciplinaryMeasure? _measure;
+    private string? _facts;
+    private string? _reasoning;
+    private string? _notice = DisciplinaryRules.DefaultRightsNotice;
+    private RichTextEditor? _factsEditor;
+    private RichTextEditor? _reasonEditor;
+    private TextDraft? _noticeDraft;
+    private string? _loadedId;
+    private int _historyKey;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _user = (await AuthStateTask).User;
+        _closing = false;
+        _decide = false;
+        _measure = null;
+        _facts = null;
+        _reasoning = null;
+        _notice = DisciplinaryRules.DefaultRightsNotice;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        _view = await Disciplinary.GetAsync(Id, _user);
+        _own = _view is not null && string.Equals(_view.Row.AgentId, _user.GetAgentId(), StringComparison.OrdinalIgnoreCase);
+        if (_view?.Row.RightsNotice is { Length: > 0 } notice)
+        {
+            _notice = notice;
+        }
+        _historyKey++;
+        _load = false;
+    }
+
+    private async Task ToggleSuspendAsync()
+    {
+        try
+        {
+            await Disciplinary.SetSuspendedAsync(Id, _view!.Row.Status != DisciplinaryStatus.Suspended, _user);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task CloseAsync()
+    {
+        var title = _decide ? "Disziplinarverfügung erlassen?" : "Verfahren einstellen?";
+        if (!await ConfirmDialog.ShowAsync(DialogService, title,
+                "Der Betroffene sieht danach das Ergebnis in seiner Personalakte und bekommt eine Benachrichtigung.",
+                _decide ? "Erlassen" : "Einstellen"))
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            await Disciplinary.CloseAsync(Id, new DisciplinaryCloseInput
+            {
+                Decide = _decide,
+                Measure = _measure,
+                Facts = _decide ? _facts ?? "" : "",
+                Reasoning = _reasoning ?? "",
+                RightsNotice = _notice ?? "",
+            }, _user);
+            if (_factsEditor is not null)
+            {
+                await _factsEditor.MarkSavedAsync();
+            }
+            if (_reasonEditor is not null)
+            {
+                await _reasonEditor.MarkSavedAsync();
+            }
+            if (_noticeDraft is not null)
+            {
+                await _noticeDraft.MarkSavedAsync();
+            }
+            _closing = false;
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+
+    private async Task DeleteAsync()
+    {
+        if (!await ConfirmDialog.ShowAsync(DialogService, "Verfahren löschen?",
+                "Es kommt in den Papierkorb und lässt sich dort wiederherstellen.", "Löschen"))
+        {
+            return;
+        }
+        try
+        {
+            await Disciplinary.DeleteAsync(Id, _user);
+            Nav.NavigateTo("/administration?tab=ermittlungsverfahren");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

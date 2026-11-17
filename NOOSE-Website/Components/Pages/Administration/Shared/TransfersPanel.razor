@@ -1,0 +1,256 @@
+@* Transfer requests (file, hear, decide) and the transfer history. AgentId narrows both to one personnel file. *@
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@inject ITransferService TransferService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<MudStack Spacing="3">
+    @if (_mayRequest)
+    {
+        <MudPaper Class="pa-3" Elevation="1">
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">Versetzung beantragen</MudText>
+                <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                    @if (AgentId is null)
+                    {
+                        <AdministrationAgentPicker Label="Agent" @bind-Value="_agent" Class="noose-breite-frei" />
+                    }
+                    <MudSelect T="Division" @bind-Value="_to" Label="Nach" Variant="Variant.Outlined" Margin="Margin.Dense"
+                               Class="noose-breite-frei" Style="min-width:160px;">
+                        @foreach (var d in Enum.GetValues<Division>())
+                        {
+                            <MudSelectItem Value="@d">@DivisionDisplay.Name(d)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudStack>
+                <TextDraft @ref="_reasonDraft" DraftKey="@ReasonDraftKey" OnRestore="@(t => _reason = t)">
+                    <MudTextField @bind-Value="_reason" Label="Begründung" Variant="Variant.Outlined" Lines="3"
+                                  MaxLength="@TransferRules.MaxTextLength" Immediate="true" />
+                </TextDraft>
+                <div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                               OnClick="RequestAsync" Disabled="@(_saves || string.IsNullOrWhiteSpace(_reason) || (AgentId is null && _agent is null))">
+                        Antrag stellen
+                    </MudButton>
+                </div>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_requests is null || _history is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <SectionHeader Title="Anträge" Icon="@Icons.Material.Filled.SwapHoriz" />
+        @if (_requests.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Versetzungsanträge.</MudText>
+        }
+        @foreach (var r in _requests)
+        {
+            <MudPaper Class="pa-3" Elevation="1">
+                <MudStack Spacing="1">
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        @if (AgentId is null)
+                        {
+                            <MudLink Href="@($"/personal/{r.AgentId}")"><b>@r.AgentName</b></MudLink>
+                        }
+                        <MudText Typo="Typo.body2">
+                            @(r.From is { } f ? DivisionDisplay.Name(f) : "—") → @DivisionDisplay.Name(r.To)
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="@AdministrationDisplay.Color(r.Status)" Variant="Variant.Text">
+                            @AdministrationDisplay.Name(r.Status)
+                        </MudChip>
+                        <MudSpacer />
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @r.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy") · @(r.RequesterName ?? "—")
+                        </MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Style="white-space:pre-line;">@r.Reason</MudText>
+                    @if (!string.IsNullOrWhiteSpace(r.HearingNote))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            Anhörung (@r.HearingByName, @r.HearingAt?.ToLocalTime().ToString("dd.MM.yyyy")):
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="white-space:pre-line;">@r.HearingNote</MudText>
+                    }
+                    @if (r.DecidedAt is not null)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            Entschieden von @r.DecidedByName am @r.DecidedAt?.ToLocalTime().ToString("dd.MM.yyyy")@(string.IsNullOrWhiteSpace(r.DecisionNote) ? "" : $": {r.DecisionNote}")
+                        </MudText>
+                    }
+                    @if (TransferRules.IsPending(r.Status))
+                    {
+                        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+                            @if (TransferRules.MayHear(User, r.AgentId))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.RecordVoiceOver"
+                                           OnClick="@(() => HearAsync(r))">@(r.Status == TransferRequestStatus.Heard ? "Anhörung ändern" : "Anhörung festhalten")</MudButton>
+                            }
+                            @if (TransferRules.MayDecide(User, r.AgentId))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                           Disabled="@(r.Status != TransferRequestStatus.Heard)"
+                                           OnClick="@(() => DecideAsync(r, true))">Genehmigen</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Error"
+                                           OnClick="@(() => DecideAsync(r, false))">Ablehnen</MudButton>
+                            }
+                            @if (MayWithdraw(r))
+                            {
+                                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => WithdrawAsync(r))">Zurückziehen</MudButton>
+                            }
+                        </MudStack>
+                    }
+                </MudStack>
+            </MudPaper>
+        }
+
+        <SectionHeader Title="Verlauf" Icon="@Icons.Material.Filled.History" Class="mt-2" />
+        <MudTable Items="_history" Dense="true" Elevation="1" Breakpoint="Breakpoint.None">
+            <HeaderContent>
+                @if (AgentId is null)
+                {
+                    <MudTh>Agent</MudTh>
+                }
+                <MudTh>Wechsel</MudTh>
+                <MudTh>Am</MudTh>
+                <MudTh Class="noose-mobil-aus">Durch</MudTh>
+            </HeaderContent>
+            <RowTemplate Context="h">
+                @if (AgentId is null)
+                {
+                    <MudTd><MudLink Href="@($"/personal/{h.AgentId}")">@h.AgentName</MudLink></MudTd>
+                }
+                <MudTd>@(h.From is { } f ? DivisionDisplay.Name(f) : "—") → @(h.To is { } t ? DivisionDisplay.Name(t) : "—")</MudTd>
+                <MudTd>@h.At.ToLocalTime().ToString("dd.MM.yyyy")</MudTd>
+                <MudTd Class="noose-mobil-aus">@(h.ByName ?? "—")</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Versetzung erfasst. Der Verlauf beginnt mit der Einführung dieser Funktion.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    /// <summary>Set on a personnel file: only this agent, and the request form files for them.</summary>
+    [Parameter] public string? AgentId { get; set; }
+
+    private IReadOnlyList<TransferRow>? _requests;
+    private IReadOnlyList<TransferHistoryRow>? _history;
+    private bool _mayRequest;
+    private bool _saves;
+    private Agent? _agent;
+    private Division _to = Division.Cid;
+    private string? _reason;
+    private TextDraft? _reasonDraft;
+
+    private string ReasonDraftKey => $"versetzung:{AgentId ?? "neu"}:begruendung";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _mayRequest = AgentId is null
+            ? User.MayAdministrationWrite() || (User.MayWrite() && User.IsLeadership())
+            : TransferRules.MayRequest(User, AgentId);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _requests = await TransferService.GetRequestsAsync(User, AgentId);
+        _history = await TransferService.GetHistoryAsync(User, AgentId);
+    }
+
+    private bool MayWithdraw(TransferRow r)
+        => User.MayWrite() && (User.MayAdministrationWrite()
+            || string.Equals(User.GetAgentId(), r.AgentId, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(User.GetAgentId(), r.RequesterId, StringComparison.OrdinalIgnoreCase));
+
+    private async Task RequestAsync()
+    {
+        var agentId = AgentId ?? _agent?.Id;
+        if (agentId is null)
+        {
+            return;
+        }
+        _saves = true;
+        try
+        {
+            await TransferService.RequestAsync(new TransferInput { AgentId = agentId, ToDivision = _to, Reason = _reason ?? "" }, User);
+            if (_reasonDraft is not null)
+            {
+                await _reasonDraft.MarkSavedAsync();
+            }
+            _reason = null;
+            _agent = null;
+            Snackbar.Add("Antrag gestellt. Die Administration hört den Agenten an.", Severity.Success);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+
+    private async Task HearAsync(TransferRow r)
+    {
+        var note = await ReasonDialog.ShowAsync(DialogService, "Anhörung festhalten",
+            "Was hat der Agent in der Anhörung gesagt?", "Speichern", "Anhörung", mandatoryReason: true,
+            preset: r.HearingNote, maxLength: TransferRules.MaxTextLength);
+        if (note is null)
+        {
+            return;
+        }
+        try
+        {
+            await TransferService.HearAsync(r.Id, note, User);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task DecideAsync(TransferRow r, bool grant, bool confirmOverLimit = false)
+    {
+        try
+        {
+            await TransferService.DecideAsync(r.Id, grant, null, confirmOverLimit, User);
+            await LoadAsync();
+        }
+        catch (DivisionLimitExceededException ex)
+        {
+            var ok = await ConfirmDialog.ShowAsync(DialogService, "Platz überschreiten?", ex.Message, "Trotzdem versetzen");
+            if (ok)
+            {
+                await DecideAsync(r, grant, confirmOverLimit: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task WithdrawAsync(TransferRow r)
+    {
+        try
+        {
+            await TransferService.WithdrawAsync(r.Id, User);
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

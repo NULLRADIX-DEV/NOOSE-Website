@@ -131,11 +131,11 @@ public sealed class FollowupDueWorker(IServiceScopeFactory scopeFactory, ILogger
             {
                 var active = await db.Users
                     .Where(u => recipientIds.Contains(u.Id) && u.Status == AgentStatus.Active)
-                    .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency })
+                    .Select(u => new { u.Id, u.IsAdmin, u.Rank, u.PartnerAgency, u.IsHRB, u.IsTeamLead })
                     .ToListAsync(cancellationToken);
                 foreach (var u in active)
                 {
-                    var viewer = FollowupService.ReminderScope(u.Id, u.IsAdmin, u.Rank, u.PartnerAgency);
+                    var viewer = FollowupService.ReminderScope(u.Id, u.IsAdmin, u.Rank, u.PartnerAgency, u.IsHRB, u.IsTeamLead);
                     if (await Visibility.IsRecordVisibleAsync(db, w.EntityType, w.EntityId, viewer, cancellationToken))
                     {
                         allowed.Add(u.Id);

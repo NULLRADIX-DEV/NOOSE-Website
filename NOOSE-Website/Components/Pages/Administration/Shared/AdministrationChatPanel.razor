@@ -1,0 +1,249 @@
+@using NOOSE_Website.Data.Entities.Administration
+@using NOOSE_Website.Models.Administration
+@using NOOSE_Website.Services.Administration
+@implements IAsyncDisposable
+@inject IAdministrationChatService ChatService
+@inject IMentionService MentionService
+@inject AdministrationChatBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="2" Style="height:60vh;">
+    @* column-reverse keeps the newest message at the bottom without JS *@
+    <div style="flex:1 1 auto; display:flex; flex-direction:column-reverse; overflow-y:auto; gap:8px; padding:4px;">
+        @if (_load)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else
+        {
+            var firstNew = FirstNewId;
+            @foreach (var e in _entries.AsEnumerable().Reverse())
+            {
+                var own = e.Msg.CreatedById == _myId;
+                <div style="@(own ? "align-self:flex-end;" : "align-self:flex-start;")max-width:80%;">
+                    <MudPaper Class="pa-2" Elevation="@(own ? 0 : 1)" Outlined="@(!own)"
+                              Style="@(own ? "background-color:var(--mud-palette-primary-hover);" : "")">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="noose-eintrag">
+                            <MudText Typo="Typo.caption"><b>@(string.IsNullOrWhiteSpace(e.Msg.AuthorName) ? "Unbekannt" : e.Msg.AuthorName)</b></MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">· @e.Msg.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</MudText>
+                            @if (_mayPost && (own || _isBoard))
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => DeleteAsync(e.Msg))" aria-label="Nachricht zurückziehen" />
+                            }
+                        </MudStack>
+                        <MentionText Segments="e.Segments" />
+                    </MudPaper>
+                </div>
+                @if (e.Msg.Id == firstNew)
+                {
+                    <div role="separator" style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex:1; border-top:1px solid var(--mud-palette-primary);"></div>
+                        <MudText Typo="Typo.caption" Color="Color.Primary">Neu seit deinem letzten Besuch</MudText>
+                        <div style="flex:1; border-top:1px solid var(--mud-palette-primary);"></div>
+                    </div>
+                }
+            }
+            @if (_morePossible)
+            {
+                <div style="align-self:center;">
+                    <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.ExpandLess"
+                               OnClick="OlderLoadAsync" Disabled="_loadsMore">Ältere laden</MudButton>
+                </div>
+            }
+            @if (_entries.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="align-self:center;">Noch keine Nachrichten – beginne den Chat.</MudText>
+            }
+        }
+    </div>
+
+    @if (_mayPost)
+    {
+        <div>
+            <MentionInput @ref="_input" @bind-Text="_text" Placeholder="@Placeholder" OnSubmit="SendAsync"
+                          DraftKey="administration-chat" />
+            <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-1">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Send"
+                           OnClick="SendAsync" Disabled="@(_sends || string.IsNullOrWhiteSpace(_text))">Senden</MudButton>
+            </MudStack>
+        </div>
+    }
+</MudStack>
+
+@code {
+    [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    /// <summary>Raised once the chat has been shown and the read mark moved.</summary>
+    [Parameter] public EventCallback Read { get; set; }
+
+    private const int Page = 50;
+    private const int MaxFirstLoad = 200;
+    private const string Placeholder = "Nachricht verfassen … (Verlinken per @, Strg+Enter sendet)";
+    private const string Room = AdministrationWorkspace.SingletonId;
+    private bool _load = true;
+    private bool _loadsMore;
+    private bool _sends;
+    private bool _morePossible;
+    private bool _isBoard;
+    private bool _mayClassifiedRead;
+    private bool _mayPost;
+    private string? _myId;
+    private string _text = string.Empty;
+    private MentionInput? _input;
+    private List<Entry> _entries = new();
+    // read state at opening; the divider stays put while the chat is open
+    private AdministrationChatState _state = AdministrationChatState.None;
+    private bool _marked;
+    private string? _entered;
+
+    private sealed record Entry(AdministrationMessage Msg, IReadOnlyList<MentionSegment> Segments);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isBoard = DisciplinaryRules.IsLeadershipSide(User);
+        _mayClassifiedRead = User.MayClassifiedRead();
+        _mayPost = User.MayAdministrationWrite();
+        _myId = User.GetAgentId();
+        Broadcaster.Modified += OnModified;
+        _state = await ChatService.GetReadStateAsync(User);
+        await LoadAsync();
+    }
+
+    // after the first interactive render: a mark set while prerendering would remove the divider it placed
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_marked && !_load)
+        {
+            _marked = true;
+            if (!string.IsNullOrEmpty(_myId))
+            {
+                Broadcaster.Enter(Room, _myId);
+                _entered = _myId;
+            }
+            await MarkReadAsync(notify: true);
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _load = true;
+        var limit = Math.Clamp(_state.Unread + 5, Page, MaxFirstLoad);
+        var messages = await ChatService.GetMessagesAsync(User, limit);
+        _morePossible = messages.Count >= limit;
+        _entries = await ToEntriesAsync(messages);
+        _load = false;
+    }
+
+    private string? FirstNewId => _state is { Unread: > 0, Since: { } since }
+        ? _entries.FirstOrDefault(e => e.Msg.CreatedAt > since && e.Msg.CreatedById != _myId)?.Msg.Id
+        : null;
+
+    private async Task MarkReadAsync(bool notify)
+    {
+        try
+        {
+            await ChatService.MarkReadAsync(User);
+            if (notify)
+            {
+                await Read.InvokeAsync();
+            }
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    private async Task<List<Entry>> ToEntriesAsync(List<AdministrationMessage> messages)
+    {
+        var segments = await MentionService.ResolveManyAsync(
+            messages.Select(n => (string?)n.Text).ToList(), _mayClassifiedRead, _myId);
+        return messages.Select((n, i) => new Entry(n, segments[i])).ToList();
+    }
+
+    private async Task OlderLoadAsync()
+    {
+        if (_entries.Count == 0 || _loadsMore)
+        {
+            return;
+        }
+        _loadsMore = true;
+        var more = await ChatService.GetMessagesAsync(User, Page, _entries[0].Msg.CreatedAt);
+        _morePossible = more.Count >= Page;
+        if (more.Count > 0)
+        {
+            _entries = (await ToEntriesAsync(more)).Concat(_entries).ToList();
+        }
+        _loadsMore = false;
+    }
+
+    private async Task SendAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_text) || _sends)
+        {
+            return;
+        }
+        _sends = true;
+        try
+        {
+            await ChatService.SendAsync(_text, User);
+            if (_input is not null)
+            {
+                await _input.MarkSavedAsync();
+            }
+            _text = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _sends = false;
+    }
+
+    private async Task DeleteAsync(AdministrationMessage m)
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Nachricht zurückziehen?",
+            "Die Nachricht wird aus dem Chat entfernt.", "Zurückziehen");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await ChatService.DeleteAsync(m.Id, User);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private void OnModified(string room)
+    {
+        if (room != Room)
+        {
+            return;
+        }
+        _ = InvokeAsync(async () =>
+        {
+            await LoadAsync();
+            StateHasChanged();
+            if (_marked)
+            {
+                await MarkReadAsync(notify: false);
+            }
+        });
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        Broadcaster.Modified -= OnModified;
+        if (_entered is { } agent)
+        {
+            Broadcaster.Leave(Room, agent);
+        }
+        return ValueTask.CompletedTask;
+    }
+}

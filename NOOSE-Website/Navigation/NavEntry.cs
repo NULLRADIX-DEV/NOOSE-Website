@@ -17,6 +17,7 @@ public enum NavSection
     VerwaltungBewerbungen,
     VerwaltungFuehrung,
     VerwaltungAdmin,
+    Administration,
     Partner,
 }
 

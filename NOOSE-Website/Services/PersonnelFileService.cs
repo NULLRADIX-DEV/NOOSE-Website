@@ -5,6 +5,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services.Administration;
 
 namespace NOOSE_Website.Services;
 
@@ -36,8 +37,7 @@ public class PersonnelFileService(IDbContextFactory<AppDbContext> dbFactory, IDi
     {
         // write guard ahead of the rank guard: the read-only supervision and the demo visitor carry Director,
         // so the rank alone let them fill in the whole form and fail at the save
-        Permission.RequireWriteAccess(actor);
-        Permission.RequireLeadership(actor);
+        Permission.RequirePersonnelWrite(actor);
         var content = NormalizeHtml(text);
         if (string.IsNullOrEmpty(content))
         {
@@ -98,10 +98,10 @@ public class PersonnelFileService(IDbContextFactory<AppDbContext> dbFactory, IDi
         {
             return;
         }
-        // only author or leadership may delete
-        if (!actor.IsLeadership() && note.CreatedById != actor.GetAgentId())
+        // only author, leadership or Administration may delete
+        if (!actor.MayPersonnelWrite() && note.CreatedById != actor.GetAgentId())
         {
-            throw new UnauthorizedAccessException("Diesen Vermerk darf nur der Verfasser oder die Führung löschen.");
+            throw new UnauthorizedAccessException("Diesen Vermerk dürfen nur der Verfasser, die Führung oder die Administration löschen.");
         }
         db.AgentNotes.Remove(note);
         await db.SaveChangesAsync(cancellationToken);
@@ -139,6 +139,7 @@ public class PersonnelFileService(IDbContextFactory<AppDbContext> dbFactory, IDi
         {
             throw new InvalidOperationException("Der gewählte Agent wurde nicht gefunden.");
         }
+        await PersonalRelationRules.RequireNotRelatedAsync(db, actor, agentId, cancellationToken);
 
         var evaluation = new AgentEvaluation
         {
@@ -193,8 +194,7 @@ public class PersonnelFileService(IDbContextFactory<AppDbContext> dbFactory, IDi
 
     public async Task<AgentPromotionRequest> PromotionRequestAsync(string agentId, Rank targetRank, string? justification, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireWriteAccess(actor);
-        Permission.RequireLeadership(actor);
+        Permission.RequirePersonnelWrite(actor);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         // TargetRank is a NOOSE Rank; approving one for a partner would write it onto an external account
@@ -202,6 +202,7 @@ public class PersonnelFileService(IDbContextFactory<AppDbContext> dbFactory, IDi
         {
             throw new InvalidOperationException("Beförderungen können nur für aktive FIB-Agents beantragt werden.");
         }
+        await PersonalRelationRules.RequireNotRelatedAsync(db, actor, agentId, cancellationToken);
         if (await db.AgentPromotionRequests.AnyAsync(a => a.AgentId == agentId && a.Status == PromotionStatus.Requested, cancellationToken))
         {
             throw new InvalidOperationException("Für diesen Agenten ist bereits ein Beförderungsantrag offen.");
