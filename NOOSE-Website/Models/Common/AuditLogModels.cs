@@ -19,11 +19,11 @@ public sealed class AuditLogFilter
 /// <summary>One change-log row for display.</summary>
 public sealed record AuditChangeRow(
     long Id, DateTime TimestampUtc, string? AgentName, string EntityType, string EntityId,
-    AuditAction Action, string? ChangesJson);
+    AuditAction Action, string? ChangesJson, string? AgentId = null);
 
 /// <summary>One access-log row for display.</summary>
 public sealed record AuditAccessRow(
-    long Id, DateTime TimestampUtc, string? AgentName, string EntityType, string EntityId);
+    long Id, DateTime TimestampUtc, string? AgentName, string EntityType, string EntityId, string? AgentId = null);
 
 /// <summary>Capped page of change-log rows plus the unfiltered match total.</summary>
 public sealed record AuditLogPage(IReadOnlyList<AuditChangeRow> Rows, int TotalCount)

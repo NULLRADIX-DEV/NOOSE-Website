@@ -43,7 +43,7 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Zeitpunkt">@context.TimestampUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</MudTd>
-            <MudTd DataLabel="Agent">@(string.IsNullOrWhiteSpace(context.AgentName) ? "System" : context.AgentName)</MudTd>
+            <MudTd DataLabel="Agent"><AgentLabel Name="@context.AgentName" AgentId="@context.AgentId" /></MudTd>
             <MudTd DataLabel="Objekt">@RecordLink(context.EntityType, context.EntityId)</MudTd>
             <MudTd DataLabel="Aktion" Class="noose-mobil-aus">
                 <MudChip T="string" Size="Size.Small" Color="@AuditActionDisplay.Colour(context.Action)"

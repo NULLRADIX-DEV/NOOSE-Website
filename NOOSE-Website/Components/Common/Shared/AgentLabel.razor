@@ -1,0 +1,39 @@
+@* Codename with the real name beside it, for viewers allowed to see real names. Never on print pages. *@
+@inject IAgentRealNames RealNames
+
+@(string.IsNullOrWhiteSpace(Name) ? Fallback : Name)@if (_realName is not null)
+{
+    <span class="mud-text-secondary" style="font-weight:normal;" title="Klarname"> · @_realName</span>
+}
+
+@code {
+    /// <summary>Stored codename snapshot to show.</summary>
+    [Parameter] public string? Name { get; set; }
+
+    /// <summary>Account id the name belongs to; null shows no real name.</summary>
+    [Parameter] public string? AgentId { get; set; }
+
+    /// <summary>Text when no name is stored.</summary>
+    [Parameter] public string Fallback { get; set; } = "System";
+
+    private string? _realName;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _realName = null;
+        if (string.IsNullOrEmpty(AgentId) || string.IsNullOrWhiteSpace(Name))
+        {
+            return;
+        }
+        try
+        {
+            var names = await RealNames.GetAsync();
+            if (names.TryGetValue(AgentId, out var real)
+                && !string.Equals(real, Name.Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                _realName = real;
+            }
+        }
+        catch (Exception) { /* best effort */ }
+    }
+}

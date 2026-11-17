@@ -19,7 +19,7 @@ internal static class GlossaryContent
             "Der Name, unter dem dich alle in der Behörde sehen. Nicht dein Klarname.",
             Synonyms: "Deckname", ArticleKey: "art-profil"),
         new("beg-klarname", "Klarname",
-            "Der echte Name einer Person. Innerhalb der Behörde sieht ihn nur die Führung.",
+            "Der echte Name einer Person. Innerhalb der Behörde sieht ihn jeder ab Special Agent, nicht der Trainee.",
             Synonyms: "Realname", ArticleKey: "art-profil"),
         new("beg-dienstgrad", "Dienstgrad",
             "Deine Stufe von Trainee bis Director. Entscheidet zusammen mit Abteilung und Kennzeichen über deine Rechte.",

@@ -1,7 +1,7 @@
 namespace NOOSE_Website.Services;
 
-/// <summary>How an agent is named to a viewer. One place, because the rule is a secrecy rule: the real name is
-/// leadership-only and never reaches the read-only supervision, and a display path that forgets that leaks it
+/// <summary>How an agent is named to a viewer. One place, because the rule is a secrecy rule: the real name never
+/// reaches trainees, partners or the read-only supervision, and a display path that forgets that leaks it
 /// permanently. See <see cref="Authorization.AgentPrincipalExtensions.MayRealNameSee" /> for who qualifies.</summary>
 public static class AgentNameDisplay
 {
