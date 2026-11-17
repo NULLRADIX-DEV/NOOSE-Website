@@ -798,7 +798,10 @@ public static class ChangelogContent
             Neu("3.0.70-befoerderungsgrund", "Wer eine Beförderung genehmigt, schreibt jetzt einen Beförderungsgrund dazu. "
                 + "Er steht am Antrag, und jede Beförderung erscheint mit ihm in einem eigenen Discord-Kanal, der den "
                 + "Beförderten anpingt.", "Personal"),
-            Besser("3.0.71-navigation-neu", "Das Menü links ist eine beschriftete Liste mit aufklappbaren Bereichen. "
+        ]),
+        new("3.1.00", new DateTime(2026, 11, 17), "Neue Navigation",
+        [
+            Besser("3.1.00-navigation-neu", "Das Menü links ist eine beschriftete Liste mit aufklappbaren Bereichen. "
                 + "Persönliches liegt hinter deinem Namen oben rechts, Handbuch, Gesetze und Dienstverordnung hinter dem "
                 + "Fragezeichen, und die Administration hat ihre Unterpunkte auf der eigenen Seite.", "Bedienung"),
             Neu("3.0.72-bereichsuebersicht", "Ein Klick auf den Namen eines Bereichs im Menü öffnet seine Übersicht mit "
