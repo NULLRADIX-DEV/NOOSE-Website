@@ -643,6 +643,8 @@ public sealed class HandbookTests
         [
             // the same page as "tickets", filtered to the tickets you are attached to
             "tickets.beteiligt",
+            // sections of the Administration workspace, explained by the article of their group
+            .. NOOSE_Website.Navigation.AdministrationSections.SecondaryKeys,
         ];
 
         var covered = HandbookContent.Chapters

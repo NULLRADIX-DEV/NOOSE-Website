@@ -32,7 +32,7 @@ public interface ITransferService
 public class TransferService(IDbContextFactory<AppDbContext> dbFactory, IAgentManagementService agents,
     INotificationService notifications, ILogger<TransferService> logger) : ITransferService
 {
-    private const string Href = "/administration?tab=versetzungen";
+    private const string Href = "/administration/versetzungen";
 
     public async Task<IReadOnlyList<TransferRow>> GetRequestsAsync(ClaimsPrincipal actor, string? agentId = null,
         CancellationToken cancellationToken = default)

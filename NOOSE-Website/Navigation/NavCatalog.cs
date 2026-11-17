@@ -132,22 +132,6 @@ public static class NavCatalog
         new NavEntry("bewerbungen", "/bewerbungen", Icons.Material.Filled.HowToReg, "Bewerbungen", NavSection.VerwaltungBewerbungen, NavArea.Verwaltung,
             Description: "Eingang, Sperren, Anschreiben-Vorlagen und Eignungstests"),
 
-        new NavEntry("administration", "/administration", Icons.Material.Filled.AssuredWorkload, "Übersicht & Chat",
-            NavSection.Administration, NavArea.Administration, NavLinkMatch.All, BadgeKey: "administration-chat",
-            Description: "Chat, Informationen, Zugeteilte Agents und Personalbeziehungen der Administration Division"),
-        new NavEntry("administration.personalgewinnung", "/administration?tab=sicherheitspruefungen", Icons.Material.Filled.Security,
-            "Personalgewinnung", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
-            Description: "Laufende und entschiedene Sicherheitsüberprüfungen"),
-        new NavEntry("administration.personalwesen", "/administration?tab=beurteilungen", Icons.Material.Filled.Badge,
-            "Personalwesen", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
-            Description: "Beurteilungen, Beförderungen, Versetzungen, Auszeichnungen und Dienstzeugnisse"),
-        new NavEntry("administration.disziplinar", "/administration?tab=ermittlungsverfahren", Icons.Material.Filled.Gavel,
-            "Disziplinarwesen", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
-            Description: "Ermittlungsverfahren und Disziplinarverfügungen"),
-        new NavEntry("administration.oeffentlichkeit", "/administration?tab=presse", Icons.Material.Filled.Campaign,
-            "Öffentlichkeit & Parlament", NavSection.Administration, NavArea.Administration, NavLinkMatch.All,
-            Description: "Pressemitteilungen und parlamentarische Anfragen"),
-
         new NavEntry("admin.agenten", "/admin/agenten", Icons.Material.Filled.ManageAccounts, "Agenten-Verwaltung", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Dienstgrad, Status und Rechte der Agenten setzen"),
         new NavEntry("kasse", "/kasse", Icons.Material.Filled.AccountBalanceWallet, "Kasse", NavSection.Dienststelle, NavArea.Dienststelle,
@@ -170,7 +154,12 @@ public static class NavCatalog
             Description: "Alle offenen Wiedervorlagen der Behörde: wer was liegen lässt, und umhängen"),
         new NavEntry("papierkorb", "/papierkorb", Icons.Material.Filled.Delete, "Papierkorb", NavSection.VerwaltungFuehrung, NavArea.Verwaltung,
             Description: "Gelöschte Akten aller Typen wiederherstellen"),
-    };
+    }.Concat(AdministrationSections.All.Select(s => new NavEntry(AdministrationSections.Key(s), AdministrationSections.Route(s),
+        s.Icon, s.Label, NavSection.Administration, NavArea.Administration,
+        // the start route is a prefix of every section, so it matches exactly
+        s.Slug.Length == 0 ? NavLinkMatch.All : NavLinkMatch.Prefix,
+        BadgeKey: s.Slug.Length == 0 ? "administration-chat" : null, Description: s.Description, Group: s.Group)))
+        .ToArray();
 
     private static readonly Dictionary<string, NavEntry> ByKeyMap =
         Internal.ToDictionary(e => e.Key, StringComparer.Ordinal);
