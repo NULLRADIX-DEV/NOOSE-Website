@@ -45,12 +45,13 @@
     }
     else
     {
+        <AdministrationListSearch @bind-Value="_search" />
         <SectionHeader Title="Anträge" Icon="@Icons.Material.Filled.SwapHoriz" />
         @if (_requests.Count == 0)
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary">Keine Versetzungsanträge.</MudText>
         }
-        @foreach (var r in _requests)
+        @foreach (var r in AdministrationListFilter.Apply(_requests, _search))
         {
             <MudPaper Class="pa-3" Elevation="1">
                 <MudStack Spacing="1">
@@ -111,7 +112,7 @@
         }
 
         <SectionHeader Title="Verlauf" Icon="@Icons.Material.Filled.History" Class="mt-2" />
-        <MudTable Items="_history" Dense="true" Elevation="1" Breakpoint="Breakpoint.None">
+        <MudTable Items="@AdministrationListFilter.Apply(_history, _search)" Dense="true" Elevation="1" Breakpoint="Breakpoint.None">
             <HeaderContent>
                 @if (AgentId is null)
                 {
@@ -138,6 +139,7 @@
 </MudStack>
 
 @code {
+    private string? _search;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
     /// <summary>Set on a personnel file: only this agent, and the request form files for them.</summary>

@@ -18,7 +18,8 @@
     }
     else
     {
-        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
+        <AdministrationListSearch @bind-Value="_search" />
+        <MudTable Items="@AdministrationListFilter.Apply(_rows, _search)" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None">
             <HeaderContent>
                 <MudTh>Bewerbung</MudTh>
                 <MudTh>Stand</MudTh>
@@ -55,6 +56,7 @@
 </MudStack>
 
 @code {
+    private string? _search;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
     private IReadOnlyList<SecurityCheckRow>? _rows;

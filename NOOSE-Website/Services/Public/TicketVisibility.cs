@@ -16,8 +16,11 @@ namespace NOOSE_Website.Services.Public;
 /// </remarks>
 public static class TicketVisibility
 {
-    /// <summary>True for the desk itself: leadership and the read-only supervision above it.</summary>
+    /// <summary>True for the desk itself: leadership and the read-only supervision above it. Its read mark is the desk's.</summary>
     public static bool IsDesk(ClaimsPrincipal actor) => actor.MayClassifiedRead();
+
+    /// <summary>Reads every ticket: the desk plus the Administration Division, which does not move the desk's read mark.</summary>
+    public static bool ReadsDesk(ClaimsPrincipal actor) => actor.MayTicketRead();
 
     /// <summary>True when the actor is attached to this ticket.</summary>
     public static async Task<bool> IsParticipantAsync(AppDbContext db, string ticketId, ClaimsPrincipal actor,
@@ -35,7 +38,7 @@ public static class TicketVisibility
     /// <summary>True when the actor may open this one ticket at all.</summary>
     public static async Task<bool> MayReadAsync(AppDbContext db, string ticketId, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default)
-        => IsDesk(actor) || await IsParticipantAsync(db, ticketId, actor, cancellationToken);
+        => ReadsDesk(actor) || await IsParticipantAsync(db, ticketId, actor, cancellationToken);
 
     /// <summary>True when the actor may read and write the internal thread of this ticket.</summary>
     /// <remarks>Same set as <see cref="MayReadAsync"/> today; separate, because the citizen thread may narrow later.</remarks>
@@ -61,9 +64,9 @@ public static class TicketVisibility
             .Where(t => ticketIds.Contains(t.Id))
             .Select(t => t.Id)
             .ToListAsync(cancellationToken);
-        if (scope.MayClassifiedRead)
+        if (scope.MayClassifiedRead || scope.IsAdministrationMember)
         {
-            // the desk: MayClassifiedRead is the scope side of Permission.RequireTicketRead
+            // the scope side of Permission.RequireTicketRead
             return existing.ToHashSet();
         }
         // empty and null alike, as in IsParticipantAsync: an agent id of "" would match a malformed row

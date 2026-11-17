@@ -500,6 +500,15 @@ public static class Permission
     }
 
     /// <summary>Require read access to the Administration workspace.</summary>
+    public static void RequirePersonnelRead(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayPersonnelRead())
+        {
+            throw new UnauthorizedAccessException(
+                "Das sehen nur die Führung, die Administration Division und die Aufsicht.");
+        }
+    }
+
     public static void RequireAdministrationRead(ClaimsPrincipal actor)
     {
         if (!actor.MayAdministrationRead())
@@ -678,10 +687,10 @@ public static class Permission
     /// <summary>Require the right to read every firearm-use report: the leadership and the read-only supervision.</summary>
     public static void RequireFirearmUseOverview(ClaimsPrincipal actor)
     {
-        if (!actor.IsInternalAgent() || !actor.MayClassifiedRead())
+        if (!actor.IsInternalAgent() || !actor.MayPersonnelRead())
         {
             throw new UnauthorizedAccessException(
-                "Den Schusswaffengebrauch aller Agenten sehen nur die Führung und die Aufsicht.");
+                "Den Schusswaffengebrauch aller Agenten sehen nur die Führung, die Administration Division und die Aufsicht.");
         }
     }
 
@@ -713,15 +722,15 @@ public static class Permission
 
     /// <summary>Require the right to read the citizen ticket desk.</summary>
     /// <remarks>
-    /// MayClassifiedRead is exactly leadership or the read-only supervision, which makes this the service side of
-    /// Policies.LeadershipPage — the supervision reads the desk, it just cannot answer. IsInternalAgent comes first
+    /// Leadership, the read-only supervision and the Administration Division: the service side of
+    /// Policies.TicketDesk. Only leadership answers (<see cref="RequireTicketHandling"/>). IsInternalAgent comes first
     /// because a signed-in citizen carries no rank claim at all.
     /// </remarks>
     public static void RequireTicketRead(ClaimsPrincipal actor)
     {
-        if (!actor.IsInternalAgent() || !actor.MayClassifiedRead())
+        if (!actor.MayTicketRead())
         {
-            throw new UnauthorizedAccessException("Bürger-Tickets sieht nur die Führung.");
+            throw new UnauthorizedAccessException("Bürger-Tickets sehen nur die Führung und die Administration Division.");
         }
     }
 

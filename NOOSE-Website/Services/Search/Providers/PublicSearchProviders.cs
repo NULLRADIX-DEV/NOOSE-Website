@@ -173,8 +173,7 @@ public sealed class TicketSearchProvider(IDbContextFactory<AppDbContext> dbFacto
     public PartnerAccess Partner => PartnerAccess.Never;
 
     // the audience of Permission.RequireTicketRead
-    public bool AppliesTo(SearchViewer viewer)
-        => viewer.User.IsInternalAgent() && viewer.Scope.MayClassifiedRead;
+    public bool AppliesTo(SearchViewer viewer) => viewer.User.MayTicketRead();
 
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(SearchQuery query, CancellationToken cancellationToken = default)
     {

@@ -19,8 +19,9 @@ internal static class AdministrationChapter
                 nicht.</p>
                 <p>Das Menü ist nach Aufgaben gegliedert, jeder Eintrag ist eine eigene Seite. Unter
                 <em>Allgemeines</em> findest du den <strong>internen Chat</strong> der Abteilung, die <em>Informationen</em>
-                (Zuständigkeiten, Abläufe, Ansprechpartner, frei bearbeitbar), die <em>Zugeteilten Agents</em> und die
-                <em>Personalbeziehungen</em>. Neue Nachrichten im Chat zeigt
+                (Zuständigkeiten, Abläufe, Ansprechpartner, frei bearbeitbar, darunter Verweise auf Dokumente und
+                Links), die <em>Zugeteilten Agents</em> und die <em>Personalbeziehungen</em>. Jede Liste hat oben ein
+                Suchfeld. Neue Nachrichten im Chat zeigt
                 der Menüeintrag als Zahl, und die Glocke meldet sich einmal, bis du den Chat wieder gelesen hast.</p>
                 <p>Unter <em>Verlauf</em> stehen wie in jeder Akte <em>Zeitstrahl</em>, <em>Wiedervorlagen</em> und
                 <em>Kommentare</em>. Der Zeitstrahl sammelt Versetzungen, Dienstzeugnisse, Beziehungen,
@@ -64,6 +65,9 @@ internal static class AdministrationChapter
                 die Abteilung. Jeder Abteilungswechsel steht im Versetzungsverlauf.</p>
                 <p><em>Auszeichnungen</em> sammelt die <strong>Vorschläge</strong>. Jeder Agent kann einen Kollegen
                 für ein Ehrenzeichen vorschlagen. Die Administration verleiht oder lehnt ab.</p>
+                <p>Unter <em>Schusswaffengebrauch</em> stehen alle Meldungen der Agents. In den Personalakten sieht die
+                Administration wie die Führung die Dienstaufsicht, die Kommentare und unter <em>Personal</em> die
+                Gekündigten.</p>
                 <p>Ein <strong>Dienstzeugnis</strong> stellt die Administration beim Ausscheiden, bei einer Versetzung
                 oder auf Anfrage aus. Die Gesamtnote ist aus den Beurteilungen vorbelegt. Der Druck enthält
                 Dienstgrade, Verwendungen und Auszeichnungen bis zum Ausstellungstag. Der Agent sieht seine
@@ -119,6 +123,8 @@ internal static class AdministrationChapter
                 oder die Administration erfasst sie. Jede Anfrage hat eine Frist von sieben Tagen, überschrittene
                 Fristen sind rot. Wer sie bearbeitet, übernimmt sie, schreibt eine Antwort und gibt sie frei. Erst
                 dann sieht das Parlament die Antwort.</p>
+                <p>Unter <em>Bürger-Tickets</em> liest die Administration alle Anliegen und Beschwerden von Bürgern
+                mit. Interne Notizen kann sie dort schreiben, dem Bürger antwortet weiter die Führung.</p>
                 """,
                 NavKey: "administration.presse"),
 

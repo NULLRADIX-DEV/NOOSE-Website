@@ -1,10 +1,10 @@
-@* Picks an active FIB agent by codename; the offer list is AgentSelection's, so nobody hidden shows up. *@
+@* Picks an active FIB agent by codename; the offer list is AgentSelection's, so nobody hidden shows up. MudAutocomplete caps at 10 by default, hence MaxItems null. *@
 @inject IAgentManagementService AgentService
 
 <MudAutocomplete T="Agent" Label="@Label" Value="Value" ValueChanged="ValueChanged"
                  SearchFunc="@SearchAgents" ToStringFunc="@(a => a?.Codename ?? string.Empty)"
                  Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true" CoerceText="false" CoerceValue="false"
-                 ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true" Class="@Class"
+                 ResetValueOnEmptyText="true" MinCharacters="0" Immediate="true" Class="@Class" MaxItems="@null"
                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Person" />
 
 @code {
@@ -26,8 +26,7 @@
         var hits = _all
             .Where(a => Exclude is null || !Exclude.Contains(a.Id))
             .Where(a => search.Length == 0 || a.Codename.Contains(search, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(a => a.Codename, StringComparer.OrdinalIgnoreCase)
-            .Take(50);
-        return Task.FromResult(hits);
+            .OrderBy(a => a.Codename, StringComparer.OrdinalIgnoreCase);
+        return Task.FromResult<IEnumerable<Agent>>(hits);
     }
 }

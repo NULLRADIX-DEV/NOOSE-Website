@@ -1,0 +1,12 @@
+@* Search box above an Administration list; the panel filters its rows with AdministrationListFilter. *@
+
+<MudTextField T="string" Value="Value" ValueChanged="ValueChanged" Placeholder="@Placeholder"
+              Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true" DebounceInterval="200" Clearable="true"
+              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+              Class="mb-2" Style="max-width:420px;" />
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "Suchen …";
+}

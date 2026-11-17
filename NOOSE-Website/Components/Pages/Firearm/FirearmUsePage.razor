@@ -1,5 +1,5 @@
 @page "/schusswaffengebrauch"
-@attribute [Authorize(Policy = Policies.LeadershipPage)]
+@attribute [Authorize(Policy = Policies.PersonnelReadPage)]
 @inject IFirearmUseService FirearmUses
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -7,11 +7,14 @@
 @inject ISnackbar Snackbar
 @using NOOSE_Website.Models.Navigation
 
-<PageTitle>Schusswaffengebrauch · FIB</PageTitle>
+@if (!Embedded)
+{
+    <PageTitle>Schusswaffengebrauch · FIB</PageTitle>
 
-<PageHeader Icon="@Icons.Material.Filled.GpsFixed"
-            Title="Schusswaffengebrauch"
-            Subtitle="Von den Agenten gemeldeter Schusswaffengebrauch mit Begründung. Die Meldung legt jeder Agent selbst über die Kopfzeile an." />
+    <PageHeader Icon="@Icons.Material.Filled.GpsFixed"
+                Title="Schusswaffengebrauch"
+                Subtitle="Von den Agenten gemeldeter Schusswaffengebrauch mit Begründung. Die Meldung legt jeder Agent selbst über die Kopfzeile an." />
+}
 
 @if (_error is not null)
 {
@@ -120,6 +123,9 @@
 </MudTable>
 
 @code {
+    /// <summary>Shown inside the Administration workspace, which brings its own header.</summary>
+    [Parameter] public bool Embedded { get; set; }
+
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private ClaimsPrincipal _user = new();

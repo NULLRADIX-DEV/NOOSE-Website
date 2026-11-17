@@ -32,7 +32,7 @@ internal static class PersonnelChapter
                 Administration Division. Liegt die letzte Beurteilung mehr als vier Wochen zurück, weist der Reiter
                 darauf hin.</p>
                 <p>Die Akte ist in <strong>Reiter</strong> gegliedert: <em>Dienstaufsicht</em> (vorn, für die
-                Führung), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beurteilungen</em>, <em>Beförderungen</em>,
+                Führung und die Administration Division), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beurteilungen</em>, <em>Beförderungen</em>,
                 <em>Finanzierung</em>, <em>KI-Kontingent</em>, <em>Module</em>, <em>Auszeichnungen</em>,
                 <em>Entführungen</em>, <em>Schusswaffengebrauch</em>, <em>Administration</em> und <em>Kommentare</em>. Oben auf der Akte
                 stehen die Knöpfe für Dienstausweis, Druckansicht und - wenn jemand geht - <em>Arbeit
@@ -529,7 +529,9 @@ internal static class PersonnelChapter
                 <p>Die <strong>Dienstnummer</strong> eines Gekündigten ist sofort wieder frei. Wird die Kündigung
                 zurückgenommen und trägt die Nummer inzwischen jemand anderes, wählt der Zurückgekehrte eine neue.</p>
                 <p>Kommt jemand zurück, meldet er sich mit demselben Discord-Konto an und findet seine
-                Personalakte vor.</p>
+                Personalakte vor. Eine Kündigung sperrt nicht für neue Bewerbungen, eine Wiedereinstellung bleibt
+                also möglich. Soll jemand nie wieder eingestellt werden, setzt die Führung im Bewerbungswesen von Hand
+                eine Sperre.</p>
                 """,
                 Steps:
                 [

@@ -284,13 +284,27 @@ public sealed class PresentationLiveService(
         }
     }
 
+    /// <summary>The group, plus the Administration Division for a leadership briefing (mirrors <see cref="PresentationVisibility.OnlyVisible"/>).</summary>
+    private static async Task<List<string>> ClosedAudienceAsync(AppDbContext db, Presentation presentation,
+        AnnouncementAudience audience, CancellationToken cancellationToken)
+    {
+        var ids = await AudienceRules.RecipientIdsAsync(db, audience, presentation.TargetId, presentation.MinRank, cancellationToken);
+        if (audience != AnnouncementAudience.FromRank || !PresentationVisibility.IsLeadershipBriefing(presentation.MinRank))
+        {
+            return ids;
+        }
+        var administration = await db.Users.OnlySelectable().Where(u => u.IsHRB || u.IsAdmin)
+            .Select(u => u.Id).ToListAsync(cancellationToken);
+        return ids.Union(administration).ToList();
+    }
+
     /// <summary>Selectable agents who may see the presentation, for the live notice.</summary>
     private static async Task<List<string>> AudienceAsync(AppDbContext db, Presentation presentation, CancellationToken cancellationToken)
         => presentation.Access switch
         {
             PresentationAccess.Public => await db.Users.OnlySelectable().Select(u => u.Id).ToListAsync(cancellationToken),
             PresentationAccess.Closed when presentation.Audience is { } audience
-                => await AudienceRules.RecipientIdsAsync(db, audience, presentation.TargetId, presentation.MinRank, cancellationToken),
+                => await ClosedAudienceAsync(db, presentation, audience, cancellationToken),
             PresentationAccess.Private => await db.PresentationInvites.Where(i => i.PresentationId == presentation.Id)
                 .Join(db.Users.OnlySelectable(), i => i.AgentId, u => u.Id, (i, u) => u.Id).ToListAsync(cancellationToken),
             _ => [],
