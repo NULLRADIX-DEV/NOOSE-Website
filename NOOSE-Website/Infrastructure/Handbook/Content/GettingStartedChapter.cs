@@ -40,9 +40,11 @@ internal static class GettingStartedChapter
                 <p>Links steht das <strong>Menü</strong>: oben das <em>Dashboard</em> und deine
                 <em>Favoriten</em>, darunter die Bereiche <em>Akten</em>, <em>Ermittlung &amp; Einsatz</em>,
                 <em>Analyse</em>, <em>Dienststelle</em> und, wenn deine Rechte reichen, <em>Leitung</em>. Ein Klick
-                auf einen Bereich <em>klappt ihn auf oder zu</em>; er springt nicht auf eine Seite. Der Bereich der
-                Seite, auf der du gerade bist, steht immer offen. Ein zugeklappter Bereich zeigt, wie viel darin
-                offen ist.</p>
+                auf den <strong>Namen</strong> eines Bereichs öffnet seine <strong>Übersicht</strong>: alle Seiten
+                des Bereichs, die du öffnen darfst, als Kacheln mit dem, was dort offen ist. Der <strong>Pfeil</strong>
+                daneben klappt den Bereich nur auf oder zu. Der Bereich der Seite, auf der du gerade bist, steht immer
+                offen, und ein zugeklappter Bereich zeigt, wie viel darin offen ist. Über der Seite führt die
+                Pfadzeile ebenfalls zur Übersicht zurück.</p>
                 <p>Oben rechts findest du die Suche, <em>FIBI</em>, das <strong>Fragezeichen</strong> und die
                 Glocke. Hinter dem Fragezeichen liegt alles zum Nachschlagen: Handbuch, Neuerungen, Gesetzbuch,
                 Dienstverordnung, Funkplan, Dokumente und Feedback. Ein Klick auf <strong>deinen Namen</strong>

@@ -2,6 +2,7 @@
 @implements IDisposable
 @using NOOSE_Website.Models.Navigation
 @using Microsoft.AspNetCore.Components.Routing
+@using NOOSE_Website.Navigation
 @inject INavLabelService LabelService
 @inject INavPreferencesService NavPrefs
 @inject NavigationManager Nav
@@ -30,6 +31,7 @@
     private bool _isFavorite;
     private string? _agentId;
     private ViewerScope _scope;
+    private bool _isPartner;
 
     protected override async Task OnInitializedAsync()
     {
@@ -38,6 +40,7 @@
             var user = (await AuthStateTask).User;
             _agentId = user.GetAgentId();
             _scope = ViewerScope.From(user);
+            _isPartner = user.IsPartner();
         }
         Nav.LocationChanged += OnLocationChanged;
         await BuildAsync();
@@ -58,6 +61,11 @@
         var items = new List<BreadcrumbItem> { new("Lagezentrum", "/dashboard") };
         if (_location.Section is { } sec && sec.Key != "dashboard")
         {
+            // the group's overview in between; partners have none, and the overview itself needs no link to itself
+            if (!_isPartner && !NavAreaCatalog.IsHub(sec) && NavAreaCatalog.HubRoute(sec.Area) is { } hub)
+            {
+                items.Add(new BreadcrumbItem(NavAreaCatalog.Name(sec.Area), href: hub));
+            }
             if (_location.IsRecord)
             {
                 items.Add(new BreadcrumbItem(sec.Label, href: sec.Route));

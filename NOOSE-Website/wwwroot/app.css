@@ -2030,27 +2030,54 @@ div.vis-tooltip {
     padding-bottom: .5rem;
 }
 
+/* a group header is either one fold button (partners) or the overview link plus a fold arrow */
 .noose-nav-group {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     width: 100%;
-    padding: .5rem 1rem;
     margin-top: .25rem;
-    border: 0;
-    background: none;
     color: var(--mud-palette-text-secondary);
-    font: inherit;
     font-size: .75rem;
     font-weight: 500;
     letter-spacing: .08em;
     text-transform: uppercase;
+}
+
+.noose-nav-group-knopf,
+.noose-nav-group-link,
+.noose-nav-group-toggle {
+    display: flex;
+    align-items: center;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
     text-align: left;
+    text-decoration: none;
     cursor: pointer;
 }
 
-.noose-nav-group:hover { background-color: var(--mud-palette-action-default-hover); }
+.noose-nav-group-knopf,
+.noose-nav-group-link {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: .5rem 1rem;
+}
 
-.noose-nav-group:focus-visible {
+.noose-nav-group-toggle {
+    flex: 0 0 44px;
+    justify-content: center;
+}
+
+.noose-nav-group-link.aktiv { color: var(--mud-palette-primary); }
+
+:is(.noose-nav-group-knopf, .noose-nav-group-link, .noose-nav-group-toggle):hover {
+    background-color: var(--mud-palette-action-default-hover);
+}
+
+:is(.noose-nav-group-knopf, .noose-nav-group-link, .noose-nav-group-toggle):focus-visible {
     outline: 2px solid var(--mud-palette-primary);
     outline-offset: -2px;
 }
@@ -2066,6 +2093,29 @@ div.vis-tooltip {
 }
 
 .noose-avatar-knopf { min-width: 0; }
+
+/* Group overview tiles: the whole tile is a link */
+.noose-hub-kachel {
+    display: block;
+    height: 100%;
+    color: inherit;
+    text-decoration: none;
+    border-radius: var(--mud-default-borderradius);
+}
+
+.noose-hub-kachel .noose-hub-kachel-flaeche { height: 100%; }
+
+.noose-hub-kachel:hover .noose-hub-kachel-flaeche { background-color: var(--mud-palette-action-default-hover); }
+
+.noose-hub-kachel:focus-visible {
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: 2px;
+}
+
+.noose-hub-kachel-titel {
+    flex: 1 1 auto;
+    min-width: 0;
+}
 
 /* Evidence room: tile selection + clearing action bar */
 .asservat-kachel {

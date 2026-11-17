@@ -1,0 +1,85 @@
+@* Overview of one drawer group: every page of it the viewer may open, as tiles with their open items.
+   One component for all five groups; the route decides which. *@
+@page "/akten"
+@page "/ermittlung"
+@page "/analyse"
+@page "/dienststelle"
+@page "/leitung"
+@attribute [Authorize(Policy = Policies.InternalAgent)]
+@implements IDisposable
+@using NOOSE_Website.Navigation
+@using NOOSE_Website.Models.Navigation
+@using NOOSE_Website.Components.Pages.Hubs.Shared
+@inject NavigationManager Nav
+@inject IAuthorizationService Authorization
+@inject INavPreferencesService NavPrefs
+@inject NavBadgeState Badges
+
+<PageTitle>@NavAreaCatalog.Name(_area) · FIB</PageTitle>
+
+<PageHeader Icon="@NavAreaCatalog.Icon(_area)" Title="@NavAreaCatalog.Name(_area)"
+            Subtitle="Alle Seiten dieses Bereichs, die du öffnen darfst" HelpNavKey="dashboard" />
+
+@if (_entries is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_entries.Count == 0)
+{
+    <EmptyState Icon="@NavAreaCatalog.Icon(_area)" Title="Hier ist nichts für dich freigegeben"
+                Text="Deine Rechte reichen für keine Seite dieses Bereichs." />
+}
+else
+{
+    <MudGrid Spacing="3">
+        @foreach (var entry in _entries)
+        {
+            <MudItem xs="12" sm="6" lg="4">
+                <HubTile Entry="entry" Count="@Badges.Count(entry.BadgeKey)" />
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private NavArea _area;
+    private IReadOnlyList<NavEntry>? _entries;
+    private string? _loadedPath;
+
+    // the five routes share this instance, so the area follows the address
+    protected override async Task OnParametersSetAsync()
+    {
+        var path = Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0];
+        if (path == _loadedPath)
+        {
+            return;
+        }
+        _loadedPath = path;
+        _area = NavCatalog.ByRoute(path)?.Area ?? NavArea.Akten;
+        _entries = null;
+
+        var user = (await AuthStateTask).User;
+        var prefs = user.GetAgentId() is { Length: > 0 } agentId ? await NavPrefs.GetAsync(agentId) : new NavPreferences();
+        var allowed = new Dictionary<string, bool>(StringComparer.Ordinal);
+        // every policy the drawer snapshots, so twins outside this group's list are judged too
+        foreach (var policy in NavAreaCatalog.DistinctPolicies)
+        {
+            allowed[policy] = (await Authorization.AuthorizeAsync(user, policy)).Succeeded;
+        }
+        bool Allowed(NavEntry e) => allowed.GetValueOrDefault(NavSectionPolicy.For(e.Section));
+
+        // hidden entries stay hidden here too, so the overview matches the agent's own drawer
+        _entries = NavPersonalization.Apply(
+            NavAreaCatalog.WithoutTwins(NavAreaCatalog.ListedEntries(_area).Where(Allowed), Allowed), prefs);
+
+        await Badges.InitializeAsync(user, RendererInfo.IsInteractive);
+    }
+
+    protected override void OnInitialized() => Badges.Changed += OnBadgesChanged;
+
+    private void OnBadgesChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Badges.Changed -= OnBadgesChanged;
+}
