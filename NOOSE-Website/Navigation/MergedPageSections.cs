@@ -58,6 +58,8 @@ public static class MergedPageSections
         "meine", "alle", "katalog", "budgets", "statistik", "papierkorb",
     ];
 
+    public static readonly string[] Personnel = ["agenten", "organigramm", "bestenliste"];
+
     /// <summary>Section slugs of a merged page, keyed by its route.</summary>
     public static readonly IReadOnlyDictionary<string, string[]> ByRoute =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
@@ -70,5 +72,6 @@ public static class MergedPageSections
             ["/statistik"] = Statistics,
             ["/nachweis"] = Monitoring,
             ["/finanzierungen"] = Financing,
+            ["/personal"] = Personnel,
         };
 }

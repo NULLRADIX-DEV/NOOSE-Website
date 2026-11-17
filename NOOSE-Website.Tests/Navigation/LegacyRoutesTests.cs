@@ -86,6 +86,14 @@ public class LegacyRoutesTests
         => Assert.Equal(expected, LegacyRoutes.Target(path));
 
     [Theory]
+    [InlineData("organigramm", "/personal?tab=organigramm")]
+    [InlineData("bestenliste", "/personal?tab=bestenliste")]
+    // the period of an old Discord award post
+    [InlineData("bestenliste?zeitraum=Week", "/personal?tab=bestenliste&zeitraum=Week")]
+    public void Org_chart_and_leaderboard_forward_into_personnel(string path, string expected)
+        => Assert.Equal(expected, LegacyRoutes.Target(path));
+
+    [Theory]
     [InlineData("protokoll", "/nachweis?tab=aenderungen")]
     [InlineData("gegenaufklaerung", "/nachweis?tab=lagebild")]
     [InlineData("gegenaufklaerung-regeln", "/nachweis?tab=regeln")]

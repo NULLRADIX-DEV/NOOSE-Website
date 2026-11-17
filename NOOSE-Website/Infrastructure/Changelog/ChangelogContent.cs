@@ -807,6 +807,8 @@ public static class ChangelogContent
             Neu("3.1.01-bereichsuebersicht", "Ein Klick auf den Namen eines Bereichs im Menü öffnet seine Übersicht mit "
                 + "allen Seiten als Kacheln und dem, was dort offen ist. Der Pfeil daneben klappt nur auf oder zu.",
                 "Bedienung"),
+            Besser("3.1.02-personal-abschnitte", "Organigramm und Bestenliste sind jetzt Abschnitte der Seite Personal. "
+                + "Alte Links führen dorthin weiter.", "Bedienung"),
         ]),
     ];
 }

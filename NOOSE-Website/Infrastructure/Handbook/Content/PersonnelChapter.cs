@@ -451,7 +451,8 @@ internal static class PersonnelChapter
             new Article("art-organigramm", "organigramm", "Organigramm",
                 "Wer über wem steht - und wer es nach außen sieht.",
                 """
-                <p>Das <strong>Organigramm</strong> zeigt den Aufbau der Behörde: oben das <strong>Board of
+                <p>Das <strong>Organigramm</strong> ist ein Abschnitt der Seite <em>Personal</em> im Bereich
+                <em>Dienststelle</em>. Es zeigt den Aufbau der Behörde: oben das <strong>Board of
                 Directors</strong> mit seinen Plätzen („besetzt / 4“), darunter CID, CTD und HRT als Spalten,
                 jede mit „besetzt / Limit“. Die Administration Division läuft quer durch die Abteilungen, die
                 genehmigten Taskforces stehen darunter. Intern zeigt es alle aktiven Agenten mit ihrem

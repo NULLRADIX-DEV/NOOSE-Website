@@ -289,7 +289,8 @@ internal static class DutyChapter
             new Article("art-bestenliste", "bestenliste", "Bestenliste",
                 "Das Ranking - und was es wirklich misst.",
                 """
-                <p>Die <strong>Bestenliste</strong> stellt die Agenten nach dokumentierter Ermittlungsarbeit
+                <p>Die <strong>Bestenliste</strong> ist ein Abschnitt der Seite <em>Personal</em> im Bereich
+                <em>Dienststelle</em>. Sie stellt die Agenten nach dokumentierter Ermittlungsarbeit
                 gegenüber. Gezählt werden sechs Dinge: angelegte Akten, geführte Doks, gesetzte Verknüpfungen,
                 vergebene Einstufungen, protokollierte Observationen und abgeschlossene Vorgänge - über Woche,
                 Monat oder insgesamt. Aufgaben und Dienst-Aktivitäten zählen ausdrücklich <em>nicht</em>.</p>

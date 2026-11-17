@@ -128,7 +128,9 @@ public sealed class TopAgentAwardService(
         }
 
         // link to the board that produced these medals, not to the all-time default
-        var href = period.PeriodQuery is null ? "/bestenliste" : $"/bestenliste?zeitraum={period.PeriodQuery}";
+        var href = period.PeriodQuery is null
+            ? "/personal?tab=bestenliste"
+            : $"/personal?tab=bestenliste&zeitraum={period.PeriodQuery}";
         var posted = await discord.PushCustomAsync(
             NotificationType.Announcement, BuildMessage(period.Headline, board), href, cancellationToken);
         // treat "sent" and "Discord intentionally off" as done; only a configured-but-failed post holds the cadence back to retry
