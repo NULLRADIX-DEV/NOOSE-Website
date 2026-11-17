@@ -397,6 +397,26 @@ public class DiscordWebhookRoutingTests
     }
 
     [Fact]
+    public async Task A_promotion_pings_the_promoted_agent_with_reason_and_plain_rank_names()
+    {
+        using var ctx = new SqliteTestContext();
+        var host = await HostAsync(ctx, NotificationType.AgentPromoted);
+
+        await host.Service.PushPromotionAsync("a2", "Falke", Rank.SpecialAgent, Rank.SeniorSpecialAgent, At,
+            "Hervorragende Einsätze", "Chief", "/personal/a2");
+
+        Assert.Empty(host.Handler.Posts);
+        var post = Queued(host);
+        Assert.Equal([ulong.Parse(SecondId)], post.PingUsers);
+        var everything = Everything(post);
+        Assert.Contains("Falke", everything);
+        Assert.Contains("Hervorragende Einsätze", everything);
+        Assert.Contains(RankDisplay.Name(Rank.SeniorSpecialAgent), everything);
+        var embed = JsonDocument.Parse(Json(Assert.Single(post.Fallback!.Payloads))).RootElement.GetProperty("embeds")[0];
+        Assert.Equal("📈 BEFÖRDERUNG", embed.GetProperty("title").GetString());
+    }
+
+    [Fact]
     public async Task A_wanted_card_pings_the_role_and_reports_queued_as_sent()
     {
         using var ctx = new SqliteTestContext();

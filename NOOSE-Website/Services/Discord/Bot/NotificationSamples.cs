@@ -36,6 +36,8 @@ public static class NotificationSamples
                 Reason, "Max Mustermann", link),
             NotificationType.DecorationAwarded => NotificationCards.Decoration(ping, "MUSTERMANN", "Verdienstmedaille", nowUtc,
                 Reason, "Director Muster", link),
+            NotificationType.AgentPromoted => NotificationCards.Promotion(ping, "MUSTERMANN", "Special Agent",
+                "Senior Special Agent", nowUtc, Reason, "Director Muster", link),
             NotificationType.AgentTerminated => NotificationCards.Termination("Max Mustermann", tester.Length > 0 ? tester : null,
                 "Director Muster", nowUtc, Reason, link),
             NotificationType.PublicWantedPublished or NotificationType.PublicWantedBountyRaised

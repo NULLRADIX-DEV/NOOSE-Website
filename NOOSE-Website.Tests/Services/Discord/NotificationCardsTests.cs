@@ -161,6 +161,7 @@ public class NotificationCardsTests
     [InlineData(NotificationType.PublicWantedBountyRaised, nameof(DiscordCards.Orange))]
     [InlineData(NotificationType.PublicCaptureReported, nameof(DiscordCards.Orange))]
     [InlineData(NotificationType.DecorationAwarded, nameof(DiscordCards.Gold))]
+    [InlineData(NotificationType.AgentPromoted, nameof(DiscordCards.Gold))]
     [InlineData(NotificationType.PersonnelEntry, nameof(DiscordCards.Bronze))]
     [InlineData(NotificationType.Announcement, nameof(DiscordCards.Bronze))]
     [InlineData(NotificationType.SituationReport, nameof(DiscordCards.Bronze))]

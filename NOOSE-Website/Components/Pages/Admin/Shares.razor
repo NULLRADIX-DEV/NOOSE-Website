@@ -990,10 +990,15 @@ else
 
     private async Task PromotionDecide(AgentPromotionRequest request, bool approved)
     {
+        var reason = await PromotionReason.AskAsync(DialogService, AgentName(request.AgentId), request.TargetRank, approved);
+        if (reason is null)
+        {
+            return;
+        }
         try
         {
             if (await DivisionLimitConfirm.RunAsync(DialogService,
-                    confirm => AgentService.PromotionDecideAsync(request.Id, approved, null, confirm, _user)))
+                    confirm => AgentService.PromotionDecideAsync(request.Id, approved, reason, confirm, _user)))
             {
                 Snackbar.Add(approved
                     ? $"Beförderung von {AgentName(request.AgentId)} genehmigt."

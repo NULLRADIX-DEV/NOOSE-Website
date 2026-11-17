@@ -70,6 +70,20 @@ public static class NotificationCards
         return Assemble(accent, ping, DiscordCards.HeaderWithThumbnail(emoji, title, null, LogoOf(link)), body, OpenRow(link));
     }
 
+    /// <summary>The promotion; pings the promoted agent and names the codename only.</summary>
+    public static IReadOnlyList<IMessageComponentProperties> Promotion(string ping, string codename, string fromRank,
+        string toRank, DateTime promotedAt, string reason, string? promotedBy, string? link)
+    {
+        var (accent, emoji, title) = Style(NotificationType.AgentPromoted);
+        var body = DiscordCards.Fields(
+            ("👤 Agent", Dash(DiscordCards.Inline(codename, 100))),
+            ("🎖️ Dienstgrad", $"{Dash(DiscordCards.Inline(fromRank, 60))} → **{Dash(DiscordCards.Inline(toRank, 60))}**"),
+            ("📅 Datum", Stamp(promotedAt, "dddd, d. MMMM yyyy")),
+            ("📋 Beförderungsgrund", Dash(Reason(reason))),
+            ("✍️ Befördert durch", Dash(DiscordCards.Inline(promotedBy, 100))));
+        return Assemble(accent, ping, DiscordCards.HeaderWithThumbnail(emoji, title, null, LogoOf(link)), body, OpenRow(link));
+    }
+
     /// <summary>The official termination notice; the chips are mention markup that pings nobody inside a card.</summary>
     public static IReadOnlyList<IMessageComponentProperties> Termination(string subjectDisplay, string? subjectChip,
         string? executorChip, DateTime at, string reason, string? link)
@@ -259,7 +273,7 @@ public static class NotificationCards
         NotificationType.EmergencyAlarm or NotificationType.AgentTerminated => DiscordCards.Danger,
         NotificationType.PublicWantedPublished or NotificationType.PublicWantedBountyRaised
             or NotificationType.PublicCaptureReported => DiscordCards.Orange,
-        NotificationType.DecorationAwarded => DiscordCards.Gold,
+        NotificationType.DecorationAwarded or NotificationType.AgentPromoted => DiscordCards.Gold,
         NotificationType.PersonnelEntry or NotificationType.Announcement or NotificationType.SituationReport => DiscordCards.Bronze,
         NotificationType.JobDueSoon or NotificationType.MeetingReminder or NotificationType.TestDueReminder
             or NotificationType.Followup or NotificationType.AcknowledgmentReminder => DiscordCards.Warning,
@@ -283,6 +297,7 @@ public static class NotificationCards
         NotificationType.PersonnelEntry => "Personalakten-Eintrag",
         NotificationType.AgentTerminated => "Kündigung",
         NotificationType.DecorationAwarded => "Ehrung",
+        NotificationType.AgentPromoted => "Beförderung",
         NotificationType.PublicWantedPublished => "Öffentliche Fahndung",
         NotificationType.PublicWantedBountyRaised => "Kopfgeld erhöht",
         NotificationType.PublicPressPublished => "Pressemitteilung",

@@ -200,6 +200,65 @@ public partial class DiscordWebhookService(
         }
     }
 
+    // golden "BEFÖRDERUNG" embed to the promotion channel; pings only the promoted agent, names the codename only
+    public async Task PushPromotionAsync(string recipientAgentId, string recipientCodename, Rank? fromRank, Rank toRank,
+        DateTime promotedAt, string? reason, string? promotedByName, string? href,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var config = await GetCachedConfigAsync(cancellationToken);
+            if (!config.Enabled
+                || !config.Webhooks.TryGetValue(NotificationType.AgentPromoted, out var url)
+                || string.IsNullOrWhiteSpace(url))
+            {
+                return;
+            }
+
+            var recipientIds = await ResolveDiscordIdsAsync(new[] { recipientAgentId }, cancellationToken);
+            var mention = recipientIds.Count > 0 ? MentionSpec.Users(recipientIds) : MentionSpec.None;
+
+            // plain rank names: the HRT titles stay inside the site
+            var from = RankDisplay.Name(fromRank);
+            var to = RankDisplay.Name(toRank);
+            var stamp = Local(promotedAt);
+            var link = Link(config.SiteBaseUrl, href);
+            var fields = new List<object>
+            {
+                new { name = "👤 Agent", value = Field(recipientCodename), inline = true },
+                new { name = "🎖️ Dienstgrad", value = Field($"{from} → {to}"), inline = true },
+                new { name = "📅 Befördert am", value = stamp.ToString("dddd, d. MMMM yyyy"), inline = false },
+            };
+            if (!string.IsNullOrWhiteSpace(reason))
+            {
+                fields.Add(new { name = "📋 Beförderungsgrund", value = Field(Truncate(reason, 1024)), inline = false });
+            }
+            fields.Add(new { name = "✍️ Befördert durch", value = Field(promotedByName ?? "—"), inline = false });
+            var embed = new
+            {
+                title = "📈 BEFÖRDERUNG",
+                description = link,
+                color = 0xC9A227, // same gold as a decoration
+                footer = new { text = "Federal Investigation Bureau" },
+                fields = fields.ToArray(),
+            };
+            var payload = EmbedPayload(mention, embed);
+            if (await BotChannelAsync(url, cancellationToken) is { } channel)
+            {
+                EnqueueCard(NotificationType.AgentPromoted, channel, url, [payload], new Pings(recipientIds, null),
+                    ping => NotificationCards.Promotion(ping, recipientCodename, from, to, promotedAt, reason ?? string.Empty,
+                        promotedByName, link));
+                return;
+            }
+            await PostAsync(url, payload, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            /* best effort */
+            logger.LogWarning(ex, "Discord promotion embed failed.");
+        }
+    }
+
     // official "KÜNDIGUNG" notice to its own channel; mention chips inside the embed, so nobody is pinged
     public async Task PushTerminationAsync(string subjectAgentId, string subjectDisplay, string? executorAgentId,
         string? executorDisplay, DateTime terminatedAt, string reasonPlain, string? href,
@@ -845,6 +904,7 @@ public partial class DiscordWebhookService(
         NotificationType.PersonnelEntry => "/personal",
         NotificationType.AgentTerminated => "/personal",
         NotificationType.DecorationAwarded => "/personal",
+        NotificationType.AgentPromoted => "/personal",
         // the one outward category: its fallback must stay outside, or a generic push would post an internal
         // destination into the public channel
         NotificationType.PublicWantedPublished => "/gesucht",
@@ -880,6 +940,7 @@ public partial class DiscordWebhookService(
         NotificationType.PersonnelEntry => "📝 Neuer Personalakten-Eintrag.",
         NotificationType.AgentTerminated => "⚠️ Eine Kündigung wurde ausgesprochen.",
         NotificationType.DecorationAwarded => "🎖️ Ein Ehrenzeichen wurde verliehen.",
+        NotificationType.AgentPromoted => "📈 Ein Agent wurde befördert.",
         NotificationType.PublicWantedPublished => "🔎 Neue öffentliche Fahndung.",
         NotificationType.PublicPressPublished => "📰 Neue Pressemitteilung.",
         NotificationType.PublicTicketCreated => "📨 Ein neues Ticket liegt im Eingang.",

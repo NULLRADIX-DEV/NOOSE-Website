@@ -21,6 +21,11 @@ public interface IDiscordWebhookService
         DateTime awardedOn, string citationPlain, string? awardedByName, string? href,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Post a promotion as a golden "BEFÖRDERUNG" embed to the AgentPromoted channel, pinging the promoted agent. Names the codename and plain rank names only. Best-effort; no-op if disabled or no URL configured.</summary>
+    Task PushPromotionAsync(string recipientAgentId, string recipientCodename, Rank? fromRank, Rank toRank,
+        DateTime promotedAt, string? reason, string? promotedByName, string? href,
+        CancellationToken cancellationToken = default);
+
     /// <summary>Post a termination as a rich "KÜNDIGUNG" embed to the AgentTerminated channel. Pings nobody — the subject and the executor appear as inert mention chips inside the embed. Best-effort; no-op if disabled or no URL configured.</summary>
     Task PushTerminationAsync(string subjectAgentId, string subjectDisplay, string? executorAgentId,
         string? executorDisplay, DateTime terminatedAt, string reasonPlain, string? href,

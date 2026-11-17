@@ -47,6 +47,12 @@
                             <span> · entschieden von @(a.DeciderName ?? "—") am @a.DecidedAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
                         }
                     </MudText>
+                    @if (a.Status != PromotionStatus.Requested && !string.IsNullOrWhiteSpace(a.DecisionNote))
+                    {
+                        <MudText Typo="Typo.body2" Style="white-space:pre-line;">
+                            <b>@PromotionReason.Label(a.Status):</b> @a.DecisionNote
+                        </MudText>
+                    }
 
                     @if (a.Status == PromotionStatus.Requested && PromotionRules.MayDecide(_standing, Agent, a.TargetRank))
                     {
@@ -117,20 +123,15 @@
 
     private async Task DecideAsync(AgentPromotionRequest a, bool approved)
     {
-        var ok = await ConfirmDialog.ShowAsync(DialogService,
-            approved ? "Beförderung genehmigen?" : "Beförderung ablehnen?",
-            approved
-                ? $"{Agent.Codename} erhält den Dienstgrad {RankDisplay.Name(a.TargetRank)}. Der Agent muss sich danach neu anmelden (neuer Sicherheits-Stamp)."
-                : "Der Antrag wird abgelehnt.",
-            approved ? "Genehmigen" : "Ablehnen");
-        if (!ok)
+        var reason = await PromotionReason.AskAsync(DialogService, Agent.Codename, a.TargetRank, approved);
+        if (reason is null)
         {
             return;
         }
         try
         {
             if (await DivisionLimitConfirm.RunAsync(DialogService,
-                    confirm => AgentService.PromotionDecideAsync(a.Id, approved, null, confirm, _user)))
+                    confirm => AgentService.PromotionDecideAsync(a.Id, approved, reason, confirm, _user)))
             {
                 Snackbar.Add(approved ? "Beförderung genehmigt." : "Antrag abgelehnt.", Severity.Success);
                 await LoadAsync();
