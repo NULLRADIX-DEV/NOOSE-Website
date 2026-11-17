@@ -69,6 +69,14 @@ else
                             {
                                 <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@e.Detail</MudText>
                             }
+                            @if (!string.IsNullOrEmpty(e.ImageUrl))
+                            {
+                                <a href="@e.ImageUrl" target="_blank" rel="noopener" title="Foto in voller Größe öffnen"
+                                   style="display:inline-block; line-height:0; max-width:100%;">
+                                    <img src="@e.ImageUrl" alt="@e.Title" loading="lazy"
+                                         style="max-width:100%; max-height:160px; object-fit:contain; border-radius:4px; border:1px solid var(--mud-palette-lines-default);" />
+                                </a>
+                            }
                             @if (e.Changes is { Count: > 0 } changes)
                             {
                                 <MudStack Spacing="0" Class="mt-1">
