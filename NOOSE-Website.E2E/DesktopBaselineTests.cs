@@ -94,7 +94,19 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     /// Wanted additions that master cannot have yet, removed from the layout on both sides; a mask would paint a box master lacks.
     /// Empty this once master carries them.
     /// </summary>
-    private const string HiddenSinceMaster = ".noose-nav-rail .mud-tooltip-root:has([aria-label='Administration']) { display: none !important; }";
+    /// <remarks>
+    /// The new navigation (release 3.1) changes the internal chrome on purpose: drawer width, app bar menus, the
+    /// breadcrumb's group step and the organisation switch. Only pages with the internal drawer are touched, the
+    /// drawer is dropped and the content starts at the left edge on both sides, so every page body is still compared.
+    /// </remarks>
+    private const string HiddenSinceMaster = """
+        .noose-nav-rail .mud-tooltip-root:has([aria-label='Administration']) { display: none !important; }
+        body:has(.noose-drawer) .noose-drawer { display: none !important; }
+        body:has(.noose-drawer) .mud-main-content { margin-left: 0 !important; }
+        body:has(.noose-drawer) .mud-appbar { visibility: hidden !important; }
+        body:has(.noose-drawer) .mud-breadcrumbs { visibility: hidden !important; }
+        nav[aria-label='Organisationen'] { display: none !important; }
+        """;
 
     private async Task<Shot> ShootAsync(string baseUrl, Target target, DateTime now)
     {
