@@ -35,7 +35,8 @@
     }
     else
     {
-        <MudTable Items="_rows" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None"
+        <AdministrationListSearch @bind-Value="_search" />
+        <MudTable Items="@AdministrationListFilter.Apply(_rows, _search)" Dense="true" Hover="true" Elevation="1" Breakpoint="Breakpoint.None"
                   OnRowClick="@((TableRowClickEventArgs<DisciplinaryRow> e) => Nav.NavigateTo(DisciplinaryService.Href(e.Item!.Id)))"
                   RowStyle="cursor:pointer;">
             <HeaderContent>
@@ -72,6 +73,7 @@
 </MudStack>
 
 @code {
+    private string? _search;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
     [Parameter] public bool Closed { get; set; }
 

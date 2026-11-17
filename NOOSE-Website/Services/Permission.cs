@@ -500,6 +500,15 @@ public static class Permission
     }
 
     /// <summary>Require read access to the Administration workspace.</summary>
+    public static void RequirePersonnelRead(ClaimsPrincipal actor)
+    {
+        if (!actor.IsInternalAgent() || !actor.MayPersonnelRead())
+        {
+            throw new UnauthorizedAccessException(
+                "Das sehen nur die Führung, die Administration Division und die Aufsicht.");
+        }
+    }
+
     public static void RequireAdministrationRead(ClaimsPrincipal actor)
     {
         if (!actor.MayAdministrationRead())
@@ -678,10 +687,10 @@ public static class Permission
     /// <summary>Require the right to read every firearm-use report: the leadership and the read-only supervision.</summary>
     public static void RequireFirearmUseOverview(ClaimsPrincipal actor)
     {
-        if (!actor.IsInternalAgent() || !actor.MayClassifiedRead())
+        if (!actor.IsInternalAgent() || !actor.MayPersonnelRead())
         {
             throw new UnauthorizedAccessException(
-                "Den Schusswaffengebrauch aller Agenten sehen nur die Führung und die Aufsicht.");
+                "Den Schusswaffengebrauch aller Agenten sehen nur die Führung, die Administration Division und die Aufsicht.");
         }
     }
 

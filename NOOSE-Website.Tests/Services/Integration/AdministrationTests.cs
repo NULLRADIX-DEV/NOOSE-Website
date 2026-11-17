@@ -344,4 +344,80 @@ public class AdministrationTests
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Workspace(ctx).ProposeDecorationAsync(
             new DecorationProposalInput { AgentId = "agent", DecorationId = "d", Reason = "Ich war gut." }, Plain("agent")));
     }
+
+    // ---- personnel files, firearm use, presentations ----
+
+    [Fact]
+    public void Administration_reads_personnel_files_and_firearm_use_a_plain_agent_does_not()
+    {
+        var partner = ClaimsPrincipalBuilder.Agent("p").AsPartner(PartnerAgency.Parlament, PartnerRank.Member).AsHrb().Build();
+
+        Assert.True(Hrb().MayPersonnelRead());
+        Assert.True(FirearmUseRules.MayRead(Hrb(), "other"));
+        Permission.RequireFirearmUseOverview(Hrb());
+        Permission.RequirePersonnelRead(Board());
+
+        Assert.False(Plain("agent").MayPersonnelRead());
+        Assert.False(FirearmUseRules.MayRead(Plain("agent"), "other"));
+        Assert.True(FirearmUseRules.MayRead(Plain("agent"), "agent"));
+        Assert.Throws<UnauthorizedAccessException>(() => Permission.RequireFirearmUseOverview(Plain("agent")));
+        Assert.False(partner.MayPersonnelRead());
+    }
+
+    [Fact]
+    public async Task Administration_comments_on_personnel_files_like_leadership()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "agent");
+        await using var db = ctx.NewContext();
+
+        Assert.True(await Visibility.IsRecordVisibleAsync(db, nameof(Agent), "agent", ViewerScope.From(Hrb())));
+        Assert.False(await Visibility.IsRecordVisibleAsync(db, nameof(Agent), "agent", ViewerScope.From(Plain("other"))));
+    }
+
+    [Fact]
+    public async Task Administration_sees_leadership_briefings_but_not_other_rank_groups()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedAgent(ctx, "owner", Rank.SectionChief);
+        using (var seed = ctx.NewContext())
+        {
+            seed.Presentations.Add(new NOOSE_Website.Data.Entities.Presentations.Presentation
+            {
+                Id = "fe", Title = "Führung", Access = PresentationAccess.Closed, Audience = AnnouncementAudience.FromRank,
+                MinRank = Rank.SectionChief, OwnerId = "owner",
+            });
+            seed.Presentations.Add(new NOOSE_Website.Data.Entities.Presentations.Presentation
+            {
+                Id = "ssa", Title = "Ab SSA", Access = PresentationAccess.Closed, Audience = AnnouncementAudience.FromRank,
+                MinRank = Rank.SeniorSpecialAgent, OwnerId = "owner",
+            });
+            seed.SaveChanges();
+        }
+        await using var db = ctx.NewContext();
+
+        Assert.True(await PresentationVisibility.IsVisibleAsync(db, "fe", ViewerScope.From(Hrb())));
+        Assert.False(await PresentationVisibility.IsVisibleAsync(db, "ssa", ViewerScope.From(Hrb())));
+        Assert.False(await PresentationVisibility.IsVisibleAsync(db, "fe", ViewerScope.From(Plain("agent"))));
+        Assert.True(await PresentationVisibility.MayTargetAsync(db, Hrb(), AnnouncementAudience.FromRank, null, Rank.SectionChief));
+        Assert.False(await PresentationVisibility.MayTargetAsync(db, Hrb(), AnnouncementAudience.FromRank, null, Rank.SeniorSpecialAgent));
+        Assert.False(await PresentationVisibility.MayTargetAsync(db, Plain("agent"), AnnouncementAudience.FromRank, null, Rank.SectionChief));
+    }
+
+    [Fact]
+    public void The_list_search_matches_every_term_in_text_columns_but_never_ids()
+    {
+        var rows = new[]
+        {
+            new SearchRow("abc123", "Falcon", "CID"),
+            new SearchRow("falcon-id", "Raven", "HRT"),
+        };
+
+        Assert.Equal(["Falcon"], AdministrationListFilter.Apply(rows, "falc").Select(r => r.Name));
+        Assert.Equal(["Raven"], AdministrationListFilter.Apply(rows, "raven hrt").Select(r => r.Name));
+        Assert.Empty(AdministrationListFilter.Apply(rows, "raven cid"));
+        Assert.Equal(2, AdministrationListFilter.Apply(rows, "  ").Count());
+    }
+
+    private sealed record SearchRow(string AgentId, string Name, string Unit);
 }

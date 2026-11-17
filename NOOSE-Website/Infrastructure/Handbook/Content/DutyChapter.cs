@@ -112,7 +112,9 @@ internal static class DutyChapter
                 <p>Wer eine Präsentation sieht, legst du beim Anlegen fest: <strong>öffentlich</strong> für alle
                 internen Agenten, <strong>geschlossen</strong> für eine Gruppe (HRT, Administration Division, eine Taskforce oder ab einem
                 Dienstgrad) oder <strong>privat</strong> nur für die Eingeladenen. Schließen kannst du sie nur für eine
-                Gruppe, zu der du selbst gehörst. Du und die Führung sehen deine Präsentationen immer.</p>
+                Gruppe, zu der du selbst gehörst. Du und die Führung sehen deine Präsentationen immer. Ist sie ab
+                Section Chief oder höher geschlossen, sieht sie auch die Administration Division, und deren Mitglieder
+                dürfen eine solche Präsentation für die Führung selbst anlegen.</p>
                 <p>Mit <em>Vorführen</em> startest du den Vortrag. Wer die Präsentation sehen darf und gerade online
                 ist, bekommt oben auf der Seite einen Hinweis und eine Benachrichtigung in der Glocke und kann mit
                 einem Klick zuschauen. Du blätterst mit den Pfeiltasten, siehst die nächste Folie, deine Notizen und
@@ -245,9 +247,10 @@ internal static class DutyChapter
                 <p>Wer die Meldungen sieht, ist bewusst eng gefasst:</p>
                 <ul>
                 <li>Die Übersicht <em>Schusswaffengebrauch</em> unter <em>Verwaltung · Führung</em> zeigt alle
-                Meldungen der Führung und der Aufsicht, filterbar nach Agent, Abteilung und Zeitraum.</li>
+                Meldungen der Führung und der Aufsicht, filterbar nach Agent, Abteilung und Zeitraum. Die
+                Administration Division findet dieselbe Übersicht in ihrem eigenen Bereich.</li>
                 <li>Deine eigenen Meldungen stehen in einem eigenen Abschnitt deiner Personalakte. Bei anderen
-                Agenten zeigt die Akte den Abschnitt nur der Führung.</li>
+                Agenten zeigt die Akte den Abschnitt nur der Führung und der Administration Division.</li>
                 <li>Bei einer neuen Meldung bekommen die Führung deiner Abteilung (ab Section Chief)
                 und das Board eine Nachricht in der Glocke, ohne den Text deiner Begründung.</li>
                 <li>Nach außen geht nichts. Partnerbehörden sehen keine Meldung, und sie erscheint auf keiner

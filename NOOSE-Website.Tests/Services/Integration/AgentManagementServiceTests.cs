@@ -1983,7 +1983,7 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task TerminateAsync_CreatesBlacklistEntry()
+    public async Task TerminateAsync_LeavesNoRecruitmentBan()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, cfg: a =>
@@ -1996,16 +1996,11 @@ public class AgentManagementServiceTests
         await f.Svc.TerminateAsync("t", "Verrat", createNote: false, postDiscord: false, Admin());
 
         using var db = f.Ctx.NewContext();
-        var sperre = Assert.Single(db.Bewerbungssperren.Where(s => s.AgentId == "t"));
-        Assert.True(sperre.IsBlacklist);
-        Assert.Null(sperre.BannedUntil);
-        Assert.Equal("999", sperre.DiscordId);
-        Assert.Equal("John Doe - Falcon", sperre.ApplicantName);
-        Assert.Contains("Verrat", sperre.Reason);
+        Assert.Empty(db.Bewerbungssperren.Where(s => s.AgentId == "t"));
     }
 
     [Fact]
-    public async Task TerminateAsync_SupersedesTemporaryBan()
+    public async Task TerminateAsync_KeepsTemporaryBan()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active));
@@ -2024,7 +2019,7 @@ public class AgentManagementServiceTests
 
         using var db = f.Ctx.NewContext();
         var sperre = Assert.Single(db.Bewerbungssperren.Where(s => s.AgentId == "t"));
-        Assert.True(sperre.IsBlacklist);
+        Assert.False(sperre.IsBlacklist);
     }
 
     [Fact]

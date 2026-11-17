@@ -27,6 +27,9 @@ else
         {
             <MudTabPanel Icon="@Icons.Material.Filled.HourglassBottom" IconColor="Color.Warning"
                          Text="@($"Inaktiv ({_radar?.Rows.Count ?? 0})")" />
+        }
+        @if (_mayPersonnelRead)
+        {
             <MudTabPanel Icon="@Icons.Material.Filled.PersonOff" IconColor="Color.Error"
                          Text="@($"Gekündigt ({CountTerminated})")" />
         }
@@ -163,12 +166,14 @@ else
 
     // positions of the MudTabPanels; the last two are leadership-only
     private const int TabPartner = 1;
-    private const int TabInactive = 2;
-    private const int TabTerminated = 3;
+    // the inactivity radar is leadership only, the Administration sees terminations without it
+    private int TabInactive => _isLeadership ? 2 : -1;
+    private int TabTerminated => _isLeadership ? 3 : _mayPersonnelRead ? 2 : -1;
 
     private bool _load = true;
     private bool _mayRealName;
     private bool _isLeadership;
+    private bool _mayPersonnelRead;
     private string _search = string.Empty;
     private int _tab;
     private PartnerAgency? _agencyFilter;
@@ -207,12 +212,11 @@ else
     {
         get
         {
-            var query = _tab switch
-            {
-                TabTerminated => _agents.Where(a => a.Status == AgentStatus.Terminated),
-                TabPartner => _agents.Where(a => a.PartnerAgency != null && a.Status != AgentStatus.Terminated),
-                _ => _agents.Where(a => a.PartnerAgency == null && a.Status != AgentStatus.Terminated),
-            };
+            var query = _tab == TabTerminated
+                ? _agents.Where(a => a.Status == AgentStatus.Terminated)
+                : _tab == TabPartner
+                    ? _agents.Where(a => a.PartnerAgency != null && a.Status != AgentStatus.Terminated)
+                    : _agents.Where(a => a.PartnerAgency == null && a.Status != AgentStatus.Terminated);
             if (_tab == TabPartner)
             {
                 if (_agencyFilter is { } agency)
@@ -244,6 +248,7 @@ else
         _user = (await AuthStateTask).User;
         _mayRealName = _user.MayRealNameSee();
         _isLeadership = _user.IsLeadership();
+        _mayPersonnelRead = _user.MayPersonnelRead();
         _phoneColumnSet = _mayRealName ? PhoneColumns : PhoneColumns.Where(c => c.Key != "klarname").ToList();
         await LoadAsync();
         _load = false;

@@ -776,6 +776,14 @@ public static class ChangelogContent
             Besser("3.0.61-dvo-aenderungen-lesbar", "Wird ein Absatz der Dienstverordnung umgeschrieben, zeigt der Vergleich "
                 + "erst den alten Text durchgestrichen und dann den neuen fett, statt beides Wort für Wort zu mischen.",
                 "Dienstverordnung"),
+            Besser("3.0.62-administration-zugriff", "Die Administration Division sieht in den Personalakten jetzt "
+                + "Dienstaufsicht, Kommentare und Kündigungen, dazu den gemeldeten Schusswaffengebrauch und Präsentationen "
+                + "für die Führung.", "Personal"),
+            Besser("3.0.63-administration-listen", "Im Bereich der Administration hat jede Liste ein Suchfeld, die "
+                + "Agentenauswahl zeigt alle Agents, und unter Informationen gibt es Platz für Verweise auf Dokumente.",
+                "Personal"),
+            Besser("3.0.64-kuendigung-ohne-sperre", "Eine Kündigung sperrt nicht mehr automatisch für neue Bewerbungen, "
+                + "damit eine Wiedereinstellung möglich bleibt.", "Personal"),
         ]),
     ];
 }

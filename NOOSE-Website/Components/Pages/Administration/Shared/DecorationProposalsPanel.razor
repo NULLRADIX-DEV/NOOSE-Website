@@ -18,11 +18,12 @@
     else
     {
         <SectionHeader Title="Vorschläge" Icon="@Icons.Material.Filled.MilitaryTech" />
+        <AdministrationListSearch @bind-Value="_search" />
         @if (_rows.Count == 0)
         {
             <MudText Typo="Typo.body2" Class="mud-text-secondary">Noch keine Vorschläge.</MudText>
         }
-        @foreach (var p in _rows)
+        @foreach (var p in AdministrationListFilter.Apply(_rows, _search))
         {
             <MudPaper Class="pa-3" Elevation="1">
                 <MudStack Spacing="1">
@@ -60,6 +61,7 @@
 </MudStack>
 
 @code {
+    private string? _search;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
     private IReadOnlyList<DecorationProposalRow>? _rows;
