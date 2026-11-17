@@ -5,6 +5,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
+using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Infrastructure;
 using NOOSE_Website.Models.Cases;
 using NOOSE_Website.Models.Common;
@@ -21,8 +22,11 @@ public class ApplicationCaseService(
     IDocumentTemplateService templates,
     ISourceService sources,
     IPlaceholderService placeholders,
+    ILinkService links,
     ILogger<ApplicationCaseService> logger) : IApplicationCaseService
 {
+    private const string SecurityCheckTitlePrefix = "Sicherheitsüberprüfung | ";
+
     public async Task EnsureSecurityCheckCaseAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
         // read-only supervisors never provision records
@@ -40,9 +44,15 @@ public class ApplicationCaseService(
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var bewerbung = await db.Bewerbungen.AsNoTracking()
             .FirstOrDefaultAsync(b => b.Id == bewerbungId, cancellationToken);
-        if (bewerbung is null || bewerbung.LinkedCaseId is not null)
+        if (bewerbung is null)
         {
-            return; // fast path: missing or already provisioned
+            return;
+        }
+        if (bewerbung.LinkedCaseId is { } existingCaseId)
+        {
+            // provisioned before the SÜ was linked to the application: link it now
+            await LinkExistingSecurityCheckAsync(db, bewerbungId, existingCaseId, actor, cancellationToken);
+            return;
         }
 
         var name = bewerbung.Name;
@@ -80,7 +90,7 @@ public class ApplicationCaseService(
         var template = await templates.GetAsync(config.TemplateId, cancellationToken);
         var body = template?.ContentHtml ?? ApplicationTemplates.SecurityCheckBody;
         var html = await placeholders.ApplyAsync(body, nameof(Case), @case.Id, actor, cancellationToken);
-        var docTitle = $"Sicherheitsüberprüfung | {name}";
+        var docTitle = $"{SecurityCheckTitlePrefix}{name}";
         var document = await documents.CreateAsync(new DocumentInput
         {
             Title = docTitle,
@@ -97,7 +107,39 @@ public class ApplicationCaseService(
             TargetId = document.Id,
         }, actor, cancellationToken);
 
+        // 4) and on the application itself, under its linked records
+        await links.CreateAsync(nameof(Bewerbung), bewerbungId, nameof(Document), document.Id, null, actor,
+            cancellationToken: cancellationToken);
+
         logger.LogInformation("Auto-provisioned case {CaseId} + document {DocId} for application {AppId}.",
             @case.Id, document.Id, bewerbungId);
+    }
+
+    private async Task LinkExistingSecurityCheckAsync(AppDbContext db, string bewerbungId, string caseId,
+        ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
+        var documentId = await db.Sources.AsNoTracking()
+            .Where(s => s.EntityType == nameof(Case) && s.EntityId == caseId
+                && s.Type == SourceType.Document && s.TargetType == nameof(Document)
+                && s.Title.StartsWith(SecurityCheckTitlePrefix))
+            .OrderBy(s => s.CreatedAt)
+            .Select(s => s.TargetId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (documentId is null)
+        {
+            return;
+        }
+
+        var linked = await db.Links.AnyAsync(l => l.Kind == LinkKind.Default
+            && ((l.SourceType == nameof(Bewerbung) && l.SourceId == bewerbungId
+                    && l.TargetType == nameof(Document) && l.TargetId == documentId)
+                || (l.SourceType == nameof(Document) && l.SourceId == documentId
+                    && l.TargetType == nameof(Bewerbung) && l.TargetId == bewerbungId)),
+            cancellationToken);
+        if (!linked)
+        {
+            await links.CreateAsync(nameof(Bewerbung), bewerbungId, nameof(Document), documentId, null, actor,
+                cancellationToken: cancellationToken);
+        }
     }
 }

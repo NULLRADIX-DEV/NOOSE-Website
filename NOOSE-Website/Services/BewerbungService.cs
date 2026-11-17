@@ -196,9 +196,14 @@ public class BewerbungService(
         bewerbung.AssignedAgentId = actor.GetAgentId();
         bewerbung.AssignedAgentName = actor.GetCodename();
         await db.SaveChangesAsync(cancellationToken);
-        broadcaster.Report(id);
 
-        // auto-create the Bewerbungsverfahren case + Sicherheitsüberprüfung document; the assignment stands regardless
+        await EnsureSecurityCheckAsync(id, actor, cancellationToken);
+        broadcaster.Report(id);
+    }
+
+    // auto-create the Bewerbungsverfahren case + Sicherheitsüberprüfung document; the triggering change stands regardless
+    private async Task EnsureSecurityCheckAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken)
+    {
         try { await applicationCases.EnsureSecurityCheckCaseAsync(id, actor, cancellationToken); }
         catch (Exception ex) { logger.LogError(ex, "Auto case/document provisioning for application {Id} failed.", id); }
     }
@@ -246,6 +251,12 @@ public class BewerbungService(
                 }
             }
             catch (Exception ex) { logger.LogError(ex, "Lifting the ban after accepting application {Id} failed.", id); }
+        }
+
+        // starting the check without taking the application first still needs its SÜ
+        if (target is BewerbungStatus.InSicherheitspruefung)
+        {
+            await EnsureSecurityCheckAsync(id, actor, cancellationToken);
         }
         broadcaster.Report(id);
 

@@ -97,7 +97,7 @@ else
             </MudPaper>
 
             <MudPaper Elevation="2" Class="pa-4 mb-4">
-                <RecordLinksPanel EntityType="@nameof(Bewerbung)" EntityId="@_b.Id" User="_user" />
+                <RecordLinksPanel @ref="_linksPanel" EntityType="@nameof(Bewerbung)" EntityId="@_b.Id" User="_user" />
             </MudPaper>
 
             <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -238,6 +238,7 @@ else
     private Bewerbung? _b;
     private string? _note;
     private BewerbungssperrePanel? _sperrePanel;
+    private RecordLinksPanel? _linksPanel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -257,6 +258,11 @@ else
         if (_sperrePanel is not null)
         {
             await _sperrePanel.RefreshAsync();
+        }
+        // taking the application or starting the check links the SÜ
+        if (_linksPanel is not null)
+        {
+            await _linksPanel.RefreshAsync();
         }
     }
 

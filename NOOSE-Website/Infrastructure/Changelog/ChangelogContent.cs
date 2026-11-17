@@ -792,6 +792,9 @@ public static class ChangelogContent
                 + "damit eine Wiedereinstellung möglich bleibt.", "Personal"),
             Besser("3.0.68-administration-tickets", "Die Administration Division liest jetzt die Bürger-Tickets mit, "
                 + "in ihrem eigenen Bereich. Antworten bleibt bei der Führung.", "Personal"),
+            Fix("3.0.69-sue-an-bewerbung", "Die Sicherheitsüberprüfung entsteht jetzt auch, wenn du sie an einer Bewerbung "
+                + "startest, ohne sie dir vorher zuzuweisen, und steht an der Bewerbung unter den verknüpften Akten.",
+                "Personal"),
         ]),
     ];
 }
