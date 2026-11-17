@@ -40,7 +40,7 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var thresholds = await LoadThresholdsAsync(db, cancellationToken);
         var visitsFrom = await LoadVisitsCountedFromAsync(db, cancellationToken);
-        var rows = await ComputeAsync(db, thresholds, visitsFrom, onlyAgentId: null, viewer.MayRealNameSee(),
+        var rows = await ComputeAsync(db, thresholds, visitsFrom, onlyAgentId: null, RealNameScope.For(viewer),
             DateTime.UtcNow, cancellationToken);
         return new InactivityRadar(thresholds, rows
             .Where(r => r.Tier != InactivityTier.None)
@@ -55,7 +55,7 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
         Permission.RequireLeadership(viewer);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var row = await CurrentRowAsync(db, agentId, viewer.MayRealNameSee(), DateTime.UtcNow, cancellationToken);
+        var row = await CurrentRowAsync(db, agentId, RealNameScope.For(viewer), DateTime.UtcNow, cancellationToken);
         return row is { Tier: not InactivityTier.None } ? row : null;
     }
 
@@ -74,7 +74,7 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
         var now = DateTime.UtcNow;
         now = now.AddTicks(-(now.Ticks % 10));
         // recomputed, not trusted from the page: the agent may have come back meanwhile
-        var row = await CurrentRowAsync(db, agentId, withRealName: false, now, cancellationToken);
+        var row = await CurrentRowAsync(db, agentId, RealNameScope.None, now, cancellationToken);
         if (row is null || row.Tier == InactivityTier.None)
         {
             throw new InvalidOperationException("Dieser Agent steht nicht mehr im Inaktivitäts-Radar.");
@@ -185,18 +185,18 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
     }
 
     /// <summary>One agent's row as of now, tier None included; null when not selectable.</summary>
-    private static async Task<InactivityRow?> CurrentRowAsync(AppDbContext db, string agentId, bool withRealName,
+    private static async Task<InactivityRow?> CurrentRowAsync(AppDbContext db, string agentId, RealNameScope realNames,
         DateTime nowUtc, CancellationToken cancellationToken)
     {
         var thresholds = await LoadThresholdsAsync(db, cancellationToken);
         var visitsFrom = await LoadVisitsCountedFromAsync(db, cancellationToken);
-        return (await ComputeAsync(db, thresholds, visitsFrom, agentId, withRealName, nowUtc, cancellationToken))
+        return (await ComputeAsync(db, thresholds, visitsFrom, agentId, realNames, nowUtc, cancellationToken))
             .SingleOrDefault();
     }
 
     /// <summary>One row per selectable agent, tier included; the caller filters.</summary>
     private static async Task<List<InactivityRow>> ComputeAsync(AppDbContext db, InactivityThresholds thresholds,
-        DateTime? visitsFrom, string? onlyAgentId, bool withRealName, DateTime nowUtc,
+        DateTime? visitsFrom, string? onlyAgentId, RealNameScope realNames, DateTime nowUtc,
         CancellationToken cancellationToken)
     {
         var query = db.Users.AsNoTracking()
@@ -209,7 +209,7 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
         var agents = await query
             .Select(a => new
             {
-                a.Id, a.Codename, a.RealName, a.BadgeNumber, a.Rank, a.RegisteredAt, a.ReleasedAt, a.ActiveSinceAt,
+                a.Id, a.Codename, a.RealName, a.BadgeNumber, a.Rank, a.Division, a.IsTRU, a.RegisteredAt, a.ReleasedAt, a.ActiveSinceAt,
                 a.LastSeenAt, a.InactivityNudgedAt, a.InactivityNudgedByName,
             })
             .ToListAsync(cancellationToken);
@@ -262,7 +262,7 @@ public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, I
             }
             var nudged = InactivityRules.NudgeIsCurrent(a.InactivityNudgedAt, at);
             rows.Add(new InactivityRow(
-                a.Id, a.Codename, withRealName ? a.RealName : null, a.BadgeNumber, a.Rank,
+                a.Id, a.Codename, realNames.Of(a.Id, a.RealName, a.Rank, a.Division, a.IsTRU), a.BadgeNumber, a.Rank,
                 at, kind,
                 writes.TryGetValue(a.Id, out var lastWrite) ? lastWrite : null,
                 reads.TryGetValue(a.Id, out var lastRead) ? lastRead : null,

@@ -208,7 +208,7 @@ else
 
     private async Task ReassignAsync(FollowupBacklogItem w)
     {
-        var agentId = await FollowupReassignDialog.ShowAsync(DialogService, w.ResponsibleAgentId, _user.MayRealNameSee());
+        var agentId = await FollowupReassignDialog.ShowAsync(DialogService, w.ResponsibleAgentId, RealNameScope.For(_user));
         if (agentId is null || _busy)
         {
             return;

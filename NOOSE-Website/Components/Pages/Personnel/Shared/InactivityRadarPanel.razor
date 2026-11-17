@@ -135,7 +135,7 @@ else
 
     private ClaimsPrincipal _user = default!;
     private bool _mayWrite;
-    private bool _mayRealName;
+    private RealNameScope _realNames;
     private string? _me;
     private bool _busy;
 
@@ -143,7 +143,7 @@ else
     {
         _user = (await AuthStateTask).User;
         _mayWrite = _user.MayWrite();
-        _mayRealName = _user.MayRealNameSee();
+        _realNames = RealNameScope.For(_user);
         _me = _user.GetAgentId();
     }
 
@@ -200,7 +200,7 @@ else
         {
             return;
         }
-        var display = _mayRealName && !string.IsNullOrWhiteSpace(fresh.RealName)
+        var display = !string.IsNullOrWhiteSpace(fresh.RealName)
             ? $"{fresh.RealName} ({fresh.Codename})"
             : fresh.Codename;
         var choice = await TerminationDialog.ShowAsync(DialogService, display,
@@ -214,7 +214,7 @@ else
             await AgentService.TerminateAsync(fresh.AgentId, choice.Reason, choice.CreateNote, choice.PostDiscord, _user);
             Snackbar.Add($"{display} wurde gekündigt.", Severity.Warning);
             await HandoverDialog.OfferAsync(DialogService, HandoverService, Snackbar, fresh.AgentId, display,
-                _mayRealName, _user, quietWhenEmpty: true);
+                _realNames, _user, quietWhenEmpty: true);
         });
     });
 

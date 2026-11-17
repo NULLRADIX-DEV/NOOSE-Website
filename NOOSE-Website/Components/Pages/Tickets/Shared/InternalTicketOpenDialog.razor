@@ -59,7 +59,7 @@
 
     private async Task AddAgentAsync()
     {
-        var picked = await TicketAgentsAddDialog.ShowAsync(DialogService, _participants, User.MayRealNameSee());
+        var picked = await TicketAgentsAddDialog.ShowAsync(DialogService, _participants, RealNameScope.For(User));
         if (picked is not null)
         {
             _participants.AddRange(picked);

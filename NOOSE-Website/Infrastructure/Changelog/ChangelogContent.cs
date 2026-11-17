@@ -780,6 +780,8 @@ public static class ChangelogContent
                 + "Klick groß öffnet, und bei Mitgliedern den Namen mit Link zur Personenakte.", "Akten"),
             Besser("3.0.63-klarnamen-intern", "Ab Special Agent siehst du den Klarnamen deiner Kollegen neben dem "
                 + "Codenamen, etwa im Protokoll, im Zeitstrahl einer Akte und in Kommentaren.", "Personal"),
+            Besser("3.0.64-klarnamen-hrt-ctd", "Agenten aus HRT und CTD siehst du weiter nur mit Codenamen, ihre "
+                + "Klarnamen kennt wie bisher nur die Führung.", "Personal"),
         ]),
     ];
 }

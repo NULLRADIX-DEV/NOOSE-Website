@@ -77,7 +77,7 @@
     private async Task AssignAsync()
     {
         var choice = await PersonKeeperDialog.ShowAsync(DialogService, _keepers?.KeeperId, _keepers?.DeputyId,
-            User.MayRealNameSee());
+            RealNameScope.For(User));
         if (choice is { } c)
         {
             await RunAsync(() => Keepers.AssignAsync(PersonId, c.Keeper, c.Deputy, User), "Aktenführung gespeichert.");

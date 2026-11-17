@@ -53,7 +53,7 @@ public class DocumentAccessService(IDbContextFactory<AppDbContext> dbFactory, Do
 
         var agents = await q
             .OrderBy(a => a.Codename)
-            .Select(a => new { a.Id, a.Codename, a.RealName, a.Rank })
+            .Select(a => new { a.Id, a.Codename, a.RealName, a.Rank, a.Division, a.IsTRU, a.PartnerAgency })
             .ToListAsync(cancellationToken);
 
         var excluded = (await db.DocumentAccessExclusions.AsNoTracking()
@@ -63,7 +63,8 @@ public class DocumentAccessService(IDbContextFactory<AppDbContext> dbFactory, Do
             .ToHashSet();
 
         return agents
-            .Select(a => new DocumentAccessEntry(a.Id, a.Codename, a.RealName, a.Rank, excluded.Contains(a.Id)))
+            .Select(a => new DocumentAccessEntry(a.Id, a.Codename, a.RealName, a.Rank, excluded.Contains(a.Id),
+                DivisionRules.Of(a.Rank, a.Division, a.IsTRU, a.PartnerAgency is null)))
             .ToList();
     }
 

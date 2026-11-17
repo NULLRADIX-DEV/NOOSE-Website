@@ -83,7 +83,7 @@
     private async Task AddAsync()
     {
         var exclusion = _agents.Select(a => a.AgentId).ToList();
-        var picked = await TicketAgentsAddDialog.ShowAsync(DialogService, exclusion, User.MayRealNameSee());
+        var picked = await TicketAgentsAddDialog.ShowAsync(DialogService, exclusion, RealNameScope.For(User));
         if (picked is null)
         {
             return;

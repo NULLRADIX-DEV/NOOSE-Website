@@ -527,7 +527,7 @@ public class DecorationService(
         }
         var settings = await ReadSettingsAsync(db, cancellationToken);
         return new CertificateView(CertificateKind.Decoration, agent.Id, Codename(agent),
-            DecorationRules.MayChooseRealName(actor, agent.Id) ? agent.RealName.TrimToNull() : null,
+            DecorationRules.MayChooseRealName(actor, agent) ? agent.RealName.TrimToNull() : null,
             agent.BadgeNumber.TrimToNull(), award.RecipientRank, award.AwardedOn.Date, award.Decoration.Name,
             award.Decoration.Symbol, award.Decoration.Tier, award.Citation, award.SignatoryName, award.SignatoryRank,
             settings.Place);
@@ -558,7 +558,7 @@ public class DecorationService(
         var settings = await ReadSettingsAsync(db, cancellationToken);
         var day = DateTime.SpecifyKind(row.Timestamp, DateTimeKind.Utc).ToLocalTime().Date;
         return new CertificateView(kind, agent.Id, Codename(agent),
-            DecorationRules.MayChooseRealName(actor, agent.Id) ? agent.RealName.TrimToNull() : null,
+            DecorationRules.MayChooseRealName(actor, agent) ? agent.RealName.TrimToNull() : null,
             agent.BadgeNumber.TrimToNull(), row.New, day, null, null, null, null,
             signatory?.Codename, signatory?.Rank, settings.Place);
     }

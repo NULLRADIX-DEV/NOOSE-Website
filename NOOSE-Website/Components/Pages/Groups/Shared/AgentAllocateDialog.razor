@@ -15,9 +15,9 @@
                         <MudIcon Icon="@(a.PartnerAgency is null ? Icons.Material.Filled.Person : Icons.Material.Filled.Handshake)"
                                  Size="Size.Small" Color="@(a.PartnerAgency is null ? Color.Primary : Color.Info)" />
                         <MudText Typo="Typo.body2">@a.Codename</MudText>
-                        @if (MayRealName && !string.IsNullOrWhiteSpace(a.RealName))
+                        @if (RealNames.Of(a) is { } shownRealName)
                         {
-                            <MudText Typo="Typo.caption" Class="mud-text-secondary">(@a.RealName)</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">(@shownRealName)</MudText>
                         }
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@(a.PartnerAgency is { } ag ? PartnerUnitDisplay.OfAccount(ag, a.PartnerUnitId) : DivisionRules.RankName(a))</MudText>
                         @if (ReferenceDay is { } day && AbsenceHint.For(_absent, a.Id, day) is { Length: > 0 } hint)
@@ -52,7 +52,7 @@
     [Parameter] public IReadOnlyList<string> ExclusionAgentIds { get; set; } = Array.Empty<string>();
 
     /// <summary>Only real-name viewers may search/see it, else search would leak the secret field.</summary>
-    [Parameter] public bool MayRealName { get; set; }
+    [Parameter] public RealNameScope RealNames { get; set; }
 
     /// <summary>Only leadership may set the investigation-lead flag; gates the checkbox.</summary>
     [Parameter] public bool MayInvestigationLeadSet { get; set; }
@@ -107,7 +107,7 @@
         IEnumerable<Agent> hit = string.IsNullOrWhiteSpace(value)
             ? _all
             : _all.Where(a => a.Codename.Contains(search, StringComparison.OrdinalIgnoreCase)
-                            || (MayRealName && (a.RealName ?? string.Empty).Contains(search, StringComparison.OrdinalIgnoreCase)));
+                            || ((RealNames.Of(a) ?? string.Empty).Contains(search, StringComparison.OrdinalIgnoreCase)));
         return Task.FromResult(hit);
     }
 
@@ -126,12 +126,12 @@
 
     /// <summary>Shows the dialog; returns the choice or null on cancel.</summary>
     public static async Task<Choice?> ShowAsync(IDialogService dialog, IReadOnlyList<string> exclusionAgentIds,
-        bool mayRealName, bool mayInvestigationLeadSet, string? leadLabel = null, DateOnly? referenceDay = null)
+        RealNameScope realNames, bool mayInvestigationLeadSet, string? leadLabel = null, DateOnly? referenceDay = null)
     {
         var parameters = new DialogParameters<AgentAllocateDialog>
         {
             { x => x.ExclusionAgentIds, exclusionAgentIds },
-            { x => x.MayRealName, mayRealName },
+            { x => x.RealNames, realNames },
             { x => x.MayInvestigationLeadSet, mayInvestigationLeadSet },
             { x => x.ReferenceDay, referenceDay },
         };

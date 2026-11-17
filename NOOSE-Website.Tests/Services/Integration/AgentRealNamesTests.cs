@@ -24,7 +24,10 @@ public sealed class AgentRealNamesTests
             Seed.Agent("reader", Rank.Director, configure: a => { a.RealName = "Aufsicht Echt"; a.IsTeamLead = true; }),
             Seed.Agent("partner", Rank.SpecialAgent, configure: a => { a.RealName = "Partner Echt"; a.PartnerAgency = PartnerAgency.LSPD; }),
             Seed.Agent("citizen", Rank.Trainee, AgentStatus.Civilian, a => { a.Rank = null; a.RealName = "Buerger Echt"; }),
-            Seed.Agent("blank", Rank.SpecialAgent, configure: a => a.RealName = "  "));
+            Seed.Agent("blank", Rank.SpecialAgent, configure: a => a.RealName = "  "),
+            Seed.Agent("hrt", Rank.SpecialAgent, configure: a => { a.RealName = "Hrt Echt"; a.Division = Division.Hrt; a.IsTRU = true; }),
+            Seed.Agent("ctd", Rank.SpecialAgent, configure: a => { a.RealName = "Ctd Echt"; a.Division = Division.Ctd; }),
+            Seed.Agent("board", Rank.AssistantDirector, configure: a => { a.RealName = "Board Echt"; a.Division = Division.Hrt; }));
         await db.SaveChangesAsync();
         return ctx;
     }
@@ -38,9 +41,9 @@ public sealed class AgentRealNamesTests
         using var ctx = await SeededAsync();
         await using var db = ctx.NewContext();
 
-        var map = await AgentRealNames.LoadAsync(db);
+        var map = await AgentRealNames.LoadAsync(db, new RealNameScope(Regular: true, Covert: true));
 
-        Assert.Equal(new[] { "agent", "fired" }, map.Keys.Order().ToArray());
+        Assert.Equal(new[] { "agent", "board", "ctd", "fired", "hrt" }, map.Keys.Order().ToArray());
         Assert.Equal("Klara Klarname", map["agent"]);
     }
 
@@ -51,6 +54,24 @@ public sealed class AgentRealNamesTests
         var viewer = ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.SpecialAgent).Build();
 
         Assert.Contains("agent", (await Lookup(ctx, viewer).GetAsync()).Keys);
+    }
+
+    [Fact]
+    public async Task Hrt_and_ctd_stay_hidden_below_leadership_except_to_themselves()
+    {
+        using var ctx = await SeededAsync();
+        var special = ClaimsPrincipalBuilder.Agent("viewer").WithRank(Rank.SpecialAgent).Build();
+        var self = ClaimsPrincipalBuilder.Agent("hrt").WithRank(Rank.SpecialAgent).AsDivision(Division.Hrt).Build();
+        var chief = ClaimsPrincipalBuilder.Agent("chief").WithRank(Rank.SectionChief).Build();
+
+        var forSpecial = await Lookup(ctx, special).GetAsync();
+        Assert.DoesNotContain("hrt", forSpecial.Keys);
+        Assert.DoesNotContain("ctd", forSpecial.Keys);
+        Assert.Contains("board", forSpecial.Keys);
+        Assert.Contains("hrt", (await Lookup(ctx, self).GetAsync()).Keys);
+        var forChief = await Lookup(ctx, chief).GetAsync();
+        Assert.Contains("hrt", forChief.Keys);
+        Assert.Contains("ctd", forChief.Keys);
     }
 
     [Theory]

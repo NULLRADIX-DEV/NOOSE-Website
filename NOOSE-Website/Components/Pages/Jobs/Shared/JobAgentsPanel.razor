@@ -83,7 +83,7 @@
         var exclusion = _agents.Select(a => a.AgentId).ToList();
         // same fallback as the create form: without a due date the question is simply "around right now?"
         var day = DueDay ?? DateOnly.FromDateTime(DateTime.Now);
-        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, User.MayRealNameSee(), false,
+        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, RealNameScope.For(User), false,
             referenceDay: day);
         if (choice is null)
         {

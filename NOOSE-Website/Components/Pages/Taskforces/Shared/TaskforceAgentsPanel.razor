@@ -97,7 +97,7 @@
     {
         var exclusion = _agents.Select(a => a.AgentId).ToList();
         // New agents join as member; role set afterwards
-        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, User.MayRealNameSee(), mayInvestigationLeadSet: false);
+        var choice = await AgentAllocateDialog.ShowAsync(DialogService, exclusion, RealNameScope.For(User), mayInvestigationLeadSet: false);
         if (choice is null)
         {
             return;

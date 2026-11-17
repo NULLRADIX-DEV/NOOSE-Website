@@ -52,7 +52,7 @@
                     @foreach (var a in _data.Administration)
                     {
                         <MudItem xs="12" sm="6" md="4" lg="3">
-                            <AgentTile Agent="a" MayRealName="_mayRealName" Plaques="@PlaquesOf(a.Id)" />
+                            <AgentTile Agent="a" RealNames="_realNames" Plaques="@PlaquesOf(a.Id)" />
                         </MudItem>
                     }
                 </MudGrid>
@@ -90,7 +90,7 @@
                                     @foreach (var m in tf.Members)
                                     {
                                         <MudItem xs="12" sm="6" md="4" lg="3">
-                                            <AgentTile Agent="m.Agent!" MayRealName="_mayRealName" Plaques="@PlaquesOf(m.AgentId)"
+                                            <AgentTile Agent="m.Agent!" RealNames="_realNames" Plaques="@PlaquesOf(m.AgentId)"
                                                          RoleText="@(TaskforceRoleDisplay.IsLead(m.Role) ? TaskforceRoleDisplay.Name(m.Role) : null)"
                                                          IsLead="@TaskforceRoleDisplay.IsLead(m.Role)" />
                                         </MudItem>
@@ -109,7 +109,7 @@
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private bool _load = true;
-    private bool _mayRealName;
+    private RealNameScope _realNames;
     private OrgChartData? _data;
     private IReadOnlyDictionary<string, IReadOnlyList<DecorationPlaqueView>> _plaques
         = new Dictionary<string, IReadOnlyList<DecorationPlaqueView>>();
@@ -145,9 +145,9 @@
         @<a class="org-card" href="@($"/personal/{a.Id}")">
             <span class="org-card-avatar">@Initials(a.Codename)</span>
             <span class="org-card-name">@(string.IsNullOrWhiteSpace(a.Codename) ? "Unbenannt" : a.Codename)</span>
-            @if (_mayRealName && !string.IsNullOrWhiteSpace(a.RealName))
+            @if (_realNames.Of(a) is { } shownRealName)
             {
-                <span class="org-card-sub">@a.RealName</span>
+                <span class="org-card-sub">@shownRealName</span>
             }
             @if (a.IsHRB)
             {
@@ -159,7 +159,7 @@
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
-        _mayRealName = user.MayRealNameSee();
+        _realNames = RealNameScope.For(user);
         _taskforceEmptyText = user.IsLeadership()
             ? "Keine genehmigten Taskforces vorhanden."
             : "Dir sind keine genehmigten Taskforces zugeteilt.";

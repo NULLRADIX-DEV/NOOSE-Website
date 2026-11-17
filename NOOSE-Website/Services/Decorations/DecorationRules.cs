@@ -54,9 +54,10 @@ public static class DecorationRules
         => !revoked && viewer.IsInternalAgent()
             && (viewer.IsLeadership() || string.Equals(viewer.GetAgentId(), recipientId, StringComparison.Ordinal));
 
-    /// <summary>Who may put the real name on a certificate: whoever may see real names, and the recipient.</summary>
-    public static bool MayChooseRealName(ClaimsPrincipal viewer, string recipientId)
-        => viewer.MayRealNameSee() || string.Equals(viewer.GetAgentId(), recipientId, StringComparison.Ordinal);
+    /// <summary>Who may put the real name on a certificate: whoever may see this recipient's real name, and the recipient.</summary>
+    public static bool MayChooseRealName(ClaimsPrincipal viewer, Agent recipient)
+        => RealNameScope.For(viewer).MaySee(recipient)
+           || string.Equals(viewer.GetAgentId(), recipient.Id, StringComparison.Ordinal);
 
     /// <summary>The division whose signatory signs for the recipient; none for the Board, which gets the global one.</summary>
     public static Division? SignatoryDivision(Agent recipient)

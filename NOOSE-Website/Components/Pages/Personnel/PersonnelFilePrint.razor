@@ -28,9 +28,9 @@ else
             <table class="druck-felder">
                 <tbody>
                     <tr><th>Codename</th><td>@DisplayName(_agent)</td></tr>
-                    @if (_mayRealName && !string.IsNullOrWhiteSpace(_agent.RealName))
+                    @if (_realNames.Of(_agent) is { } shownRealName)
                     {
-                        <tr><th>Klarname</th><td>@_agent.RealName</td></tr>
+                        <tr><th>Klarname</th><td>@shownRealName</td></tr>
                     }
                     @if (!string.IsNullOrWhiteSpace(_agent.BadgeNumber))
                     {
@@ -236,7 +236,7 @@ else
     }
 
     private bool _load = true;
-    private bool _mayRealName;
+    private RealNameScope _realNames;
     private bool _isLeadership;
     private string? _printBy;
     private Agent? _agent;
@@ -255,7 +255,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthStateTask).User;
-        _mayRealName = user.MayRealNameSee();
+        _realNames = RealNameScope.For(user);
         _isLeadership = user.IsLeadership();
         _printBy = user.GetCodename();
 

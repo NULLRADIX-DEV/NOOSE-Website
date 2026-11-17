@@ -105,12 +105,15 @@ public class DisciplinaryService(IDbContextFactory<AppDbContext> dbFactory, ICas
         }
         var agent = await db.Users.AsNoTracking()
             .Where(u => u.Id == row.AgentId)
-            .Select(u => new { u.Codename, u.RealName, u.Rank })
+            .Select(u => new { u.Codename, u.RealName, u.Rank, u.Division, u.IsTRU })
             .FirstOrDefaultAsync(cancellationToken);
         var own = string.Equals(actor.GetAgentId(), row.AgentId, StringComparison.OrdinalIgnoreCase);
         var codename = agent?.Codename ?? "—";
         // the notice names the person; the clear name only where the viewer may read it
-        var name = (own || actor.MayRealNameSee()) && !string.IsNullOrWhiteSpace(agent?.RealName) ? agent.RealName! : codename;
+        var shown = own
+            ? agent?.RealName
+            : RealNameScope.For(actor).Of(row.AgentId, agent?.RealName, agent?.Rank, agent?.Division, agent?.IsTRU ?? false);
+        var name = !string.IsNullOrWhiteSpace(shown) ? shown : codename;
         var mayHandle = false;
         if (!own && actor.MayAdministrationWrite())
         {

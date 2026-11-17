@@ -159,7 +159,7 @@
 
     private async Task NewAsync()
     {
-        var input = await FollowupDialog.ShowAsync(DialogService, User.MayRealNameSee());
+        var input = await FollowupDialog.ShowAsync(DialogService, RealNameScope.For(User));
         if (input is null)
         {
             return;
@@ -170,7 +170,7 @@
 
     private async Task EditAsync(FollowupItem w)
     {
-        var input = await FollowupDialog.ShowAsync(DialogService, User.MayRealNameSee(),
+        var input = await FollowupDialog.ShowAsync(DialogService, RealNameScope.For(User),
             "Wiedervorlage bearbeiten", w.DueAt, w.Note, w.ResponsibleAgentId);
         if (input is null)
         {

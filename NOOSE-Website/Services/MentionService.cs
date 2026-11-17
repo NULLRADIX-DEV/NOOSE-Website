@@ -233,7 +233,7 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
         }
 
         var mayClassifiedRead = actor.MayClassifiedRead();
-        var mayRealName = actor.MayRealNameSee();
+        var realNames = RealNameScope.For(actor);
         var meId = actor.GetAgentId();
         var hit = new List<MentionHit>();
 
@@ -262,16 +262,28 @@ public class MentionService(IDbContextFactory<AppDbContext> dbFactory, ISearchSe
         // an investigation text notifies nobody, so it offers nobody to notify
         if (source != MentionSource.InvestigationField)
         {
-            // real name gated by mayRealName, kept separate from the classified-read flag.
+            // real name gated by RealNameScope, kept separate from the classified-read flag.
             // Deliberately NOT AgentSelection.OnlySelectable: partners stay mentionable here.
-            var agents = await db.Users
+            var mayRealName = realNames.Regular;
+            var agents = (await db.Users
                 .Where(u => u.Status == AgentStatus.Active && !u.IsTeamLead
                     && (u.Codename.Contains(s) || (mayRealName && u.RealName != null && u.RealName.Contains(s))))
-                .OrderBy(u => u.Codename).Take(CandidatesPerGroup)
-                .Select(u => new { u.Id, u.Codename, u.RealName }).ToListAsync(cancellationToken);
+                .OrderBy(u => u.Codename).Take(CandidatesPerGroup * 2)
+                .Select(u => new { u.Id, u.Codename, u.RealName, u.Rank, u.Division, u.IsTRU, u.PartnerAgency })
+                .ToListAsync(cancellationToken))
+                .Select(u => new
+                {
+                    u.Id, u.Codename,
+                    RealName = realNames.Of(u.Id, u.RealName, u.Rank, u.Division, u.IsTRU, u.PartnerAgency is not null),
+                })
+                // a hidden real name must not match either, or the hit would confirm it
+                .Where(u => u.Codename.Contains(s, StringComparison.OrdinalIgnoreCase)
+                    || (u.RealName?.Contains(s, StringComparison.OrdinalIgnoreCase) ?? false))
+                .Take(CandidatesPerGroup)
+                .ToList();
             hit.AddRange(agents.Select(a => new MentionHit(nameof(Agent), a.Id,
                 string.IsNullOrWhiteSpace(a.Codename) ? "(unbenannter Agent)" : a.Codename,
-                mayRealName ? a.RealName : null)));
+                a.RealName)));
         }
 
         // sources by title; visibility derived from the parent record
