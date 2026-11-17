@@ -440,6 +440,40 @@ public sealed class BewerbungServiceTests
         Assert.Equal("hrb", check.Bewerbungen.Single(b => b.Id == "b1").AssignedAgentId);
     }
 
+    [Fact]
+    public async Task SetStatusAsync_StartingSecurityCheck_InvokesAutoProvisioning()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Bewerbungen.Add(Bew("b1", "u1", status: BewerbungStatus.Eingereicht));
+            db.SaveChanges();
+        }
+        var (svc, applicationCases) = BuildWithProvisioning(ctx);
+        var hrb = Hrb();
+
+        await svc.SetStatusAsync("b1", BewerbungStatus.InSicherheitspruefung, null, hrb);
+
+        await applicationCases.Received(1).EnsureSecurityCheckCaseAsync("b1", hrb, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SetStatusAsync_OtherStep_DoesNotProvision()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Bewerbungen.Add(Bew("b1", "u1", status: BewerbungStatus.InSicherheitspruefung));
+            db.SaveChanges();
+        }
+        var (svc, applicationCases) = BuildWithProvisioning(ctx);
+
+        await svc.SetStatusAsync("b1", BewerbungStatus.ImVorstellungsgespraech, null, Hrb());
+
+        await applicationCases.DidNotReceive().EnsureSecurityCheckCaseAsync(Arg.Any<string>(), Arg.Any<ClaimsPrincipal>(),
+            Arg.Any<CancellationToken>());
+    }
+
     // ---------- SetStatusAsync ----------
 
     [Fact]

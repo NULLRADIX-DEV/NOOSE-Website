@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NOOSE_Website.Data.Entities;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Recruiting;
@@ -25,11 +26,32 @@ public sealed class ApplicationCaseServiceTests
         public IDocumentTemplateService Templates { get; } = Substitute.For<IDocumentTemplateService>();
         public ISourceService Sources { get; } = Substitute.For<ISourceService>();
         public IPlaceholderService Placeholders { get; } = Substitute.For<IPlaceholderService>();
+        public ILinkService Links { get; } = Substitute.For<ILinkService>();
     }
 
     private static ApplicationCaseService Build(SqliteTestContext ctx, Collaborators c)
-        => new(ctx.Factory, c.Automation, c.Cases, c.Documents, c.Templates, c.Sources, c.Placeholders,
+        => new(ctx.Factory, c.Automation, c.Cases, c.Documents, c.Templates, c.Sources, c.Placeholders, c.Links,
                Substitute.For<ILogger<ApplicationCaseService>>());
+
+    private static Task LinkReceived(Collaborators c, int times, string documentId)
+        => c.Links.Received(times).CreateAsync(nameof(Bewerbung), "b1", nameof(Document), documentId, null,
+            Arg.Any<ClaimsPrincipal>(), LinkKind.Default, Arg.Any<CancellationToken>(), Arg.Any<IReadOnlyCollection<string>?>());
+
+    // the SÜ of an application provisioned before linking existed, filed under its case
+    private static void SeedFiledSecurityCheck(SqliteTestContext ctx, string caseId = "existing", string documentId = "old-doc")
+    {
+        using var db = ctx.NewContext();
+        db.Sources.Add(new Source
+        {
+            EntityType = nameof(Case),
+            EntityId = caseId,
+            Type = SourceType.Document,
+            Title = "Sicherheitsüberprüfung | Max Mustermann",
+            TargetType = nameof(Document),
+            TargetId = documentId,
+        });
+        db.SaveChanges();
+    }
 
     private static ClaimsPrincipal Hrb()
         => ClaimsPrincipalBuilder.Agent("hrb").AsHrb().WithRank(Rank.Trainee).WithCodename("Falcon").Build();
@@ -96,6 +118,8 @@ public sealed class ApplicationCaseServiceTests
                 && i.Title == "Sicherheitsüberprüfung | Max Mustermann"),
             Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
 
+        await LinkReceived(c, 1, "doc1");
+
         using var db = ctx.NewContext();
         var b = await db.Bewerbungen.FirstAsync(x => x.Id == "b1");
         Assert.Equal("case1", b.LinkedCaseId);
@@ -111,6 +135,43 @@ public sealed class ApplicationCaseServiceTests
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
         await c.Cases.DidNotReceive().CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Links_the_existing_security_check_of_an_older_case_to_the_application()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedBewerbung(ctx, linkedCaseId: "existing");
+        SeedFiledSecurityCheck(ctx);
+        var c = EnabledCollaborators();
+
+        await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
+
+        await c.Cases.DidNotReceive().CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+        await LinkReceived(c, 1, "old-doc");
+    }
+
+    [Fact]
+    public async Task Leaves_an_already_linked_security_check_alone()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedBewerbung(ctx, linkedCaseId: "existing");
+        SeedFiledSecurityCheck(ctx);
+        using (var db = ctx.NewContext())
+        {
+            db.Links.Add(new Link
+            {
+                SourceType = nameof(Document), SourceId = "old-doc",
+                TargetType = nameof(Bewerbung), TargetId = "b1",
+                Kind = LinkKind.Default,
+            });
+            db.SaveChanges();
+        }
+        var c = EnabledCollaborators();
+
+        await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
+
+        await LinkReceived(c, 0, "old-doc");
     }
 
     [Fact]
