@@ -31,7 +31,7 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
     private sealed record Raw(
         DateTime Timestamp, TimelineCategory Category, string Title, string? Detail,
         string? ActorName, string? ActorId, string? Href,
-        IReadOnlyList<AuditDisplay.FieldChange>? Changes, DateTime? RecordedAt = null);
+        IReadOnlyList<AuditDisplay.FieldChange>? Changes, DateTime? RecordedAt = null, string? ImageUrl = null);
 
     public async Task<IReadOnlyList<TimelineEntry>> GetTimelineAsync(
         string entityType, string entityId, ClaimsPrincipal viewer,
@@ -114,20 +114,30 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
         {
             (types, auditIds) = await AuditSourceAsync(db, entityType, entityId, cancellationToken);
         }
-        foreach (var log in await db.AuditLogs
+        var auditRows = await db.AuditLogs
             .Where(a => types.Contains(a.EntityType) && auditIds.Contains(a.EntityId)
                 && a.EntityType != nameof(Link)
                 // a written reason is for internal supervision, not for a partner agency
                 && (!isPartner || a.Action != AuditAction.Justified))
-            .Select(a => new { a.Timestamp, a.EntityType, a.Action, a.ChangesJson, a.AgentName, a.AgentId })
-            .ToListAsync(cancellationToken))
+            .Select(a => new { a.Timestamp, a.EntityType, a.EntityId, a.Action, a.ChangesJson, a.AgentName, a.AgentId })
+            .ToListAsync(cancellationToken);
+        var (members, photos) = await AuditSubjectsAsync(
+            db, entityType, auditRows.Select(a => (a.EntityType, a.EntityId)).ToList(), mayAllTf, meId, cancellationToken);
+        foreach (var log in auditRows)
         {
             var (kat, title) = TimelineDisplay.MapAudit(log.EntityType, log.Action);
             // a tip carries the submitting account as its actor, and an agent may report through his civilian
             // identity — naming him on the file he reported about is exactly what the promise forbids
             var hidden = TipAnonymity.HidesActor(log.EntityType);
+            string? href = null;
+            if (members.TryGetValue((log.EntityType, log.EntityId), out var member))
+            {
+                title = $"{title}: {member.Name}";
+                href = member.Href;
+            }
             raw.Add(new Raw(log.Timestamp, kat, title, null, hidden ? null : log.AgentName, hidden ? null : log.AgentId,
-                null, AuditDisplay.Parse(log.ChangesJson, entityType: log.EntityType)));
+                href, AuditDisplay.Parse(log.ChangesJson, entityType: log.EntityType),
+                ImageUrl: photos.GetValueOrDefault((log.EntityType, log.EntityId))));
         }
 
         // ---- 2) classification history ----
@@ -326,7 +336,7 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
 
         return raw
             .Select(r => new TimelineEntry(r.Timestamp, r.Category, r.Title, r.Detail,
-                ActorName(r, names), r.Href, r.Changes, r.ActorId, r.RecordedAt))
+                ActorName(r, names), r.Href, r.Changes, r.ActorId, r.RecordedAt, r.ImageUrl))
             .OrderByDescending(e => e.Timestamp)
             .ToList();
     }
@@ -460,6 +470,67 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
         }
 
         return (types.ToArray(), ids);
+    }
+
+    // the person behind a membership row and the photo behind a photo row; the audit row only carries ids
+    private static async Task<(Dictionary<(string, string), (string Name, string? Href)> Members, Dictionary<(string, string), string> Photos)>
+        AuditSubjectsAsync(AppDbContext db, string recordType, IReadOnlyList<(string Type, string Id)> rows,
+            bool mayAllTf, string? meId, CancellationToken ct)
+    {
+        var members = new Dictionary<(string, string), (string Name, string? Href)>();
+        var photos = new Dictionary<(string, string), string>();
+        var byType = rows.GroupBy(r => r.Type).ToDictionary(g => g.Key, g => g.Select(r => r.Id).Distinct().ToList());
+        List<string> Ids(string type) => byType.TryGetValue(type, out var list) ? list : [];
+
+        // a removed member still names who left
+        var people = new List<(string Type, string Id, string PersonId)>();
+        async Task AddPeople(string type, Func<List<string>, Task<List<(string Id, string PersonId)>>> load)
+        {
+            if (Ids(type) is { Count: > 0 } ids)
+            {
+                people.AddRange((await load(ids)).Select(m => (type, m.Id, m.PersonId)));
+            }
+        }
+        await AddPeople(nameof(FactionMember), async ids => (await db.FactionMembers.IgnoreQueryFilters()
+            .Where(m => ids.Contains(m.Id)).Select(m => new { m.Id, m.PersonId }).ToListAsync(ct)).Select(m => (m.Id, m.PersonId)).ToList());
+        await AddPeople(nameof(PersonGroupMember), async ids => (await db.PersonGroupMembers.IgnoreQueryFilters()
+            .Where(m => ids.Contains(m.Id)).Select(m => new { m.Id, m.PersonId }).ToListAsync(ct)).Select(m => (m.Id, m.PersonId)).ToList());
+        await AddPeople(nameof(PartyMember), async ids => (await db.PartyMembers.IgnoreQueryFilters()
+            .Where(m => ids.Contains(m.Id)).Select(m => new { m.Id, m.PersonId }).ToListAsync(ct)).Select(m => (m.Id, m.PersonId)).ToList());
+        await AddPeople(nameof(DrugRoutePerson), async ids => (await db.DrugRoutePeople.IgnoreQueryFilters()
+            .Where(m => ids.Contains(m.Id)).Select(m => new { m.Id, m.PersonId }).ToListAsync(ct)).Select(m => (m.Id, m.PersonId)).ToList());
+        if (people.Count > 0)
+        {
+            var map = await RecordsReference.ResolveAsync(db,
+                people.Select(m => (nameof(Person), m.PersonId)).Distinct().ToList(), ct, mayAllTf, meId);
+            foreach (var m in people)
+            {
+                members[(m.Type, m.Id)] = CounterpartDisplay(map, (nameof(Person), m.PersonId), "Person");
+            }
+        }
+
+        // only photos still in the gallery; a removed one is gone from its endpoint as well
+        async Task AddPhotos(string type, Func<List<string>, Task<List<string>>> live)
+        {
+            if (Ids(type) is not { Count: > 0 } ids)
+            {
+                return;
+            }
+            foreach (var id in await live(ids))
+            {
+                if (RecordAvatar.GalleryUrl(recordType, id) is { } url)
+                {
+                    photos[(type, id)] = url;
+                }
+            }
+        }
+        await AddPhotos(nameof(PersonPhoto), ids => db.PersonPhotos.Where(p => ids.Contains(p.Id)).Select(p => p.Id).ToListAsync(ct));
+        await AddPhotos(nameof(FactionPhoto), ids => db.FactionPhotos.Where(p => ids.Contains(p.Id)).Select(p => p.Id).ToListAsync(ct));
+        await AddPhotos(nameof(PersonGroupPhoto), ids => db.PersonGroupPhotos.Where(p => ids.Contains(p.Id)).Select(p => p.Id).ToListAsync(ct));
+        await AddPhotos(nameof(PartyPhoto), ids => db.PartyPhotos.Where(p => ids.Contains(p.Id)).Select(p => p.Id).ToListAsync(ct));
+        await AddPhotos(nameof(DrugRoutePhoto), ids => db.DrugRoutePhotos.Where(p => ids.Contains(p.Id)).Select(p => p.Id).ToListAsync(ct));
+
+        return (members, photos);
     }
 
     private static (string Name, string? Href) CounterpartDisplay(

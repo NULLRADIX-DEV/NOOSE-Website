@@ -391,6 +391,7 @@ public sealed class TimelineServiceTests
         var photo = Assert.Single(result.Where(e => e.Category == TimelineCategory.Photo));
         Assert.Equal("Foto hinzugefügt", photo.Title);
         Assert.Equal("Falcon", photo.ActorName);
+        Assert.Equal("/dateien/personen/foto/ph1", photo.ImageUrl);
     }
 
     [Fact]
@@ -706,8 +707,82 @@ public sealed class TimelineServiceTests
         var result = await svc.GetTimelineAsync("Faction", "f1", Leader());
 
         var entry = Assert.Single(result.Where(e => e.Category == TimelineCategory.Membership));
-        Assert.Equal("Mitglied aufgenommen", entry.Title);
+        Assert.StartsWith("Mitglied aufgenommen: Member (", entry.Title);
+        Assert.Equal("/personen/pm", entry.Href);
         Assert.Equal("Falcon", entry.ActorName);
+    }
+
+    [Fact]
+    public async Task GetTimelineAsync_RemovedMember_StillNamesThePerson_ClassifiedOneStaysCovert()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Factions.Add(Seed.Faction("f1"));
+            db.People.Add(Seed.Person("pm", "Member"));
+            db.People.Add(Seed.Person("pv", "Covert", p => p.IsClassified = true));
+            db.FactionMembers.Add(new FactionMember
+            {
+                Id = "m1", FactionId = "f1", PersonId = "pm", CreatedAt = Utc(1), IsDeleted = true, DeletedAt = Utc(3),
+            });
+            db.FactionMembers.Add(new FactionMember { Id = "m2", FactionId = "f1", PersonId = "pv", CreatedAt = Utc(1) });
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityType = "FactionMember", EntityId = "m1", Action = AuditAction.Deleted, Timestamp = Utc(3),
+            });
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityType = "FactionMember", EntityId = "m2", Action = AuditAction.Created, Timestamp = Utc(2),
+            });
+            db.SaveChanges();
+        }
+        var svc = Build(ctx);
+
+        var result = await svc.GetTimelineAsync("Faction", "f1", Leader());
+
+        var removed = Assert.Single(result, e => e.Title.StartsWith("Mitglied entfernt"));
+        Assert.StartsWith("Mitglied entfernt: Member (", removed.Title);
+        var covert = Assert.Single(result, e => e.Title.StartsWith("Mitglied aufgenommen"));
+        Assert.Equal("Mitglied aufgenommen: verdeckte Person", covert.Title);
+        Assert.Null(covert.Href);
+    }
+
+    [Fact]
+    public async Task GetTimelineAsync_FactionPhoto_CarriesItsImage_UntilRemoved()
+    {
+        using var ctx = new SqliteTestContext();
+        using (var db = ctx.NewContext())
+        {
+            db.Factions.Add(Seed.Faction("f1"));
+            db.FactionPhotos.Add(new FactionPhoto
+            {
+                Id = "fp1", FactionId = "f1", OriginalName = "a.jpg", FileNameSaved = "a.jpg",
+                ContentType = "image/jpeg", CreatedAt = Utc(1),
+            });
+            db.FactionPhotos.Add(new FactionPhoto
+            {
+                Id = "fp2", FactionId = "f1", OriginalName = "b.jpg", FileNameSaved = "b.jpg",
+                ContentType = "image/jpeg", CreatedAt = Utc(1), IsDeleted = true, DeletedAt = Utc(3),
+            });
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityType = "FactionPhoto", EntityId = "fp1", Action = AuditAction.Created, Timestamp = Utc(1),
+            });
+            db.AuditLogs.Add(new AuditLog
+            {
+                EntityType = "FactionPhoto", EntityId = "fp2", Action = AuditAction.Created, Timestamp = Utc(2),
+            });
+            db.SaveChanges();
+        }
+        var svc = Build(ctx);
+
+        var result = await svc.GetTimelineAsync("Faction", "f1", Leader());
+
+        var photos = result.Where(e => e.Category == TimelineCategory.Photo).OrderBy(e => e.Timestamp).ToList();
+        Assert.Equal(2, photos.Count);
+        Assert.Equal("/dateien/fraktionen/foto/fp1", photos[0].ImageUrl);
+        // a removed photo is gone from its endpoint, so no broken thumbnail
+        Assert.Null(photos[1].ImageUrl);
     }
 
     // ---------- new since the last visit ----------

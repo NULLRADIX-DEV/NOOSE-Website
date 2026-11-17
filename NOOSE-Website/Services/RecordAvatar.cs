@@ -25,6 +25,12 @@ public static class RecordAvatar
             ? null
             : $"{endpoint}/{photoId}";
 
+    /// <summary>Serving route for one gallery photo, the person gallery included.</summary>
+    public static string? GalleryUrl(string entityType, string? photoId)
+        => entityType == nameof(Data.Entities.People.Person) && !string.IsNullOrWhiteSpace(photoId)
+            ? $"/dateien/personen/foto/{photoId}"
+            : Url(entityType, photoId);
+
     /// <summary>The record's profile picture: the id of its title image, or null while no photo carries the mark.</summary>
     public static string? ProfileId(IEnumerable<IRecordPhoto>? photos)
         => photos?.FirstOrDefault(p => p.IsTitleImage)?.Id;
