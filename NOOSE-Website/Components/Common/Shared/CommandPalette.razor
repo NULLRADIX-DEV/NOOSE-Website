@@ -88,7 +88,8 @@
         }
 
         // Catalog-driven and gated by the drawer's own section policies, so the palette can never
-        // surface an entry the drawer hides. The drawer nests the Verwaltung policies; evaluating
+        // surface an entry the viewer may not open; pages kept out of the drawer (InDrawer) still show here.
+        // The drawer nests the Verwaltung policies; evaluating
         // them flat here is equivalent because AdminPage ⊆ LeadershipPage ⊆ HighestClassificationPage.
         _commands = new List<PaletteItem>();
         foreach (var section in NavSectionPolicy.InternalSections)

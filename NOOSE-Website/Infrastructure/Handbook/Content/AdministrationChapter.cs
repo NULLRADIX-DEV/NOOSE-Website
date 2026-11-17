@@ -14,15 +14,15 @@ internal static class AdministrationChapter
             new Article("art-administration", "arbeitsbereich-administration", "Der Arbeitsbereich der Administration",
                 "Chat, Informationen und wer zur Administration gehört.",
                 """
-                <p>Die <strong>Administration Division</strong> hat links in der Leiste einen eigenen Bereich. Ihn
-                sehen die Mitglieder der Administration, das Board und die Admins. Alle anderen sehen das Symbol gar
-                nicht.</p>
-                <p>Das Menü ist nach Aufgaben gegliedert, jeder Eintrag ist eine eigene Seite. Unter
+                <p>Die <strong>Administration Division</strong> hat einen eigenen Arbeitsbereich: im Menü links unter
+                <em>Leitung</em> der Eintrag <em>Administration</em>. Ihn sehen die Mitglieder der Administration, das
+                Board und die Admins. Alle anderen sehen den Eintrag gar nicht.</p>
+                <p>Die Leiste auf der Seite ist nach Aufgaben gegliedert, jeder Eintrag ist eine eigene Seite. Unter
                 <em>Allgemeines</em> findest du den <strong>internen Chat</strong> der Abteilung, die <em>Informationen</em>
                 (Zuständigkeiten, Abläufe, Ansprechpartner, frei bearbeitbar, darunter Verweise auf Dokumente und
                 Links), die <em>Zugeteilten Agents</em> und die <em>Personalbeziehungen</em>. Jede Liste hat oben ein
                 Suchfeld. Neue Nachrichten im Chat zeigt
-                der Menüeintrag als Zahl, und die Glocke meldet sich einmal, bis du den Chat wieder gelesen hast.</p>
+                der Eintrag <em>Administration</em> im Menü als Zahl, und die Glocke meldet sich einmal, bis du den Chat wieder gelesen hast.</p>
                 <p>Unter <em>Verlauf</em> stehen wie in jeder Akte <em>Zeitstrahl</em>, <em>Wiedervorlagen</em> und
                 <em>Kommentare</em>. Der Zeitstrahl sammelt Versetzungen, Dienstzeugnisse, Beziehungen,
                 Ehrungsvorschläge und parlamentarische Anfragen. Disziplinarverfahren haben ihren eigenen.</p>
@@ -35,7 +35,7 @@ internal static class AdministrationChapter
                 Steps:
                 [
                     new Step("AssuredWorkload", "Bereich öffnen",
-                        "Links in der Leiste das Symbol der Administration, dann Chat."),
+                        "Im Menü unter Leitung auf Administration, dann in der Leiste der Seite Chat."),
                     new Step("Forum", "Chat lesen",
                         "Neue Nachrichten stehen unter der Linie Neu seit deinem letzten Besuch."),
                     new Step("Favorite", "Beziehung erfassen",

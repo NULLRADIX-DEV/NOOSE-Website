@@ -36,8 +36,8 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
         // "Letzte Änderungen": entries seeded with the same timestamp come in database order
         ["/dashboard"] = new("/dashboard", Masks: [".mud-timeline"]),
         // the threat score comes from a background job, so whether it has run before the screenshot depends on timing;
-        // the Gefährdung column (sixth) is masked
-        ["/personen"] = new("/personen", SortBy: "Aktenzeichen", Masks: ["tbody td:nth-child(6)"]),
+        // the Gefährdung column (sixth) is masked. Aliases (third) come in key order, random per database, as on the record.
+        ["/personen"] = new("/personen", SortBy: "Aktenzeichen", Masks: ["tbody td:nth-child(3)", "tbody td:nth-child(6)"]),
         // aliases, phones, vehicles, weapons and relations have no order of their own: they come in key order, and
         // the keys are random per database, so the chip rows (ProfileList) and those print cells are masked
         ["/personen/{id}"] = new(SeedList: "/personen", SeedPrefix: "/personen/", SortBy: "Aktenzeichen",
@@ -94,7 +94,19 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     /// Wanted additions that master cannot have yet, removed from the layout on both sides; a mask would paint a box master lacks.
     /// Empty this once master carries them.
     /// </summary>
-    private const string HiddenSinceMaster = ".noose-nav-rail .mud-tooltip-root:has([aria-label='Administration']) { display: none !important; }";
+    /// <remarks>
+    /// The new navigation (release 3.1) changes the internal chrome on purpose: drawer width, app bar menus, the
+    /// breadcrumb's group step and the organisation switch. Only pages with the internal drawer are touched, the
+    /// drawer is dropped and the content starts at the left edge on both sides, so every page body is still compared.
+    /// </remarks>
+    private const string HiddenSinceMaster = """
+        .noose-nav-rail .mud-tooltip-root:has([aria-label='Administration']) { display: none !important; }
+        body:has(.noose-drawer) .noose-drawer { display: none !important; }
+        body:has(.noose-drawer) .mud-main-content { margin-left: 0 !important; }
+        body:has(.noose-drawer) .mud-appbar { visibility: hidden !important; }
+        body:has(.noose-drawer) .mud-breadcrumbs { visibility: hidden !important; }
+        nav[aria-label='Organisationen'] { display: none !important; }
+        """;
 
     private async Task<Shot> ShootAsync(string baseUrl, Target target, DateTime now)
     {
@@ -121,10 +133,11 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
             if (target.Print)
                 await page.EmulateMediaAsync(new PageEmulateMediaOptions { Media = Media.Print });
             await RecordLinks.OpenAsync(page, path);
+            // before any click: hiding chrome moves the content, and the mouse would rest on another column per side
+            await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = HiddenSinceMaster });
             if (target.SortBy is not null && target.Route is not null)
                 await SortByAsync(page, target.SortBy);
             await page.EvaluateAsync(MarkMasksScript);
-            await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = HiddenSinceMaster });
             var mask = target.Masks is null ? "[data-e2e-mask]" : string.Join(", ", ["[data-e2e-mask]", .. target.Masks]);
             var png = await page.ScreenshotAsync(new PageScreenshotOptions
             {

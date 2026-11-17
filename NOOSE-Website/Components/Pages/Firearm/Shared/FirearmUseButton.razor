@@ -8,7 +8,7 @@
 <AuthorizeView Policy="@Policies.FirearmUseReport" Context="melden">
     @if (AsMenuItem)
     {
-        <MudMenuItem Icon="@Icons.Material.Filled.GpsFixed" OnClick="ReportAsync">Schusswaffengebrauch melden</MudMenuItem>
+        <MudMenuItem Icon="@Icons.Material.Filled.GpsFixed" OnClick="ReportAsync" Class="@Class">Schusswaffengebrauch melden</MudMenuItem>
     }
     else
     {

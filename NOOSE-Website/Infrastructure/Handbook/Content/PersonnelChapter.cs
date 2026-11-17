@@ -136,7 +136,7 @@ internal static class PersonnelChapter
             new Article("art-wiedervorlagen-rueckstand", "wiedervorlagen-rueckstand", "Der Wiedervorlagen-Rückstand",
                 "Welche Wiedervorlagen in der Behörde liegen bleiben - und wie die Führung sie umhängt.",
                 """
-                <p>Unter <em>Wiedervorlagen-Rückstand</em> im Bereich <em>Verwaltung</em> sieht die Führung alle
+                <p>Unter <em>Wiedervorlagen-Rückstand</em> im Bereich <em>Leitung</em> sieht die Führung alle
                 offenen <strong>Wiedervorlagen</strong> der Behörde, nicht nur die eigenen. Zuerst stehen nur die
                 <strong>überfälligen</strong> da; schaltest du <em>Nur überfällige</em> aus, kommen die noch
                 anstehenden dazu. Sortieren lässt sich nach <em>Zuständig</em>, nach <em>Alter</em> - wie lange sie

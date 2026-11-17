@@ -2022,78 +2022,50 @@ div.vis-tooltip {
     }
 }
 
-/* Two-column drawer: icon rail of areas + panel with that area's entries. */
-/* .mud-drawer is a scrolling column, so the row shell needs its own overflow context. */
-.noose-drawer { overflow: hidden; }
-
+/* Drawer: one labelled column, a collapsible group per area. */
 .noose-nav {
     display: flex;
-    flex: 1 1 auto;
-    min-height: 0;
-}
-
-.noose-nav-rail {
-    flex: 0 0 64px;
-    display: flex;
     flex-direction: column;
+    min-height: 100%;
+    padding-bottom: .5rem;
+}
+
+.noose-nav-group {
+    display: flex;
     align-items: center;
-    gap: .25rem;
-    padding: .5rem 0;
-    overflow-y: auto;
-    border-right: 1px solid var(--mud-palette-divider);
-    background-color: var(--mud-palette-background-gray);
+    width: 100%;
+    padding: .5rem 1rem;
+    margin-top: .25rem;
+    border: 0;
+    background: none;
+    color: var(--mud-palette-text-secondary);
+    font: inherit;
+    font-size: .75rem;
+    font-weight: 500;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-align: left;
+    cursor: pointer;
 }
 
-.noose-nav-rail .mud-icon-button { border-radius: 8px; }
+.noose-nav-group:hover { background-color: var(--mud-palette-action-default-hover); }
 
-.noose-nav-rail-active {
-    background-color: var(--mud-palette-primary-hover);
-    box-shadow: inset 3px 0 0 0 var(--mud-palette-primary);
+.noose-nav-group:focus-visible {
+    outline: 2px solid var(--mud-palette-primary);
+    outline-offset: -2px;
 }
 
-.noose-nav-panel {
+.noose-nav-group-name {
     flex: 1 1 auto;
     min-width: 0;
-    overflow-y: auto;
 }
 
-@media (max-width: 959.98px) {
-    .noose-nav-rail { flex-basis: 56px; }
+.noose-nav-footer {
+    margin-top: auto;
+    padding: .75rem 1rem 0;
 }
 
-/* Desktop: the drawer rests at rail width and the entry panel expands over the content on hover.
-   (hover: hover) excludes touch devices, which could never collapse it again. */
-@media (min-width: 960px) and (hover: hover) and (pointer: fine) {
-    /* content clears the icon rail only; overriding the rule beats the container's inline width var */
-    .mud-drawer-open-responsive-md-left .mud-main-content { margin-left: 64px; }
-
-    /* 0-3-0 to beat .mud-drawer.mud-drawer-responsive.mud-drawer-pos-left */
-    .mud-drawer.mud-drawer-responsive.noose-drawer {
-        width: 64px;
-        transition: width 225ms cubic-bezier(0, 0, 0.2, 1),
-                    box-shadow 225ms cubic-bezier(0, 0, 0.2, 1);
-    }
-
-    .mud-drawer.mud-drawer-responsive.noose-drawer:hover {
-        width: 300px;
-        box-shadow: var(--mud-elevation-8);
-    }
-
-    /* Keyboard focus only, and in its own rule. :focus-within would also match the link the mouse
-       just clicked, pinning the drawer open until the focus moved on. A browser without :has()
-       drops this rule alone instead of taking the :hover rule down with it. */
-    .mud-drawer.mud-drawer-responsive.noose-drawer:has(:focus-visible) {
-        width: 300px;
-        box-shadow: var(--mud-elevation-8);
-    }
-
-    /* fixed width, or flex would squeeze the entries to zero during the animation */
-    .noose-drawer .noose-nav-panel { flex: 0 0 236px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .mud-drawer.mud-drawer-responsive.noose-drawer { transition: none; }
-}
+.noose-avatar-knopf { min-width: 0; }
 
 /* Evidence room: tile selection + clearing action bar */
 .asservat-kachel {
@@ -2812,10 +2784,10 @@ div.vis-tooltip {
    without sideways overflow (/dashboard) it stays put. On a page wider than the screen (/personen, 478px) the phone
    browser widens the layout viewport to 478x1033 while the screen still shows 375x812. Fixed boxes size against the
    layout viewport, so MudBlazor's height:calc(100% - app bar) made the drawer 981px tall: its lower 221px lay below the
-   screen, rail and panel never had anything to scroll (scrollHeight = clientHeight), and while the finger scrolled,
-   the screen slid down inside the taller layout viewport and took the top of the drawer, the area rail, out of view.
+   screen, the drawer never had anything to scroll (scrollHeight = clientHeight), and while the finger scrolled,
+   the screen slid down inside the taller layout viewport and took the top of the drawer out of view.
    Viewport units follow the screen (100dvh = 812 there, 100% = 1033), so the drawer ends at the screen's bottom edge
-   and rail and panel scroll in themselves. The top stays MudBlazor's: it follows the app bar's own height, which is
+   and the drawer scrolls in itself. The top stays MudBlazor's: it follows the app bar's own height, which is
    lower than --mud-appbar-height on phones (52.5px upright, 45px on its side). Pages that fit the screen, the goal of
    the whole phone work, also keep the top of the drawer on screen while scrolling. */
 @media screen and (max-width: 959.98px) {
@@ -2826,8 +2798,7 @@ div.vis-tooltip {
     }
 
     /* a swipe at the end of the list stays in the drawer instead of scrolling the page behind it */
-    .noose-drawer .noose-nav-rail,
-    .noose-drawer .noose-nav-panel {
+    .mud-drawer.noose-drawer {
         overscroll-behavior: contain;
     }
 }

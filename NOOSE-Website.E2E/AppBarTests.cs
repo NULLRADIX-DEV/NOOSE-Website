@@ -32,16 +32,12 @@ public sealed class AppBarTests(E2EFixture fixture)
         }
         """;
 
-    // Where the drawer, its first rail button and its two scrolling columns sit relative to the screen.
+    // Where the drawer and its first group header sit relative to the screen, and whether the drawer scrolls itself.
     private const string DrawerScript = """
         () => {
           const vv = window.visualViewport;
           const drawer = document.querySelector('.noose-drawer');
-          const first = drawer.querySelector('.noose-nav-rail .mud-icon-button');
-          const column = sel => {
-            const e = drawer.querySelector(sel);
-            return { scrollHeight: e.scrollHeight, clientHeight: e.clientHeight, overflowY: getComputedStyle(e).overflowY };
-          };
+          const first = drawer.querySelector('.noose-nav-group');
           const top = vv.offsetTop;
           return {
             open: drawer.classList.contains('mud-drawer--open'),
@@ -49,8 +45,9 @@ public sealed class AppBarTests(E2EFixture fixture)
             firstTop: first.getBoundingClientRect().top - top,
             firstBottom: first.getBoundingClientRect().bottom - top,
             drawerBottom: drawer.getBoundingClientRect().bottom - top,
-            rail: column('.noose-nav-rail'),
-            panel: column('.noose-nav-panel')
+            scrollHeight: drawer.scrollHeight,
+            clientHeight: drawer.clientHeight,
+            overflowY: getComputedStyle(drawer).overflowY
           };
         }
         """;
@@ -105,19 +102,15 @@ public sealed class AppBarTests(E2EFixture fixture)
             var screenHeight = d.GetProperty("screenHeight").GetDouble();
             var firstTop = d.GetProperty("firstTop").GetDouble();
             Assert.True(firstTop >= 0 && d.GetProperty("firstBottom").GetDouble() <= screenHeight,
-                $"{route}: erstes Bereichs-Symbol nicht im Bild (oben bei {firstTop:0.#} px)");
+                $"{route}: erste Bereichs-Überschrift nicht im Bild (oben bei {firstTop:0.#} px)");
 
             var drawerBottom = d.GetProperty("drawerBottom").GetDouble();
             Assert.True(drawerBottom <= screenHeight + 1,
                 $"{route}: Menü endet bei {drawerBottom:0.#} px, der Bildschirm bei {screenHeight:0.#} px");
 
-            foreach (var name in new[] { "rail", "panel" })
+            if (d.GetProperty("scrollHeight").GetInt32() > d.GetProperty("clientHeight").GetInt32())
             {
-                var column = d.GetProperty(name);
-                if (column.GetProperty("scrollHeight").GetInt32() > column.GetProperty("clientHeight").GetInt32())
-                {
-                    Assert.Contains(column.GetProperty("overflowY").GetString(), new[] { "auto", "scroll" });
-                }
+                Assert.Contains(d.GetProperty("overflowY").GetString(), new[] { "auto", "scroll" });
             }
         }
         finally
@@ -136,7 +129,10 @@ public sealed class AppBarTests(E2EFixture fixture)
             await page.Locator(MenuButton).ClickAsync();
             await page.WaitForTimeoutAsync(600);
 
-            await page.Locator(".noose-nav-panel a[href]:not([href$='/dashboard']) >> visible=true").First.ClickAsync();
+            // on the dashboard every group is folded; unfolding is no navigation and keeps the drawer open
+            await page.Locator(".noose-nav-group >> visible=true").First.ClickAsync();
+            await page.WaitForTimeoutAsync(300);
+            await page.Locator(".noose-nav a[href]:not([href$='/dashboard']) >> visible=true").First.ClickAsync();
             await page.WaitForTimeoutAsync(1500);
 
             var open = await page.EvaluateAsync<bool>(

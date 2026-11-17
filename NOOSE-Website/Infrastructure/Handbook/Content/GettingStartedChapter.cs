@@ -35,23 +35,30 @@ internal static class GettingStartedChapter
                 ]),
 
             new Article("art-oberflaeche", "oberflaeche", "Aufbau der Oberfläche",
-                "Was wo liegt: Menüleiste, Bereiche, Kopfzeile, Glocke.",
+                "Was wo liegt: Menü mit Bereichen, Kopfzeile, Profil- und Hilfe-Menü.",
                 """
-                <p>Links liegt eine schmale <strong>Symbolleiste</strong>. Jedes Symbol steht für einen
-                Bereich - Akten, Ermittlung &amp; Wissen, Dienststelle, Mein Dienst, Verwaltung. Ein Klick
-                darauf <em>wechselt nur die Liste daneben</em>; er springt nicht auf eine Seite.</p>
-                <p>Daneben steht die eigentliche Liste der Seiten des gewählten Bereichs. Oben rechts findest
-                du die Suche, die Glocke für Benachrichtigungen und dein Konto.</p>
+                <p>Links steht das <strong>Menü</strong>: oben das <em>Dashboard</em> und deine
+                <em>Favoriten</em>, darunter die Bereiche <em>Akten</em>, <em>Ermittlung &amp; Einsatz</em>,
+                <em>Analyse</em>, <em>Dienststelle</em> und, wenn deine Rechte reichen, <em>Leitung</em>. Ein Klick
+                auf einen Bereich <em>klappt ihn auf oder zu</em>; er springt nicht auf eine Seite. Der Bereich der
+                Seite, auf der du gerade bist, steht immer offen. Ein zugeklappter Bereich zeigt, wie viel darin
+                offen ist.</p>
+                <p>Oben rechts findest du die Suche, <em>FIBI</em>, das <strong>Fragezeichen</strong> und die
+                Glocke. Hinter dem Fragezeichen liegt alles zum Nachschlagen: Handbuch, Neuerungen, Gesetzbuch,
+                Dienstverordnung, Funkplan, Dokumente und Feedback. Ein Klick auf <strong>deinen Namen</strong>
+                öffnet dein Profil, deine Benachrichtigungen, beobachtete Akten, deine Wiedervorlagen und Tickets,
+                <em>Navigation anpassen</em> und <em>Abmelden</em>.</p>
                 <p>Auf dem <strong>Handy</strong> ist das Menü eingeklappt: Der Knopf oben links klappt es auf, nach
                 einem Tipp auf eine Seite geht es wieder zu. Oben rechts bleiben Suche, Glocke und dein Profilbild.
-                Ein Tipp auf das Profilbild öffnet dein Profil, die Schnellerfassung, den Schusswaffengebrauch und
-                <em>Abmelden</em>.</p>
+                Ein Tipp auf das Profilbild öffnet zusätzlich die Schnellerfassung, den Schusswaffengebrauch und die
+                Seiten zum Nachschlagen.</p>
                 <p>Passen die Knöpfe einer Seite nicht in die Zeile, stehen sie hinter den <strong>drei Punkten</strong>
                 im Seitenkopf (<em>Weitere Aktionen</em>). Es fehlt keiner: Was nicht in der Zeile steht, steht im
                 Menü, und auch dort nur, wofür deine Rechte reichen. In Listen wählst du auf dem Handy über <em>Spalten</em>, welche Spalten
                 stehen bleiben; die Wahl merkt sich die Seite für dich, am Rechner siehst du weiter alle.</p>
-                <p>Was du im Menü nicht siehst, darfst du meistens auch nicht öffnen: die Leiste zeigt nur,
-                wofür deine Rechte reichen.</p>
+                <p>Was du im Menü nicht siehst, darfst du meistens auch nicht öffnen: das Menü zeigt nur,
+                wofür deine Rechte reichen. Selten gebrauchte Seiten stehen nicht im Menü, aber
+                <strong>Strg+K</strong> findet jede Seite, die du öffnen darfst.</p>
                 """,
                 DiagramKey: "oberflaeche",
                 NavKey: "dashboard"),
@@ -59,7 +66,7 @@ internal static class GettingStartedChapter
             new Article("art-meine-schicht", "meine-schicht", "Meine Schicht",
                 "Eine Seite für die Frage, was gerade an dir hängt.",
                 """
-                <p><em>Meine Schicht</em> im Bereich <em>Mein Dienst</em> sammelt auf einer Seite, was sonst auf
+                <p><em>Meine Schicht</em> im Bereich <em>Dienststelle</em> sammelt auf einer Seite, was sonst auf
                 fünf verteilt ist: deine <strong>offenen Aufgaben</strong>, deine fälligen und in den nächsten sieben
                 Tagen anstehenden <strong>Wiedervorlagen</strong>, ungelesene <strong>Erwähnungen</strong>, Einträge
                 am Brett und Absätze der Dienstverordnung, die du noch <strong>quittieren</strong> musst, Änderungen an
@@ -199,7 +206,7 @@ internal static class GettingStartedChapter
                 Punkten. Die haken sich von selbst ab, sobald du die jeweilige Sache einmal gemacht hast -
                 niemand muss dich freigeben, und wenn alle sechs erledigt sind, verschwindet die Karte.</p>
                 <p>Unter <em>Neuerungen</em> steht in Alltagssprache, was sich zuletzt geändert hat. Und wenn
-                etwas nicht funktioniert oder dir fehlt: <em>Feedback</em> im Bereich <em>Mein Dienst</em>.
+                etwas nicht funktioniert oder dir fehlt: <em>Feedback</em> hinter dem Fragezeichen oben rechts.
                 Das landet direkt bei denen, die die Seite pflegen.</p>
                 """,
                 NavKey: "handbuch"),

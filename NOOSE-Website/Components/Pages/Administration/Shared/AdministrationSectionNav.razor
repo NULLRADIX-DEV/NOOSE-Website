@@ -1,0 +1,79 @@
+@* The workspace's own section rail, grouped like AdministrationSections; the drawer only holds one entry for all of it.
+   Looks like RecordSectionRail, but every section is an address of its own, so the buttons are links. *@
+@implements IDisposable
+@using NOOSE_Website.Navigation
+@inject NavBadgeState Badges
+
+<MudPaper Elevation="0" Class="record-rail-leiste noose-nur-schmal mb-3">
+    <MudMenu FullWidth="true" RelativeWidth="DropdownWidth.Relative" MaxHeight="420" Dense="true"
+             AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" AriaLabel="Bereich der Administration wechseln">
+        <ActivatorContent>
+            <MudButton FullWidth="true" Variant="Variant.Text" Class="record-rail-leiste-knopf" OnClick="@context.ToggleAsync"
+                       StartIcon="@Current.Icon" EndIcon="@Icons.Material.Filled.UnfoldMore">
+                <span class="record-rail-leiste-titel">@Current.Label</span>
+            </MudButton>
+        </ActivatorContent>
+        <ChildContent>
+            @foreach (var group in AdministrationSections.All.GroupBy(s => s.Group))
+            {
+                <MudText Typo="Typo.overline" Class="px-4 pt-2 mud-text-secondary d-block">@group.Key</MudText>
+                @foreach (var section in group)
+                {
+                    <MudMenuItem Icon="@section.Icon" Href="@AdministrationSections.Route(section)"
+                                 Class="@(IsCurrent(section) ? "record-rail-leiste-aktiv" : null)"
+                                 aria-current="@(IsCurrent(section) ? "page" : null)">
+                        @section.Label
+                        <NOOSE_Website.Components.Layout.NavBadgeChip BadgeKey="administration-chat" Count="@BadgeOf(section)" />
+                    </MudMenuItem>
+                }
+            }
+        </ChildContent>
+    </MudMenu>
+</MudPaper>
+
+<MudPaper Elevation="2" Class="d-flex flex-column flex-md-row record-rail-shell">
+    <nav class="record-rail noose-schmal-aus" aria-label="Bereiche der Administration">
+        @foreach (var group in AdministrationSections.All.GroupBy(s => s.Group))
+        {
+            <MudText Typo="Typo.overline" Class="px-4 pt-3 pb-1 mud-text-secondary d-block">@group.Key</MudText>
+            @foreach (var section in group)
+            {
+                <MudButton FullWidth="true" Href="@AdministrationSections.Route(section)"
+                           Variant="@(IsCurrent(section) ? Variant.Filled : Variant.Text)"
+                           Color="@(IsCurrent(section) ? Color.Primary : Color.Default)"
+                           StartIcon="@section.Icon"
+                           aria-current="@(IsCurrent(section) ? "page" : null)">
+                    @if (BadgeOf(section) > 0)
+                    {
+                        <span class="record-rail-label">@section.Label</span>
+                        <span class="record-rail-badge" aria-label="@($"{BadgeOf(section)} ungelesen")">@BadgeOf(section)</span>
+                    }
+                    else
+                    {
+                        @section.Label
+                    }
+                </MudButton>
+            }
+        }
+    </nav>
+    <div class="flex-grow-1 pa-4 record-rail-content">
+        @ChildContent
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public AdministrationSections.Section Current { get; set; } = default!;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private bool IsCurrent(AdministrationSections.Section section) => section.Slug == Current.Slug;
+
+    // only the chat carries a count
+    private int BadgeOf(AdministrationSections.Section section)
+        => section.Slug.Length == 0 ? Badges.Count("administration-chat") : 0;
+
+    protected override void OnInitialized() => Badges.Changed += OnBadgesChanged;
+
+    private void OnBadgesChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Badges.Changed -= OnBadgesChanged;
+}

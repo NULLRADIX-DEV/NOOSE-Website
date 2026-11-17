@@ -20,10 +20,13 @@ public sealed class NavPreferences
     /// <summary>Remembered drawer open state.</summary>
     public bool DrawerOpen { get; set; } = true;
 
-    /// <summary>Legacy collapsed sections; unused since the icon rail, kept so a save cannot drop it.</summary>
+    /// <summary>Drawer groups kept open, as "open:&lt;NavArea&gt;"; unprefixed values are legacy and ignored.</summary>
     public HashSet<string> CollapsedGroups { get; set; } = [];
 
-    /// <summary>Drawer area shown last, as NavArea.ToString(); null = derive from the route.</summary>
+    /// <summary>Token for an open drawer group in <see cref="CollapsedGroups"/>.</summary>
+    public static string OpenGroupToken(string area) => "open:" + area;
+
+    /// <summary>Legacy: the icon rail's last area; no longer read, kept so a save cannot drop it.</summary>
     public string? LastArea { get; set; }
 
     /// <summary>Recently visited pages/records, newest first, capped.</summary>

@@ -1,0 +1,51 @@
+@* The catalog entries of one app bar menu area as menu items, gated and personalised like the drawer. *@
+@implements IDisposable
+@using NOOSE_Website.Navigation
+@using NOOSE_Website.Models.Navigation
+@inject IAuthorizationService Authorization
+@inject INavPreferencesService NavPrefs
+@inject NavBadgeState Badges
+
+@foreach (var entry in _entries)
+{
+    <MudMenuItem Icon="@entry.Icon" Href="@entry.Route" Class="@ItemClass">
+        <span class="d-inline-flex align-center">
+            @entry.Label
+            <NavBadgeChip BadgeKey="@entry.BadgeKey" Count="@Badges.Count(entry.BadgeKey)" />
+        </span>
+    </MudMenuItem>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    /// <summary>One of <see cref="NavAreaCatalog.MenuAreas"/>.</summary>
+    [Parameter, EditorRequired] public NavArea Area { get; set; }
+
+    /// <summary>Classes on every item, e.g. a helper class that shows them on phones only.</summary>
+    [Parameter] public string? ItemClass { get; set; }
+
+    private IReadOnlyList<NavEntry> _entries = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await AuthStateTask).User;
+        var prefs = user.GetAgentId() is { Length: > 0 } agentId ? await NavPrefs.GetAsync(agentId) : new NavPreferences();
+        var allowed = new Dictionary<string, bool>(StringComparer.Ordinal);
+        foreach (var entry in NavAreaCatalog.ListedEntries(Area))
+        {
+            var policy = NavSectionPolicy.For(entry.Section);
+            if (!allowed.ContainsKey(policy))
+            {
+                allowed[policy] = (await Authorization.AuthorizeAsync(user, policy)).Succeeded;
+            }
+        }
+        _entries = NavPersonalization.Apply(
+            NavAreaCatalog.ListedEntries(Area).Where(e => allowed[NavSectionPolicy.For(e.Section)]), prefs);
+        Badges.Changed += OnBadgesChanged;
+    }
+
+    private void OnBadgesChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Badges.Changed -= OnBadgesChanged;
+}

@@ -317,6 +317,36 @@ public sealed class NavPreferencesServiceTests : IDisposable
         Assert.Contains("Akten", Stored("a1").CollapsedGroups);
     }
 
+    // ---------------------------------------------------------------- SetGroupOpenAsync
+
+    [Fact]
+    public async Task SetGroupOpenAsync_RemembersAndForgetsTheGroup()
+    {
+        SeedAgent("a1");
+        var svc = NewService();
+
+        await svc.SetGroupOpenAsync("a1", "Leitung", open: true);
+        Assert.Contains(NavPreferences.OpenGroupToken("Leitung"), Stored("a1").CollapsedGroups);
+
+        await svc.SetGroupOpenAsync("a1", "Leitung", open: false);
+        Assert.DoesNotContain(NavPreferences.OpenGroupToken("Leitung"), Stored("a1").CollapsedGroups);
+    }
+
+    [Fact]
+    public async Task SetGroupOpenAsync_LeavesLegacyEntriesAlone()
+    {
+        // an old collapsed section of the same name must not read as an open group
+        var seeded = new NavPreferences();
+        seeded.CollapsedGroups.Add("Akten");
+        SeedAgent("a1", seeded);
+        var svc = NewService();
+
+        await svc.SetGroupOpenAsync("a1", "Akten", open: true);
+
+        Assert.Contains("Akten", Stored("a1").CollapsedGroups);
+        Assert.Contains("open:Akten", Stored("a1").CollapsedGroups);
+    }
+
     // ---------------------------------------------------------------- PushRecentAsync
 
     [Fact]

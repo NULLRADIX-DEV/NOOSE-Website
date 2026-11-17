@@ -1,4 +1,4 @@
-@* One section of the Administration workspace per address; the side menu lists them, the page shows exactly one. *@
+@* One section of the Administration workspace per address; its own section rail lists them, the page shows exactly one. *@
 @page "/administration"
 @page "/administration/{Slug}"
 @attribute [Authorize(Policy = Policies.AdministrationWorkspace)]
@@ -16,6 +16,7 @@ else if (_user is not null)
     <PageHeader Icon="@_section.Icon" Title="@_section.Label" Subtitle="@($"Administration Division · {_section.Group}")"
                 HelpNavKey="@_section.HelpKey" />
 
+    <AdministrationSectionNav Current="_section">
     @switch (_section.Slug)
     {
         case "":
@@ -76,6 +77,7 @@ else if (_user is not null)
             <CommentPanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" @key="_section.Slug" />
             break;
     }
+    </AdministrationSectionNav>
 }
 
 @code {

@@ -1,4 +1,4 @@
-﻿@* Two-column drawer: an icon rail of areas on the left, the entries of the selected area on the right. *@
+﻿@* One labelled column: start link, favorites, then one collapsible group per area the viewer may see. *@
 @implements IDisposable
 @using NOOSE_Website.Navigation
 @using NOOSE_Website.Models.Navigation
@@ -6,156 +6,109 @@
 @inject INavPreferencesService NavPrefs
 @inject IDialogService DialogService
 @inject NavigationManager Nav
+@inject NavBadgeState Badges
 
-<div class="noose-nav">
-    <nav class="noose-nav-rail" aria-label="Bereiche" @onkeydown="RailKeyDownAsync">
+<nav class="noose-nav" aria-label="Hauptnavigation">
+    @* the MudNavMenu wrappers are load-bearing: MudBlazor scopes the active-link colour to them *@
+    <MudNavMenu Color="Color.Primary" Bordered="true" Class="pt-2">
         @foreach (var entry in TopEntries)
         {
-            <MudTooltip Text="@entry.Label" Placement="Placement.Right">
-                <MudIconButton Icon="@entry.Icon" Href="@entry.Route"
-                               Color="@(IsCurrent(entry) ? Color.Primary : Color.Default)"
-                               aria-label="@entry.Label"
-                               aria-current="@(IsCurrent(entry) ? "page" : null)" />
-            </MudTooltip>
+            @NavLink(entry)
         }
+    </MudNavMenu>
 
-        @* saved views share the favorites panel, so either one is reason enough for the button *@
+    <AuthorizeView Policy="@Policies.InternalAgent" Context="filterBox">
+        <div class="px-3 pt-2 pb-1">
+            <MudTextField T="string" Value="_filter" ValueChanged="FilterChanged" Immediate="true" Clearable="true"
+                          Placeholder="Menü durchsuchen…" Variant="Variant.Outlined" Margin="Margin.Dense"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.FilterList"
+                          aria-label="Menü durchsuchen" />
+        </div>
+    </AuthorizeView>
+
+    @if (Filtering)
+    {
+        var hits = FilterHits();
+        <MudNavMenu Color="Color.Primary" Bordered="true">
+            @foreach (var (caption, entries) in hits)
+            {
+                <MudText Typo="Typo.caption" Class="px-4 pt-2 pb-1 mud-text-secondary">@caption</MudText>
+                @foreach (var entry in entries)
+                {
+                    @NavLink(entry)
+                }
+            }
+        </MudNavMenu>
+        @if (hits.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="px-4 py-3 mud-text-secondary">Keine Treffer für „@_filter". Strg+K durchsucht auch Akten.</MudText>
+        }
+    }
+    else
+    {
         @if (_prefs.Favorites.Count > 0 || VisibleViews.Any())
         {
-            <MudTooltip Text="Favoriten" Placement="Placement.Right">
-                <MudIconButton Icon="@Icons.Material.Filled.Star"
-                               Color="@(_favoritesOpen ? Color.Primary : Color.Default)"
-                               Class="@(_favoritesOpen ? "noose-nav-rail-active" : null)"
-                               OnClick="ShowFavoritesAsync" aria-label="Favoriten" />
-            </MudTooltip>
-        }
-
-        @* the first favorites one click away; the star above still opens the whole list *@
-        @foreach (var fav in RailFavorites)
-        {
-            <MudTooltip Text="@fav.Label" Placement="Placement.Right">
-                <MudIconButton Icon="@fav.Icon" Href="@fav.Route"
-                               Color="@(IsCurrentRoute(fav.Route) ? Color.Primary : Color.Default)"
-                               aria-label="@fav.Label"
-                               aria-current="@(IsCurrentRoute(fav.Route) ? "page" : null)" />
-            </MudTooltip>
-        }
-
-        <MudDivider Class="my-1" />
-
-        @for (var i = 0; i < _areas.Count; i++)
-        {
-            var area = _areas[i];
-            var index = i;
-            <MudTooltip Text="@NavAreaCatalog.Name(area)" Placement="Placement.Right">
-                <MudIconButton @ref="_railButtons[index]"
-                               Icon="@NavAreaCatalog.Icon(area)"
-                               Color="@(IsSelected(area) ? Color.Primary : Color.Default)"
-                               Class="@(IsSelected(area) ? "noose-nav-rail-active" : null)"
-                               OnClick="@(() => SelectAreaAsync(area))"
-                               aria-label="@NavAreaCatalog.Name(area)"
-                               aria-selected="@(IsSelected(area) ? "true" : "false")"
-                               aria-controls="noose-nav-panel"
-                               tabindex="@(IsSelected(area) ? 0 : -1)" />
-            </MudTooltip>
-        }
-    </nav>
-
-    <div class="noose-nav-panel" id="noose-nav-panel" role="region" aria-label="@PanelCaption">
-        <div class="d-flex align-center px-3 py-2">
-            <MudText Typo="Typo.overline" Class="mud-text-secondary">@PanelCaption</MudText>
-            <MudSpacer />
-            <MudTooltip Text="Navigation anpassen">
-                <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
-                               OnClick="OpenCustomizeAsync" aria-label="Navigation anpassen" />
-            </MudTooltip>
-        </div>
-
-        <AuthorizeView Policy="@Policies.InternalAgent" Context="filterBox">
-            <div class="px-3 pb-2">
-                <MudTextField T="string" Value="_filter" ValueChanged="FilterChanged" Immediate="true" Clearable="true"
-                              Placeholder="Menü durchsuchen…" Variant="Variant.Outlined" Margin="Margin.Dense"
-                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.FilterList"
-                              aria-label="Menü durchsuchen" />
-            </div>
-        </AuthorizeView>
-
-        @* the MudNavMenu wrapper is load-bearing: MudBlazor scopes the active-link colour to it *@
-        <MudNavMenu Color="Color.Primary" Bordered="true">
-            @if (_favoritesOpen && !Filtering)
-            {
+            @* the agent picked these, so they never fold away *@
+            <MudText Typo="Typo.overline" Class="d-block px-4 pt-2 mud-text-secondary">Favoriten</MudText>
+            <MudNavMenu Color="Color.Primary" Bordered="true">
                 @foreach (var fav in _prefs.Favorites)
                 {
                     @Favorite(fav)
                 }
                 @if (VisibleViews.Any())
                 {
-                    <MudText Typo="Typo.caption" Class="px-4 pt-3 pb-1 mud-text-secondary">Meine Ansichten</MudText>
+                    <MudText Typo="Typo.caption" Class="px-4 pt-2 pb-1 mud-text-secondary">Meine Ansichten</MudText>
                     @foreach (var view in VisibleViews)
                     {
                         @* no active highlight: NavLink ignores the query, so every view of a list would light up at once *@
                         <MudNavLink Href="@view.Route" Match="NavLinkMatch.All" ActiveClass="" Icon="@view.Icon">@view.Label</MudNavLink>
                     }
                 }
-            }
-            else
+            </MudNavMenu>
+            <MudDivider Class="my-2" />
+        }
+
+        @foreach (var area in _areas)
+        {
+            var key = area.ToString();
+            var entries = VisibleEntries(area);
+            var open = IsOpen(key);
+            var badge = open ? null : GroupBadge(entries);
+            @GroupHeader(key, NavAreaCatalog.Name(area), NavAreaCatalog.Icon(area), badge?.Count ?? 0, badge?.Key)
+            @if (open)
             {
-                @foreach (var group in PanelGroups())
-                {
-                    @if (group.Caption is { } caption)
+                <MudNavMenu Color="Color.Primary" Bordered="true" id="@GroupId(key)">
+                    @foreach (var group in Captioned(entries))
                     {
-                        <MudText Typo="Typo.caption" Class="px-4 pt-2 pb-1 mud-text-secondary">@caption</MudText>
+                        @if (group.Caption is { } caption)
+                        {
+                            <MudText Typo="Typo.caption" Class="px-4 pt-2 pb-1 mud-text-secondary">@caption</MudText>
+                        }
+                        @foreach (var entry in group.Entries)
+                        {
+                            @NavLink(entry)
+                        }
                     }
-                    @foreach (var entry in group.Entries)
-                    {
-                        @NavLink(entry)
-                    }
-                }
-                @if (Filtering && PanelGroups().Count == 0)
-                {
-                    <MudText Typo="Typo.body2" Class="px-4 py-3 mud-text-secondary">Keine Treffer für „@_filter".</MudText>
-                }
+                </MudNavMenu>
             }
-        </MudNavMenu>
+        }
+    }
+
+    <div class="noose-nav-footer">
+        <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Tune"
+                   OnClick="OpenCustomizeAsync" Class="mud-text-secondary">Navigation anpassen</MudButton>
     </div>
-</div>
+</nav>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
     [Inject] private IAuthorizationService Authorization { get; set; } = default!;
-    [Inject] private IAgentManagementService AgentService { get; set; } = default!;
-    [Inject] private ITaskforceService TaskforceService { get; set; } = default!;
-    [Inject] private IPersonnelFileService PersonnelFileService { get; set; } = default!;
-    [Inject] private IRequestService RequestService { get; set; } = default!;
-    [Inject] private NOOSE_Website.Services.Public.IPublicWantedService PublicWanted { get; set; } = default!;
-    [Inject] private NOOSE_Website.Services.Public.IBountyService Bounty { get; set; } = default!;
-    [Inject] private IAnnouncementService BoardService { get; set; } = default!;
-    [Inject] private IRegulationService RegulationService { get; set; } = default!;
-    [Inject] private SharesBroadcaster SharesBroadcaster { get; set; } = default!;
-    [Inject] private AcknowledgmentBroadcaster AcknowledgmentBroadcaster { get; set; } = default!;
-    [Inject] private FinancingBroadcaster FinancingBroadcaster { get; set; } = default!;
-    [Inject] private FoodBroadcaster FoodBroadcaster { get; set; } = default!;
-    [Inject] private TipsBroadcaster TipsBroadcaster { get; set; } = default!;
-    [Inject] private AdministrationChatBroadcaster AdministrationChatBroadcaster { get; set; } = default!;
-    [Inject] private IFinancingService FinancingService { get; set; } = default!;
-    [Inject] private IFoodService FoodRequests { get; set; } = default!;
-    [Inject] private IWarrantService WarrantService { get; set; } = default!;
-    [Inject] private NOOSE_Website.Services.Public.ITipService TipService { get; set; } = default!;
     [Inject] private IPartnerVisibilityPolicyService PartnerPolicy { get; set; } = default!;
     [Inject] private IPartnerAgencyProfileService PartnerProfiles { get; set; } = default!;
-    [Inject] private Microsoft.Extensions.Logging.ILogger<NavMenu> Logger { get; set; } = default!;
-    [Inject] private NOOSE_Website.Services.Administration.IAdministrationChatService AdministrationChat { get; set; } = default!;
 
     private ClaimsPrincipal? _user;
     private string? _agentId;
     private NavPreferences _prefs = new();
-    private int _openShares;
-    private int _openAcknowledgments;
-    private int _openRegulation;
-    private int _openFinancing;
-    private int _openFood;
-    private int _openTips;
-    private int _administrationUnread;
     private IReadOnlySet<string>? _allowedPartnerTypes;
     private IReadOnlyList<NavEntry> _partnerEntries = [];
     private string? _filter;
@@ -163,70 +116,84 @@
     // snapshot per policy, taken once per circuit: a rank change rotates the security stamp and forces re-login
     private readonly Dictionary<string, bool> _policyOk = new(StringComparer.Ordinal);
     private List<NavArea> _areas = [];
-    private MudIconButton?[] _railButtons = [];
-    private NavArea? _area;
-    private bool _favoritesOpen;
+
+    // open for this visit: remembered groups plus every group a visited page belongs to
+    private readonly HashSet<string> _open = new(StringComparer.Ordinal);
 
     private bool Filtering => !string.IsNullOrWhiteSpace(_filter);
 
-    private bool IsSelected(NavArea area) => !_favoritesOpen && _area == area;
+    private IReadOnlyList<NavEntry> TopEntries
+        => NavCatalog.Section(NavSection.Primary).Where(e => e.InDrawer).ToList();
 
-    private string PanelCaption => Filtering
-        ? "Treffer"
-        : _favoritesOpen ? "Favoriten"
-        : _area is { } a ? NavAreaCatalog.Name(a).ToUpperInvariant()
-        : "Navigation";
-
-    // dashboard and search stay reachable from every area; partners also keep their profile here
-    private IReadOnlyList<NavEntry> TopEntries => _user?.IsPartner() == true
-        ? [.. NavCatalog.Section(NavSection.Primary), .. Filtered("profil")]
-        : NavCatalog.Section(NavSection.Primary).ToList();
-
-    private IEnumerable<NavEntry> Filtered(string key)
-        => NavCatalog.ByKey(key) is { } e ? [e] : [];
+    private bool Allowed(NavEntry e) => _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section));
 
     private IReadOnlyList<NavEntry> VisibleEntries(NavArea area)
         => area == NavArea.Partner
             ? _partnerEntries
             : NavPersonalization.Apply(
-                NavAreaCatalog.Entries(area).Where(e => _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section))),
+                NavAreaCatalog.WithoutTwins(NavAreaCatalog.ListedEntries(area).Where(Allowed), Allowed),
                 _prefs).ToList();
 
-    private sealed record PanelGroup(string? Caption, IReadOnlyList<NavEntry> Entries);
+    private bool IsOpen(string group) => _open.Contains(group);
+
+    private static string GroupId(string group) => "noose-nav-" + group.ToLowerInvariant();
+
+    private RenderFragment GroupHeader(string group, string label, string icon, int count, string? badgeKey) =>
+        @<button type="button" class="noose-nav-group" aria-expanded="@(IsOpen(group) ? "true" : "false")"
+                 aria-controls="@GroupId(group)" @onclick="@(() => ToggleAsync(group))">
+            <MudIcon Icon="@icon" Size="Size.Small" Class="mr-3" />
+            <span class="noose-nav-group-name">@label</span>
+            <NavBadgeChip BadgeKey="@badgeKey" Count="count" />
+            <MudIcon Icon="@(IsOpen(group) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                     Size="Size.Small" Class="ml-auto" />
+        </button>;
+
+    private sealed record GroupBadgeSum(string Key, int Count);
+
+    // a closed group sums its entries; the colour follows the most urgent one
+    private GroupBadgeSum? GroupBadge(IEnumerable<NavEntry> entries)
+    {
+        var counted = entries.Select(e => (e.BadgeKey, Count: Badges.Count(e.BadgeKey))).Where(x => x.Count > 0).ToList();
+        if (counted.Count == 0)
+        {
+            return null;
+        }
+        var urgent = counted.OrderBy(x => NavBadgeChip.ColorOf(x.BadgeKey) switch
+        {
+            Color.Error => 0,
+            Color.Warning => 1,
+            _ => 2,
+        }).First().BadgeKey!;
+        return new GroupBadgeSum(urgent, counted.Sum(x => x.Count));
+    }
+
+    private sealed record PanelGroup(string? Caption, List<NavEntry> Entries);
 
     // entries with a group get its caption above each run of them; ungrouped areas stay one plain list
     private static IReadOnlyList<PanelGroup> Captioned(IReadOnlyList<NavEntry> entries)
     {
-        if (entries.All(e => e.Group is null))
-        {
-            return [new PanelGroup(null, entries)];
-        }
         var groups = new List<PanelGroup>();
         foreach (var entry in entries)
         {
             if (groups.Count > 0 && groups[^1].Caption == entry.Group)
             {
-                ((List<NavEntry>)groups[^1].Entries).Add(entry);
+                groups[^1].Entries.Add(entry);
             }
             else
             {
-                groups.Add(new PanelGroup(entry.Group, new List<NavEntry> { entry }));
+                groups.Add(new PanelGroup(entry.Group, [entry]));
             }
         }
         return groups;
     }
 
-    // no filter: just the selected area. filtering: every area the viewer may see, captioned.
-    private IReadOnlyList<PanelGroup> PanelGroups()
+    // every area the viewer may see, the app bar menus included, so "Handbuch" is found here too
+    private IReadOnlyList<(string Caption, List<NavEntry> Entries)> FilterHits()
     {
-        if (!Filtering)
-        {
-            return _area is { } a ? Captioned(VisibleEntries(a)) : [];
-        }
-
         var needle = _filter!.Trim();
-        var groups = new List<PanelGroup>();
-        foreach (var area in _areas)
+        var areas = _user?.IsPartner() == true ? _areas : [.. _areas, .. NavAreaCatalog.MenuAreas];
+        var result = new List<(string, List<NavEntry>)>();
+        foreach (var area in areas)
         {
             var hits = VisibleEntries(area)
                 .Where(e => e.Label.Contains(needle, StringComparison.OrdinalIgnoreCase)
@@ -234,10 +201,10 @@
                 .ToList();
             if (hits.Count > 0)
             {
-                groups.Add(new PanelGroup(NavAreaCatalog.Name(area).ToUpperInvariant(), hits));
+                result.Add((NavAreaCatalog.Name(area).ToUpperInvariant(), hits));
             }
         }
-        return groups;
+        return result;
     }
 
     private bool IsCurrent(NavEntry entry)
@@ -247,34 +214,7 @@
                                                                   title="@entry.Description"
                                                                   aria-current="@(IsCurrent(entry) ? "page" : null)">
         @entry.Label
-        @if (entry.BadgeKey == "acknowledgments" && _openAcknowledgments > 0)
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ml-2">@_openAcknowledgments</MudChip>
-        }
-        @if (entry.BadgeKey == "regulation" && _openRegulation > 0)
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ml-2">@_openRegulation</MudChip>
-        }
-        @if (entry.BadgeKey == "shares" && _openShares > 0)
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled" Class="ml-2">@_openShares</MudChip>
-        }
-        @if (entry.BadgeKey == "financing" && _openFinancing > 0)
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2">@_openFinancing</MudChip>
-        }
-        @if (entry.BadgeKey == "food" && _openFood > 0)
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2">@_openFood</MudChip>
-        }
-        @if (entry.BadgeKey == "tips" && _openTips > 0)
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="ml-2">@_openTips</MudChip>
-        }
-        @if (entry.BadgeKey == "administration-chat" && _administrationUnread > 0)
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Filled" Class="ml-2">@_administrationUnread</MudChip>
-        }
+        <NavBadgeChip BadgeKey="@entry.BadgeKey" Count="@Badges.Count(entry.BadgeKey)" />
     </MudNavLink>;
 
     // page favorites gate by their section policy; partner page favorites gate by allowed types; records re-check on click
@@ -304,54 +244,14 @@
         }
     };
 
-    /// <summary>How many favorites the rail shows directly, so the areas below stay in reach.</summary>
-    private const int RailFavoriteCount = 5;
-
-    private sealed record RailLink(string Label, string Route, string Icon);
-
-    // the same gates as the favorites panel, decided up front: a favorite the viewer may not open is skipped,
-    // so the next one moves up instead of leaving the rail one short
-    private IEnumerable<RailLink> RailFavorites => _prefs.Favorites
-        .Select(ResolveRailLink)
-        .OfType<RailLink>()
-        .Take(RailFavoriteCount);
-
-    private RailLink? ResolveRailLink(NavFavorite fav)
-    {
-        if (fav.Kind == "record")
-        {
-            return new RailLink(fav.Label, fav.Route, fav.Icon);
-        }
-        if (fav.Kind != "page")
-        {
-            return null;
-        }
-
-        var key = fav.Key ?? string.Empty;
-        if (NavCatalog.ByKey(key) is null && LegacyRoutes.AliasKey(key) is { } alias)
-        {
-            key = alias;
-        }
-        if (NavCatalog.ByKey(key) is { } e)
-        {
-            return _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section)) ? new RailLink(e.Label, e.Route, e.Icon) : null;
-        }
-        return _user?.IsPartner() == true && PartnerTypeAllowed(fav.Key) ? new RailLink(fav.Label, fav.Route, fav.Icon) : null;
-    }
-
-    private bool IsCurrentRoute(string route)
-        => string.Equals("/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/'),
-                         route.Split('?', '#')[0].TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
-
-    // filtered before counting, so the rail button and the heading never stand over a list with nothing in it;
-    // the same per-circuit policy snapshot gates the drawer's own entries
+    // filtered before counting, so the group never stands over a list with nothing in it
     private IEnumerable<SavedView> VisibleViews => _prefs.SavedViews.Where(ViewAllowed);
 
     // a view gates like the list it opens; partners reach a list only through a record type released to their rank
     private bool ViewAllowed(SavedView view)
         => _user?.IsPartner() == true
             ? PartnerViewAllowed(view.Route)
-            : NavCatalog.ByRoute(view.Route) is { } e && _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section));
+            : NavCatalog.ByRoute(view.Route) is { } e && Allowed(e);
 
     private bool PartnerViewAllowed(string route)
     {
@@ -380,72 +280,42 @@
         StateHasChanged();
     }
 
-    // switching areas is not navigation; it only swaps what the panel lists
-    private async Task SelectAreaAsync(NavArea area)
+    // folding is not navigation; it only shows or hides the entries
+    private async Task ToggleAsync(string group)
     {
-        _favoritesOpen = false;
-        _area = area;
+        var open = !_open.Remove(group);
+        if (open)
+        {
+            _open.Add(group);
+        }
         if (!string.IsNullOrEmpty(_agentId))
         {
-            await NavPrefs.SetLastAreaAsync(_agentId, area.ToString());
+            await NavPrefs.SetGroupOpenAsync(_agentId, group, open);
         }
     }
 
-    private Task ShowFavoritesAsync()
-    {
-        _favoritesOpen = true;
-        return Task.CompletedTask;
-    }
-
-    // roving focus over the rail; the handler sits on the nav so it never steals keys from the filter field
-    private async Task RailKeyDownAsync(KeyboardEventArgs e)
-    {
-        if (_areas.Count == 0)
-        {
-            return;
-        }
-        var current = _area is { } a ? Math.Max(0, _areas.IndexOf(a)) : 0;
-        var next = e.Key switch
-        {
-            "ArrowDown" or "ArrowRight" => (current + 1) % _areas.Count,
-            "ArrowUp" or "ArrowLeft" => (current - 1 + _areas.Count) % _areas.Count,
-            "Home" => 0,
-            "End" => _areas.Count - 1,
-            _ => -1,
-        };
-        if (next < 0)
-        {
-            return;
-        }
-        await SelectAreaAsync(_areas[next]);
-        if (_railButtons.Length > next && _railButtons[next] is { } button)
-        {
-            await button.FocusAsync();
-        }
-    }
-
-    // the area holding the current route wins over the remembered one
-    private void SyncActiveArea()
+    // the group holding the current page opens, without being remembered beyond this visit
+    private void OpenCurrentGroup()
     {
         var entry = NavCatalog.ByRoute(Nav.ToBaseRelativePath(Nav.Uri));
-        if (entry is not null && entry.Area != NavArea.Primary && _areas.Contains(entry.Area))
+        if (_user?.IsPartner() == true)
         {
-            _favoritesOpen = false;
-            _area = entry.Area;
-            return;
+            _open.Add(NavArea.Partner.ToString());
         }
-        if (_area is null || !_areas.Contains(_area.Value))
+        else if (entry is not null && _areas.Contains(entry.Area))
         {
-            _area = _areas.Count > 0 ? _areas[0] : null;
+            _open.Add(entry.Area.ToString());
         }
     }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
         => _ = InvokeAsync(() =>
         {
-            SyncActiveArea();
+            OpenCurrentGroup();
             StateHasChanged();
         });
+
+    private void OnBadgesChanged() => _ = InvokeAsync(StateHasChanged);
 
     protected override async Task OnInitializedAsync()
     {
@@ -453,36 +323,23 @@
         _agentId = _user.GetAgentId();
         NavPrefs.Changed += OnPrefsChanged;
         Nav.LocationChanged += OnLocationChanged;
+        Badges.Changed += OnBadgesChanged;
         if (!string.IsNullOrEmpty(_agentId))
         {
             _prefs = await NavPrefs.GetAsync(_agentId);
         }
+        foreach (var area in Enum.GetValues<NavArea>())
+        {
+            if (_prefs.CollapsedGroups.Contains(NavPreferences.OpenGroupToken(area.ToString())))
+            {
+                _open.Add(area.ToString());
+            }
+        }
         await BuildAreasAsync();
+        OpenCurrentGroup();
 
-        // partners: skip the leadership badge queries entirely
-        if (_user?.IsPartner() == true)
-        {
-            return;
-        }
-
-        // prerender is a static snapshot: subscribing would leak a dead handler onto the singletons
-        if (RendererInfo.IsInteractive)
-        {
-            SharesBroadcaster.Modified += OnSharesModified;
-            AcknowledgmentBroadcaster.Modified += OnAcknowledgmentModified;
-            FinancingBroadcaster.Modified += OnFinancingModified;
-            FoodBroadcaster.Modified += OnFoodModified;
-            TipsBroadcaster.Modified += OnTipsModified;
-            AdministrationChatBroadcaster.Modified += OnAdministrationChatModified;
-            AdministrationChatBroadcaster.ReadMarked += OnAdministrationChatRead;
-        }
-        await LoadSharesAsync();
-        await LoadAcknowledgmentsAsync();
-        await LoadRegulationAsync();
-        await LoadFinancingAsync();
-        await LoadFoodAsync();
-        await LoadTipsAsync();
-        await LoadAdministrationChatAsync();
+        // prerender is a static snapshot: subscribing there would only hold a dead scope
+        await Badges.InitializeAsync(_user, RendererInfo.IsInteractive);
     }
 
     // partners get one runtime area; internal agents get the areas holding at least one permitted entry
@@ -508,13 +365,6 @@
             }
             _areas = NavAreaCatalog.Areas.Where(a => VisibleEntries(a).Count > 0).ToList();
         }
-
-        _railButtons = new MudIconButton?[_areas.Count];
-        if (Enum.TryParse<NavArea>(_prefs.LastArea, out var remembered) && _areas.Contains(remembered))
-        {
-            _area = remembered;
-        }
-        SyncActiveArea();
     }
 
     // reload personalized menu after the customizer saved (same circuit)
@@ -529,264 +379,10 @@
             }
         });
 
-    // decorative badge: a DB error here must not tear the prerender or the circuit
-    private async Task LoadAcknowledgmentsAsync()
-    {
-        if (_user is null)
-        {
-            return;
-        }
-        try
-        {
-            _openAcknowledgments = await BoardService.GetOpenAcknowledgmentsCountAsync(_user);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Quittierungs-Badge konnte nicht geladen werden.");
-        }
-    }
-
-    // decorative badge as well: the directive count must not tear the circuit
-    private async Task LoadRegulationAsync()
-    {
-        if (_user is null)
-        {
-            return;
-        }
-        try
-        {
-            _openRegulation = await RegulationService.GetOpenCountAsync(_user);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Badge der Dienstverordnung konnte nicht geladen werden.");
-        }
-    }
-
-    // sums open inbox items (same sources as the shares page); sets the value fresh each call
-    private async Task LoadSharesAsync()
-    {
-        if (_user is null)
-        {
-            return;
-        }
-        try
-        {
-            var open = 0;
-
-            // classification-upgrade requests are decided from Senior Special Agent up
-            if (_user.MayHighestClassification())
-            {
-                open += await RequestService.GetOpenCountAsync(_user.IsLeadership());
-                // added here rather than inside GetOpenCountAsync: the dashboard reads that one unconditionally for
-                // every agent and labels the number "Hochstufung"
-                open += await PublicWanted.GetPendingRequestCountAsync();
-                open += await Bounty.GetPendingRequestCountAsync();
-            }
-
-            // registrations, name changes, profile pictures, taskforce and promotion requests are leadership-only
-            if (_user.IsLeadership())
-            {
-                open += (await AgentService.GetPendingAsync()).Count
-                    + (await AgentService.GetPendingNameChangesAsync()).Count
-                    + (await AgentService.GetPendingAvatarsAsync()).Count
-                    + (await TaskforceService.GetRequestedAsync()).Count
-                    + await PersonnelFileService.CountOpenPromotionRequestsAsync(_user)
-                    // zero for anyone who may not sign
-                    + await WarrantService.GetOpenCountAsync(_user);
-            }
-            _openShares = open;
-        }
-        catch (Exception ex)
-        {
-            /* best effort */
-            Logger.LogWarning(ex, "Freigaben-Badge konnte nicht geladen werden.");
-        }
-    }
-
-    // decorative badge: the entry is visible to every agent, but only deciders get a count
-    private async Task LoadFinancingAsync()
-    {
-        if (_user is null || !_user.IsLeadership())
-        {
-            _openFinancing = 0;
-            return;
-        }
-        try
-        {
-            _openFinancing = await FinancingService.GetOpenCountAsync();
-        }
-        catch (Exception ex)
-        {
-            /* best effort */
-            Logger.LogWarning(ex, "Finanzierungs-Badge konnte nicht geladen werden.");
-        }
-    }
-
-    // decorative badge: the entry is visible to every agent, but only deciders get a count
-    private async Task LoadFoodAsync()
-    {
-        if (_user is null || !_user.IsLeadership())
-        {
-            _openFood = 0;
-            return;
-        }
-        try
-        {
-            _openFood = await FoodRequests.GetOpenCountAsync();
-        }
-        catch (Exception ex)
-        {
-            /* best effort */
-            Logger.LogWarning(ex, "Verpflegungs-Badge konnte nicht geladen werden.");
-        }
-    }
-
-    // members who may write carry a read mark; the count refreshes with the next page load
-    private async Task LoadAdministrationChatAsync()
-    {
-        if (_user is null || !_user.MayAdministrationWrite())
-        {
-            _administrationUnread = 0;
-            return;
-        }
-        try
-        {
-            _administrationUnread = (await AdministrationChat.GetReadStateAsync(_user)).Unread;
-        }
-        catch (Exception ex)
-        {
-            /* best effort */
-            Logger.LogWarning(ex, "Administration-Badge konnte nicht geladen werden.");
-        }
-    }
-
-    // every internal agent works the tip inbox, so every internal agent gets the count
-    private async Task LoadTipsAsync()
-    {
-        if (_user is null || !_user.IsInternalAgent())
-        {
-            _openTips = 0;
-            return;
-        }
-        try
-        {
-            _openTips = await TipService.GetOpenCountAsync();
-        }
-        catch (Exception ex)
-        {
-            /* best effort */
-            Logger.LogWarning(ex, "Hinweis-Badge konnte nicht geladen werden.");
-        }
-    }
-
-    // a handler must never throw back into the broadcaster's invocation chain, or the live
-    // subscribers later in the chain are skipped and the triggering page catches the fault
-    private void OnSharesModified()
-    {
-        try
-        {
-            _ = InvokeAsync(async () =>
-            {
-                await LoadSharesAsync();
-                StateHasChanged();
-            });
-        }
-        catch (InvalidOperationException) { /* circuit gone */ }
-    }
-
-    // only the own mark counts, another reader changes nothing here
-    private void OnAdministrationChatRead(string agentId)
-    {
-        if (string.Equals(agentId, _agentId, StringComparison.Ordinal))
-        {
-            OnAdministrationChatModified(agentId);
-        }
-    }
-
-    // new chat messages reload the count
-    private void OnAdministrationChatModified(string room)
-    {
-        try
-        {
-            _ = InvokeAsync(async () =>
-            {
-                await LoadAdministrationChatAsync();
-                StateHasChanged();
-            });
-        }
-        catch (InvalidOperationException) { /* circuit gone */ }
-    }
-
-    // the count was only ever read while the drawer was being built, so it stood still for the whole session
-    private void OnTipsModified(string tipId, string caseNumber, TipMessageAudience? audience)
-    {
-        try
-        {
-            _ = InvokeAsync(async () =>
-            {
-                await LoadTipsAsync();
-                StateHasChanged();
-            });
-        }
-        catch (InvalidOperationException) { /* circuit gone */ }
-    }
-
-    private void OnFinancingModified()
-    {
-        try
-        {
-            _ = InvokeAsync(async () =>
-            {
-                await LoadFinancingAsync();
-                StateHasChanged();
-            });
-        }
-        catch (InvalidOperationException) { /* circuit gone */ }
-    }
-
-    private void OnFoodModified()
-    {
-        try
-        {
-            _ = InvokeAsync(async () =>
-            {
-                await LoadFoodAsync();
-                StateHasChanged();
-            });
-        }
-        catch (InvalidOperationException) { /* circuit gone */ }
-    }
-
-    // only react to this agent's own acknowledgment signal
-    private void OnAcknowledgmentModified(string agentId)
-    {
-        if (agentId != _user?.GetAgentId())
-        {
-            return;
-        }
-        try
-        {
-            _ = InvokeAsync(async () =>
-            {
-                await LoadAcknowledgmentsAsync();
-                await LoadRegulationAsync();
-                StateHasChanged();
-            });
-        }
-        catch (InvalidOperationException) { /* circuit gone */ }
-    }
-
     public void Dispose()
     {
         NavPrefs.Changed -= OnPrefsChanged;
         Nav.LocationChanged -= OnLocationChanged;
-        SharesBroadcaster.Modified -= OnSharesModified;
-        AcknowledgmentBroadcaster.Modified -= OnAcknowledgmentModified;
-        FinancingBroadcaster.Modified -= OnFinancingModified;
-        FoodBroadcaster.Modified -= OnFoodModified;
-        TipsBroadcaster.Modified -= OnTipsModified;
-        AdministrationChatBroadcaster.Modified -= OnAdministrationChatModified;
-        AdministrationChatBroadcaster.ReadMarked -= OnAdministrationChatRead;
+        Badges.Changed -= OnBadgesChanged;
     }
 }

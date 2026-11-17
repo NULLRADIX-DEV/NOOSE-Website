@@ -802,5 +802,11 @@ public static class ChangelogContent
                 + "jeder Agent hat ein Wochenlimit für Essen und eines für Trinken, und die Ausgabe bucht die Mengen "
                 + "von selbst als Herausnahme aus der Asservatenkammer.", "Verpflegung"),
         ]),
+        new("3.1.00", new DateTime(2026, 11, 17), "Neue Navigation",
+        [
+            Besser("3.1.00-navigation-neu", "Das Menü links ist eine beschriftete Liste mit aufklappbaren Bereichen. "
+                + "Persönliches liegt hinter deinem Namen oben rechts, Handbuch, Gesetze und Dienstverordnung hinter dem "
+                + "Fragezeichen, und die Administration hat ihre Unterpunkte auf der eigenen Seite.", "Bedienung"),
+        ]),
     ];
 }
