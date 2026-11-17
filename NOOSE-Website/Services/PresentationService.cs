@@ -581,7 +581,11 @@ public sealed partial class PresentationService(
                 AnnouncementAudience.HrbUnit => "Nur Administration Division",
                 AnnouncementAudience.Taskforce => targetId is not null && taskforces.TryGetValue(targetId, out var name)
                     ? $"Taskforce {name}" : "Taskforce",
-                AnnouncementAudience.FromRank => minRank is { } rank ? $"Ab {RankDisplay.Name(rank)}" : "Ab Dienstgrad",
+                AnnouncementAudience.FromRank => minRank is { } rank
+                    ? PresentationVisibility.IsLeadershipBriefing(rank)
+                        ? $"Ab {RankDisplay.Name(rank)} und Administration"
+                        : $"Ab {RankDisplay.Name(rank)}"
+                    : "Ab Dienstgrad",
                 _ => "Geschlossen",
             },
         };

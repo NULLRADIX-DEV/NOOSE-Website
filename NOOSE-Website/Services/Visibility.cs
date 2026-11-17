@@ -55,10 +55,10 @@ public static class Visibility
         {
             return await TaskforceVisibility.IsVisibleAsync(db, entityId, scope.MayAllTaskforces, scope.MeId, cancellationToken);
         }
-        // leadership only
+        // personnel file: leadership, supervision and the Administration Division
         if (entityType == nameof(Agent))
         {
-            return scope.MayClassifiedRead;
+            return scope.MayClassifiedRead || scope.IsAdministrationMember;
         }
         // applications: HRB or leadership, mirrors the page policy
         // (bool-shim callers like mention-notification fanout can only carry the leadership flag, so keep MayClassifiedRead here)

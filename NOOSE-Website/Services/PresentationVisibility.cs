@@ -15,6 +15,12 @@ namespace NOOSE_Website.Services;
 /// </remarks>
 public static class PresentationVisibility
 {
+    /// <summary>A presentation closed to this rank or higher is a leadership briefing, which the Administration Division reads too.</summary>
+    public const Rank LeadershipBriefingFloor = Rank.SectionChief;
+
+    /// <summary>Whether a closed rank audience counts as a leadership briefing.</summary>
+    public static bool IsLeadershipBriefing(Rank? minRank) => minRank is { } r && r >= LeadershipBriefingFloor;
+
     /// <summary>Presentations the viewer may see.</summary>
     public static IQueryable<Presentation> OnlyVisible(IQueryable<Presentation> query, AppDbContext db, ViewerScope scope)
     {
@@ -27,6 +33,8 @@ public static class PresentationVisibility
         var readsAll = scope.IsLeadership || scope.MayClassifiedRead;
         var isTru = scope.IsTru;
         var isHrb = scope.IsHrb;
+        var isAdministration = scope.IsAdministrationMember;
+        var floor = LeadershipBriefingFloor;
         var rank = scope.Rank;
         return query.Where(p => readsAll
             || p.OwnerId == meId
@@ -35,6 +43,7 @@ public static class PresentationVisibility
                 && ((p.Audience == AnnouncementAudience.TruUnit && isTru)
                     || (p.Audience == AnnouncementAudience.HrbUnit && isHrb)
                     || (p.Audience == AnnouncementAudience.FromRank && rank != null && p.MinRank != null && rank >= p.MinRank)
+                    || (p.Audience == AnnouncementAudience.FromRank && isAdministration && p.MinRank != null && p.MinRank >= floor)
                     || (p.Audience == AnnouncementAudience.Taskforce && p.TargetId != null
                         && db.TaskforceAgents.Any(ta => ta.TaskforceId == p.TargetId && ta.AgentId == meId))))
             || (p.Access == PresentationAccess.Private
@@ -90,7 +99,8 @@ public static class PresentationVisibility
         {
             AnnouncementAudience.TruUnit => actor.IsTRU(),
             AnnouncementAudience.HrbUnit => actor.IsHRB(),
-            AnnouncementAudience.FromRank => minRank is not null && actor.GetRank() is { } own && own >= minRank,
+            AnnouncementAudience.FromRank => minRank is not null
+                && ((actor.GetRank() is { } own && own >= minRank) || (actor.IsAdministrationMember() && IsLeadershipBriefing(minRank))),
             AnnouncementAudience.Taskforce => await AudienceRules.IsMemberAsync(db, audience, targetId, minRank,
                 actor.GetAgentId(), false, false, null, cancellationToken),
             _ => false,

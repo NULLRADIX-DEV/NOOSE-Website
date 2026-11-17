@@ -44,6 +44,9 @@ public static class Policies
     /// <summary>Leadership page access: leadership OR read-only supervision (opens read-only; write buttons stay on Leadership).</summary>
     public const string LeadershipPage = "FuehrungSeite";
 
+    /// <summary>The citizen ticket desk: leadership, supervision and the Administration Division; mirrors <c>Permission.RequireTicketRead</c>.</summary>
+    public const string TicketDesk = "BuergerTicketSchalter";
+
     /// <summary>Highest-classification page access: like HighestClassification plus read-only supervision.</summary>
     public const string HighestClassificationPage = "HoechsteEinstufungSeite";
 
@@ -102,6 +105,9 @@ public static class Policies
 
     /// <summary>Personnel writes (notes, promotion requests, awards): leadership or Administration; mirrors <c>Permission.RequirePersonnelWrite</c>.</summary>
     public const string PersonnelWrite = "PersonalSchreiben";
+
+    /// <summary>Leadership parts of personnel files and the firearm-use overview: leadership, supervision or Administration; mirrors <c>Permission.RequirePersonnelRead</c>.</summary>
+    public const string PersonnelReadPage = "PersonalLesenSeite";
 
     /// <summary>Citizen portal access: signed in with status Civilian.</summary>
     public const string CitizenPortal = "BuergerPortal";

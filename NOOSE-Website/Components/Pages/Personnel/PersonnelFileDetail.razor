@@ -35,8 +35,8 @@ else
                                    aria-label="Dienstausweis öffnen" />
                 </MudTooltip>
             }
-            @* Personnel files count as leadership-only content. *@
-            @if (_isLeadership)
+            @* Personnel files count as leadership and Administration content. *@
+            @if (_mayPersonnelRead)
             {
                 <MudTooltip Text="Druckansicht – Akte drucken / als PDF speichern">
                 <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Default"
@@ -76,10 +76,13 @@ else
                     <MudMenuItem Icon="@Icons.Material.Filled.Badge" Href="@($"/personal/{AgentId}/ausweis")"
                                  Target="_blank">Dienstausweis drucken</MudMenuItem>
                 }
-                @if (_isLeadership)
+                @if (_mayPersonnelRead)
                 {
                     <MudMenuItem Icon="@Icons.Material.Filled.Print" Target="_blank"
                                  Href="@($"/personal/{AgentId}/druck?tage={_supervisionDays}")">Akte drucken</MudMenuItem>
+                }
+                @if (_isLeadership)
+                {
                     <FollowButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" User="_user" AsMenuItem="true" />
                     <JobCreateButton EntityType="@nameof(Agent)" EntityId="@_agent.Id" AsMenuItem="true" />
                     @if (_mayHandOver)
@@ -111,7 +114,7 @@ else
                 Gekündigt am @(_agent.TerminatedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—")
                 @(string.IsNullOrWhiteSpace(_agent.TerminatedByName) ? "" : $" durch {_agent.TerminatedByName}")
             </MudText>
-            @if (_isLeadership && !string.IsNullOrWhiteSpace(_agent.TerminationReason))
+            @if (_mayPersonnelRead && !string.IsNullOrWhiteSpace(_agent.TerminationReason))
             {
                 <MudText Typo="Typo.body2" Class="mt-1">@_agent.TerminationReason</MudText>
             }
@@ -217,7 +220,7 @@ else
                             TransfersOnly="@(!_administrationFull)" />
                     </MudTabPanel>
                 }
-                @if (_isLeadership)
+                @if (_mayPersonnelRead)
                 {
                     <MudTabPanel Text="Kommentare" Icon="@Icons.Material.Filled.Comment">
                         <CommentPanel EntityType="@nameof(Agent)" EntityId="@_agent.Id" User="_user" />
@@ -236,6 +239,7 @@ else
     private ProbationPanel? _probation;
     private bool _isLeadership;
     private bool _isHrbOrLeadership;
+    private bool _mayPersonnelRead;
     private int _onboardingDone;
     private int _onboardingTotal;
     private bool _mayRealName;
@@ -260,7 +264,8 @@ else
         _isHrbOrLeadership = _user.IsHrbOrLeadership();
         _mayRealName = _user.MayRealNameSee();
         _mayWrite = _user.MayWrite();
-        _maySupervise = _user.MayClassifiedRead() && !_user.IsPartner();
+        _maySupervise = _user.MayPersonnelRead();
+        _mayPersonnelRead = _user.MayPersonnelRead();
         BuildTabs();
     }
 
@@ -290,7 +295,7 @@ else
             "entfuehrungen",
             .. _mayFirearmUse ? new[] { "schusswaffengebrauch" } : [],
             .. _mayAdministration ? new[] { "administration" } : [],
-            .. _isLeadership ? new[] { "kommentare" } : [],
+            .. _mayPersonnelRead ? new[] { "kommentare" } : [],
         ];
     }
 

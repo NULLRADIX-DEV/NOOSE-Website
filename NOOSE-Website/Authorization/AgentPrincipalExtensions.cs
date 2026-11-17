@@ -200,6 +200,14 @@ public static class AgentPrincipalExtensions
     public static bool MayAdministrationWrite(this ClaimsPrincipal user)
         => user.MayWrite() && user.IsAdministrationMember();
 
+    /// <summary>May read the leadership parts of personnel files (comments, supervision sheet, terminations, firearm use) = leadership, supervision or the Administration Division; never a partner.</summary>
+    public static bool MayPersonnelRead(this ClaimsPrincipal user)
+        => !user.IsPartner() && (user.MayClassifiedRead() || user.IsAdministrationMember());
+
+    /// <summary>May read the citizen ticket desk = leadership, supervision or the Administration Division; answering stays with leadership.</summary>
+    public static bool MayTicketRead(this ClaimsPrincipal user)
+        => user.IsInternalAgent() && (user.MayClassifiedRead() || user.IsAdministrationMember());
+
     /// <summary>May write personnel matters (notes, promotion requests, awards) = leadership or the Administration Division, both with write access.</summary>
     public static bool MayPersonnelWrite(this ClaimsPrincipal user)
         => user.MayWrite() && !user.IsPartner() && (user.IsLeadership() || user.IsAdministrationMember());

@@ -27,7 +27,7 @@
     {
         <MudItem xs="12" md="6">
             <MudSelect T="AnnouncementAudience?" @bind-Value="Input.Audience" Label="Gruppe" Variant="Variant.Outlined"
-                       HelperText="@(_leadership ? null : "Nur Gruppen, zu denen du selbst gehörst.")">
+                       HelperText="@(_leadership ? "Die Führung sieht jede Präsentation." : "Nur Gruppen, zu denen du selbst gehörst. Die Führung sieht jede Präsentation.")">
                 @foreach (var audience in _audiences)
                 {
                     <MudSelectItem T="AnnouncementAudience?" Value="@((AnnouncementAudience?)audience)">@AnnouncementAudienceDisplay.Name(audience)</MudSelectItem>
@@ -48,7 +48,8 @@
         else if (Input.Audience == AnnouncementAudience.FromRank)
         {
             <MudItem xs="12" md="6">
-                <MudSelect T="Rank?" @bind-Value="Input.MinRank" Label="Mindest-Dienstgrad" Variant="Variant.Outlined">
+                <MudSelect T="Rank?" @bind-Value="Input.MinRank" Label="Mindest-Dienstgrad" Variant="Variant.Outlined"
+                           HelperText="@($"Ab {RankDisplay.Name(PresentationVisibility.LeadershipBriefingFloor)} sieht sie auch die Administration Division.")">
                     @foreach (var rank in _ranks)
                     {
                         <MudSelectItem T="Rank?" Value="@((Rank?)rank)">@RankDisplay.Name(rank)</MudSelectItem>
@@ -99,7 +100,10 @@
             AnnouncementAudience.FromRank => own is not null,
             _ => true,
         }).ToList();
-        _ranks = RankDisplay.All.Where(r => _leadership || (own is { } mine && r <= mine)).ToList();
+        // the Administration may brief leadership even below that rank
+        var administration = User.IsAdministrationMember();
+        _ranks = RankDisplay.All.Where(r => _leadership || (own is { } mine && r <= mine)
+            || (administration && PresentationVisibility.IsLeadershipBriefing(r))).ToList();
         _taskforces = await TaskforceService.GetListAsync(_leadership, User.GetAgentId());
         var agents = await Agents.GetSelectableAsync();
         // a stored invite of an agent who is no longer selectable still shows by name; the next save drops it

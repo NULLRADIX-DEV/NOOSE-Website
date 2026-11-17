@@ -39,10 +39,19 @@
             <RichHtml Html="@_html" User="User" />
         </MudPaper>
     }
+
+    <SectionHeader Title="Dokumente und Verweise" Icon="@Icons.Material.Filled.FolderShared" />
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+        Direkte Verweise auf Dokumente, Vorlagen und Links, die die Administration oft braucht.
+    </MudText>
+    <SourcesPanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="User" />
 </MudStack>
 
 @code {
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
+
+    private const string WorkspaceType = nameof(NOOSE_Website.Data.Entities.Administration.AdministrationWorkspace);
+    private const string WorkspaceId = NOOSE_Website.Data.Entities.Administration.AdministrationWorkspace.SingletonId;
 
     private bool _load = true;
     private bool _editing;

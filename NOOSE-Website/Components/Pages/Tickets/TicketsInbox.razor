@@ -7,19 +7,22 @@
    supervision reads them; "Beteiligt" is every agent's own list. A section inside an AuthorizeView that does not
    render also registers no rail button, which is exactly the gate we want here. *@
 
-<PageTitle>Tickets · FIB</PageTitle>
+@if (!Embedded)
+{
+    <PageTitle>Tickets · FIB</PageTitle>
 
-<PageHeader Icon="@Icons.Material.Filled.Forum"
-            Title="Tickets"
-            Subtitle="Anliegen von Bürgern an die Führungsebene und interne Anliegen der Agenten.">
-    <Actions>
-        <MudButton OnClick="OpenInternalAsync" Variant="Variant.Filled" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add">Internes Ticket</MudButton>
-    </Actions>
-</PageHeader>
+    <PageHeader Icon="@Icons.Material.Filled.Forum"
+                Title="Tickets"
+                Subtitle="Anliegen von Bürgern an die Führungsebene und interne Anliegen der Agenten.">
+        <Actions>
+            <MudButton OnClick="OpenInternalAsync" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">Internes Ticket</MudButton>
+        </Actions>
+    </PageHeader>
+}
 
 <RecordSectionRail>
-    <AuthorizeView Policy="@Policies.LeadershipPage" Context="deskCtx">
+    <AuthorizeView Policy="@Policies.TicketDesk" Context="deskCtx">
         <RecordSection Group="Schalter" Slug="offen" Label="Offen" Icon="@Icons.Material.Filled.Inbox">
             <TicketsListPanel Scope="TicketInboxScope.Offen" />
         </RecordSection>
@@ -44,6 +47,9 @@
 </RecordSectionRail>
 
 @code {
+    /// <summary>Shown inside the Administration workspace, which brings its own header.</summary>
+    [Parameter] public bool Embedded { get; set; }
+
     [CascadingParameter]
     private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 

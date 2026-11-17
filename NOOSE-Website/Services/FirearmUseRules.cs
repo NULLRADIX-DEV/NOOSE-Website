@@ -28,10 +28,10 @@ public static class FirearmUseRules
         return text;
     }
 
-    /// <summary>One's own file always, anybody else's only with the leadership read; an in-house account in both cases.</summary>
+    /// <summary>One's own file always, anybody else's only with the personnel read; an in-house account in both cases.</summary>
     public static bool MayRead(ClaimsPrincipal viewer, string agentId)
         => viewer.IsInternalAgent()
-           && (string.Equals(viewer.GetAgentId(), agentId, StringComparison.Ordinal) || viewer.MayClassifiedRead());
+           && (string.Equals(viewer.GetAgentId(), agentId, StringComparison.Ordinal) || viewer.MayPersonnelRead());
 
     /// <summary>Deleting needs write access and leadership, and never reaches one's own report.</summary>
     public static bool MayDelete(ClaimsPrincipal actor, string ownerId)
