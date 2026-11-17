@@ -33,7 +33,7 @@ internal static class PersonnelChapter
                 darauf hin.</p>
                 <p>Die Akte ist in <strong>Reiter</strong> gegliedert: <em>Dienstaufsicht</em> (vorn, für die
                 Führung und die Administration Division), <em>Dienstgrad-Verlauf</em>, <em>Vermerke</em>, <em>Beurteilungen</em>, <em>Beförderungen</em>,
-                <em>Finanzierung</em>, <em>KI-Kontingent</em>, <em>Module</em>, <em>Auszeichnungen</em>,
+                <em>Finanzierung</em>, <em>Verpflegung</em>, <em>KI-Kontingent</em>, <em>Module</em>, <em>Auszeichnungen</em>,
                 <em>Entführungen</em>, <em>Schusswaffengebrauch</em>, <em>Administration</em> und <em>Kommentare</em>. Oben auf der Akte
                 stehen die Knöpfe für Dienstausweis, Druckansicht und - wenn jemand geht - <em>Arbeit
                 übergeben</em>.</p>
@@ -511,6 +511,27 @@ internal static class PersonnelChapter
                 """,
                 NavKey: "finanzierungen"),
 
+            new Article("art-verpflegung", "verpflegung", "Verpflegung",
+                "Essen und Trinken aus dem Bestand anfordern.",
+                """
+                <p>Unter <strong>Verpflegung</strong> forderst du Essen und Getränke an, die das FIB in der
+                Asservatenkammer vorrätig hat. Du wählst aus dem <em>Katalog</em> und gibst die Menge an; die
+                Führung entscheidet und kann einzelne Positionen kürzen.</p>
+                <p>Jeder Agent hat ein <strong>Wochenlimit</strong>, getrennt für Essen und für Trinken. Die Woche
+                beginnt am Montag. Eine angenommene Anforderung zählt gegen das Limit der Woche, in der sie
+                angenommen wurde; deinen Stand siehst du auf derselben Seite. Wie hoch die Limits sind, hängt an
+                deiner Abteilung und deinem Dienstgrad, die Führung kann für einzelne Agenten eigene Werte setzen.
+                Über das Limit hinaus geht eine Anforderung nur mit einer Begründung der Führung.</p>
+                <p>Ausgegeben wird ab Senior Special Agent. Die Ausgabe bucht die genehmigten Mengen als
+                <strong>Herausnahme aus dem FIB-Bestand</strong> der Asservatenkammer, mit dem Aktenzeichen der
+                Anforderung in der Notiz. Liegt zu wenig auf Lager, lässt sich nicht ausgeben. Eine falsche
+                Ausgabe storniert die Führung an der Anforderung, nicht in der Asservatenkammer; der Bestand
+                stimmt danach wieder.</p>
+                <p>Was im Katalog steht, pflegt die Führung: Jede Position ist ein Gegenstand der
+                Asservatenkammer, als Essen oder Trinken eingeordnet und mit einer Höchstmenge je Anforderung.</p>
+                """,
+                NavKey: "verpflegung"),
+
             new Article("art-ausscheiden", "ausscheiden", "Ausscheiden aus der Behörde",
                 "Kündigung, Sperrung und was mit den Akten passiert.",
                 """
@@ -527,8 +548,8 @@ internal static class PersonnelChapter
                 um oder wählst sie ab. Eine Leitung oder Taskforce-Rolle geht mit über, außer der Nachfolger hat
                 dort schon eine eigene.</p>
                 <p>Zwei Dinge gehen nicht über, sondern enden mit dem Ausscheiden: offene
-                <strong>Finanzierungsanträge</strong> werden zurückgezogen oder abgelehnt, weil die Auszahlung an den
-                Antragsteller ginge, und seine Teilnahme an künftigen <strong>Terminen</strong> wird gestrichen.
+                <strong>Finanzierungsanträge</strong> und <strong>Verpflegungsanforderungen</strong> werden zurückgezogen
+                oder abgelehnt, weil Auszahlung und Ausgabe an den Antragsteller gingen, und seine Teilnahme an künftigen <strong>Terminen</strong> wird gestrichen.
                 Einträge in Akten, die du selbst nicht öffnen darfst, zählt das Fenster nur mit und lässt sie, wie
                 sie sind. Abgewählte Zeilen erscheinen beim nächsten Öffnen wieder; mit <em>Später</em> schiebst du
                 die Übergabe auf. Jeder Nachfolger bekommt eine Meldung, was er übernommen hat.</p>

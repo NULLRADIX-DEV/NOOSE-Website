@@ -17,6 +17,7 @@ using NOOSE_Website.Data.Entities.Personnel;
 using NOOSE_Website.Data.Entities.Requests;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
@@ -72,6 +73,11 @@ public static class Visibility
         if (entityType == nameof(FinancingRequest))
         {
             return await FinancingVisibility.IsVisibleAsync(db, entityId, scope.MayClassifiedRead, scope.MeId, cancellationToken);
+        }
+        // explicit like funding
+        if (entityType == nameof(FoodRequest))
+        {
+            return await FoodVisibility.IsVisibleAsync(db, entityId, scope.MayClassifiedRead, scope.MeId, cancellationToken);
         }
         // warrants: never further than their person and case; explicit, the tail would answer "visible"
         if (entityType == nameof(Warrant))

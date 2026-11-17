@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities.Appointments;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -250,6 +251,15 @@ public sealed class AgentHandoverService(
         candidates.AddRange(requests.Select(r => Record(HandoverKind.FinancingRequest, nameof(FinancingRequest), r.Id,
             r.Justification, $"{r.CaseNumber} · {FinancingStatusDisplay.Name(r.Status)}", $"/finanzierungen/{r.Id}", null)));
 
+        var foodRequests = await db.FoodRequests.AsNoTracking()
+            .Where(r => r.AgentId == agentId
+                && (r.Status == FoodRequestStatus.Requested || r.Status == FoodRequestStatus.Approved))
+            .Select(r => new { r.Id, r.Justification, r.CaseNumber, r.Status, r.FoodRequested, r.DrinkRequested })
+            .ToListAsync(cancellationToken);
+        candidates.AddRange(foodRequests.Select(r => Record(HandoverKind.FoodRequest, nameof(FoodRequest), r.Id,
+            r.Justification ?? FoodService.Summary(r.FoodRequested, r.DrinkRequested),
+            $"{r.CaseNumber} · {FoodRequestStatusDisplay.Name(r.Status)}", $"/verpflegung/{r.Id}", null)));
+
         var appointments = await db.AppointmentAssignments.AsNoTracking()
             .Where(a => a.AgentId == agentId)
             .Join(db.Appointments.Where(t => t.Start > now && t.Status != AppointmentStatus.Canceled),
@@ -404,6 +414,12 @@ public sealed class AgentHandoverService(
             return;
         }
 
+        if (choice.Kind == HandoverKind.FoodRequest)
+        {
+            await CloseFoodAsync(db, choice.Id, actor, cancellationToken);
+            return;
+        }
+
         var request = await db.FinancingRequests.Include(r => r.Lines)
             .FirstAsync(r => r.Id == choice.Id, cancellationToken);
         if (request.Status == FinancingStatus.Requested)
@@ -414,6 +430,24 @@ public sealed class AgentHandoverService(
         // an approval cannot be withdrawn; rejecting it hands the reservation back to the budget
         FinancingService.ClearApproval(request, struckLines: true);
         request.Status = FinancingStatus.Rejected;
+        request.DeciderName = actor.GetCodename();
+        request.DecidedAt = DateTime.UtcNow;
+        request.DecisionNote = DepartureNote;
+    }
+
+    private static async Task CloseFoodAsync(AppDbContext db, string id, ClaimsPrincipal actor,
+        CancellationToken cancellationToken)
+    {
+        var request = await db.FoodRequests.Include(r => r.Lines)
+            .FirstAsync(r => r.Id == id, cancellationToken);
+        if (request.Status == FoodRequestStatus.Requested)
+        {
+            request.Status = FoodRequestStatus.Withdrawn;
+            return;
+        }
+        // rejecting frees the weekly limit
+        FoodService.ClearApproval(request, struckLines: true);
+        request.Status = FoodRequestStatus.Rejected;
         request.DeciderName = actor.GetCodename();
         request.DecidedAt = DateTime.UtcNow;
         request.DecisionNote = DepartureNote;

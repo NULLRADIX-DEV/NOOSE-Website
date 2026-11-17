@@ -9,6 +9,7 @@ using NOOSE_Website.Data.Entities.Notifications;
 using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
@@ -126,6 +127,10 @@ public static class WatchlistRecordRollup
             case FinancingRequest:
             case FinancingRequestLine:
             case FinancingItem:
+            // same reason as funding
+            case FoodRequest:
+            case FoodRequestLine:
+            case FoodItem:
             // the public area's own tables carry no record reference anyone follows: editorial pages, press
             // releases, standing warnings and released monthly texts are outward text, while module switches, a
             // citizen's own account and the warning value list are configuration — none of them is casework

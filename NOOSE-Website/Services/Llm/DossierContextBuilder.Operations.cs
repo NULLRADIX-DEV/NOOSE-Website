@@ -11,6 +11,7 @@ using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.CounterIntel;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.Kasse;
@@ -47,6 +48,7 @@ public static partial class DossierContextBuilder
             nameof(EvidenceEntry) => await BuildEvidenceEntryAsync(db, entityId, scope, ct),
             nameof(KassenBuchung) => await BuildKassenBuchungAsync(db, entityId, scope, ct),
             nameof(FinancingRequest) => await BuildFinancingRequestAsync(db, entityId, scope, ct),
+            nameof(FoodRequest) => await BuildFoodRequestAsync(db, entityId, scope, ct),
             nameof(AgentAbduction) => await BuildAbductionAsync(db, entityId, scope, ct),
             nameof(Announcement) => await BuildAnnouncementAsync(db, entityId, scope, ct),
             nameof(Presentation) => await BuildPresentationAsync(db, entityId, scope, ct),
@@ -721,6 +723,55 @@ public static partial class DossierContextBuilder
 
         await AppendAttachmentsAsync(sb, db, nameof(FinancingRequest), id, includeClassificationHistory: false, view, ct);
         return new DossierContext($"Finanzierungsantrag {r.CaseNumber}", sb.ToString(), IsClassified: false);
+    }
+
+    static async Task<DossierContext?> BuildFoodRequestAsync(AppDbContext db, string id, ViewerScope? scope, CancellationToken ct)
+    {
+        var r = await db.FoodRequests.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (r is null)
+        {
+            return null;
+        }
+        var view = scope ?? DossierScope.ForRecord(DocumentClassification.None);
+        var codenames = await CodenamesAsync(db, [r.AgentId], ct);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("Verpflegungsanforderung");
+        Line(sb, "Aktenzeichen", r.CaseNumber);
+        Line(sb, "Anfordernder", Codename(codenames, r.AgentId));
+        Line(sb, "Status", FoodRequestStatusDisplay.Name(r.Status));
+        Line(sb, "Begründung", r.Justification);
+        Line(sb, "Angefordert", FoodService.Summary(r.FoodRequested, r.DrinkRequested));
+        Line(sb, "Angenommen", r.FoodApproved is not null || r.DrinkApproved is not null
+            ? FoodService.Summary(r.FoodApproved ?? 0, r.DrinkApproved ?? 0)
+            : null);
+        Line(sb, "Limitwoche", r.LimitWeekStart is { } week ? $"ab {week:dd.MM.yyyy}" : null);
+        Line(sb, "Entschieden am", Fmt(r.DecidedAt));
+        Line(sb, "Entschieden von", r.DeciderName);
+        Line(sb, "Entscheidungsvermerk", r.DecisionNote);
+        Line(sb, "Ausgegeben am", Fmt(r.IssuedAt));
+        Line(sb, "Ausgegeben von", r.IssuedByName);
+
+        var (positions, positionsTotal) = await TakeAsync(
+            db.FoodRequestLines.AsNoTracking().Where(l => l.RequestId == id)
+                .OrderBy(l => l.Sorting)
+                .Select(l => new { l.ItemName, l.Kind, l.Quantity, l.ApprovedQuantity }), ct);
+        if (positionsTotal > 0)
+        {
+            sb.AppendLine($"— Positionen ({positionsTotal}) —");
+            foreach (var p in positions)
+            {
+                sb.Append("• ").Append(Free(p.ItemName)).Append(" ×").Append(p.Quantity);
+                if (p.ApprovedQuantity is { } approved && approved != p.Quantity)
+                {
+                    sb.Append(" (angenommen ×").Append(approved).Append(')');
+                }
+                sb.Append(" | ").AppendLine(FoodKindDisplay.Name(p.Kind));
+            }
+        }
+
+        await AppendAttachmentsAsync(sb, db, nameof(FoodRequest), id, includeClassificationHistory: false, view, ct);
+        return new DossierContext($"Verpflegungsanforderung {r.CaseNumber}", sb.ToString(), IsClassified: false);
     }
 
     // ---- knowledge and administration ----

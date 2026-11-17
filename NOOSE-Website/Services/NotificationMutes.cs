@@ -83,6 +83,7 @@ public static class NotificationMutes
             NotificationType.Recruiting,
             NotificationType.TestSubmitted,
             NotificationType.Financing,
+            NotificationType.Food,
             NotificationType.Feedback,
             NotificationType.PartnerInquiry,
             NotificationType.CounterIntelFinding,

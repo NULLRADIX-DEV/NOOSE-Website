@@ -1183,6 +1183,8 @@ public class AgentManagementService(
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.AgentId, (string?)null), cancellationToken);
         await db.FinancingBudgetPeriods.IgnoreQueryFilters().Where(x => x.AgentId == agentId)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.AgentId, (string?)null), cancellationToken);
+        await db.FoodRequests.IgnoreQueryFilters().Where(x => x.AgentId == agentId)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.AgentId, (string?)null), cancellationToken);
 
         // Public area: every one of these is a "who did this" pointer on a row that is history - a publication, a
         // payment, a decision, a message to a citizen - so the row survives the account and only the pointer is

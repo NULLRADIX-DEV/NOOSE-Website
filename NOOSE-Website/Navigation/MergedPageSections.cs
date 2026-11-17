@@ -10,6 +10,7 @@ public static class MergedPageSections
         "vorlagen-dok", "vorlagen-dokument", "vorlagen-aktivitaet", "vorlagen-personal",
         "module", "einladungen", "ehrenzeichen", "inaktivitaet",
         "finanzierung",
+        "verpflegung",
         "noosei", "ki-anbieter", "ki-regeln", "ki-betrieb", "ki-kontingente", "ki-anfragen",
         "partner",
         "oeffentliche-module", "oeffentliche-seiten", "oeffentliche-faq", "presse", "lage", "warnungen", "berichte", "recht",
@@ -35,7 +36,8 @@ public static class MergedPageSections
         "schusswaffengebrauch",
         "disziplinarverfahren", "dienstzeugnisse", "parlamentarische-anfragen",
         "praesentationen", "informanten", "funk",
-        "asservate-items", "asservate-eintraege", "kasse-buchungen", "finanzierungen", "anordnungen", "ermittlungen",
+        "asservate-items", "asservate-eintraege", "kasse-buchungen", "finanzierungen", "verpflegung",
+        "anordnungen", "ermittlungen",
         "feedback", "oeffentliche-seiten", "oeffentliche-fahndungen", "oeffentliche-fraktionsprofile",
         "hinweise", "tickets", "fahndungs-einsprueche", "pressemitteilungen", "oeffentliche-warnungen", "oeffentliche-lageberichte",
         "neuerungen", "handbuch-kapitel", "handbuch-artikel", "gesetzbuecher", "gesetze", "dienstverordnung",
@@ -50,12 +52,17 @@ public static class MergedPageSections
 
     public static readonly string[] Statistics =
     [
-        "ueberblick", "bestand", "aktivitaet", "bedrohung", "entfuehrungen", "netzwerk", "kasse", "finanzierung", "dienststelle", "lageberichte",
+        "ueberblick", "bestand", "aktivitaet", "bedrohung", "entfuehrungen", "netzwerk", "kasse", "finanzierung", "verpflegung", "dienststelle", "lageberichte",
     ];
 
     public static readonly string[] Financing =
     [
         "meine", "alle", "katalog", "budgets", "statistik", "papierkorb",
+    ];
+
+    public static readonly string[] Food =
+    [
+        "meine", "alle", "katalog", "limits", "statistik", "papierkorb",
     ];
 
     public static readonly string[] Personnel = ["agenten", "organigramm", "bestenliste"];
@@ -72,6 +79,7 @@ public static class MergedPageSections
             ["/statistik"] = Statistics,
             ["/nachweis"] = Monitoring,
             ["/finanzierungen"] = Financing,
+            ["/verpflegung"] = Food,
             ["/personal"] = Personnel,
         };
 }
