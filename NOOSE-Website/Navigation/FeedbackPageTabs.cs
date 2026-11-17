@@ -62,6 +62,13 @@ public static class FeedbackPageTabs
         new("doks", "Vernehmungen & Maßnahmen"),
     ];
 
+    public static readonly FeedbackTab[] Personnel =
+    [
+        new("agenten", "Agenten"),
+        new("organigramm", "Organigramm"),
+        new("bestenliste", "Bestenliste"),
+    ];
+
     public static readonly FeedbackTab[] Absences =
     [
         new("meine", "Meine Abmeldungen"),
@@ -155,6 +162,7 @@ public static class FeedbackPageTabs
             ["/einstellungen"] = Settings,
             ["/fahndung"] = Wanted,
             ["/abmeldungen"] = Absences,
+            ["/personal"] = Personnel,
             ["/bewerbungen"] = Recruiting,
             ["/statistik"] = Statistics,
             ["/nachweis"] = Monitoring,

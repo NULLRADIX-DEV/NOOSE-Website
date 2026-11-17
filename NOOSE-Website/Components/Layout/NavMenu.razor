@@ -122,8 +122,11 @@
 
     private bool Filtering => !string.IsNullOrWhiteSpace(_filter);
 
+    // the Primary section is open to every account; anything else up here keeps its own gate
     private IReadOnlyList<NavEntry> TopEntries
-        => NavCatalog.Section(NavSection.Primary).Where(e => e.InDrawer).ToList();
+        => NavAreaCatalog.ListedEntries(NavArea.Primary)
+            .Where(e => e.Section == NavSection.Primary || Allowed(e))
+            .ToList();
 
     private bool Allowed(NavEntry e) => _policyOk.GetValueOrDefault(NavSectionPolicy.For(e.Section));
 

@@ -54,6 +54,10 @@ public static class LegacyRoutes
         ["bewerbungs-vorlagen"] = "/bewerbungen?tab=vorlagen",
         ["bewerbungs-tests"] = "/bewerbungen?tab=tests",
         ["lageberichte"] = "/statistik?tab=lageberichte",
+
+        // org chart and leaderboard became sections of /personal
+        ["organigramm"] = "/personal?tab=organigramm",
+        ["bestenliste"] = "/personal?tab=bestenliste",
     };
 
     /// <summary>Old ?tab= values of the former /admin/vorlagen tab page.</summary>
@@ -132,8 +136,9 @@ public static class LegacyRoutes
             }
         }
 
-        // the chronicle is the only merged route carrying filter state; a bookmarked link must keep it
-        if (split.Length == 2 && string.Equals(path, "chronik", StringComparison.OrdinalIgnoreCase))
+        // the chronicle keeps its filters, the leaderboard its ?zeitraum= (old Discord award posts link it)
+        if (split.Length == 2 && (string.Equals(path, "chronik", StringComparison.OrdinalIgnoreCase)
+                                  || string.Equals(path, "bestenliste", StringComparison.OrdinalIgnoreCase)))
         {
             return WithCarriedQuery(target, split[1]);
         }

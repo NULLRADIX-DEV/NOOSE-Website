@@ -63,6 +63,29 @@ public class NavCatalogPlacementTests
     }
 
     [Fact]
+    public void Organisations_share_one_drawer_entry_and_the_trail_still_names_the_list()
+    {
+        var listed = NavAreaCatalog.ListedEntries(NavArea.Akten).Select(e => e.Key).ToList();
+        Assert.Contains("organisationen", listed);
+        Assert.DoesNotContain("fraktionen", listed);
+        Assert.DoesNotContain("personengruppen", listed);
+        Assert.DoesNotContain("parteien", listed);
+        Assert.Equal("fraktionen", NavCatalog.ByRoute("/fraktionen")!.Key);
+        Assert.Equal("fraktionen", NavCatalog.ByRoute("/fraktionen/abc")!.Key);
+    }
+
+    [Fact]
+    public void Merged_personnel_sections_keep_their_keys_but_leave_the_drawer()
+    {
+        foreach (var key in new[] { "organigramm", "bestenliste" })
+        {
+            var entry = NavCatalog.ByKey(key)!;
+            Assert.False(entry.InDrawer);
+            Assert.StartsWith("/personal?tab=", entry.Route);
+        }
+    }
+
+    [Fact]
     public void Every_drawer_group_has_an_overview_that_its_route_resolves_to()
     {
         foreach (var area in NavAreaCatalog.Areas)

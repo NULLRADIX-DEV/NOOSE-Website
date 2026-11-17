@@ -1,18 +1,15 @@
-@page "/bestenliste"
+@* The "Bestenliste" section of /personal; the old page /bestenliste forwards here, the host keeps its InternalAgent policy. *@
 @using NOOSE_Website.Models.Enums
 @using NOOSE_Website.Models.Gamification
-@attribute [Authorize(Policy = Policies.InternalAgent)]
 @inject IGamificationService Gamification
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject IDecorationService Decorations
 @using NOOSE_Website.Models.Navigation
 
-<PageTitle>Bestenliste · FIB</PageTitle>
-
-<PageHeader Icon="@Icons.Material.Filled.EmojiEvents"
-            Title="Bestenliste"
-            Subtitle="Team-Ranking nach dokumentierter Ermittlungsarbeit — die Führungsebene zählt mit, aber außer Wertung." />
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+    Team-Ranking nach dokumentierter Ermittlungsarbeit — die Führungsebene zählt mit, aber außer Wertung.
+</MudText>
 
 <MudPaper Class="pa-3 mb-3" Elevation="1">
     <MudSelect T="GamificationPeriod" Value="_period" ValueChanged="OnPeriodChanged" Label="Zeitraum"

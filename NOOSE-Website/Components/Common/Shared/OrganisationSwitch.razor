@@ -1,0 +1,27 @@
+@* Fraktionen, Personengruppen and Parteien behave like one page "Organisationen": the drawer holds one entry,
+   this row switches among the three lists. Each list keeps its own address, so record links, saved views and
+   partner releases stay untouched. Partners never see it: their releases cover single record types. *@
+<AuthorizeView Policy="@Policies.InternalAgent">
+    <nav class="d-flex flex-wrap ga-2 mb-3" aria-label="Organisationen">
+        @foreach (var (key, route, label, icon) in Lists)
+        {
+            var current = key == Current;
+            <MudButton Href="@route" Size="Size.Small" StartIcon="@icon"
+                       Variant="@(current ? Variant.Filled : Variant.Outlined)"
+                       Color="@(current ? Color.Primary : Color.Default)"
+                       aria-current="@(current ? "page" : null)">@label</MudButton>
+        }
+    </nav>
+</AuthorizeView>
+
+@code {
+    /// <summary>Catalog key of the list the page shows: fraktionen, personengruppen or parteien.</summary>
+    [Parameter, EditorRequired] public string Current { get; set; } = string.Empty;
+
+    private static readonly (string Key, string Route, string Label, string Icon)[] Lists =
+    [
+        ("fraktionen", "/fraktionen", "Fraktionen", Icons.Material.Filled.Groups),
+        ("personengruppen", "/personengruppen", "Personengruppen", Icons.Material.Filled.Diversity3),
+        ("parteien", "/parteien", "Parteien", Icons.Material.Filled.AccountBalance),
+    ];
+}

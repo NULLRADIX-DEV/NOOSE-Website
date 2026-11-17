@@ -168,7 +168,7 @@ public sealed class TopAgentAwardServiceTests
         await svc.RunNowAsync(Leader());
 
         Assert.StartsWith("🏆 **Beste Agenten der Woche (KW ", PostedContents(discord)[0]);
-        Assert.Equal("/bestenliste?zeitraum=Week", PostedHrefs(discord)[0]);
+        Assert.Equal("/personal?tab=bestenliste&zeitraum=Week", PostedHrefs(discord)[0]);
     }
 
     [Fact]
@@ -183,7 +183,7 @@ public sealed class TopAgentAwardServiceTests
         var content = PostedContents(discord)[0];
         Assert.StartsWith("🏆 **Beste Agenten des Monats**", content);
         Assert.DoesNotContain("KW", content);
-        Assert.Equal("/bestenliste?zeitraum=Month", PostedHrefs(discord)[0]);
+        Assert.Equal("/personal?tab=bestenliste&zeitraum=Month", PostedHrefs(discord)[0]);
 
         using var check = ctx.NewContext();
         Assert.Contains("des Monats (bis ", (await check.AgentNotes.SingleAsync()).Text);

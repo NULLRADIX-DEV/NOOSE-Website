@@ -1,16 +1,21 @@
 @page "/personal"
 @using NOOSE_Website.Models.Personnel
 @using NOOSE_Website.Models.Navigation
+@using NOOSE_Website.Components.Pages.OrgChart
+@using NOOSE_Website.Components.Pages.Gamification
 @inject IAgentManagementService AgentService
 @inject IInactivityRadarService RadarService
 @inject NavigationManager Nav
 
 <PageTitle>Personal · FIB</PageTitle>
 
-@* no help button: the page never had one, and the desktop stays as it was *@
+@* no help button: the page never had one *@
 <PageHeader Icon="@Icons.Material.Filled.Badge" Title="Personal" ShowHelp="false"
-            Subtitle="Personalakten aller FIB-Agenten: Dienstgrad-Verlauf, Belobigungen, Disziplinarisches und Beförderungen." />
+            Subtitle="Personalakten aller FIB-Agenten, der Aufbau der Behörde und die Bestenliste." />
 
+@* the agent list keeps its own tabs; they never touch the URL, so they cannot collide with the rail's ?tab= *@
+<RecordSectionRail>
+<RecordSection Slug="agenten" Label="Agenten" Icon="@Icons.Material.Filled.Badge">
 @if (_load)
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
@@ -160,6 +165,16 @@ else
         </MudTable>
     }
 }
+</RecordSection>
+<RecordSection Slug="organigramm" Label="Organigramm" Icon="@Icons.Material.Filled.AccountTree">
+    <OrgChartPanel />
+</RecordSection>
+<AuthorizeView Policy="@Policies.InternalAgent" Context="leaderboardSection">
+    <RecordSection Slug="bestenliste" Label="Bestenliste" Icon="@Icons.Material.Filled.EmojiEvents">
+        <LeaderboardPanel />
+    </RecordSection>
+</AuthorizeView>
+</RecordSectionRail>
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;

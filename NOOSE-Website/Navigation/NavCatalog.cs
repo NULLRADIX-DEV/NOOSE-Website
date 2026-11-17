@@ -35,12 +35,16 @@ public static class NavCatalog
 
         new NavEntry("personen", "/personen", Icons.Material.Filled.Badge, "Personen-Akten", NavSection.Akten, NavArea.Akten,
             Description: "Zentrale Akte je Person — alles zu einer Person an einem Ort"),
+        // the three organisation lists share one drawer entry and switch among themselves (OrganisationSwitch)
         new NavEntry("fraktionen", "/fraktionen", Icons.Material.Filled.Groups, "Fraktionen", NavSection.Akten, NavArea.Akten,
-            Description: "Akten organisierter Gruppierungen mit Mitgliedern und Rängen"),
+            Description: "Akten organisierter Gruppierungen mit Mitgliedern und Rängen", InDrawer: false),
         new NavEntry("personengruppen", "/personengruppen", Icons.Material.Filled.Diversity3, "Personengruppen", NavSection.Akten, NavArea.Akten,
-            Description: "Lose Zusammenschlüsse ohne feste Fraktionsstruktur"),
+            Description: "Lose Zusammenschlüsse ohne feste Fraktionsstruktur", InDrawer: false),
         new NavEntry("parteien", "/parteien", Icons.Material.Filled.AccountBalance, "Parteien", NavSection.Akten, NavArea.Akten,
-            Description: "Politische Parteien mit Mitgliedern und Ausrichtung"),
+            Description: "Politische Parteien mit Mitgliedern und Ausrichtung", InDrawer: false),
+        // after "fraktionen" on purpose: ByRoute keeps the first of two equal routes, so the trail still says Fraktionen
+        new NavEntry("organisationen", "/fraktionen", Icons.Material.Filled.Groups, "Organisationen", NavSection.Akten, NavArea.Akten,
+            Description: "Fraktionen, Personengruppen und Parteien"),
         new NavEntry("drogenrouten", "/drogenrouten", Icons.Material.Filled.Route, "Drogenrouten", NavSection.Akten, NavArea.Akten,
             Description: "Routen des Drogenhandels mit Stationen, Beweisfotos und beteiligten Personen"),
         new NavEntry("vorgaenge", "/vorgaenge", Icons.Material.Filled.FolderSpecial, "Vorgänge", NavSection.VorgaengeEinsaetze, NavArea.Akten,
@@ -83,7 +87,8 @@ public static class NavCatalog
         new NavEntry("chronik", "/nachweis", Icons.Material.Filled.FactCheck, "Nachweis & Gegenaufklärung", NavSection.Analyse, NavArea.Analyse,
             Description: "Chronik, Änderungs- und Zugriffsprotokoll, Gegenaufklärung"),
 
-        new NavEntry("meine-schicht", "/meine-schicht", Icons.Material.Filled.WorkHistory, "Meine Schicht", NavSection.MeinDienst, NavArea.Dienststelle,
+        // at the top beside the dashboard; its section keeps it from partners
+        new NavEntry("meine-schicht", "/meine-schicht", Icons.Material.Filled.WorkHistory, "Meine Schicht", NavSection.MeinDienst, NavArea.Primary,
             Description: "Was heute an dir hängt: Aufgaben, Wiedervorlagen, Erwähnungen, Brett, Taskforces"),
         new NavEntry("brett", "/brett", Icons.Material.Filled.Campaign, "Schwarzes Brett", NavSection.Dienststelle, NavArea.Dienststelle, BadgeKey: "acknowledgments",
             Description: "Behördliche Ankündigungen, teils quittierungspflichtig"),
@@ -97,10 +102,11 @@ public static class NavCatalog
             Description: "To-dos des Teams als Board — für alle Agenten sichtbar"),
         new NavEntry("personal", "/personal", Icons.Material.Filled.People, "Personal", NavSection.Dienststelle, NavArea.Dienststelle,
             Description: "Agenten der Behörde mit Personalakte und Dienstgrad"),
-        new NavEntry("organigramm", "/organigramm", Icons.Material.Filled.AccountTree, "Organigramm", NavSection.Analyse, NavArea.Dienststelle,
-            Description: "Aufbau der Behörde nach Board, Abteilung und Dienstgrad"),
-        new NavEntry("bestenliste", "/bestenliste", Icons.Material.Filled.EmojiEvents, "Bestenliste", NavSection.Dienststelle, NavArea.Dienststelle,
-            Description: "Team-Ranking nach dokumentierter Ermittlungsarbeit"),
+        // sections of /personal now; the keys stay for favourites, shortcuts and the handbook
+        new NavEntry("organigramm", "/personal?tab=organigramm", Icons.Material.Filled.AccountTree, "Organigramm", NavSection.Analyse, NavArea.Dienststelle,
+            NavLinkMatch.All, Description: "Aufbau der Behörde nach Board, Abteilung und Dienstgrad", InDrawer: false),
+        new NavEntry("bestenliste", "/personal?tab=bestenliste", Icons.Material.Filled.EmojiEvents, "Bestenliste", NavSection.Dienststelle, NavArea.Dienststelle,
+            NavLinkMatch.All, Description: "Team-Ranking nach dokumentierter Ermittlungsarbeit", InDrawer: false),
         new NavEntry("kasse", "/kasse", Icons.Material.Filled.AccountBalanceWallet, "Kasse", NavSection.Dienststelle, NavArea.Dienststelle,
             Description: "FIB-Kasse: Schwarz- und Grüngeld buchen, Vorlagen und Statistik"),
         new NavEntry("finanzierungen", "/finanzierungen", Icons.Material.Filled.RequestQuote, "Finanzierungen", NavSection.MeinDienst, NavArea.Dienststelle, BadgeKey: "financing",

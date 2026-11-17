@@ -643,6 +643,8 @@ public sealed class HandbookTests
         [
             // the same page as "tickets", filtered to the tickets you are attached to
             "tickets.beteiligt",
+            // the drawer's one door to the faction, group and party lists, each explained on its own
+            "organisationen",
             // sections of the Administration workspace, explained by the article of their group
             .. NOOSE_Website.Navigation.AdministrationSections.SecondaryKeys,
             // the group overviews, explained with the menu in "Aufbau der Oberfläche"

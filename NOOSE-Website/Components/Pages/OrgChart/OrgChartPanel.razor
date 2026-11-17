@@ -1,17 +1,9 @@
-@page "/organigramm"
+@* The "Organigramm" section of /personal; the old page /organigramm forwards here. *@
 @inject IOrgChartService OrgChartService
 @inject IDecorationService Decorations
 
-<PageTitle>Organigramm · FIB</PageTitle>
-
 <MudStack Spacing="4">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="flex-wrap">
-        <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Primary" Size="Size.Large" Class="noose-mobil-aus" />
-        <div>
-            <MudText Typo="Typo.h5">Organigramm</MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">FIB-Struktur: Board, Abteilungen, Administration Division und Taskforce-Besetzung.</MudText>
-        </div>
-    </MudStack>
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">FIB-Struktur: Board, Abteilungen, Administration Division und Taskforce-Besetzung.</MudText>
 
     @if (_load)
     {
