@@ -10,15 +10,17 @@
     }
     else
     {
+        <AdministrationListSearch @bind-Value="_search" />
         <SectionHeader Title="@($"Administration Division ({_rows.Count(r => r.IsHrb)})")" Icon="@Icons.Material.Filled.ManageAccounts" />
-        @Table(_rows.Where(r => r.IsHrb).ToList(), "Noch niemand trägt das Kennzeichen der Administration Division.")
+        @Table(AdministrationListFilter.Apply(_rows.Where(r => r.IsHrb), _search).ToList(), "Noch niemand trägt das Kennzeichen der Administration Division.")
 
         <SectionHeader Title="@($"Board ({_rows.Count(r => !r.IsHrb)})")" Icon="@Icons.Material.Filled.AccountBalance" Class="mt-4" />
-        @Table(_rows.Where(r => !r.IsHrb).ToList(), "Kein weiteres Board-Mitglied.")
+        @Table(AdministrationListFilter.Apply(_rows.Where(r => !r.IsHrb), _search).ToList(), "Kein weiteres Board-Mitglied.")
     }
 </MudStack>
 
 @code {
+    private string? _search;
     [Parameter, EditorRequired] public ClaimsPrincipal User { get; set; } = default!;
 
     private IReadOnlyList<AdministrationMemberRow>? _rows;

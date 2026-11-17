@@ -318,11 +318,11 @@ public sealed class SupervisionSheetServiceTests
         await counterIntel.DidNotReceiveWithAnyArgs().GetAgentProfileAsync(default!, default!);
     }
 
-    public static TheoryData<string> Refused => new() { "senior", "partner", "hrb" };
+    public static TheoryData<string> Refused => new() { "senior", "partner" };
 
     [Theory]
     [MemberData(nameof(Refused))]
-    public async Task OutsideTheLeadership_TheSheetIsRefused(string who)
+    public async Task OutsideLeadershipAndAdministration_TheSheetIsRefused(string who)
     {
         using var ctx = await RosterAsync();
         ClaimsPrincipal viewer = who switch
@@ -330,10 +330,19 @@ public sealed class SupervisionSheetServiceTests
             "senior" => ClaimsPrincipalBuilder.Agent("senior").WithRank(Rank.SeniorSpecialAgent).Build(),
             "partner" => ClaimsPrincipalBuilder.Agent("partner").WithRank(Rank.Director)
                 .AsPartner(PartnerAgency.LSPD, PartnerRank.Chief).Build(),
-            _ => ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.SpecialAgent).AsHrb().Build(),
+            _ => throw new ArgumentOutOfRangeException(nameof(who)),
         };
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => Build(ctx).GetAsync(Target, 30, viewer));
+    }
+
+    [Fact]
+    public async Task TheAdministrationDivision_GetsTheSheet()
+    {
+        using var ctx = await RosterAsync();
+        var hrb = ClaimsPrincipalBuilder.Agent("hrb").WithRank(Rank.SpecialAgent).AsHrb().Build();
+
+        Assert.NotNull(await Build(ctx).GetAsync(Target, 30, hrb));
     }
 
     [Theory]

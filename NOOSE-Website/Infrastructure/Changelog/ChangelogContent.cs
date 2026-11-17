@@ -780,6 +780,14 @@ public static class ChangelogContent
                 + "Klick groß öffnet, und bei Mitgliedern den Namen mit Link zur Personenakte.", "Akten"),
             Besser("3.0.63-klarnamen-intern", "Ab Special Agent siehst du den Klarnamen deiner Kollegen neben dem "
                 + "Codenamen, etwa im Protokoll, im Zeitstrahl einer Akte und in Kommentaren.", "Personal"),
+            Besser("3.0.64-administration-zugriff", "Die Administration Division sieht in den Personalakten jetzt "
+                + "Dienstaufsicht, Kommentare und Kündigungen, dazu den gemeldeten Schusswaffengebrauch und Präsentationen "
+                + "für die Führung.", "Personal"),
+            Besser("3.0.65-administration-listen", "Im Bereich der Administration hat jede Liste ein Suchfeld, die "
+                + "Agentenauswahl zeigt alle Agents, und unter Informationen gibt es Platz für Verweise auf Dokumente.",
+                "Personal"),
+            Besser("3.0.66-kuendigung-ohne-sperre", "Eine Kündigung sperrt nicht mehr automatisch für neue Bewerbungen, "
+                + "damit eine Wiedereinstellung möglich bleibt.", "Personal"),
         ]),
     ];
 }

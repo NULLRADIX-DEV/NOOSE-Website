@@ -56,7 +56,7 @@ else
                             </td>
                         </tr>
                         @* the file shows the reason to leadership only; the printout must not show more *@
-                        @if (_isLeadership && !string.IsNullOrWhiteSpace(_agent.TerminationReason))
+                        @if (_mayPersonnelRead && !string.IsNullOrWhiteSpace(_agent.TerminationReason))
                         {
                             <tr><th>Kündigungsgrund</th><td>@_agent.TerminationReason</td></tr>
                         }
@@ -238,6 +238,7 @@ else
     private bool _load = true;
     private bool _mayRealName;
     private bool _isLeadership;
+    private bool _mayPersonnelRead;
     private string? _printBy;
     private Agent? _agent;
     private List<AgentRankHistory> _rankHistory = new();
@@ -257,6 +258,7 @@ else
         var user = (await AuthStateTask).User;
         _mayRealName = user.MayRealNameSee();
         _isLeadership = user.IsLeadership();
+        _mayPersonnelRead = user.MayPersonnelRead();
         _printBy = user.GetCodename();
 
         _agent = await AgentService.FindAsync(Id);
@@ -270,7 +272,7 @@ else
             _evaluations = await PersonnelFileService.GetEvaluationsAsync(Id, user);
             _completedModules = (await ModuleService.GetStatusForAgentAsync(Id)).Where(m => m.IsCompleted).ToList();
             // the same gate as the tab; the service decides about the counter-intelligence part on its own
-            if (user.MayClassifiedRead() && !user.IsPartner())
+            if (user.MayPersonnelRead())
             {
                 _sheet = await SheetService.GetAsync(Id, SupervisionWindow.Normalize(Days), user);
             }

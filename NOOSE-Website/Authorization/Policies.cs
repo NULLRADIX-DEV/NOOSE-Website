@@ -103,6 +103,9 @@ public static class Policies
     /// <summary>Personnel writes (notes, promotion requests, awards): leadership or Administration; mirrors <c>Permission.RequirePersonnelWrite</c>.</summary>
     public const string PersonnelWrite = "PersonalSchreiben";
 
+    /// <summary>Leadership parts of personnel files and the firearm-use overview: leadership, supervision or Administration; mirrors <c>Permission.RequirePersonnelRead</c>.</summary>
+    public const string PersonnelReadPage = "PersonalLesenSeite";
+
     /// <summary>Citizen portal access: signed in with status Civilian.</summary>
     public const string CitizenPortal = "BuergerPortal";
 }

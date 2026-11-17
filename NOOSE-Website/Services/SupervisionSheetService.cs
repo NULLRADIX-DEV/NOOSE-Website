@@ -33,7 +33,7 @@ public sealed class SupervisionSheetService(
         CancellationToken cancellationToken = default)
     {
         Permission.RequireInternalAgent(viewer);
-        Permission.RequireClassifiedRead(viewer);
+        Permission.RequirePersonnelRead(viewer);
         days = SupervisionWindow.Normalize(days);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 

@@ -939,8 +939,6 @@ public class AgentManagementService(
         // a dead account must not keep propping up the last-admin guard
         agent.IsAdmin = false;
 
-        await BlacklistAdd(agent, subjectDisplay, trimmed, actorName, cancellationToken);
-
         if (createNote)
         {
             db.AgentNotes.Add(new AgentNote
@@ -954,7 +952,8 @@ public class AgentManagementService(
         }
 
         Audit(agent, AuditAction.Modified, actor, $"Gekündigt: {trimmed}");
-        // flushes the agent, the blacklist entry, the note and the audit row in one SaveChanges
+        // no recruitment ban: a terminated agent may apply again
+        // flushes the agent, the note and the audit row in one SaveChanges
         await Save(agent, newStamp: true);
 
         if (postDiscord)
@@ -1029,36 +1028,6 @@ public class AgentManagementService(
             ? "Kündigung zurückgenommen"
             : $"Kündigung zurückgenommen (Dienstnummer {lostBadgeNumber} inzwischen vergeben, entfernt)");
         await Save(agent, newStamp: true);
-    }
-
-    /// <summary>Stage a permanent recruitment blacklist entry on the shared context; no-op if one is already active.</summary>
-    private async Task BlacklistAdd(Agent agent, string subjectDisplay, string reason, string? actorName,
-        CancellationToken cancellationToken)
-    {
-        var now = DateTime.UtcNow;
-        var active = await db.Bewerbungssperren
-            .Where(s => s.AgentId == agent.Id).Where(BewerbungssperreRules.Active(now))
-            .ToListAsync(cancellationToken);
-
-        if (active.Any(s => s.IsBlacklist))
-        {
-            return;
-        }
-        // the permanent blacklist supersedes any running temporary ban
-        foreach (var temp in active)
-        {
-            db.Bewerbungssperren.Remove(temp);
-        }
-        db.Bewerbungssperren.Add(new Bewerbungssperre
-        {
-            AgentId = agent.Id,
-            DiscordId = agent.DiscordId,
-            ApplicantName = subjectDisplay,
-            IsBlacklist = true,
-            BannedUntil = null,
-            Reason = $"Kündigung: {reason}",
-            CreatedByName = actorName,
-        });
     }
 
     public async Task DeleteAccountAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

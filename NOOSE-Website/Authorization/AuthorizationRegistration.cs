@@ -85,6 +85,9 @@ public static class AuthorizationRegistration
             .AddPolicy(Policies.HrbOrLeadershipWrite, p => p
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => ctx.User.MayWrite() && ctx.User.IsHrbOrLeadership()))
+            .AddPolicy(Policies.PersonnelReadPage, p => p
+                .RequireAuthenticatedUser()
+                .RequireAssertion(ctx => ctx.User.IsInternalAgent() && ctx.User.MayPersonnelRead()))
             .AddPolicy(Policies.AdministrationWorkspace, p => p
                 .RequireAuthenticatedUser()
                 .RequireAssertion(ctx => ctx.User.MayAdministrationRead()))

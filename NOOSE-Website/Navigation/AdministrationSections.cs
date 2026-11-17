@@ -41,6 +41,8 @@ public static class AdministrationSections
             "Vorschläge für Ehrenzeichen"),
         new("dienstzeugnisse", "Dienstzeugnisse", Icons.Material.Filled.WorkspacePremium, Personnel,
             "administration.beurteilungen", "Dienstzeugnisse ausstellen und drucken"),
+        new("schusswaffengebrauch", "Schusswaffengebrauch", Icons.Material.Filled.GpsFixed, Personnel,
+            "administration.beurteilungen", "Gemeldeter Schusswaffengebrauch aller Agents"),
         new("ermittlungsverfahren", "Ermittlungsverfahren", Icons.Material.Filled.Gavel, Discipline,
             "administration.ermittlungsverfahren", "Laufende Disziplinarverfahren"),
         new("verfuegungen", "Disziplinarverfügungen", Icons.Material.Filled.Description, Discipline,
