@@ -1,0 +1,23 @@
+@* One page of a drawer group as a tile: a real link, so middle-click and the keyboard work as on any link. *@
+@using NOOSE_Website.Navigation
+
+<a href="@Entry.Route" class="noose-hub-kachel" title="@Entry.Description">
+    <MudPaper Elevation="2" Class="pa-4 noose-hub-kachel-flaeche">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Entry.Icon" Color="Color.Primary" />
+            <MudText Typo="Typo.subtitle1" Class="noose-hub-kachel-titel">@Entry.Label</MudText>
+            <NOOSE_Website.Components.Layout.NavBadgeChip BadgeKey="@Entry.BadgeKey" Count="Count" />
+        </MudStack>
+        @if (!string.IsNullOrWhiteSpace(Entry.Description))
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">@Entry.Description</MudText>
+        }
+    </MudPaper>
+</a>
+
+@code {
+    [Parameter, EditorRequired] public NavEntry Entry { get; set; } = default!;
+
+    /// <summary>Open items behind the entry's badge; 0 shows nothing.</summary>
+    [Parameter] public int Count { get; set; }
+}

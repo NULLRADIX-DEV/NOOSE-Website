@@ -129,8 +129,8 @@ public sealed class AppBarTests(E2EFixture fixture)
             await page.Locator(MenuButton).ClickAsync();
             await page.WaitForTimeoutAsync(600);
 
-            // on the dashboard every group is folded; unfolding is no navigation and keeps the drawer open
-            await page.Locator(".noose-nav-group >> visible=true").First.ClickAsync();
+            // on the dashboard every group is folded; the arrow unfolds without navigating and keeps the drawer open
+            await page.Locator(".noose-nav-group-toggle >> visible=true").First.ClickAsync();
             await page.WaitForTimeoutAsync(300);
             await page.Locator(".noose-nav a[href]:not([href$='/dashboard']) >> visible=true").First.ClickAsync();
             await page.WaitForTimeoutAsync(1500);

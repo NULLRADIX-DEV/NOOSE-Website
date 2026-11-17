@@ -74,7 +74,7 @@
             var entries = VisibleEntries(area);
             var open = IsOpen(key);
             var badge = open ? null : GroupBadge(entries);
-            @GroupHeader(key, NavAreaCatalog.Name(area), NavAreaCatalog.Icon(area), badge?.Count ?? 0, badge?.Key)
+            @GroupHeader(key, NavAreaCatalog.Name(area), NavAreaCatalog.Icon(area), badge?.Count ?? 0, badge?.Key, NavAreaCatalog.HubRoute(area))
             @if (open)
             {
                 <MudNavMenu Color="Color.Primary" Bordered="true" id="@GroupId(key)">
@@ -138,15 +138,48 @@
 
     private static string GroupId(string group) => "noose-nav-" + group.ToLowerInvariant();
 
-    private RenderFragment GroupHeader(string group, string label, string icon, int count, string? badgeKey) =>
-        @<button type="button" class="noose-nav-group" aria-expanded="@(IsOpen(group) ? "true" : "false")"
-                 aria-controls="@GroupId(group)" @onclick="@(() => ToggleAsync(group))">
-            <MudIcon Icon="@icon" Size="Size.Small" Class="mr-3" />
-            <span class="noose-nav-group-name">@label</span>
-            <NavBadgeChip BadgeKey="@badgeKey" Count="count" />
-            <MudIcon Icon="@(IsOpen(group) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
-                     Size="Size.Small" Class="ml-auto" />
-        </button>;
+    // the name opens the group's overview, the arrow only folds; partners have no overview, so their header only folds
+    private RenderFragment GroupHeader(string group, string label, string icon, int count, string? badgeKey, string? hubRoute) => __builder =>
+    {
+        var open = IsOpen(group);
+        var chevron = open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore;
+        if (hubRoute is null)
+        {
+            <button type="button" class="noose-nav-group noose-nav-group-knopf" aria-expanded="@(open ? "true" : "false")"
+                    aria-controls="@GroupId(group)" @onclick="@(() => ToggleAsync(group))">
+                <MudIcon Icon="@icon" Size="Size.Small" Class="mr-3" />
+                <span class="noose-nav-group-name">@label</span>
+                <NavBadgeChip BadgeKey="@badgeKey" Count="count" />
+                <MudIcon Icon="@chevron" Size="Size.Small" Class="ml-auto" />
+            </button>
+        }
+        else
+        {
+            var current = IsCurrentRoute(hubRoute);
+            <div class="noose-nav-group">
+                <a href="@hubRoute" class="@(current ? "noose-nav-group-link aktiv" : "noose-nav-group-link")"
+                   aria-current="@(current ? "page" : null)" title="@($"Übersicht {label}")"
+                   @onclick="NotifyDrawerAsync">
+                    <MudIcon Icon="@icon" Size="Size.Small" Class="mr-3" />
+                    <span class="noose-nav-group-name">@label</span>
+                    <NavBadgeChip BadgeKey="@badgeKey" Count="count" />
+                </a>
+                <button type="button" class="noose-nav-group-toggle" aria-expanded="@(open ? "true" : "false")"
+                        aria-controls="@GroupId(group)" aria-label="@($"{label} auf- oder zuklappen")"
+                        @onclick="@(() => ToggleAsync(group))">
+                    <MudIcon Icon="@chevron" Size="Size.Small" />
+                </button>
+            </div>
+        }
+    };
+
+    // the drawer MudNavLink talks to; a plain link must tell it too, or the drawer stays open over the page on phones
+    [CascadingParameter] private MudBlazor.Interfaces.INavigationEventReceiver? Drawer { get; set; }
+
+    private Task NotifyDrawerAsync() => Drawer?.OnNavigation() ?? Task.CompletedTask;
+
+    private bool IsCurrentRoute(string route)
+        => string.Equals("/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/'), route, StringComparison.OrdinalIgnoreCase);
 
     private sealed record GroupBadgeSum(string Key, int Count);
 

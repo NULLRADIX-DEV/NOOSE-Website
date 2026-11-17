@@ -645,6 +645,8 @@ public sealed class HandbookTests
             "tickets.beteiligt",
             // sections of the Administration workspace, explained by the article of their group
             .. NOOSE_Website.Navigation.AdministrationSections.SecondaryKeys,
+            // the group overviews, explained with the menu in "Aufbau der Oberfläche"
+            .. NavCatalog.Internal.Where(NOOSE_Website.Navigation.NavAreaCatalog.IsHub).Select(e => e.Key),
         ];
 
         var covered = HandbookContent.Chapters

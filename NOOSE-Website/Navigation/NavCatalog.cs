@@ -26,6 +26,13 @@ public static class NavCatalog
         new NavEntry("suche", "/suche", Icons.Material.Filled.Search, "Globale Suche", NavSection.Primary, NavArea.Primary,
             Description: "Durchsucht alle Akten, Dokumente und Inhalte", InDrawer: false),
 
+        // one overview per drawer group, opened by the group's name; the section only gates palette and favorites
+        Hub(NavArea.Akten, NavSection.Akten, "Alle Aktenarten auf einen Blick"),
+        Hub(NavArea.Ermittlung, NavSection.Fahndung, "Ermittlungen, Einsätze, Fahndung und Befugnisse auf einen Blick"),
+        Hub(NavArea.Analyse, NavSection.Analyse, "Graph, Hinweise, FIBI, Statistik und Nachweis auf einen Blick"),
+        Hub(NavArea.Dienststelle, NavSection.Dienststelle, "Brett, Termine, Personal, Kasse und Dienstbetrieb auf einen Blick"),
+        Hub(NavArea.Leitung, NavSection.VerwaltungFreigaben, "Freigaben, Bewerbungen, Agenten, Administration und Einstellungen auf einen Blick"),
+
         new NavEntry("personen", "/personen", Icons.Material.Filled.Badge, "Personen-Akten", NavSection.Akten, NavArea.Akten,
             Description: "Zentrale Akte je Person — alles zu einer Person an einem Ort"),
         new NavEntry("fraktionen", "/fraktionen", Icons.Material.Filled.Groups, "Fraktionen", NavSection.Akten, NavArea.Akten,
@@ -167,6 +174,10 @@ public static class NavCatalog
         // the workspace lists its own sections
         InDrawer: s.Slug.Length == 0)))
         .ToArray();
+
+    private static NavEntry Hub(NavArea area, NavSection section, string description)
+        => new(NavAreaCatalog.HubKey(area), NavAreaCatalog.HubRoute(area)!, NavAreaCatalog.Icon(area), NavAreaCatalog.Name(area),
+            section, area, NavLinkMatch.All, Description: description, InDrawer: false);
 
     private static readonly Dictionary<string, NavEntry> ByKeyMap =
         Internal.ToDictionary(e => e.Key, StringComparer.Ordinal);

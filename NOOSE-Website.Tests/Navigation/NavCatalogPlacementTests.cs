@@ -63,6 +63,29 @@ public class NavCatalogPlacementTests
     }
 
     [Fact]
+    public void Every_drawer_group_has_an_overview_that_its_route_resolves_to()
+    {
+        foreach (var area in NavAreaCatalog.Areas)
+        {
+            var hub = NavCatalog.ByKey(NavAreaCatalog.HubKey(area));
+            Assert.True(hub is not null, $"{area}: keine Übersicht im Katalog");
+            Assert.Equal(area, hub!.Area);
+            Assert.False(hub.InDrawer);
+            Assert.Equal(NavAreaCatalog.HubRoute(area), hub.Route);
+            Assert.Equal(hub.Key, NavCatalog.ByRoute(hub.Route)!.Key);
+        }
+    }
+
+    [Fact]
+    public void Overview_routes_do_not_swallow_their_longer_neighbours()
+    {
+        // "/ermittlung" must not claim "/ermittlungen", nor "/akten" anything else
+        Assert.Equal("ermittlungen", NavCatalog.ByRoute("/ermittlungen")!.Key);
+        Assert.Equal("ermittlungen", NavCatalog.ByRoute("/ermittlungen/abc")!.Key);
+        Assert.Equal("hub.ermittlung", NavCatalog.ByRoute("/ermittlung")!.Key);
+    }
+
+    [Fact]
     public void Twins_drop_out_only_when_the_viewer_may_open_the_other_entry()
     {
         var firearm = NavCatalog.ByKey("schusswaffengebrauch")!;
