@@ -43,7 +43,7 @@ public class AuditLogQueryService(IDbContextFactory<AppDbContext> dbFactory) : I
 
         var total = await q.CountAsync(cancellationToken);
         var rows = await q.OrderByDescending(x => x.Timestamp).Take(AuditLogFilter.MaxRows)
-            .Select(x => new AuditChangeRow(x.Id, x.Timestamp, x.AgentName, x.EntityType, x.EntityId, x.Action, x.ChangesJson))
+            .Select(x => new AuditChangeRow(x.Id, x.Timestamp, x.AgentName, x.EntityType, x.EntityId, x.Action, x.ChangesJson, x.AgentId))
             .ToListAsync(cancellationToken);
 
         return new AuditLogPage(rows, total);
@@ -78,7 +78,7 @@ public class AuditLogQueryService(IDbContextFactory<AppDbContext> dbFactory) : I
 
         var total = await q.CountAsync(cancellationToken);
         var rows = await q.OrderByDescending(x => x.Timestamp).Take(AuditLogFilter.MaxRows)
-            .Select(x => new AuditAccessRow(x.Id, x.Timestamp, x.AgentName, x.EntityType, x.EntityId))
+            .Select(x => new AuditAccessRow(x.Id, x.Timestamp, x.AgentName, x.EntityType, x.EntityId, x.AgentId))
             .ToListAsync(cancellationToken);
 
         return new AccessLogPage(rows, total);

@@ -300,11 +300,12 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
             && h.Timestamp >= fromUtc && h.Timestamp < toUtc);
 
     private sealed record AuditRow(
-        DateTime Timestamp, string EntityType, string EntityId, AuditAction Action, string? AgentName, string? ChangesJson);
+        DateTime Timestamp, string EntityType, string EntityId, AuditAction Action, string? AgentName, string? ChangesJson,
+        string? AgentId);
 
     private sealed record Pending(AuditRow Row, string ParentType, string ParentId);
 
-    private sealed record ClassRow(DateTime Timestamp, string EntityType, string EntityId, Classification Value, string? Justification, string? AgentName);
+    private sealed record ClassRow(DateTime Timestamp, string EntityType, string EntityId, Classification Value, string? Justification, string? AgentName, string? AgentId);
 
     private sealed record ScoreRow(DateTime Timestamp, string EntityType, string EntityId, int Previous, int Current);
 
@@ -322,7 +323,7 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
         var auditRows = filter.WantsAudit
             ? await AuditSlice(db, filter, fromUtc, toUtc)
                 .OrderByDescending(a => a.Timestamp).ThenByDescending(a => a.Id).Take(SliceCap)
-                .Select(a => new AuditRow(a.Timestamp, a.EntityType, a.EntityId, a.Action, a.AgentName, a.ChangesJson))
+                .Select(a => new AuditRow(a.Timestamp, a.EntityType, a.EntityId, a.Action, a.AgentName, a.ChangesJson, a.AgentId))
                 .ToListAsync(ct)
             : new List<AuditRow>();
 
@@ -358,7 +359,7 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
         // ---- 3) classification history ----
         var classRows = filter.WantsClassification && filter.ClassificationTypes.Length > 0
             ? await ClassificationSlice(db, filter, fromUtc, toUtc)
-                .Select(e => new ClassRow(e.Timestamp, e.EntityType, e.EntityId, e.Value, e.Justification, e.AgentName))
+                .Select(e => new ClassRow(e.Timestamp, e.EntityType, e.EntityId, e.Value, e.Justification, e.AgentName, e.AgentId))
                 .ToListAsync(ct)
             : new List<ClassRow>();
 
@@ -423,10 +424,10 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
             var changes = AuditDisplay.Parse(p.Row.ChangesJson, maxValueLength: 90, entityType: p.Row.EntityType);
             // same rule as the record timeline: a tip's actor is the submitting account, and naming it here would
             // out an agent who reported through his civilian identity
-            var actor = TipAnonymity.HidesActor(p.Row.EntityType) ? null : p.Row.AgentName;
+            var hidden = TipAnonymity.HidesActor(p.Row.EntityType);
             events.Add(new ChronikEvent(p.Row.Timestamp, category, p.ParentType, p.ParentId, record.Name, title,
-                detail, actor, Href(p.ParentType, p.ParentId), record.Deleted,
-                changes.Count == 0 ? null : changes));
+                detail, hidden ? null : p.Row.AgentName, Href(p.ParentType, p.ParentId), record.Deleted,
+                changes.Count == 0 ? null : changes, hidden ? null : p.Row.AgentId));
         }
 
         foreach (var c in classRows)
@@ -438,7 +439,7 @@ public class GlobalChronikService(IDbContextFactory<AppDbContext> dbFactory) : I
             events.Add(new ChronikEvent(c.Timestamp, TimelineCategory.Classification, c.EntityType, c.EntityId,
                 record.Name, $"Einstufung: {ClassificationDisplay.Name(c.Value)}",
                 TimelineDisplay.Truncate(c.Justification), c.AgentName,
-                Href(c.EntityType, c.EntityId), record.Deleted));
+                Href(c.EntityType, c.EntityId), record.Deleted, ActorId: c.AgentId));
         }
 
         foreach (var s in scoreRows)

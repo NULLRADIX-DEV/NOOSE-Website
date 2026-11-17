@@ -343,7 +343,7 @@ public class AdministrationService(IDbContextFactory<AppDbContext> dbFactory, ID
         {
             var recipients = await MemberIdsAsync(db, cancellationToken);
             await notifications.NotifyManyInAppAsync(recipients, NotificationType.DecorationProposed,
-                "Neuer Vorschlag für ein Ehrenzeichen.", Href + "?tab=auszeichnungen", actor.GetAgentId(),
+                "Neuer Vorschlag für ein Ehrenzeichen.", "/administration/auszeichnungen", actor.GetAgentId(),
                 CancellationToken.None);
         }
         catch (Exception ex)

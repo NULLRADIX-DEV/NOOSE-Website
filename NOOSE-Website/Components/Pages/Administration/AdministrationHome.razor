@@ -1,115 +1,91 @@
+@* One section of the Administration workspace per address; the side menu lists them, the page shows exactly one. *@
 @page "/administration"
+@page "/administration/{Slug}"
 @attribute [Authorize(Policy = Policies.AdministrationWorkspace)]
 @using NOOSE_Website.Components.Pages.Administration.Shared
-@using NOOSE_Website.Services.Administration
-@implements IDisposable
-@inject IAdministrationChatService ChatService
-@inject AdministrationChatBroadcaster Broadcaster
+@using NOOSE_Website.Navigation
 
-<PageTitle>Administration · FIB</PageTitle>
+<PageTitle>@(_section?.Label ?? "Administration") · FIB</PageTitle>
 
-<PageHeader Icon="@Icons.Material.Filled.AssuredWorkload" Title="Administration Division"
-            Subtitle="Personalgewinnung, Personalwesen, Disziplinarwesen, Öffentlichkeits- und Parlamentsarbeit" />
-
-@if (_user is not null)
+@if (_section is null)
 {
-    <RecordSectionRail>
-        <RecordSection Group="Allgemeines" Slug="chat" Label="Chat" Icon="@Icons.Material.Filled.Forum" Badge="_chatUnread">
-            <AdministrationChatPanel User="_user" Read="@(() => _chatUnread = 0)" />
-        </RecordSection>
-        <RecordSection Group="Allgemeines" Slug="informationen" Label="Informationen" Icon="@Icons.Material.Filled.Info">
-            <AdministrationInfoPanel User="_user" />
-        </RecordSection>
-        <RecordSection Group="Allgemeines" Slug="agents" Label="Zugeteilte Agents" Icon="@Icons.Material.Filled.ManageAccounts">
-            <AdministrationMembersPanel User="_user" />
-        </RecordSection>
-        <RecordSection Group="Allgemeines" Slug="beziehungen" Label="Personalbeziehungen" Icon="@Icons.Material.Filled.Favorite">
-            <RelationshipsPanel User="_user" />
-        </RecordSection>
+    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">Diesen Bereich gibt es in der Administration nicht.</MudAlert>
+}
+else if (_user is not null)
+{
+    <PageHeader Icon="@_section.Icon" Title="@_section.Label" Subtitle="@($"Administration Division · {_section.Group}")"
+                HelpNavKey="@_section.HelpKey" />
 
-        <RecordSection Group="Personalgewinnung" Slug="sicherheitspruefungen" Label="Sicherheitsüberprüfungen" Icon="@Icons.Material.Filled.Security">
-            <SecurityChecksPanel User="_user" />
-        </RecordSection>
-
-        <RecordSection Group="Personalwesen" Slug="beurteilungen" Label="Beurteilungen" Icon="@Icons.Material.Filled.Grading">
-            <EvaluationOverviewPanel User="_user" />
-        </RecordSection>
-        <RecordSection Group="Personalwesen" Slug="befoerderungen" Label="Beförderungen" Icon="@Icons.Material.Filled.TrendingUp">
-            <PromotionOverviewPanel User="_user" />
-        </RecordSection>
-        <RecordSection Group="Personalwesen" Slug="versetzungen" Label="Versetzungen" Icon="@Icons.Material.Filled.SwapHoriz">
-            <TransfersPanel User="_user" />
-        </RecordSection>
-        <RecordSection Group="Personalwesen" Slug="auszeichnungen" Label="Auszeichnungen" Icon="@Icons.Material.Filled.MilitaryTech">
-            <DecorationProposalsPanel User="_user" />
-        </RecordSection>
-        <RecordSection Group="Personalwesen" Slug="dienstzeugnisse" Label="Dienstzeugnisse" Icon="@Icons.Material.Filled.WorkspacePremium">
-            <ServiceReferencesPanel User="_user" />
-        </RecordSection>
-
-        <RecordSection Group="Disziplinarwesen" Slug="ermittlungsverfahren" Label="Ermittlungsverfahren" Icon="@Icons.Material.Filled.Gavel">
-            <DisciplinaryListPanel User="_user" Closed="false" />
-        </RecordSection>
-        <RecordSection Group="Disziplinarwesen" Slug="verfuegungen" Label="Disziplinarverfügungen" Icon="@Icons.Material.Filled.Description">
-            <DisciplinaryListPanel User="_user" Closed="true" />
-        </RecordSection>
-
-        <RecordSection Group="Öffentlichkeit & Parlament" Slug="presse" Label="Öffentlichkeitsarbeit" Icon="@Icons.Material.Filled.Feed">
-            <PressPanel />
-        </RecordSection>
-        <RecordSection Group="Öffentlichkeit & Parlament" Slug="parlament" Label="Parlamentarische Arbeit" Icon="@Icons.Material.Filled.AccountBalance">
-            <ParliamentPanel User="_user" />
-        </RecordSection>
-
-        <RecordSection Group="Verlauf" Slug="historie" Label="Zeitstrahl" Icon="@Icons.Material.Filled.Timeline">
-            <TimelinePanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" />
-        </RecordSection>
-        <RecordSection Group="Verlauf" Slug="wiedervorlagen" Label="Wiedervorlagen" Icon="@Icons.Material.Filled.EventRepeat">
-            <FollowupPanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" />
-        </RecordSection>
-        <RecordSection Group="Verlauf" Slug="kommentare" Label="Kommentare" Icon="@Icons.Material.Filled.Comment">
-            <CommentPanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" />
-        </RecordSection>
-    </RecordSectionRail>
+    @switch (_section.Slug)
+    {
+        case "":
+            <AdministrationChatPanel User="_user" @key="_section.Slug" />
+            break;
+        case "informationen":
+            <AdministrationInfoPanel User="_user" @key="_section.Slug" />
+            break;
+        case "agents":
+            <AdministrationMembersPanel User="_user" @key="_section.Slug" />
+            break;
+        case "beziehungen":
+            <RelationshipsPanel User="_user" @key="_section.Slug" />
+            break;
+        case "sicherheitspruefungen":
+            <SecurityChecksPanel User="_user" @key="_section.Slug" />
+            break;
+        case "beurteilungen":
+            <EvaluationOverviewPanel User="_user" @key="_section.Slug" />
+            break;
+        case "befoerderungen":
+            <PromotionOverviewPanel User="_user" @key="_section.Slug" />
+            break;
+        case "versetzungen":
+            <TransfersPanel User="_user" @key="_section.Slug" />
+            break;
+        case "auszeichnungen":
+            <DecorationProposalsPanel User="_user" @key="_section.Slug" />
+            break;
+        case "dienstzeugnisse":
+            <ServiceReferencesPanel User="_user" @key="_section.Slug" />
+            break;
+        case "ermittlungsverfahren":
+            <DisciplinaryListPanel User="_user" Closed="false" @key="_section.Slug" />
+            break;
+        case "verfuegungen":
+            <DisciplinaryListPanel User="_user" Closed="true" @key="_section.Slug" />
+            break;
+        case "presse":
+            <PressPanel @key="_section.Slug" />
+            break;
+        case "parlament":
+            <ParliamentPanel User="_user" @key="_section.Slug" />
+            break;
+        case "zeitstrahl":
+            <TimelinePanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" @key="_section.Slug" />
+            break;
+        case "wiedervorlagen":
+            <FollowupPanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" @key="_section.Slug" />
+            break;
+        case "kommentare":
+            <CommentPanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" @key="_section.Slug" />
+            break;
+    }
 }
 
 @code {
+    [Parameter] public string? Slug { get; set; }
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
 
     private const string WorkspaceType = nameof(NOOSE_Website.Data.Entities.Administration.AdministrationWorkspace);
     private const string WorkspaceId = NOOSE_Website.Data.Entities.Administration.AdministrationWorkspace.SingletonId;
 
     private ClaimsPrincipal? _user;
-    private int _chatUnread;
+    private AdministrationSections.Section? _section;
 
-    protected override async Task OnInitializedAsync()
+    // both routes share this instance, so the section follows the parameter
+    protected override async Task OnParametersSetAsync()
     {
-        _user = (await AuthStateTask).User;
-        _chatUnread = (await ChatService.GetReadStateAsync(_user)).Unread;
-        Broadcaster.Modified += OnChatChanged;
-        Broadcaster.ReadMarked += OnChatChanged;
-    }
-
-    // a new message or the own read mark; the count is cheap enough to reload on either
-    private void OnChatChanged(string room)
-    {
-        try
-        {
-            _ = InvokeAsync(async () =>
-            {
-                if (_user is not null)
-                {
-                    _chatUnread = (await ChatService.GetReadStateAsync(_user)).Unread;
-                    StateHasChanged();
-                }
-            });
-        }
-        catch (InvalidOperationException) { /* circuit gone */ }
-    }
-
-    public void Dispose()
-    {
-        Broadcaster.Modified -= OnChatChanged;
-        Broadcaster.ReadMarked -= OnChatChanged;
+        _user ??= (await AuthStateTask).User;
+        _section = AdministrationSections.BySlug(Slug);
     }
 }

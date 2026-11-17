@@ -72,7 +72,7 @@ else
                         </div>
 
                         <MudText Typo="Typo.caption" Class="mud-text-secondary chronik-akteur">
-                            @(e.ActorName ?? "System")
+                            <AgentLabel Name="@e.ActorName" AgentId="@e.ActorId" />
                         </MudText>
                     </div>
                 }

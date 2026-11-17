@@ -10,8 +10,8 @@ namespace NOOSE_Website.Services;
 /// exclusion applies.</param>
 /// <param name="Rank">Service rank, for the audiences that are graded by it. Trailing and nullable for the same
 /// reason, and null fails closed: a rank-addressed announcement stays hidden rather than reaching everyone.</param>
-/// <param name="MayRealName">Whether an agent's real name may be shown. Its own field because the rule subtracts
-/// the read-only supervision from leadership, which no other flag here expresses — see
+/// <param name="MayRealName">Whether an agent's real name may be shown. Its own field because no other flag here
+/// expresses the rule (Special Agent up, minus supervision and partners) — see
 /// <see cref="Authorization.AgentPrincipalExtensions.MayRealNameSee" />. False fails closed to the codename.</param>
 /// <param name="IsInternalAgent">An in-house account. Its own field because <c>!IsPartner</c> is WIDER than the
 /// rule — a citizen and an applicant are not partners either — so the audiences addressed as "every internal agent"

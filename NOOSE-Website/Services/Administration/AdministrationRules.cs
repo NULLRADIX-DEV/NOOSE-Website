@@ -247,7 +247,7 @@ public static class AdministrationChatRules
     /// <summary>Without a read mark, unread counts this far back, so a new member is not handed the whole history.</summary>
     public static readonly TimeSpan UnreadWindow = TimeSpan.FromDays(3);
 
-    public const string Href = "/administration?tab=chat";
+    public const string Href = "/administration";
 }
 
 /// <summary>The record types of the workspace and the viewer scope of a recipient who is not signed in right now.</summary>

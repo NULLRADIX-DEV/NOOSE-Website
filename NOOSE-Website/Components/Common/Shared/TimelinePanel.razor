@@ -63,7 +63,7 @@ else
                                 }
                             </MudStack>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                @e.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · @(e.ActorName ?? "System")
+                                @e.Timestamp.ToLocalTime().ToString("dd.MM.yyyy HH:mm") · <AgentLabel Name="@e.ActorName" AgentId="@e.ActorId" />
                             </MudText>
                             @if (!string.IsNullOrWhiteSpace(e.Detail))
                             {

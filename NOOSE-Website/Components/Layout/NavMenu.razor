@@ -191,12 +191,34 @@
 
     private sealed record PanelGroup(string? Caption, IReadOnlyList<NavEntry> Entries);
 
+    // entries with a group get its caption above each run of them; ungrouped areas stay one plain list
+    private static IReadOnlyList<PanelGroup> Captioned(IReadOnlyList<NavEntry> entries)
+    {
+        if (entries.All(e => e.Group is null))
+        {
+            return [new PanelGroup(null, entries)];
+        }
+        var groups = new List<PanelGroup>();
+        foreach (var entry in entries)
+        {
+            if (groups.Count > 0 && groups[^1].Caption == entry.Group)
+            {
+                ((List<NavEntry>)groups[^1].Entries).Add(entry);
+            }
+            else
+            {
+                groups.Add(new PanelGroup(entry.Group, new List<NavEntry> { entry }));
+            }
+        }
+        return groups;
+    }
+
     // no filter: just the selected area. filtering: every area the viewer may see, captioned.
     private IReadOnlyList<PanelGroup> PanelGroups()
     {
         if (!Filtering)
         {
-            return _area is { } a ? [new PanelGroup(null, VisibleEntries(a))] : [];
+            return _area is { } a ? Captioned(VisibleEntries(a)) : [];
         }
 
         var needle = _filter!.Trim();

@@ -362,6 +362,7 @@ builder.Services.AddSearchProviders();
 builder.Services.AddHostedService<SearchIndexBackfillWorker>();
 builder.Services.AddScoped<ISavedSearchService, SavedSearchService>();
 builder.Services.AddScoped<IAgentPrincipalService, AgentPrincipalService>();
+builder.Services.AddScoped<IAgentRealNames, AgentRealNames>();
 builder.Services.AddScoped<ISavedSearchWatchService, SavedSearchWatchService>();
 builder.Services.AddHostedService<SavedSearchWatchWorker>();
 builder.Services.AddScoped<ITextSnippetService, TextSnippetService>();

@@ -23,7 +23,7 @@ else
 {
     var row = _view.Row;
     <PageHeader Icon="@Icons.Material.Filled.Gavel" Title="@($"Disziplinarverfahren {row.CaseNumber}")"
-                Subtitle="@($"gegen {_view.Codename}")" BackHref="@(_own ? $"/personal/{row.AgentId}" : "/administration?tab=ermittlungsverfahren")">
+                Subtitle="@($"gegen {_view.Codename}")" BackHref="@(_own ? $"/personal/{row.AgentId}" : "/administration/ermittlungsverfahren")">
         <Actions>
             @if (DisciplinaryRules.IsClosed(row.Status))
             {
@@ -272,7 +272,7 @@ else
         try
         {
             await Disciplinary.DeleteAsync(Id, _user);
-            Nav.NavigateTo("/administration?tab=ermittlungsverfahren");
+            Nav.NavigateTo("/administration/ermittlungsverfahren");
         }
         catch (Exception ex)
         {

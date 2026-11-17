@@ -778,6 +778,8 @@ public static class ChangelogContent
                 "Dienstverordnung"),
             Besser("3.0.62-zeitstrahl-details", "Der Verlauf einer Akte zeigt bei neuen Fotos ein Vorschaubild, das sich per "
                 + "Klick groß öffnet, und bei Mitgliedern den Namen mit Link zur Personenakte.", "Akten"),
+            Besser("3.0.63-klarnamen-intern", "Ab Special Agent siehst du den Klarnamen deiner Kollegen neben dem "
+                + "Codenamen, etwa im Protokoll, im Zeitstrahl einer Akte und in Kommentaren.", "Personal"),
         ]),
     ];
 }
