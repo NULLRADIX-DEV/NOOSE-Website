@@ -24,7 +24,7 @@ else
     var row = _view.Row;
     var open = row.Status is ParliamentaryInquiryStatus.Received or ParliamentaryInquiryStatus.InProgress;
     <PageHeader Icon="@Icons.Material.Filled.AccountBalance" Title="@row.Title" Subtitle="@row.CaseNumber"
-                BackHref="@(_partner ? "/parlament" : "/administration?tab=parlament")">
+                BackHref="@(_partner ? "/parlament" : "/administration/parlament")">
         <MoreActions>
             @if (_view.MayAnswer && open)
             {
