@@ -89,6 +89,7 @@ public static class NotificationMutes
             NotificationType.NooseiAnomaly,
             NotificationType.FollowupEscalated,
             NotificationType.DecorationAwarded,
+            NotificationType.AgentPromoted,
             NotificationType.FirearmUseReported,
         ]),
         new("Administration", MudBlazor.Icons.Material.Filled.AssuredWorkload,

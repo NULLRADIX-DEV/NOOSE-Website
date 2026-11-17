@@ -299,7 +299,7 @@ public static partial class DossierContextBuilder
         var (promotions, promotionsTotal) = await TakeAsync(
             db.AgentPromotionRequests.AsNoTracking().Where(p => p.AgentId == id)
                 .OrderByDescending(p => p.CreatedAt)
-                .Select(p => new { p.CreatedAt, p.TargetRank, p.Status, p.Justification }), ct);
+                .Select(p => new { p.CreatedAt, p.TargetRank, p.Status, p.Justification, p.DecisionNote }), ct);
         if (promotionsTotal > 0)
         {
             sb.AppendLine($"— Beförderungsanträge ({promotionsTotal}) —");
@@ -310,6 +310,10 @@ public static partial class DossierContextBuilder
                 if (Free(p.Justification) is { Length: > 0 } why)
                 {
                     sb.Append(" — ").Append(why);
+                }
+                if (Free(p.DecisionNote) is { Length: > 0 } decided)
+                {
+                    sb.Append(" — Entscheidungsgrund: ").Append(decided);
                 }
                 sb.AppendLine();
             }

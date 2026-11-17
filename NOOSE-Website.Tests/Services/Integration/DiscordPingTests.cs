@@ -380,7 +380,8 @@ public sealed class DiscordPingTests
         // a nudge from the inactivity radar is leadership addressing you, like a personnel entry; an alarm is no
         // choice either: it must reach everybody it names, right away
         var recipientPings = DiscordRouting.RoutableTypes.Where(DiscordRouting.PingsRecipients)
-            .Except([NotificationType.PersonnelEntry, NotificationType.DecorationAwarded, NotificationType.PingDigest, NotificationType.InactivityNudge,
+            .Except([NotificationType.PersonnelEntry, NotificationType.DecorationAwarded, NotificationType.AgentPromoted,
+                NotificationType.PingDigest, NotificationType.InactivityNudge,
                 NotificationType.EmergencyAlarm])
             .OrderBy(t => t);
 

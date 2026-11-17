@@ -174,8 +174,13 @@ internal static class PersonnelChapter
                 freigeben, einen Bewerber annehmen oder den Dienstgrad in der Agenten-Verwaltung ändern. Die
                 Liste der offenen Anträge, der Zähler im Menü und die Knöpfe zeigen dir nur, was du auch
                 entscheiden darfst: dem Section Chief die Anträge seiner Abteilung, dem Board alle.</p>
-                <p>Mit der Entscheidung wird der Dienstgrad gesetzt und im Verlauf festgehalten. Der Betroffene
-                wird einmal abgemeldet und muss sich neu anmelden, damit die neuen Rechte greifen.</p>
+                <p>Wer genehmigt, schreibt einen <strong>Beförderungsgrund</strong> dazu; wer ablehnt, kann einen
+                Grund angeben. Der Grund steht danach am Antrag in der Personalakte. Mit der Entscheidung wird der
+                Dienstgrad gesetzt und im Verlauf festgehalten. Der Betroffene wird einmal abgemeldet und muss sich
+                neu anmelden, damit die neuen Rechte greifen.</p>
+                <p>Eine genehmigte Beförderung erscheint mit Beförderungsgrund im Beförderungskanal auf Discord und
+                pingt den Beförderten, der zusätzlich eine Benachrichtigung bekommt. Eine Herabstufung über einen
+                Antrag und eine Ablehnung erscheinen dort nicht.</p>
                 <p>Die Seite prüft <strong>nicht</strong>, ob der Zielgrad der nächsthöhere ist - sie lässt auch
                 einen Sprung oder eine Herabstufung zu. Das ist Absicht, denn die Behördenleitung darf einen
                 Agenten auch außer der Reihe einstufen. Ein Section Chief darf das nur innerhalb der Grenze von

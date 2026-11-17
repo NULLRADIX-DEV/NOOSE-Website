@@ -661,6 +661,11 @@ public class AgentManagementService(
     public async Task PromotionDecideAsync(string requestId, bool approved, string? note, bool confirmOverLimit, ClaimsPrincipal actor)
     {
         Permission.RequirePromotionDecide(actor);
+        var reason = note.TrimToNull();
+        if (reason?.Length > PromotionRules.MaxDecisionNoteLength)
+        {
+            throw new InvalidOperationException($"Der Grund darf höchstens {PromotionRules.MaxDecisionNoteLength} Zeichen lang sein.");
+        }
 
         var request = await db.AgentPromotionRequests.FirstOrDefaultAsync(a => a.Id == requestId)
             ?? throw new InvalidOperationException($"Beförderungsantrag '{requestId}' nicht gefunden.");
@@ -683,7 +688,7 @@ public class AgentManagementService(
         request.Status = approved ? PromotionStatus.Approved : PromotionStatus.Rejected;
         request.DeciderName = actor.GetCodename();
         request.DecidedAt = DateTime.UtcNow;
-        request.DecisionNote = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        request.DecisionNote = reason;
         if (approved)
         {
             var alt = agent.Rank;
@@ -700,6 +705,12 @@ public class AgentManagementService(
             Audit(agent, AuditAction.Modified, actor,
                 $"Beförderung genehmigt: {alt?.ToString() ?? "—"} → {request.TargetRank}{lost}");
             await Save(agent, newStamp: true);
+
+            // a request may also lower the rank, and that is no news for a channel
+            if (alt is null || request.TargetRank > alt)
+            {
+                await AnnouncePromotionAsync(agent, alt, request, actor);
+            }
         }
         else
         {
@@ -708,6 +719,21 @@ public class AgentManagementService(
             // request only, no claims refresh
             await db.SaveChangesAsync();
         }
+    }
+
+    /// <summary>Bell for the promoted agent and the card in the promotion channel; after the commit, never undoes it.</summary>
+    private async Task AnnouncePromotionAsync(Agent agent, Rank? from, AgentPromotionRequest request, ClaimsPrincipal actor)
+    {
+        var href = $"/personal/{agent.Id}?tab=befoerderungen";
+        try
+        {
+            // bell only: the generic push of a routable type would post a second, bare notice
+            await notifications.NotifyManyInAppAsync(new[] { agent.Id }, NotificationType.AgentPromoted,
+                $"Du wurdest zum {RankDisplay.Name(request.TargetRank)} befördert.", href, actor.GetAgentId());
+        }
+        catch { /* best effort */ }
+        await discord.PushPromotionAsync(agent.Id, agent.Codename, from, request.TargetRank,
+            request.DecidedAt ?? DateTime.UtcNow, request.DecisionNote, request.DeciderName, href);
     }
 
     /// <summary>Fine rank gate of every rank write; the actor is read from the row, not the claims.</summary>

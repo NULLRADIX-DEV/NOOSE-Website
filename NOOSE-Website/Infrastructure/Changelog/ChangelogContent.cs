@@ -792,6 +792,9 @@ public static class ChangelogContent
                 + "damit eine Wiedereinstellung möglich bleibt.", "Personal"),
             Besser("3.0.68-administration-tickets", "Die Administration Division liest jetzt die Bürger-Tickets mit, "
                 + "in ihrem eigenen Bereich. Antworten bleibt bei der Führung.", "Personal"),
+            Neu("3.0.69-befoerderungsgrund", "Wer eine Beförderung genehmigt, schreibt jetzt einen Beförderungsgrund dazu. "
+                + "Er steht am Antrag, und jede Beförderung erscheint mit ihm in einem eigenen Discord-Kanal, der den "
+                + "Beförderten anpingt.", "Personal"),
         ]),
     ];
 }

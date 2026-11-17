@@ -769,6 +769,63 @@ public class AgentManagementServiceTests
         Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
     }
 
+    private static void PromotionRequest(Fixture f, string agentId, Rank target)
+    {
+        using var db = f.Ctx.NewContext();
+        db.AgentPromotionRequests.Add(new NOOSE_Website.Data.Entities.Personnel.AgentPromotionRequest
+        {
+            Id = "req1", AgentId = agentId, TargetRank = target, Status = PromotionStatus.Requested,
+        });
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_KeepsTheReasonAndAnnouncesTheRise()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SpecialAgent));
+        PromotionRequest(f, "t", Rank.SeniorSpecialAgent);
+
+        await f.Svc.PromotionDecideAsync("req1", approved: true, note: "  Starke Einsätze  ", false, Admin());
+
+        using (var db = f.Ctx.NewContext())
+        {
+            Assert.Equal("Starke Einsätze", db.AgentPromotionRequests.Single(r => r.Id == "req1").DecisionNote);
+        }
+        await f.Notifications.Received(1).NotifyManyInAppAsync(
+            Arg.Is<IReadOnlyCollection<string>>(ids => ids.Single() == "t"), NotificationType.AgentPromoted,
+            Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+        await f.Discord.Received(1).PushPromotionAsync("t", Arg.Any<string>(), Rank.SpecialAgent, Rank.SeniorSpecialAgent,
+            Arg.Any<DateTime>(), "Starke Einsätze", Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_DoesNotAnnounceALoweredRank()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.SeniorSpecialAgent));
+        PromotionRequest(f, "t", Rank.SpecialAgent);
+
+        await f.Svc.PromotionDecideAsync("req1", approved: true, note: "Korrektur", false, Admin());
+
+        Assert.Equal(Rank.SpecialAgent, Reload(f, "t").Rank);
+        await f.Discord.DidNotReceiveWithAnyArgs().PushPromotionAsync(default!, default!, default, default,
+            default, default, default, default);
+    }
+
+    [Fact]
+    public async Task PromotionDecideAsync_RefusesAReasonLongerThanTheColumn()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active, rank: Rank.Trainee));
+        PromotionRequest(f, "t", Rank.SpecialAgent);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Svc.PromotionDecideAsync("req1", true,
+            new string('x', PromotionRules.MaxDecisionNoteLength + 1), false, Admin()));
+
+        Assert.Equal(Rank.Trainee, Reload(f, "t").Rank);
+    }
+
     [Fact]
     public async Task PromotionDecideAsync_NotFoundThrows()
     {
