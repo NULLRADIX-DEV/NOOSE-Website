@@ -1,0 +1,127 @@
+@* Weekly food and drink allowance of every active agent; leadership can override individual limits here. *@
+@inject IFoodLimitService Limits
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<MudStack Spacing="3">
+    <MudText Typo="Typo.h6">Wochenlimits · @FoodWeek.Label(FoodWeek.Current())</MudText>
+
+    @if (_load)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else if (_rows.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Restaurant" Title="Keine aktiven Agenten"
+                    Text="Sobald Agenten freigegeben sind, erscheinen hier ihre Wochenlimits." />
+    }
+    else
+    {
+        @* phones keep agent, both remainders and the actions *@
+        <MudSimpleTable Dense="true" Hover="true" Striped="true">
+            <thead>
+                <tr>
+                    <th>Agent</th>
+                    <th class="noose-mobil-aus">Dienstgrad</th>
+                    <th class="noose-mobil-aus" style="text-align:right">Essen</th>
+                    <th class="noose-mobil-aus" style="text-align:right">Trinken</th>
+                    <th style="text-align:right">Rest Essen</th>
+                    <th style="text-align:right">Rest Trinken</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in _rows)
+                {
+                    <tr>
+                        <td>@row.Codename</td>
+                        <td class="noose-mobil-aus">@RankDisplay.Name(row.Rank)</td>
+                        <td class="noose-mobil-aus" style="text-align:right">
+                            @row.FoodConsumed / @row.FoodLimit
+                            @if (row.FoodIsOverride)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info" Class="ml-1">individuell</MudChip>
+                            }
+                        </td>
+                        <td class="noose-mobil-aus" style="text-align:right">
+                            @row.DrinkConsumed / @row.DrinkLimit
+                            @if (row.DrinkIsOverride)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info" Class="ml-1">individuell</MudChip>
+                            }
+                        </td>
+                        <td style="text-align:right">
+                            <MudText Typo="Typo.body2" Color="@(row.FoodRemaining > 0 ? Color.Success : Color.Error)">@row.FoodRemaining</MudText>
+                        </td>
+                        <td style="text-align:right">
+                            <MudText Typo="Typo.body2" Color="@(row.DrinkRemaining > 0 ? Color.Success : Color.Error)">@row.DrinkRemaining</MudText>
+                        </td>
+                        <td style="text-align:right; white-space:nowrap">
+                            @if (_mayManage)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
+                                               OnClick="@(() => OverrideAsync(row))" aria-label="Limits anpassen" />
+                            }
+                            <MudIconButton Icon="@Icons.Material.Filled.Person" Size="Size.Small"
+                                           Href="@($"/personal/{row.AgentId}?tab=verpflegung")" aria-label="Personalakte" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    }
+</MudStack>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    /// <summary>Bumped by the parent to force a reload after a decision changed consumption.</summary>
+    [Parameter] public int Refresh { get; set; }
+
+    private bool _load = true;
+    private bool _mayManage;
+    private int _loaded = -1;
+    private ClaimsPrincipal _user = default!;
+    private IReadOnlyList<FoodLimitStatus> _rows = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loaded == Refresh)
+        {
+            return;
+        }
+        _loaded = Refresh;
+        _user = (await AuthStateTask).User;
+        // read-only supervision reads this page but must not get controls that always fail
+        _mayManage = _user.IsLeadership() && _user.MayWrite();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _load = true;
+        _rows = await Limits.GetAllStatusAsync();
+        _load = false;
+    }
+
+    private async Task OverrideAsync(FoodLimitStatus row)
+    {
+        var entered = await FoodLimitOverrideDialog.ShowAsync(DialogService, row);
+        if (entered is null)
+        {
+            return;
+        }
+        try
+        {
+            await Limits.SetOverrideAsync(row.AgentId, entered.Food, entered.Drink, _user);
+            Snackbar.Add(entered.Food is null && entered.Drink is null
+                ? "Limits auf den Rang-Standard zurückgesetzt."
+                : "Individuelle Limits gesetzt.", Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

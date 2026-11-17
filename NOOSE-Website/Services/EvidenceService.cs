@@ -400,13 +400,20 @@ public class EvidenceService(
 
     public async Task<EvidenceEntry> CreateEntryAsync(EvidenceEntryInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
-        Permission.RequireEvidenceEntryWrite(actor, input.Type);
-        ValidateEntry(input);
-
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        await EnsureWithdrawalWithinStockAsync(db, input, null, cancellationToken);
         // case-number allocation needs the caller's transaction so counter + record commit together
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
+        var entry = await CreateEntryAsync(db, input, actor, cancellationToken);
+        await tx.CommitAsync(cancellationToken);
+        return entry;
+    }
+
+    public async Task<EvidenceEntry> CreateEntryAsync(AppDbContext db, EvidenceEntryInput input, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+    {
+        Permission.RequireEvidenceEntryWrite(actor, input.Type);
+        ValidateEntry(input);
+        await EnsureWithdrawalWithinStockAsync(db, input, null, cancellationToken);
 
         var entry = new EvidenceEntry
         {
@@ -434,7 +441,6 @@ public class EvidenceService(
             });
         }
         await db.SaveChangesAsync(cancellationToken);
-        await tx.CommitAsync(cancellationToken);
         return entry;
     }
 
@@ -444,6 +450,7 @@ public class EvidenceService(
         ValidateEntry(input);
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        await RequireNotFoodIssueAsync(db, id, cancellationToken);
         var entry = await db.EvidenceEntries.Include(e => e.Lines).FirstOrDefaultAsync(e => e.Id == id, cancellationToken)
             ?? throw new InvalidOperationException($"Asservat-Eintrag '{id}' nicht gefunden.");
 
@@ -489,6 +496,7 @@ public class EvidenceService(
         {
             return;
         }
+        await RequireNotFoodIssueAsync(db, id, cancellationToken);
         db.EvidenceEntries.Remove(entry);
         await db.SaveChangesAsync(cancellationToken);
     }
@@ -741,6 +749,20 @@ public class EvidenceService(
         }
         item.ImageFileName = await imageStorage.SaveAsync(image, imageContentType, cancellationToken);
         item.ImageContentType = imageContentType;
+    }
+
+    /// <summary>Blocks changing a withdrawal that a food request owns; it is reversed only through that request.</summary>
+    private static async Task RequireNotFoodIssueAsync(AppDbContext db, string entryId, CancellationToken cancellationToken)
+    {
+        var caseNo = await db.FoodRequests.AsNoTracking()
+            .Where(r => r.EvidenceEntryId == entryId)
+            .Select(r => r.CaseNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (caseNo is not null)
+        {
+            throw new InvalidOperationException(
+                $"Diese Herausnahme gehört zur Verpflegungsanforderung {caseNo} — bitte dort die Ausgabe stornieren.");
+        }
     }
 
     private static void RequireManage(ClaimsPrincipal actor)

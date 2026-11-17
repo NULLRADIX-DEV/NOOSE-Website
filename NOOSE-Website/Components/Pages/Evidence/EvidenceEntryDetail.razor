@@ -1,6 +1,7 @@
 @page "/asservatenkammer/eintrag/{Id}"
 @attribute [Authorize(Policy = Policies.InternalAgent)]
 @inject IEvidenceService Evidence
+@inject IFoodService FoodRequests
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Nav
@@ -114,6 +115,19 @@ else
             <MudText Typo="Typo.overline" Class="mud-text-secondary">Zusatznotiz</MudText>
             <MudText Typo="Typo.body2" Style="white-space:pre-line;"><MentionDisplay Text="@e.Notes" /></MudText>
         }
+
+        @if (_foodRequest is { } food)
+        {
+            <MudDivider Class="my-3" />
+            <MudText Typo="Typo.overline" Class="mud-text-secondary">Verpflegung</MudText>
+            <MudLink Href="@($"/verpflegung/{food.Id}")" Typo="Typo.body1" Class="d-block">
+                Verpflegung @food.CaseNumber
+            </MudLink>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Diese Herausnahme hat die Anforderung gebucht. Rückgängig bitte dort über „Ausgabe stornieren“,
+                sonst laufen Anforderung und Bestand auseinander.
+            </MudText>
+        }
     </MudPaper>
 
     <RecordSectionRail>
@@ -132,6 +146,7 @@ else
 
     private bool _load = true;
     private EvidenceEntryDisplay? _display;
+    private FoodRequest? _foodRequest;
     private ClaimsPrincipal _user = default!;
     private Guid _historyKey = Guid.NewGuid();
     private string? _loadedId;
@@ -147,6 +162,7 @@ else
         _loadedId = Id;
         _load = true;
         _display = await Evidence.GetEntryDisplayAsync(Id);
+        _foodRequest = _display is null ? null : await FoodRequests.GetByEvidenceEntryAsync(Id, _user);
         _load = false;
     }
 

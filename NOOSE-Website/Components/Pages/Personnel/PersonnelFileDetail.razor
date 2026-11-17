@@ -178,6 +178,9 @@ else
                 <MudTabPanel Text="Finanzierung" Icon="@Icons.Material.Filled.RequestQuote">
                     <FinancingAgentPanel Agent="_agent" @key="_reloadKey" />
                 </MudTabPanel>
+                <MudTabPanel Text="Verpflegung" Icon="@Icons.Material.Filled.Restaurant">
+                    <FoodAgentPanel Agent="_agent" @key="_reloadKey" />
+                </MudTabPanel>
                 <MudTabPanel Text="KI-Kontingent" Icon="@Icons.Material.Filled.Token">
                     <LlmQuotaAgentPanel Agent="_agent" @key="_reloadKey" />
                 </MudTabPanel>
@@ -291,7 +294,7 @@ else
             .. _maySupervise ? new[] { "dienstaufsicht" } : [],
             "verlauf", "vermerke",
             .. _mayEvaluations ? new[] { "beurteilungen" } : [],
-            "befoerderungen", "finanzierung", "ki-kontingent", "module", "auszeichnungen",
+            "befoerderungen", "finanzierung", "verpflegung", "ki-kontingent", "module", "auszeichnungen",
             "entfuehrungen",
             .. _mayFirearmUse ? new[] { "schusswaffengebrauch" } : [],
             .. _mayAdministration ? new[] { "administration" } : [],

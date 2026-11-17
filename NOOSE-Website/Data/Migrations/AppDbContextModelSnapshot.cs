@@ -1278,6 +1278,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("int")
                         .HasColumnName("Abteilung");
 
+                    b.Property<int?>("DrinkLimitOverride")
+                        .HasColumnType("int")
+                        .HasColumnName("VerpflegungslimitTrinken");
+
                     b.Property<string>("Email")
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
@@ -1289,6 +1293,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("Finanzierungsbudget");
+
+                    b.Property<int?>("FoodLimitOverride")
+                        .HasColumnType("int")
+                        .HasColumnName("VerpflegungslimitEssen");
 
                     b.Property<bool>("HiddenFromPublicRoster")
                         .HasColumnType("tinyint(1)")
@@ -5905,6 +5913,271 @@ namespace NOOSE_Website.Data.Migrations
                     b.HasIndex("RequestId");
 
                     b.ToTable("Finanzierungsantragspositionen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Food.FoodItem", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("Beschreibung");
+
+                    b.Property<string>("EvidenceItemId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AsservatId");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstAktiv");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int")
+                        .HasColumnName("Art");
+
+                    b.Property<int>("MaxQuantity")
+                        .HasColumnType("int")
+                        .HasColumnName("MaxMenge");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int>("Sorting")
+                        .HasColumnType("int")
+                        .HasColumnName("Sortierung");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EvidenceItemId");
+
+                    b.HasIndex("IsActive");
+
+                    b.ToTable("Verpflegungspositionen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Food.FoodRequest", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("AgentId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("CaseNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("Aktenzeichen");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("EntschiedenAm");
+
+                    b.Property<string>("DeciderName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("EntscheiderName");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Entscheidungsnotiz");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeloeschtAm");
+
+                    b.Property<string>("DeletedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeloeschtVonId");
+
+                    b.Property<int?>("DrinkApproved")
+                        .HasColumnType("int")
+                        .HasColumnName("TrinkenGenehmigt");
+
+                    b.Property<int>("DrinkRequested")
+                        .HasColumnType("int")
+                        .HasColumnName("TrinkenBeantragt");
+
+                    b.Property<string>("EvidenceEntryId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AsservatEintragId");
+
+                    b.Property<int?>("FoodApproved")
+                        .HasColumnType("int")
+                        .HasColumnName("EssenGenehmigt");
+
+                    b.Property<int>("FoodRequested")
+                        .HasColumnType("int")
+                        .HasColumnName("EssenBeantragt");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("IstGeloescht");
+
+                    b.Property<DateTime?>("IssuedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("AusgegebenAm");
+
+                    b.Property<string>("IssuedByName")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("AusgegebenVonName");
+
+                    b.Property<string>("Justification")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .HasColumnName("Begruendung");
+
+                    b.Property<DateTime?>("LimitWeekStart")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("LimitWoche");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int?>("OverrunDrink")
+                        .HasColumnType("int")
+                        .HasColumnName("UeberschreitungTrinken");
+
+                    b.Property<int?>("OverrunFood")
+                        .HasColumnType("int")
+                        .HasColumnName("UeberschreitungEssen");
+
+                    b.Property<string>("OverrunReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("UeberschreitungsBegruendung");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseNumber")
+                        .IsUnique();
+
+                    b.HasIndex("EvidenceEntryId")
+                        .IsUnique();
+
+                    b.HasIndex("LimitWeekStart");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("AgentId", "Status");
+
+                    b.ToTable("Verpflegungsanforderungen");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Food.FoodRequestLine", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int?>("ApprovedQuantity")
+                        .HasColumnType("int")
+                        .HasColumnName("GenehmigteMenge");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("ErstelltAm");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ErstelltVonId");
+
+                    b.Property<string>("EvidenceItemId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AsservatId");
+
+                    b.Property<string>("ItemId")
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("PositionId");
+
+                    b.Property<string>("ItemName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("Bezeichnung");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("int")
+                        .HasColumnName("Art");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("GeaendertAm");
+
+                    b.Property<string>("ModifiedById")
+                        .HasColumnType("longtext")
+                        .HasColumnName("GeaendertVonId");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int")
+                        .HasColumnName("Menge");
+
+                    b.Property<string>("RequestId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("AnforderungId");
+
+                    b.Property<int>("Sorting")
+                        .HasColumnType("int")
+                        .HasColumnName("Sortierung");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("RequestId");
+
+                    b.ToTable("Verpflegungsanforderungspositionen");
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Gamification.AgentBadge", b =>
@@ -15479,6 +15752,45 @@ namespace NOOSE_Website.Data.Migrations
                     b.Navigation("Request");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Food.FoodItem", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Evidence.EvidenceItem", "EvidenceItem")
+                        .WithMany()
+                        .HasForeignKey("EvidenceItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("EvidenceItem");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Food.FoodRequest", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Agent", "Agent")
+                        .WithMany()
+                        .HasForeignKey("AgentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Agent");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Food.FoodRequestLine", b =>
+                {
+                    b.HasOne("NOOSE_Website.Data.Entities.Food.FoodItem", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("NOOSE_Website.Data.Entities.Food.FoodRequest", "Request")
+                        .WithMany("Lines")
+                        .HasForeignKey("RequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+
+                    b.Navigation("Request");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Gamification.AgentBadge", b =>
                 {
                     b.HasOne("NOOSE_Website.Data.Entities.Agent", null)
@@ -16919,6 +17231,11 @@ namespace NOOSE_Website.Data.Migrations
                 });
 
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Financing.FinancingRequest", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Food.FoodRequest", b =>
                 {
                     b.Navigation("Lines");
                 });

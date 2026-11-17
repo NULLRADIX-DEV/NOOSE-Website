@@ -3,6 +3,7 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Infrastructure.Announcements;
 using NOOSE_Website.Infrastructure.Chat;
 using NOOSE_Website.Infrastructure.Financing;
+using NOOSE_Website.Infrastructure.Food;
 using NOOSE_Website.Infrastructure.Shares;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Administration;
@@ -21,12 +22,14 @@ public sealed class NavBadgeState(
     IAnnouncementService boardService,
     IRegulationService regulationService,
     IFinancingService financingService,
+    IFoodService foodService,
     IWarrantService warrantService,
     ITipService tipService,
     IAdministrationChatService administrationChat,
     SharesBroadcaster sharesBroadcaster,
     AcknowledgmentBroadcaster acknowledgmentBroadcaster,
     FinancingBroadcaster financingBroadcaster,
+    FoodBroadcaster foodBroadcaster,
     TipsBroadcaster tipsBroadcaster,
     AdministrationChatBroadcaster administrationChatBroadcaster,
     ILogger<NavBadgeState> logger) : IDisposable
@@ -59,12 +62,13 @@ public sealed class NavBadgeState(
             sharesBroadcaster.Modified += OnSharesModified;
             acknowledgmentBroadcaster.Modified += OnAcknowledgmentModified;
             financingBroadcaster.Modified += OnFinancingModified;
+            foodBroadcaster.Modified += OnFoodModified;
             tipsBroadcaster.Modified += OnTipsModified;
             administrationChatBroadcaster.Modified += OnAdministrationChatModified;
             administrationChatBroadcaster.ReadMarked += OnAdministrationChatRead;
         }
         return _initialized ??= ReloadAsync(LoadSharesAsync, LoadAcknowledgmentsAsync, LoadRegulationAsync,
-            LoadFinancingAsync, LoadTipsAsync, LoadAdministrationChatAsync);
+            LoadFinancingAsync, LoadFoodAsync, LoadTipsAsync, LoadAdministrationChatAsync);
     }
 
     private async Task ReloadAsync(params Func<ClaimsPrincipal, Task>[] loaders)
@@ -129,6 +133,11 @@ public sealed class NavBadgeState(
         => Set("financing", () => user.IsLeadership() ? financingService.GetOpenCountAsync() : Task.FromResult(0),
             "Finanzierungs-Badge");
 
+    // the entry is visible to every agent, but only deciders get a count
+    private Task LoadFoodAsync(ClaimsPrincipal user)
+        => Set("food", () => user.IsLeadership() ? foodService.GetOpenCountAsync() : Task.FromResult(0),
+            "Verpflegungs-Badge");
+
     // members who may write carry a read mark
     private Task LoadAdministrationChatAsync(ClaimsPrincipal user)
         => Set("administration-chat", async () => user.MayAdministrationWrite()
@@ -165,6 +174,8 @@ public sealed class NavBadgeState(
 
     private void OnFinancingModified() => Fire(LoadFinancingAsync);
 
+    private void OnFoodModified() => Fire(LoadFoodAsync);
+
     private void OnTipsModified(string tipId, string caseNumber, TipMessageAudience? audience) => Fire(LoadTipsAsync);
 
     private void OnAdministrationChatModified(string room) => Fire(LoadAdministrationChatAsync);
@@ -192,6 +203,7 @@ public sealed class NavBadgeState(
         sharesBroadcaster.Modified -= OnSharesModified;
         acknowledgmentBroadcaster.Modified -= OnAcknowledgmentModified;
         financingBroadcaster.Modified -= OnFinancingModified;
+        foodBroadcaster.Modified -= OnFoodModified;
         tipsBroadcaster.Modified -= OnTipsModified;
         administrationChatBroadcaster.Modified -= OnAdministrationChatModified;
         administrationChatBroadcaster.ReadMarked -= OnAdministrationChatRead;

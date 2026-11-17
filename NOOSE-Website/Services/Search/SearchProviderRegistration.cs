@@ -31,6 +31,7 @@ public static class SearchProviderRegistration
         services.AddScoped<ISearchProvider, EvidenceEntrySearchProvider>();
         services.AddScoped<ISearchProvider, KassenBuchungSearchProvider>();
         services.AddScoped<ISearchProvider, FinancingRequestSearchProvider>();
+        services.AddScoped<ISearchProvider, FoodRequestSearchProvider>();
         services.AddScoped<ISearchProvider, WarrantSearchProvider>();
         services.AddScoped<ISearchProvider, RegulationSearchProvider>();
 
@@ -85,6 +86,7 @@ public static class SearchProviderRegistration
         services.AddScoped<ISearchProvider, TagSearchProvider>();
         services.AddScoped<ISearchProvider, TrainingModuleSearchProvider>();
         services.AddScoped<ISearchProvider, FinancingItemSearchProvider>();
+        services.AddScoped<ISearchProvider, FoodItemSearchProvider>();
         services.AddScoped<ISearchProvider, CounterIntelRuleSearchProvider>();
         services.AddScoped<ISearchProvider, DocumentTemplateSearchProvider>();
         services.AddScoped<ISearchProvider, ActivityTemplateSearchProvider>();

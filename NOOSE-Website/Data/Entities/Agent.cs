@@ -127,6 +127,14 @@ public class Agent : IdentityUser
     [Column("Finanzierungsbudget")]
     public decimal? FinancingBudgetOverride { get; set; }
 
+    /// <summary>Weekly food allowance overriding the rank default; null = rank default applies.</summary>
+    [Column("VerpflegungslimitEssen")]
+    public int? FoodLimitOverride { get; set; }
+
+    /// <summary>Weekly drink allowance overriding the rank default; null = rank default applies.</summary>
+    [Column("VerpflegungslimitTrinken")]
+    public int? DrinkLimitOverride { get; set; }
+
     /// <summary>Weekly NOOSEI token quota overriding the rank default; null = rank default applies.</summary>
     [Column("KiKontingent")]
     public long? LlmQuotaOverride { get; set; }

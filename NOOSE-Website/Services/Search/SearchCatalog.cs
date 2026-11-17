@@ -19,6 +19,7 @@ using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Handbook;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -200,6 +201,10 @@ public static class SearchCatalog
             Icons.Material.Filled.RequestQuote, SearchHitShape.Record,
             SearchTraits.Assistant,
             "/finanzierungen/{0}"),
+        new(nameof(FoodRequest), "Verpflegungsanforderung", "Verpflegungsanforderungen", SearchGroup.Records,
+            Icons.Material.Filled.Restaurant, SearchHitShape.Record,
+            SearchTraits.Assistant,
+            "/verpflegung/{0}"),
 
         // ---- Inhalte ----
         new(nameof(AgentActivity), "Aktivität", "Aktivitäten", SearchGroup.Content,
@@ -330,6 +335,8 @@ public static class SearchCatalog
             Icons.Material.Filled.School, SearchHitShape.Record, SearchTraits.Assistant, null),
         new(nameof(FinancingItem), "Finanzierungs-Position", "Finanzierungs-Katalog", SearchGroup.Administration,
             Icons.Material.Filled.ShoppingCart, SearchHitShape.Record, SearchTraits.Assistant, null),
+        new(nameof(FoodItem), "Verpflegungsposition", "Verpflegungskatalog", SearchGroup.Administration,
+            Icons.Material.Filled.Fastfood, SearchHitShape.Record, SearchTraits.Assistant, null),
         new(nameof(CounterIntelRule), "Gegenaufklärungs-Regel", "Gegenaufklärungs-Regeln", SearchGroup.Administration,
             Icons.Material.Filled.Policy, SearchHitShape.Record, SearchTraits.Assistant, null),
         new(nameof(DocumentTemplate), "Dokument-Vorlage", "Dokument-Vorlagen", SearchGroup.Administration,
@@ -452,6 +459,7 @@ public static class SearchCatalog
             ["PersonLocation"] = "Deep-Scan-Match-Feld der Personenakte.",
             ["PersonWeapon"] = "Deep-Scan-Match-Feld der Personenakte.",
             ["FinancingRequestLine"] = "Position ohne eigenen Text; der Antrag trägt ihn.",
+            ["FoodRequestLine"] = "Position ohne eigenen Text; die Anforderung trägt ihn.",
             ["EvidenceEntryLine"] = "Position ohne eigenen Text; das Asservat trägt ihn.",
             ["FactionRank"] = "Bezeichnung im Stammdaten-Block der Fraktion.",
 

@@ -18,7 +18,7 @@ public sealed class HandoverDisplayTests
     {
         var closing = Enum.GetValues<HandoverKind>().Where(HandoverDisplay.Closes);
 
-        Assert.Equal([HandoverKind.FinancingRequest, HandoverKind.Appointment], closing);
+        Assert.Equal([HandoverKind.FinancingRequest, HandoverKind.Appointment, HandoverKind.FoodRequest], closing);
     }
 
     [Fact]

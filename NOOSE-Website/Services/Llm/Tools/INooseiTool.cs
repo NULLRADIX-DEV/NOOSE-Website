@@ -14,6 +14,7 @@ using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -234,6 +235,7 @@ public static class NooseiRecordTypes
         [nameof(Informant)] = NooseiUse.Read | NooseiUse.List,
         [nameof(EvidenceItem)] = NooseiUse.Read | NooseiUse.List,
         [nameof(FinancingRequest)] = NooseiUse.Read | NooseiUse.List,
+        [nameof(FoodRequest)] = NooseiUse.Read | NooseiUse.List,
         [nameof(Announcement)] = NooseiUse.Read | NooseiUse.List,
         [nameof(Absence)] = NooseiUse.Read | NooseiUse.List,
         [nameof(LibraryFile)] = NooseiUse.Read | NooseiUse.List,
@@ -306,6 +308,7 @@ public static class NooseiRecordTypes
             ["WatchlistEntry"] = "meine_akten",
             ["Notification"] = "benachrichtigungen (lies_bereich)",
             ["FinancingItem"] = "vorlagen (lies_bereich)",
+            ["FoodItem"] = "vorlagen (lies_bereich)",
             ["DocumentTemplate"] = "vorlagen / bewerbungswesen (lies_bereich)",
             ["ActivityTemplate"] = "vorlagen (lies_bereich)",
             ["PersonnelTemplate"] = "vorlagen (lies_bereich)",
