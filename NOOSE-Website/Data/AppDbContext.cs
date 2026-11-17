@@ -2156,7 +2156,7 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(a => a.Justification).HasColumnType("longtext");
             b.Property(a => a.RequesterName).HasMaxLength(128);
             b.Property(a => a.DeciderName).HasMaxLength(128);
-            b.Property(a => a.DecisionNote).HasMaxLength(2000);
+            b.Property(a => a.DecisionNote).HasMaxLength(Services.PromotionRules.MaxDecisionNoteLength);
             b.HasIndex(a => new { a.AgentId, a.Status });
             b.HasIndex(a => a.Status);
             b.HasOne<Agent>().WithMany()

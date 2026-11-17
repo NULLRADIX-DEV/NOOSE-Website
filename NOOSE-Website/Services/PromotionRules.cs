@@ -70,6 +70,9 @@ public static class PromotionRules
     /// <summary>A Section Chief assigns only ranks below this, to agents below it.</summary>
     public const Rank SectionChiefCeiling = Rank.SectionChief;
 
+    /// <summary>Cap of the decider's final reason, the column width.</summary>
+    public const int MaxDecisionNoteLength = 2000;
+
     /// <summary>May the actor give a target in <paramref name="targetDivision"/> the rank <paramref name="toRank"/>?</summary>
     /// <param name="fromRank">Current rank of the target; null for a first release.</param>
     public static bool MayAssign(PromotionStanding actor, Division? targetDivision, Rank? fromRank, Rank toRank)

@@ -24,6 +24,7 @@ public class DiscordWebhookModelsTests
         NotificationType.PersonnelEntry,
         NotificationType.AgentTerminated,
         NotificationType.DecorationAwarded,
+        NotificationType.AgentPromoted,
         NotificationType.PublicWantedPublished,
         NotificationType.PublicWantedBountyRaised,
         NotificationType.PublicTicketCreated,
@@ -143,6 +144,7 @@ public class DiscordWebhookModelsTests
     [InlineData(NotificationType.AcknowledgmentReminder)]
     [InlineData(NotificationType.SavedSearchHit)]
     [InlineData(NotificationType.DecorationAwarded)]
+    [InlineData(NotificationType.AgentPromoted)]
     [InlineData(NotificationType.InactivityNudge)]
     [InlineData(NotificationType.TestAssigned)]
     [InlineData(NotificationType.TestDueReminder)]

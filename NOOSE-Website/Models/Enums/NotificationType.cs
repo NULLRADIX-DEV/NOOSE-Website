@@ -228,6 +228,10 @@ public enum NotificationType
 
     /// <summary>Someone proposed an agent for a decoration. Bell only.</summary>
     DecorationProposed = 67,
+
+    /// <summary>An approved promotion request raised the recipient's rank. Bell for the recipient; the Discord post is
+    /// its own card in a channel of its own that pings the recipient and carries the decider's reason.</summary>
+    AgentPromoted = 68,
 }
 
 /// <summary>Display labels and icons.</summary>
@@ -278,6 +282,7 @@ public static class NotificationTypeDisplay
         NotificationType.CounterIntelFinding => "Gegenaufklärung",
         NotificationType.NooseiAnomaly => "FIBI-Auffälligkeit",
         NotificationType.DecorationAwarded => "Ehrung",
+        NotificationType.AgentPromoted => "Beförderung",
         NotificationType.InactivityNudge => "Rückmeldung erbeten",
         NotificationType.FactionThreatBoard => "Gefahrenlage (Fraktionen)",
         NotificationType.TestAssigned => "Test zugewiesen",
@@ -352,6 +357,7 @@ public static class NotificationTypeDisplay
         NotificationType.CounterIntelFinding => Icons.Material.Filled.GppMaybe,
         NotificationType.NooseiAnomaly => Icons.Material.Filled.DataUsage,
         NotificationType.DecorationAwarded => Icons.Material.Filled.MilitaryTech,
+        NotificationType.AgentPromoted => Icons.Material.Filled.TrendingUp,
         NotificationType.InactivityNudge => Icons.Material.Filled.ContactSupport,
         NotificationType.FactionThreatBoard => Icons.Material.Filled.Dangerous,
         NotificationType.TestAssigned => Icons.Material.Filled.Quiz,
