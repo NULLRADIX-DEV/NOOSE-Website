@@ -29,6 +29,7 @@ public class ModelMapsTests
     [InlineData("AgentAbduction", "/entfuehrungen/")]
     [InlineData("KassenBuchung", "/kasse/buchung/")]
     [InlineData("FinancingRequest", "/finanzierungen/")]
+    [InlineData("FoodRequest", "/verpflegung/")]
     [InlineData("Bewerbung", "/bewerbungen/")]
     public void For_knownRecordType_buildsFeatureRoute(string recordsType, string expectedPrefix)
     {

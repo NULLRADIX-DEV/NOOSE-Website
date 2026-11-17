@@ -105,6 +105,8 @@ public static class NavCatalog
             Description: "FIB-Kasse: Schwarz- und Grüngeld buchen, Vorlagen und Statistik"),
         new NavEntry("finanzierungen", "/finanzierungen", Icons.Material.Filled.RequestQuote, "Finanzierungen", NavSection.MeinDienst, NavArea.Dienststelle, BadgeKey: "financing",
             Description: "Finanzierungsanträge stellen und das eigene Monatsbudget einsehen"),
+        new NavEntry("verpflegung", "/verpflegung", Icons.Material.Filled.Restaurant, "Verpflegung", NavSection.MeinDienst, NavArea.Dienststelle, BadgeKey: "food",
+            Description: "Essen und Trinken anfordern und das eigene Wochenlimit einsehen"),
         new NavEntry("abmeldungen", "/abmeldungen", Icons.Material.Filled.EventBusy, "Abmeldungen", NavSection.MeinDienst, NavArea.Dienststelle,
             Description: "Eigene Abwesenheiten melden und einsehen"),
         new NavEntry("aktivitaeten", "/aktivitaeten", Icons.Material.Filled.Bolt, "Aktivitäten (Archiv)", NavSection.MeinDienst, NavArea.Dienststelle,

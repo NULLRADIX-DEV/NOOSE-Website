@@ -5,6 +5,7 @@ using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -129,6 +130,24 @@ public sealed class AgentHandoverServiceTests
             Status = FinancingStatus.Paid,
         });
 
+        db.FoodRequests.Add(new FoodRequest
+        {
+            Id = "fd-req", CaseNumber = "FIB-VER-2026-0001", AgentId = Gone, Justification = "Nachtschicht",
+            FoodRequested = 1,
+        });
+        db.FoodRequests.Add(new FoodRequest
+        {
+            Id = "fd-app", CaseNumber = "FIB-VER-2026-0002", AgentId = Gone,
+            Status = FoodRequestStatus.Approved, FoodRequested = 2, FoodApproved = 2,
+            LimitWeekStart = new DateTime(2026, 11, 16),
+            Lines = [new FoodRequestLine { ItemName = "Burger", Kind = FoodKind.Food, Quantity = 2, ApprovedQuantity = 2 }],
+        });
+        db.FoodRequests.Add(new FoodRequest
+        {
+            Id = "fd-iss", CaseNumber = "FIB-VER-2026-0003", AgentId = Gone, Justification = "Alt",
+            Status = FoodRequestStatus.Issued,
+        });
+
         db.Appointments.Add(new Appointment
         {
             Id = "ap-next", CaseNumber = "FIB-T-2026-0101", Title = "Lagebesprechung", Start = DateTime.UtcNow.AddDays(3),
@@ -158,6 +177,8 @@ public sealed class AgentHandoverServiceTests
         (HandoverKind.FinancingRequest, "fr-app"),
         (HandoverKind.FinancingRequest, "fr-req"),
         (HandoverKind.Appointment, "ap-next"),
+        (HandoverKind.FoodRequest, "fd-app"),
+        (HandoverKind.FoodRequest, "fd-req"),
     ];
 
     private static List<HandoverChoice> AllTo(string successor)
@@ -203,7 +224,7 @@ public sealed class AgentHandoverServiceTests
 
         var result = await Build(ctx).Svc.ApplyAsync(Gone, AllTo("succ"), Leader());
 
-        Assert.Equal(new HandoverResult(Passed: 9, Closed: 3), result);
+        Assert.Equal(new HandoverResult(Passed: 9, Closed: 5), result);
         await using var db = ctx.NewContext();
         Assert.Equal("succ", (await db.Followups.SingleAsync(f => f.Id == "f-open")).ResponsibleAgentId);
         Assert.Equal(["succ"], await db.JobAssignments.Where(a => a.JobId == "j-open").Select(a => a.AgentId).ToListAsync());
@@ -235,6 +256,7 @@ public sealed class AgentHandoverServiceTests
         Assert.True(await db.FactionAgents.AnyAsync(a => a.FactionId == "fa-arch" && a.AgentId == Gone));
         Assert.True(await db.AppointmentAssignments.AnyAsync(a => a.AppointmentId == "ap-past" && a.AgentId == Gone));
         Assert.Equal(FinancingStatus.Paid, (await db.FinancingRequests.SingleAsync(r => r.Id == "fr-paid")).Status);
+        Assert.Equal(FoodRequestStatus.Issued, (await db.FoodRequests.SingleAsync(r => r.Id == "fd-iss")).Status);
     }
 
     [Fact]
@@ -295,6 +317,36 @@ public sealed class AgentHandoverServiceTests
         // the payout recipient never changes hands
         Assert.Equal(Gone, approved.AgentId);
         Assert.False(await db.AppointmentAssignments.AnyAsync(a => a.AppointmentId == "ap-next"));
+    }
+
+    [Fact]
+    public async Task TheDepartureClosesFoodRequestsAndFreesTheLimit()
+    {
+        using var ctx = await SeededAsync();
+
+        await Build(ctx).Svc.ApplyAsync(Gone, AllTo("succ"), Leader());
+
+        await using var db = ctx.NewContext();
+        Assert.Equal(FoodRequestStatus.Withdrawn, (await db.FoodRequests.SingleAsync(r => r.Id == "fd-req")).Status);
+        var approved = await db.FoodRequests.Include(r => r.Lines).SingleAsync(r => r.Id == "fd-app");
+        Assert.Equal(FoodRequestStatus.Rejected, approved.Status);
+        Assert.Null(approved.FoodApproved);
+        Assert.Null(approved.LimitWeekStart);
+        Assert.Equal(0, approved.Lines.Single().ApprovedQuantity);
+        Assert.Equal("Antragsteller ausgeschieden", approved.DecisionNote);
+        Assert.Equal(Gone, approved.AgentId);
+    }
+
+    [Fact]
+    public async Task AFoodRequestWithoutJustificationIsListedByItsQuantities()
+    {
+        using var ctx = await SeededAsync();
+
+        var rows = (await Build(ctx).Svc.GetAsync(Gone, Leader())).Rows;
+
+        var row = rows.Single(r => r.Id == "fd-app");
+        Assert.Equal("2 Essen", row.Title);
+        Assert.Equal("/verpflegung/fd-app", row.Href);
     }
 
     [Fact]

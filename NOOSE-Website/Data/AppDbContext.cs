@@ -37,6 +37,7 @@ using NOOSE_Website.Data.Entities.Abductions;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Llm;
@@ -163,6 +164,11 @@ public class AppDbContext : IdentityDbContext<Agent>
     public DbSet<FinancingRequest> FinancingRequests => Set<FinancingRequest>();
     public DbSet<FinancingRequestLine> FinancingRequestLines => Set<FinancingRequestLine>();
     public DbSet<FinancingBudgetPeriod> FinancingBudgetPeriods => Set<FinancingBudgetPeriod>();
+
+    // ---- food requests (catalog, basket, weekly limit, issued from the evidence room) ----
+    public DbSet<FoodItem> FoodItems => Set<FoodItem>();
+    public DbSet<FoodRequest> FoodRequests => Set<FoodRequest>();
+    public DbSet<FoodRequestLine> FoodRequestLines => Set<FoodRequestLine>();
 
     // ---- warrants (search, seizure, arrest orders) ----
     public DbSet<Warrant> Warrants => Set<Warrant>();
@@ -1554,6 +1560,53 @@ public class AppDbContext : IdentityDbContext<Agent>
                 .HasForeignKey(a => a.AgentId).OnDelete(DeleteBehavior.Restrict);
             b.HasIndex(a => new { a.ParagraphId, a.AgentId, a.Version }).IsUnique();
             b.HasIndex(a => a.AgentId);
+        });
+
+        modelBuilder.Entity<FoodItem>(b =>
+        {
+            b.Property(x => x.EvidenceItemId).HasMaxLength(255).IsRequired();
+            b.Property(x => x.Description).HasMaxLength(1000);
+            // not unique in the DB: a soft-deleted position must not block re-adding its item; the service checks live rows
+            b.HasIndex(x => x.EvidenceItemId);
+            b.HasIndex(x => x.IsActive);
+            // Restrict: an evidence item stays as long as a catalog position points at it
+            b.HasOne(x => x.EvidenceItem).WithMany()
+                .HasForeignKey(x => x.EvidenceItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FoodRequest>(b =>
+        {
+            b.Property(x => x.CaseNumber).HasMaxLength(32).IsRequired();
+            b.Property(x => x.AgentId).HasMaxLength(255);
+            b.Property(x => x.Justification).HasMaxLength(2000);
+            b.Property(x => x.OverrunReason).HasMaxLength(500);
+            b.Property(x => x.DeciderName).HasMaxLength(128);
+            b.Property(x => x.DecisionNote).HasMaxLength(2000);
+            b.Property(x => x.IssuedByName).HasMaxLength(128);
+            b.Property(x => x.EvidenceEntryId).HasMaxLength(255);
+            b.HasIndex(x => x.CaseNumber).IsUnique();
+            b.HasIndex(x => new { x.AgentId, x.Status });
+            b.HasIndex(x => x.Status);
+            b.HasIndex(x => x.LimitWeekStart);
+            // unique so the same request can never be issued twice (MySQL allows many NULLs)
+            b.HasIndex(x => x.EvidenceEntryId).IsUnique();
+            // Restrict FK to identity Agent (no cascade from the user table)
+            b.HasOne(x => x.Agent).WithMany()
+                .HasForeignKey(x => x.AgentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FoodRequestLine>(b =>
+        {
+            b.Property(x => x.RequestId).HasMaxLength(255).IsRequired();
+            b.Property(x => x.EvidenceItemId).HasMaxLength(255);
+            b.Property(x => x.ItemName).HasMaxLength(200).IsRequired();
+            b.HasIndex(x => x.RequestId);
+            b.HasIndex(x => x.ItemId);
+            b.HasOne(x => x.Request).WithMany(r => r.Lines)
+                .HasForeignKey(x => x.RequestId).OnDelete(DeleteBehavior.Cascade);
+            // Restrict: a catalog position stays as long as any line references it
+            b.HasOne(x => x.Item).WithMany()
+                .HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<FinancingRequestLine>(b =>

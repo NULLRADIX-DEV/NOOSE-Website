@@ -1147,6 +1147,65 @@ public sealed class EvidenceServiceTests
         Assert.Equal(EvidenceEntryType.Withdrawal, Assert.Single(rows).Entry.Type);
     }
 
+    // ---- caller-owned context (used by the food issue) ----
+
+    [Fact]
+    public async Task CreateEntry_OnTheCallersContext_RollsBackWithTheCallersTransaction()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = BuildStrict(ctx, out _);
+        var itemId = await DepositAsync(Build(ctx), "Burger", 5);
+
+        await using (var db = ctx.NewContext())
+        {
+            await using var tx = await db.Database.BeginTransactionAsync();
+            var entry = await svc.CreateEntryAsync(db, Entry(EvidenceEntryType.Withdrawal,
+                i => i.Lines.Add(new EvidenceLineInput { ItemId = itemId, Quantity = 2 })), Leader());
+
+            // booked inside the caller's transaction, visible to that transaction only
+            Assert.Same(tx, db.Database.CurrentTransaction);
+            Assert.True(await db.EvidenceEntryLines.AnyAsync(l => l.EntryId == entry.Id));
+            await tx.RollbackAsync();
+        }
+
+        Assert.Equal(1, CountEntries(ctx));
+        Assert.Equal(5, await svc.GetOnHandAsync(itemId));
+    }
+
+    [Fact]
+    public async Task CreateEntry_OnTheCallersContext_CommitsWithTheCallersTransaction()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = BuildStrict(ctx, out _);
+        var itemId = await DepositAsync(Build(ctx), "Burger", 5);
+
+        await using (var db = ctx.NewContext())
+        {
+            await using var tx = await db.Database.BeginTransactionAsync();
+            await svc.CreateEntryAsync(db, Entry(EvidenceEntryType.Withdrawal,
+                i => i.Lines.Add(new EvidenceLineInput { ItemId = itemId, Quantity = 2 })), Leader());
+            await tx.CommitAsync();
+        }
+
+        Assert.Equal(2, CountEntries(ctx));
+        Assert.Equal(3, await svc.GetOnHandAsync(itemId));
+    }
+
+    [Fact]
+    public async Task CreateEntry_OnTheCallersContext_StillChecksRankAndStock()
+    {
+        using var ctx = new SqliteTestContext();
+        var svc = Build(ctx);
+        var itemId = await DepositAsync(svc, "Burger", 1);
+
+        await using var db = ctx.NewContext();
+        await using var tx = await db.Database.BeginTransactionAsync();
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.CreateEntryAsync(db, Entry(EvidenceEntryType.Withdrawal,
+            i => i.Lines.Add(new EvidenceLineInput { ItemId = itemId, Quantity = 1 })), Junior()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.CreateEntryAsync(db, Entry(EvidenceEntryType.Withdrawal,
+            i => i.Lines.Add(new EvidenceLineInput { ItemId = itemId, Quantity = 2 })), Leader()));
+    }
+
     private static int CountEntries(SqliteTestContext ctx)
     {
         using var db = ctx.NewContext();

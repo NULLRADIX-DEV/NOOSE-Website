@@ -12,6 +12,7 @@ using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Informants;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -193,6 +194,15 @@ public static class SearchParentResolver
                          .Select(f => new { f.Id, f.CaseNumber }).ToListAsync(cancellationToken))
             {
                 Put(nameof(FinancingRequest), x.Id, x.CaseNumber, x.CaseNumber);
+            }
+        }
+        if (!viewer.IsPartner && Ids(nameof(FoodRequest)) is { Count: > 0 } foodIds)
+        {
+            foreach (var x in await db.FoodRequests.OnlyVisible(scope.MayClassifiedRead, scope.MeId)
+                         .Where(f => foodIds.Contains(f.Id))
+                         .Select(f => new { f.Id, f.CaseNumber }).ToListAsync(cancellationToken))
+            {
+                Put(nameof(FoodRequest), x.Id, x.CaseNumber, x.CaseNumber);
             }
         }
         if (!viewer.IsPartner && Ids(nameof(Informant)) is { Count: > 0 } informantIds)

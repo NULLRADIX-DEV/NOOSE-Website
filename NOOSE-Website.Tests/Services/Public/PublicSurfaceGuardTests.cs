@@ -445,7 +445,7 @@ public class PublicSurfaceGuardTests
     /// </remarks>
     private static readonly string[] InternalStacks =
     [
-        "ISituationReportService", "IStatisticsService", "IFinancingStatisticsService",
+        "ISituationReportService", "IStatisticsService", "IFinancingStatisticsService", "IFoodStatisticsService",
         // the global search orchestrator: resolving it builds all ~60 providers, every one with its own context
         // factory, for a visitor who is only allowed to see what was published
         "ISearchService",

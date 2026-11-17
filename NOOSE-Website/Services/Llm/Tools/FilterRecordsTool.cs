@@ -34,6 +34,7 @@ public sealed class FilterRecordsTool(
     IAbsenceService absences,
     IAnnouncementService announcements,
     IFinancingService financing,
+    IFoodService food,
     IBewerbungService applications,
     ISystemSettingService settings,
     IAgentActivityService activities,
@@ -268,6 +269,12 @@ public sealed class FilterRecordsTool(
                 DocumentClassification.None, null, f.Request.ModifiedAt, f.Request.CreatedAt,
                 $"Zuschuss: {f.Request.RequestedSubsidy:N0} $",
                 Status: FinancingStatusDisplay.Name(f.Request.Status)))
+            .ToList(),
+        nameof(Data.Entities.Food.FoodRequest) => (await food.GetVisibleAsync(null, actor, cancellationToken))
+            .Select(f => new Row(f.Request.Id, $"Anforderung {f.AgentCodename}", f.Request.CaseNumber, null,
+                DocumentClassification.None, null, f.Request.ModifiedAt, f.Request.CreatedAt,
+                "Angefordert: " + FoodService.Summary(f.Request.FoodRequested, f.Request.DrinkRequested),
+                Status: FoodRequestStatusDisplay.Name(f.Request.Status)))
             .ToList(),
         nameof(Data.Entities.Recruiting.Bewerbung) => (await ApplicationsAsync(actor, cancellationToken))
             .Select(b => new Row(b.Id, b.Name, b.CaseNumber, null, DocumentClassification.None, null,

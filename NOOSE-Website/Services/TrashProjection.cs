@@ -10,6 +10,7 @@ using NOOSE_Website.Data.Entities.Handbook;
 using NOOSE_Website.Data.Entities.Evidence;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Kasse;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Jobs;
@@ -119,6 +120,11 @@ public static class TrashProjection
     public static TrashItem FinancingRequest(FinancingRequest x)
         => new("finanzierungen", x.Id, x.CaseNumber, FinancingStatusDisplay.Name(x.Status),
             Join(Money.Format(x.ApprovedSubsidy ?? x.RequestedSubsidy), $"{x.Lines.Count} Positionen"), x.DeletedAt);
+
+    public static TrashItem FoodRequest(FoodRequest x)
+        => new("verpflegung", x.Id, x.CaseNumber, FoodRequestStatusDisplay.Name(x.Status),
+            Join(FoodService.Summary(x.FoodApproved ?? x.FoodRequested, x.DrinkApproved ?? x.DrinkRequested),
+                $"{x.Lines.Count} Positionen"), x.DeletedAt);
 
     public static TrashItem Warrant(WarrantView x)
         => new("anordnungen", x.Warrant.Id, x.Warrant.CaseNumber, WarrantTypeDisplay.Name(x.Warrant.Type),

@@ -28,6 +28,7 @@ public static class FeedbackPageTabs
         new("ehrenzeichen", "Ehrenzeichen"),
         new("inaktivitaet", "Inaktivitäts-Radar"),
         new("finanzierung", "Budget-Regeln"),
+        new("verpflegung", "Wochenlimits"),
         new("noosei", "FIBI-Betrieb"),
         new("ki-anbieter", "Anbieter"),
         new("ki-regeln", "Token-Regeln"),
@@ -88,6 +89,7 @@ public static class FeedbackPageTabs
         new("netzwerk", "Netzwerk"),
         new("kasse", "Kasse"),
         new("finanzierung", "Finanzierungen"),
+        new("verpflegung", "Verpflegung"),
         new("dienststelle", "Dienststelle"),
         new("lageberichte", "Lageberichte"),
     ];
@@ -109,6 +111,16 @@ public static class FeedbackPageTabs
         new("alle", "Alle Anträge"),
         new("katalog", "Katalog"),
         new("budgets", "Budgets"),
+        new("statistik", "Statistik"),
+        new("papierkorb", "Papierkorb"),
+    ];
+
+    public static readonly FeedbackTab[] Food =
+    [
+        new("meine", "Meine Anforderungen"),
+        new("alle", "Alle Anforderungen"),
+        new("katalog", "Katalog"),
+        new("limits", "Limits"),
         new("statistik", "Statistik"),
         new("papierkorb", "Papierkorb"),
     ];
@@ -147,6 +159,7 @@ public static class FeedbackPageTabs
             ["/statistik"] = Statistics,
             ["/nachweis"] = Monitoring,
             ["/finanzierungen"] = Financing,
+            ["/verpflegung"] = Food,
             ["/kasse"] = Kasse,
             ["/entfuehrungen"] = Abductions,
             ["/asservatenkammer"] = Evidence,

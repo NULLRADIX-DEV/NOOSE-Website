@@ -1,0 +1,461 @@
+@page "/verpflegung/{Id}"
+@inject IFoodService FoodRequests
+@inject IFoodLimitService Limits
+@inject IEvidenceService Evidence
+@inject FoodBroadcaster Broadcaster
+@inject IDialogService DialogService
+@inject NavigationManager Nav
+@inject ISnackbar Snackbar
+
+<PageTitle>@(_request?.CaseNumber ?? "Verpflegungsanforderung") · FIB</PageTitle>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else if (_request is null)
+{
+    <PageHeader Icon="@Icons.Material.Filled.Restaurant" Title="Verpflegungsanforderung" BackHref="/verpflegung" />
+    <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Nicht verfügbar"
+                Text="Diese Anforderung existiert nicht oder ist für dich nicht sichtbar." />
+}
+else
+{
+    @* the decision that moves the request on stays inline; whatever a status allows besides goes into the ⋮ menu below 960px *@
+    <PageHeader Icon="@Icons.Material.Filled.Restaurant"
+                Title="@_request.CaseNumber"
+                Subtitle="@($"{_agentCodename} · {FoodRequestStatusDisplay.Name(_request.Status)}")"
+                BackHref="/verpflegung" MoreActionsLast="true">
+        <Actions>
+            @if (_mayDecide && _request.Status is FoodRequestStatus.Requested or FoodRequestStatus.Rejected)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Filled.Check"
+                           OnClick="ApproveAsync">Annehmen</MudButton>
+            }
+            @if (_mayIssue && _request.Status == FoodRequestStatus.Approved)
+            {
+                <MudTooltip Text="@IssueHint" Disabled="@CanIssue">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Restaurant"
+                               Disabled="@(!CanIssue)" OnClick="IssueAsync">Ausgeben</MudButton>
+                </MudTooltip>
+            }
+            @if (_mayDecide && _request.Status == FoodRequestStatus.Issued)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.Undo"
+                           OnClick="CancelIssueAsync">Ausgabe stornieren</MudButton>
+            }
+        </Actions>
+        <MoreActions>
+            @if (_mayDecide && _request.Status == FoodRequestStatus.Requested)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Close"
+                           OnClick="RejectAsync">Ablehnen</MudButton>
+            }
+            @if (_mayDecide && _request.Status == FoodRequestStatus.Approved)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Undo"
+                           OnClick="RevokeAsync">Genehmigung zurücknehmen</MudButton>
+            }
+            @if (_mayActAsOwner && _request.Status == FoodRequestStatus.Requested)
+            {
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Undo"
+                           OnClick="WithdrawAsync">Zurückziehen</MudButton>
+            }
+            @if (_mayDelete)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                               OnClick="DeleteAsync" aria-label="Anforderung löschen" />
+            }
+        </MoreActions>
+        <MoreActionsMenu>
+            @if (_mayDecide && _request.Status == FoodRequestStatus.Requested)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Close" IconColor="Color.Error" OnClick="RejectAsync">Ablehnen</MudMenuItem>
+            }
+            @if (_mayDecide && _request.Status == FoodRequestStatus.Approved)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Undo" OnClick="RevokeAsync">Genehmigung zurücknehmen</MudMenuItem>
+            }
+            @if (_mayActAsOwner && _request.Status == FoodRequestStatus.Requested)
+            {
+                <MudMenuItem Icon="@Icons.Material.Filled.Undo" OnClick="WithdrawAsync">Zurückziehen</MudMenuItem>
+            }
+            @if (_mayDelete)
+            {
+                <MudDivider />
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error" OnClick="DeleteAsync">Anforderung löschen</MudMenuItem>
+            }
+        </MoreActionsMenu>
+    </PageHeader>
+
+    <RecordSectionRail>
+        <RecordSection Slug="uebersicht" Label="Übersicht" Icon="@Icons.Material.Filled.Article">
+            <MudStack Spacing="3">
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudSimpleTable Dense="true" Striped="true">
+                        <thead>
+                            <tr>
+                                <th>Position</th>
+                                <th class="noose-mobil-aus">Art</th>
+                                @if (_onHand is not null)
+                                {
+                                    <th class="noose-mobil-aus" style="text-align:right">Bestand</th>
+                                }
+                                <th style="text-align:right">Angefordert</th>
+                                <th style="text-align:right">Genehmigt</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in _request.Lines)
+                            {
+                                <tr>
+                                    <td>
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <MudIcon Icon="@FoodKindDisplay.Icon(line.Kind)" Size="Size.Small" Class="mud-text-secondary" />
+                                            <span>@line.ItemName</span>
+                                        </MudStack>
+                                    </td>
+                                    <td class="noose-mobil-aus">@FoodKindDisplay.Name(line.Kind)</td>
+                                    @if (_onHand is not null)
+                                    {
+                                        var stock = StockOf(line);
+                                        <td class="noose-mobil-aus" style="text-align:right">
+                                            <MudText Typo="Typo.body2" Color="@(stock < FoodService.EffectiveQuantity(line) ? Color.Error : Color.Default)">@stock</MudText>
+                                        </td>
+                                    }
+                                    <td style="text-align:right">@line.Quantity</td>
+                                    <td style="text-align:right">
+                                        @if (line.ApprovedQuantity is { } granted)
+                                        {
+                                            <MudText Typo="Typo.body2" Color="@(granted < line.Quantity ? Color.Warning : Color.Default)">@granted</MudText>
+                                        }
+                                        else
+                                        {
+                                            <span>—</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+
+                    <MudStack Spacing="1" Class="mt-3">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body2">Angefordert</MudText>
+                            <MudText Typo="Typo.body2">@FoodService.Summary(_request.FoodRequested, _request.DrinkRequested)</MudText>
+                        </MudStack>
+                        @if (_request.FoodApproved is not null || _request.DrinkApproved is not null)
+                        {
+                            <MudDivider Class="my-1" />
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.subtitle1"><b>Genehmigt</b></MudText>
+                                <MudText Typo="Typo.subtitle1"><b>@FoodService.Summary(_request.FoodApproved ?? 0, _request.DrinkApproved ?? 0)</b></MudText>
+                            </MudStack>
+                            @if (_request.LimitWeekStart is { } week)
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">Angerechnet auf @FoodWeek.Label(week)</MudText>
+                            }
+                        }
+                    </MudStack>
+                </MudPaper>
+
+                @if (!string.IsNullOrWhiteSpace(_request.Justification))
+                {
+                    <MudPaper Class="pa-4" Elevation="1">
+                        <MudText Typo="Typo.overline" Class="mud-text-secondary">Begründung</MudText>
+                        <MentionDisplay Text="@_request.Justification" User="_user" />
+                    </MudPaper>
+                }
+
+                @if (_request.OverrunFood is not null || _request.OverrunDrink is not null)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                        <b>Wochenlimit überschritten: @OverrunText</b>
+                        @if (!string.IsNullOrWhiteSpace(_request.OverrunReason))
+                        {
+                            <div><MentionDisplay Text="@_request.OverrunReason" /></div>
+                        }
+                    </MudAlert>
+                }
+
+                <MudPaper Class="pa-4" Elevation="1">
+                    <MudStack Spacing="1">
+                        <MudText Typo="Typo.body2">
+                            Gestellt am @_request.CreatedAt.ToLocalTime().ToString("dddd, d. MMMM yyyy 'um' HH:mm")
+                        </MudText>
+                        @if (_request.DecidedAt is { } decidedAt)
+                        {
+                            <MudText Typo="Typo.body2">
+                                Entschieden von @(_request.DeciderName ?? "—") am
+                                @decidedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            </MudText>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(_request.DecisionNote))
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary"><MentionDisplay Text="@_request.DecisionNote" /></MudText>
+                        }
+                        @if (_request.IssuedAt is { } issuedAt)
+                        {
+                            <MudText Typo="Typo.body2">
+                                Ausgegeben von @(_request.IssuedByName ?? "—") am
+                                @issuedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                @if (_mayOpenEvidence && !string.IsNullOrEmpty(_request.EvidenceEntryId))
+                                {
+                                    <MudLink Href="@($"/asservatenkammer/eintrag/{_request.EvidenceEntryId}")" Class="ml-1">
+                                        @(_entryCaseNumber is null ? "zur Herausnahme" : $"Herausnahme {_entryCaseNumber}")
+                                    </MudLink>
+                                }
+                            </MudText>
+                        }
+                    </MudStack>
+                </MudPaper>
+            </MudStack>
+        </RecordSection>
+
+        <RecordSection Slug="kommentare" Label="Kommentare" Icon="@Icons.Material.Filled.Comment">
+            <CommentPanel EntityType="@nameof(FoodRequest)" EntityId="@_request.Id" User="_user" />
+        </RecordSection>
+
+        <RecordSection Slug="historie" Label="Historie" Icon="@Icons.Material.Filled.History">
+            <TimelinePanel EntityType="@nameof(FoodRequest)" EntityId="@_request.Id" User="_user" />
+        </RecordSection>
+    </RecordSectionRail>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private ClaimsPrincipal _user = default!;
+    private FoodRequest? _request;
+    private string _agentCodename = "—";
+    private FoodLimitStatus _limit = FoodLimitStatus.Empty;
+    // stock per evidence item; only loaded while an issue is possible
+    private Dictionary<string, int>? _onHand;
+    private string? _entryCaseNumber;
+    private bool _mayDecide;
+    private bool _mayIssue;
+    private bool _mayWrite;
+    private bool _mayOpenEvidence;
+    private bool _isOwner;
+    private string? _loadedId;
+
+    /// <summary>The requester's own controls; read-only supervision and partners never get them.</summary>
+    private bool _mayActAsOwner => _isOwner && _mayWrite;
+
+    private bool _mayDelete => _request is not null
+        && _request.Status != FoodRequestStatus.Issued
+        && (_mayDecide || (_mayActAsOwner && _request.Status == FoodRequestStatus.Requested));
+
+    /// <summary>Lines the issue would book, with what is missing per line.</summary>
+    private List<(FoodRequestLine Line, int Missing)> Shortfalls => _request is null || _onHand is null
+        ? []
+        : _request.Lines
+            .Where(l => FoodService.EffectiveQuantity(l) > 0)
+            .Select(l => (Line: l, Missing: FoodService.EffectiveQuantity(l) - StockOf(l)))
+            .Where(x => x.Missing > 0)
+            .ToList();
+
+    private bool NothingApproved => _request is null || _request.Lines.All(l => FoodService.EffectiveQuantity(l) <= 0);
+
+    private bool CanIssue => _onHand is not null && !NothingApproved && Shortfalls.Count == 0;
+
+    private string IssueHint
+    {
+        get
+        {
+            if (NothingApproved)
+            {
+                return "Für diese Anforderung ist nichts genehmigt.";
+            }
+            if (_onHand is null)
+            {
+                return "Der Bestand konnte nicht geladen werden.";
+            }
+            var parts = Shortfalls.Select(s => string.IsNullOrEmpty(s.Line.EvidenceItemId)
+                ? $"„{s.Line.ItemName}“ ist keinem Gegenstand mehr zugeordnet"
+                : $"„{s.Line.ItemName}“: Bestand {StockOf(s.Line)}, benötigt {FoodService.EffectiveQuantity(s.Line)}");
+            return $"Nicht genug im FIB-Bestand — {string.Join("; ", parts)}.";
+        }
+    }
+
+    private string OverrunText => _request is null
+        ? string.Empty
+        : string.Join(", ", new[]
+        {
+            _request.OverrunFood is { } food ? $"Essen um {food}" : null,
+            _request.OverrunDrink is { } drink ? $"Trinken um {drink}" : null,
+        }.Where(p => p is not null));
+
+    private int StockOf(FoodRequestLine line)
+        => line.EvidenceItemId is { } itemId && _onHand is not null ? _onHand.GetValueOrDefault(itemId) : 0;
+
+    // record-to-record navigation reuses this component, so loading belongs here with an id guard
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loadedId == Id)
+        {
+            return;
+        }
+        _loadedId = Id;
+        _user = (await AuthStateTask).User;
+        _mayWrite = _user.MayWrite();
+        _mayDecide = _user.IsLeadership() && _mayWrite;
+        _mayIssue = _user.MayEvidenceWithdraw() && _mayWrite;
+        _mayOpenEvidence = _user.IsInternalAgent();
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        // blank the view while the next record loads, so no action ever acts on a mix of two requests
+        _load = true;
+        _request = null;
+        _onHand = null;
+        _entryCaseNumber = null;
+        _limit = FoodLimitStatus.Empty;
+
+        var loaded = await FoodRequests.GetAsync(Id, _user);
+        if (loaded is not null)
+        {
+            _agentCodename = loaded.Agent?.Codename ?? "(unbekannt)";
+            _isOwner = loaded.AgentId == _user.GetAgentId();
+            // an orphaned request has no requester left, so there is no limit to fold
+            if (_mayDecide && loaded.AgentId is not null)
+            {
+                _limit = await Limits.GetStatusAsync(loaded.AgentId);
+            }
+            if (_mayIssue && loaded.Status == FoodRequestStatus.Approved)
+            {
+                var itemIds = loaded.Lines
+                    .Select(l => l.EvidenceItemId)
+                    .OfType<string>()
+                    .Distinct()
+                    .ToList();
+                _onHand = await Evidence.GetOnHandManyAsync(itemIds);
+            }
+            if (_mayOpenEvidence && !string.IsNullOrEmpty(loaded.EvidenceEntryId))
+            {
+                _entryCaseNumber = (await Evidence.GetEntryAsync(loaded.EvidenceEntryId))?.CaseNumber;
+            }
+        }
+        _request = loaded;
+        _load = false;
+    }
+
+    private async Task ApproveAsync()
+    {
+        if (_request is null)
+        {
+            return;
+        }
+        var decision = await FoodDecisionDialog.ShowAsync(DialogService, _request, _limit);
+        if (decision is null)
+        {
+            return;
+        }
+        await RunAsync(() => FoodRequests.DecideAsync(Id, approved: true, decision, _user), "Anforderung angenommen.");
+    }
+
+    private async Task RejectAsync()
+    {
+        var note = await ReasonDialog.ShowAsync(DialogService, "Anforderung ablehnen?",
+            "Der Anforderer wird benachrichtigt. Die Ablehnung lässt sich später zurücknehmen.",
+            "Ablehnen", "Notiz", mandatoryReason: false, Color.Error);
+        if (note is null)
+        {
+            return;
+        }
+        await RunAsync(() => FoodRequests.DecideAsync(Id, approved: false,
+            new FoodDecisionInput { Note = note }, _user), "Anforderung abgelehnt.");
+    }
+
+    private async Task RevokeAsync()
+    {
+        var note = await ReasonDialog.ShowAsync(DialogService, "Genehmigung zurücknehmen?",
+            "Die Anforderung geht zurück auf „Angefordert“ und gibt das Wochenlimit wieder frei.",
+            "Zurücknehmen", "Notiz");
+        if (note is null)
+        {
+            return;
+        }
+        await RunAsync(() => FoodRequests.RevokeApprovalAsync(Id, reject: false, note, _user),
+            "Genehmigung zurückgenommen.");
+    }
+
+    private async Task IssueAsync()
+    {
+        if (_request is null)
+        {
+            return;
+        }
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Jetzt ausgeben?",
+            $"{FoodService.Summary(_request.FoodApproved ?? 0, _request.DrinkApproved ?? 0)} werden als Herausnahme aus dem FIB-Bestand der Asservatenkammer gebucht.",
+            "Ausgeben");
+        if (!ok)
+        {
+            return;
+        }
+        await RunAsync(() => FoodRequests.IssueAsync(Id, _user), "Verpflegung ausgegeben.");
+    }
+
+    private async Task CancelIssueAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Ausgabe stornieren?",
+            "Die Herausnahme wird aus der Asservatenkammer entfernt und die Anforderung geht zurück auf „Angenommen“.",
+            "Stornieren");
+        if (!ok)
+        {
+            return;
+        }
+        await RunAsync(() => FoodRequests.CancelIssueAsync(Id, _user), "Ausgabe storniert.");
+    }
+
+    private async Task WithdrawAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Anforderung zurückziehen?",
+            "Die Anforderung wird geschlossen und kann danach nicht mehr entschieden werden.", "Zurückziehen");
+        if (!ok)
+        {
+            return;
+        }
+        await RunAsync(() => FoodRequests.WithdrawAsync(Id, _user), "Anforderung zurückgezogen.");
+    }
+
+    private async Task DeleteAsync()
+    {
+        var ok = await ConfirmDialog.ShowAsync(DialogService, "Anforderung löschen?",
+            "Die Anforderung landet im Papierkorb und kann von der Führung wiederhergestellt werden.");
+        if (!ok)
+        {
+            return;
+        }
+        try
+        {
+            await FoodRequests.DeleteAsync(Id, _user);
+            Broadcaster.Report();
+            Snackbar.Add("Anforderung gelöscht.", Severity.Success);
+            Nav.NavigateTo("/verpflegung");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
+    private async Task RunAsync(Func<Task> action, string success)
+    {
+        try
+        {
+            await action();
+            Broadcaster.Report();
+            Snackbar.Add(success, Severity.Success);
+            await ReloadAsync();
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or UnauthorizedAccessException)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+}

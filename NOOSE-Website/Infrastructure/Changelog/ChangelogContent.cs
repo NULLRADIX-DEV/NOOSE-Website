@@ -798,6 +798,9 @@ public static class ChangelogContent
             Neu("3.0.70-befoerderungsgrund", "Wer eine Beförderung genehmigt, schreibt jetzt einen Beförderungsgrund dazu. "
                 + "Er steht am Antrag, und jede Beförderung erscheint mit ihm in einem eigenen Discord-Kanal, der den "
                 + "Beförderten anpingt.", "Personal"),
+            Neu("3.0.71-verpflegung", "Unter Verpflegung forderst du Essen und Getränke an. Die Führung entscheidet, "
+                + "jeder Agent hat ein Wochenlimit für Essen und eines für Trinken, und die Ausgabe bucht die Mengen "
+                + "von selbst als Herausnahme aus der Asservatenkammer.", "Verpflegung"),
         ]),
         new("3.1.00", new DateTime(2026, 11, 17), "Neue Navigation",
         [

@@ -7,6 +7,7 @@ using NOOSE_Website.Data.Entities.Jobs;
 using NOOSE_Website.Data.Entities.DrugRoutes;
 using NOOSE_Website.Data.Entities.Factions;
 using NOOSE_Website.Data.Entities.Financing;
+using NOOSE_Website.Data.Entities.Food;
 using NOOSE_Website.Data.Entities.Groups;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Data.Entities.Parties;
@@ -445,6 +446,11 @@ public class TimelineService(IDbContextFactory<AppDbContext> dbFactory) : ITimel
                 // lines are not soft-deletable, so no filter to ignore; quantity cuts show as line changes
                 ids.UnionWith(await db.FinancingRequestLines.Where(l => l.RequestId == id).Select(l => l.Id).ToListAsync(ct));
                 types.Add(nameof(FinancingRequestLine));
+                break;
+            case nameof(FoodRequest):
+                // lines never soft-deleted
+                ids.UnionWith(await db.FoodRequestLines.Where(l => l.RequestId == id).Select(l => l.Id).ToListAsync(ct));
+                types.Add(nameof(FoodRequestLine));
                 break;
             // the workspace gathers its registers; proceedings keep their own timeline and stay out
             case nameof(Data.Entities.Administration.AdministrationWorkspace):
