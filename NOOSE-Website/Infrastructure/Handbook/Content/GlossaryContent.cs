@@ -403,7 +403,7 @@ internal static class GlossaryContent
             "Die Übersichtsseite der Behörde mit den wichtigsten Zahlen und Gefährdungen.",
             Synonyms: "Dashboard", ArticleKey: "art-oberflaeche"),
         new("beg-meine-schicht", "Meine Schicht",
-            "Die Seite im Bereich Dienststelle, die zeigt, was gerade an dir hängt: Aufgaben, Wiedervorlagen, Erwähnungen.",
+            "Die Seite oben im Menü, die zeigt, was gerade an dir hängt: Aufgaben, Wiedervorlagen, Erwähnungen.",
             ArticleKey: "art-meine-schicht"),
         new("beg-feedback", "Feedback",
             "Die Meldung an die Betreiber der Seite, wenn etwas fehlt oder nicht funktioniert.",

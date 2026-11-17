@@ -37,8 +37,8 @@ internal static class GettingStartedChapter
             new Article("art-oberflaeche", "oberflaeche", "Aufbau der Oberfläche",
                 "Was wo liegt: Menü mit Bereichen, Kopfzeile, Profil- und Hilfe-Menü.",
                 """
-                <p>Links steht das <strong>Menü</strong>: oben das <em>Dashboard</em> und deine
-                <em>Favoriten</em>, darunter die Bereiche <em>Akten</em>, <em>Ermittlung &amp; Einsatz</em>,
+                <p>Links steht das <strong>Menü</strong>: oben das <em>Dashboard</em>, <em>Meine Schicht</em> und
+                deine <em>Favoriten</em>, darunter die Bereiche <em>Akten</em>, <em>Ermittlung &amp; Einsatz</em>,
                 <em>Analyse</em>, <em>Dienststelle</em> und, wenn deine Rechte reichen, <em>Leitung</em>. Ein Klick
                 auf den <strong>Namen</strong> eines Bereichs öffnet seine <strong>Übersicht</strong>: alle Seiten
                 des Bereichs, die du öffnen darfst, als Kacheln mit dem, was dort offen ist. Der <strong>Pfeil</strong>
@@ -68,7 +68,7 @@ internal static class GettingStartedChapter
             new Article("art-meine-schicht", "meine-schicht", "Meine Schicht",
                 "Eine Seite für die Frage, was gerade an dir hängt.",
                 """
-                <p><em>Meine Schicht</em> im Bereich <em>Dienststelle</em> sammelt auf einer Seite, was sonst auf
+                <p><em>Meine Schicht</em> ganz oben im Menü sammelt auf einer Seite, was sonst auf
                 fünf verteilt ist: deine <strong>offenen Aufgaben</strong>, deine fälligen und in den nächsten sieben
                 Tagen anstehenden <strong>Wiedervorlagen</strong>, ungelesene <strong>Erwähnungen</strong>, Einträge
                 am Brett und Absätze der Dienstverordnung, die du noch <strong>quittieren</strong> musst, Änderungen an

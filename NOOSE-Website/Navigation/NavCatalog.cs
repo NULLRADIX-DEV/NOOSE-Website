@@ -35,12 +35,16 @@ public static class NavCatalog
 
         new NavEntry("personen", "/personen", Icons.Material.Filled.Badge, "Personen-Akten", NavSection.Akten, NavArea.Akten,
             Description: "Zentrale Akte je Person — alles zu einer Person an einem Ort"),
+        // the three organisation lists share one drawer entry and switch among themselves (OrganisationSwitch)
         new NavEntry("fraktionen", "/fraktionen", Icons.Material.Filled.Groups, "Fraktionen", NavSection.Akten, NavArea.Akten,
-            Description: "Akten organisierter Gruppierungen mit Mitgliedern und Rängen"),
+            Description: "Akten organisierter Gruppierungen mit Mitgliedern und Rängen", InDrawer: false),
         new NavEntry("personengruppen", "/personengruppen", Icons.Material.Filled.Diversity3, "Personengruppen", NavSection.Akten, NavArea.Akten,
-            Description: "Lose Zusammenschlüsse ohne feste Fraktionsstruktur"),
+            Description: "Lose Zusammenschlüsse ohne feste Fraktionsstruktur", InDrawer: false),
         new NavEntry("parteien", "/parteien", Icons.Material.Filled.AccountBalance, "Parteien", NavSection.Akten, NavArea.Akten,
-            Description: "Politische Parteien mit Mitgliedern und Ausrichtung"),
+            Description: "Politische Parteien mit Mitgliedern und Ausrichtung", InDrawer: false),
+        // after "fraktionen" on purpose: ByRoute keeps the first of two equal routes, so the trail still says Fraktionen
+        new NavEntry("organisationen", "/fraktionen", Icons.Material.Filled.Groups, "Organisationen", NavSection.Akten, NavArea.Akten,
+            Description: "Fraktionen, Personengruppen und Parteien"),
         new NavEntry("drogenrouten", "/drogenrouten", Icons.Material.Filled.Route, "Drogenrouten", NavSection.Akten, NavArea.Akten,
             Description: "Routen des Drogenhandels mit Stationen, Beweisfotos und beteiligten Personen"),
         new NavEntry("vorgaenge", "/vorgaenge", Icons.Material.Filled.FolderSpecial, "Vorgänge", NavSection.VorgaengeEinsaetze, NavArea.Akten,
@@ -83,7 +87,8 @@ public static class NavCatalog
         new NavEntry("chronik", "/nachweis", Icons.Material.Filled.FactCheck, "Nachweis & Gegenaufklärung", NavSection.Analyse, NavArea.Analyse,
             Description: "Chronik, Änderungs- und Zugriffsprotokoll, Gegenaufklärung"),
 
-        new NavEntry("meine-schicht", "/meine-schicht", Icons.Material.Filled.WorkHistory, "Meine Schicht", NavSection.MeinDienst, NavArea.Dienststelle,
+        // at the top beside the dashboard; its section keeps it from partners
+        new NavEntry("meine-schicht", "/meine-schicht", Icons.Material.Filled.WorkHistory, "Meine Schicht", NavSection.MeinDienst, NavArea.Primary,
             Description: "Was heute an dir hängt: Aufgaben, Wiedervorlagen, Erwähnungen, Brett, Taskforces"),
         new NavEntry("brett", "/brett", Icons.Material.Filled.Campaign, "Schwarzes Brett", NavSection.Dienststelle, NavArea.Dienststelle, BadgeKey: "acknowledgments",
             Description: "Behördliche Ankündigungen, teils quittierungspflichtig"),

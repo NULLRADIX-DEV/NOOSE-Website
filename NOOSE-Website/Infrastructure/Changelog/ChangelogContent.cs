@@ -809,6 +809,10 @@ public static class ChangelogContent
                 "Bedienung"),
             Besser("3.1.02-personal-abschnitte", "Organigramm und Bestenliste sind jetzt Abschnitte der Seite Personal. "
                 + "Alte Links führen dorthin weiter.", "Bedienung"),
+            Besser("3.1.03-organisationen", "Fraktionen, Personengruppen und Parteien stehen im Menü als ein Eintrag "
+                + "Organisationen. Oben auf jeder der drei Listen wechselst du zwischen ihnen.", "Bedienung"),
+            Besser("3.1.04-meine-schicht-oben", "Meine Schicht steht im Menü jetzt ganz oben direkt unter dem Dashboard.",
+                "Bedienung"),
         ]),
     ];
 }
