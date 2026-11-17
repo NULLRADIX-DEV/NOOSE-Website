@@ -788,6 +788,8 @@ public static class ChangelogContent
                 "Personal"),
             Besser("3.0.66-kuendigung-ohne-sperre", "Eine Kündigung sperrt nicht mehr automatisch für neue Bewerbungen, "
                 + "damit eine Wiedereinstellung möglich bleibt.", "Personal"),
+            Besser("3.0.67-administration-tickets", "Die Administration Division liest jetzt die Bürger-Tickets mit, "
+                + "in ihrem eigenen Bereich. Antworten bleibt bei der Führung.", "Personal"),
         ]),
     ];
 }

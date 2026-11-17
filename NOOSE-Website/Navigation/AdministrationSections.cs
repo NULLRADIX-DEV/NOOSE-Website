@@ -51,6 +51,8 @@ public static class AdministrationSections
             "Pressemitteilungen schreiben und veröffentlichen"),
         new("parlament", "Parlamentarische Arbeit", Icons.Material.Filled.AccountBalance, Public, "administration.presse",
             "Parlamentarische Anfragen mit Frist"),
+        new("buergertickets", "Bürger-Tickets", Icons.Material.Filled.Forum, Public, "administration.presse",
+            "Anliegen und Beschwerden von Bürgern lesen"),
         new("zeitstrahl", "Zeitstrahl", Icons.Material.Filled.Timeline, History, "administration",
             "Was in der Administration zuletzt geschah"),
         new("wiedervorlagen", "Wiedervorlagen", Icons.Material.Filled.EventRepeat, History, "administration",

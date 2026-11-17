@@ -419,5 +419,18 @@ public class AdministrationTests
         Assert.Equal(2, AdministrationListFilter.Apply(rows, "  ").Count());
     }
 
+    [Fact]
+    public void Administration_reads_citizen_tickets_but_does_not_answer_them()
+    {
+        Assert.True(Hrb().MayTicketRead());
+        Permission.RequireTicketRead(Hrb());
+        Assert.True(NOOSE_Website.Services.Public.TicketVisibility.ReadsDesk(Hrb()));
+        Assert.False(NOOSE_Website.Services.Public.TicketVisibility.IsDesk(Hrb()));
+        Assert.Throws<UnauthorizedAccessException>(() => Permission.RequireTicketHandling(Hrb()));
+
+        Assert.False(Plain("agent").MayTicketRead());
+        Assert.Throws<UnauthorizedAccessException>(() => Permission.RequireTicketRead(Plain("agent")));
+    }
+
     private sealed record SearchRow(string AgentId, string Name, string Unit);
 }

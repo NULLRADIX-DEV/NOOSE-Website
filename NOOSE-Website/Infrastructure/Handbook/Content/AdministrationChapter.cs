@@ -123,6 +123,8 @@ internal static class AdministrationChapter
                 oder die Administration erfasst sie. Jede Anfrage hat eine Frist von sieben Tagen, überschrittene
                 Fristen sind rot. Wer sie bearbeitet, übernimmt sie, schreibt eine Antwort und gibt sie frei. Erst
                 dann sieht das Parlament die Antwort.</p>
+                <p>Unter <em>Bürger-Tickets</em> liest die Administration alle Anliegen und Beschwerden von Bürgern
+                mit. Interne Notizen kann sie dort schreiben, dem Bürger antwortet weiter die Führung.</p>
                 """,
                 NavKey: "administration.presse"),
 

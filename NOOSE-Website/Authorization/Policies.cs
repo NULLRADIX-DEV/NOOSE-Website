@@ -44,6 +44,9 @@ public static class Policies
     /// <summary>Leadership page access: leadership OR read-only supervision (opens read-only; write buttons stay on Leadership).</summary>
     public const string LeadershipPage = "FuehrungSeite";
 
+    /// <summary>The citizen ticket desk: leadership, supervision and the Administration Division; mirrors <c>Permission.RequireTicketRead</c>.</summary>
+    public const string TicketDesk = "BuergerTicketSchalter";
+
     /// <summary>Highest-classification page access: like HighestClassification plus read-only supervision.</summary>
     public const string HighestClassificationPage = "HoechsteEinstufungSeite";
 

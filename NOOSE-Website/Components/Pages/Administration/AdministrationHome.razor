@@ -63,6 +63,9 @@ else if (_user is not null)
         case "parlament":
             <ParliamentPanel User="_user" @key="_section.Slug" />
             break;
+        case "buergertickets":
+            <NOOSE_Website.Components.Pages.Tickets.TicketsInbox Embedded="true" @key="_section.Slug" />
+            break;
         case "zeitstrahl":
             <TimelinePanel EntityType="@WorkspaceType" EntityId="@WorkspaceId" User="_user" @key="_section.Slug" />
             break;

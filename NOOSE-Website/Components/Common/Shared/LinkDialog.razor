@@ -455,7 +455,7 @@
             _mayClassified = user.MayClassifiedRead();
             _mayBewerbung = user.IsHrbOrLeadership();
             _mayTip = user.IsInternalAgent();
-            _mayTicket = user.IsInternalAgent() && user.MayClassifiedRead();
+            _mayTicket = user.MayTicketRead();
             _mayPresentation = user.IsInternalAgent();
             _mayRegulation = user.IsInternalAgent();
             _mayWarrant = user.IsInternalAgent();
