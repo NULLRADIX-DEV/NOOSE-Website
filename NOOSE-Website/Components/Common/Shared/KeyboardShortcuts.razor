@@ -110,6 +110,13 @@
         }
     }
 
+    /// <summary>Opens the overview the "?" key shows, for the help menu.</summary>
+    public void ShowOverview()
+    {
+        _open = true;
+        StateHasChanged();
+    }
+
     /// <summary>A single key that needs no second one.</summary>
     [JSInvokable]
     public async Task Press(string key)

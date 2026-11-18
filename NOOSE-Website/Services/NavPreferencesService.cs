@@ -133,6 +133,10 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
     public Task SetDrawerOpenAsync(string agentId, bool open, CancellationToken cancellationToken = default)
         => MutateAsync(agentId, p => p.DrawerOpen = open, cancellationToken, notify: false);
 
+    // notifies: drawer and layout of this circuit swap their look right away
+    public Task SetNavStyleAsync(string agentId, string? style, CancellationToken cancellationToken = default)
+        => MutateAsync(agentId, p => p.NavStyle = style == NavPreferences.ClassicStyle ? style : null, cancellationToken);
+
     public Task SetGroupOpenAsync(string agentId, string area, bool open, CancellationToken cancellationToken = default)
         => MutateAsync(agentId, p =>
         {

@@ -1,4 +1,6 @@
-﻿@* One labelled column: start link, favorites, then one collapsible group per area the viewer may see. *@
+﻿@* The drawer in one of two looks the agent picks (NavPreferences.NavStyle), both over the same catalog, gates,
+   favorites and badges: the labelled list with a collapsible group per area, or the classic icon rail of areas
+   with a panel listing the selected one. *@
 @implements IDisposable
 @using NOOSE_Website.Navigation
 @using NOOSE_Website.Models.Navigation
@@ -8,6 +10,142 @@
 @inject NavigationManager Nav
 @inject NavBadgeState Badges
 
+@if (_prefs.UsesClassicNav)
+{
+<div class="noose-nav-klassisch">
+    <nav class="noose-nav-rail" aria-label="Bereiche" @onkeydown="RailKeyDownAsync">
+        @foreach (var entry in TopEntries)
+        {
+            <MudTooltip Text="@entry.Label" Placement="Placement.Right">
+                <MudIconButton Icon="@entry.Icon" Href="@entry.Route"
+                               Color="@(IsCurrent(entry) ? Color.Primary : Color.Default)"
+                               aria-label="@entry.Label"
+                               aria-current="@(IsCurrent(entry) ? "page" : null)" />
+            </MudTooltip>
+        }
+
+        @* saved views share the favorites panel, so either one is reason enough for the button *@
+        @if (_prefs.Favorites.Count > 0 || VisibleViews.Any())
+        {
+            <MudTooltip Text="Favoriten" Placement="Placement.Right">
+                <MudIconButton Icon="@Icons.Material.Filled.Star"
+                               Color="@(_favoritesOpen ? Color.Primary : Color.Default)"
+                               Class="@(_favoritesOpen ? "noose-nav-rail-active" : null)"
+                               OnClick="ShowFavorites" aria-label="Favoriten" />
+            </MudTooltip>
+        }
+
+        @* the first favorites one click away; the star above still opens the whole list *@
+        @foreach (var fav in RailFavorites)
+        {
+            <MudTooltip Text="@fav.Label" Placement="Placement.Right">
+                <MudIconButton Icon="@fav.Icon" Href="@fav.Route"
+                               Color="@(IsCurrentRoute(fav.Route) ? Color.Primary : Color.Default)"
+                               aria-label="@fav.Label"
+                               aria-current="@(IsCurrentRoute(fav.Route) ? "page" : null)" />
+            </MudTooltip>
+        }
+
+        <MudDivider Class="my-1" />
+
+        @for (var i = 0; i < _areas.Count; i++)
+        {
+            var area = _areas[i];
+            var index = i;
+            <MudTooltip Text="@NavAreaCatalog.Name(area)" Placement="Placement.Right">
+                <MudIconButton @ref="_railButtons[index]"
+                               Icon="@NavAreaCatalog.Icon(area)"
+                               Color="@(IsRailSelected(area) ? Color.Primary : Color.Default)"
+                               Class="@(IsRailSelected(area) ? "noose-nav-rail-active" : null)"
+                               OnClick="@(() => SelectRailAreaAsync(area))"
+                               aria-label="@NavAreaCatalog.Name(area)"
+                               aria-selected="@(IsRailSelected(area) ? "true" : "false")"
+                               aria-controls="noose-nav-panel"
+                               tabindex="@(IsRailSelected(area) ? 0 : -1)" />
+            </MudTooltip>
+        }
+    </nav>
+
+    <div class="noose-nav-panel" id="noose-nav-panel" role="region" aria-label="@PanelCaption">
+        <div class="d-flex align-center px-3 py-2">
+            @* the caption of an area with an overview leads there *@
+            @if (!_favoritesOpen && !Filtering && _railArea is { } captionArea && NavAreaCatalog.HubRoute(captionArea) is { } hub)
+            {
+                <a href="@hub" class="mud-typography mud-typography-overline mud-text-secondary noose-nav-panel-titel"
+                   title="@($"Übersicht {NavAreaCatalog.Name(captionArea)}")" @onclick="NotifyDrawerAsync">@PanelCaption</a>
+            }
+            else
+            {
+                <MudText Typo="Typo.overline" Class="mud-text-secondary">@PanelCaption</MudText>
+            }
+            <MudSpacer />
+            <MudTooltip Text="Navigation anpassen">
+                <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
+                               OnClick="OpenCustomizeAsync" aria-label="Navigation anpassen" />
+            </MudTooltip>
+        </div>
+
+        <AuthorizeView Policy="@Policies.InternalAgent" Context="classicFilterBox">
+            <div class="px-3 pb-2">
+                <MudTextField T="string" Value="_filter" ValueChanged="FilterChanged" Immediate="true" Clearable="true"
+                              Placeholder="Menü durchsuchen…" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.FilterList"
+                              aria-label="Menü durchsuchen" />
+            </div>
+        </AuthorizeView>
+
+        @* the MudNavMenu wrapper is load-bearing: MudBlazor scopes the active-link colour to it *@
+        <MudNavMenu Color="Color.Primary" Bordered="true">
+            @if (Filtering)
+            {
+                @foreach (var (caption, entries) in FilterHits())
+                {
+                    <MudText Typo="Typo.caption" Class="px-4 pt-2 pb-1 mud-text-secondary">@caption</MudText>
+                    @foreach (var entry in entries)
+                    {
+                        @NavLink(entry)
+                    }
+                }
+            }
+            else if (_favoritesOpen)
+            {
+                @foreach (var fav in _prefs.Favorites)
+                {
+                    @Favorite(fav)
+                }
+                @if (VisibleViews.Any())
+                {
+                    <MudText Typo="Typo.caption" Class="px-4 pt-3 pb-1 mud-text-secondary">Meine Ansichten</MudText>
+                    @foreach (var view in VisibleViews)
+                    {
+                        <MudNavLink Href="@view.Route" Match="NavLinkMatch.All" ActiveClass="" Icon="@view.Icon">@view.Label</MudNavLink>
+                    }
+                }
+            }
+            else if (_railArea is { } selected)
+            {
+                @foreach (var group in Captioned(VisibleEntries(selected)))
+                {
+                    @if (group.Caption is { } caption)
+                    {
+                        <MudText Typo="Typo.caption" Class="px-4 pt-2 pb-1 mud-text-secondary">@caption</MudText>
+                    }
+                    @foreach (var entry in group.Entries)
+                    {
+                        @NavLink(entry)
+                    }
+                }
+            }
+        </MudNavMenu>
+        @if (Filtering && FilterHits().Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="px-4 py-3 mud-text-secondary">Keine Treffer für „@_filter". Strg+K durchsucht auch Akten.</MudText>
+        }
+    </div>
+</div>
+}
+else
+{
 <nav class="noose-nav" aria-label="Hauptnavigation">
     @* the MudNavMenu wrappers are load-bearing: MudBlazor scopes the active-link colour to them *@
     <MudNavMenu Color="Color.Primary" Bordered="true" Class="pt-2">
@@ -77,7 +215,8 @@
             @GroupHeader(key, NavAreaCatalog.Name(area), NavAreaCatalog.Icon(area), badge?.Count ?? 0, badge?.Key, NavAreaCatalog.HubRoute(area))
             @if (open)
             {
-                <MudNavMenu Color="Color.Primary" Bordered="true" id="@GroupId(key)">
+                @* indented under its header with a guide line, so header and entries read apart at a glance *@
+                <MudNavMenu Color="Color.Primary" Bordered="true" id="@GroupId(key)" Class="noose-nav-unterpunkte">
                     @foreach (var group in Captioned(entries))
                     {
                         @if (group.Caption is { } caption)
@@ -99,6 +238,7 @@
                    OnClick="OpenCustomizeAsync" Class="mud-text-secondary">Navigation anpassen</MudButton>
     </div>
 </nav>
+}
 
 @code {
     [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
@@ -146,9 +286,11 @@
     {
         var open = IsOpen(group);
         var chevron = open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore;
+        var groupClass = open ? "noose-nav-group offen" : "noose-nav-group";
+        var buttonClass = open ? "noose-nav-group noose-nav-group-knopf offen" : "noose-nav-group noose-nav-group-knopf";
         if (hubRoute is null)
         {
-            <button type="button" class="noose-nav-group noose-nav-group-knopf" aria-expanded="@(open ? "true" : "false")"
+            <button type="button" class="@buttonClass" aria-expanded="@(open ? "true" : "false")"
                     aria-controls="@GroupId(group)" @onclick="@(() => ToggleAsync(group))">
                 <MudIcon Icon="@icon" Size="Size.Small" Class="mr-3" />
                 <span class="noose-nav-group-name">@label</span>
@@ -159,7 +301,7 @@
         else
         {
             var current = IsCurrentRoute(hubRoute);
-            <div class="noose-nav-group">
+            <div class="@groupClass">
                 <a href="@hubRoute" class="@(current ? "noose-nav-group-link aktiv" : "noose-nav-group-link")"
                    aria-current="@(current ? "page" : null)" title="@($"Übersicht {label}")"
                    @onclick="NotifyDrawerAsync">
@@ -182,7 +324,113 @@
     private Task NotifyDrawerAsync() => Drawer?.OnNavigation() ?? Task.CompletedTask;
 
     private bool IsCurrentRoute(string route)
-        => string.Equals("/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/'), route, StringComparison.OrdinalIgnoreCase);
+        => string.Equals("/" + Nav.ToBaseRelativePath(Nav.Uri).Split('?', '#')[0].TrimEnd('/'),
+                         route.Split('?', '#')[0].TrimEnd('/'), StringComparison.OrdinalIgnoreCase);
+
+    // ---- classic icon rail: one area at a time in the panel beside it
+
+    private NavArea? _railArea;
+    private bool _favoritesOpen;
+    private MudIconButton?[] _railButtons = [];
+
+    private bool IsRailSelected(NavArea area) => !_favoritesOpen && _railArea == area;
+
+    private string PanelCaption => Filtering
+        ? "Treffer"
+        : _favoritesOpen ? "Favoriten"
+        : _railArea is { } a ? NavAreaCatalog.Name(a).ToUpperInvariant()
+        : "Navigation";
+
+    /// <summary>How many favorites the rail shows directly, so the areas below stay in reach.</summary>
+    private const int RailFavoriteCount = 5;
+
+    private sealed record RailLink(string Label, string Route, string Icon);
+
+    // the same gates as the favorites panel, decided up front: a favorite the viewer may not open is skipped,
+    // so the next one moves up instead of leaving the rail one short
+    private IEnumerable<RailLink> RailFavorites => _prefs.Favorites
+        .Select(ResolveRailLink)
+        .OfType<RailLink>()
+        .Take(RailFavoriteCount);
+
+    private RailLink? ResolveRailLink(NavFavorite fav)
+    {
+        if (fav.Kind == "record")
+        {
+            return new RailLink(fav.Label, fav.Route, fav.Icon);
+        }
+        if (fav.Kind != "page")
+        {
+            return null;
+        }
+
+        var key = fav.Key ?? string.Empty;
+        if (NavCatalog.ByKey(key) is null && LegacyRoutes.AliasKey(key) is { } alias)
+        {
+            key = alias;
+        }
+        if (NavCatalog.ByKey(key) is { } e)
+        {
+            return Allowed(e) ? new RailLink(e.Label, e.Route, e.Icon) : null;
+        }
+        return _user?.IsPartner() == true && PartnerTypeAllowed(fav.Key) ? new RailLink(fav.Label, fav.Route, fav.Icon) : null;
+    }
+
+    // switching areas is not navigation; it only swaps what the panel lists
+    private async Task SelectRailAreaAsync(NavArea area)
+    {
+        _favoritesOpen = false;
+        _railArea = area;
+        if (!string.IsNullOrEmpty(_agentId))
+        {
+            await NavPrefs.SetLastAreaAsync(_agentId, area.ToString());
+        }
+    }
+
+    private void ShowFavorites() => _favoritesOpen = true;
+
+    // roving focus over the rail; the handler sits on the nav so it never steals keys from the filter field
+    private async Task RailKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (_areas.Count == 0)
+        {
+            return;
+        }
+        var current = _railArea is { } a ? Math.Max(0, _areas.IndexOf(a)) : 0;
+        var next = e.Key switch
+        {
+            "ArrowDown" or "ArrowRight" => (current + 1) % _areas.Count,
+            "ArrowUp" or "ArrowLeft" => (current - 1 + _areas.Count) % _areas.Count,
+            "Home" => 0,
+            "End" => _areas.Count - 1,
+            _ => -1,
+        };
+        if (next < 0)
+        {
+            return;
+        }
+        await SelectRailAreaAsync(_areas[next]);
+        if (_railButtons.Length > next && _railButtons[next] is { } button)
+        {
+            await button.FocusAsync();
+        }
+    }
+
+    // the area holding the current page wins over the remembered one
+    private void SyncRailArea()
+    {
+        var entry = NavCatalog.ByRoute(Nav.ToBaseRelativePath(Nav.Uri));
+        if (entry is not null && _areas.Contains(entry.Area))
+        {
+            _favoritesOpen = false;
+            _railArea = entry.Area;
+            return;
+        }
+        if (_railArea is null || !_areas.Contains(_railArea.Value))
+        {
+            _railArea = _areas.Count > 0 ? _areas[0] : null;
+        }
+    }
 
     private sealed record GroupBadgeSum(string Key, int Count);
 
@@ -348,6 +596,7 @@
         => _ = InvokeAsync(() =>
         {
             OpenCurrentGroup();
+            SyncRailArea();
             StateHasChanged();
         });
 
@@ -373,6 +622,11 @@
         }
         await BuildAreasAsync();
         OpenCurrentGroup();
+        if (Enum.TryParse<NavArea>(_prefs.LastArea, out var remembered) && _areas.Contains(remembered))
+        {
+            _railArea = remembered;
+        }
+        SyncRailArea();
 
         // prerender is a static snapshot: subscribing there would only hold a dead scope
         await Badges.InitializeAsync(_user, RendererInfo.IsInteractive);
@@ -401,6 +655,7 @@
             }
             _areas = NavAreaCatalog.Areas.Where(a => VisibleEntries(a).Count > 0).ToList();
         }
+        _railButtons = new MudIconButton?[_areas.Count];
     }
 
     // reload personalized menu after the customizer saved (same circuit)
@@ -411,6 +666,7 @@
             {
                 _prefs = await NavPrefs.GetAsync(_agentId);
                 await BuildAreasAsync();
+                SyncRailArea();
                 StateHasChanged();
             }
         });

@@ -13,12 +13,22 @@
     <ChildContent>
         <MudText Typo="Typo.overline" Class="d-block px-4 pt-1 mud-text-secondary">@NavAreaCatalog.Name(NavArea.Hilfe)</MudText>
         <NavEntryMenu Area="NavArea.Hilfe" />
+        @if (OnShortcuts.HasDelegate)
+        {
+            <MudDivider Class="my-1" />
+            <MudMenuItem Icon="@Icons.Material.Filled.Keyboard" OnClick="OnShortcuts">
+                <span class="d-inline-flex align-center">Tastenkürzel <kbd class="ml-2 noose-kbd">?</kbd></span>
+            </MudMenuItem>
+        }
     </ChildContent>
 </MudMenu>
 
 @code {
     /// <summary>Classes on the menu root, e.g. a helper class that hides it on phones.</summary>
     [Parameter] public string? Class { get; set; }
+
+    /// <summary>Opens the keyboard shortcut overview; the entry only shows when the layout wires it up.</summary>
+    [Parameter] public EventCallback OnShortcuts { get; set; }
 
     // unread directive sections are the only open item behind this menu
     private int Open => Badges.Count("regulation");

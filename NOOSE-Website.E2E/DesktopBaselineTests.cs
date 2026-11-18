@@ -94,7 +94,8 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     /// Wanted additions that master cannot have yet, removed from the layout on both sides; a mask would paint a box master lacks.
     /// Empty this once master carries them.
     /// </summary>
-    private const string HiddenSinceMaster = "";
+    /// <remarks>Group headers and indented entries restyle the drawer at the same width; the page body is still compared.</remarks>
+    private const string HiddenSinceMaster = "body:has(.noose-drawer) .noose-drawer { visibility: hidden !important; }";
 
     private async Task<Shot> ShootAsync(string baseUrl, Target target, DateTime now)
     {
