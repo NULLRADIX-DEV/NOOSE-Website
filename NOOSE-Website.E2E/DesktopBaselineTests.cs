@@ -94,19 +94,7 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     /// Wanted additions that master cannot have yet, removed from the layout on both sides; a mask would paint a box master lacks.
     /// Empty this once master carries them.
     /// </summary>
-    /// <remarks>
-    /// The new navigation (release 3.1) changes the internal chrome on purpose: drawer width, app bar menus, the
-    /// breadcrumb's group step and the organisation switch. Only pages with the internal drawer are touched, the
-    /// drawer is dropped and the content starts at the left edge on both sides, so every page body is still compared.
-    /// </remarks>
-    private const string HiddenSinceMaster = """
-        .noose-nav-rail .mud-tooltip-root:has([aria-label='Administration']) { display: none !important; }
-        body:has(.noose-drawer) .noose-drawer { display: none !important; }
-        body:has(.noose-drawer) .mud-main-content { margin-left: 0 !important; }
-        body:has(.noose-drawer) .mud-appbar { visibility: hidden !important; }
-        body:has(.noose-drawer) .mud-breadcrumbs { visibility: hidden !important; }
-        nav[aria-label='Organisationen'] { display: none !important; }
-        """;
+    private const string HiddenSinceMaster = "";
 
     private async Task<Shot> ShootAsync(string baseUrl, Target target, DateTime now)
     {
@@ -134,7 +122,8 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
                 await page.EmulateMediaAsync(new PageEmulateMediaOptions { Media = Media.Print });
             await RecordLinks.OpenAsync(page, path);
             // before any click: hiding chrome moves the content, and the mouse would rest on another column per side
-            await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = HiddenSinceMaster });
+            if (HiddenSinceMaster.Length > 0)
+                await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = HiddenSinceMaster });
             if (target.SortBy is not null && target.Route is not null)
                 await SortByAsync(page, target.SortBy);
             await page.EvaluateAsync(MarkMasksScript);
