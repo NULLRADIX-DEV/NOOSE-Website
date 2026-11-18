@@ -57,7 +57,7 @@
                                            aria-label="FIBI fragen" />
                         </MudTooltip>
                         @* phones read the same entries in the avatar menu below *@
-                        <HelpMenu Class="noose-mobil-aus" />
+                        <HelpMenu Class="noose-mobil-aus" OnShortcuts="ShowShortcuts" />
                     </AuthorizeView>
                     <NotificationBell User="auth.User" />
                     @* profile, personal lists and logout for every width; phones also find the bar's own buttons here *@
@@ -217,7 +217,7 @@
     <AuthorizeView Policy="@Policies.ActiveAgent">
         <Authorized Context="cp">
             <CommandPalette @ref="_palette" />
-            <KeyboardShortcuts />
+            <KeyboardShortcuts @ref="_shortcuts" />
             <RecentsTracker />
             <PresenceStamp />
         </Authorized>
@@ -351,6 +351,9 @@
     };
 
     private CommandPalette? _palette;
+    private KeyboardShortcuts? _shortcuts;
+
+    private void ShowShortcuts() => _shortcuts?.ShowOverview();
 
     private Task OpenPaletteAsync() => _palette?.Open() ?? Task.CompletedTask;
 

@@ -816,6 +816,9 @@ public static class ChangelogContent
                 + "Organisationen. Oben auf jeder der drei Listen wechselst du zwischen ihnen.", "Bedienung"),
             Besser("3.1.04-meine-schicht-oben", "Meine Schicht steht im Menü jetzt ganz oben direkt unter dem Dashboard.",
                 "Bedienung"),
+            Besser("3.1.05-menue-lesbarer", "Im Menü heben sich die Bereiche deutlicher ab, ihre Seiten stehen eingerückt "
+                + "darunter. Strg+K setzt den Cursor gleich ins Suchfeld, und das Fragezeichen-Menü führt zu den "
+                + "Tastenkürzeln.", "Bedienung"),
         ]),
     ];
 }

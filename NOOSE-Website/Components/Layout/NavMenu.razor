@@ -77,7 +77,8 @@
             @GroupHeader(key, NavAreaCatalog.Name(area), NavAreaCatalog.Icon(area), badge?.Count ?? 0, badge?.Key, NavAreaCatalog.HubRoute(area))
             @if (open)
             {
-                <MudNavMenu Color="Color.Primary" Bordered="true" id="@GroupId(key)">
+                @* indented under its header with a guide line, so header and entries read apart at a glance *@
+                <MudNavMenu Color="Color.Primary" Bordered="true" id="@GroupId(key)" Class="noose-nav-unterpunkte">
                     @foreach (var group in Captioned(entries))
                     {
                         @if (group.Caption is { } caption)
@@ -146,9 +147,11 @@
     {
         var open = IsOpen(group);
         var chevron = open ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore;
+        var groupClass = open ? "noose-nav-group offen" : "noose-nav-group";
+        var buttonClass = open ? "noose-nav-group noose-nav-group-knopf offen" : "noose-nav-group noose-nav-group-knopf";
         if (hubRoute is null)
         {
-            <button type="button" class="noose-nav-group noose-nav-group-knopf" aria-expanded="@(open ? "true" : "false")"
+            <button type="button" class="@buttonClass" aria-expanded="@(open ? "true" : "false")"
                     aria-controls="@GroupId(group)" @onclick="@(() => ToggleAsync(group))">
                 <MudIcon Icon="@icon" Size="Size.Small" Class="mr-3" />
                 <span class="noose-nav-group-name">@label</span>
@@ -159,7 +162,7 @@
         else
         {
             var current = IsCurrentRoute(hubRoute);
-            <div class="noose-nav-group">
+            <div class="@groupClass">
                 <a href="@hubRoute" class="@(current ? "noose-nav-group-link aktiv" : "noose-nav-group-link")"
                    aria-current="@(current ? "page" : null)" title="@($"Übersicht {label}")"
                    @onclick="NotifyDrawerAsync">

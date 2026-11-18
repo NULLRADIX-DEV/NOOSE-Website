@@ -2036,11 +2036,34 @@ div.vis-tooltip {
     align-items: stretch;
     width: 100%;
     margin-top: .25rem;
-    color: var(--mud-palette-text-secondary);
-    font-size: .75rem;
-    font-weight: 500;
-    letter-spacing: .08em;
+    border-top: 1px solid var(--mud-palette-lines-default);
+    color: var(--mud-palette-text-primary);
+    font-size: .8125rem;
+    font-weight: 700;
+    letter-spacing: .06em;
     text-transform: uppercase;
+}
+
+/* an open header carries a faint band, so the eye finds where a group starts */
+.noose-nav-group.offen { background-color: var(--mud-palette-action-default-hover); }
+
+/* entries sit indented under their header on a guide line, a size smaller than the header */
+.noose-nav-unterpunkte {
+    margin: .25rem 0 .5rem 1.5rem;
+    border-left: 1px solid var(--mud-palette-lines-default);
+}
+
+.noose-nav-unterpunkte .mud-nav-link {
+    padding-left: .75rem;
+    font-size: .875rem;
+}
+
+.noose-nav-unterpunkte .mud-nav-link .mud-nav-link-icon {
+    font-size: 1.125rem;
+}
+
+.noose-nav-unterpunkte .mud-nav-link:not(.active) .mud-nav-link-icon {
+    color: var(--mud-palette-text-secondary);
 }
 
 .noose-nav-group-knopf,
@@ -2093,6 +2116,16 @@ div.vis-tooltip {
 }
 
 .noose-avatar-knopf { min-width: 0; }
+
+/* a key cap next to a menu entry */
+.noose-kbd {
+    padding: 0 .4em;
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: .75rem;
+    color: var(--mud-palette-text-secondary);
+}
 
 /* Group overview tiles: the whole tile is a link */
 .noose-hub-kachel {

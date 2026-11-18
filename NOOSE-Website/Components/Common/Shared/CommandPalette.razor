@@ -155,6 +155,31 @@
         await LoadQuickAccessAsync();
         _open = true;
         await InvokeAsync(StateHasChanged);
+        await FocusSearchAsync();
+    }
+
+    // AutoFocus only catches the first opening; later the dialog reappears through the provider a beat after this
+    // render, so the field is focused once it is there
+    private async Task FocusSearchAsync()
+    {
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            await Task.Delay(40);
+            try
+            {
+                await InvokeAsync(async () => await _auto.FocusAsync());
+                return;
+            }
+            catch (Exception ex) when (attempt == 9)
+            {
+                /* best effort */
+                Logger.LogDebug(ex, "Suchfeld der Command-Palette ließ sich nicht fokussieren.");
+            }
+            catch
+            {
+                /* not rendered yet */
+            }
+        }
     }
 
     // refresh favorites + recents each time the palette opens
