@@ -23,6 +23,16 @@ public sealed class NavPreferences
     /// <summary>Drawer groups kept open, as "open:&lt;NavArea&gt;"; unprefixed values are legacy and ignored.</summary>
     public HashSet<string> CollapsedGroups { get; set; } = [];
 
+    /// <summary>Drawer look: <see cref="ClassicStyle"/> for the icon rail with a panel, null for the labelled list.</summary>
+    public string? NavStyle { get; set; }
+
+    /// <summary>Value of <see cref="NavStyle"/> for the icon rail the drawer had before the list.</summary>
+    public const string ClassicStyle = "klassisch";
+
+    /// <summary>True when the agent picked the icon rail.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool UsesClassicNav => NavStyle == ClassicStyle;
+
     /// <summary>Token for an open drawer group in <see cref="CollapsedGroups"/>.</summary>
     public static string OpenGroupToken(string area) => "open:" + area;
 

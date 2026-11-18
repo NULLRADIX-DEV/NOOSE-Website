@@ -2127,6 +2127,82 @@ div.vis-tooltip {
     color: var(--mud-palette-text-secondary);
 }
 
+/* Classic drawer the agent can pick instead: icon rail of areas + panel with that area's entries.
+   Everything below is scoped to .noose-drawer--klassisch, so the labelled list stays untouched. */
+/* .mud-drawer is a scrolling column, so the row shell needs its own overflow context. */
+.noose-drawer--klassisch { overflow: hidden; }
+
+.noose-nav-klassisch {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+}
+
+.noose-nav-rail {
+    flex: 0 0 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .25rem;
+    padding: .5rem 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--mud-palette-divider);
+    background-color: var(--mud-palette-background-gray);
+}
+
+.noose-nav-rail .mud-icon-button { border-radius: 8px; }
+
+.noose-nav-rail-active {
+    background-color: var(--mud-palette-primary-hover);
+    box-shadow: inset 3px 0 0 0 var(--mud-palette-primary);
+}
+
+.noose-nav-panel {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-y: auto;
+}
+
+.noose-nav-panel-titel { text-decoration: none; }
+.noose-nav-panel-titel:hover { text-decoration: underline; }
+
+@media (max-width: 959.98px) {
+    .noose-nav-rail { flex-basis: 56px; }
+}
+
+/* Desktop: the classic drawer rests at rail width and the entry panel expands over the content on hover.
+   (hover: hover) excludes touch devices, which could never collapse it again. */
+@media (min-width: 960px) and (hover: hover) and (pointer: fine) {
+    /* content clears the icon rail only; overriding the rule beats the container's inline width var */
+    .mud-drawer-open-responsive-md-left:has(.noose-drawer--klassisch) .mud-main-content { margin-left: 64px; }
+
+    /* 0-3-0 to beat .mud-drawer.mud-drawer-responsive.mud-drawer-pos-left */
+    .mud-drawer.mud-drawer-responsive.noose-drawer--klassisch {
+        width: 64px;
+        transition: width 225ms cubic-bezier(0, 0, 0.2, 1),
+                    box-shadow 225ms cubic-bezier(0, 0, 0.2, 1);
+    }
+
+    .mud-drawer.mud-drawer-responsive.noose-drawer--klassisch:hover {
+        width: 300px;
+        box-shadow: var(--mud-elevation-8);
+    }
+
+    /* keyboard focus only, and in its own rule: :focus-within would also match the link the mouse just clicked */
+    .mud-drawer.mud-drawer-responsive.noose-drawer--klassisch:has(:focus-visible) {
+        width: 300px;
+        box-shadow: var(--mud-elevation-8);
+    }
+
+    /* fixed width, or flex would squeeze the entries to zero during the animation */
+    .noose-drawer--klassisch .noose-nav-panel { flex: 0 0 236px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mud-drawer.mud-drawer-responsive.noose-drawer--klassisch { transition: none; }
+}
+
 /* Group overview tiles: the whole tile is a link */
 .noose-hub-kachel {
     display: block;
@@ -2881,7 +2957,9 @@ div.vis-tooltip {
     }
 
     /* a swipe at the end of the list stays in the drawer instead of scrolling the page behind it */
-    .mud-drawer.noose-drawer {
+    .mud-drawer.noose-drawer,
+    .noose-drawer--klassisch .noose-nav-rail,
+    .noose-drawer--klassisch .noose-nav-panel {
         overscroll-behavior: contain;
     }
 }

@@ -18,6 +18,12 @@
         {
             <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="mt-1 noose-reiter-handy">
                 <MudTabPanel Text="Menü" Icon="@Icons.Material.Filled.Reorder">
+                    @* only the look changes; areas, entries and their order are the same in both *@
+                    <MudText Typo="Typo.subtitle2">Darstellung</MudText>
+                    <MudRadioGroup T="bool" Value="_prefs.UsesClassicNav" ValueChanged="OnNavStyleChangedAsync" Class="mb-3">
+                        <MudRadio T="bool" Value="false" Color="Color.Primary">Liste mit aufklappbaren Bereichen</MudRadio>
+                        <MudRadio T="bool" Value="true" Color="Color.Primary">Klassische Symbolleiste mit Panel</MudRadio>
+                    </MudRadioGroup>
                     <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                         Blende nicht genutzte Einträge mit dem Auge aus, ziehe Einträge in deine Wunsch-Reihenfolge
                         und markiere häufig genutzte mit dem Stern als Favorit.
@@ -270,6 +276,9 @@
 
     private Task OnGlossarBlasenChangedAsync(bool enabled)
         => RunAsync(() => NavPrefs.SetGlossarBlasenAsync(_agentId, enabled));
+
+    private Task OnNavStyleChangedAsync(bool classic)
+        => RunAsync(() => NavPrefs.SetNavStyleAsync(_agentId, classic ? NavPreferences.ClassicStyle : null));
 
     private Task OnStartRouteChangedAsync(string route)
         => RunAsync(() => NavPrefs.SetStartRouteAsync(_agentId, route == "/dashboard" ? null : route));

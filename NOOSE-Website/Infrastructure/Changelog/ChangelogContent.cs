@@ -819,6 +819,8 @@ public static class ChangelogContent
             Besser("3.1.05-menue-lesbarer", "Im Menü heben sich die Bereiche deutlicher ab, ihre Seiten stehen eingerückt "
                 + "darunter. Strg+K setzt den Cursor gleich ins Suchfeld, und das Fragezeichen-Menü führt zu den "
                 + "Tastenkürzeln.", "Bedienung"),
+            Neu("3.1.06-klassische-leiste", "Unter Navigation anpassen wählst du zwischen der neuen Liste und der "
+                + "klassischen Symbolleiste mit Panel. Bereiche und Seiten sind in beiden dieselben.", "Bedienung"),
         ]),
     ];
 }
