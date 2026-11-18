@@ -45,6 +45,10 @@ internal static class GettingStartedChapter
                 daneben klappt den Bereich nur auf oder zu. Der Bereich der Seite, auf der du gerade bist, steht immer
                 offen, und ein zugeklappter Bereich zeigt, wie viel darin offen ist. Über der Seite führt die
                 Pfadzeile ebenfalls zur Übersicht zurück.</p>
+                <p>Lieber die <strong>klassische Symbolleiste</strong>? Unter <em>Navigation anpassen</em> stellst du
+                die Darstellung um: links eine schmale Leiste mit einem Symbol je Bereich, daneben die Seiten des
+                gewählten Bereichs. Bereiche, Seiten, Favoriten und deine Reihenfolge sind in beiden Darstellungen
+                dieselben.</p>
                 <p>Oben rechts findest du die Suche, <em>FIBI</em>, das <strong>Fragezeichen</strong> und die
                 Glocke. Hinter dem Fragezeichen liegt alles zum Nachschlagen: Handbuch, Neuerungen, Gesetzbuch,
                 Dienstverordnung, Funkplan, Dokumente und Feedback. Ein Klick auf <strong>deinen Namen</strong>

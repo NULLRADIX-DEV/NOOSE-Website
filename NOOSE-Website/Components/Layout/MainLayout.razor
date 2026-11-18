@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject NavigationManager Nav
 @inject ISystemSettingService SettingService
 @inject IPartnerVisibilityPolicyService PartnerPolicy
@@ -113,7 +114,8 @@
     @* one labelled column; capped so it fits small phones *@
     <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always"
                Variant="DrawerVariant.Responsive" Breakpoint="Breakpoint.Md"
-               Width="264px" Class="noose-drawer" Style="max-width:88vw;">
+               Width="@(_classicNav ? "300px" : "264px")"
+               Class="@(_classicNav ? "noose-drawer noose-drawer--klassisch" : "noose-drawer")" Style="max-width:88vw;">
         @* signed in is not enough: a citizen on an internal URL lands here, and most sections only shut out partners *@
         <AuthorizeView Policy="@Policies.ActiveAgent">
             <Authorized>
@@ -228,6 +230,22 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
     private bool _drawerOpen = true;
+
+    // the classic icon rail is wider at rest and folds to its rail on desktop (app.css)
+    private bool _classicNav;
+
+    // the customizer switches the look within this circuit; the drawer follows without a reload
+    private void OnNavPrefsChanged()
+        => _ = InvokeAsync(async () =>
+        {
+            if (!string.IsNullOrEmpty(_agentId))
+            {
+                _classicNav = (await NavPrefs.GetAsync(_agentId)).UsesClassicNav;
+                StateHasChanged();
+            }
+        });
+
+    public void Dispose() => NavPrefs.Changed -= OnNavPrefsChanged;
     private string? _agentId;
     private string _search = string.Empty;
     private SystemConfiguration? _configuration;
@@ -263,7 +281,10 @@
             _agentId = user.GetAgentId();
             if (!string.IsNullOrEmpty(_agentId))
             {
-                _drawerOpen = (await NavPrefs.GetAsync(_agentId)).DrawerOpen;
+                var prefs = await NavPrefs.GetAsync(_agentId);
+                _drawerOpen = prefs.DrawerOpen;
+                _classicNav = prefs.UsesClassicNav;
+                NavPrefs.Changed += OnNavPrefsChanged;
                 // read once per circuit; a fresh picture shows after the next reload
                 try { _avatarUrl = AgentAvatar.Url((await AgentService.FindAsync(_agentId))?.AvatarFileName); }
                 catch { /* best effort */ }

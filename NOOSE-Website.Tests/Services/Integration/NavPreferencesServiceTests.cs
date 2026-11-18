@@ -317,6 +317,33 @@ public sealed class NavPreferencesServiceTests : IDisposable
         Assert.Contains("Akten", Stored("a1").CollapsedGroups);
     }
 
+    // ---------------------------------------------------------------- SetNavStyleAsync
+
+    [Fact]
+    public async Task SetNavStyleAsync_SwitchesBetweenListAndClassicRail()
+    {
+        SeedAgent("a1");
+        var svc = NewService();
+
+        await svc.SetNavStyleAsync("a1", NavPreferences.ClassicStyle);
+        Assert.True(Stored("a1").UsesClassicNav);
+
+        await svc.SetNavStyleAsync("a1", null);
+        Assert.False(Stored("a1").UsesClassicNav);
+        Assert.Null(Stored("a1").NavStyle);
+    }
+
+    [Fact]
+    public async Task SetNavStyleAsync_IgnoresUnknownStyles()
+    {
+        SeedAgent("a1");
+        var svc = NewService();
+
+        await svc.SetNavStyleAsync("a1", "irgendwas");
+
+        Assert.Null(Stored("a1").NavStyle);
+    }
+
     // ---------------------------------------------------------------- SetGroupOpenAsync
 
     [Fact]
