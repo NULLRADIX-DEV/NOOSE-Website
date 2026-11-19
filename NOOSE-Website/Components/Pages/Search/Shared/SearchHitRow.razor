@@ -32,7 +32,7 @@
             case SearchHitShape.Content:
                 @* the title is the PARENT record's name: the content itself has no page *@
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">in</MudText>
-                <MudText Typo="Typo.body2"><b>@Hit.Title</b></MudText>
+                <MudText Typo="Typo.body2"><b><MarkedText Text="@Hit.Title" Query="@Query" /></b></MudText>
                 @if (!string.IsNullOrWhiteSpace(Hit.CaseNumber))
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@Hit.CaseNumber</MudText>
@@ -44,14 +44,14 @@
                 break;
 
             case SearchHitShape.Log:
-                <MudText Typo="Typo.body2"><b>@Hit.Title</b></MudText>
+                <MudText Typo="Typo.body2"><b><MarkedText Text="@Hit.Title" Query="@Query" /></b></MudText>
                 <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @When()@(Hit.Actor is null ? null : " · " + Hit.Actor)
                 </MudText>
                 break;
 
             case SearchHitShape.Personal:
-                <MudText Typo="Typo.body2"><b>@Hit.Title</b></MudText>
+                <MudText Typo="Typo.body2"><b><MarkedText Text="@Hit.Title" Query="@Query" /></b></MudText>
                 @if (Hit.Timestamp is not null)
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@When()</MudText>
@@ -59,7 +59,7 @@
                 break;
 
             default:
-                <MudText Typo="Typo.body2"><b>@Hit.Title</b></MudText>
+                <MudText Typo="Typo.body2"><b><MarkedText Text="@Hit.Title" Query="@Query" /></b></MudText>
                 @if (!string.IsNullOrWhiteSpace(Hit.CaseNumber))
                 {
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">@Hit.CaseNumber</MudText>
@@ -90,7 +90,7 @@
     @if (!string.IsNullOrWhiteSpace(Hit.Snippet))
     {
         @* two lines, not one: a content hit needs the context around the match to be recognisable *@
-        <MudText Typo="Typo.body2" Class="mud-text-secondary suche-snippet mt-1">@Hit.Snippet</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary suche-snippet mt-1"><MarkedText Text="@Hit.Snippet" Query="@Query" /></MudText>
     }
 </MudPaper>
 
@@ -108,6 +108,9 @@
 
     /// <summary>A watched saved search reported this hit since the agent last looked.</summary>
     [Parameter] public bool IsNew { get; set; }
+
+    /// <summary>The searched text; its words are marked in title and snippet.</summary>
+    [Parameter] public string? Query { get; set; }
 
     private string? When() => Hit.Timestamp?.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
 
