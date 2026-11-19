@@ -52,7 +52,7 @@ public static class MergedPageSections
 
     public static readonly string[] Statistics =
     [
-        "ueberblick", "bestand", "aktivitaet", "bedrohung", "entfuehrungen", "netzwerk", "kasse", "finanzierung", "verpflegung", "dienststelle", "lageberichte",
+        "ueberblick", "bestand", "aktivitaet", "bedrohung", "entfuehrungen", "netzwerk", "kasse", "finanzierung", "verpflegung", "dienststelle", "nutzung", "lageberichte",
     ];
 
     public static readonly string[] Financing =

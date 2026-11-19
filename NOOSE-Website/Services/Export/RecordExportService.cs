@@ -5,11 +5,14 @@ using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
 using NOOSE_Website.Infrastructure.Export;
 using NOOSE_Website.Models.Export;
+using NOOSE_Website.Services.Usage;
 
 namespace NOOSE_Website.Services.Export;
 
-public sealed class RecordExportService(IDbContextFactory<AppDbContext> dbFactory, IAccessLogService accessLog)
-    : IRecordExportService
+public sealed class RecordExportService(
+    IDbContextFactory<AppDbContext> dbFactory,
+    IAccessLogService accessLog,
+    IUsageTracker? usage = null) : IRecordExportService
 {
     public async Task<ExportFile> ListAsync(string recordType, IEnumerable<string> head,
         IEnumerable<IEnumerable<string>> rows, ClaimsPrincipal viewer, CancellationToken cancellationToken = default)
@@ -20,6 +23,10 @@ public sealed class RecordExportService(IDbContextFactory<AppDbContext> dbFactor
         var list = rows.ToList();
         var bytes = CsvHelper.Generate(head, list);
         await accessLog.LogViewAsync(ExportLog.Type, ExportLog.List(recordType, list.Count), cancellationToken);
+        if (usage is not null)
+        {
+            await usage.TrackAsync(viewer, UsageCatalog.ExportList, cancellationToken);
+        }
         return new ExportFile($"{slug}-{MeetingTime.Day(DateTime.UtcNow):yyyy-MM-dd}.csv", "text/csv; charset=utf-8", bytes);
     }
 
@@ -43,6 +50,10 @@ public sealed class RecordExportService(IDbContextFactory<AppDbContext> dbFactor
 
         var markdown = DossierMarkdown.Render(d, viewer.GetCodename() ?? "unbekannt", DateTime.UtcNow);
         await accessLog.LogViewAsync(ExportLog.Type, ExportLog.Dossier(recordType, recordId), cancellationToken);
+        if (usage is not null)
+        {
+            await usage.TrackAsync(viewer, UsageCatalog.ExportDossier, cancellationToken);
+        }
         return new ExportFile(DossierMarkdown.FileName(d.Title), "text/markdown; charset=utf-8",
             Encoding.UTF8.GetBytes(markdown));
     }

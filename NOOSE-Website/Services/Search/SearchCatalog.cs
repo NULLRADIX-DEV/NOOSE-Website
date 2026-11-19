@@ -527,6 +527,7 @@ public static class SearchCatalog
             ["FinancingBudgetPeriod"] = "Abgeleiteter Kontostand.",
             ["LlmQuotaPeriod"] = "Abgeleiteter Kontingentstand.",
             ["FindingReport"] = "Meldebuch der Gegenaufklärung; nennt auffällige Agenten und bleibt bei der Führung.",
+            ["UsageDay"] = "Anonyme Nutzungszähler ohne Text; die Auswertung steht auf /statistik.",
             ["LlmQuotaAdjustment"] = "Begründung einer Kontingent-Korrektur; nur der KI-Eigner darf sie lesen.",
             ["LeadDismissal"] = "Abgeleiteter Zustand des Hinweis-Feeds.",
             ["EnumLabelOverride"] = "Bezeichnungs-Konfiguration ohne Aktenbezug.",

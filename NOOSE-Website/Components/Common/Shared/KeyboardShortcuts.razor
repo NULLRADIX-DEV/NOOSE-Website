@@ -3,6 +3,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager Nav
 @inject IAuthorizationService Authorization
+@inject IUsageTracker Usage
 @implements IAsyncDisposable
 
 <MudDialog @bind-Visible="_open" Options="_options">
@@ -125,12 +126,19 @@
         {
             case "?":
                 _open = true;
+                await Usage.TrackAsync(_user, UsageCatalog.HotkeyHelp);
                 break;
             case "n":
-                Create();
+                if (Create())
+                {
+                    await Usage.TrackAsync(_user, UsageCatalog.HotkeyNew);
+                }
                 break;
             case "e":
-                Edit();
+                if (Edit())
+                {
+                    await Usage.TrackAsync(_user, UsageCatalog.HotkeyEdit);
+                }
                 break;
         }
         await InvokeAsync(StateHasChanged);
@@ -146,33 +154,39 @@
             && NavCatalog.ByKey(key) is { } entry)
         {
             Nav.NavigateTo(entry.Route);
+            await Usage.TrackAsync(_user, UsageCatalog.HotkeyGoto(key));
         }
         await InvokeAsync(StateHasChanged);
     }
 
-    private void Create()
+    /// <summary>True when the key led somewhere; a press on a page with nothing to create is no use.</summary>
+    private bool Create()
     {
         // creating is barred for read-only supervision and demo accounts, same as in the palette
         if (_user?.MayWrite() != true)
         {
-            return;
+            return false;
         }
         if (ShortcutRoutes.NewRouteFor(CurrentPath) is { } route)
         {
             Nav.NavigateTo(route);
+            return true;
         }
+        return false;
     }
 
-    private void Edit()
+    private bool Edit()
     {
         if (_user?.MayWrite() != true)
         {
-            return;
+            return false;
         }
         if (ShortcutRoutes.EditRouteFor(CurrentPath) is { } route)
         {
             Nav.NavigateTo(route);
+            return true;
         }
+        return false;
     }
 
     public async ValueTask DisposeAsync()

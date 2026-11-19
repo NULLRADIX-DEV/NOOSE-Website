@@ -1,5 +1,6 @@
 @* Shared frame for all print views; opens the browser print dialog on first render. *@
 @inject IJSRuntime JS
+@inject IUsageTracker Usage
 
 <div class="no-print druck-aktionen">
     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="Print">
@@ -42,10 +43,17 @@
     [Parameter] public bool AutomaticPrint { get; set; } = true;
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     private bool _printTriggered;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        // kind only, never the record
+        if (firstRender && AuthStateTask is not null)
+        {
+            await Usage.TrackAsync((await AuthStateTask).User, UsageCatalog.PrintView);
+        }
         if (firstRender && AutomaticPrint && !_printTriggered)
         {
             _printTriggered = true;

@@ -821,6 +821,9 @@ public static class ChangelogContent
                 + "Tastenkürzeln.", "Bedienung"),
             Neu("3.1.06-klassische-leiste", "Unter Navigation anpassen wählst du zwischen der neuen Liste und der "
                 + "klassischen Symbolleiste mit Panel. Bereiche und Seiten sind in beiden dieselben.", "Bedienung"),
+            Neu("3.1.07-nutzungsstatistik", "Admins sehen bei der Statistik im Abschnitt Nutzung, welche Funktionen "
+                + "wie oft genutzt werden und welche kaum, ganz ohne Namen, Akten oder Suchtexte. Im Profil schaltest du "
+                + "ab, dass deine Nutzung mitgezählt wird.", "Statistik"),
         ]),
     ];
 }

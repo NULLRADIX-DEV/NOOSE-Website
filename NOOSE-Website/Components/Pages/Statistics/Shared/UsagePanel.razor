@@ -1,0 +1,163 @@
+@* Anonymous feature usage: which functions are used, and which hardly at all. Counters only, never a person. *@
+@using NOOSE_Website.Models.Navigation
+@using NOOSE_Website.Models.Statistics
+@using NOOSE_Website.Services.Usage
+@inject IUsageStatisticsService Stats
+
+<div class="dashboard-seite">
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+        <MudText Typo="Typo.body2">
+            Diesen Abschnitt sehen nur Admins, weder die Führung noch die Aufsicht.
+            Gezählt wird nur, <strong>welche Funktion</strong> an <strong>welchem Tag</strong> wie oft benutzt wurde und von
+            <strong>wie vielen verschiedenen Agenten</strong>. Es wird nie gespeichert, wer es war, welche Akte offen war,
+            wonach gesucht oder was FIBI gefragt wurde, und auch keine Uhrzeit. Weniger als @UsageRules.MinShownAgents Agenten
+            erscheinen als „&lt; @UsageRules.MinShownAgents“. Wer nicht mitgezählt werden will, schaltet das im Profil ab.
+            Die Zahlen dienen dazu, Funktionen zu verbessern, die niemand findet oder nutzt, nicht dazu, jemanden zu überwachen.
+            Aufbewahrt werden sie @UsageRules.RetentionDays Tage.
+        </MudText>
+    </MudAlert>
+
+    @if (_first)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-1">
+            @_data.From.ToString("dd.MM.yyyy") bis @_data.To.ToString("dd.MM.yyyy")
+            @if (_data.FirstDay is { } firstDay)
+            {
+                <text> · erfasst seit @firstDay.ToString("dd.MM.yyyy")</text>
+            }
+            else
+            {
+                <text> · noch nichts erfasst</text>
+            }
+        </MudText>
+        @if (_data.ClippedByRetention)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-1">
+                Der gewählte Zeitraum reicht weiter zurück, als Zahlen aufbewahrt werden.
+            </MudText>
+        }
+        @if (_data.FirstDay is { } start && start > _data.From)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-1">
+                Vor dem @start.ToString("dd.MM.yyyy") wurde nichts erfasst, eine Null davor sagt nichts über die Nutzung.
+            </MudText>
+        }
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+            Agenten-Tage: je Tag die verschiedenen Agenten, über den Zeitraum addiert. Dieselbe Person an zwei Tagen zählt zweimal.
+        </MudText>
+
+        <MudStack Row="true" Justify="Justify.FlexEnd" Class="mb-2">
+            @* "Spalten" shows below 600px only *@
+            <MobileColumnPicker ListKey="nutzung" Columns="PhoneColumns" Defaults="PhoneDefaults"
+                                VisibleChanged="@(v => _phoneColumns = v)" />
+        </MudStack>
+
+        <MudText Typo="Typo.h6" Class="mb-1">Kaum oder nie genutzt</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+            Funktionen mit weniger als @UsageRules.MinShownAgents Agenten-Tagen im Zeitraum. Ein Kandidat zum Verbessern, kein Urteil.
+        </MudText>
+        @if (_rare.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Jede Funktion wurde im Zeitraum genutzt.</MudText>
+        }
+        else
+        {
+            @UsageTable(_showAllRare ? _rare : _rare.Take(RareLimit).ToList(), true)
+            @if (_rare.Count > RareLimit)
+            {
+                <MudButton Variant="Variant.Text" Size="Size.Small" Class="mt-1 mb-3"
+                           OnClick="@(() => _showAllRare = !_showAllRare)">
+                    @(_showAllRare ? "Weniger anzeigen" : $"Alle {_rare.Count} anzeigen")
+                </MudButton>
+            }
+        }
+
+        @foreach (var group in _groups)
+        {
+            <MudText Typo="Typo.h6" Class="mt-4 mb-1">@group.Key</MudText>
+            @UsageTable(group.Value, false)
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter] private StatisticsScope Scope { get; set; } = new(false, StatisticsRange.Months12);
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private const int RareLimit = 25;
+
+    private bool _first = true;
+    private bool _showAllRare;
+    private string _loaded = string.Empty;
+    private UsageStatistics _data = UsageStatistics.Empty;
+    private List<UsageRow> _rare = [];
+    private List<KeyValuePair<string, List<UsageRow>>> _groups = [];
+
+    // keys in lower case without umlauts, as the picker keeps them per agent
+    private static readonly IReadOnlyList<(string Key, string Label)> PhoneColumns =
+        [("funktion", "Funktion"), ("ereignisse", "Ereignisse"), ("agententage", "Agenten-Tage")];
+
+    private static readonly IReadOnlyList<string> PhoneDefaults = ["funktion", "agententage"];
+
+    private IReadOnlySet<string> _phoneColumns =
+        MobileColumnSet.Resolve(PhoneColumns.Select(c => c.Key).ToList(), PhoneDefaults, null);
+
+    // below 600px only; from 600px up every column shows
+    private string Col(string key) => MobileColumnSet.ClassFor(_phoneColumns, key);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // the data depends on the range only, not on the classified switch
+        var token = StatisticsRangeDisplay.Token(Scope.Range);
+        if (_loaded == token)
+        {
+            return;
+        }
+        _loaded = token;
+        var user = (await AuthStateTask).User;
+        _data = await Stats.GetAsync(user, Scope);
+        _rare = _data.Rows
+            .Where(r => r.AgentDays < UsageRules.MinShownAgents)
+            .OrderBy(r => r.Events == 0 ? 0 : 1).ThenBy(r => r.AgentDays).ThenBy(r => r.Label, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        _groups = _data.Rows
+            .GroupBy(r => r.Group)
+            .Select(g => new KeyValuePair<string, List<UsageRow>>(g.Key,
+                g.OrderByDescending(r => r.Events).ThenBy(r => r.Label, StringComparer.CurrentCultureIgnoreCase).ToList()))
+            .ToList();
+        _first = false;
+    }
+
+    private RenderFragment UsageTable(IReadOnlyList<UsageRow> rows, bool showGroup) => __builder =>
+    {
+        <MudSimpleTable Dense="true" Hover="true" Striped="true">
+            <thead>
+                <tr>
+                    <th class="@Col("funktion")">Funktion</th>
+                    <th class="@Col("ereignisse")" style="text-align:right;">Ereignisse</th>
+                    <th class="@Col("agententage")" style="text-align:right;">Agenten-Tage</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td class="@Col("funktion")">
+                            @row.Label
+                            @if (showGroup)
+                            {
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@row.Group</MudText>
+                            }
+                        </td>
+                        <td class="@Col("ereignisse")" style="text-align:right;">@row.Events.ToString("N0")</td>
+                        <td class="@Col("agententage")" style="text-align:right;">@UsageRules.AgentDays(row.AgentDays)</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    };
+}
