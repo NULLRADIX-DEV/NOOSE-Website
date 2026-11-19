@@ -1,0 +1,19 @@
+@using NOOSE_Website.Services.Search
+@* plain text nodes plus <mark>: no MarkupString, so a title or snippet can never inject markup *@
+@foreach (var (part, hit) in SearchSnippet.Segments(Text, Query))
+{
+    if (hit)
+    {
+        <mark class="suche-treffer">@part</mark>
+    }
+    else
+    {
+        @part
+    }
+}
+
+@code {
+    [Parameter] public string? Text { get; set; }
+
+    [Parameter] public string? Query { get; set; }
+}

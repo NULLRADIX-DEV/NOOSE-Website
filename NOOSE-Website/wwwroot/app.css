@@ -2300,6 +2300,15 @@ div.vis-tooltip {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+/* matched words in a search result: a tint, so the text colour keeps its contrast in any theme */
+.suche-treffer {
+    background-color: rgba(181, 164, 136, 0.4);
+    color: var(--mud-palette-text-primary);
+    border-radius: 2px;
+    padding: 0 1px;
 }
 
 /* selection bar on /suche: no rail pane here, so none of the evidence bar's negative margin */
