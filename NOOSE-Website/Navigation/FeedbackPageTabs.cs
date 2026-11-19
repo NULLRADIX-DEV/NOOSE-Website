@@ -98,6 +98,7 @@ public static class FeedbackPageTabs
         new("finanzierung", "Finanzierungen"),
         new("verpflegung", "Verpflegung"),
         new("dienststelle", "Dienststelle"),
+        new("nutzung", "Nutzung"),
         new("lageberichte", "Lageberichte"),
     ];
 

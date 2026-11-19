@@ -76,7 +76,8 @@ public class NooseiGateway(
     INooseiProviderService providerService,
     IOptions<LlmOptions> options,
     ILogger<NooseiGateway> logger,
-    ITestLockService? testLocks = null) : INooseiGateway
+    ITestLockService? testLocks = null,
+    Usage.IUsageTracker? usage = null) : INooseiGateway
 {
     /// <summary>Shown to the agent under a rescued partial answer. The stored <c>Truncated</c> chip says an answer was
     /// cut off; only this says the clock did it, which is the one case where asking again is cheaper than it looks.</summary>
@@ -116,7 +117,13 @@ public class NooseiGateway(
         await turn.WaitAsync(cancellationToken);
         try
         {
-            return await AskTurnAsync(call, actor, cancellationToken);
+            var answer = await AskTurnAsync(call, actor, cancellationToken);
+            // kind only, never the text
+            if (usage is not null)
+            {
+                await usage.TrackAsync(actor, Usage.UsageCatalog.Fibi(call.Feature), CancellationToken.None);
+            }
+            return answer;
         }
         finally
         {

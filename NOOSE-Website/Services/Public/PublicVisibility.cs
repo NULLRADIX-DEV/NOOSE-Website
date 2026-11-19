@@ -199,6 +199,7 @@ public static class PublicVisibility
             ["InformantMeeting"] = "Quellenschutz; nach außen nie.",
             ["CounterIntelRule"] = "Gegenaufklärungs-Regel; ihre Kenntnis wäre eine Anleitung zur Umgehung.",
             ["FindingReport"] = "Meldebuch der Gegenaufklärung; nennt auffällige Agenten, nach außen nie.",
+            ["UsageDay"] = "Anonyme Nutzungszähler der Behörde; nach außen nie.",
             ["WatchlistEntry"] = "Persönliche Merkliste eines Agenten; nach außen nie.",
             ["LeadDismissal"] = Operational,
             ["Followup"] = "Wiedervorlage an einer Akte; nach außen nie.",

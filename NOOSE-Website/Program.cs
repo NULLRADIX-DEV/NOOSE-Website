@@ -421,6 +421,11 @@ builder.Services.AddScoped<IAbductionStatisticsService, AbductionStatisticsServi
 builder.Services.AddScoped<IKasseStatisticsService, KasseStatisticsService>();
 builder.Services.AddScoped<IFinancingStatisticsService, FinancingStatisticsService>();
 builder.Services.AddScoped<IFoodStatisticsService, FoodStatisticsService>();
+builder.Services.AddScoped<IUsageStatisticsService, UsageStatisticsService>();
+builder.Services.AddSingleton<NOOSE_Website.Services.Usage.UsageCollector>();
+builder.Services.AddScoped<NOOSE_Website.Services.Usage.IUsageStore, NOOSE_Website.Services.Usage.UsageStore>();
+builder.Services.AddScoped<NOOSE_Website.Services.Usage.IUsageTracker, NOOSE_Website.Services.Usage.UsageTracker>();
+builder.Services.AddHostedService<NOOSE_Website.Infrastructure.Usage.UsageStatsWorker>();
 builder.Services.AddScoped<ISituationReportService, SituationReportService>();
 builder.Services.AddHostedService<SituationReportWorker>();
 // webhook path is the secret

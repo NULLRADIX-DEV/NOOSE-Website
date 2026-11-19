@@ -33,6 +33,7 @@ public static class BrandSweepPlan
         ["KiAnfragen"] = "the AI request log is a record, and its fingerprint covers the original prompt",
         ["__EFMigrationsHistory"] = "migration bookkeeping",
         ["OeffentlicheFuehrungsprofile"] = "retired table, kept only so a rollback can read it",
+        ["NutzungsTage"] = "feature keys and counters, no text",
     };
 
     /// <summary>Table name prefixes and suffixes that are never swept, with the reason.</summary>

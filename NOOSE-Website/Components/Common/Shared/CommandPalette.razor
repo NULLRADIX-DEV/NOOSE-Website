@@ -9,6 +9,7 @@
 @inject IPartnerAgencyProfileService PartnerProfiles
 @inject IAuthorizationService Authorization
 @inject ITrashService Trash
+@inject IUsageTracker Usage
 @inject Microsoft.Extensions.Logging.ILogger<CommandPalette> Logger
 @implements IAsyncDisposable
 
@@ -152,6 +153,7 @@
     [JSInvokable]
     public async Task Open()
     {
+        await Usage.TrackAsync(_user, UsageCatalog.PaletteOpen);
         await LoadQuickAccessAsync();
         _open = true;
         await InvokeAsync(StateHasChanged);
@@ -274,6 +276,8 @@
         }
         _open = false;
         await _auto.ClearAsync();
+        // kind only, never the target
+        await Usage.TrackAsync(_user, UsageCatalog.PalettePick(KindKey(item.Kind)));
         Nav.NavigateTo(item.Url);
     }
 
@@ -297,6 +301,17 @@
     /// <summary>What a row is, for the trailing chip. Icons come from the catalog, so the palette and the result
     /// list can never label the same category differently.</summary>
     private enum PaletteKind { Command, Favorite, View, Recent, Record, Search, Noosei }
+
+    private static string KindKey(PaletteKind kind) => kind switch
+    {
+        PaletteKind.Favorite => "favorite",
+        PaletteKind.View => "view",
+        PaletteKind.Recent => "recent",
+        PaletteKind.Record => "record",
+        PaletteKind.Search => "search",
+        PaletteKind.Noosei => "fibi",
+        _ => "command",
+    };
 
     private static string Badge(PaletteItem item) => item.Kind switch
     {

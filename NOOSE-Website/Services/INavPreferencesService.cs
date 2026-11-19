@@ -55,6 +55,9 @@ public interface INavPreferencesService
     /// <summary>Turns the glossary explain-bubbles on or off for this agent.</summary>
     Task SetGlossarBlasenAsync(string agentId, bool enabled, CancellationToken cancellationToken = default);
 
+    /// <summary>Leaves the agent out of (or back in) the anonymous usage statistics.</summary>
+    Task SetUsageStatsOptOutAsync(string agentId, bool optOut, CancellationToken cancellationToken = default);
+
     /// <summary>Lets one notification category ring the bell or arrive already read; locked categories are ignored.</summary>
     Task SetNotificationMutedAsync(string agentId, NotificationType type, bool muted, CancellationToken cancellationToken = default);
 

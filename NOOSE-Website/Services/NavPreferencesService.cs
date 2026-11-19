@@ -202,6 +202,9 @@ public class NavPreferencesService(IDbContextFactory<AppDbContext> dbFactory, IM
         => MutateAsync(agentId, p => p.GlossarBlasen = enabled, cancellationToken);
 
     // the profile panel reads its own state back, nothing else shows it
+    public Task SetUsageStatsOptOutAsync(string agentId, bool optOut, CancellationToken cancellationToken = default)
+        => MutateAsync(agentId, p => p.UsageStatsOptOut = optOut, cancellationToken, notify: false);
+
     public Task SetNotificationMutedAsync(string agentId, NotificationType type, bool muted,
         CancellationToken cancellationToken = default)
         => !NotificationMutes.IsMutable(type)

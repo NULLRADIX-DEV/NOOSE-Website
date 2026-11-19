@@ -1,0 +1,64 @@
+@* The agent's own choice whether their feature uses go into the anonymous usage statistics. *@
+@inject INavPreferencesService NavPrefs
+@inject ISnackbar Snackbar
+@inject ILogger<UsageStatsPanel> Log
+
+<MudText Typo="Typo.h6" Class="mb-1">Nutzungsstatistik</MudText>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+    Admins sehen, welche Funktionen wie oft benutzt werden, damit schlecht auffindbare oder ungenutzte Funktionen
+    besser werden. Gezählt wird nur die Funktion, der Tag und wie viele verschiedene Agenten sie benutzt haben. Dein Name,
+    deine Akten, deine Suchtexte, deine FIBI-Fragen und die Uhrzeit werden nie gespeichert, und die Zahlen lassen sich
+    keinem Agenten zuordnen. Wenn du trotzdem nicht mitgezählt werden willst, schalte es hier ab.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudSwitch T="bool" Value="@(!_optOut)" ValueChanged="OnChangedAsync" Color="Color.Primary"
+               Disabled="@_busy" Label="Meine Nutzung anonym mitzählen" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public ClaimsPrincipal User { get; set; } = default!;
+
+    private bool _optOut;
+    private bool _load = true;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _optOut = (await NavPrefs.GetAsync(User.GetAgentId() ?? string.Empty)).UsageStatsOptOut;
+        }
+        catch (Exception ex)
+        {
+            Log.LogError(ex, "Usage statistics choice failed to load");
+        }
+        _load = false;
+    }
+
+    private async Task OnChangedAsync(bool counted)
+    {
+        _busy = true;
+        try
+        {
+            await NavPrefs.SetUsageStatsOptOutAsync(User.GetAgentId() ?? string.Empty, !counted);
+            _optOut = !counted;
+            Snackbar.Add(counted ? "Deine Nutzung wird wieder anonym mitgezählt."
+                : "Deine Nutzung wird nicht mehr mitgezählt.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

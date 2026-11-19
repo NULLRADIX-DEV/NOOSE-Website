@@ -85,6 +85,27 @@ internal static class ToolsChapter
                 """,
                 NavKey: "statistik"),
 
+            new Article("art-nutzungsstatistik", "nutzungsstatistik", "Nutzungsstatistik",
+                "Welche Funktionen genutzt werden - und was dabei nie gespeichert wird.",
+                """
+                <p>Nur Admins sehen bei der Statistik im Abschnitt <em>Nutzung</em>, welche Funktionen der
+                Seite benutzt werden und welche kaum oder nie. Die Führung und die Aufsicht sehen ihn nicht.
+                Das ist kein Kontrollinstrument, sondern der
+                Hinweis, wo die Seite besser werden muss: Wenn niemand die Tastenkürzel nutzt, sind sie
+                vielleicht schlecht zu finden.</p>
+                <p><strong>Gezählt wird:</strong> welche Funktion, an welchem Kalendertag, wie oft und von wie
+                vielen verschiedenen Agenten. Dazu zählen aufgerufene Seiten, Tastenkürzel, der Schnellzugriff
+                mit Strg+K, die Suche, FIBI, Druckansichten und Exporte.</p>
+                <p><strong>Nie gespeichert wird:</strong> wer etwas benutzt hat, welche Akte offen war, wonach du
+                gesucht oder was du FIBI gefragt hast, und die Uhrzeit. Die verschiedenen Agenten werden nur im
+                Arbeitsspeicher gezählt, gespeichert wird allein die Zahl. Weniger als drei Agenten erscheinen
+                als „&lt; 3“, damit sich nichts auf eine Person zurückrechnen lässt. Die Zahlen werden ein Jahr
+                aufbewahrt und dann gelöscht.</p>
+                <p>Mitgezählt werden nur Agenten mit Dienstgrad, die schreiben dürfen. Die Aufsicht, Partner,
+                Bürger und die öffentlichen Seiten kommen nicht vor. Wer nicht mitgezählt werden will, schaltet
+                das in seinem <em>Profil</em> bei <em>Nutzungsstatistik</em> ab.</p>
+                """),
+
             new Article("art-lageberichte", "lageberichte", "Lageberichte",
                 "Der monatliche Bericht, den die Seite selbst schreibt.",
                 """
