@@ -161,6 +161,12 @@
         await LoadAsync();
     }
 
+    public async Task RefreshAsync()
+    {
+        await LoadAsync();
+        StateHasChanged();
+    }
+
     private async Task LoadAsync()
     {
         _load = true;
