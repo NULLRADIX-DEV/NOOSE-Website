@@ -93,11 +93,11 @@ else
             </MudPaper>
 
             <MudPaper Elevation="2" Class="pa-4 mb-4">
-                <SourcesPanel EntityType="@nameof(Bewerbung)" EntityId="@_b.Id" User="_user" />
+                <SourcesPanel @ref="_sourcesPanel" EntityType="@nameof(Bewerbung)" EntityId="@_b.Id" User="_user" />
             </MudPaper>
 
             <MudPaper Elevation="2" Class="pa-4 mb-4">
-                <RecordLinksPanel @ref="_linksPanel" EntityType="@nameof(Bewerbung)" EntityId="@_b.Id" User="_user" />
+                <RecordLinksPanel EntityType="@nameof(Bewerbung)" EntityId="@_b.Id" User="_user" />
             </MudPaper>
 
             <MudPaper Elevation="2" Class="pa-4 mb-4">
@@ -238,7 +238,7 @@ else
     private Bewerbung? _b;
     private string? _note;
     private BewerbungssperrePanel? _sperrePanel;
-    private RecordLinksPanel? _linksPanel;
+    private SourcesPanel? _sourcesPanel;
 
     protected override async Task OnInitializedAsync()
     {
@@ -259,10 +259,10 @@ else
         {
             await _sperrePanel.RefreshAsync();
         }
-        // taking the application or starting the check links the SÜ
-        if (_linksPanel is not null)
+        // taking the application or starting the check files the SÜ under its sources & attachments
+        if (_sourcesPanel is not null)
         {
-            await _linksPanel.RefreshAsync();
+            await _sourcesPanel.RefreshAsync();
         }
     }
 
