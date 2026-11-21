@@ -793,7 +793,7 @@ public static class ChangelogContent
             Besser("3.0.68-administration-tickets", "Die Administration Division liest jetzt die Bürger-Tickets mit, "
                 + "in ihrem eigenen Bereich. Antworten bleibt bei der Führung.", "Personal"),
             Fix("3.0.69-sue-an-bewerbung", "Die Sicherheitsüberprüfung entsteht jetzt auch, wenn du sie an einer Bewerbung "
-                + "startest, ohne sie dir vorher zuzuweisen, und steht an der Bewerbung unter den verknüpften Akten.",
+                + "startest, ohne sie dir vorher zuzuweisen, und steht an der Bewerbung unter Quellen & Anhänge.",
                 "Personal"),
             Neu("3.0.70-befoerderungsgrund", "Wer eine Beförderung genehmigt, schreibt jetzt einen Beförderungsgrund dazu. "
                 + "Er steht am Antrag, und jede Beförderung erscheint mit ihm in einem eigenen Discord-Kanal, der den "
