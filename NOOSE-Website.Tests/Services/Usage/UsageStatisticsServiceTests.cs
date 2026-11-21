@@ -63,7 +63,7 @@ public sealed class UsageStatisticsServiceTests
         var data = await new UsageStatisticsService(ctx.Factory).GetAsync(Admin(), Scope);
 
         var row = data.Rows.Single(r => r.Key == UsageCatalog.SearchRun);
-        Assert.Equal((7L, 5), (row.Events, row.AgentDays));
+        Assert.Equal((7L, 5, 3), (row.Events, row.AgentDays, row.PeakAgents));
         Assert.DoesNotContain(data.Rows, r => r.Key == "page:retired");
         Assert.Equal(Today.AddDays(-100), data.FirstDay);
     }

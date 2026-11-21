@@ -10,8 +10,9 @@
             Diesen Abschnitt sehen nur Admins, weder die Führung noch die Aufsicht.
             Gezählt wird nur, <strong>welche Funktion</strong> an <strong>welchem Tag</strong> wie oft benutzt wurde und von
             <strong>wie vielen verschiedenen Agenten</strong>. Es wird nie gespeichert, wer es war, welche Akte offen war,
-            wonach gesucht oder was FIBI gefragt wurde, und auch keine Uhrzeit. Weniger als @UsageRules.MinShownAgents Agenten
-            erscheinen als „&lt; @UsageRules.MinShownAgents“. Wer nicht mitgezählt werden will, schaltet das im Profil ab.
+            wonach gesucht oder was FIBI gefragt wurde, und auch keine Uhrzeit. Hat an keinem Tag des Zeitraums mindestens
+            @UsageRules.MinShownAgents verschiedene Agenten eine Funktion benutzt, stehen statt ihrer Zahlen „@UsageRules.Hidden“.
+            Wer nicht mitgezählt werden will, schaltet das im Profil ab.
             Die Zahlen dienen dazu, Funktionen zu verbessern, die niemand findet oder nutzt, nicht dazu, jemanden zu überwachen.
             Aufbewahrt werden sie @UsageRules.RetentionDays Tage.
         </MudText>
@@ -58,11 +59,14 @@
 
         <MudText Typo="Typo.h6" Class="mb-1">Kaum oder nie genutzt</MudText>
         <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
-            Funktionen mit weniger als @UsageRules.MinShownAgents Agenten-Tagen im Zeitraum. Ein Kandidat zum Verbessern, kein Urteil.
+            Funktionen, die an keinem Tag im Zeitraum mindestens @UsageRules.MinShownAgents verschiedene Agenten benutzt haben.
+            Ein Kandidat zum Verbessern, kein Urteil.
         </MudText>
         @if (_rare.Count == 0)
         {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Jede Funktion wurde im Zeitraum genutzt.</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                Jede Funktion hatte im Zeitraum mindestens einen Tag mit @UsageRules.MinShownAgents oder mehr Agenten.
+            </MudText>
         }
         else
         {
@@ -120,14 +124,16 @@
         _loaded = token;
         var user = (await AuthStateTask).User;
         _data = await Stats.GetAsync(user, Scope);
+        // hidden numbers never steer the order, or the order would leak them
         _rare = _data.Rows
-            .Where(r => r.AgentDays < UsageRules.MinShownAgents)
-            .OrderBy(r => r.Events == 0 ? 0 : 1).ThenBy(r => r.AgentDays).ThenBy(r => r.Label, StringComparer.CurrentCultureIgnoreCase)
+            .Where(r => r.Never || !UsageRules.IsShown(r))
+            .OrderBy(r => r.Never ? 0 : 1).ThenBy(r => r.Label, StringComparer.CurrentCultureIgnoreCase)
             .ToList();
         _groups = _data.Rows
             .GroupBy(r => r.Group)
             .Select(g => new KeyValuePair<string, List<UsageRow>>(g.Key,
-                g.OrderByDescending(r => r.Events).ThenBy(r => r.Label, StringComparer.CurrentCultureIgnoreCase).ToList()))
+                g.OrderByDescending(r => UsageRules.IsShown(r) ? r.Events : 0)
+                    .ThenBy(r => r.Label, StringComparer.CurrentCultureIgnoreCase).ToList()))
             .ToList();
         _first = false;
     }
@@ -153,8 +159,8 @@
                                 <MudText Typo="Typo.caption" Class="mud-text-secondary d-block">@row.Group</MudText>
                             }
                         </td>
-                        <td class="@Col("ereignisse")" style="text-align:right;">@row.Events.ToString("N0")</td>
-                        <td class="@Col("agententage")" style="text-align:right;">@UsageRules.AgentDays(row.AgentDays)</td>
+                        <td class="@Col("ereignisse")" style="text-align:right;">@UsageRules.Events(row)</td>
+                        <td class="@Col("agententage")" style="text-align:right;">@UsageRules.AgentDays(row)</td>
                     </tr>
                 }
             </tbody>

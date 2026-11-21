@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.Security.Claims;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Models.Navigation;
+using NOOSE_Website.Models.Statistics;
 
 namespace NOOSE_Website.Services.Usage;
 
@@ -10,8 +12,11 @@ public static class UsageRules
     /// <summary>Days a counter row is kept.</summary>
     public const int RetentionDays = 365;
 
-    /// <summary>Below this many different agents the statistics show "&lt; 3" instead of the number.</summary>
+    /// <summary>A row's numbers show only once this many different agents used it on one day.</summary>
     public const int MinShownAgents = 3;
+
+    /// <summary>Shown placeholder for a hidden number.</summary>
+    public const string Hidden = "–";
 
     /// <summary>Only an internal agent with a rank who may write: no demo, partner, read-only supervision, citizen or visitor.</summary>
     public static bool IsCounted(ClaimsPrincipal user)
@@ -23,7 +28,15 @@ public static class UsageRules
     /// <summary>The agent's own choice; counted unless they switched it off.</summary>
     public static bool IsOptedOut(NavPreferences prefs) => prefs.UsageStatsOptOut;
 
-    /// <summary>Agent-days as the statistics show them, hiding small numbers; none at all is no secret.</summary>
-    public static string AgentDays(int agentDays)
-        => agentDays == 0 ? "0" : agentDays < MinShownAgents ? "< " + MinShownAgents : agentDays.ToString(System.Globalization.CultureInfo.CurrentCulture);
+    /// <summary>True when the row's numbers may show.</summary>
+    /// <remarks>Agent-days can't tell people apart (one agent on three days is three), so the bar is the busiest single day.</remarks>
+    public static bool IsShown(UsageRow row) => row.Never || row.PeakAgents >= MinShownAgents;
+
+    /// <summary>Events as the statistics show them; none at all is no secret.</summary>
+    public static string Events(UsageRow row)
+        => IsShown(row) ? row.Events.ToString("N0", CultureInfo.CurrentCulture) : Hidden;
+
+    /// <summary>Agent-days as the statistics show them.</summary>
+    public static string AgentDays(UsageRow row)
+        => IsShown(row) ? row.AgentDays.ToString(CultureInfo.CurrentCulture) : Hidden;
 }

@@ -39,12 +39,18 @@
         {
             // same area is one use
             var entry = NavCatalog.ByRoute(Nav.ToBaseRelativePath(Nav.Uri));
-            if (entry is null || entry.Key == _lastKey)
+            var key = entry?.Key;
+            if (key == _lastKey)
             {
                 return;
             }
-            _lastKey = entry.Key;
-            await Usage.TrackAsync(_user, UsageCatalog.Page(entry.Key));
+            // a page off the menu still ends the visit
+            _lastKey = key;
+            if (key is null)
+            {
+                return;
+            }
+            await Usage.TrackAsync(_user, UsageCatalog.Page(key));
         }
         catch
         {

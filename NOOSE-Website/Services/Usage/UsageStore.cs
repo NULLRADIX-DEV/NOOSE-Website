@@ -40,30 +40,32 @@ public sealed class UsageStore(IDbContextFactory<AppDbContext> dbFactory, UsageC
         catch (DbUpdateException)
         {
             db.ChangeTracker.Clear();
-            await UpdateAsync(db, delta, cancellationToken);
+            // not there either: keep it queued
+            if (await UpdateAsync(db, delta, cancellationToken) == 0)
+            {
+                throw;
+            }
         }
     }
 
-    private static async Task<int> UpdateAsync(AppDbContext db, UsageDelta delta, CancellationToken cancellationToken)
+    // one statement, so a half write can't replay the events
+    private static Task<int> UpdateAsync(AppDbContext db, UsageDelta delta, CancellationToken cancellationToken)
     {
         var day = delta.Day;
         var key = delta.Key;
         var events = delta.Events;
         var agents = delta.Agents;
-        var rows = await db.UsageDays.Where(u => u.Day == day && u.Key == key)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Events, u => u.Events + events), cancellationToken);
-        if (rows > 0)
-        {
-            // only rises
-            await db.UsageDays.Where(u => u.Day == day && u.Key == key && u.Agents < agents)
-                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Agents, agents), cancellationToken);
-        }
-        return rows;
+        return db.UsageDays.Where(u => u.Day == day && u.Key == key)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.Events, u => u.Events + events)
+                // only rises
+                .SetProperty(u => u.Agents, u => u.Agents < agents ? agents : u.Agents), cancellationToken);
     }
 
     public async Task<int> PurgeAsync(DateTime nowUtc, CancellationToken cancellationToken = default)
     {
-        var cutoff = UsageCollector.DayOf(nowUtc).AddDays(-UsageRules.RetentionDays);
+        // same window the statistics read
+        var cutoff = UsageCollector.DayOf(nowUtc).AddDays(-(UsageRules.RetentionDays - 1));
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         return await db.UsageDays.Where(u => u.Day < cutoff).ExecuteDeleteAsync(cancellationToken);
     }

@@ -98,8 +98,9 @@ internal static class ToolsChapter
                 mit Strg+K, die Suche, FIBI, Druckansichten und Exporte.</p>
                 <p><strong>Nie gespeichert wird:</strong> wer etwas benutzt hat, welche Akte offen war, wonach du
                 gesucht oder was du FIBI gefragt hast, und die Uhrzeit. Die verschiedenen Agenten werden nur im
-                Arbeitsspeicher gezählt, gespeichert wird allein die Zahl. Weniger als drei Agenten erscheinen
-                als „&lt; 3“, damit sich nichts auf eine Person zurückrechnen lässt. Die Zahlen werden ein Jahr
+                Arbeitsspeicher gezählt, gespeichert wird allein die Zahl. Hat an keinem Tag des Zeitraums
+                mindestens drei verschiedene Agenten eine Funktion benutzt, bleiben ihre Zahlen verdeckt, damit
+                sich nichts auf eine Person zurückrechnen lässt. Die Zahlen werden ein Jahr
                 aufbewahrt und dann gelöscht.</p>
                 <p>Mitgezählt werden nur Agenten mit Dienstgrad, die schreiben dürfen. Die Aufsicht, Partner,
                 Bürger und die öffentlichen Seiten kommen nicht vor. Wer nicht mitgezählt werden will, schaltet

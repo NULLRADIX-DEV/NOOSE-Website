@@ -17,7 +17,8 @@ public sealed class UsageStatisticsService(IDbContextFactory<AppDbContext> dbFac
         var now = DateTime.UtcNow;
         var to = UsageCollector.DayOf(now);
         var earliest = to.AddDays(-(UsageRules.RetentionDays - 1));
-        var from = UsageCollector.DayOf(scope.StartUtc(now));
+        // Berlin days on both ends
+        var from = DateOnly.FromDateTime(scope.StartUtc(MeetingTime.Local(now)));
         var clipped = from < earliest;
         if (clipped)
         {
@@ -28,7 +29,13 @@ public sealed class UsageStatisticsService(IDbContextFactory<AppDbContext> dbFac
         var sums = await db.UsageDays.AsNoTracking()
             .Where(u => u.Day >= from && u.Day <= to)
             .GroupBy(u => u.Key)
-            .Select(g => new { Key = g.Key, Events = g.Sum(u => u.Events), AgentDays = g.Sum(u => u.Agents) })
+            .Select(g => new
+            {
+                Key = g.Key,
+                Events = g.Sum(u => u.Events),
+                AgentDays = g.Sum(u => u.Agents),
+                PeakAgents = g.Max(u => u.Agents),
+            })
             .ToDictionaryAsync(x => x.Key, cancellationToken);
         DateOnly? first = await db.UsageDays.AsNoTracking().AnyAsync(cancellationToken)
             ? await db.UsageDays.AsNoTracking().MinAsync(u => u.Day, cancellationToken)
@@ -37,8 +44,8 @@ public sealed class UsageStatisticsService(IDbContextFactory<AppDbContext> dbFac
         // catalog first, so unused shows
         var rows = UsageCatalog.All
             .Select(f => sums.TryGetValue(f.Key, out var s)
-                ? new UsageRow(f.Key, f.Label, f.Group, s.Events, s.AgentDays)
-                : new UsageRow(f.Key, f.Label, f.Group, 0, 0))
+                ? new UsageRow(f.Key, f.Label, f.Group, s.Events, s.AgentDays, s.PeakAgents)
+                : new UsageRow(f.Key, f.Label, f.Group, 0, 0, 0))
             .ToList();
         return new UsageStatistics(from, to, first, clipped, rows);
     }

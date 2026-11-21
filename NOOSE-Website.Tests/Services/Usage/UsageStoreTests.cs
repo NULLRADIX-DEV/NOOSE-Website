@@ -61,8 +61,9 @@ public sealed class UsageStoreTests
         using (var db = ctx.NewContext())
         {
             db.UsageDays.AddRange(
-                new UsageDay { Day = Today.AddDays(-UsageRules.RetentionDays - 1), Key = "search:run", Events = 1, Agents = 1 },
+                // the oldest day the statistics still read is kept, the one before goes
                 new UsageDay { Day = Today.AddDays(-UsageRules.RetentionDays), Key = "search:run", Events = 1, Agents = 1 },
+                new UsageDay { Day = Today.AddDays(-(UsageRules.RetentionDays - 1)), Key = "search:run", Events = 1, Agents = 1 },
                 new UsageDay { Day = Today, Key = "search:run", Events = 1, Agents = 1 });
             db.SaveChanges();
         }
