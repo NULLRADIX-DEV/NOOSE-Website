@@ -824,6 +824,9 @@ public static class ChangelogContent
             Neu("3.1.07-nutzungsstatistik", "Admins sehen bei der Statistik im Abschnitt Nutzung, welche Funktionen "
                 + "wie oft genutzt werden und welche kaum, ganz ohne Namen, Akten oder Suchtexte. Im Profil schaltest du "
                 + "ab, dass deine Nutzung mitgezählt wird.", "Statistik"),
+            Besser("3.1.08-ermittlung-auswahl", "In der Ermittlungsakte wählst du den sichernden Beamten, die vernehmenden "
+                + "Beamten und den anwesenden Staatsanwalt aus einer Liste, dein eigener Name steht schon drin. Die Listen "
+                + "funktionieren auch für Partner, und die Rolle einer neuen Person startet leer.", "Ermittlung"),
         ]),
     ];
 }
