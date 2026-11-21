@@ -793,7 +793,7 @@ public static class ChangelogContent
             Besser("3.0.68-administration-tickets", "Die Administration Division liest jetzt die Bürger-Tickets mit, "
                 + "in ihrem eigenen Bereich. Antworten bleibt bei der Führung.", "Personal"),
             Fix("3.0.69-sue-an-bewerbung", "Die Sicherheitsüberprüfung entsteht jetzt auch, wenn du sie an einer Bewerbung "
-                + "startest, ohne sie dir vorher zuzuweisen, und steht an der Bewerbung unter den verknüpften Akten.",
+                + "startest, ohne sie dir vorher zuzuweisen, und steht an der Bewerbung unter Quellen & Anhänge.",
                 "Personal"),
             Neu("3.0.70-befoerderungsgrund", "Wer eine Beförderung genehmigt, schreibt jetzt einen Beförderungsgrund dazu. "
                 + "Er steht am Antrag, und jede Beförderung erscheint mit ihm in einem eigenen Discord-Kanal, der den "
@@ -824,7 +824,9 @@ public static class ChangelogContent
             Neu("3.1.07-nutzungsstatistik", "Admins sehen bei der Statistik im Abschnitt Nutzung, welche Funktionen "
                 + "wie oft genutzt werden und welche kaum, ganz ohne Namen, Akten oder Suchtexte. Im Profil schaltest du "
                 + "ab, dass deine Nutzung mitgezählt wird.", "Statistik"),
-            Besser("3.1.08-ermittlung-auswahl", "In der Ermittlungsakte wählst du den sichernden Beamten, die vernehmenden "
+            Besser("3.1.08-suche-markiert", "In der Suche sind die gefundenen Wörter in Titel und Textausschnitt markiert, "
+                + "und der Ausschnitt zeigt die Stelle, an der sie stehen. Das gilt auch bei Umlauten und ß.", "Suche"),
+            Besser("3.1.09-ermittlung-auswahl", "In der Ermittlungsakte wählst du den sichernden Beamten, die vernehmenden "
                 + "Beamten und den anwesenden Staatsanwalt aus einer Liste, dein eigener Name steht schon drin. Die Listen "
                 + "funktionieren auch für Partner, und die Rolle einer neuen Person startet leer.", "Ermittlung"),
         ]),

@@ -22,7 +22,6 @@ public class ApplicationCaseService(
     IDocumentTemplateService templates,
     ISourceService sources,
     IPlaceholderService placeholders,
-    ILinkService links,
     ILogger<ApplicationCaseService> logger) : IApplicationCaseService
 {
     private const string SecurityCheckTitlePrefix = "Sicherheitsüberprüfung | ";
@@ -50,8 +49,8 @@ public class ApplicationCaseService(
         }
         if (bewerbung.LinkedCaseId is { } existingCaseId)
         {
-            // provisioned before the SÜ was linked to the application: link it now
-            await LinkExistingSecurityCheckAsync(db, bewerbungId, existingCaseId, actor, cancellationToken);
+            // provisioned before the SÜ was filed on the application: file it now
+            await FileExistingSecurityCheckAsync(db, bewerbungId, existingCaseId, actor, cancellationToken);
             return;
         }
 
@@ -98,48 +97,44 @@ public class ApplicationCaseService(
             Classification = DocumentClassification.Hrb,
         }, actor, cancellationToken);
 
-        // 3) file the document under the case
-        await sources.CreateAsync(nameof(Case), @case.Id, new SourceInput
-        {
-            Type = SourceType.Document,
-            Title = docTitle,
-            TargetType = nameof(Document),
-            TargetId = document.Id,
-        }, actor, cancellationToken);
-
-        // 4) and on the application itself, under its linked records
-        await links.CreateAsync(nameof(Bewerbung), bewerbungId, nameof(Document), document.Id, null, actor,
-            cancellationToken: cancellationToken);
+        // 3) file the document under the case and under the application's sources & attachments
+        await sources.CreateAsync(nameof(Case), @case.Id, SecurityCheckSource(docTitle, document.Id), actor, cancellationToken);
+        await sources.CreateAsync(nameof(Bewerbung), bewerbungId, SecurityCheckSource(docTitle, document.Id), actor,
+            cancellationToken);
 
         logger.LogInformation("Auto-provisioned case {CaseId} + document {DocId} for application {AppId}.",
             @case.Id, document.Id, bewerbungId);
     }
 
-    private async Task LinkExistingSecurityCheckAsync(AppDbContext db, string bewerbungId, string caseId,
+    private static SourceInput SecurityCheckSource(string title, string documentId) => new()
+    {
+        Type = SourceType.Document,
+        Title = title,
+        TargetType = nameof(Document),
+        TargetId = documentId,
+    };
+
+    private async Task FileExistingSecurityCheckAsync(AppDbContext db, string bewerbungId, string caseId,
         ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
-        var documentId = await db.Sources.AsNoTracking()
+        var filed = await db.Sources.AsNoTracking()
             .Where(s => s.EntityType == nameof(Case) && s.EntityId == caseId
                 && s.Type == SourceType.Document && s.TargetType == nameof(Document)
                 && s.Title.StartsWith(SecurityCheckTitlePrefix))
             .OrderBy(s => s.CreatedAt)
-            .Select(s => s.TargetId)
+            .Select(s => new { s.Title, s.TargetId })
             .FirstOrDefaultAsync(cancellationToken);
-        if (documentId is null)
+        if (filed?.TargetId is null)
         {
             return;
         }
 
-        var linked = await db.Links.AnyAsync(l => l.Kind == LinkKind.Default
-            && ((l.SourceType == nameof(Bewerbung) && l.SourceId == bewerbungId
-                    && l.TargetType == nameof(Document) && l.TargetId == documentId)
-                || (l.SourceType == nameof(Document) && l.SourceId == documentId
-                    && l.TargetType == nameof(Bewerbung) && l.TargetId == bewerbungId)),
-            cancellationToken);
-        if (!linked)
+        var onApplication = await db.Sources.AnyAsync(s => s.EntityType == nameof(Bewerbung) && s.EntityId == bewerbungId
+            && s.TargetType == nameof(Document) && s.TargetId == filed.TargetId, cancellationToken);
+        if (!onApplication)
         {
-            await links.CreateAsync(nameof(Bewerbung), bewerbungId, nameof(Document), documentId, null, actor,
-                cancellationToken: cancellationToken);
+            await sources.CreateAsync(nameof(Bewerbung), bewerbungId, SecurityCheckSource(filed.Title, filed.TargetId),
+                actor, cancellationToken);
         }
     }
 }
