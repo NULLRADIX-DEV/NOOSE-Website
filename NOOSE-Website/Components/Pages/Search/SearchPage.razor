@@ -9,6 +9,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject INavPreferencesService NavPrefs
+@inject IUsageTracker Usage
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
@@ -453,6 +454,9 @@ else
         // Categories stays empty: the page never pre-filters, so nothing can be hidden from the reader
     };
 
+    // interactive only, else prerender doubles it
+    private Task CountAsync(string key) => RendererInfo.IsInteractive ? Usage.TrackAsync(_user, key) : Task.CompletedTask;
+
     private async Task SearchAsync()
     {
         // a search already runs; queue a rerun instead of overlapping
@@ -477,6 +481,7 @@ else
                 await StampSearchAsync();
             }
             while (_againSearch);
+            await CountAsync(UsageCatalog.SearchRun);
             await UrlAsync();
         }
         catch (Exception ex)
@@ -682,6 +687,7 @@ else
                 + "alles Sichtbare durchsucht; Kategorien filtern nur das Ergebnis.", Severity.Info);
         }
 
+        await CountAsync(UsageCatalog.SearchSaved);
         _newKeys = SavedSearchRules.ReadKeys(g.UnseenHitsJson).ToHashSet(StringComparer.Ordinal);
         _pendingSeen = _newKeys.Count > 0 ? (g.Id, g.UnseenHitsJson!) : null;
         await SearchAsync();

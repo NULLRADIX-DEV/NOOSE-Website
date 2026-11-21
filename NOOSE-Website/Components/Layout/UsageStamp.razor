@@ -1,0 +1,62 @@
+@* No-render: counts which page an agent opens, by menu entry. Never the address, so no id and no query ever reaches it. *@
+@implements IDisposable
+@using Microsoft.AspNetCore.Components.Routing
+@using NOOSE_Website.Navigation
+@inject IUsageTracker Usage
+@inject NavigationManager Nav
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
+    private ClaimsPrincipal? _user;
+    private string? _lastKey;
+    private bool _subscribed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthStateTask is not null)
+        {
+            _user = (await AuthStateTask).User;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // interactive only, else prerender doubles it
+        if (firstRender && RendererInfo.IsInteractive && !_subscribed)
+        {
+            _subscribed = true;
+            Nav.LocationChanged += OnLocationChanged;
+            await CountAsync();
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(CountAsync);
+
+    private async Task CountAsync()
+    {
+        try
+        {
+            // same area is one use
+            var entry = NavCatalog.ByRoute(Nav.ToBaseRelativePath(Nav.Uri));
+            var key = entry?.Key;
+            if (key == _lastKey)
+            {
+                return;
+            }
+            // a page off the menu still ends the visit
+            _lastKey = key;
+            if (key is null)
+            {
+                return;
+            }
+            await Usage.TrackAsync(_user, UsageCatalog.Page(key));
+        }
+        catch
+        {
+            /* best effort */
+        }
+    }
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

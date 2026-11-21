@@ -106,6 +106,9 @@ public sealed class NavPreferences
     /// <summary>Last look at the NOOSEI anomaly list; same role as <see cref="CounterIntelSeenUtc"/>.</summary>
     public DateTime? NooseiAnomaliesSeenUtc { get; set; }
 
+    /// <summary>The agent's feature uses are left out of the anonymous usage statistics. Counted unless this is set.</summary>
+    public bool UsageStatsOptOut { get; set; }
+
     /// <summary>Schema version for future migrations.</summary>
     public int Version { get; set; } = 2;
 

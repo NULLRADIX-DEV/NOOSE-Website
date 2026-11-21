@@ -821,9 +821,12 @@ public static class ChangelogContent
                 + "Tastenkürzeln.", "Bedienung"),
             Neu("3.1.06-klassische-leiste", "Unter Navigation anpassen wählst du zwischen der neuen Liste und der "
                 + "klassischen Symbolleiste mit Panel. Bereiche und Seiten sind in beiden dieselben.", "Bedienung"),
-            Besser("3.1.07-suche-markiert", "In der Suche sind die gefundenen Wörter in Titel und Textausschnitt markiert, "
+            Neu("3.1.07-nutzungsstatistik", "Admins sehen bei der Statistik im Abschnitt Nutzung, welche Funktionen "
+                + "wie oft genutzt werden und welche kaum, ganz ohne Namen, Akten oder Suchtexte. Im Profil schaltest du "
+                + "ab, dass deine Nutzung mitgezählt wird.", "Statistik"),
+            Besser("3.1.08-suche-markiert", "In der Suche sind die gefundenen Wörter in Titel und Textausschnitt markiert, "
                 + "und der Ausschnitt zeigt die Stelle, an der sie stehen. Das gilt auch bei Umlauten und ß.", "Suche"),
-            Besser("3.1.08-ermittlung-auswahl", "In der Ermittlungsakte wählst du den sichernden Beamten, die vernehmenden "
+            Besser("3.1.09-ermittlung-auswahl", "In der Ermittlungsakte wählst du den sichernden Beamten, die vernehmenden "
                 + "Beamten und den anwesenden Staatsanwalt aus einer Liste, dein eigener Name steht schon drin. Die Listen "
                 + "funktionieren auch für Partner, und die Rolle einer neuen Person startet leer.", "Ermittlung"),
         ]),

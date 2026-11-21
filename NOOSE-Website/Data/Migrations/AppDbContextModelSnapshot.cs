@@ -14872,6 +14872,30 @@ namespace NOOSE_Website.Data.Migrations
                     b.ToTable("TaskforcePartnerbehoerden");
                 });
 
+            modelBuilder.Entity("NOOSE_Website.Data.Entities.Usage.UsageDay", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("Tag");
+
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("Schluessel");
+
+                    b.Property<int>("Agents")
+                        .HasColumnType("int")
+                        .HasColumnName("Agenten");
+
+                    b.Property<long>("Events")
+                        .HasColumnType("bigint")
+                        .HasColumnName("Ereignisse");
+
+                    b.HasKey("Day", "Key");
+
+                    b.ToTable("NutzungsTage");
+                });
+
             modelBuilder.Entity("NOOSE_Website.Data.Entities.Warrants.Warrant", b =>
                 {
                     b.Property<string>("Id")

@@ -205,6 +205,16 @@
                 </MudPaper>
             </MudItem>
 
+            @* only accounts that are counted at all: no demo, partner or read-only supervision *@
+            @if (UsageRules.IsCounted(_user))
+            {
+                <MudItem xs="12">
+                    <MudPaper Class="pa-6" Elevation="2">
+                        <UsageStatsPanel User="_user" />
+                    </MudPaper>
+                </MudItem>
+            }
+
             @if (CalendarFeedRules.MayHold(_user))
             {
                 <MudItem xs="12">

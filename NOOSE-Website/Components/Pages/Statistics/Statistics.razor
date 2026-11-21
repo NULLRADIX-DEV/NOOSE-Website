@@ -65,6 +65,12 @@
             </RecordSection>
         </AuthorizeView>
 
+        <AuthorizeView Policy="@Policies.Admin" Context="usageSection">
+            <RecordSection Slug="nutzung" Label="Nutzung" Icon="@Icons.Material.Filled.TouchApp">
+                <UsagePanel />
+            </RecordSection>
+        </AuthorizeView>
+
         <AuthorizeView Policy="@Policies.LeadershipPage" Context="reportsSection">
             <RecordSection Slug="lageberichte" Label="Lageberichte" Icon="@Icons.Material.Filled.Assessment">
                 <SituationReportsPanel />

@@ -42,6 +42,7 @@ using NOOSE_Website.Data.Entities.Warrants;
 using NOOSE_Website.Data.Entities.Regulation;
 using NOOSE_Website.Data.Entities.Llm;
 using NOOSE_Website.Data.Entities.Public;
+using NOOSE_Website.Data.Entities.Usage;
 using NOOSE_Website.Infrastructure.Audit;
 using NOOSE_Website.Models.Abstractions;
 using NOOSE_Website.Models.Enums;
@@ -271,6 +272,7 @@ public class AppDbContext : IdentityDbContext<Agent>
     // leadership-defined counter-intelligence rules
     public DbSet<CounterIntelRule> CounterIntelRules => Set<CounterIntelRule>();
     public DbSet<FindingReport> FindingReports => Set<FindingReport>();
+    public DbSet<UsageDay> UsageDays => Set<UsageDay>();
 
     // configurable custom fields per record type
     public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
@@ -706,6 +708,13 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(r => r.AgentId).HasMaxLength(64).IsRequired();
             b.HasIndex(r => new { r.Source, r.Key, r.AgentId }).IsUnique();
             b.HasIndex(r => new { r.Source, r.ReportedAt });
+        });
+
+        // anonymous usage counters, one row per Berlin day and feature key
+        modelBuilder.Entity<UsageDay>(b =>
+        {
+            b.HasKey(u => new { u.Day, u.Key });
+            b.Property(u => u.Key).HasMaxLength(100).IsRequired();
         });
 
         modelBuilder.Entity<CustomFieldDefinition>(b =>
