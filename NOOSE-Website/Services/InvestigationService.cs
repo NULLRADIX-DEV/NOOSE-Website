@@ -133,6 +133,20 @@ public partial class InvestigationService(
         var prosecutors = allParticipants.Where(p => p.Role == InvestigationRole.Prosecutor && p.AgentId != null)
             .Select(p => labels.GetValueOrDefault(p.AgentId!) ?? "—").ToList();
 
+        // names only, for the officer and assignee pickers of whoever writes there; the viewer is in even when only his unit is
+        var picksOfficers = access.CanEdit(InvestigationTabs.Evidence) || access.CanEdit(InvestigationTabs.Interrogations)
+            || access.CanEdit(InvestigationTabs.Tasks);
+        var me = viewer.GetAgentId();
+        var myName = me is null ? null
+            : labels.GetValueOrDefault(me) ?? (await NamesAsync(db, [me], cancellationToken)).GetValueOrDefault(me);
+        var officers = !picksOfficers ? [] : allParticipants
+            .Where(p => p.AgentId != null && labels.ContainsKey(p.AgentId))
+            .Select(p => new InvestigationOfficer(p.AgentId!, labels[p.AgentId!]))
+            .Concat(me is not null && myName is not null ? [new InvestigationOfficer(me, myName)] : [])
+            .DistinctBy(o => o.AgentId)
+            .OrderBy(o => o.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         var detail = new InvestigationDetail
         {
             Id = inv.Id,
@@ -170,6 +184,8 @@ public partial class InvestigationService(
                 .Where(n => Shows(n.Id))
                 .Select(n => new InvestigationNoteView(n.Id, n.Text, n.AuthorName, n.CreatedById, n.CreatedAt)).ToList(),
             Participants = !access.CanRead(InvestigationTabs.Participants) ? [] : await ParticipantViewsAsync(db, allParticipants, labels, cancellationToken),
+            Officers = officers,
+            MyName = myName,
             RestrictedIds = restrictions.Select(r => r.ItemId).Where(Shows).ToHashSet(),
             Restrictions = !access.MayManage ? new Dictionary<string, IReadOnlyList<InvestigationTarget>>() : restrictions
                 .GroupBy(r => r.ItemId)

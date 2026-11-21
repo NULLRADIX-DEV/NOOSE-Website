@@ -131,6 +131,32 @@ public sealed class InvestigationServiceTests : IDisposable
         Assert.DoesNotContain(await _svc.GetHistoryAsync(Inv, sid), h => h.What.Contains("§ 99"));
     }
 
+    [Fact]
+    public async Task A_partner_who_writes_evidence_gets_the_officer_names_without_the_participants_tab()
+    {
+        var sid = ClaimsPrincipalBuilder.Agent("sid").AsPartnerUnit(PartnerAgency.DoJ, PartnerUnits.DojSid).Build();
+        // reading only: no picker, so no names
+        var reader = await _svc.GetAsync(Inv, sid);
+        Assert.Empty(reader!.Officers);
+
+        await using (var db = _ctx.NewContext())
+        {
+            db.InvestigationParticipants.Find("row-sid")!.TabAccessJson = """{"beweismittel":2,"beteiligte":0}""";
+            await db.SaveChangesAsync();
+        }
+        string sidName;
+        await using (var db = _ctx.NewContext())
+        {
+            sidName = db.Users.Find("sid")!.Codename;
+        }
+
+        var writer = await _svc.GetAsync(Inv, sid);
+
+        Assert.Empty(writer!.Participants);
+        Assert.Equal(["lead", "manager", "other", "sid"], writer.Officers.Select(o => o.AgentId).Order());
+        Assert.Equal(sidName, writer.MyName);
+    }
+
     private async Task<(string EvidenceId, string PhotoId)> EvidenceWithPhotoAsync()
     {
         var evidenceId = await _svc.SaveEvidenceAsync(Inv,

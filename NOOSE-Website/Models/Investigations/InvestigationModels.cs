@@ -40,6 +40,15 @@ public sealed class InvestigationDetail
     public IReadOnlyList<InvestigationNoteView> Notes { get; init; } = Array.Empty<InvestigationNoteView>();
     public IReadOnlyList<InvestigationParticipantView> Participants { get; init; } = Array.Empty<InvestigationParticipantView>();
 
+    /// <summary>
+    /// Accounts of the file by codename, for the officer and assignee pickers. Filled for anyone who edits evidence,
+    /// interrogations or tasks, also without the right on <c>beteiligte</c> (partners mostly lack it); carries no roles or rights.
+    /// </summary>
+    public IReadOnlyList<InvestigationOfficer> Officers { get; init; } = Array.Empty<InvestigationOfficer>();
+
+    /// <summary>The viewer's own codename, the preselection of the officer fields.</summary>
+    public string? MyName { get; init; }
+
     /// <summary>Entry id → the accounts and units it is limited to (only filled for managers).</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<InvestigationTarget>> Restrictions { get; init; }
         = new Dictionary<string, IReadOnlyList<InvestigationTarget>>();
@@ -50,6 +59,9 @@ public sealed class InvestigationDetail
 
 /// <summary>An account or a unit, as picked for participation or for an entry restriction.</summary>
 public sealed record InvestigationTarget(string? AgentId, string? PartnerUnitId, string Label, bool IsPartner = false);
+
+/// <summary>An account of the file as the officer and assignee pickers offer it.</summary>
+public sealed record InvestigationOfficer(string AgentId, string Name);
 
 public sealed record InvestigationChargeView(string Id, string? LawId, string Paragraph, string LawBook, string Description,
     InvestigationChargeCheck Check, int SortOrder);

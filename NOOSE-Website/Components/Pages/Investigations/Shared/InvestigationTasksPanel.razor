@@ -52,9 +52,10 @@ else
                                                          HelperText="Enter speichert" /></MudItem>
                 <MudItem xs="12" md="4">
                     <MudSelect T="string" @bind-Value="_edit.AssigneeId" Label="Zuständig" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
-                        @foreach (var p in Detail.Participants.Where(p => p.AgentId != null))
+                        @* Officers, not Participants: a partner without the right on "beteiligte" gets no participant rows *@
+                        @foreach (var o in AssigneeChoices)
                         {
-                            <MudSelectItem T="string" Value="@p.AgentId">@p.Label · @p.Detail</MudSelectItem>
+                            <MudSelectItem T="string" Value="@o.AgentId">@o.Name</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -86,6 +87,13 @@ else
 
     private EditState? _edit;
     private bool _busy;
+
+    // the file's accounts, plus the current assignee when he is no longer one of them (otherwise the field shows his id)
+    private IEnumerable<InvestigationOfficer> AssigneeChoices
+        => _edit?.AssigneeId is { } id && Detail.Officers.All(o => o.AgentId != id)
+            && Detail.Tasks.FirstOrDefault(t => t.AssigneeId == id)?.AssigneeName is { } name
+            ? Detail.Officers.Append(new InvestigationOfficer(id, name))
+            : Detail.Officers;
 
     private void Edit(InvestigationTaskView? t)
         => _edit = t is null ? new EditState()

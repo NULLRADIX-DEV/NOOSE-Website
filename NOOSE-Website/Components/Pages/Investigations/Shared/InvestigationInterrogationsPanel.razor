@@ -26,8 +26,23 @@
             <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Summons" Label="Vorladung" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="300" /></MudItem>
             <MudItem xs="6" md="2"><MudDatePicker @bind-Date="_edit.Date" Label="Datum" DateFormat="dd.MM.yyyy" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
             <MudItem xs="6" md="2"><MudTimePicker @bind-Time="_edit.Time" Label="Uhrzeit" Variant="Variant.Outlined" Margin="Margin.Dense" /></MudItem>
-            <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Officers" Label="Vernehmende Beamte" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="300" /></MudItem>
-            <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Prosecutor" Label="Staatsanwalt anwesend" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" @bind-SelectedValues="_edit.Officers" MultiSelection="true" Label="Vernehmende Beamte" Clearable="true"
+                           Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var name in InvestigationTexts.OfficerChoices(Detail, _edit.Officers))
+                    {
+                        <MudSelectItem T="string" Value="@name">@name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" @bind-Value="_edit.Prosecutor" Label="Staatsanwalt anwesend" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    @foreach (var name in ProsecutorChoices)
+                    {
+                        <MudSelectItem T="string" Value="@name">@name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
             <MudItem xs="12" md="6"><MudTextField @bind-Value="_edit.Reference" Label="Verweis auf ein Protokoll" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="500"
                                                   HelperText="z. B. Dokumentnummer aus 5Net" /></MudItem>
             <MudItem xs="12" md="2"><MudSwitch T="bool" @bind-Value="_edit.Usable" Color="Color.Primary" Label="Verwertbar" /></MudItem>
@@ -175,7 +190,7 @@ else
         public string? Summons { get; set; }
         public DateTime? Date { get; set; } = DateTime.Today;
         public TimeSpan? Time { get; set; }
-        public string? Officers { get; set; }
+        public IReadOnlyCollection<string> Officers { get; set; } = [];
         public string? Prosecutor { get; set; }
         public string? Summary { get; set; }
         public string? Reference { get; set; }
@@ -187,6 +202,11 @@ else
     private bool _busy;
 
     private string? DraftScope => _edit is null ? null : $"ermittlung-vernehmung:{Detail.Id}:{_edit.Id ?? "neu"}";
+
+    // the file's prosecutors, plus a stored name that is not (free text from before the picker)
+    private IEnumerable<string> ProsecutorChoices => Detail.Prosecutors.Where(n => n != "—")
+        .Concat(string.IsNullOrWhiteSpace(_edit?.Prosecutor) ? [] : [_edit.Prosecutor])
+        .Distinct(StringComparer.OrdinalIgnoreCase);
 
     private void PickPerson(string? id)
     {
@@ -206,14 +226,14 @@ else
     {
         if (v is null)
         {
-            _edit = new EditState { Entries = { new Qa() } };
+            _edit = new EditState { Entries = { new Qa() }, Officers = Detail.MyName is { } me ? [me] : [] };
             return;
         }
         var local = v.HeldAt?.ToLocalTime();
         _edit = new EditState
         {
             Id = v.Id, PersonRef = v.InvestigationPersonId, Name = v.Name, Role = v.Role, Summons = v.Summons,
-            Date = local?.Date, Time = local?.TimeOfDay is { } t && t != TimeSpan.Zero ? t : null, Officers = v.Officers, Prosecutor = v.ProsecutorPresent,
+            Date = local?.Date, Time = local?.TimeOfDay is { } t && t != TimeSpan.Zero ? t : null, Officers = InvestigationTexts.SplitOfficers(v.Officers), Prosecutor = v.ProsecutorPresent,
             Summary = v.Summary, Reference = v.ProtocolReference, Usable = v.Usable,
             Entries = v.Entries.Select(e => new Qa { Question = e.Question, Answer = e.Answer }).ToList(),
         };
@@ -230,7 +250,7 @@ else
         {
             DateTime? held = _edit.Date is { } date ? (date.Date + (_edit.Time ?? TimeSpan.Zero)).ToUniversalTime() : null;
             await Investigations.SaveInterrogationAsync(Detail.Id, new InvestigationInterrogationInput(_edit.Id, _edit.PersonRef, _edit.Name, _edit.Role,
-                _edit.Summons, held, _edit.Officers, _edit.Prosecutor, _edit.Summary, _edit.Reference, _edit.Usable,
+                _edit.Summons, held, InvestigationTexts.JoinOfficers(_edit.Officers), _edit.Prosecutor, _edit.Summary, _edit.Reference, _edit.Usable,
                 _edit.Entries.Select(e => new InvestigationQa(e.Question, e.Answer)).ToList()), User);
             await TextDraft.DiscardScopeAsync(JS, User.GetAgentId(), DraftScope);
             _edit = null;
