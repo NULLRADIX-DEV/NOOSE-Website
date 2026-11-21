@@ -45,6 +45,32 @@ public static class InvestigationTexts
             .Concat(d.Evidence.Select(e => e.Description))
             .Concat(d.People.Select(p => p.Note));
 
+    /// <summary>
+    /// What the officer pickers offer: the file's accounts, then whatever the entry already holds that is not one of them
+    /// (free text from before the picker, an account that left the file), so editing never drops a stored name.
+    /// </summary>
+    public static IReadOnlyList<string> OfficerChoices(InvestigationDetail d, params IEnumerable<string?> current)
+    {
+        var names = d.Officers.Select(o => o.Name).ToList();
+        foreach (var name in current.OfType<string>().Where(n => !string.IsNullOrWhiteSpace(n)))
+        {
+            if (!names.Contains(name, StringComparer.OrdinalIgnoreCase))
+            {
+                names.Add(name);
+            }
+        }
+        return names;
+    }
+
+    /// <summary>Several officers in one stored field, one name per comma.</summary>
+    public static IReadOnlyList<string> SplitOfficers(string? stored)
+        => string.IsNullOrWhiteSpace(stored) ? []
+            : stored.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+    /// <summary>The picked officers as the stored field; null when nobody is picked.</summary>
+    public static string? JoinOfficers(IEnumerable<string>? picked)
+        => picked?.Where(n => !string.IsNullOrWhiteSpace(n)).ToList() is { Count: > 0 } list ? string.Join(", ", list) : null;
+
     /// <summary>The element id a deep link scrolls to; the prefix also keeps a GUID that starts with a digit a valid selector.</summary>
     public static string Anchor(string entryId) => $"eintrag-{entryId}";
 

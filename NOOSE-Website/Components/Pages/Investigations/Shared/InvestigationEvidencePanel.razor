@@ -70,7 +70,14 @@ else
             <MudGrid Spacing="2">
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Name" Label="Bezeichnung" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
                 <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Owner" Label="Besitzer" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
-                <MudItem xs="12" md="4"><MudTextField @bind-Value="_edit.Officer" Label="Sichernder Beamter" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="200" /></MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="string" @bind-Value="_edit.Officer" Label="Sichernder Beamter" Clearable="true" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        @foreach (var name in InvestigationTexts.OfficerChoices(Detail, _edit.Officer))
+                        {
+                            <MudSelectItem T="string" Value="@name">@name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
                 <MudItem xs="12" md="8">
                     <MentionInput Text="@(_edit.Description ?? string.Empty)" TextChanged="@(t => { if (_edit is not null) _edit.Description = t; })"
                                   Label="Beschreibung" Lines="2" MaxLength="@InvestigationService.EvidenceDescriptionMaxLength"
@@ -167,7 +174,7 @@ else
     private bool _busy;
 
     private void Edit(InvestigationEvidenceView? e)
-        => _edit = e is null ? new EditState()
+        => _edit = e is null ? new EditState { Officer = Detail.MyName }
             : new EditState
             {
                 Id = e.Id, Name = e.Name, Description = e.Description, Owner = e.Owner, Officer = e.Officer, Status = e.Status,
