@@ -242,7 +242,7 @@ else
                         {
                             <SearchHitRow Hit="t" SelectMode="_selectMode" Selectable="@SearchSelection.IsSelectable(t)"
                                           Picked="@_picked.ContainsKey(SearchSelection.Key(t))" OnToggle="Toggle"
-                                          IsNew="@_newKeys.Contains(SavedSearchRules.Key(t))" />
+                                          IsNew="@_newKeys.Contains(SavedSearchRules.Key(t))" Query="@_shownQuery" />
                         }
                     </MudStack>
                 </div>
@@ -278,6 +278,9 @@ else
     private bool _searchingNow;
     private bool _againSearch;
     private bool _searched;
+
+    // the text the shown hits were found with, not what is being typed now
+    private string _shownQuery = string.Empty;
     private SearchResults _results = SearchResults.None;
     private List<Tag> _tags = new();
     private List<SavedSearch> _saved = new();
@@ -467,7 +470,9 @@ else
             do
             {
                 _againSearch = false;
-                _results = await SearchService.SearchAsync(BuildCriteria(), _user);
+                var criteria = BuildCriteria();
+                _results = await SearchService.SearchAsync(criteria, _user);
+                _shownQuery = criteria.Text;
                 _searched = true;
                 await StampSearchAsync();
             }
