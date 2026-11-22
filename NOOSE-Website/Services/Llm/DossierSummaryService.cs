@@ -40,7 +40,8 @@ public sealed class DossierSummaryService(
     INooseiGateway noosei,
     INooseiProviderService providerService,
     IMemoryCache cache,
-    IOptions<LlmOptions> options) : IDossierSummaryService
+    IOptions<LlmOptions> options,
+    Usage.IUsageTracker? usage = null) : IDossierSummaryService
 {
     private readonly LlmOptions _o = options.Value;
 
@@ -110,6 +111,11 @@ public sealed class DossierSummaryService(
             throw new InvalidOperationException(
                 "FIBI konnte keinen strukturierten Kurzbrief erzeugen. Bitte später erneut versuchen.");
         }
+        // once per brief, not per rung of the ladder
+        if (usage is not null)
+        {
+            await usage.TrackAsync(actor, Usage.UsageCatalog.Fibi(LlmFeature.Brief), CancellationToken.None);
+        }
 
         if (existing is null)
         {
@@ -160,7 +166,8 @@ public sealed class DossierSummaryService(
                         EntityType: entityType,
                         EntityId: entityId,
                         ContextRefs: [new LlmContextRef(entityType, entityId, title)],
-                        RequireCapableProviders: requireCapable),
+                        RequireCapableProviders: requireCapable,
+                        CountsAsUse: false),
                     actor,
                     cancellationToken);
 
