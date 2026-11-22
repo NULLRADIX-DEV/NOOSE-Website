@@ -829,6 +829,9 @@ public static class ChangelogContent
             Besser("3.1.09-ermittlung-auswahl", "In der Ermittlungsakte wählst du den sichernden Beamten, die vernehmenden "
                 + "Beamten und den anwesenden Staatsanwalt aus einer Liste, dein eigener Name steht schon drin. Die Listen "
                 + "funktionieren auch für Partner, und die Rolle einer neuen Person startet leer.", "Ermittlung"),
+            Fix("3.1.10-kuendigung-blacklist", "Wer vor der Umstellung gekündigt wurde, steht nicht mehr auf der Blacklist. "
+                + "Gekündigte Accounts lassen sich wieder löschen, gesperrt bleibt das Löschen nur bei einer von Hand "
+                + "gesetzten Blacklist. Eine zurückgenommene Kündigung hebt diese nicht mehr mit auf.", "Personal"),
         ]),
     ];
 }

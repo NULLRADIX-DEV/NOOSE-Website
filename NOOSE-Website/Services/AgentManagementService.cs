@@ -1041,19 +1041,23 @@ public class AgentManagementService(
         agent.TerminationReason = null;
         // the inactivity radar starts counting from here
         agent.ActiveSinceAt = DateTime.UtcNow;
-
-        var blacklisted = await db.Bewerbungssperren
-            .Where(s => s.AgentId == agentId && s.IsBlacklist)
-            .ToListAsync(cancellationToken);
-        foreach (var entry in blacklisted)
-        {
-            db.Bewerbungssperren.Remove(entry); // interceptor soft-deletes
-        }
+        // a termination sets no ban, so a blacklist found here was set by hand and stays
 
         Audit(agent, AuditAction.Modified, actor, lostBadgeNumber is null
             ? "Kündigung zurückgenommen"
             : $"Kündigung zurückgenommen (Dienstnummer {lostBadgeNumber} inzwischen vergeben, entfernt)");
         await Save(agent, newStamp: true);
+    }
+
+    public async Task<HashSet<string>> GetBlacklistedAgentIdsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default)
+    {
+        Permission.RequireLeadership(actor);
+        var ids = await db.Bewerbungssperren.AsNoTracking()
+            .Where(s => s.IsBlacklist)
+            .Select(s => s.AgentId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        return ids.ToHashSet();
     }
 
     public async Task DeleteAccountAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
@@ -1078,6 +1082,13 @@ public class AgentManagementService(
         if (agent.IsAdmin && await db.Users.CountAsync(u => u.IsAdmin, cancellationToken) <= 1)
         {
             throw new InvalidOperationException("Der letzte verbliebene Admin kann nicht gelöscht werden.");
+        }
+
+        // the purge below would take a hand-set blacklist with it, and a re-login would then apply freely
+        if (await db.Bewerbungssperren.AnyAsync(s => s.AgentId == agentId && s.IsBlacklist, cancellationToken))
+        {
+            throw new InvalidOperationException(
+                "Nicht möglich: Das Löschen würde den Blacklist-Eintrag mit entfernen. Hebe ihn zuerst im Bewerbungswesen auf.");
         }
 
         var codename = agent.Codename;
