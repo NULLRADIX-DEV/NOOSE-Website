@@ -238,11 +238,11 @@ else
                     @if (context.Id != _myId)
                     {
                         @* Deleting purges the recruitment blacklist along with the account. *@
-                        <MudTooltip Text="@(context.Status == AgentStatus.Terminated
+                        <MudTooltip Text="@(_blacklisted.Contains(context.Id)
                                               ? "Nicht möglich: Das Löschen würde den Blacklist-Eintrag mit entfernen."
                                               : "Account vollständig löschen (unwiderruflich)")">
                             <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Small" Color="Color.Error"
-                                           Disabled="@(context.Status == AgentStatus.Terminated)"
+                                           Disabled="@_blacklisted.Contains(context.Id)"
                                            OnClick="() => DeleteAccount(context)" aria-label="Account vollständig löschen" />
                         </MudTooltip>
                     }
@@ -271,7 +271,7 @@ else
                     {
                         <MudDivider Class="my-1" />
                         <MudMenuItem Icon="@Icons.Material.Filled.DeleteForever" IconColor="Color.Error"
-                                     Disabled="@(context.Status == AgentStatus.Terminated)"
+                                     Disabled="@_blacklisted.Contains(context.Id)"
                                      OnClick="() => DeleteAccount(context)">Account vollständig löschen</MudMenuItem>
                     }
                 </MudMenu>
@@ -297,6 +297,7 @@ else
 
     private bool _load = true;
     private List<Agent> _agents = new();
+    private HashSet<string> _blacklisted = new();
     private string? _myId;
     private bool _amAdmin;
     private PromotionStanding _standing;
@@ -383,6 +384,7 @@ else
         _load = true;
         _units = await Units.GetAllAsync();
         _agents = await AgentService.GetAllAsync();
+        _blacklisted = await AgentService.GetBlacklistedAgentIdsAsync((await AuthStateTask).User);
         _load = false;
     }
 

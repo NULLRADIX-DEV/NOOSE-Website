@@ -108,18 +108,21 @@ public interface IAgentManagementService
     /// <summary>Lift a block; status becomes Active. Refuses terminated agents - those go through the personnel file.</summary>
     Task UnblockAsync(string agentId, ClaimsPrincipal actor);
 
-    /// <summary>Terminate an agent: status Terminated, admin rights dropped, permanent recruitment blacklist,
+    /// <summary>Terminate an agent: status Terminated, admin rights dropped, no recruitment ban,
     /// sessions end at the next revalidation. Optionally files a personnel-file entry and posts a Discord embed.
     /// Leadership only; blocked for self, applicants, the last admin, and bootstrap admins.</summary>
     Task TerminateAsync(string agentId, string reason, bool createNote, bool postDiscord,
         ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
-    /// <summary>Revoke a termination: status Active, termination fields cleared, blacklist entry lifted.
-    /// The personnel-file entry and the audit trail are kept.</summary>
+    /// <summary>Revoke a termination: status Active, termination fields cleared. Recruitment bans,
+    /// the personnel-file entry and the audit trail are kept.</summary>
     Task TerminationRevokeAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
     /// <summary>Hard-delete an agent: purge personnel/junction rows and drop the user (severs the Discord
     /// login, so a re-login creates a fresh Pending account). Keeps authored content and audit logs.
-    /// Leadership only; blocked for self, the last admin, and bootstrap admins.</summary>
+    /// Leadership only; blocked for self, the last admin, bootstrap admins, and anyone on the blacklist.</summary>
     Task DeleteAccountAsync(string agentId, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
+    /// <summary>Ids of agents with a blacklist entry, the ones <see cref="DeleteAccountAsync"/> refuses. Leadership only.</summary>
+    Task<HashSet<string>> GetBlacklistedAgentIdsAsync(ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 }

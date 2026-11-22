@@ -1996,6 +1996,38 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
+    public async Task DeleteAccountAsync_TerminatedWithoutBlacklistIsDeleted()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("t", AgentStatus.Terminated),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+
+        Assert.Empty(await f.Svc.GetBlacklistedAgentIdsAsync(Admin("keepadmin")));
+        await f.Svc.DeleteAccountAsync("t", Admin("keepadmin"));
+
+        using var db = f.Ctx.NewContext();
+        Assert.False(db.Users.Any(u => u.Id == "t"));
+    }
+
+    [Fact]
+    public async Task DeleteAccountAsync_BlacklistedThrows()
+    {
+        using var f = Make();
+        Persist(f.Ctx,
+            NewAgent("t", AgentStatus.Active),
+            NewAgent("keepadmin", AgentStatus.Active, cfg: a => a.IsAdmin = true));
+        SeedBlacklist(f, "t");
+
+        Assert.Equal(["t"], await f.Svc.GetBlacklistedAgentIdsAsync(Admin("keepadmin")));
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => f.Svc.DeleteAccountAsync("t", Admin("keepadmin")));
+
+        using var db = f.Ctx.NewContext();
+        Assert.True(db.Users.Any(u => u.Id == "t"));
+    }
+
+    [Fact]
     public async Task DeleteAccountAsync_LastAdminThrows()
     {
         using var f = Make();
@@ -2246,7 +2278,7 @@ public class AgentManagementServiceTests
     }
 
     [Fact]
-    public async Task TerminationRevokeAsync_RestoresAgentAndLiftsBlacklist()
+    public async Task TerminationRevokeAsync_RestoresAgent()
     {
         using var f = Make();
         Persist(f.Ctx, NewAgent("t", AgentStatus.Active, Rank.SpecialAgent));
@@ -2266,6 +2298,27 @@ public class AgentManagementServiceTests
         Assert.Empty(db.Bewerbungssperren.Where(s => s.AgentId == "t"));
         // the personnel-file entry survives as the historical record
         Assert.Single(db.AgentNotes.Where(n => n.AgentId == "t"));
+    }
+
+    [Fact]
+    public async Task TerminationRevokeAsync_KeepsHandSetBlacklist()
+    {
+        using var f = Make();
+        Persist(f.Ctx, NewAgent("t", AgentStatus.Active));
+        await f.Svc.TerminateAsync("t", "Irrtum", createNote: false, postDiscord: false, Admin());
+        SeedBlacklist(f, "t");
+
+        await f.Svc.TerminationRevokeAsync("t", Admin());
+
+        using var db = f.Ctx.NewContext();
+        Assert.True(Assert.Single(db.Bewerbungssperren.Where(s => s.AgentId == "t")).IsBlacklist);
+    }
+
+    private static void SeedBlacklist(Fixture f, string agentId)
+    {
+        using var seed = f.Ctx.NewContext();
+        seed.Bewerbungssperren.Add(new Bewerbungssperre { AgentId = agentId, IsBlacklist = true, Reason = "von Hand" });
+        seed.SaveChanges();
     }
 
     [Fact]
