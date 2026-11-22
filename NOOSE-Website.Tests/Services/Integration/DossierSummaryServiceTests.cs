@@ -5,6 +5,7 @@ using NOOSE_Website.Data.Entities.People;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Llm;
 using NOOSE_Website.Services;
+using NOOSE_Website.Services.Usage;
 using NOOSE_Website.Tests.Infrastructure;
 using NSubstitute;
 
@@ -37,7 +38,7 @@ public sealed class DossierSummaryServiceTests
     }
 
     private static DossierSummaryService Svc(SqliteTestContext ctx, INooseiGateway gateway, bool allowClassifiedEgress = false,
-        LlmProvider provider = LlmProvider.OpenRouter, IMemoryCache? cache = null)
+        LlmProvider provider = LlmProvider.OpenRouter, IMemoryCache? cache = null, IUsageTracker? usage = null)
         => new(ctx.Factory, gateway, NooseiProviderStub.Returning(provider), cache ?? new MemoryCache(new MemoryCacheOptions()),
             Options.Create(new LlmOptions
             {
@@ -46,7 +47,7 @@ public sealed class DossierSummaryServiceTests
                 Model = "test-model",
                 DeepSeek = new LlmDeepSeekOptions { ApiKey = "d" },
                 AllowClassifiedEgress = allowClassifiedEgress,
-            }));
+            }), usage);
 
     /// <summary>Gateway that refuses every enforced schema, like an endpoint without structured output.</summary>
     private static INooseiGateway SchemaRefusingGateway(List<LlmResponseFormatKind?> seenFormats)
@@ -305,6 +306,31 @@ public sealed class DossierSummaryServiceTests
         Assert.True(view.Exists);
         Assert.Contains(LlmResponseFormatKind.JsonSchema, seenFormats);
         Assert.Contains(LlmResponseFormatKind.JsonObject, seenFormats);
+    }
+
+    [Fact]
+    public async Task Generate_CountsOneUse_HoweverManyRungsItTakes()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedPerson(ctx, "p1", "Max Mustermann");
+        var gateway = Substitute.For<INooseiGateway>();
+        gateway.IsConfigured.Returns(true);
+        var calls = new List<NooseiCall>();
+        gateway.AskAsync(Arg.Any<NooseiCall>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                calls.Add(call.Arg<NooseiCall>());
+                // the first answer is unusable, so the ladder climbs
+                return Answer(calls.Count == 1 ? "kein JSON" : BriefJson);
+            });
+        var usage = Substitute.For<IUsageTracker>();
+        var leader = Leader();
+
+        await Svc(ctx, gateway, usage: usage).GenerateAsync(nameof(Person), "p1", leader, force: false);
+
+        Assert.True(calls.Count > 1);
+        Assert.All(calls, c => Assert.False(c.CountsAsUse));
+        await usage.Received(1).TrackAsync(leader, UsageCatalog.Fibi(LlmFeature.Brief), Arg.Any<CancellationToken>());
     }
 
     [Fact]

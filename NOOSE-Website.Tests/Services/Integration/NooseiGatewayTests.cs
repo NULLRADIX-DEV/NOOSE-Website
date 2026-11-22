@@ -5,6 +5,7 @@ using Microsoft.Extensions.Options;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Llm;
 using NOOSE_Website.Services;
+using NOOSE_Website.Services.Usage;
 using NOOSE_Website.Tests.Infrastructure;
 using NSubstitute;
 
@@ -38,7 +39,8 @@ public sealed class NooseiGatewayTests
         => new(text, calls, new LlmUsage(100, 20, 120, 0, 0, cost), "Baidu", "vendor/model", "stop", "gen-1", 1, 42);
 
     private static async Task<(NooseiGateway Gateway, ILlmService Llm, LlmQuotaService Quota)> BuildAsync(
-        SqliteTestContext ctx, Rank rank = Rank.SpecialAgent, long? over = null, Action<LlmOptions>? configure = null)
+        SqliteTestContext ctx, Rank rank = Rank.SpecialAgent, long? over = null, Action<LlmOptions>? configure = null,
+        IUsageTracker? usage = null)
     {
         await using (var db = ctx.NewContext())
         {
@@ -60,7 +62,7 @@ public sealed class NooseiGatewayTests
         var llm = Substitute.For<ILlmService>();
         llm.IsConfigured.Returns(true);
 
-        var gateway = new NooseiGateway(llm, quota, providers, tuning, NullLogger<NooseiGateway>.Instance);
+        var gateway = new NooseiGateway(llm, quota, providers, tuning, NullLogger<NooseiGateway>.Instance, usage: usage);
         return (gateway, llm, quota);
     }
 
@@ -87,6 +89,21 @@ public sealed class NooseiGatewayTests
         Assert.Equal("Antwort", answer.Text);
         Assert.Equal(1_230L, answer.Charge.QuotaTokens);
         Assert.Equal(35_000L - 1_230L, answer.Charge.Status.Remaining);
+    }
+
+    [Fact]
+    public async Task Ask_CountsTheUse_UnlessTheCallerCountsItItself()
+    {
+        using var ctx = new SqliteTestContext();
+        var usage = Substitute.For<IUsageTracker>();
+        var (gateway, llm, _) = await BuildAsync(ctx, usage: usage);
+        llm.CompleteAsync(Arg.Any<LlmRequest>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(Result());
+
+        await gateway.AskAsync(Call(), Agent());
+        await gateway.AskAsync(Call() with { CountsAsUse = false }, Agent());
+
+        await usage.Received(1).TrackAsync(Arg.Any<ClaimsPrincipal>(), UsageCatalog.Fibi(LlmFeature.Chat), Arg.Any<CancellationToken>());
     }
 
     [Fact]

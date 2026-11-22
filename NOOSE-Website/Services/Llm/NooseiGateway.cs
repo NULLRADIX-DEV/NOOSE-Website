@@ -26,6 +26,7 @@ public sealed record NooseiToolOutcome(string Text, IReadOnlyList<LlmContextRef>
 public delegate Task<NooseiToolOutcome> NooseiToolExecutor(LlmToolCall call, CancellationToken cancellationToken);
 
 /// <summary>One user-visible NOOSEI request. May cost several rounds; it is billed exactly once.</summary>
+/// <param name="CountsAsUse">False when the caller may retry one click several times and counts the use itself.</param>
 public sealed record NooseiCall(
     LlmFeature Feature,
     IReadOnlyList<LlmMessage> Messages,
@@ -39,7 +40,8 @@ public sealed record NooseiCall(
     string? EntityId = null,
     string? ConversationId = null,
     IReadOnlyList<LlmContextRef>? ContextRefs = null,
-    bool RequireCapableProviders = false);
+    bool RequireCapableProviders = false,
+    bool CountsAsUse = true);
 
 /// <summary>What one request produced, plus what it cost the agent's weekly quota.</summary>
 /// <remarks><paramref name="Truncated" /> means the token cap cut the answer off; callers that parse a fixed
@@ -119,7 +121,7 @@ public class NooseiGateway(
         {
             var answer = await AskTurnAsync(call, actor, cancellationToken);
             // kind only, never the text
-            if (usage is not null)
+            if (usage is not null && call.CountsAsUse)
             {
                 await usage.TrackAsync(actor, Usage.UsageCatalog.Fibi(call.Feature), CancellationToken.None);
             }
