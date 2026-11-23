@@ -4,7 +4,7 @@ set -euo pipefail
 
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/NOOSE-Website/Data/Migrations"
 keep_newest=3
-# data ops without columnTypes need a model: own designer for Up, previous one for Down
+# data ops without columnTypes and column renames need a model: own designer for Up, previous one for Down
 exceptions=(
   "20261103000239_Phase109_FibTexte.Designer.cs"
   "20260804192734_Phase56_GegenaufklaerungsRegeln.Designer.cs"
@@ -15,6 +15,12 @@ exceptions=(
   "20260819083847_Oeffentlich08_HinweisTriage.Designer.cs"
   "20260903090101_Oeffentlich07_HinweisLesestandUndPrio.Designer.cs"
   "20260908083814_Oeffentlich21_TicketAnhaenge.Designer.cs"
+  "20260609133913_AgentCodenameKlarnameDienstnummer.Designer.cs"
+  "20260721072858_Phase41_BesprechungZweiErinnerungen.Designer.cs"
+  "20260807161825_Phase66_NooseiKurzbrief.Designer.cs"
+  "20260609020929_Phase2_AktenzeichenZaehlerFix.Designer.cs"
+  "20260720091239_Phase40_BesprechungenUndAbmeldungen.Designer.cs"
+  "20260807160610_Phase65_KiKontingente.Designer.cs"
 )
 
 export LC_ALL=C

@@ -3,7 +3,7 @@ namespace NOOSE_Website.Tests.Infrastructure;
 /// <summary>Keeps the old migration designers empty so the build does not carry ~200 copies of the model.</summary>
 public sealed class MigrationDesignerTests
 {
-    // data ops without column types need their model, see the script
+    // data ops without column types and column renames need their model, see the script
     private static readonly string[] FullDesigners =
     [
         "20261103000239_Phase109_FibTexte.Designer.cs",
@@ -15,12 +15,18 @@ public sealed class MigrationDesignerTests
         "20260819083847_Oeffentlich08_HinweisTriage.Designer.cs",
         "20260903090101_Oeffentlich07_HinweisLesestandUndPrio.Designer.cs",
         "20260908083814_Oeffentlich21_TicketAnhaenge.Designer.cs",
+        "20260609133913_AgentCodenameKlarnameDienstnummer.Designer.cs",
+        "20260721072858_Phase41_BesprechungZweiErinnerungen.Designer.cs",
+        "20260807161825_Phase66_NooseiKurzbrief.Designer.cs",
+        "20260609020929_Phase2_AktenzeichenZaehlerFix.Designer.cs",
+        "20260720091239_Phase40_BesprechungenUndAbmeldungen.Designer.cs",
+        "20260807160610_Phase65_KiKontingente.Designer.cs",
     ];
 
     private const int NewestKept = 5;
 
     [Fact]
-    public void OnlyThePhase109AndTheNewestDesignersStillHaveABuildTargetModel()
+    public void OnlyTheExceptionsAndTheNewestDesignersStillHaveABuildTargetModel()
     {
         var dir = FindMigrationsDirectory();
         var designers = Directory.GetFiles(dir, "*.Designer.cs").Select(Path.GetFileName).OfType<string>()
@@ -47,7 +53,7 @@ public sealed class MigrationDesignerTests
 
         Assert.True(
             emptied.Count == 0,
-            "Diese Designer brauchen ihr BuildTargetModel fuer die Datenoperationen in Up oder Down: "
+            "Diese Designer brauchen ihr BuildTargetModel fuer Datenoperationen oder Spaltenumbenennungen in Up oder Down: "
             + string.Join(", ", emptied) + ". Aus der Git-Historie zurueckholen.");
     }
 
