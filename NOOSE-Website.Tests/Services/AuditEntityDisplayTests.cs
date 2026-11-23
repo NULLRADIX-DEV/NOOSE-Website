@@ -167,6 +167,8 @@ public class AuditEntityDisplayTests
     [Theory]
     [InlineData("EnumLabelOverride", "Bezeichnung (Wertelisten)", "/einstellungen?tab=basisdaten")]
     [InlineData("KassenBuchungVorlage", "Kassen-Vorlage", "/kasse?tab=vorlagen")]
+    [InlineData("FinancingItem", "Finanzierungs-Katalogposition", "/finanzierungen?tab=katalog")]
+    [InlineData("FoodItem", "Verpflegungs-Katalogposition", "/verpflegung?tab=katalog")]
     public void ConfigRowsWithoutAPage_HaveLabelAndPointAtTheirSection(string type, string label, string route)
     {
         // the id of an override is "list:key", the id of a template is its own; neither reaches the route
