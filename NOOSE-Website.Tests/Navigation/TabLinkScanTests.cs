@@ -4,18 +4,14 @@ using NOOSE_Website.Navigation;
 
 namespace NOOSE_Website.Tests.Navigation;
 
-/// <summary>Every literal link into a section of a page listed in <see cref="MergedPageSections.ByRoute"/> names a section that exists.</summary>
+/// <summary>Every literal link into a section of a page in <see cref="MergedPageSections.ByRoute"/> names an existing section.</summary>
 /// <remarks>
 /// A stale slug is no error anywhere: the rail falls back to its first section, and a search hit on a counter-intel
 /// rule opened the chronicle that way for weeks. The slug lists in <see cref="MergedPageSections"/> are the truth.
-/// The routes come from <see cref="MergedPageSections.ByRoute"/> itself, so a new page is scanned without touching
-/// this test. A route only counts when it is no tail of a longer path (<c>/personen/papierkorb</c> is not
-/// <c>/papierkorb</c>) and <c>?tab=</c> follows it directly (<c>/personal-x?tab=</c> is not <c>/personal</c>);
-/// routes and links compare case-insensitively, like the dictionary does.
 /// </remarks>
 public sealed class TabLinkScanTests
 {
-    // longest route first, so the alternation never settles for a shorter route that is a prefix of a longer one
+    // longest route first
     private static readonly Regex Link = new(
         @"(?<![\w/.\-])(" + string.Join("|", MergedPageSections.ByRoute.Keys
             .OrderByDescending(r => r.Length).Select(Regex.Escape)) + @")\?tab=([a-z0-9-]+)",
