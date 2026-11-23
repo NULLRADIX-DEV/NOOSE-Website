@@ -411,7 +411,7 @@ public class AuditEntityDisplayTests
     [InlineData("NooseiConversation", "FIBI-Unterhaltung")]
     [InlineData("Notification", "Benachrichtigung")]
     [InlineData("PartnerShare", "Partner-Freigabe")]
-    [InlineData("Request", "Einstufungsantrag")]
+    [InlineData("Request", "Antrag")]
     [InlineData("SavedSearch", "Gespeicherte Suche")]
     [InlineData("Source", "Quelle")]
     [InlineData("TextImage", "Textbild")]
@@ -422,7 +422,6 @@ public class AuditEntityDisplayTests
     [Theory]
     [InlineData("Bewerbung", "abc", "/bewerbungen/abc")]
     [InlineData("BewerbungTest", "abc", "/bewerbungs-tests/abc")]
-    [InlineData("BewerbungTestAssignment", "abc", "/bewerbungen/korrektur/abc")]
     [InlineData("Informant", "abc", "/informanten/abc")]
     [InlineData("AgentAbduction", "abc", "/entfuehrungen/abc")]
     [InlineData("EvidenceItem", "abc", "/asservatenkammer/item/abc")]
@@ -485,11 +484,10 @@ public class AuditEntityDisplayTests
     [InlineData("TaskforceAgent")]
     [InlineData("TaskforceMessage")]
     [InlineData("AgentBadge")]
-    [InlineData("AgentEvaluation")]
     [InlineData("AgentModuleCompletion")]
     [InlineData("AgentNote")]
     [InlineData("AgentProbation")]
-    [InlineData("AgentPromotionRequest")]
+    [InlineData("BewerbungTestAssignment")]
     [InlineData("Comment")]
     [InlineData("Followup")]
     [InlineData("GraphCanvasLayout")]
@@ -506,6 +504,13 @@ public class AuditEntityDisplayTests
     [InlineData("WatchlistEntry")]
     public void Route_AuditedChildOrPersonalRow_HasNoRoute(string type)
         => Assert.Null(AuditEntityDisplay.Route(type, "abc"));
+
+    [Fact]
+    public void Route_EvaluationAndPromotionRequest_OpenTheirAdministrationOverview()
+    {
+        Assert.Equal("/administration/beurteilungen", AuditEntityDisplay.Route("AgentEvaluation", "abc"));
+        Assert.Equal("/administration/befoerderungen", AuditEntityDisplay.Route("AgentPromotionRequest", "abc"));
+    }
 
     [Fact]
     public void EveryAuditableEntity_HasAGermanLabel()

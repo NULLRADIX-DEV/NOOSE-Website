@@ -161,18 +161,17 @@ public static class AuditEntityDisplay
         "TaskforceMessage" => "Taskforce: Nachricht",
         // personnel file rows: the page is addressed by the agent's id, the audit row carries the entry's
         "AgentBadge" => "Meilenstein-Abzeichen",
-        "AgentEvaluation" => "Dienstbeurteilung",
         "AgentModuleCompletion" => "Personalakte: Ausbildungsmodul",
         "AgentNote" => "Personalakte: Eintrag",
         "AgentProbation" => "Probezeit",
-        "AgentPromotionRequest" => "Beförderungsantrag",
         // records and configuration with a page or an editing section
         "ActivityTemplate" => "Aktivitäts-Vorlage",
+        "AgentEvaluation" => "Dienstbeurteilung",
+        "AgentPromotionRequest" => "Beförderungsantrag",
         "AgentAbduction" => "Entführung",
         "AgentInvite" => "Einladungslink",
         "Bewerbung" => "Bewerbung",
         "BewerbungTest" => "Bewerbungstest",
-        "BewerbungTestAssignment" => "Bewerbungstest-Zuweisung",
         "Bewerbungssperre" => "Bewerbungssperre",
         "CounterIntelRule" => "Gegenaufklärungs-Regel",
         "CustomFieldDefinition" => "Custom-Feld",
@@ -190,7 +189,9 @@ public static class AuditEntityDisplay
         "Tag" => "Tag",
         "ThreatScoreConfig" => "Bedrohungs-Score-Konfiguration",
         "TrainingModule" => "Ausbildungsmodul",
-        // records without a page that could open the row: they hang on a person, a record or a user
+        // no route: the blind grading page must not open from a row that names the applicant
+        "BewerbungTestAssignment" => "Bewerbungstest-Zuweisung",
+        // rows no link can open: personal, private or without a page of their own
         "Comment" => "Kommentar",
         "Followup" => "Wiedervorlage",
         "GraphCanvasLayout" => "Graph-Layout",
@@ -200,7 +201,7 @@ public static class AuditEntityDisplay
         "NooseiConversation" => "FIBI-Unterhaltung",
         "Notification" => "Benachrichtigung",
         "PartnerShare" => "Partner-Freigabe",
-        "Request" => "Einstufungsantrag",
+        "Request" => "Antrag",
         "SavedSearch" => "Gespeicherte Suche",
         "Source" => "Quelle",
         "TextImage" => "Textbild",
@@ -241,6 +242,8 @@ public static class AuditEntityDisplay
         "ServiceReference" => "/administration/dienstzeugnisse",
         "AgentRelationship" => "/administration/beziehungen",
         "DecorationProposal" => "/administration/auszeichnungen",
+        "AgentEvaluation" => "/administration/beurteilungen",
+        "AgentPromotionRequest" => "/administration/befoerderungen",
         "ParliamentaryInquiry" => $"/administration/parlament/{id}",
         // feedback entries have no detail page either; point at the feedback hub
         "Feedback" => "/feedback",
@@ -313,8 +316,6 @@ public static class AuditEntityDisplay
         "SystemSetting" => SystemSettingRoute(id),
         "Bewerbung" => $"/bewerbungen/{id}",
         "BewerbungTest" => $"/bewerbungs-tests/{id}",
-        // the id is the assignment's, and the blind grading page opens an assignment by exactly that id
-        "BewerbungTestAssignment" => $"/bewerbungen/korrektur/{id}",
         "Bewerbungssperre" => "/bewerbungen?tab=sperren",
         "Informant" => $"/informanten/{id}",
         "AgentAbduction" => $"/entfuehrungen/{id}",
