@@ -1,5 +1,6 @@
 @* Access log: who opened which record, when. Leadership and read-only supervision. *@
 @inject IAuditLogQueryService AuditQuery
+@inject IRouteAccessService RouteAccess
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
@@ -67,6 +68,8 @@ else
     private DateTime? _to;
     private bool _busy = true;
     private string? _error;
+    // routes the viewer may open, so a row they cannot reach stays plain text
+    private IReadOnlySet<string> _openRoutes = new HashSet<string>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -110,6 +113,8 @@ else
             _filter.FromUtc = _from?.Date.ToUniversalTime();
             _filter.ToUtc = _to?.Date.AddDays(1).ToUniversalTime();
             _page = await AuditQuery.QueryAccessAsync(_filter, _user);
+            _openRoutes = await RouteAccess.OpenableAsync(_user,
+                _page.Rows.Select(r => AuditEntityDisplay.Route(r.EntityType, r.EntityId)));
             _error = null;
         }
         catch (UnauthorizedAccessException ex)
@@ -153,7 +158,7 @@ else
     {
         var label = AuditEntityDisplay.Label(type);
         var route = AuditEntityDisplay.Route(type, id);
-        if (route is null)
+        if (route is null || !_openRoutes.Contains(route))
         {
             <MudText Typo="Typo.body2">@label</MudText>
         }

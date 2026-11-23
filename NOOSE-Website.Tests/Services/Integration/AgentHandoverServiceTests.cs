@@ -36,7 +36,7 @@ public sealed class AgentHandoverServiceTests
     private static (AgentHandoverService Svc, INotificationService Notifications) Build(SqliteTestContext ctx)
     {
         var notifications = Substitute.For<INotificationService>();
-        return (new AgentHandoverService(ctx.Factory, notifications), notifications);
+        return (new AgentHandoverService(ctx.Factory, notifications, RouteAccessTestHost.Create()), notifications);
     }
 
     /// <summary>One open and one finished record of every kind, all hanging on the leaving agent.</summary>
@@ -468,6 +468,31 @@ public sealed class AgentHandoverServiceTests
         Assert.Equal(new HandoverResult(0, 0), result);
         await using var check = ctx.NewContext();
         Assert.Equal(Gone, (await check.Followups.SingleAsync(f => f.Id == "f-hidden")).ResponsibleAgentId);
+    }
+
+    [Fact]
+    public async Task AFollowupOnAnAdminOnlySectionKeepsItsLinkOnlyForTheOperatorWhoMayOpenIt()
+    {
+        using var ctx = await SeededAsync();
+        await using (var db = ctx.NewContext())
+        {
+            // an unknown record type counts as visible, so only the link check can tell the operators apart
+            db.Followups.Add(new Followup
+            {
+                Id = "f-partner", EntityType = "PartnerAgencyProfile", EntityId = "x", ResponsibleAgentId = Gone,
+                DueAt = new DateTime(2026, 11, 3, 0, 0, 0, DateTimeKind.Utc),
+            });
+            await db.SaveChangesAsync();
+        }
+        var svc = Build(ctx).Svc;
+        var admin = ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).WithCodename("Codename-lead").AsAdmin().Build();
+
+        var withoutRight = (await svc.GetAsync(Gone, Leader())).Rows.Single(r => r.Id == "f-partner");
+        var withRight = (await svc.GetAsync(Gone, admin)).Rows.Single(r => r.Id == "f-partner");
+
+        // the row stays listed and can still be handed over, it just has no link for the one who may not follow it
+        Assert.Null(withoutRight.Href);
+        Assert.Equal("/einstellungen?tab=partner", withRight.Href);
     }
 
     [Fact]

@@ -401,6 +401,7 @@ builder.Services.AddScoped<IObservationService, ObservationService>();
 builder.Services.AddScoped<ITrashService, TrashService>();
 builder.Services.AddScoped<IPersonnelFileService, PersonnelFileService>();
 builder.Services.AddScoped<IInactivityRadarService, InactivityRadarService>();
+builder.Services.AddScoped<IRouteAccessService, RouteAccessService>();
 builder.Services.AddScoped<IAgentHandoverService, AgentHandoverService>();
 builder.Services.AddScoped<IRecordKeeperService, RecordKeeperService>();
 builder.Services.AddScoped<ISupervisionSheetService, SupervisionSheetService>();

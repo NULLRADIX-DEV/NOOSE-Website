@@ -40,7 +40,8 @@ public interface IAgentHandoverService
 /// </remarks>
 public sealed class AgentHandoverService(
     IDbContextFactory<AppDbContext> dbFactory,
-    INotificationService notifications) : IAgentHandoverService
+    INotificationService notifications,
+    IRouteAccessService routeAccess) : IAgentHandoverService
 {
     /// <summary>Decision note on an approved request the departure rejects.</summary>
     public const string DepartureNote = "Antragsteller ausgeschieden";
@@ -57,7 +58,7 @@ public sealed class AgentHandoverService(
         RequireOperator(actor);
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var codename = await LeavingAgentAsync(db, agentId, actor, cancellationToken);
-        var (rows, hidden) = await CollectAsync(db, agentId, ViewerScope.From(actor), cancellationToken);
+        var (rows, hidden) = await CollectAsync(db, agentId, actor, cancellationToken);
         return new HandoverPlan(agentId, codename, rows, hidden);
     }
 
@@ -83,7 +84,7 @@ public sealed class AgentHandoverService(
         }
 
         // exactly what the dialog may list: still on the agent, still open, and open to the operator
-        var (open, _) = await CollectAsync(db, agentId, ViewerScope.From(actor), cancellationToken);
+        var (open, _) = await CollectAsync(db, agentId, actor, cancellationToken);
         var listed = open.Select(r => (r.Kind, r.Id)).ToHashSet();
         var taken = new Dictionary<string, List<HandoverKind>>();
         var closed = 0;
@@ -149,9 +150,10 @@ public sealed class AgentHandoverService(
         return agent.Codename;
     }
 
-    private static async Task<(List<HandoverRow> Rows, int Hidden)> CollectAsync(AppDbContext db, string agentId,
-        ViewerScope scope, CancellationToken cancellationToken)
+    private async Task<(List<HandoverRow> Rows, int Hidden)> CollectAsync(AppDbContext db, string agentId,
+        ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
+        var scope = ViewerScope.From(actor);
         var now = DateTime.UtcNow;
         var candidates = new List<Candidate>();
 
@@ -268,13 +270,19 @@ public sealed class AgentHandoverService(
         candidates.AddRange(appointments.Select(t => Record(HandoverKind.Appointment, nameof(Appointment), t.Id,
             t.Title, MeetingTime.Text(t.Start), $"/kalender/{t.Id}", null)));
 
+        // a follow-up's address comes from the audit routes, which also lead to pages the operator may not open
+        var openRoutes = await routeAccess.OpenableAsync(actor,
+            candidates.Where(c => c.Row.Kind == HandoverKind.Followup).Select(c => c.Row.Href), cancellationToken);
         var rows = new List<HandoverRow>();
         foreach (var candidate in candidates)
         {
             if (await Visibility.IsRecordVisibleAsync(db, candidate.RecordType, candidate.RecordId, scope,
                     cancellationToken))
             {
-                rows.Add(candidate.Row);
+                var row = candidate.Row;
+                rows.Add(row.Kind == HandoverKind.Followup && row.Href is { } href && !openRoutes.Contains(href)
+                    ? row with { Href = null }
+                    : row);
             }
         }
         var ordered = rows.OrderBy(r => r.Kind).ThenBy(r => r.Title, StringComparer.CurrentCultureIgnoreCase).ToList();
