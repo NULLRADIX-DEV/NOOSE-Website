@@ -8,7 +8,8 @@ set -euo pipefail
 
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/NOOSE-Website/Data/Migrations"
 keep_newest=3
-# the data operations (InsertData/UpdateData/DeleteData without columnTypes) of the seven look their column types up in it
+# data operations without columnTypes take their column types from a model: in Up from the migration's own designer,
+# in Down from the designer of the migration before it. So the first seven stay for Up, the last three for Down.
 exceptions=(
   "20261103000239_Phase109_FibTexte.Designer.cs"
   "20260804192734_Phase56_GegenaufklaerungsRegeln.Designer.cs"
@@ -18,6 +19,9 @@ exceptions=(
   "20261006124329_Phase86_PartnerBehoerdenprofil.Designer.cs"
   "20261014112112_Phase93_Ehrungen.Designer.cs"
   "20261113235508_Phase128_PartnerEinheiten.Designer.cs"
+  "20260819083847_Oeffentlich08_HinweisTriage.Designer.cs"
+  "20260903090101_Oeffentlich07_HinweisLesestandUndPrio.Designer.cs"
+  "20260908083814_Oeffentlich21_TicketAnhaenge.Designer.cs"
 )
 
 export LC_ALL=C

@@ -3,7 +3,8 @@ namespace NOOSE_Website.Tests.Infrastructure;
 /// <summary>Keeps the old migration designers empty so the build does not carry ~200 copies of the model.</summary>
 public sealed class MigrationDesignerTests
 {
-    // keep their model: Phase109, and the seven whose data operations have no columnTypes and read them from it
+    // keep their model: Phase109, the seven whose Up has data operations without columnTypes (own model), and the three
+    // before Oeffentlich08, Oeffentlich10 and Phase78, whose Down has them (EF builds Down from the previous model)
     private static readonly string[] FullDesigners =
     [
         "20261103000239_Phase109_FibTexte.Designer.cs",
@@ -14,6 +15,9 @@ public sealed class MigrationDesignerTests
         "20261006124329_Phase86_PartnerBehoerdenprofil.Designer.cs",
         "20261014112112_Phase93_Ehrungen.Designer.cs",
         "20261113235508_Phase128_PartnerEinheiten.Designer.cs",
+        "20260819083847_Oeffentlich08_HinweisTriage.Designer.cs",
+        "20260903090101_Oeffentlich07_HinweisLesestandUndPrio.Designer.cs",
+        "20260908083814_Oeffentlich21_TicketAnhaenge.Designer.cs",
     ];
 
     private const int NewestKept = 5;
@@ -37,16 +41,36 @@ public sealed class MigrationDesignerTests
     }
 
     [Fact]
+    public void TheExceptionsKeepTheirBuildTargetModel()
+    {
+        var dir = FindMigrationsDirectory();
+        var emptied = FullDesigners
+            .Where(n => !File.ReadAllText(Path.Combine(dir, n)).Contains("BuildTargetModel"))
+            .ToList();
+
+        Assert.True(
+            emptied.Count == 0,
+            "Diese Designer brauchen ihr BuildTargetModel fuer die Datenoperationen in Up oder Down: "
+            + string.Join(", ", emptied) + ". Aus der Git-Historie zurueckholen.");
+    }
+
+    [Fact]
     public void EveryDesignerKeepsItsMigrationAttribute()
     {
         var dir = FindMigrationsDirectory();
+        var broken = new List<string>();
         foreach (var path in Directory.GetFiles(dir, "*.Designer.cs"))
         {
             var text = File.ReadAllText(path);
-            var id = Path.GetFileName(path)[..^".Designer.cs".Length];
-            Assert.Contains("[DbContext(typeof(AppDbContext))]", text);
-            Assert.Contains($"[Migration(\"{id}\")]", text);
+            var name = Path.GetFileName(path);
+            var id = name[..^".Designer.cs".Length];
+            if (!text.Contains("[DbContext(typeof(AppDbContext))]") || !text.Contains($"[Migration(\"{id}\")]"))
+            {
+                broken.Add(name);
+            }
         }
+
+        Assert.True(broken.Count == 0, "Diese Designer haben ihr DbContext- oder Migration-Attribut verloren: " + string.Join(", ", broken));
     }
 
     private static string FindMigrationsDirectory()
