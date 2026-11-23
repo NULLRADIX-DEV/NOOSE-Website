@@ -8,7 +8,17 @@ set -euo pipefail
 
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/NOOSE-Website/Data/Migrations"
 keep_newest=3
-exceptions=("20261103000239_Phase109_FibTexte.Designer.cs")
+# the data operations (InsertData/UpdateData/DeleteData without columnTypes) of the seven look their column types up in it
+exceptions=(
+  "20261103000239_Phase109_FibTexte.Designer.cs"
+  "20260804192734_Phase56_GegenaufklaerungsRegeln.Designer.cs"
+  "20260819092159_Oeffentlich08_HinweisUebernahme.Designer.cs"
+  "20260903095002_Oeffentlich10_TicketBeteiligteUndIntern.Designer.cs"
+  "20260908084531_Phase78_KontoLoeschenEntkoppeln.Designer.cs"
+  "20261006124329_Phase86_PartnerBehoerdenprofil.Designer.cs"
+  "20261014112112_Phase93_Ehrungen.Designer.cs"
+  "20261113235508_Phase128_PartnerEinheiten.Designer.cs"
+)
 
 export LC_ALL=C
 mapfile -t designers < <(cd "$dir" && printf '%s\n' *.Designer.cs | sort)
