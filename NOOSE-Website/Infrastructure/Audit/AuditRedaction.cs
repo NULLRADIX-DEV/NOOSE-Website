@@ -11,16 +11,7 @@ namespace NOOSE_Website.Infrastructure.Audit;
 
 /// <summary>Fields whose value never enters an audit row; the change is recorded, the content is not.</summary>
 /// <remarks>
-/// The sections "Änderungen" and "Zugriffe" on /nachweis sit behind <c>Policies.LeadershipPage</c> (leadership and
-/// the read-only supervision); <c>AuditLogQueryService</c> re-checks that and filters by nothing but the entity type
-/// the reader picks. The page itself and the Chronik are open to every internal agent, but the Chronik anchors on
-/// record types (Person, Case, ...) and their children, so it never prints the values of the entries below that
-/// guard secrecy. That circle is still wider than the one most of these fields were written for: a tip carries an
-/// anonymity promise, a snippet or a FIBI chat belongs to one agent, a watch report to its owner, the
-/// Administration workspace to its division. The interceptor captures field values on Modified, Deleted (a soft
-/// delete is a Modified row) and Restored, never on Created, so a field the user can edit would otherwise land in
-/// ChangesJson in plain text. This registry turns "nobody has asked yet" into a rule, on the write side, so no later
-/// reader of ChangesJson can undo it.
+/// /nachweis (LeadershipPage) reads the change log; these fields were written for a narrower circle.
 ///
 /// Scoped by type, not by field name: the same "Text" on a Comment is supposed to show its before and after.
 /// </remarks>
@@ -31,8 +22,7 @@ public static class AuditRedaction
     {
         $"{nameof(HinweisNachricht)}.{nameof(HinweisNachricht.Text)}",
         $"{nameof(TicketNachricht)}.{nameof(TicketNachricht.Text)}",
-        // the closing remark names what the desk thought of a concern; the desk is the same circle that reads the
-        // protocol, but the protocol must not become a second, unfiltered copy of the correspondence
+        // the closing note names what the desk thought of a concern
         $"{nameof(Ticket)}.{nameof(Ticket.ClosingNote)}",
         // a snippet is one agent's private phrasing, and the panel that offers it says so in as many words:
         // "Sie gehören dir allein." Without this the protocol would hand the sentence - and the name the
@@ -48,8 +38,7 @@ public static class AuditRedaction
         // a folded notice rewrites its title, and the title is written for one recipient's eyes: a watch report
         // names hits only its owner may see
         $"{nameof(Notification)}.{nameof(Notification.Title)}",
-        // the answer key and an agent's own answers: a toggled option or a colleague's draft would be a crib sheet
-        // for anyone who later sits the test
+        // the answer key and an agent's own answers, a crib sheet for anyone who later sits the test
         $"{nameof(BewerbungTestOption)}.{nameof(BewerbungTestOption.IsCorrect)}",
         $"{nameof(BewerbungTestQuestion)}.{nameof(BewerbungTestQuestion.CorrectYesNo)}",
         $"{nameof(BewerbungTestQuestion)}.{nameof(BewerbungTestQuestion.Keywords)}",
@@ -80,13 +69,10 @@ public static class AuditRedaction
         $"{nameof(DecorationProposal)}.{nameof(DecorationProposal.Reason)}",
         $"{nameof(ParliamentaryInquiry)}.{nameof(ParliamentaryInquiry.Question)}",
         $"{nameof(ParliamentaryInquiry)}.{nameof(ParliamentaryInquiry.Answer)}",
-        // a FIBI chat is owner-private, leadership and admins see counts and cost, never the content; the title is
-        // the first question, and the scope stamp fingerprints the owner's rights
+        // owner-private chat, the title is the first question
         $"{nameof(NooseiConversation)}.{nameof(NooseiConversation.Title)}",
         $"{nameof(NooseiConversation)}.{nameof(NooseiConversation.ScopeStamp)}",
-        // why a promotion was turned down, same treatment as TransferRequest.DecisionNote. Justification stays
-        // visible on purpose: it is written once, never edited, and shown on the same personnel file tab to every
-        // active agent, so the protocol would add no reader
+        // why a promotion was turned down
         $"{nameof(AgentPromotionRequest)}.{nameof(AgentPromotionRequest.DecisionNote)}",
     };
 

@@ -47,7 +47,7 @@ public class AuditRedactionTests
     [Fact]
     public void A_fibi_chat_keeps_its_title_and_scope_stamp_out_of_the_protocol()
     {
-        // the chat is owner-private; leadership gets counts and cost, never the content
+        // owner-private, leadership sees counts only
         Assert.True(AuditRedaction.Hides(nameof(NooseiConversation), nameof(NooseiConversation.Title)));
         Assert.True(AuditRedaction.Hides(nameof(NooseiConversation), nameof(NooseiConversation.ScopeStamp)));
         Assert.False(AuditRedaction.Hides(nameof(NooseiConversation), nameof(NooseiConversation.MessageCount)));
@@ -62,8 +62,7 @@ public class AuditRedactionTests
     [Fact]
     public void A_promotion_justification_is_deliberately_not_redacted()
     {
-        // written once, never edited, and shown on the personnel file tab to every active agent: the protocol
-        // (leadership and supervision) would add no reader
+        // already shown to every active agent on the personnel file
         Assert.False(AuditRedaction.Hides(nameof(AgentPromotionRequest), nameof(AgentPromotionRequest.Justification)));
         Assert.False(AuditRedaction.Hides(nameof(AgentPromotionRequest), nameof(AgentPromotionRequest.Status)));
     }
@@ -116,7 +115,7 @@ public class AuditRedactionTests
         Assert.Contains(nameof(AgentPromotionRequest.Status), row.ChangesJson);
         Assert.DoesNotContain(nameof(AgentPromotionRequest.DecisionNote), row.ChangesJson);
         Assert.DoesNotContain("Ablehnungsgrund", row.ChangesJson);
-        // the decision on Justification: not redacted, so its pair is there (ASCII, as the JSON escapes umlauts)
+        // not redacted, so its pair is there
         Assert.Contains("Neue Begruendung im Klartext", row.ChangesJson);
     }
 
