@@ -123,6 +123,16 @@ public class RouteAccessServiceTests
     }
 
     [Fact]
+    public async Task ARemovedAddressIsJudgedByThePageItRedirectsTo()
+    {
+        Assert.False(await MayOpenAsync(Trainee(), "/abmeldungen/uebersicht"));
+        Assert.False(await MayOpenAsync(Partner(), "/abmeldungen/uebersicht"));
+        Assert.True(await MayOpenAsync(Director(), "/abmeldungen/uebersicht"));
+        Assert.False(await MayOpenAsync(Director(), "/admin/system"));
+        Assert.True(await MayOpenAsync(Admin(), "/admin/system"));
+    }
+
+    [Fact]
     public async Task AnonymousViewersOpenNothingBehindALoginPolicy()
     {
         Assert.False(await MayOpenAsync(ClaimsPrincipalBuilder.Anonymous(), "/personen/abc"));
@@ -136,7 +146,7 @@ public class RouteAccessServiceTests
         var offenders = RouteTypes()
             .Select(t => (Type: t, Route: AuditEntityDisplay.Route(t, "id-1")))
             .Where(x => x.Route is not null)
-            .Where(x => PageRouteTable.Find(PathOf(x.Route!)) is null)
+            .Where(x => PageRouteTable.Find(PathOf(LegacyRoutes.Target(x.Route) ?? x.Route!)) is null)
             .Select(x => $"{x.Type}: {x.Route}")
             .ToList();
 

@@ -25,7 +25,8 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
         foreach (var route in routes.OfType<string>().Distinct(StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var (path, tab) = Parse(route);
+            // a removed address is judged by the page it redirects to
+            var (path, tab) = Parse(LegacyRoutes.Target(route) ?? route);
             var page = PageRouteTable.Find(path);
             if (page is null)
             {
