@@ -33,6 +33,8 @@ public class AuditEntityDisplayTests
     [InlineData("MeetingAttendance", "Anwesenheit")]
     [InlineData("MeetingSignOff", "Abmeldung (Besprechung)")]
     [InlineData("Absence", "Abmeldung")]
+    [InlineData("Pressemitteilung", "Pressemitteilung")]
+    [InlineData("Warnhinweis", "Warnhinweis")]
     [InlineData("FirearmUse", "Schusswaffengebrauch")]
     [InlineData("SystemSetting", "Systemeinstellung")]
     [InlineData("BuergerProfil", "Bürgerkonto")]
@@ -508,8 +510,7 @@ public class AuditEntityDisplayTests
     [Fact]
     public void EveryAuditableEntity_HasAGermanLabel()
     {
-        // an audit row of any IAuditable type can show up under /nachweis; none may fall back to the CLR name
-        // (these read the same in German and are asserted by their own label tests)
+        // any IAuditable row can show up in the audit log, so none may fall back to the class name
         var sameInGerman = new HashSet<string>(StringComparer.Ordinal)
         {
             "Person", "Observation", "Operation", "Taskforce", "Pressemitteilung", "Warnhinweis", "Bewerbung", "Bewerbungssperre",

@@ -166,7 +166,7 @@ public static class AuditEntityDisplay
         "AgentNote" => "Personalakte: Eintrag",
         "AgentProbation" => "Probezeit",
         "AgentPromotionRequest" => "Beförderungsantrag",
-        // records and configuration with a page or an editing section (see Route)
+        // records and configuration with a page or an editing section
         "ActivityTemplate" => "Aktivitäts-Vorlage",
         "AgentAbduction" => "Entführung",
         "AgentInvite" => "Einladungslink",
