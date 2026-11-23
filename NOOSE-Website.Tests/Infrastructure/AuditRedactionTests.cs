@@ -101,14 +101,14 @@ public class AuditRedactionTests
         await using var db = NewAuditedContext(ctx);
         db.AgentPromotionRequests.Add(new AgentPromotionRequest
         {
-            Id = "p1", AgentId = "a1", TargetRank = Rank.SpecialAgent, Justification = "Begründung im Klartext",
+            Id = "p1", AgentId = "a1", TargetRank = Rank.SpecialAgent, Justification = "Begruendung im Klartext",
         });
         await db.SaveChangesAsync();
 
         var request = await db.AgentPromotionRequests.SingleAsync();
         request.Status = PromotionStatus.Rejected;
         request.DecisionNote = "Ablehnungsgrund im Klartext";
-        request.Justification = "Neue Begründung im Klartext";
+        request.Justification = "Neue Begruendung im Klartext";
         await db.SaveChangesAsync();
 
         var row = await ModifiedRowAsync(ctx, nameof(AgentPromotionRequest));
@@ -116,8 +116,8 @@ public class AuditRedactionTests
         Assert.Contains(nameof(AgentPromotionRequest.Status), row.ChangesJson);
         Assert.DoesNotContain(nameof(AgentPromotionRequest.DecisionNote), row.ChangesJson);
         Assert.DoesNotContain("Ablehnungsgrund", row.ChangesJson);
-        // the decision on Justification: not redacted, so its pair is there
-        Assert.Contains("Neue Begründung im Klartext", row.ChangesJson);
+        // the decision on Justification: not redacted, so its pair is there (ASCII, as the JSON escapes umlauts)
+        Assert.Contains("Neue Begruendung im Klartext", row.ChangesJson);
     }
 
     [Fact]
