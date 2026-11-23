@@ -4,19 +4,15 @@ using NOOSE_Website.Navigation;
 
 namespace NOOSE_Website.Services;
 
-/// <summary>Answers whether a viewer may open an address that <see cref="AuditEntityDisplay.Route"/> hands out.</summary>
+/// <summary>Whether a viewer may open an address from <see cref="AuditEntityDisplay.Route"/>.</summary>
 public interface IRouteAccessService
 {
-    /// <summary>The routes among <paramref name="routes"/> the viewer may open; null entries and unknown pages never are.</summary>
+    /// <summary>The routes among <paramref name="routes"/> the viewer may open.</summary>
     Task<IReadOnlySet<string>> OpenableAsync(ClaimsPrincipal user, IEnumerable<string?> routes,
         CancellationToken cancellationToken = default);
 }
 
 /// <inheritdoc cref="IRouteAccessService" />
-/// <remarks>
-/// Same rules the router applies: every authorize attribute of the page, combined, plus the policy of the section
-/// when the page wraps it in an AuthorizeView (<see cref="SectionPolicies"/>). Nothing here compares roles.
-/// </remarks>
 public sealed class RouteAccessService(IAuthorizationService authorization, IAuthorizationPolicyProvider policies)
     : IRouteAccessService
 {
@@ -24,7 +20,7 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
         CancellationToken cancellationToken = default)
     {
         var open = new HashSet<string>(StringComparer.Ordinal);
-        // many rows point at the same page and section, so each is asked once
+        // each page and section is asked once
         var verdicts = new Dictionary<(Type Page, string? Section), bool>();
         foreach (var route in routes.OfType<string>().Distinct(StringComparer.Ordinal))
         {

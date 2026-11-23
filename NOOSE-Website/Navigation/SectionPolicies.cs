@@ -2,11 +2,7 @@ using NOOSE_Website.Authorization;
 
 namespace NOOSE_Website.Navigation;
 
-/// <summary>Policy of each rail section a page wraps in an AuthorizeView, keyed by the page's route.</summary>
-/// <remarks>
-/// A section outside this map is open to everyone who may open the page. The pages stay the truth for what they render;
-/// <c>SectionPoliciesTests</c> reads their markup and fails when a protected section is missing here or differs.
-/// </remarks>
+/// <summary>Policy of each rail section a page guards with an AuthorizeView.</summary>
 public static class SectionPolicies
 {
     public static readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> ByRoute =
@@ -21,7 +17,7 @@ public static class SectionPolicies
             ["/finanzierungen"] = Sections(Group(Policies.LeadershipPage, "alle", "budgets", "statistik", "papierkorb")),
             ["/verpflegung"] = Sections(Group(Policies.LeadershipPage, "alle", "limits", "statistik", "papierkorb")),
             ["/kasse"] = Sections(Group(Policies.LeadershipPage, "vorlagen", "statistik", "papierkorb")),
-            // the page itself only needs an active agent, which a partner is as well
+            // the page policy lets a partner in
             ["/fahndung"] = Sections(Group(Policies.InternalAgent, "oeffentlich", "organisationen", "einsprueche")),
             ["/personal"] = Sections(Group(Policies.InternalAgent, "bestenliste")),
             ["/abmeldungen"] = Sections(Group(Policies.LeadershipPage, "uebersicht", "papierkorb")),
@@ -30,7 +26,7 @@ public static class SectionPolicies
                 Group(Policies.Admin, "nutzung")),
         };
 
-    /// <summary>Policy that guards the section of the page, or null when the page does not guard it.</summary>
+    /// <summary>Policy that guards the section, or null when it is unguarded.</summary>
     public static string? For(string route, string slug)
         => ByRoute.TryGetValue(route, out var sections) && sections.TryGetValue(slug, out var policy) ? policy : null;
 

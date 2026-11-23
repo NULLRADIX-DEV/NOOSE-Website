@@ -476,7 +476,7 @@ public sealed class AgentHandoverServiceTests
         using var ctx = await SeededAsync();
         await using (var db = ctx.NewContext())
         {
-            // an unknown record type counts as visible, so only the link check can tell the operators apart
+            // an unknown record type is visible to every operator
             db.Followups.Add(new Followup
             {
                 Id = "f-partner", EntityType = "PartnerAgencyProfile", EntityId = "x", ResponsibleAgentId = Gone,
@@ -490,7 +490,7 @@ public sealed class AgentHandoverServiceTests
         var withoutRight = (await svc.GetAsync(Gone, Leader())).Rows.Single(r => r.Id == "f-partner");
         var withRight = (await svc.GetAsync(Gone, admin)).Rows.Single(r => r.Id == "f-partner");
 
-        // the row stays listed and can still be handed over, it just has no link for the one who may not follow it
+        // the row stays listed without a link
         Assert.Null(withoutRight.Href);
         Assert.Equal("/einstellungen?tab=partner", withRight.Href);
     }

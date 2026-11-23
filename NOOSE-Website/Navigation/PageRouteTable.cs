@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components;
 
 namespace NOOSE_Website.Navigation;
 
-/// <summary>Finds the page component a path opens, from the same <c>@page</c> templates the router reads.</summary>
+/// <summary>Finds the page component a path opens, from the @page templates.</summary>
 public static class PageRouteTable
 {
     private const int Literal = 0;
@@ -14,7 +14,7 @@ public static class PageRouteTable
 
     private static readonly Lazy<IReadOnlyList<Entry>> Entries = new(Build);
 
-    /// <summary>The page the path opens, or null when none does. Catch-all pages never count.</summary>
+    /// <summary>The page a path opens, or null when none does.</summary>
     public static Type? Find(string path)
     {
         var segments = Split(path);
@@ -43,7 +43,7 @@ public static class PageRouteTable
     private static string[] Split(string path)
         => path.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    // literal beats parameter beats a skipped optional one, left to right, like the router's ordering
+    // literal beats parameter beats a skipped optional one
     private static int[]? Match(string[] template, string[] path)
     {
         if (path.Length > template.Length)

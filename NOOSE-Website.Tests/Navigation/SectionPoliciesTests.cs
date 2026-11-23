@@ -6,11 +6,7 @@ using NOOSE_Website.Navigation;
 
 namespace NOOSE_Website.Tests.Navigation;
 
-/// <summary>The section to policy map names every rail section a page wraps in an AuthorizeView, with the page's policy.</summary>
-/// <remarks>
-/// The audit links and the handover dialog only show a link to a section the viewer may open, and they ask this map.
-/// A section missing here would show a link that lands on the rail's first allowed section instead.
-/// </remarks>
+/// <summary>Every section a page guards with an AuthorizeView is in the policy map.</summary>
 public sealed class SectionPoliciesTests
 {
     private static readonly Regex Wrapper = new(@"<AuthorizeView\b[^>]*?\bPolicy=""@Policies\.(\w+)""[^>]*>", RegexOptions.Compiled);
@@ -23,7 +19,7 @@ public sealed class SectionPoliciesTests
     private static IEnumerable<string> PageFiles() => Directory
         .EnumerateFiles(Path.Combine(SourceRoot(), "Components"), "*.razor", SearchOption.AllDirectories);
 
-    // the route of each page that has a rail with named sections, and the file that holds it
+    // the route and file of each page with a rail
     private static Dictionary<string, string> RailPages()
     {
         var pages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -38,7 +34,7 @@ public sealed class SectionPoliciesTests
         return pages;
     }
 
-    /// <summary>Slug and policy constant name of every section that sits inside an AuthorizeView, nested views included.</summary>
+    /// <summary>Slug and policy name of every section inside an AuthorizeView.</summary>
     private static IEnumerable<(string Slug, string PolicyName)> ProtectedSections(string markup)
     {
         foreach (Match wrapper in Wrapper.Matches(markup))
@@ -80,7 +76,7 @@ public sealed class SectionPoliciesTests
     {
         var pages = RailPages();
 
-        // a rename of the @page route or of ByRoute must not turn the scan below into a no-op
+        // the scan below must not match nothing
         foreach (var route in new[] { "/einstellungen", "/nachweis", "/finanzierungen", "/verpflegung", "/kasse", "/fahndung" })
         {
             Assert.True(pages.ContainsKey(route), $"Seite für {route} nicht gefunden");

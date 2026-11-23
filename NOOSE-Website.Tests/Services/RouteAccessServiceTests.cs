@@ -8,17 +8,17 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Tests.Services;
 
-/// <summary>Whether a viewer may open an address from <see cref="AuditEntityDisplay.Route"/>: page policy and section policy.</summary>
+/// <summary>Whether a viewer may open an address from <see cref="AuditEntityDisplay.Route"/>.</summary>
 public class RouteAccessServiceTests
 {
     private static readonly IRouteAccessService Access = RouteAccessTestHost.Create();
 
     private static ClaimsPrincipal Admin() => ClaimsPrincipalBuilder.Agent("admin").WithRank(Rank.Director).AsAdmin().Build();
 
-    // leadership by rank, no admin flag: reads the settings page, but not the admin sections in it
+    // leadership without the admin flag
     private static ClaimsPrincipal Director() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // read-only supervision: leadership and admin pages, no counter-intelligence
+    // read-only supervision without counter-intelligence
     private static ClaimsPrincipal Supervision() => ClaimsPrincipalBuilder.Agent("aufsicht").WithRank(Rank.Director).AsTeamLead().Build();
 
     private static ClaimsPrincipal Trainee() => ClaimsPrincipalBuilder.Agent("trainee").WithRank(Rank.Trainee).Build();
@@ -63,7 +63,7 @@ public class RouteAccessServiceTests
     [InlineData("/einstellungen")]
     public async Task ThePagePolicyDecidesBeforeTheSection(string route)
     {
-        // an agent below leadership may not open the settings page at all, whatever section the address names
+        // an agent below leadership may not open the settings page
         Assert.False(await MayOpenAsync(Trainee(), route));
     }
 
@@ -109,7 +109,7 @@ public class RouteAccessServiceTests
     [Fact]
     public async Task AnAddressNoPageAnswersIsNeverOpen()
     {
-        // the catch-all page answers everything, so it must not count as a match
+        // the catch-all page must not count as a match
         Assert.False(await MayOpenAsync(Admin(), "/gibt/es/nicht"));
     }
 
@@ -129,7 +129,7 @@ public class RouteAccessServiceTests
         Assert.False(await MayOpenAsync(ClaimsPrincipalBuilder.Anonymous(), "/einstellungen?tab=discord"));
     }
 
-    /// <summary>A route no page answers would show as plain text for everyone, so every arm of Route has to resolve.</summary>
+    /// <summary>Every arm of Route must resolve to a page.</summary>
     [Fact]
     public void EveryRouteTheAuditLinksHandOutResolvesToAPage()
     {
@@ -145,7 +145,7 @@ public class RouteAccessServiceTests
 
     private static string PathOf(string route) => route.Split('?')[0];
 
-    // every quoted arm key of the display switches; the SystemSetting arm is covered per key below
+    // every quoted arm key of the display switches
     private static IEnumerable<string> RouteTypes()
     {
         var source = File.ReadAllText(Path.Combine(SourceRoot(), "Services", "AuditEntityDisplay.cs"));
