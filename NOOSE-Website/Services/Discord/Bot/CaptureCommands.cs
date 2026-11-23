@@ -174,12 +174,18 @@ public sealed class CaptureCommands(
     public async Task<BotReply> AlarmAsync(BotCall call)
     {
         Division? target = Enum.TryParse<Division>(call.Options.Text("abteilung"), out var d) ? d : null;
+        int? minutes = call.Options.Number("dauer") is { } n ? (int)Math.Clamp(n, int.MinValue, int.MaxValue) : null;
         var id = await alarms.TriggerAsync(new EmergencyAlarmInput(call.Options.Text("lage") ?? string.Empty,
-            call.Options.Text("ort"), target, call.Options.Text("grund")), call.User, call.Ct);
+            call.Options.Text("ort"), target, call.Options.Text("grund"), minutes), call.User, call.Ct);
         var link = await records.LinkAsync($"/einsatzalarme/{id}", call.Ct);
+        var detail = await alarms.GetDetailAsync(id, call.User, call.Ct);
+        var length = detail is null ? 0 : (int)Math.Round((detail.Expiry - detail.Summary.TriggeredAt).TotalMinutes);
+        var runtime = detail is null
+            ? string.Empty
+            : $" Der Alarm läuft {(length == 1 ? "1 Minute" : $"{length} Minuten")} und schließt sich {DiscordCards.When(detail.Expiry, 't')} selbst.";
         return BotReply.Of(DiscordCards.Card(DiscordCards.Danger,
             DiscordCards.Header("🚨", "Einsatzalarm ausgelöst", target is { } t ? $"nur {DivisionDisplay.Name(t)}" : "alle verfügbaren Agenten"),
-            DiscordCards.Text("Die Gerufenen sind benachrichtigt. Die Rückmeldungen siehst du auf der Alarmkarte und auf der Seite."),
+            DiscordCards.Text("Die Gerufenen sind benachrichtigt. Die Rückmeldungen siehst du auf der Alarmkarte und auf der Seite." + runtime),
             DiscordCards.Row(DiscordCards.Open(link, "Alarm öffnen"))));
     }
 

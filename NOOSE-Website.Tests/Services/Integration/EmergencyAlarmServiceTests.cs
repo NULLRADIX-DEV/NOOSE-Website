@@ -3,8 +3,10 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using NOOSE_Website.Data;
 using NOOSE_Website.Data.Entities.Absences;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Infrastructure.Chat;
+using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Operations;
 using NOOSE_Website.Services;
@@ -267,7 +269,7 @@ public sealed class EmergencyAlarmServiceTests
     }
 
     [Fact]
-    public async Task Trigger_SetsExpiryThirtyMinutes()
+    public async Task Trigger_WithoutDefaultOrChoice_SetsExpiryThirtyMinutes()
     {
         using var ctx = new SqliteTestContext();
         Agents(ctx, Agent("lead", Rank.SectionChief));
@@ -278,6 +280,159 @@ public sealed class EmergencyAlarmServiceTests
         var alarm = Stored(ctx, id);
         Assert.Equal(TimeSpan.FromMinutes(30), alarm.Expiry - alarm.TriggeredAt);
         Assert.Null(alarm.EndedAt);
+    }
+
+    private static ClaimsPrincipal Admin(string id = "adm")
+        => ClaimsPrincipalBuilder.Agent(id).AsAdmin().WithRank(Rank.SpecialAgent).WithCodename($"Codename-{id}").Build();
+
+    private static void StoreDefault(SqliteTestContext ctx, string raw)
+    {
+        using var db = ctx.NewContext();
+        db.SystemSettings.Add(new SystemSetting { Key = SystemSettingKeys.EmergencyAlarmDurationMinutes, Value = raw });
+        db.SaveChanges();
+    }
+
+    [Fact]
+    public async Task Trigger_WithoutChoice_UsesTheStoredDefault()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief));
+        var (svc, _, _) = Build(ctx);
+        await svc.SaveDefaultMinutesAsync(45, Admin());
+
+        var id = await svc.TriggerAsync(Input(), Leader());
+
+        var alarm = Stored(ctx, id);
+        Assert.Equal(TimeSpan.FromMinutes(45), alarm.Expiry - alarm.TriggeredAt);
+    }
+
+    [Fact]
+    public async Task Trigger_ChosenMinutes_BeatTheDefault()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief));
+        var (svc, _, _) = Build(ctx);
+        await svc.SaveDefaultMinutesAsync(45, Admin());
+
+        var id = await svc.TriggerAsync(Input() with { DurationMinutes = 5 }, Leader());
+
+        var alarm = Stored(ctx, id);
+        Assert.Equal(TimeSpan.FromMinutes(5), alarm.Expiry - alarm.TriggeredAt);
+        Assert.Equal(alarm.TriggeredAt.AddMinutes(5), (await svc.GetDetailAsync(id, Leader()))!.Expiry);
+    }
+
+    [Fact]
+    public async Task Trigger_AnyoneWhoMayTrigger_MayChooseTheDuration()
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("junior"));
+        var (svc, _, _) = Build(ctx);
+
+        var id = await svc.TriggerAsync(Input(reason: "Eile") with { DurationMinutes = 90 }, Junior());
+
+        var alarm = Stored(ctx, id);
+        Assert.Equal(TimeSpan.FromMinutes(90), alarm.Expiry - alarm.TriggeredAt);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    [InlineData(121)]
+    public async Task Trigger_MinutesOutsideTheLimits_AreRefusedAndStoreNothing(int minutes)
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief));
+        var (svc, _, _) = Build(ctx);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => svc.TriggerAsync(Input() with { DurationMinutes = minutes }, Leader()));
+
+        Assert.Contains("zwischen 1 und 120 Minuten", ex.Message);
+        using var db = ctx.NewContext();
+        Assert.Empty(db.EmergencyAlarms);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(120)]
+    public async Task Trigger_MinutesOnTheLimits_AreAccepted(int minutes)
+    {
+        using var ctx = new SqliteTestContext();
+        Agents(ctx, Agent("lead", Rank.SectionChief));
+        var (svc, _, _) = Build(ctx);
+
+        var id = await svc.TriggerAsync(Input() with { DurationMinutes = minutes }, Leader());
+
+        var alarm = Stored(ctx, id);
+        Assert.Equal(TimeSpan.FromMinutes(minutes), alarm.Expiry - alarm.TriggeredAt);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("500")]
+    [InlineData("abc")]
+    [InlineData("")]
+    public async Task Default_WhenStoredValueIsInvalid_FallsBackToThirty(string stored)
+    {
+        using var ctx = new SqliteTestContext();
+        StoreDefault(ctx, stored);
+        var (svc, _, _) = Build(ctx);
+
+        Assert.Equal(30, await svc.GetDefaultMinutesAsync());
+    }
+
+    [Fact]
+    public async Task Default_WithoutStoredValue_IsThirty()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+
+        Assert.Equal(30, await svc.GetDefaultMinutesAsync());
+    }
+
+    [Fact]
+    public async Task SaveDefault_Admin_StoresChangesAndLogsIt()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+
+        await svc.SaveDefaultMinutesAsync(60, Admin());
+        await svc.SaveDefaultMinutesAsync(15, Admin());
+
+        Assert.Equal(15, await svc.GetDefaultMinutesAsync());
+        using var db = ctx.NewContext();
+        Assert.Single(db.SystemSettings.Where(s => s.Key == SystemSettingKeys.EmergencyAlarmDurationMinutes));
+        Assert.Equal(2, db.AuditLogs.Count(l => l.EntityType == EmergencyAlarmService.SettingAuditType));
+    }
+
+    [Fact]
+    public async Task SaveDefault_NonAdmins_AreRefusedEvenWithLeadership()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.SaveDefaultMinutesAsync(60, Leader()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.SaveDefaultMinutesAsync(60, Junior()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.SaveDefaultMinutesAsync(60, Partner()));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => svc.SaveDefaultMinutesAsync(60, Supervision()));
+
+        Assert.Equal(30, await svc.GetDefaultMinutesAsync());
+        using var db = ctx.NewContext();
+        Assert.Empty(db.AuditLogs.Where(l => l.EntityType == EmergencyAlarmService.SettingAuditType));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(121)]
+    public async Task SaveDefault_OutsideTheLimits_IsRefused(int minutes)
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _) = Build(ctx);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.SaveDefaultMinutesAsync(minutes, Admin()));
+
+        Assert.Contains("zwischen 1 und 120 Minuten", ex.Message);
+        Assert.Equal(30, await svc.GetDefaultMinutesAsync());
     }
 
     [Fact]
@@ -532,7 +687,7 @@ public sealed class EmergencyAlarmServiceTests
         Assert.False(detail.MayConvert);
         Assert.True(detail.MayAnswer);
         Assert.Equal(EmergencyAlarmAnswer.Coming, detail.MyAnswer);
-        Assert.Equal(detail.Summary.TriggeredAt + EmergencyAlarmRules.Duration, detail.Expiry);
+        Assert.Equal(detail.Summary.TriggeredAt + TimeSpan.FromMinutes(EmergencyAlarmRules.DefaultMinutes), detail.Expiry);
         Assert.Null(await svc.GetDetailAsync("missing", Leader()));
     }
 

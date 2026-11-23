@@ -832,6 +832,9 @@ public static class ChangelogContent
             Fix("3.1.10-kuendigung-blacklist", "Wer vor der Umstellung gekündigt wurde, steht nicht mehr auf der Blacklist. "
                 + "Gekündigte Accounts lassen sich wieder löschen, gesperrt bleibt das Löschen nur bei einer von Hand "
                 + "gesetzten Blacklist. Eine zurückgenommene Kündigung hebt diese nicht mehr mit auf.", "Personal"),
+            Neu("3.1.11-alarmdauer", "Ein Einsatzalarm läuft nicht mehr fest 30 Minuten. Ein Admin legt die Vorgabe in den "
+                + "Einstellungen fest, beim Auslösen änderst du die Dauer für den einen Alarm, auf der Seite und mit dem "
+                + "Feld dauer bei /alarm im Discord.", "Einsatzalarm"),
         ]),
     ];
 }

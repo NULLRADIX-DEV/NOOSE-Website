@@ -1,9 +1,12 @@
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using NOOSE_Website.Authorization;
 using NOOSE_Website.Data;
+using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Operations;
 using NOOSE_Website.Infrastructure.Chat;
+using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Models.Operations;
 
@@ -14,6 +17,10 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
     INotificationService notifications, IOperationService operations) : IEmergencyAlarmService
 {
     private const int ListLimit = 100;
+
+    /// <summary>Audit entity type of a change to the default runtime.</summary>
+    public const string SettingAuditType = "EmergencyAlarmSettings";
+
     private const string AlreadyLinked = "Dieser Einsatzalarm gehört schon zu einer Operation.";
 
     /// <summary>Column length of an operation title; a longer situation is cut to it.</summary>
@@ -45,12 +52,17 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
         {
             throw new InvalidOperationException("Unbekannte Abteilung.");
         }
+        if (input.DurationMinutes is { } chosen)
+        {
+            EmergencyAlarmRules.RequireValidMinutes(chosen);
+        }
         var isEmergency = EmergencyAlarmRules.NeedsReason(actor);
         var reason = isEmergency ? CriticalChange.RequireReason(input.Reason, "Ein Einsatzalarm bei Gefahr im Verzug") : null;
         var meId = actor.GetAgentId()!;
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
         var now = DateTime.UtcNow;
+        var minutes = input.DurationMinutes ?? await LoadDefaultMinutesAsync(db, cancellationToken);
         var recipientIds = await RecipientIdsAsync(db, input.Target, now, cancellationToken);
         var meName = await db.Users.Where(u => u.Id == meId).Select(u => u.Codename).FirstOrDefaultAsync(cancellationToken);
 
@@ -64,7 +76,7 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
             TriggeredById = meId,
             TriggeredByName = string.IsNullOrWhiteSpace(meName) ? actor.GetCodename() ?? string.Empty : meName,
             TriggeredAt = now,
-            Expiry = now + EmergencyAlarmRules.Duration,
+            Expiry = now.AddMinutes(minutes),
         };
         // triggerer stands in the list as coming, inside the target or not
         alarm.Recipients.Add(new EmergencyAlarmRecipient
@@ -103,6 +115,46 @@ public class EmergencyAlarmService(IDbContextFactory<AppDbContext> dbFactory, Em
 
         broadcaster.Report(alarm.Id);
         return alarm.Id;
+    }
+
+    public async Task<int> GetDefaultMinutesAsync(CancellationToken cancellationToken = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        return await LoadDefaultMinutesAsync(db, cancellationToken);
+    }
+
+    public async Task SaveDefaultMinutesAsync(int minutes, ClaimsPrincipal actor,
+        CancellationToken cancellationToken = default)
+    {
+        Permission.RequireWriteAccess(actor);
+        Permission.RequireAdmin(actor);
+        EmergencyAlarmRules.RequireValidMinutes(minutes);
+
+        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+        var before = await LoadDefaultMinutesAsync(db, cancellationToken);
+        var value = minutes.ToString(CultureInfo.InvariantCulture);
+        var row = await db.SystemSettings.FirstOrDefaultAsync(
+            s => s.Key == SystemSettingKeys.EmergencyAlarmDurationMinutes, cancellationToken);
+        if (row is null)
+        {
+            db.SystemSettings.Add(new SystemSetting { Key = SystemSettingKeys.EmergencyAlarmDurationMinutes, Value = value });
+        }
+        else
+        {
+            row.Value = value;
+        }
+        db.AuditLogs.Add(ManualAudit.Row(SettingAuditType, "global", AuditAction.Modified, actor,
+            ManualAudit.Change("Dauer eines Einsatzalarms", $"{before} Minuten", $"{minutes} Minuten")));
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task<int> LoadDefaultMinutesAsync(AppDbContext db, CancellationToken cancellationToken)
+    {
+        var raw = await db.SystemSettings.AsNoTracking()
+            .Where(s => s.Key == SystemSettingKeys.EmergencyAlarmDurationMinutes)
+            .Select(s => s.Value)
+            .FirstOrDefaultAsync(cancellationToken);
+        return EmergencyAlarmRules.ParseDefaultMinutes(raw);
     }
 
     public async Task RespondAsync(string alarmId, EmergencyAlarmAnswer answer, ClaimsPrincipal actor,

@@ -29,6 +29,9 @@
                     <MudSelectItem T="Division?" Value="@((Division?)d)">@DivisionDisplay.Name(d)</MudSelectItem>
                 }
             </MudSelect>
+            <MudNumericField T="int?" @bind-Value="_minutes" Label="Dauer (Minuten)" Variant="Variant.Outlined"
+                             Min="EmergencyAlarmRules.MinMinutes" Max="EmergencyAlarmRules.MaxMinutes" Immediate="true"
+                             HelperText="@DurationHelp" />
             @if (_needsReason)
             {
                 <TextDraft DraftKey='@DraftKeys.In(DraftScope, "begruendung")' OnRestore="@(t => _reason = t)">
@@ -60,11 +63,20 @@
     private string? _location;
     private Division? _target;
     private string? _reason;
+    private int? _minutes = EmergencyAlarmRules.DefaultMinutes;
+
+    private static readonly string DurationHelp =
+        $"So lange können Agenten antworten, dann schließt sich der Alarm. {EmergencyAlarmRules.MinMinutes} bis {EmergencyAlarmRules.MaxMinutes} Minuten, leer lassen für die Vorgabe.";
 
     private bool Complete => !string.IsNullOrWhiteSpace(_situation)
+        && (_minutes is not { } minutes || EmergencyAlarmRules.IsValidMinutes(minutes))
         && (!_needsReason || !string.IsNullOrWhiteSpace(_reason));
 
-    protected override void OnInitialized() => _needsReason = EmergencyAlarmRules.NeedsReason(User);
+    protected override async Task OnInitializedAsync()
+    {
+        _needsReason = EmergencyAlarmRules.NeedsReason(User);
+        _minutes = await AlarmService.GetDefaultMinutesAsync();
+    }
 
     private async Task SubmitAsync()
     {
@@ -76,7 +88,7 @@
         try
         {
             var id = await AlarmService.TriggerAsync(
-                new EmergencyAlarmInput(_situation!, _location, _target, _needsReason ? _reason : null), User);
+                new EmergencyAlarmInput(_situation!, _location, _target, _needsReason ? _reason : null, _minutes), User);
             // only once the alarm went out
             await TextDraft.DiscardScopeAsync(JS, User.GetAgentId(), DraftScope);
             MudDialog.Close(DialogResult.Ok(id));

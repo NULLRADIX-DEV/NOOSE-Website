@@ -28,6 +28,9 @@ public static class SystemSettingKeys
     /// <summary>Unexcused absences within the window that turn an agent red.</summary>
     public const string MeetingAnomalyRed = "BesprechungAnomalieRot";
 
+    /// <summary>Default runtime of an emergency alarm in minutes; unset or invalid means 30.</summary>
+    public const string EmergencyAlarmDurationMinutes = "EinsatzalarmDauerMinuten";
+
     // Discord outgoing webhooks (one channel per notification category)
     public const string DiscordEnabled = "DiscordAktiv";
     public const string SiteBaseUrl = "SeitenBasisUrl";

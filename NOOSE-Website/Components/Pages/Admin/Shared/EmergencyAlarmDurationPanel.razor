@@ -1,0 +1,70 @@
+@* Default runtime of an emergency alarm in minutes; admins change it, the trigger dialog can override it per alarm. *@
+@inject IEmergencyAlarmService AlarmService
+@inject ISnackbar Snackbar
+
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    So lange läuft ein <MudLink Href="/einsatzalarme" Typo="Typo.body2">Einsatzalarm</MudLink>, bevor er sich selbst
+    schließt. Wer einen Alarm auslöst, sieht diesen Wert vorbelegt und kann ihn für den einen Alarm ändern, auf der Seite
+    und mit <code>/alarm</code> im Discord. Bereits laufende Alarme behalten ihre Zeit. Erlaubt sind
+    @EmergencyAlarmRules.MinMinutes bis @EmergencyAlarmRules.MaxMinutes Minuten.
+</MudText>
+
+@if (_load)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="1" Style="max-width:640px;">
+        <MudStack Spacing="3">
+            <MudNumericField T="int" @bind-Value="_minutes" Label="Vorgabe (Minuten)" Min="EmergencyAlarmRules.MinMinutes"
+                             Max="EmergencyAlarmRules.MaxMinutes" Variant="Variant.Outlined" Margin="Margin.Dense"
+                             Disabled="!_mayWrite"
+                             HelperText="@(_mayWrite ? "Gilt, wenn beim Auslösen nichts anderes eingetragen wird." : "Ändern können nur Admins.")" />
+            @if (_mayWrite)
+            {
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
+                               Disabled="_saves" OnClick="SaveAsync">Speichern</MudButton>
+                    <MudButton Variant="Variant.Text" Disabled="_saves" OnClick="ResetDefaults">Grundwert</MudButton>
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    private bool _load = true;
+    private bool _saves;
+    private bool _mayWrite;
+    private ClaimsPrincipal _user = default!;
+    private int _minutes = EmergencyAlarmRules.DefaultMinutes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthStateTask).User;
+        // mirrors the service guard
+        _mayWrite = _user.MayWrite() && _user.IsAdmin();
+        _minutes = await AlarmService.GetDefaultMinutesAsync();
+        _load = false;
+    }
+
+    private void ResetDefaults() => _minutes = EmergencyAlarmRules.DefaultMinutes;
+
+    private async Task SaveAsync()
+    {
+        _saves = true;
+        try
+        {
+            await AlarmService.SaveDefaultMinutesAsync(_minutes, _user);
+            Snackbar.Add("Vorgabe gespeichert.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        _saves = false;
+    }
+}

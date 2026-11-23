@@ -22,9 +22,9 @@ public sealed class EmergencyAlarmExpiryWorkerTests
             Situation = "Geiselnahme",
             TriggeredById = "trigger",
             TriggeredByName = "Codename-trigger",
-            TriggeredAt = expiry - EmergencyAlarmRules.Duration,
+            TriggeredAt = expiry - TimeSpan.FromMinutes(EmergencyAlarmRules.DefaultMinutes),
             Expiry = expiry,
-            CreatedAt = expiry - EmergencyAlarmRules.Duration,
+            CreatedAt = expiry - TimeSpan.FromMinutes(EmergencyAlarmRules.DefaultMinutes),
         };
         configure?.Invoke(alarm);
         return alarm;

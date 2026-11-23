@@ -28,17 +28,54 @@ public class EmergencyAlarmRulesTests
         {
             TriggeredById = triggeredById,
             TriggeredAt = Now,
-            Expiry = expiry ?? Now.Add(EmergencyAlarmRules.Duration),
+            Expiry = expiry ?? Now.Add(TimeSpan.FromMinutes(EmergencyAlarmRules.DefaultMinutes)),
             EndedAt = endedAt,
         };
 
     [Fact]
     public void Limits_AreFixed()
     {
-        Assert.Equal(TimeSpan.FromMinutes(30), EmergencyAlarmRules.Duration);
+        Assert.Equal(30, EmergencyAlarmRules.DefaultMinutes);
+        Assert.Equal(1, EmergencyAlarmRules.MinMinutes);
+        Assert.Equal(120, EmergencyAlarmRules.MaxMinutes);
         Assert.Equal(500, EmergencyAlarmRules.MaxSituation);
         Assert.Equal(128, EmergencyAlarmRules.MaxLocation);
     }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(30, true)]
+    [InlineData(120, true)]
+    [InlineData(121, false)]
+    [InlineData(-1, false)]
+    public void Minutes_AreValidFromOneToOneHundredTwenty(int minutes, bool valid)
+    {
+        Assert.Equal(valid, EmergencyAlarmRules.IsValidMinutes(minutes));
+        if (valid)
+        {
+            EmergencyAlarmRules.RequireValidMinutes(minutes);
+        }
+        else
+        {
+            Assert.Contains("zwischen 1 und 120 Minuten",
+                Assert.Throws<InvalidOperationException>(() => EmergencyAlarmRules.RequireValidMinutes(minutes)).Message);
+        }
+    }
+
+    [Theory]
+    [InlineData("45", 45)]
+    [InlineData("1", 1)]
+    [InlineData("120", 120)]
+    [InlineData(null, 30)]
+    [InlineData("", 30)]
+    [InlineData("abc", 30)]
+    [InlineData("0", 30)]
+    [InlineData("121", 30)]
+    [InlineData("-5", 30)]
+    [InlineData("4.5", 30)]
+    public void ParseDefaultMinutes_FallsBackToThirty(string? raw, int expected)
+        => Assert.Equal(expected, EmergencyAlarmRules.ParseDefaultMinutes(raw));
 
     [Fact]
     public void MayTrigger_InternalWriters_NotPartnerNotSupervision()

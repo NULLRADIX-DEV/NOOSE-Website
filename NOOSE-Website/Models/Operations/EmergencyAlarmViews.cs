@@ -3,7 +3,7 @@ using NOOSE_Website.Models.Enums;
 namespace NOOSE_Website.Models.Operations;
 
 /// <summary>What the trigger dialog sends; <see cref="Target"/> null = all agents.</summary>
-public record EmergencyAlarmInput(string Situation, string? Location, Division? Target, string? Reason);
+public record EmergencyAlarmInput(string Situation, string? Location, Division? Target, string? Reason, int? DurationMinutes = null);
 
 /// <summary>One alarm in the list and the banner, with its answer counts.</summary>
 public record EmergencyAlarmSummary(string Id, string Situation, Division? Target, string TriggeredByName,

@@ -162,6 +162,19 @@ public class DiscordBotTests
     }
 
     [Fact]
+    public void The_alarm_command_has_an_optional_duration_inside_the_alarm_limits()
+    {
+        var alarm = BotCommandCatalog.All().OfType<SlashCommandProperties>().Single(c => c.Name == "alarm");
+        var option = alarm.Options!.Single(o => o.Name == "dauer");
+
+        Assert.Equal(NetCord.ApplicationCommandOptionType.Integer, option.Type);
+        Assert.NotEqual(true, option.Required);
+        Assert.Equal(EmergencyAlarmRules.MinMinutes, Convert.ToInt32(option.MinValue));
+        Assert.Equal(EmergencyAlarmRules.MaxMinutes, Convert.ToInt32(option.MaxValue));
+        Assert.Contains("dauer", BotCommandHelp.Entry(alarm));
+    }
+
+    [Fact]
     public void The_command_list_shows_every_command_once()
     {
         var listed = BotCommandCatalog.Sections.SelectMany(s => s.Names).ToList();

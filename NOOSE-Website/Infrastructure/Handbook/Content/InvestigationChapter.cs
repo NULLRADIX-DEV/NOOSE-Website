@@ -109,8 +109,11 @@ internal static class InvestigationChapter
                 <em>Komme nicht</em>. Die Antwort lässt sich ändern, solange der Alarm läuft. Auf der Alarmseite
                 sehen alle live, wer kommt, wer absagt und wer noch offen ist.</p>
                 <p>Wer den Alarm ausgelöst hat, kann die Offenen <strong>einmal</strong> mit <em>Offene
-                nachpingen</em> erneut rufen. Der Alarm läuft 30 Minuten und schließt sich dann selbst; der
-                Auslöser oder die Führung kann ihn vorher mit <em>Beenden</em> schließen.</p>
+                nachpingen</em> erneut rufen. Wie lange der Alarm läuft, bestimmst du beim Auslösen im Feld
+                <em>Dauer (Minuten)</em> oder mit <em>dauer</em> bei <code>/alarm</code> im Discord, von 1 bis 120
+                Minuten. Lässt du es leer, gilt die Vorgabe, die ein Admin in den Einstellungen festlegt; ohne eine
+                solche Vorgabe sind es 30 Minuten. Danach schließt sich der Alarm selbst; der Auslöser oder die
+                Führung kann ihn vorher mit <em>Beenden</em> schließen.</p>
                 <p>Ist der Alarm beendet, machen der Auslöser oder die Führung daraus mit <em>Operation
                 anlegen</em> eine laufende Operation oder hängen ihn mit <em>An Operation hängen</em> an eine
                 bestehende. Alle, die <em>Komme</em> gesagt haben, werden dort als Beteiligte eingetragen.
@@ -120,7 +123,7 @@ internal static class InvestigationChapter
                 Steps:
                 [
                     new Step("NotificationsActive", "Alarm auslösen",
-                        "Einsatzalarme → Alarm auslösen. Lage, Ort und Ziel angeben, bei Gefahr im Verzug die Begründung."),
+                        "Einsatzalarme → Alarm auslösen. Lage, Ort, Ziel und Dauer angeben, bei Gefahr im Verzug die Begründung."),
                     new Step("CheckCircle", "Antworten",
                         "Im roten Balken oder auf der Alarmseite Komme oder Komme nicht wählen."),
                     new Step("Radar", "In eine Operation überführen",
