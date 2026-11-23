@@ -78,10 +78,10 @@ public static class MergedPageSections
 
     public static readonly string[] Feedback = ["melden", "meine", "eingang"];
 
-    // the chapters come from data, only the fixed section is listed
+    // chapters from data
     public static readonly string[] Handbook = ["glossar"];
 
-    // the DVO sections come from data, only the fixed ones are listed
+    // sections from data
     public static readonly string[] Regulation = ["aufgehoben", "papierkorb"];
 
     public static readonly string[] Abductions = ["uebersicht", "kompromittiert", "papierkorb"];
