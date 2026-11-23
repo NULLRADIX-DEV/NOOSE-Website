@@ -232,7 +232,7 @@ public static class AuditEntityDisplay
         "Agent" => $"/personal/{id}",
         "Meeting" => $"/besprechungen/{id}",
         "Presentation" => $"/praesentationen/{id}",
-        // absences have no detail page; the audit viewer is admin-only, so point at the overview
+        // absences have no detail page; the overview lists them
         "Absence" => "/abmeldungen/uebersicht",
         // a report has no detail page; the overview lists it
         "FirearmUse" => "/schusswaffengebrauch",

@@ -1,12 +1,17 @@
 @* Access log: who opened which record, when. Leadership and read-only supervision. *@
 @inject IAuditLogQueryService AuditQuery
 @inject IRouteAccessService RouteAccess
+@inject IAuthorizationService Authorization
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-    Reine Lesezugriffe auf Akten – ohne Wertung. Die Auswertung nach Mustern steht unter
-    <MudLink Href="/nachweis?tab=lagebild">Gegenaufklärung</MudLink>.
+    Reine Lesezugriffe auf Akten – ohne Wertung.
+    @if (_linksCounterIntel)
+    {
+        <text>Die Auswertung nach Mustern steht unter
+        <MudLink Href="@AuditAccessIntro.CounterIntelRoute">Gegenaufklärung</MudLink>.</text>
+    }
     Je Filter werden höchstens @AuditLogFilter.MaxRows Treffer geladen.
 </MudText>
 
@@ -67,6 +72,8 @@ else
     private DateTime? _from;
     private DateTime? _to;
     private bool _busy = true;
+    // the overview is only rendered for the counter-intelligence policy
+    private bool _linksCounterIntel;
     private string? _error;
     // plain-text fallback
     private IReadOnlySet<string> _openRoutes = new HashSet<string>();
@@ -74,6 +81,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         _user = (await AuthStateTask).User;
+        _linksCounterIntel = await AuditAccessIntro.LinksCounterIntelAsync(Authorization, _user);
         ReadUrlState();
         await ReloadAsync();
     }
