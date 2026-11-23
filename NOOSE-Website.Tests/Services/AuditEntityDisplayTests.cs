@@ -165,7 +165,7 @@ public class AuditEntityDisplayTests
     }
 
     [Theory]
-    [InlineData("EnumLabelOverride", "Bezeichnung (Basisdaten)", "/einstellungen?tab=basisdaten")]
+    [InlineData("EnumLabelOverride", "Bezeichnung (Wertelisten)", "/einstellungen?tab=basisdaten")]
     [InlineData("KassenBuchungVorlage", "Kassen-Vorlage", "/kasse?tab=vorlagen")]
     public void ConfigRowsWithoutAPage_HaveLabelAndPointAtTheirSection(string type, string label, string route)
     {

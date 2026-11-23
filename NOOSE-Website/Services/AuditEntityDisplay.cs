@@ -130,7 +130,7 @@ public static class AuditEntityDisplay
         "LlmQuotaConfig" => "KI-Kontingente",
         "NooseiPromptAddendum" => "FIBI-Prompt-Zusatz",
         "LlmProviderSettings" => "KI-Anbieter",
-        "EnumLabelOverride" => "Bezeichnung (Basisdaten)",
+        "EnumLabelOverride" => "Bezeichnung (Wertelisten)",
         "KassenBuchungVorlage" => "Kassen-Vorlage",
         "AgentTestAssignment" => "Test-Zuweisung",
         _ => type,

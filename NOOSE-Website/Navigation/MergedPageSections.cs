@@ -1,6 +1,6 @@
 ﻿namespace NOOSE_Website.Navigation;
 
-/// <summary>Section slugs of the pages that absorbed others in V1.5; keeps LegacyRoutes and the pages in sync.</summary>
+/// <summary>Section slugs of the pages with a section rail; keeps LegacyRoutes and the pages in sync.</summary>
 public static class MergedPageSections
 {
     public static readonly string[] Settings =
