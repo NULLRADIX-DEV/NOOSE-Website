@@ -4,7 +4,7 @@ using NOOSE_Website.Navigation;
 
 namespace NOOSE_Website.Tests.Navigation;
 
-/// <summary>MergedPageSections matches the pages that have a section rail.</summary>
+/// <summary>MergedPageSections matches the rail pages.</summary>
 public sealed class MergedPageSectionsTests
 {
     /// <summary>Rail pages with data-built sections, each with the reason.</summary>
@@ -94,6 +94,7 @@ public sealed class MergedPageSectionsTests
         Assert.Empty(Problems([dynamicPage], listed, exception));
         Assert.Single(Problems([dynamicPage], listed, NoDataDriven));
         Assert.Single(Problems([staticPage], listed, exception));
+        Assert.Single(Problems([], new Dictionary<string, string[]>(), exception), p => p.Contains("DataDriven names /demo"));
     }
 
     [Fact]
@@ -161,6 +162,9 @@ public sealed class MergedPageSectionsTests
             }
         }
 
+        problems.AddRange(dataDriven.Keys
+            .Where(route => !pages.Any(p => string.Equals(p.Route, route, StringComparison.OrdinalIgnoreCase)))
+            .Select(route => $"DataDriven names {route}, but no page with that route has a section rail"));
         problems.AddRange(listed.Keys
             .Where(route => !pages.Any(p => string.Equals(p.Route, route, StringComparison.OrdinalIgnoreCase)))
             .Select(route => $"MergedPageSections.ByRoute lists {route}, but no page with that route has a section rail"));
