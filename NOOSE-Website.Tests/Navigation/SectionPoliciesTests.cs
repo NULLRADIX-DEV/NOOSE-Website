@@ -19,7 +19,7 @@ public sealed class SectionPoliciesTests
     private static IEnumerable<string> PageFiles() => Directory
         .EnumerateFiles(Path.Combine(SourceRoot(), "Components"), "*.razor", SearchOption.AllDirectories);
 
-    // the route and file of each page with a rail
+    // pages with a rail
     private static Dictionary<string, string> RailPages()
     {
         var pages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -76,7 +76,7 @@ public sealed class SectionPoliciesTests
     {
         var pages = RailPages();
 
-        // the scan below must not match nothing
+        // no empty scan
         foreach (var route in new[] { "/einstellungen", "/nachweis", "/finanzierungen", "/verpflegung", "/kasse", "/fahndung" })
         {
             Assert.True(pages.ContainsKey(route), $"Seite für {route} nicht gefunden");

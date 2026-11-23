@@ -43,7 +43,7 @@ public static class PageRouteTable
     private static string[] Split(string path)
         => path.Split('/', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    // literal beats parameter beats a skipped optional one
+    // most specific wins
     private static int[]? Match(string[] template, string[] path)
     {
         if (path.Length > template.Length)

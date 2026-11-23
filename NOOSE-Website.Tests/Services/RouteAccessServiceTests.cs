@@ -15,10 +15,10 @@ public class RouteAccessServiceTests
 
     private static ClaimsPrincipal Admin() => ClaimsPrincipalBuilder.Agent("admin").WithRank(Rank.Director).AsAdmin().Build();
 
-    // leadership without the admin flag
+    // no admin flag
     private static ClaimsPrincipal Director() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // read-only supervision without counter-intelligence
+    // no counter-intelligence
     private static ClaimsPrincipal Supervision() => ClaimsPrincipalBuilder.Agent("aufsicht").WithRank(Rank.Director).AsTeamLead().Build();
 
     private static ClaimsPrincipal Trainee() => ClaimsPrincipalBuilder.Agent("trainee").WithRank(Rank.Trainee).Build();
@@ -63,7 +63,6 @@ public class RouteAccessServiceTests
     [InlineData("/einstellungen")]
     public async Task ThePagePolicyDecidesBeforeTheSection(string route)
     {
-        // an agent below leadership may not open the settings page
         Assert.False(await MayOpenAsync(Trainee(), route));
     }
 
@@ -109,7 +108,7 @@ public class RouteAccessServiceTests
     [Fact]
     public async Task AnAddressNoPageAnswersIsNeverOpen()
     {
-        // the catch-all page must not count as a match
+        // catch-all excluded
         Assert.False(await MayOpenAsync(Admin(), "/gibt/es/nicht"));
     }
 
@@ -155,7 +154,7 @@ public class RouteAccessServiceTests
 
     private static string PathOf(string route) => route.Split('?')[0];
 
-    // every quoted arm key of the display switches
+    // quoted arm keys
     private static IEnumerable<string> RouteTypes()
     {
         var source = File.ReadAllText(Path.Combine(SourceRoot(), "Services", "AuditEntityDisplay.cs"));

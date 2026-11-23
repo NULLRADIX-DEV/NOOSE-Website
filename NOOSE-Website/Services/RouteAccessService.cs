@@ -20,12 +20,12 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
         CancellationToken cancellationToken = default)
     {
         var open = new HashSet<string>(StringComparer.Ordinal);
-        // each page and section is asked once
+        // verdict cache
         var verdicts = new Dictionary<(Type Page, string? Section), bool>();
         foreach (var route in routes.OfType<string>().Distinct(StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            // a removed address is judged by the page it redirects to
+            // follow legacy redirects
             var (path, tab) = Parse(LegacyRoutes.Target(route) ?? route);
             var page = PageRouteTable.Find(path);
             if (page is null)

@@ -270,7 +270,7 @@ public sealed class AgentHandoverService(
         candidates.AddRange(appointments.Select(t => Record(HandoverKind.Appointment, nameof(Appointment), t.Id,
             t.Title, MeetingTime.Text(t.Start), $"/kalender/{t.Id}", null)));
 
-        // keep only follow-up links the operator may open
+        // openable follow-ups only
         var openRoutes = await routeAccess.OpenableAsync(actor,
             candidates.Where(c => c.Row.Kind == HandoverKind.Followup).Select(c => c.Row.Href), cancellationToken);
         var rows = new List<HandoverRow>();

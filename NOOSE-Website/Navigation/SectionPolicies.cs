@@ -17,7 +17,6 @@ public static class SectionPolicies
             ["/finanzierungen"] = Sections(Group(Policies.LeadershipPage, "alle", "budgets", "statistik", "papierkorb")),
             ["/verpflegung"] = Sections(Group(Policies.LeadershipPage, "alle", "limits", "statistik", "papierkorb")),
             ["/kasse"] = Sections(Group(Policies.LeadershipPage, "vorlagen", "statistik", "papierkorb")),
-            // the page policy lets a partner in
             ["/fahndung"] = Sections(Group(Policies.InternalAgent, "oeffentlich", "organisationen", "einsprueche")),
             ["/personal"] = Sections(Group(Policies.InternalAgent, "bestenliste")),
             ["/abmeldungen"] = Sections(Group(Policies.LeadershipPage, "uebersicht", "papierkorb")),
