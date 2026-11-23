@@ -1,6 +1,6 @@
 ﻿namespace NOOSE_Website.Navigation;
 
-/// <summary>Section slugs of the rail pages with checked <c>?tab=</c> links; keeps LegacyRoutes and the pages in sync.</summary>
+/// <summary>Section slugs of the rail pages targeted by LegacyRoutes and audit links.</summary>
 public static class MergedPageSections
 {
     public static readonly string[] Settings =
