@@ -187,7 +187,7 @@ public sealed class RecordKeeperServiceTests
             await db.People.Where(p => p.Id == "p")
                 .ExecuteUpdateAsync(x => x.SetProperty(p => p.KeeperId, "gone").SetProperty(p => p.DeputyId, "b"));
         }
-        var handover = new AgentHandoverService(ctx.Factory, Substitute.For<INotificationService>());
+        var handover = new AgentHandoverService(ctx.Factory, Substitute.For<INotificationService>(), RouteAccessTestHost.Create());
 
         var plan = await handover.GetAsync("gone", Leader());
         var row = Assert.Single(plan.Rows, r => r.Kind == NOOSE_Website.Models.Personnel.HandoverKind.PersonRecord);
