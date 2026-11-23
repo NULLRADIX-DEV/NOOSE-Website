@@ -1,6 +1,6 @@
 ﻿namespace NOOSE_Website.Navigation;
 
-/// <summary>Section slugs of the rail pages targeted by LegacyRoutes and audit links.</summary>
+/// <summary>Section slugs of the fixed rail pages targeted by LegacyRoutes and audit links.</summary>
 public static class MergedPageSections
 {
     public static readonly string[] Settings =
