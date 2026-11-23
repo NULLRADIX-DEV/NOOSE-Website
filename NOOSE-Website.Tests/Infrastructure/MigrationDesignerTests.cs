@@ -3,8 +3,7 @@ namespace NOOSE_Website.Tests.Infrastructure;
 /// <summary>Keeps the old migration designers empty so the build does not carry ~200 copies of the model.</summary>
 public sealed class MigrationDesignerTests
 {
-    // keep their model: Phase109, the five whose Up has data operations without columnTypes (own model), and the three
-    // before Oeffentlich08, Oeffentlich10 and Phase78, whose Down has them (EF builds Down from the previous model)
+    // data ops without column types need their model, see the script
     private static readonly string[] FullDesigners =
     [
         "20261103000239_Phase109_FibTexte.Designer.cs",
