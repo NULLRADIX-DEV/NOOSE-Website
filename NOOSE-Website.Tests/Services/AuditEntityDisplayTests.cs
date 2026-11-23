@@ -173,6 +173,32 @@ public class AuditEntityDisplayTests
         Assert.Equal("/hinweise", AuditEntityDisplay.Route("HinweisNachricht", "m1"));
     }
 
+    public static TheoryData<string, string, string> GlobalSettingAudits => new()
+    {
+        { EmergencyAlarmService.SettingAuditType, "Einsatzalarm-Dauer", "/einstellungen?tab=einsatzalarm" },
+        { InactivityRadarService.AuditType, "Inaktivitäts-Schwellen", "/einstellungen?tab=inaktivitaet" },
+        { CareerRequirementsService.AuditType, "Bewerbungs-Anforderungen", "/bewerbungen?tab=anforderungen" },
+        { LlmQuotaConfigService.AuditType, "KI-Kontingente", "/einstellungen?tab=ki-regeln" },
+        { NooseiSettingsService.AuditType, "FIBI-Prompt-Zusatz", "/einstellungen?tab=ki-regeln" },
+        { NooseiProviderService.AuditType, "KI-Anbieter", "/einstellungen?tab=ki-anbieter" },
+    };
+
+    [Theory]
+    [MemberData(nameof(GlobalSettingAudits))]
+    public void GlobalSettingAudit_HasGermanLabel(string type, string label, string route)
+    {
+        Assert.Equal(label, AuditEntityDisplay.Label(type));
+        Assert.NotEqual(type, AuditEntityDisplay.Label(type));
+    }
+
+    [Theory]
+    [MemberData(nameof(GlobalSettingAudits))]
+    public void GlobalSettingAudit_RoutesToTheEditingSectionIgnoringId(string type, string label, string route)
+    {
+        Assert.Equal(route, AuditEntityDisplay.Route(type, "any-id"));
+        Assert.Equal(route, AuditEntityDisplay.Route(type, string.Empty));
+    }
+
     [Fact]
     public void Route_IsCaseSensitive_MismatchedCaseYieldsNull()
     {
