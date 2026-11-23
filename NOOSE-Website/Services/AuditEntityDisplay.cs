@@ -1,4 +1,6 @@
-﻿namespace NOOSE_Website.Services;
+﻿using NOOSE_Website.Models.Common;
+
+namespace NOOSE_Website.Services;
 
 /// <summary>German labels and deep-links for audit entity type names (CLR type names).</summary>
 public static class AuditEntityDisplay
@@ -226,6 +228,71 @@ public static class AuditEntityDisplay
         // the prompt addendum is edited in the same panel as the token rules
         "NooseiPromptAddendum" => "/einstellungen?tab=ki-regeln",
         "LlmProviderSettings" => "/einstellungen?tab=ki-anbieter",
+        // the id is the settings key, not a record id
+        "SystemSetting" => SystemSettingRoute(id),
         _ => null,
     };
+
+    /// <summary>Section that edits a settings key, or null for worker state and keys nobody edits.</summary>
+    /// <remarks>
+    /// Worker state has no editing section on purpose: the threat-board and bot-board messages and hashes, the role-sync
+    /// and digest and best-agent timestamps, the regulation-post marker, the anomaly-watch arming time, the search
+    /// backfill marker and the one-shot partner migration markers. Unknown keys fall through to null as well.
+    /// </remarks>
+    private static string? SystemSettingRoute(string key)
+    {
+        // a category's webhook URL and role mention are edited per notification category in the Discord panel
+        if (key.StartsWith(SystemSettingKeys.DiscordWebhookPrefix, StringComparison.Ordinal)
+            || key.StartsWith(SystemSettingKeys.DiscordRolePrefix, StringComparison.Ordinal))
+        {
+            return "/einstellungen?tab=discord";
+        }
+
+        return key switch
+        {
+            SystemSettingKeys.MaintenanceModeActive or SystemSettingKeys.MaintenanceModeText
+                or SystemSettingKeys.BannerText or SystemSettingKeys.BannerLevel
+                or SystemSettingKeys.ThemePrimary or SystemSettingKeys.ThemeSecondary or SystemSettingKeys.ThemeTertiary
+                or SystemSettingKeys.LogoFileName or SystemSettingKeys.LogoContentType
+                or SystemSettingKeys.DemoModeActive
+                // the board threshold and the attendance thresholds sit in the system panel as well
+                or SystemSettingKeys.WantedBoardMinHazard
+                or SystemSettingKeys.MeetingWindowSize or SystemSettingKeys.MeetingAnomalyYellow
+                or SystemSettingKeys.MeetingAnomalyRed => "/einstellungen?tab=system",
+            SystemSettingKeys.EmergencyAlarmDurationMinutes => "/einstellungen?tab=einsatzalarm",
+            SystemSettingKeys.DiscordEnabled or SystemSettingKeys.SiteBaseUrl
+                or SystemSettingKeys.DiscordIncludeHeadline or SystemSettingKeys.DiscordThreatBoardThreshold
+                or SystemSettingKeys.DiscordShareChannels
+                or SystemSettingKeys.DiscordBotEnabled or SystemSettingKeys.DiscordBotAlarmChannel
+                or SystemSettingKeys.DiscordBotWantedChannel or SystemSettingKeys.DiscordBotFactionChannel
+                or SystemSettingKeys.DiscordBotCommandsChannel or SystemSettingKeys.DiscordBotShareChannels
+                or SystemSettingKeys.DiscordBotLinkPreview or SystemSettingKeys.DiscordBotDvoChannel
+                => "/einstellungen?tab=discord",
+            SystemSettingKeys.DiscordRoleSyncEnabled or SystemSettingKeys.DiscordGuildId
+                or SystemSettingKeys.DiscordRoleMapping => "/einstellungen?tab=discord-rollen",
+            SystemSettingKeys.DiscordDmPersonal or SystemSettingKeys.DiscordDmApplicants
+                or SystemSettingKeys.DiscordInviteLink => "/einstellungen?tab=discord-direktnachrichten",
+            SystemSettingKeys.BestAgentEnabled or SystemSettingKeys.BestAgentIntervalDays
+                or SystemSettingKeys.BestAgentCreateNote => "/einstellungen?tab=bester-agent",
+            SystemSettingKeys.CertificateSignatoryId or SystemSettingKeys.CertificateSignatoryCid
+                or SystemSettingKeys.CertificateSignatoryCtd or SystemSettingKeys.CertificateSignatoryHrt
+                or SystemSettingKeys.CertificatePlace => "/einstellungen?tab=ehrenzeichen",
+            SystemSettingKeys.PublicAreaKillSwitch => "/einstellungen?tab=oeffentliche-module",
+            // the four rows are written together; the level and the assessment are what the section edits
+            SystemSettingKeys.PublicSituationLevel or SystemSettingKeys.PublicSituationNote
+                or SystemSettingKeys.PublicSituationSince or SystemSettingKeys.PublicSituationPrevious
+                => "/einstellungen?tab=lage",
+            // keys that live in the config services rather than in SystemSettingKeys
+            FinancingConfigService.SettingKey => "/einstellungen?tab=finanzierung",
+            FoodLimitConfigService.SettingKey => "/einstellungen?tab=verpflegung",
+            InactivityRadarService.SettingKey => "/einstellungen?tab=inaktivitaet",
+            ProbationRules.SettingKey => "/einstellungen?tab=module",
+            LlmQuotaConfigService.SettingKey or NooseiPrompts.AddendumKey => "/einstellungen?tab=ki-regeln",
+            NooseiProviderService.SettingKey => "/einstellungen?tab=ki-anbieter",
+            CareerRequirementsService.SettingKey => "/bewerbungen?tab=anforderungen",
+            RecruitingAutomationService.EnabledKey or RecruitingAutomationService.TemplateKey
+                => "/bewerbungen?tab=automatik",
+            _ => null,
+        };
+    }
 }

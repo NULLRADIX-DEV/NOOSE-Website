@@ -13,7 +13,7 @@ namespace NOOSE_Website.Services;
 public class FoodLimitConfigService(IDbContextFactory<AppDbContext> dbFactory, IMemoryCache cache)
     : IFoodLimitConfigService
 {
-    private const string SettingKey = "VerpflegungsLimits";
+    public const string SettingKey = "VerpflegungsLimits";
     private const string CacheKey = "verpflegung:limits";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 

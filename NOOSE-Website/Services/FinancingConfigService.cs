@@ -13,7 +13,7 @@ namespace NOOSE_Website.Services;
 public class FinancingConfigService(IDbContextFactory<AppDbContext> dbFactory, IMemoryCache cache)
     : IFinancingConfigService
 {
-    private const string SettingKey = "FinanzierungsBudgets";
+    public const string SettingKey = "FinanzierungsBudgets";
     private const string CacheKey = "finanzierung:budgets";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 

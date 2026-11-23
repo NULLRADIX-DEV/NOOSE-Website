@@ -8,7 +8,7 @@ public static class MergedPageSections
         "system", "discord", "discord-rollen", "discord-direktnachrichten", "einsatzalarm", "status", "neuerungen",
         "custom-felder", "tags", "aktualitaet", "bedrohungs-score",
         "vorlagen-dok", "vorlagen-dokument", "vorlagen-aktivitaet", "vorlagen-personal",
-        "module", "einladungen", "ehrenzeichen", "inaktivitaet",
+        "module", "einladungen", "ehrenzeichen", "inaktivitaet", "bester-agent",
         "finanzierung",
         "verpflegung",
         "noosei", "ki-anbieter", "ki-regeln", "ki-betrieb", "ki-kontingente", "ki-anfragen",

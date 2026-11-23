@@ -13,7 +13,7 @@ namespace NOOSE_Website.Services;
 public class CareerRequirementsService(IDbContextFactory<AppDbContext> dbFactory, IMemoryCache cache)
     : ICareerRequirementsService
 {
-    private const string SettingKey = "KarriereAnforderungen";
+    public const string SettingKey = "KarriereAnforderungen";
     private const string CacheKey = "karriere:anforderungen";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
