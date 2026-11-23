@@ -1,6 +1,6 @@
 ﻿namespace NOOSE_Website.Navigation;
 
-/// <summary>Section slugs of the pages that absorbed others in V1.5; keeps LegacyRoutes and the pages in sync.</summary>
+/// <summary>Section slugs of the pages with a section rail; keeps LegacyRoutes and the pages in sync.</summary>
 public static class MergedPageSections
 {
     public static readonly string[] Settings =
@@ -65,6 +65,11 @@ public static class MergedPageSections
         "meine", "alle", "katalog", "limits", "statistik", "papierkorb",
     ];
 
+    public static readonly string[] Cash =
+    [
+        "schwarzgeld", "gruengeld", "kopfgeld", "vorlagen", "statistik", "papierkorb",
+    ];
+
     public static readonly string[] Personnel = ["agenten", "organigramm", "bestenliste"];
 
     /// <summary>Section slugs of a merged page, keyed by its route.</summary>
@@ -81,5 +86,6 @@ public static class MergedPageSections
             ["/finanzierungen"] = Financing,
             ["/verpflegung"] = Food,
             ["/personal"] = Personnel,
+            ["/kasse"] = Cash,
         };
 }

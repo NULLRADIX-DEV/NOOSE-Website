@@ -164,6 +164,28 @@ public class AuditEntityDisplayTests
         Assert.Equal(expected, AuditEntityDisplay.Route(type, "any-id"));
     }
 
+    [Theory]
+    [InlineData("EnumLabelOverride", "Bezeichnung (Wertelisten)", "/einstellungen?tab=basisdaten")]
+    [InlineData("KassenBuchungVorlage", "Kassen-Vorlage", "/kasse?tab=vorlagen")]
+    public void ConfigRowsWithoutAPage_HaveLabelAndPointAtTheirSection(string type, string label, string route)
+    {
+        // the id of an override is "list:key", the id of a template is its own; neither reaches the route
+        Assert.Equal(label, AuditEntityDisplay.Label(type));
+        Assert.Equal(route, AuditEntityDisplay.Route(type, "any-id"));
+        Assert.Equal(route, AuditEntityDisplay.Route(type, string.Empty));
+
+        var split = route.Split("?tab=");
+        Assert.True(MergedPageSections.ByRoute.TryGetValue(split[0], out var slugs), $"{type}: unknown page {split[0]}");
+        Assert.Contains(split[1], slugs!);
+    }
+
+    [Fact]
+    public void AgentTestAssignment_HasALabelAndOpensTheGradingPageWithTheAssignmentId()
+    {
+        Assert.Equal("Test-Zuweisung", AuditEntityDisplay.Label("AgentTestAssignment"));
+        Assert.Equal("/tests/korrektur/a1", AuditEntityDisplay.Route("AgentTestAssignment", "a1"));
+    }
+
     [Fact]
     public void Tips_carry_a_German_label_and_a_route()
     {

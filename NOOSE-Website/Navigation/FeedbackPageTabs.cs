@@ -138,6 +138,7 @@ public static class FeedbackPageTabs
     [
         new("schwarzgeld", "Schwarzgeld"),
         new("gruengeld", "Grüngeld"),
+        new("kopfgeld", "Kopfgeld"),
         new("vorlagen", "Vorlagen"),
         new("statistik", "Statistik"),
         new("papierkorb", "Papierkorb"),

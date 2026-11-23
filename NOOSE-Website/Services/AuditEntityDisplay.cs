@@ -130,6 +130,9 @@ public static class AuditEntityDisplay
         "LlmQuotaConfig" => "KI-Kontingente",
         "NooseiPromptAddendum" => "FIBI-Prompt-Zusatz",
         "LlmProviderSettings" => "KI-Anbieter",
+        "EnumLabelOverride" => "Bezeichnung (Wertelisten)",
+        "KassenBuchungVorlage" => "Kassen-Vorlage",
+        "AgentTestAssignment" => "Test-Zuweisung",
         _ => type,
     };
 
@@ -180,6 +183,12 @@ public static class AuditEntityDisplay
         "RegulationSection" => "/dienstverordnung",
         // catalog positions and config have no own page; point at the section that edits them
         "FinancingItem" => "/finanzierungen?tab=katalog",
+        // the template has no page of its own; the quick-book templates are managed in a section of the cash desk
+        "KassenBuchungVorlage" => "/kasse?tab=vorlagen",
+        // the override id is "list:key", not a record id; the value lists are edited in this section
+        "EnumLabelOverride" => "/einstellungen?tab=basisdaten",
+        // the id is the assignment's, and the grading page opens an assignment by exactly that id
+        "AgentTestAssignment" => $"/tests/korrektur/{id}",
         "FinancingBudgetConfig" => "/einstellungen?tab=finanzierung",
         "FoodItem" => "/verpflegung?tab=katalog",
         "FoodLimitConfig" => "/einstellungen?tab=verpflegung",
