@@ -28,8 +28,7 @@ public class AuditRedactionTests
     [Fact]
     public void A_personal_text_snippet_keeps_its_wording_out_of_the_protocol()
     {
-        // the panel that offers them says "Sie gehören dir allein", and /nachweis is read by every internal
-        // agent - without this the sentence and the name the agent gave it would be house-wide reading
+        // the panel promises "Sie gehören dir allein"
         Assert.True(AuditRedaction.Hides(nameof(TextSnippet), nameof(TextSnippet.Text)));
         Assert.True(AuditRedaction.Hides(nameof(TextSnippet), nameof(TextSnippet.Name)));
     }
@@ -115,7 +114,7 @@ public class AuditRedactionTests
         Assert.Contains(nameof(AgentPromotionRequest.Status), row.ChangesJson);
         Assert.DoesNotContain(nameof(AgentPromotionRequest.DecisionNote), row.ChangesJson);
         Assert.DoesNotContain("Ablehnungsgrund", row.ChangesJson);
-        // not redacted, so its pair is there
+        // not redacted, the pair stays
         Assert.Contains("Neue Begruendung im Klartext", row.ChangesJson);
     }
 

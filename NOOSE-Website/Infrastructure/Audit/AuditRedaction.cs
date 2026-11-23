@@ -11,22 +11,19 @@ namespace NOOSE_Website.Infrastructure.Audit;
 
 /// <summary>Fields whose value never enters an audit row; the change is recorded, the content is not.</summary>
 /// <remarks>
-/// /nachweis (LeadershipPage) reads the change log; these fields were written for a narrower circle.
-///
-/// Scoped by type, not by field name: the same "Text" on a Comment is supposed to show its before and after.
+/// Leadership reads the change log on /nachweis, a wider circle than these fields were written for.
 /// </remarks>
 public static class AuditRedaction
 {
     // CLR names, because that is what the interceptor stamps into the audit row
+    // scoped by type: Comment.Text keeps its before and after
     private static readonly HashSet<string> Fields = new(StringComparer.Ordinal)
     {
         $"{nameof(HinweisNachricht)}.{nameof(HinweisNachricht.Text)}",
         $"{nameof(TicketNachricht)}.{nameof(TicketNachricht.Text)}",
         // the closing note names what the desk thought of a concern
         $"{nameof(Ticket)}.{nameof(Ticket.ClosingNote)}",
-        // a snippet is one agent's private phrasing, and the panel that offers it says so in as many words:
-        // "Sie gehören dir allein." Without this the protocol would hand the sentence - and the name the
-        // agent gave it - to every reader of the protocol, which is the opposite of the promise.
+        // one agent's private phrasing, the panel promises "Sie gehören dir allein."
         $"{nameof(TextSnippet)}.{nameof(TextSnippet.Text)}",
         $"{nameof(TextSnippet)}.{nameof(TextSnippet.Name)}",
         // a file name the citizen chose is their content, exactly like the message it hangs on
@@ -38,7 +35,7 @@ public static class AuditRedaction
         // a folded notice rewrites its title, and the title is written for one recipient's eyes: a watch report
         // names hits only its owner may see
         $"{nameof(Notification)}.{nameof(Notification.Title)}",
-        // the answer key and an agent's own answers, a crib sheet for anyone who later sits the test
+        // the answer key and an agent's own answers, a crib sheet for the next candidate
         $"{nameof(BewerbungTestOption)}.{nameof(BewerbungTestOption.IsCorrect)}",
         $"{nameof(BewerbungTestQuestion)}.{nameof(BewerbungTestQuestion.CorrectYesNo)}",
         $"{nameof(BewerbungTestQuestion)}.{nameof(BewerbungTestQuestion.Keywords)}",
