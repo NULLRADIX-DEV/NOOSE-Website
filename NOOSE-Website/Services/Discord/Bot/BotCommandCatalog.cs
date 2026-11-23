@@ -87,7 +87,8 @@ public static class BotCommandCatalog
             Str("lage", "Lage", required: true, max: 200),
             Str("ort", "Ort", max: 200),
             Choice("abteilung", "Nur eine Abteilung rufen", ("CID", "Cid"), ("CTD", "Ctd"), ("HRT", "Hrt")),
-            Str("grund", "Grund (bei Gefahr im Verzug Pflicht)", max: 500)),
+            Str("grund", "Grund (bei Gefahr im Verzug Pflicht)", max: 500),
+            Int("dauer", "Dauer in Minuten (leer = Vorgabe der Seite)", EmergencyAlarmRules.MinMinutes, EmergencyAlarmRules.MaxMinutes)),
 
         // context menus
         new UserCommandProperties(AgentProfile) { Contexts = Where, IntegrationTypes = Install },
@@ -121,6 +122,9 @@ public static class BotCommandCatalog
             Autocomplete = autocomplete ? true : null,
             MaxLength = max,
         };
+
+    private static ApplicationCommandOptionProperties Int(string name, string description, int min, int max)
+        => new(ApplicationCommandOptionType.Integer, name, description) { MinValue = min, MaxValue = max };
 
     private static ApplicationCommandOptionProperties Choice(string name, string description, params (string Label, string Value)[] choices)
         => new(ApplicationCommandOptionType.String, name, description)

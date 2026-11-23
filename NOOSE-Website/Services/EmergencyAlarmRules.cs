@@ -7,8 +7,32 @@ namespace NOOSE_Website.Services;
 /// <summary>Who may trigger, read and end an emergency alarm, and when it counts as running. Sole source of these rules.</summary>
 public static class EmergencyAlarmRules
 {
-    /// <summary>How long agents may answer; fixed, not chosen per alarm.</summary>
-    public static readonly TimeSpan Duration = TimeSpan.FromMinutes(30);
+    /// <summary>Minutes an alarm runs when nobody set a default or the stored one is unreadable.</summary>
+    public const int DefaultMinutes = 30;
+
+    /// <summary>Shortest runtime in minutes.</summary>
+    public const int MinMinutes = 1;
+
+    /// <summary>Longest runtime in minutes.</summary>
+    public const int MaxMinutes = 120;
+
+    /// <summary>Whether the runtime lies inside the allowed span.</summary>
+    public static bool IsValidMinutes(int minutes) => minutes is >= MinMinutes and <= MaxMinutes;
+
+    /// <summary>Throws a German message when the runtime is outside the allowed span.</summary>
+    public static void RequireValidMinutes(int minutes)
+    {
+        if (!IsValidMinutes(minutes))
+        {
+            throw new InvalidOperationException(
+                $"Die Dauer eines Einsatzalarms muss zwischen {MinMinutes} und {MaxMinutes} Minuten liegen.");
+        }
+    }
+
+    /// <summary>The stored default in minutes, or <see cref="DefaultMinutes"/> when missing or invalid.</summary>
+    public static int ParseDefaultMinutes(string? raw)
+        => int.TryParse(raw, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var minutes)
+            && IsValidMinutes(minutes) ? minutes : DefaultMinutes;
 
     /// <summary>Max length of the situation.</summary>
     public const int MaxSituation = 500;

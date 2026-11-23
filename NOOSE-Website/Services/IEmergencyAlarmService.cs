@@ -10,6 +10,12 @@ public interface IEmergencyAlarmService
     /// <summary>Freezes the recipients, notifies them and returns the alarm id.</summary>
     Task<string> TriggerAsync(EmergencyAlarmInput input, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
 
+    /// <summary>The default runtime in minutes; 30 when none is stored or the stored value is invalid.</summary>
+    Task<int> GetDefaultMinutesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Sets the default runtime in minutes (1 to 120); admins only.</summary>
+    Task SaveDefaultMinutesAsync(int minutes, ClaimsPrincipal actor, CancellationToken cancellationToken = default);
+
     /// <summary>Sets or changes the caller's answer while the alarm runs.</summary>
     Task RespondAsync(string alarmId, EmergencyAlarmAnswer answer, ClaimsPrincipal actor,
         CancellationToken cancellationToken = default);
