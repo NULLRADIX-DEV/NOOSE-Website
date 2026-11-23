@@ -16,6 +16,8 @@ public partial class PublicSituationCacheDisciplineTests
     private const string CacheKeyLiteral = "\"OeffentlicheGefahrenlage\"";
     private const string ServiceName = "PublicSituationService.cs";
     private const string KeysDeclaration = "SystemConfiguration.cs";
+    // names the keys only to link their audit rows to the section; it reads and writes nothing
+    private const string AuditDisplay = "AuditEntityDisplay.cs";
 
     private static readonly string[] KeyLiterals =
     [
@@ -89,7 +91,7 @@ public partial class PublicSituationCacheDisciplineTests
         // SystemSettings is everybody's table, so the rule cannot be "who writes it". A second reader would go stale
         // behind this cache; a second writer would leave the snapshot standing.
         var offenders = ProductionFiles()
-            .Where(f => Path.GetFileName(f) is not (ServiceName or KeysDeclaration))
+            .Where(f => Path.GetFileName(f) is not (ServiceName or KeysDeclaration or AuditDisplay))
             .Where(f => File.ReadAllText(f).Contains("SystemSettingKeys.PublicSituation", StringComparison.Ordinal))
             .Select(Path.GetFileName)
             .Order()
