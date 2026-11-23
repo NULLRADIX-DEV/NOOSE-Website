@@ -30,11 +30,29 @@ public sealed class TabLinkScanTests
             .Where(f => f.EndsWith(".cs", StringComparison.Ordinal) || f.EndsWith(".razor", StringComparison.Ordinal))
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                         && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .SelectMany(f => Link.Matches(File.ReadAllText(f))
-                .Where(m => !MergedPageSections.ByRoute[m.Groups[1].Value].Contains(m.Groups[2].Value))
-                .Select(m => $"{Path.GetRelativePath(root, f)}: {m.Value}"))
+            .SelectMany(f => StaleLinks(File.ReadAllText(f)).Select(link => $"{Path.GetRelativePath(root, f)}: {link}"))
             .ToList();
 
         Assert.Empty(offenders);
     }
+
+    [Theory]
+    [InlineData("/tickets?tab=gibtsnicht")]
+    [InlineData("/dienstverordnung?tab=aufgehobn")]
+    [InlineData("/tests?tab=korrektor")]
+    public void A_stale_link_to_a_listed_rail_page_is_found(string link)
+        => Assert.Equal(link, Assert.Single(StaleLinks($"Href=\"{link}\"")));
+
+    [Theory]
+    [InlineData("/tickets?tab=beteiligt")]
+    [InlineData("/tickets?tab={slug}")]
+    [InlineData("/portal/tickets?tab=gibtsnicht")]
+    public void A_valid_dynamic_or_foreign_link_is_left_alone(string link)
+        => Assert.Empty(StaleLinks($"Href=\"{link}\""));
+
+    private static List<string> StaleLinks(string text)
+        => Link.Matches(text)
+            .Where(m => !MergedPageSections.ByRoute[m.Groups[1].Value].Contains(m.Groups[2].Value))
+            .Select(m => m.Value)
+            .ToList();
 }

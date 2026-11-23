@@ -1,6 +1,6 @@
 ﻿namespace NOOSE_Website.Navigation;
 
-/// <summary>Section slugs of the fixed rail pages targeted by LegacyRoutes and audit links.</summary>
+/// <summary>Section slugs of each fixed page with a section rail.</summary>
 public static class MergedPageSections
 {
     public static readonly string[] Settings =
@@ -72,7 +72,29 @@ public static class MergedPageSections
 
     public static readonly string[] Personnel = ["agenten", "organigramm", "bestenliste"];
 
-    /// <summary>Section slugs of a merged page, keyed by its route.</summary>
+    public static readonly string[] Tests = ["meine", "korrektur", "katalog"];
+
+    public static readonly string[] Tickets = ["offen", "bearbeitung", "wartet", "geschlossen", "beteiligt"];
+
+    public static readonly string[] Feedback = ["melden", "meine", "eingang"];
+
+    // the chapters come from data, only the fixed section is listed
+    public static readonly string[] Handbook = ["glossar"];
+
+    // the DVO sections come from data, only the fixed ones are listed
+    public static readonly string[] Regulation = ["aufgehoben", "papierkorb"];
+
+    public static readonly string[] Abductions = ["uebersicht", "kompromittiert", "papierkorb"];
+
+    public static readonly string[] Evidence = ["bestand", "eintraege", "papierkorb"];
+
+    public static readonly string[] Warrants = ["uebersicht", "papierkorb"];
+
+    public static readonly string[] Tips = ["eingang", "bearbeitung", "erledigt"];
+
+    public static readonly string[] KiAssistant = ["chat", "kontingent"];
+
+    /// <summary>Section slugs of a fixed rail page, keyed by its route.</summary>
     public static readonly IReadOnlyDictionary<string, string[]> ByRoute =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
@@ -87,5 +109,15 @@ public static class MergedPageSections
             ["/verpflegung"] = Food,
             ["/personal"] = Personnel,
             ["/kasse"] = Cash,
+            ["/tests"] = Tests,
+            ["/tickets"] = Tickets,
+            ["/feedback"] = Feedback,
+            ["/handbuch"] = Handbook,
+            ["/dienstverordnung"] = Regulation,
+            ["/entfuehrungen"] = Abductions,
+            ["/asservatenkammer"] = Evidence,
+            ["/anordnungen"] = Warrants,
+            ["/hinweise"] = Tips,
+            ["/ki-assistent"] = KiAssistant,
         };
 }
