@@ -122,6 +122,12 @@ public static class AuditEntityDisplay
         "RegulationParagraph" => "Absatz (Dienstverordnung)",
         "RegulationParagraphVersion" => "Fassung (Dienstverordnung)",
         "RegulationAcknowledgment" => "Kenntnisnahme (Dienstverordnung)",
+        "EmergencyAlarmSettings" => "Einsatzalarm-Dauer",
+        "InactivityThresholds" => "Inaktivitäts-Schwellen",
+        "CareerRequirements" => "Bewerbungs-Anforderungen",
+        "LlmQuotaConfig" => "KI-Kontingente",
+        "NooseiPromptAddendum" => "FIBI-Prompt-Zusatz",
+        "LlmProviderSettings" => "KI-Anbieter",
         _ => type,
     };
 
@@ -212,6 +218,14 @@ public static class AuditEntityDisplay
         "OeffentlicheVorlage" => "/einstellungen?tab=oeffentliche-vorlagen",
         "OeffentlichesFraktionsprofil" => "/fahndung?tab=organisationen",
         "FahndungEinspruch" => "/fahndung?tab=einsprueche",
+        // global settings have no record page; point at the section that edits them
+        "EmergencyAlarmSettings" => "/einstellungen?tab=einsatzalarm",
+        "InactivityThresholds" => "/einstellungen?tab=inaktivitaet",
+        "CareerRequirements" => "/bewerbungen?tab=anforderungen",
+        "LlmQuotaConfig" => "/einstellungen?tab=ki-regeln",
+        // the prompt addendum is edited in the same panel as the token rules
+        "NooseiPromptAddendum" => "/einstellungen?tab=ki-regeln",
+        "LlmProviderSettings" => "/einstellungen?tab=ki-anbieter",
         _ => null,
     };
 }
