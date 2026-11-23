@@ -264,14 +264,10 @@ public class PartnerRoutesTests
     public void IsAllowed_InternalPages_StayClosedWithEveryFunction(string path)
         => Assert.False(PartnerRoutes.IsAllowed(path, AllFeatures));
 
-    // --- IsBlocked: the gate of both layouts and RouteAccessService ---
-
     [Theory]
     [InlineData("personen/abc", "Person", false)]
     [InlineData("personen/abc?tab=doks", "Faction", true)]
-    // documents guard each record themselves
     [InlineData("dokumente/abc", "Faction", false)]
-    // a path that is no record type is not gated by the type list
     [InlineData("dashboard", "Faction", false)]
     [InlineData("fahndung?tab=observationen", "Person", true)]
     public void IsBlocked_CombinesTheRouteListAndTheTypeList(string path, string allowedType, bool blocked)

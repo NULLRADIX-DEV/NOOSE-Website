@@ -23,7 +23,7 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
         CancellationToken cancellationToken = default)
     {
         var open = new HashSet<string>(StringComparer.Ordinal);
-        // verdict cache: page and section only; the partner gate hangs on the path and is not cached
+        // verdict cache
         var verdicts = new Dictionary<(Type Page, string? Section), bool>();
         PartnerGate? partner = null;
         foreach (var route in routes.OfType<string>().Distinct(StringComparer.Ordinal))
@@ -45,10 +45,10 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
             }
             if (allowed && user.IsPartner())
             {
-                // loaded once per call, only for partners
+                // once per call
                 partner ??= new PartnerGate(await partnerProfiles.GetFeaturesAsync(user, cancellationToken),
                     await partnerPolicy.GetAllowedTypesAsync(user, cancellationToken));
-                // the path as MainLayout sees it after the redirect: relative, no leading slash
+                // layout-relative path
                 allowed = !PartnerRoutes.IsBlocked(path.TrimStart('/'), partner.Features, partner.AllowedTypes);
             }
             if (allowed)

@@ -313,7 +313,7 @@
         _partnerFeatures = await PartnerProfiles.GetFeaturesAsync(user);
     }
 
-    // partner gate, shared with RouteAccessService
+    // partner gate
     private bool PartnerBlocked(string path)
         => _isPartner && PartnerRoutes.IsBlocked(path, _partnerFeatures, _allowedPartnerTypes);
 

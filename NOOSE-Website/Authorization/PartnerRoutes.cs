@@ -89,18 +89,14 @@ public static class PartnerRoutes
         return AllowedPrefixes.Any(p => path == p || path.StartsWith(p + "/"));
     }
 
-    /// <summary>
-    /// The partner gate of MainLayout, PrintLayout and RouteAccessService: the route must be allowed for the agency
-    /// functions AND (not a record type OR the rank may access that type). <paramref name="allowedTypes"/> null means
-    /// the types are not gated.
-    /// </summary>
+    /// <summary>Partner gate shared by layouts and route access.</summary>
     public static bool IsBlocked(string? relativePath, PartnerFeature features, IReadOnlySet<string>? allowedTypes)
     {
         if (!IsAllowed(relativePath, features))
         {
             return true;
         }
-        // documents enforce their own per-record visibility at the page layer
+        // documents self-guard
         if (PartnerTabCatalog.IsTypeGateExempt(relativePath))
         {
             return false;

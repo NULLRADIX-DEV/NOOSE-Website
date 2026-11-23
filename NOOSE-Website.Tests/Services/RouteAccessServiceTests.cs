@@ -95,7 +95,7 @@ public class RouteAccessServiceTests
     {
         Assert.False(await MayOpenAsync(Partner(), "/nachweis?tab=chronik"));
         Assert.False(await MayOpenAsync(Partner(), "/fahndung?tab=oeffentlich"));
-        // the layout blocks /fahndung for a partner, so the page's own policy is not enough
+        // layout blocks it
         Assert.False(await MayOpenAsync(Partner(), "/fahndung?tab=observationen"));
         Assert.True(await MayOpenAsync(Trainee(), "/fahndung?tab=oeffentlich"));
     }
@@ -117,14 +117,14 @@ public class RouteAccessServiceTests
 
         Assert.False((await onlyFactions.OpenableAsync(Partner(), ["/personen/abc"])).Contains("/personen/abc"));
         Assert.True((await onlyFactions.OpenableAsync(Partner(), ["/fraktionen/abc"])).Contains("/fraktionen/abc"));
-        // documents guard each record themselves, so the type list does not apply
+        // documents self-guard
         Assert.True((await onlyFactions.OpenableAsync(Partner(), ["/dokumente/abc"])).Contains("/dokumente/abc"));
     }
 
     [Fact]
     public async Task ThePartnerGateHangsOnThePathAndIsNotCarriedOverToAnotherPathOfTheSamePageAndSection()
     {
-        // one page (the person detail), same section, two paths: the verdict must not be shared
+        // same page, two paths
         var onlyPersons = RouteAccessTestHost.Create(allowedTypes: new HashSet<string> { "Person" });
         var open = await onlyPersons.OpenableAsync(Partner(), ["/personen/abc", "/vorgaenge/abc", "/personen/def"]);
 
