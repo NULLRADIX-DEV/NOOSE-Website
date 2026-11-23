@@ -41,22 +41,7 @@
         }
     }
 
+    // partner gate, shared with RouteAccessService
     private bool PartnerBlocked(string path)
-    {
-        if (!_isPartner)
-        {
-            return false;
-        }
-        if (!PartnerRoutes.IsAllowed(path, _partnerFeatures))
-        {
-            return true;
-        }
-        // documents enforce their own per-record visibility at the page layer
-        if (PartnerTabCatalog.IsTypeGateExempt(path))
-        {
-            return false;
-        }
-        var typeKey = PartnerTabCatalog.TypeKeyForPath(path);
-        return typeKey is not null && _allowedPartnerTypes is not null && !_allowedPartnerTypes.Contains(typeKey);
-    }
+        => _isPartner && PartnerRoutes.IsBlocked(path, _partnerFeatures, _allowedPartnerTypes);
 }

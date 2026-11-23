@@ -1,4 +1,5 @@
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services;
 using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Authorization;
@@ -86,6 +87,26 @@ public static class PartnerRoutes
             return true;
         }
         return AllowedPrefixes.Any(p => path == p || path.StartsWith(p + "/"));
+    }
+
+    /// <summary>
+    /// The partner gate of MainLayout, PrintLayout and RouteAccessService: the route must be allowed for the agency
+    /// functions AND (not a record type OR the rank may access that type). <paramref name="allowedTypes"/> null means
+    /// the types are not gated.
+    /// </summary>
+    public static bool IsBlocked(string? relativePath, PartnerFeature features, IReadOnlySet<string>? allowedTypes)
+    {
+        if (!IsAllowed(relativePath, features))
+        {
+            return true;
+        }
+        // documents enforce their own per-record visibility at the page layer
+        if (PartnerTabCatalog.IsTypeGateExempt(relativePath))
+        {
+            return false;
+        }
+        var typeKey = PartnerTabCatalog.TypeKeyForPath(relativePath);
+        return typeKey is not null && allowedTypes is not null && !allowedTypes.Contains(typeKey);
     }
 
     /// <summary>Strips query/fragment, trims slashes, lowercases.</summary>
