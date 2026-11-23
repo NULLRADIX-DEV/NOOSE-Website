@@ -149,6 +149,55 @@ public sealed class BewerbungServiceTests
     }
 
     [Fact]
+    public async Task SubmitAsync_StoresCleanedReferences()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _, _, _) = Build(ctx);
+
+        var model = new BewerbungSubmitModel
+        {
+            StreamConsent = true,
+            Name = "Max",
+            References =
+            [
+                new ApplicationReference { Name = "  Lisa Meyer ", BirthDate = new DateTime(1995, 3, 4), Phone = " 555-1234 " },
+                new ApplicationReference { Name = "   ", Phone = "555-0000" },
+                new ApplicationReference { Name = "Tom Berg" },
+            ],
+        };
+
+        await svc.SubmitAsync(model, null, null, null, Applicant("u1"));
+
+        using var db = ctx.NewContext();
+        var stored = ApplicationReferences.Parse(Assert.Single(db.Bewerbungen.ToList()).ReferencesJson);
+        Assert.Collection(stored,
+            r =>
+            {
+                Assert.Equal("Lisa Meyer", r.Name);
+                Assert.Equal(new DateTime(1995, 3, 4), r.BirthDate);
+                Assert.Equal("555-1234", r.Phone);
+            },
+            r =>
+            {
+                Assert.Equal("Tom Berg", r.Name);
+                Assert.Null(r.BirthDate);
+                Assert.Null(r.Phone);
+            });
+    }
+
+    [Fact]
+    public async Task SubmitAsync_WithoutReferences_StoresNull()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _, _, _) = Build(ctx);
+
+        await svc.SubmitAsync(new BewerbungSubmitModel { StreamConsent = true, Name = "Max" }, null, null, null, Applicant("u1"));
+
+        using var db = ctx.NewContext();
+        Assert.Null(Assert.Single(db.Bewerbungen.ToList()).ReferencesJson);
+    }
+
+    [Fact]
     public async Task SubmitAsync_StoresARefusedStream()
     {
         using var ctx = new SqliteTestContext();

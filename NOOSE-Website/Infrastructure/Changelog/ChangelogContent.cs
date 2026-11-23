@@ -835,6 +835,9 @@ public static class ChangelogContent
             Neu("3.1.11-alarmdauer", "Ein Einsatzalarm läuft nicht mehr fest 30 Minuten. Ein Admin legt die Vorgabe in den "
                 + "Einstellungen fest, beim Auslösen änderst du die Dauer für den einen Alarm, auf der Seite und mit dem "
                 + "Feld dauer bei /alarm im Discord.", "Einsatzalarm"),
+            Neu("3.1.12-bewerbung-referenzen", "In der Bewerbung gibst du bis zu fünf Referenzpersonen an, mit denen du "
+                + "dich gut verstehst, mit Geburtsdatum und Telefonnummer. Die Bearbeiter sehen sie bei den Stammdaten.",
+                "Bewerbungen"),
         ]),
     ];
 }

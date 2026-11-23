@@ -60,6 +60,26 @@ else
                         <tr><td class="mud-text-secondary">Arbeitgeber</td><td>@Or(_b.Employer)</td></tr>
                     </tbody>
                 </MudSimpleTable>
+                @{ var references = ApplicationReferences.Parse(_b.ReferencesJson); }
+                @if (references.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-3">Referenzpersonen</MudText>
+                    <MudSimpleTable Dense="true" Bordered="false" Striped="false" Style="background:transparent;">
+                        <thead>
+                            <tr><th>Name</th><th>Geburtsdatum</th><th>Telefon</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reference in references)
+                            {
+                                <tr>
+                                    <td>@reference.Name</td>
+                                    <td>@(reference.BirthDate?.ToString("dd.MM.yyyy") ?? "—")</td>
+                                    <td>@Or(reference.Phone)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
                 @if (!string.IsNullOrWhiteSpace(_b.PriorExperience))
                 {
                     <MudText Typo="Typo.subtitle2" Class="mt-3">Vorerfahrung</MudText>
