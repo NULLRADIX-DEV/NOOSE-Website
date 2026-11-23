@@ -40,9 +40,7 @@ public class PublicSurfaceGuardTests
     public void EveryAuditablePublicAreaEntity_HasALabelAndARoute()
     {
         // The interceptor stamps the CLR name; without an arm here it is what /nachweis shows a German-speaking user
-        // — BuergerProfil went out that way until phase 2. Scoped to the public area rather than the whole context on
-        // purpose: about seventy internal child tables have run without a label since long before this, and fixing
-        // that is its own piece of work, not a side effect of a public-area phase.
+        // — BuergerProfil went out that way until phase 2.
         // the label is checked against the source rather than against Label(name) != name: "Warnhinweis" happens to
         // read the same in both languages, so a value comparison would call the correct arm a miss
         var source = File.ReadAllText(DisplayFile());

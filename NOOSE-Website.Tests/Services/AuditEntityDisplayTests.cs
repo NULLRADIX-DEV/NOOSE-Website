@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using NOOSE_Website.Models.Abstractions;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Navigation;
 using NOOSE_Website.Services;
@@ -32,6 +33,8 @@ public class AuditEntityDisplayTests
     [InlineData("MeetingAttendance", "Anwesenheit")]
     [InlineData("MeetingSignOff", "Abmeldung (Besprechung)")]
     [InlineData("Absence", "Abmeldung")]
+    [InlineData("Pressemitteilung", "Pressemitteilung")]
+    [InlineData("Warnhinweis", "Warnhinweis")]
     [InlineData("FirearmUse", "Schusswaffengebrauch")]
     [InlineData("SystemSetting", "Systemeinstellung")]
     [InlineData("BuergerProfil", "Bürgerkonto")]
@@ -342,5 +345,190 @@ public class AuditEntityDisplayTests
     {
         Assert.Equal("/personen/1", AuditEntityDisplay.Route("Person", "1"));
         Assert.Null(AuditEntityDisplay.Route("person", "1"));
+    }
+
+    [Theory]
+    [InlineData("AbductionCompromise", "Entführung: Kompromittierte Akte")]
+    [InlineData("AgentTestAnswer", "Test: Antwort")]
+    [InlineData("AnnouncementAcknowledgment", "Ankündigung: Kenntnisnahme")]
+    [InlineData("AppointmentAssignment", "Termin: Teilnehmer")]
+    [InlineData("BewerbungMessage", "Bewerbung: Nachricht")]
+    [InlineData("BewerbungTestAnswer", "Bewerbungstest: Antwort")]
+    [InlineData("BewerbungTestOption", "Bewerbungstest: Antwortoption")]
+    [InlineData("BewerbungTestQuestion", "Bewerbungstest: Frage")]
+    [InlineData("CaseAgent", "Vorgang: Zugewiesener Agent")]
+    [InlineData("CustomFieldValue", "Custom-Feld: Wert")]
+    [InlineData("DocumentAccessExclusion", "Dokument: Zugriffssperre")]
+    [InlineData("EmergencyAlarmRecipient", "Einsatzalarm: Empfänger")]
+    [InlineData("EvidenceEntryLine", "Asservat-Eintrag: Position")]
+    [InlineData("FactionAgent", "Fraktion: Zugewiesener Agent")]
+    [InlineData("FactionMember", "Fraktion: Mitglied")]
+    [InlineData("InformantMeeting", "Informant: Treffen")]
+    [InlineData("JobAssignment", "Aufgabe: Zugewiesener Agent")]
+    [InlineData("OperationAgent", "Operation: Zugewiesener Agent")]
+    [InlineData("OperationLogEntry", "Operation: Logeintrag")]
+    [InlineData("PartyAgent", "Partei: Zugewiesener Agent")]
+    [InlineData("PartyMember", "Partei: Mitglied")]
+    [InlineData("PersonGroupAgent", "Personengruppe: Zugewiesener Agent")]
+    [InlineData("PersonGroupMember", "Personengruppe: Mitglied")]
+    [InlineData("TaskforceAgent", "Taskforce: Zugewiesener Agent")]
+    [InlineData("TaskforceMessage", "Taskforce: Nachricht")]
+    [InlineData("AgentBadge", "Meilenstein-Abzeichen")]
+    [InlineData("AgentEvaluation", "Dienstbeurteilung")]
+    [InlineData("AgentModuleCompletion", "Personalakte: Ausbildungsmodul")]
+    [InlineData("AgentNote", "Personalakte: Eintrag")]
+    [InlineData("AgentProbation", "Probezeit")]
+    [InlineData("AgentPromotionRequest", "Beförderungsantrag")]
+    [InlineData("ActivityTemplate", "Aktivitäts-Vorlage")]
+    [InlineData("AgentAbduction", "Entführung")]
+    [InlineData("AgentInvite", "Einladungslink")]
+    [InlineData("Bewerbung", "Bewerbung")]
+    [InlineData("BewerbungTest", "Bewerbungstest")]
+    [InlineData("BewerbungTestAssignment", "Bewerbungstest-Zuweisung")]
+    [InlineData("Bewerbungssperre", "Bewerbungssperre")]
+    [InlineData("CounterIntelRule", "Gegenaufklärungs-Regel")]
+    [InlineData("CustomFieldDefinition", "Custom-Feld")]
+    [InlineData("DocTemplate", "Dok-Vorlage")]
+    [InlineData("DocumentTemplate", "Dokument-Vorlage")]
+    [InlineData("EmergencyAlarm", "Einsatzalarm")]
+    [InlineData("EvidenceEntry", "Asservat-Eintrag")]
+    [InlineData("EvidenceItem", "Asservat")]
+    [InlineData("Informant", "Informant")]
+    [InlineData("PartnerAgencyProfile", "Partner-Behörde: Sichtbarkeit")]
+    [InlineData("PartnerReleaseRule", "Partner-Regelfreigabe")]
+    [InlineData("PersonnelTemplate", "Personal-Vorlage")]
+    [InlineData("RecencyThreshold", "Aktualitäts-Schwelle")]
+    [InlineData("SituationReport", "Monatslagebericht")]
+    [InlineData("Tag", "Tag")]
+    [InlineData("ThreatScoreConfig", "Bedrohungs-Score-Konfiguration")]
+    [InlineData("TrainingModule", "Ausbildungsmodul")]
+    [InlineData("Comment", "Kommentar")]
+    [InlineData("Followup", "Wiedervorlage")]
+    [InlineData("GraphCanvasLayout", "Graph-Layout")]
+    [InlineData("LeadDismissal", "Ermittlungshinweis: Verwerfung")]
+    [InlineData("LibraryFile", "Bibliotheksdatei")]
+    [InlineData("Link", "Verknüpfung")]
+    [InlineData("NooseiConversation", "FIBI-Unterhaltung")]
+    [InlineData("Notification", "Benachrichtigung")]
+    [InlineData("PartnerShare", "Partner-Freigabe")]
+    [InlineData("Request", "Antrag")]
+    [InlineData("SavedSearch", "Gespeicherte Suche")]
+    [InlineData("Source", "Quelle")]
+    [InlineData("TextImage", "Textbild")]
+    [InlineData("WatchlistEntry", "Watchlist-Eintrag")]
+    public void Label_AuditedTypeWithoutALabelBefore_ReturnsGermanLabel(string type, string expected)
+        => Assert.Equal(expected, AuditEntityDisplay.Label(type));
+
+    [Theory]
+    [InlineData("Bewerbung", "abc", "/bewerbungen/abc")]
+    [InlineData("BewerbungTest", "abc", "/bewerbungs-tests/abc")]
+    [InlineData("Informant", "abc", "/informanten/abc")]
+    [InlineData("AgentAbduction", "abc", "/entfuehrungen/abc")]
+    [InlineData("EvidenceItem", "abc", "/asservatenkammer/item/abc")]
+    [InlineData("EvidenceEntry", "abc", "/asservatenkammer/eintrag/abc")]
+    [InlineData("EmergencyAlarm", "abc", "/einsatzalarme/abc")]
+    [InlineData("SituationReport", "abc", "/lageberichte/abc")]
+    [InlineData("ActivityTemplate", "abc", "/admin/vorlagen/aktivitaet-vorlage/abc/bearbeiten")]
+    [InlineData("DocumentTemplate", "abc", "/admin/vorlagen/dokument-vorlage/abc/bearbeiten")]
+    [InlineData("PersonnelTemplate", "abc", "/admin/vorlagen/personal-vorlage/abc/bearbeiten")]
+    public void Route_AuditedRecordWithItsOwnPage_OpensItWithTheId(string type, string id, string expected)
+        => Assert.Equal(expected, AuditEntityDisplay.Route(type, id));
+
+    [Theory]
+    [InlineData("Bewerbungssperre", "/bewerbungen?tab=sperren")]
+    [InlineData("DocTemplate", "/einstellungen?tab=vorlagen-dok")]
+    [InlineData("CustomFieldDefinition", "/einstellungen?tab=custom-felder")]
+    [InlineData("Tag", "/einstellungen?tab=tags")]
+    [InlineData("RecencyThreshold", "/einstellungen?tab=aktualitaet")]
+    [InlineData("ThreatScoreConfig", "/einstellungen?tab=bedrohungs-score")]
+    [InlineData("AgentInvite", "/einstellungen?tab=einladungen")]
+    [InlineData("TrainingModule", "/einstellungen?tab=module")]
+    [InlineData("PartnerAgencyProfile", "/einstellungen?tab=partner")]
+    [InlineData("PartnerReleaseRule", "/einstellungen?tab=partner")]
+    [InlineData("CounterIntelRule", "/nachweis?tab=regeln")]
+    public void Route_AuditedConfigWithoutAPage_PointsAtTheSectionThatEditsIt(string type, string route)
+    {
+        // the id is the row's own and never reaches the route
+        Assert.Equal(route, AuditEntityDisplay.Route(type, "any-id"));
+        Assert.Equal(route, AuditEntityDisplay.Route(type, string.Empty));
+
+        var split = route.Split("?tab=");
+        Assert.True(MergedPageSections.ByRoute.TryGetValue(split[0], out var slugs), $"{type}: unknown page {split[0]}");
+        Assert.Contains(split[1], slugs!);
+    }
+
+    [Theory]
+    [InlineData("AbductionCompromise")]
+    [InlineData("AgentTestAnswer")]
+    [InlineData("AnnouncementAcknowledgment")]
+    [InlineData("AppointmentAssignment")]
+    [InlineData("BewerbungMessage")]
+    [InlineData("BewerbungTestAnswer")]
+    [InlineData("BewerbungTestOption")]
+    [InlineData("BewerbungTestQuestion")]
+    [InlineData("CaseAgent")]
+    [InlineData("CustomFieldValue")]
+    [InlineData("DocumentAccessExclusion")]
+    [InlineData("EmergencyAlarmRecipient")]
+    [InlineData("EvidenceEntryLine")]
+    [InlineData("FactionAgent")]
+    [InlineData("FactionMember")]
+    [InlineData("InformantMeeting")]
+    [InlineData("JobAssignment")]
+    [InlineData("OperationAgent")]
+    [InlineData("OperationLogEntry")]
+    [InlineData("PartyAgent")]
+    [InlineData("PartyMember")]
+    [InlineData("PersonGroupAgent")]
+    [InlineData("PersonGroupMember")]
+    [InlineData("TaskforceAgent")]
+    [InlineData("TaskforceMessage")]
+    [InlineData("AgentBadge")]
+    [InlineData("AgentModuleCompletion")]
+    [InlineData("AgentNote")]
+    [InlineData("AgentProbation")]
+    [InlineData("BewerbungTestAssignment")]
+    [InlineData("Comment")]
+    [InlineData("Followup")]
+    [InlineData("GraphCanvasLayout")]
+    [InlineData("LeadDismissal")]
+    [InlineData("LibraryFile")]
+    [InlineData("Link")]
+    [InlineData("NooseiConversation")]
+    [InlineData("Notification")]
+    [InlineData("PartnerShare")]
+    [InlineData("Request")]
+    [InlineData("SavedSearch")]
+    [InlineData("Source")]
+    [InlineData("TextImage")]
+    [InlineData("WatchlistEntry")]
+    public void Route_AuditedChildOrPersonalRow_HasNoRoute(string type)
+        => Assert.Null(AuditEntityDisplay.Route(type, "abc"));
+
+    [Fact]
+    public void Route_EvaluationAndPromotionRequest_OpenTheirAdministrationOverview()
+    {
+        Assert.Equal("/administration/beurteilungen", AuditEntityDisplay.Route("AgentEvaluation", "abc"));
+        Assert.Equal("/administration/befoerderungen", AuditEntityDisplay.Route("AgentPromotionRequest", "abc"));
+    }
+
+    [Fact]
+    public void EveryAuditableEntity_HasAGermanLabel()
+    {
+        // any IAuditable row can show up in the audit log, so none may fall back to the class name
+        var sameInGerman = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "Person", "Observation", "Operation", "Taskforce", "Pressemitteilung", "Warnhinweis", "Bewerbung", "Bewerbungssperre",
+            "Informant", "Tag",
+        };
+        var missing = typeof(AuditEntityDisplay).Assembly.GetTypes()
+            .Where(t => t is { IsClass: true, IsAbstract: false } && typeof(IAuditable).IsAssignableFrom(t))
+            .Select(t => t.Name)
+            .Where(name => !sameInGerman.Contains(name) && AuditEntityDisplay.Label(name) == name)
+            .Distinct()
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(missing.Count == 0, "No German label for: " + string.Join(", ", missing));
     }
 }
