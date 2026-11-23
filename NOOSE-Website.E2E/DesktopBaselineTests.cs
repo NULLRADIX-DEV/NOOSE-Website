@@ -29,7 +29,7 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
     /// <c>Masks</c> are extra CSS selectors masked on both sides (regions whose order depends on such ties).
     /// </summary>
     private sealed record Target(string? Route = null, string? SeedList = null, string? SeedPrefix = null, string Suffix = "",
-        bool Print = false, string? SortBy = null, string[]? Masks = null);
+        bool Print = false, string? SortBy = null, string[]? Masks = null, string? HideSinceMaster = null);
 
     private static readonly Dictionary<string, Target> _targets = new(StringComparer.Ordinal)
     {
@@ -43,7 +43,8 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
         ["/personen/{id}"] = new(SeedList: "/personen", SeedPrefix: "/personen/", SortBy: "Aktenzeichen",
             Masks: [".d-flex.flex-wrap > .d-flex.flex-wrap:has(> .mud-chip-container)"]),
         ["/fraktionen"] = new("/fraktionen", SortBy: "Aktenzeichen"),
-        ["/einstellungen"] = new("/einstellungen"),
+        // the section rail gained the Einsatzalarm entry that master lacks; the section itself is still compared
+        ["/einstellungen"] = new("/einstellungen", HideSinceMaster: ".record-rail { visibility: hidden !important; }"),
         ["/aufgaben"] = new("/aufgaben"),
         ["/kasse"] = new("/kasse"),
         ["/"] = new("/"),
@@ -125,6 +126,8 @@ public sealed class DesktopBaselineTests(E2EFixture fixture)
             // before any click: hiding chrome moves the content, and the mouse would rest on another column per side
             if (HiddenSinceMaster.Length > 0)
                 await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = HiddenSinceMaster });
+            if (target.HideSinceMaster is { Length: > 0 } hide)
+                await page.AddStyleTagAsync(new PageAddStyleTagOptions { Content = hide });
             if (target.SortBy is not null && target.Route is not null)
                 await SortByAsync(page, target.SortBy);
             await page.EvaluateAsync(MarkMasksScript);
