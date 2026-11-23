@@ -39,6 +39,10 @@ public class Bewerbung : IAuditable, ISoftDelete
     [Column("StreamFreigabe")]
     public bool? StreamConsent { get; set; }
 
+    /// <summary>Reference persons as JSON; read through <c>ApplicationReferences.Parse</c>.</summary>
+    [Column("ReferenzenJson")]
+    public string? ReferencesJson { get; set; }
+
     [Column("AnhangDateiname")]
     public string? AttachmentFileNameSaved { get; set; }
     [Column("AnhangOriginalname")]
