@@ -1,0 +1,110 @@
+name: Designer-Check
+
+# Temporary, only for the PR that empties the old migration designers (removed again in its last commit): compares master
+# and the branch by migration SQL, migration list, schema of a freshly created database, __EFMigrationsHistory and the
+# peak memory of the Release build.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: designer-check-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mariadb:
+        image: mariadb:10.11
+        env:
+          # throwaway server of this job; per-run root value, no secrets
+          MARIADB_ROOT_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-designer
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      DB_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}-designer
+    steps:
+      - name: Check out master
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          path: base
+          persist-credentials: false
+      - name: Check out branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Build memory
+        run: |
+          : > "$RUNNER_TEMP/memory.md"
+          echo "| Stand | Maximum resident set size |" >> "$RUNNER_TEMP/memory.md"
+          echo "|---|---|" >> "$RUNNER_TEMP/memory.md"
+          for stand in base head; do
+            ( cd "$stand" && /usr/bin/time -v -o "$RUNNER_TEMP/time-$stand.txt" \
+              dotnet build NOOSE-Website/NOOSE-Website.csproj -c Release -p:UseSharedCompilation=false -nodeReuse:false )
+            kb=$(grep 'Maximum resident set size' "$RUNNER_TEMP/time-$stand.txt" | awk '{print $NF}')
+            echo "$stand: Maximum resident set size = $kb kB ($((kb / 1024)) MB)"
+            echo "| $stand | $kb kB ($((kb / 1024)) MB) |" >> "$RUNNER_TEMP/memory.md"
+          done
+          cat "$RUNNER_TEMP/memory.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Restore EF tool
+        run: |
+          for stand in base head; do
+            ( cd "$stand/scripts" && dotnet tool restore )
+          done
+      - name: Migration SQL and list
+        env:
+          DOTNET_ROLL_FORWARD: LatestMajor
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          for stand in base head; do
+            export ConnectionStrings__DefaultConnection="Server=127.0.0.1;Port=3306;Database=noose_$stand;User ID=root;Password=$DB_PASSWORD;SslMode=None;"
+            docker exec ${{ job.services.mariadb.id }} mariadb -uroot -p"$DB_PASSWORD" \
+              -e "CREATE DATABASE noose_$stand CHARACTER SET utf8mb4;"
+            ( cd "$stand/scripts" && dotnet ef migrations script --no-build --configuration Release \
+                --project ../NOOSE-Website/NOOSE-Website.csproj --startup-project ../NOOSE-Website/NOOSE-Website.csproj \
+                --output "$RUNNER_TEMP/out/$stand.sql" )
+            ( cd "$stand/scripts" && dotnet ef migrations list --no-build --configuration Release \
+                --project ../NOOSE-Website/NOOSE-Website.csproj --startup-project ../NOOSE-Website/NOOSE-Website.csproj \
+                > "$RUNNER_TEMP/out/$stand.list" )
+          done
+          wc -l "$RUNNER_TEMP"/out/*
+          diff -u "$RUNNER_TEMP/out/base.sql" "$RUNNER_TEMP/out/head.sql" && echo "migration SQL: diff empty"
+          diff -u "$RUNNER_TEMP/out/base.list" "$RUNNER_TEMP/out/head.list" && echo "migration list: diff empty"
+      - name: Schema and history of a fresh database
+        env:
+          DOTNET_ROLL_FORWARD: LatestMajor
+        run: |
+          for stand in base head; do
+            export ConnectionStrings__DefaultConnection="Server=127.0.0.1;Port=3306;Database=noose_$stand;User ID=root;Password=$DB_PASSWORD;SslMode=None;"
+            ( cd "$stand/scripts" && dotnet ef database update --no-build --configuration Release \
+                --project ../NOOSE-Website/NOOSE-Website.csproj --startup-project ../NOOSE-Website/NOOSE-Website.csproj )
+            docker exec ${{ job.services.mariadb.id }} mariadb-dump -uroot -p"$DB_PASSWORD" --no-data --skip-comments \
+              "noose_$stand" > "$RUNNER_TEMP/out/$stand.schema.sql"
+            docker exec ${{ job.services.mariadb.id }} mariadb -uroot -p"$DB_PASSWORD" -N \
+              -e "SELECT MigrationId, ProductVersion FROM __EFMigrationsHistory ORDER BY MigrationId" "noose_$stand" \
+              > "$RUNNER_TEMP/out/$stand.history"
+          done
+          wc -l "$RUNNER_TEMP"/out/*.schema.sql "$RUNNER_TEMP"/out/*.history
+          diff -u "$RUNNER_TEMP/out/base.schema.sql" "$RUNNER_TEMP/out/head.schema.sql" && echo "schema: diff empty"
+          diff -u "$RUNNER_TEMP/out/base.history" "$RUNNER_TEMP/out/head.history" && echo "history: diff empty"
+          echo "diffs of migration SQL, list, schema and history are empty" >> "$GITHUB_STEP_SUMMARY"
