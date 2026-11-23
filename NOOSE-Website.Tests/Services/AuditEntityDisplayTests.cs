@@ -512,7 +512,8 @@ public class AuditEntityDisplayTests
         // (these read the same in German and are asserted by their own label tests)
         var sameInGerman = new HashSet<string>(StringComparer.Ordinal)
         {
-            "Person", "Observation", "Operation", "Taskforce", "Bewerbung", "Bewerbungssperre", "Informant", "Tag",
+            "Person", "Observation", "Operation", "Taskforce", "Pressemitteilung", "Warnhinweis", "Bewerbung", "Bewerbungssperre",
+            "Informant", "Tag",
         };
         var missing = typeof(AuditEntityDisplay).Assembly.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false } && typeof(IAuditable).IsAssignableFrom(t))
