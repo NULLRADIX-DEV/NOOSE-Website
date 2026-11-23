@@ -30,7 +30,7 @@ public class NooseiProviderService(
     IMemoryCache cache,
     IOptions<LlmOptions> options) : INooseiProviderService
 {
-    private const string SettingKey = "KiAnbieter";
+    public const string SettingKey = "KiAnbieter";
     private const string CacheKey = "ki:anbieter";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 

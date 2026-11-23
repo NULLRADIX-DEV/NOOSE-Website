@@ -17,7 +17,7 @@ public class FeedbackPageTabsTests
     [Fact]
     public void Merged_page_slugs_are_covered_by_the_feedback_tabs()
     {
-        // MergedPageSections intentionally lags the rail (e.g. bester-agent), so only its direction is asserted
+        // MergedPageSections may lag the rail, so only its direction is asserted
         foreach (var (route, mergedSlugs) in MergedPageSections.ByRoute)
         {
             if (!FeedbackPageTabs.ByRoute.TryGetValue(route, out var tabs))

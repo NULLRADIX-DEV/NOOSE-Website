@@ -22,7 +22,7 @@ namespace NOOSE_Website.Services;
 public class InactivityRadarService(IDbContextFactory<AppDbContext> dbFactory, INotificationService notifications)
     : IInactivityRadarService
 {
-    private const string SettingKey = "InaktivitaetSchwellen";
+    public const string SettingKey = "InaktivitaetSchwellen";
 
     /// <summary>When page visits started being stamped; written once by migration Phase94.</summary>
     public const string VisitsCountedFromKey = "InaktivitaetBesucheAb";

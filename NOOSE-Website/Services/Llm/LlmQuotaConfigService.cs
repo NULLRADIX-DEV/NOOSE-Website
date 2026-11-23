@@ -26,7 +26,7 @@ public interface ILlmQuotaConfigService
 public class LlmQuotaConfigService(IDbContextFactory<AppDbContext> dbFactory, IMemoryCache cache)
     : ILlmQuotaConfigService
 {
-    private const string SettingKey = "KiKontingente";
+    public const string SettingKey = "KiKontingente";
     private const string CacheKey = "ki:kontingente";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 

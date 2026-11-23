@@ -12,8 +12,8 @@ public class RecruitingAutomationService(
     IDbContextFactory<AppDbContext> dbFactory,
     IMemoryCache cache) : IRecruitingAutomationService
 {
-    private const string EnabledKey = "Recruiting:AutoCase:Enabled";
-    private const string TemplateKey = "Recruiting:AutoCase:TemplateId";
+    public const string EnabledKey = "Recruiting:AutoCase:Enabled";
+    public const string TemplateKey = "Recruiting:AutoCase:TemplateId";
     private const string CacheKey = "RecruitingAutomationConfig";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
