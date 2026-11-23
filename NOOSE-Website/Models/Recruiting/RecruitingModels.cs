@@ -13,6 +13,7 @@ public class BewerbungSubmitModel
     public string? PriorExperience { get; set; }
     public string? CoverLetter { get; set; }
     public bool? StreamConsent { get; set; }
+    public List<ApplicationReference> References { get; set; } = [];
 }
 
 /// <summary>Info about an application's linked Person file (threat score), for the HRB panel.</summary>

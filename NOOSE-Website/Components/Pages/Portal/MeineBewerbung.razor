@@ -87,6 +87,35 @@ else if (_ready)
             <MudTextField @bind-Value="_model.CoverLetter" Label="Anschreiben" Variant="Variant.Outlined"
                           Lines="15" Sizing="InputSizing.Auto" MaxLines="40" Placeholder="Deine Motivation und weitere Angaben …" />
 
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">Referenzpersonen (optional)</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Personen, mit denen du dich gut verstehst und die etwas über dich sagen können.
+                </MudText>
+                @foreach (var reference in _model.References)
+                {
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                        <MudTextField @bind-Value="reference.Name" Label="Name" Variant="Variant.Outlined"
+                                      MaxLength="ApplicationReferences.MaxNameLength" Style="min-width:200px;flex:2 1 200px;" />
+                        <MudDatePicker @bind-Date="reference.BirthDate" Label="Geburtsdatum" Variant="Variant.Outlined"
+                                       MaxDate="DateTime.Today" Style="min-width:160px;flex:1 1 160px;" />
+                        <MudTextField @bind-Value="reference.Phone" Label="Telefonnummer" Variant="Variant.Outlined"
+                                      MaxLength="ApplicationReferences.MaxPhoneLength" Style="min-width:160px;flex:1 1 160px;" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" aria-label="Referenzperson entfernen"
+                                       OnClick="@(() => _model.References.Remove(reference))" />
+                    </MudStack>
+                }
+                @if (_model.References.Count < ApplicationReferences.MaxCount)
+                {
+                    <div>
+                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.PersonAdd"
+                                   OnClick="@(() => _model.References.Add(new ApplicationReference()))">
+                            Referenzperson hinzufügen
+                        </MudButton>
+                    </div>
+                }
+            </MudStack>
+
             <MudStack Spacing="1">
                 <MudText Typo="Typo.subtitle2">Darf deine Bewerbung gestreamt werden?</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">

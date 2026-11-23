@@ -21,6 +21,7 @@ using NOOSE_Website.Data.Entities.Presentations;
 using NOOSE_Website.Data.Entities.Public;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Data.Entities.Requests;
+using NOOSE_Website.Models.Recruiting;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services.Search;
 
@@ -392,6 +393,8 @@ public static partial class DossierContextBuilder
         Line(sb, "Arbeitgeber", b.Employer);
         Line(sb, "Vorerfahrung", b.PriorExperience);
         Line(sb, "Stream erlaubt", b.StreamConsent switch { true => "ja", false => "nein", null => null });
+        var references = ApplicationReferences.Parse(b.ReferencesJson);
+        Line(sb, "Referenzpersonen", references.Count == 0 ? null : string.Join("; ", references.Select(ApplicationReferences.Describe)));
         Line(sb, "Status", BewerbungStatusDisplay.Name(b.Status));
         Line(sb, "Eingereicht", Fmt(b.SubmittedAt));
         Line(sb, "Zuständig", b.AssignedAgentName);

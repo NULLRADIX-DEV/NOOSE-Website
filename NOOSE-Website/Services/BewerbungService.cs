@@ -121,6 +121,7 @@ public class BewerbungService(
             PriorExperience = Trim(model.PriorExperience),
             CoverLetter = Trim(model.CoverLetter),
             StreamConsent = model.StreamConsent,
+            ReferencesJson = ApplicationReferences.Serialize(model.References),
             AttachmentFileNameSaved = fileNameSaved,
             AttachmentOriginalName = Trim(originalName),
             AttachmentContentType = Trim(contentType),
