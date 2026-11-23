@@ -65,6 +65,11 @@ public static class MergedPageSections
         "meine", "alle", "katalog", "limits", "statistik", "papierkorb",
     ];
 
+    public static readonly string[] Cash =
+    [
+        "schwarzgeld", "gruengeld", "kopfgeld", "vorlagen", "statistik", "papierkorb",
+    ];
+
     public static readonly string[] Personnel = ["agenten", "organigramm", "bestenliste"];
 
     /// <summary>Section slugs of a merged page, keyed by its route.</summary>
@@ -81,5 +86,6 @@ public static class MergedPageSections
             ["/finanzierungen"] = Financing,
             ["/verpflegung"] = Food,
             ["/personal"] = Personnel,
+            ["/kasse"] = Cash,
         };
 }
