@@ -185,16 +185,9 @@ public class AuditEntityDisplayTests
 
     [Theory]
     [MemberData(nameof(GlobalSettingAudits))]
-    public void GlobalSettingAudit_HasGermanLabel(string type, string label, string route)
+    public void GlobalSettingAudit_HasLabelAndEditingRoute(string type, string label, string route)
     {
         Assert.Equal(label, AuditEntityDisplay.Label(type));
-        Assert.NotEqual(type, AuditEntityDisplay.Label(type));
-    }
-
-    [Theory]
-    [MemberData(nameof(GlobalSettingAudits))]
-    public void GlobalSettingAudit_RoutesToTheEditingSectionIgnoringId(string type, string label, string route)
-    {
         Assert.Equal(route, AuditEntityDisplay.Route(type, "any-id"));
         Assert.Equal(route, AuditEntityDisplay.Route(type, string.Empty));
     }
