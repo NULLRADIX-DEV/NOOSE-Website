@@ -16,7 +16,7 @@ public class AuditAccessIntroTests
 
     private static ClaimsPrincipal Director() => ClaimsPrincipalBuilder.Agent("lead").WithRank(Rank.Director).Build();
 
-    // sees the panel through LeadershipPage, but not the counter-intelligence overview
+    // LeadershipPage only
     private static ClaimsPrincipal Supervision()
         => ClaimsPrincipalBuilder.Agent("aufsicht").WithRank(Rank.Director).AsTeamLead().Build();
 
