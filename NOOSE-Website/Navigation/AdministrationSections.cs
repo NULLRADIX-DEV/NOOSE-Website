@@ -21,10 +21,10 @@ public static class AdministrationSections
 
     public static readonly IReadOnlyList<Section> All =
     [
-        new("", "Chat", Icons.Material.Filled.Forum, General, "administration",
-            "Interner Chat der Administration Division"),
         new("informationen", "Informationen", Icons.Material.Filled.Info, General, "administration",
             "Zuständigkeiten, Abläufe und Ansprechpartner der Administration"),
+        new("", "Chat", Icons.Material.Filled.Forum, General, "administration",
+            "Interner Chat der Administration Division"),
         new("agents", "Zugeteilte Agents", Icons.Material.Filled.ManageAccounts, General, "administration",
             "Wer zur Administration Division und zum Board gehört"),
         new("beziehungen", "Personalbeziehungen", Icons.Material.Filled.Favorite, General, "administration",
