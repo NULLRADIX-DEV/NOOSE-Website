@@ -1,38 +1,129 @@
 #!/usr/bin/env bash
 # Run after every 'dotnet ef migrations add': empties old designers to cut build memory.
+# Designers that a migration still needs stay full, derived from the migration code (same rule as MigrationDesignerTests):
+# a call of InsertData/UpdateData/DeleteData without columnTypes:, RenameColumn, RenameIndex, or a use of TargetModel
+# needs the model. In Up() that is the own designer, in Down() the one of the previous migration.
+# 'designer-entleeren.sh --list' prints what is kept and why, and changes nothing.
 set -euo pipefail
 
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/NOOSE-Website/Data/Migrations"
 keep_newest=3
-# data ops without columnTypes and column renames need a model: own designer for Up, previous one for Down
-exceptions=(
-  "20261103000239_Phase109_FibTexte.Designer.cs"
-  "20260804192734_Phase56_GegenaufklaerungsRegeln.Designer.cs"
-  "20260819092159_Oeffentlich08_HinweisUebernahme.Designer.cs"
-  "20261006124329_Phase86_PartnerBehoerdenprofil.Designer.cs"
-  "20261014112112_Phase93_Ehrungen.Designer.cs"
-  "20261113235508_Phase128_PartnerEinheiten.Designer.cs"
-  "20260819083847_Oeffentlich08_HinweisTriage.Designer.cs"
-  "20260903090101_Oeffentlich07_HinweisLesestandUndPrio.Designer.cs"
-  "20260908083814_Oeffentlich21_TicketAnhaenge.Designer.cs"
-  "20260609133913_AgentCodenameKlarnameDienstnummer.Designer.cs"
-  "20260721072858_Phase41_BesprechungZweiErinnerungen.Designer.cs"
-  "20260807161825_Phase66_NooseiKurzbrief.Designer.cs"
-  "20260609020929_Phase2_AktenzeichenZaehlerFix.Designer.cs"
-  "20260720091239_Phase40_BesprechungenUndAbmeldungen.Designer.cs"
-  "20260807160610_Phase65_KiKontingente.Designer.cs"
-)
 
 export LC_ALL=C
+
+# one line per hit: designer, migration, Up|Down, what
+derive_needed() {
+  local migrations
+  mapfile -t migrations < <(cd "$dir" && printf '%s\n' [0-9]*_*.cs | grep -v '\.Designer\.cs$' | sort)
+  (cd "$dir" && awk '
+    function boundary(c) {
+      if (pending != "") {
+        if (c == "(") { call = pending; calltext = ""; depth = 1; pending = ""; return }
+        if (c !~ /[ \t\r\n]/) pending = ""
+      }
+      if (ident != "") {
+        if (ident == "TargetModel") hit("TargetModel")
+        else if (ident ~ /^(InsertData|UpdateData|DeleteData|RenameColumn|RenameIndex)$/) pending = ident
+        ident = ""
+        if (pending != "" && c == "(") { call = pending; calltext = ""; depth = 1; pending = "" }
+      }
+    }
+    function hit(what,    d) {
+      if (section == "Down") { if (prev == "") return; d = prev } else d = base
+      print d ".Designer.cs\t" base "\t" (section == "Down" ? "Down" : "Up") "\t" what
+    }
+    function endcall() {
+      if (call ~ /^(RenameColumn|RenameIndex)$/ || calltext !~ /(^|[^A-Za-z0-9_])columnTypes[ \t\r\n]*:/) hit(call)
+      call = ""
+    }
+    FNR == 1 {
+      prev = last
+      base = FILENAME; sub(/\.cs$/, "", base)
+      last = base
+      mode = "code"; section = ""; ident = ""; pending = ""; call = ""; depth = 0
+    }
+    {
+      line = $0
+      if (FNR == 1) sub(/^\357\273\277/, "", line)
+      if (mode == "str") mode = "code"
+      if (mode == "code" && call == "") {
+        if (line ~ /^ +(public|private|protected|internal) .*[ ]Up\(/) section = "Up"
+        else if (line ~ /^ +(public|private|protected|internal) .*[ ]Down\(/) section = "Down"
+        else if (line ~ /^        (public|private|protected|internal) /) section = ""
+      }
+      n = length(line)
+      for (i = 1; i <= n; i++) {
+        c = substr(line, i, 1)
+        if (mode == "block") { if (substr(line, i, 2) == "*/") { mode = "code"; i++ } continue }
+        if (mode == "str") {
+          if (c == "\\") i++
+          else if (c == "\"") mode = "code"
+          continue
+        }
+        if (mode == "vstr") {
+          if (c == "\"") { if (substr(line, i + 1, 1) == "\"") i++; else mode = "code" }
+          continue
+        }
+        if (mode == "raw") { if (substr(line, i, 3) == "\"\"\"") { mode = "code"; i += 2 } continue }
+        # code
+        if (c == "/" && substr(line, i + 1, 1) == "/") break
+        if (c == "/" && substr(line, i + 1, 1) == "*") { mode = "block"; i++; continue }
+        if (c == "\"") {
+          if (call == "") boundary("\"")
+          else ident = ""
+          if (substr(line, i, 3) == "\"\"\"") { mode = "raw"; i += 2 }
+          else {
+            p1 = substr(line, i - 1, 1); p2 = substr(line, i - 2, 1)
+            mode = (p1 == "@" || (p1 == "$" && p2 == "@")) ? "vstr" : "str"
+          }
+          if (call != "") calltext = calltext "\"\""
+          continue
+        }
+        if (c == "\047") {
+          if (call == "") boundary("\047")
+          else ident = ""
+          k = i + 1
+          if (substr(line, k, 1) == "\\") k += 2
+          while (k <= n && substr(line, k, 1) != "\047") k++
+          i = k
+          if (call != "") calltext = calltext "\047\047"
+          continue
+        }
+        if (c ~ /[A-Za-z0-9_]/) { ident = ident c; if (call != "") calltext = calltext c; continue }
+        if (call == "") boundary(c)
+        else {
+          ident = ""
+          calltext = calltext c
+          if (c == "(") depth++
+          else if (c == ")" && --depth == 0) endcall()
+        }
+      }
+      if (mode == "code") { if (call == "") boundary(" "); else { ident = ""; calltext = calltext " " } }
+    }
+  ' "${migrations[@]}")
+}
+
+mapfile -t needed < <(derive_needed)
+if [[ ${#needed[@]} -eq 0 ]]; then
+  echo "derived no designer to keep, the derivation in this script is broken" >&2
+  exit 1
+fi
+
+declare -A keep=()
+for line in "${needed[@]}"; do keep["${line%%$'\t'*}"]=1; done
+
+if [[ "${1:-}" == "--list" ]]; then
+  printf '%s\n' "${needed[@]}" | sort -u
+  exit 0
+fi
+
 mapfile -t designers < <(cd "$dir" && printf '%s\n' *.Designer.cs | sort)
 total=${#designers[@]}
 changed=0
 
 for ((i = 0; i < total - keep_newest; i++)); do
   name="${designers[$i]}"
-  skip=0
-  for e in "${exceptions[@]}"; do [[ "$name" == "$e" ]] && skip=1; done
-  [[ $skip -eq 1 ]] && continue
+  [[ -n "${keep[$name]:-}" ]] && continue
   file="$dir/$name"
   grep -q 'BuildTargetModel' "$file" || continue
 
