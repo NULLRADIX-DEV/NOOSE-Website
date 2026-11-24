@@ -36,7 +36,7 @@ public sealed class MigrationDesignerTests
 
         Assert.True(
             missing.Count == 0,
-            "Diese Designer brauchen ihr BuildTargetModel, weil die genannte Migration in Up oder Down ein Modell braucht: "
+            "Diese Designer brauchen ihr BuildTargetModel, weil die genannte Migration in Up, Down oder einer Hilfsmethode ein Modell braucht: "
             + string.Join("; ", missing) + ". Aus der Git-Historie zurueckholen.");
     }
 
@@ -118,6 +118,78 @@ public sealed class MigrationDesignerTests
         var needs = Derive(("20260101000000_First", Migration("First", up: "var plan = Plan.Classify(TargetModel);")));
 
         Assert.Equal("TargetModel", Assert.Single(needs).What);
+    }
+
+    [Fact]
+    public void ATargetModelUseInDownNeedsTheOwnDesigner()
+    {
+        var needs = Derive(
+            ("20260101000000_First", Migration("First", up: "")),
+            ("20260102000000_Second", Migration("Second", up: "", down: "var plan = Plan.Classify(TargetModel);")));
+
+        Assert.Equal(new DesignerNeed("20260102000000_Second.Designer.cs", "20260102000000_Second", "Down", "TargetModel"), Assert.Single(needs));
+    }
+
+    [Fact]
+    public void ADataCallOutsideUpAndDownNeedsBothDesigners()
+    {
+        var needs = Derive(
+            ("20260101000000_First", Migration("First", up: "")),
+            ("20260102000000_Second", """
+                public partial class Second : Migration
+                {
+                    protected override void Up(MigrationBuilder migrationBuilder) { Seed(migrationBuilder); }
+                    protected override void Down(MigrationBuilder migrationBuilder) { Seed(migrationBuilder); }
+
+                    private static void Seed(MigrationBuilder mb)
+                    {
+                        mb.UpdateData(table: "T", keyColumn: "Id", keyValue: 1);
+                    }
+                }
+                """));
+
+        Assert.Equal(
+            ["20260101000000_First.Designer.cs", "20260102000000_Second.Designer.cs"],
+            needs.Select(n => n.Designer).Order(StringComparer.Ordinal));
+        Assert.All(needs, n => Assert.Equal("Helper", n.Method));
+    }
+
+    [Fact]
+    public void AnExpressionBodiedDownIsStillDown()
+    {
+        var needs = Derive(
+            ("20260101000000_First", Migration("First", up: "")),
+            ("20260102000000_Second", """
+                namespace N;
+                public partial class Second : Migration
+                {
+                    protected override void Up(MigrationBuilder migrationBuilder) { }
+
+                    protected override void Down(MigrationBuilder migrationBuilder) =>
+                        migrationBuilder.RenameColumn(name: "A", table: "T", newName: "B");
+                }
+                """));
+
+        Assert.Equal(new DesignerNeed("20260101000000_First.Designer.cs", "20260102000000_Second", "Down", "RenameColumn"), Assert.Single(needs));
+    }
+
+    [Fact]
+    public void AHelperAfterDownIsNotDownWhateverTheIndent()
+    {
+        var needs = Derive(
+            ("20260101000000_First", Migration("First", up: "")),
+            ("20260102000000_Second", """
+                namespace N;
+                public partial class Second : Migration
+                {
+                    protected override void Up(MigrationBuilder migrationBuilder) { Seed(); }
+                    protected override void Down(MigrationBuilder migrationBuilder) { }
+                    void Seed() { migrationBuilder.InsertData(table: "T", values: new object[] { 1 }); }
+                }
+                """));
+
+        Assert.All(needs, n => Assert.Equal("Helper", n.Method));
+        Assert.Contains(needs, n => n.Designer == "20260102000000_Second.Designer.cs");
     }
 
     [Fact]

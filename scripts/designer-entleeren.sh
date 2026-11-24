@@ -21,13 +21,33 @@ derive_needed() {
       if (ident != "") {
         if (ident == "TargetModel") hit("TargetModel")
         else if (ident ~ /^(InsertData|UpdateData|DeleteData|RenameColumn|RenameIndex)$/) pending = ident
+        else if (prevword == "void" && (ident == "Up" || ident == "Down")) { decl = ident; sstate = 1 }
+        prevword = ident
         ident = ""
         if (pending != "" && c == "(") { call = pending; calltext = ""; depth = 1; pending = "" }
       }
     }
-    function hit(what,    d) {
-      if (section == "Down") { if (prev == "") return; d = prev } else d = base
-      print d ".Designer.cs\t" base "\t" (section == "Down" ? "Down" : "Up") "\t" what
+    function emit(d, m, what) { print d ".Designer.cs\t" base "\t" m "\t" what }
+    function hit(what) {
+      if (section == "Up" || (what == "TargetModel" && section != "")) emit(base, section, what)
+      else if (section == "Down") { if (prev != "") emit(prev, "Down", what) }
+      else if (what == "TargetModel") emit(base, "Helper", what)
+      else { emit(base, "Helper", what); if (prev != "") emit(prev, "Helper", what) }
+    }
+    function track(c, nx) {
+      if (c == "(" || c == "[" || c == "{") {
+        if (sstate == 1 && c == "(") { sstate = 2; signest = nest }
+        else if (sstate == 3 && c == "{") { section = decl; secnest = nest; sblock = 1; sstate = 0 }
+        nest++
+      } else if (c == ")" || c == "]" || c == "}") {
+        nest--
+        if (sstate == 2 && c == ")" && nest == signest) sstate = 3
+        else if (section != "" && (nest < secnest || (sblock && nest == secnest))) section = ""
+      } else if (c == ";") {
+        if (section != "" && !sblock && nest == secnest) section = ""
+        if (sstate == 3) sstate = 0
+      } else if (sstate == 3 && c == "=" && nx == ">") { section = decl; secnest = nest; sblock = 0; sstate = 0 }
+      else if (sstate == 3 && c !~ /[ \t\r\n]/) sstate = 0
     }
     function endcall() {
       if (call ~ /^(RenameColumn|RenameIndex)$/ || calltext !~ /(^|[^A-Za-z0-9_])columnTypes[ \t\r\n]*:/) hit(call)
@@ -38,16 +58,12 @@ derive_needed() {
       base = FILENAME; sub(/\.cs$/, "", base)
       last = base
       mode = "code"; section = ""; ident = ""; pending = ""; call = ""; depth = 0
+      nest = 0; sstate = 0; sblock = 0; prevword = ""
     }
     {
       line = $0
       if (FNR == 1) sub(/^\357\273\277/, "", line)
       if (mode == "str") mode = "code"
-      if (mode == "code" && call == "") {
-        if (line ~ /^ +(public|private|protected|internal) .*[ ]Up\(/) section = "Up"
-        else if (line ~ /^ +(public|private|protected|internal) .*[ ]Down\(/) section = "Down"
-        else if (line ~ /^        (public|private|protected|internal) /) section = ""
-      }
       n = length(line)
       for (i = 1; i <= n; i++) {
         c = substr(line, i, 1)
@@ -94,17 +110,19 @@ derive_needed() {
           if (c == "(") depth++
           else if (c == ")" && --depth == 0) endcall()
         }
+        track(c, substr(line, i + 1, 1))
       }
       if (mode == "code") { if (call == "") boundary(" "); else { ident = ""; calltext = calltext " " } }
     }
   ' "${migrations[@]}")
 }
 
-mapfile -t needed < <(derive_needed)
-if [[ ${#needed[@]} -eq 0 ]]; then
+out="$(derive_needed)"
+if [[ -z "$out" ]]; then
   echo "derived no designer to keep, the derivation in this script is broken" >&2
   exit 1
 fi
+mapfile -t needed <<< "$out"
 
 declare -A keep=()
 for line in "${needed[@]}"; do keep["${line%%$'\t'*}"]=1; done

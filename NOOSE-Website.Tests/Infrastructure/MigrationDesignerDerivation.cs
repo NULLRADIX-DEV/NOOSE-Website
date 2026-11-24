@@ -19,9 +19,9 @@ public static partial class MigrationDesignerDerivation
             var previous = i > 0 ? migrations[i - 1].Id : null;
             foreach (var (method, what) in FindHits(code))
             {
+                string?[] owners = what == "TargetModel" || method == "Up" ? [id] : method == "Down" ? [previous] : [id, previous];
                 // no predecessor
-                var owner = method == "Down" ? previous : id;
-                if (owner is not null)
+                foreach (var owner in owners.OfType<string>())
                 {
                     needs.Add(new DesignerNeed(owner + ".Designer.cs", id, method, what));
                 }
@@ -34,8 +34,10 @@ public static partial class MigrationDesignerDerivation
     private static IEnumerable<(string Method, string What)> FindHits(string code)
     {
         var masked = Mask(code);
-        var (downStart, downEnd) = DownBody(masked);
-        string MethodAt(int index) => index >= downStart && index < downEnd ? "Down" : "Up";
+        var up = BodyOf(masked, UpDeclaration());
+        var down = BodyOf(masked, DownDeclaration());
+        string MethodAt(int index) =>
+            index >= up.Start && index < up.End ? "Up" : index >= down.Start && index < down.End ? "Down" : "Helper";
 
         foreach (Match call in DataOrRenameCall().Matches(masked))
         {
@@ -54,29 +56,52 @@ public static partial class MigrationDesignerDerivation
         }
     }
 
-    private static (int Start, int End) DownBody(string masked)
+    private static (int Start, int End) BodyOf(string masked, Regex declaration)
     {
-        var declaration = DownDeclaration().Match(masked);
-        if (!declaration.Success)
+        var match = declaration.Match(masked);
+        if (!match.Success)
         {
             return (0, 0);
         }
 
-        var open = masked.IndexOf('{', declaration.Index);
-        var depth = 0;
-        for (var i = open; i < masked.Length; i++)
+        var i = MatchingParen(masked, match.Index + match.Length - 1) + 1;
+        while (i < masked.Length && char.IsWhiteSpace(masked[i]))
         {
-            if (masked[i] == '{')
+            i++;
+        }
+
+        if (i < masked.Length && masked[i] == '{')
+        {
+            return (i, ScanEnd(masked, i, true));
+        }
+
+        return i < masked.Length && string.CompareOrdinal(masked, i, "=>", 0, 2) == 0 ? (i, ScanEnd(masked, i + 2, false)) : (0, 0);
+    }
+
+    private static int ScanEnd(string masked, int from, bool block)
+    {
+        var depth = 0;
+        for (var i = from; i < masked.Length; i++)
+        {
+            var c = masked[i];
+            if (c is '(' or '[' or '{')
             {
                 depth++;
             }
-            else if (masked[i] == '}' && --depth == 0)
+            else if (c is ')' or ']' or '}')
             {
-                return (open, i);
+                if (--depth < 0 || (block && depth == 0))
+                {
+                    return i;
+                }
+            }
+            else if (c == ';' && !block && depth == 0)
+            {
+                return i;
             }
         }
 
-        return (open, masked.Length);
+        return masked.Length;
     }
 
     private static int MatchingParen(string masked, int open)
@@ -202,6 +227,9 @@ public static partial class MigrationDesignerDerivation
 
     [GeneratedRegex(@"\bTargetModel\b")]
     private static partial Regex TargetModelUse();
+
+    [GeneratedRegex(@"\bvoid\s+Up\s*\(")]
+    private static partial Regex UpDeclaration();
 
     [GeneratedRegex(@"\bvoid\s+Down\s*\(")]
     private static partial Regex DownDeclaration();
