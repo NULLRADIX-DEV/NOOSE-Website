@@ -31,11 +31,31 @@ public static class SectionPolicies
             ["/statistik"] = Sections(
                 Group(Policies.LeadershipPage, "kasse", "finanzierung", "verpflegung", "dienststelle", "lageberichte"),
                 Group(Policies.Admin, "nutzung")),
+            // a detail page is keyed by its @page template; For matches the concrete address against it
+            ["/dienstverordnung/absatz/{Id}"] = Sections(Group(Policies.LeadershipPage, "kenntnisnahme")),
         };
 
     /// <summary>Policy that guards the section, or null when it is unguarded.</summary>
     public static string? For(string route, string slug)
-        => ByRoute.TryGetValue(route, out var sections) && sections.TryGetValue(slug, out var policy) ? policy : null;
+    {
+        var sections = ByRoute.TryGetValue(route, out var exact) ? exact : MatchingTemplate(route);
+        return sections is not null && sections.TryGetValue(slug, out var policy) ? policy : null;
+    }
+
+    private static IReadOnlyDictionary<string, string>? MatchingTemplate(string path)
+    {
+        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var (template, sections) in ByRoute)
+        {
+            var parts = template.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == segments.Length && parts.Zip(segments).All(x =>
+                    x.First.StartsWith('{') || string.Equals(x.First, x.Second, StringComparison.OrdinalIgnoreCase)))
+            {
+                return sections;
+            }
+        }
+        return null;
+    }
 
     private static IReadOnlyDictionary<string, string> Sections(params (string Policy, string[] Slugs)[] groups)
         => groups.SelectMany(g => g.Slugs.Select(s => (Slug: s, g.Policy)))
