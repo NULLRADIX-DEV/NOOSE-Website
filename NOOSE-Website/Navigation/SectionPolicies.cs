@@ -31,30 +31,41 @@ public static class SectionPolicies
             ["/statistik"] = Sections(
                 Group(Policies.LeadershipPage, "kasse", "finanzierung", "verpflegung", "dienststelle", "lageberichte"),
                 Group(Policies.Admin, "nutzung")),
-            // keyed by template
+            // any template
             ["/dienstverordnung/absatz/{Id}"] = Sections(Group(Policies.LeadershipPage, "kenntnisnahme")),
         };
 
+    private static readonly Lazy<IReadOnlyDictionary<Type, IReadOnlyDictionary<string, string>>> ByPage = new(() => PagesOf(ByRoute));
+
     /// <summary>Policy that guards the section, or null when it is unguarded.</summary>
-    public static string? For(string route, string slug)
+    public static string? For(string route, string slug) => For(route, slug, ByPage.Value);
+
+    /// <summary>Same lookup against another table, keyed like <see cref="ByRoute"/>.</summary>
+    public static string? For(string route, string slug, IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> byRoute)
+        => For(route, slug, PagesOf(byRoute));
+
+    private static string? For(string route, string slug, IReadOnlyDictionary<Type, IReadOnlyDictionary<string, string>> byPage)
     {
-        var sections = ByRoute.TryGetValue(route, out var exact) ? exact : MatchingTemplate(route);
-        return sections is not null && sections.TryGetValue(slug, out var policy) ? policy : null;
+        var page = PageRouteTable.Find(route);
+        return page is not null && byPage.TryGetValue(page, out var sections) && sections.TryGetValue(slug, out var policy)
+            ? policy
+            : null;
     }
 
-    private static IReadOnlyDictionary<string, string>? MatchingTemplate(string path)
+    private static Dictionary<Type, IReadOnlyDictionary<string, string>> PagesOf(
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> byRoute)
     {
-        var segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        foreach (var (template, sections) in ByRoute)
+        var pages = new Dictionary<Type, IReadOnlyDictionary<string, string>>();
+        foreach (var (route, sections) in byRoute)
         {
-            var parts = template.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length == segments.Length && parts.Zip(segments).All(x =>
-                    x.First.StartsWith('{') || string.Equals(x.First, x.Second, StringComparison.OrdinalIgnoreCase)))
+            var page = PageRouteTable.Find(route)
+                ?? throw new InvalidOperationException($"SectionPolicies: no page opens {route}");
+            if (!pages.TryAdd(page, sections))
             {
-                return sections;
+                throw new InvalidOperationException($"SectionPolicies: {page.Name} has two entries ({route})");
             }
         }
-        return null;
+        return pages;
     }
 
     private static IReadOnlyDictionary<string, string> Sections(params (string Policy, string[] Slugs)[] groups)
