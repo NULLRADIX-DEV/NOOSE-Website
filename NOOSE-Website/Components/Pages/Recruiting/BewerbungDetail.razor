@@ -80,6 +80,39 @@ else
                         </tbody>
                     </MudSimpleTable>
                 }
+                @{ var reliability = ReliabilityQuestions.Parse(_b.ReliabilityJson); }
+                @if (reliability.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-3">Zuverlässigkeit</MudText>
+                    <MudSimpleTable Dense="true" Bordered="false" Striped="false" Style="background:transparent;">
+                        <tbody>
+                            @foreach (var answer in reliability)
+                            {
+                                <tr>
+                                    <td class="mud-text-secondary">@(ReliabilityQuestions.Find(answer.Key)?.Label ?? answer.Key)</td>
+                                    <td>
+                                        @switch (answer.Answer)
+                                        {
+                                            case true:
+                                                <MudText Typo="Typo.body2" Color="Color.Error"><b>Ja</b></MudText>
+                                                break;
+                                            case false:
+                                                <MudText Typo="Typo.body2" Color="Color.Success">Nein</MudText>
+                                                break;
+                                            default:
+                                                <span class="mud-text-secondary">—</span>
+                                                break;
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(answer.Details))
+                                        {
+                                            <MudText Typo="Typo.body2" Style="white-space:pre-wrap;">@answer.Details</MudText>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
                 @if (!string.IsNullOrWhiteSpace(_b.PriorExperience))
                 {
                     <MudText Typo="Typo.subtitle2" Class="mt-3">Vorerfahrung</MudText>

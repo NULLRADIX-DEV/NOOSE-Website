@@ -116,6 +116,29 @@ else if (_ready)
                 }
             </MudStack>
 
+            <MudStack Spacing="2">
+                <MudText Typo="Typo.subtitle2">Zuverlässigkeit</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Bitte beantworte alle Fragen ehrlich. Wenn du mit Ja antwortest, gib kurz an, worum es geht.
+                </MudText>
+                @foreach (var answer in _model.Reliability)
+                {
+                    var question = ReliabilityQuestions.Find(answer.Key)!;
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body2">@question.Question</MudText>
+                        <MudRadioGroup T="bool?" @bind-Value="answer.Answer">
+                            <MudRadio T="bool?" Value="true" Color="Color.Error">Ja</MudRadio>
+                            <MudRadio T="bool?" Value="false" Color="Color.Success">Nein</MudRadio>
+                        </MudRadioGroup>
+                        @if (answer.Answer == true)
+                        {
+                            <MudTextField @bind-Value="answer.Details" Label="Bitte angeben" Variant="Variant.Outlined"
+                                          Required="true" Lines="2" MaxLength="ReliabilityQuestions.MaxDetailsLength" />
+                        }
+                    </MudStack>
+                }
+            </MudStack>
+
             <MudStack Spacing="1">
                 <MudText Typo="Typo.subtitle2">Darf deine Bewerbung gestreamt werden?</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary">
@@ -254,6 +277,11 @@ else if (_ready)
         if (string.IsNullOrWhiteSpace(_model.Name))
         {
             Snackbar.Add("Bitte gib deinen Namen an.", Severity.Warning);
+            return;
+        }
+        if (ReliabilityQuestions.Validate(_model.Reliability) is { } reliabilityProblem)
+        {
+            Snackbar.Add(reliabilityProblem, Severity.Warning);
             return;
         }
         if (_model.StreamConsent is null)

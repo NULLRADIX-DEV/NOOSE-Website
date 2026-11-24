@@ -57,6 +57,10 @@ public class BewerbungService(
         {
             throw new InvalidOperationException("Bitte gib an, ob deine Bewerbung gestreamt werden darf.");
         }
+        if (ReliabilityQuestions.Validate(model.Reliability) is { } reliabilityProblem)
+        {
+            throw new InvalidOperationException(reliabilityProblem);
+        }
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
 
@@ -122,6 +126,7 @@ public class BewerbungService(
             CoverLetter = Trim(model.CoverLetter),
             StreamConsent = model.StreamConsent,
             ReferencesJson = ApplicationReferences.Serialize(model.References),
+            ReliabilityJson = ReliabilityQuestions.Serialize(model.Reliability),
             AttachmentFileNameSaved = fileNameSaved,
             AttachmentOriginalName = Trim(originalName),
             AttachmentContentType = Trim(contentType),

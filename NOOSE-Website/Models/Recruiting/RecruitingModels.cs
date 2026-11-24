@@ -14,6 +14,7 @@ public class BewerbungSubmitModel
     public string? CoverLetter { get; set; }
     public bool? StreamConsent { get; set; }
     public List<ApplicationReference> References { get; set; } = [];
+    public List<ReliabilityAnswer> Reliability { get; set; } = ReliabilityQuestions.NewAnswers();
 }
 
 /// <summary>Info about an application's linked Person file (threat score), for the HRB panel.</summary>

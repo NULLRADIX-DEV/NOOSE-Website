@@ -838,6 +838,9 @@ public static class ChangelogContent
             Neu("3.1.12-bewerbung-referenzen", "In der Bewerbung gibst du bis zu fünf Referenzpersonen an, mit denen du "
                 + "dich gut verstehst, mit Geburtsdatum und Telefonnummer. Die Bearbeiter sehen sie bei den Stammdaten.",
                 "Bewerbungen"),
+            Neu("3.1.13-bewerbung-zuverlaessigkeit", "Die Bewerbung fragt jetzt sechs Pflichtfragen zur Zuverlässigkeit ab, "
+                + "etwa zu Schulden oder Nebentätigkeiten. Wer mit Ja antwortet, gibt an, worum es geht.",
+                "Bewerbungen"),
         ]),
     ];
 }

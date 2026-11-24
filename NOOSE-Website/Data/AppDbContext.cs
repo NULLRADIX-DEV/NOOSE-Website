@@ -2375,6 +2375,7 @@ public class AppDbContext : IdentityDbContext<Agent>
             b.Property(v => v.PriorExperience).HasColumnType("longtext");
             b.Property(v => v.CoverLetter).HasColumnType("longtext");
             b.Property(v => v.ReferencesJson).HasColumnType("longtext");
+            b.Property(v => v.ReliabilityJson).HasColumnType("longtext");
             b.Property(v => v.AttachmentFileNameSaved).HasMaxLength(128);
             b.Property(v => v.AttachmentOriginalName).HasMaxLength(260);
             b.Property(v => v.AttachmentContentType).HasMaxLength(100);
