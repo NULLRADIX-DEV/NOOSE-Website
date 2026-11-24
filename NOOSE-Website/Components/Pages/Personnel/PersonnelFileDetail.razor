@@ -162,6 +162,14 @@ else
                 <MudTabPanel Text="Dienstgrad-Verlauf" Icon="@Icons.Material.Filled.TrendingUp">
                     <RankHistoryPanel AgentId="@_agent.Id" @key="_reloadKey" />
                 </MudTabPanel>
+                @* the agent's own file and the Administration workspace only *@
+                @if (_mayAdministration)
+                {
+                    <MudTabPanel Text="Administration" Icon="@Icons.Material.Filled.AssuredWorkload">
+                        <NOOSE_Website.Components.Pages.Administration.Shared.PersonnelAdministrationPanel AgentId="@_agent.Id" User="_user"
+                            TransfersOnly="@(!_administrationFull)" />
+                    </MudTabPanel>
+                }
                 <MudTabPanel Text="Vermerke" Icon="@Icons.Material.Filled.Description">
                     <NotesPanel AgentId="@_agent.Id" />
                 </MudTabPanel>
@@ -213,14 +221,6 @@ else
                 {
                     <MudTabPanel Text="Schusswaffengebrauch" Icon="@Icons.Material.Filled.GpsFixed">
                         <FirearmUsePanel AgentId="@_agent.Id" />
-                    </MudTabPanel>
-                }
-                @* the agent's own file and the Administration workspace only *@
-                @if (_mayAdministration)
-                {
-                    <MudTabPanel Text="Administration" Icon="@Icons.Material.Filled.AssuredWorkload">
-                        <NOOSE_Website.Components.Pages.Administration.Shared.PersonnelAdministrationPanel AgentId="@_agent.Id" User="_user"
-                            TransfersOnly="@(!_administrationFull)" />
                     </MudTabPanel>
                 }
                 @if (_mayPersonnelRead)
@@ -292,12 +292,13 @@ else
         _tabs =
         [
             .. _maySupervise ? new[] { "dienstaufsicht" } : [],
-            "verlauf", "vermerke",
+            "verlauf",
+            .. _mayAdministration ? new[] { "administration" } : [],
+            "vermerke",
             .. _mayEvaluations ? new[] { "beurteilungen" } : [],
             "befoerderungen", "finanzierung", "verpflegung", "ki-kontingent", "module", "auszeichnungen",
             "entfuehrungen",
             .. _mayFirearmUse ? new[] { "schusswaffengebrauch" } : [],
-            .. _mayAdministration ? new[] { "administration" } : [],
             .. _mayPersonnelRead ? new[] { "kommentare" } : [],
         ];
     }
