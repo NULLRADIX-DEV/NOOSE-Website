@@ -154,21 +154,29 @@ public static partial class MigrationDesignerDerivation
                     Blank(i++);
                 }
             }
-            else if (c == '"' && string.CompareOrdinal(code, i, "\"\"\"", 0, 3) == 0)
+            else if (c == '"')
             {
-                var end = code.IndexOf("\"\"\"", i + 3, StringComparison.Ordinal);
+                var verbatim = (i > 0 && code[i - 1] == '@') || (i > 1 && code[i - 1] == '$' && code[i - 2] == '@');
+                var quotes = 1;
+                while (i + quotes < code.Length && code[i + quotes] == '"')
+                {
+                    quotes++;
+                }
+
+                if (verbatim || quotes < 3)
+                {
+                    i = SkipLiteral(code, i + 1, '"', verbatim, Blank);
+                    continue;
+                }
+
+                var end = code.IndexOf(new string('"', quotes), i + quotes, StringComparison.Ordinal);
                 var stop = end < 0 ? code.Length : end;
-                for (i += 3; i < stop; i++)
+                for (i += quotes; i < stop; i++)
                 {
                     Blank(i);
                 }
 
-                i = Math.Min(i + 3, code.Length);
-            }
-            else if (c == '"')
-            {
-                var verbatim = (i > 0 && code[i - 1] == '@') || (i > 1 && code[i - 1] == '$' && code[i - 2] == '@');
-                i = SkipLiteral(code, i + 1, '"', verbatim, Blank);
+                i = Math.Min(i + quotes, code.Length);
             }
             else if (c == '\'')
             {

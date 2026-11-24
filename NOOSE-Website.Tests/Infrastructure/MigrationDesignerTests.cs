@@ -193,6 +193,28 @@ public sealed class MigrationDesignerTests
     }
 
     [Fact]
+    public void AVerbatimStringStartingWithQuotesIsNotARawString()
+    {
+        var needs = Derive(("20260101000000_First", Migration("First", up: """""
+            migrationBuilder.Sql(@"""Quoted"" text");
+            migrationBuilder.InsertData(table: "T", columns: new[] { "Id" }, values: new object[] { 1 });
+            """"")));
+
+        Assert.Equal("InsertData", Assert.Single(needs).What);
+    }
+
+    [Fact]
+    public void ARawStringWithFourQuotesEndsAtItsOwnDelimiter()
+    {
+        var needs = Derive(("20260101000000_First", Migration("First", up: """""
+            migrationBuilder.Sql("""" a """ b """");
+            migrationBuilder.InsertData(table: "T", columns: new[] { "Id" }, values: new object[] { 1 });
+            """"")));
+
+        Assert.Equal("InsertData", Assert.Single(needs).What);
+    }
+
+    [Fact]
     public void BracketsInStringLiteralsDoNotEndTheCallEarly()
     {
         // brackets in strings

@@ -77,18 +77,22 @@ derive_needed() {
           if (c == "\"") { if (substr(line, i + 1, 1) == "\"") i++; else mode = "code" }
           continue
         }
-        if (mode == "raw") { if (substr(line, i, 3) == "\"\"\"") { mode = "code"; i += 2 } continue }
+        if (mode == "raw") { if (substr(line, i, rawn) == rawq) { mode = "code"; i += rawn - 1 } continue }
         # code
         if (c == "/" && substr(line, i + 1, 1) == "/") break
         if (c == "/" && substr(line, i + 1, 1) == "*") { mode = "block"; i++; continue }
         if (c == "\"") {
           if (call == "") boundary("\"")
           else ident = ""
-          if (substr(line, i, 3) == "\"\"\"") { mode = "raw"; i += 2 }
-          else {
-            p1 = substr(line, i - 1, 1); p2 = substr(line, i - 2, 1)
-            mode = (p1 == "@" || (p1 == "$" && p2 == "@")) ? "vstr" : "str"
-          }
+          p1 = substr(line, i - 1, 1); p2 = substr(line, i - 2, 1)
+          verbatim = (p1 == "@" || (p1 == "$" && p2 == "@"))
+          for (k = i; substr(line, k, 1) == "\""; k++) ;
+          rawn = k - i
+          if (!verbatim && rawn >= 3) {
+            rawq = ""
+            for (k = 0; k < rawn; k++) rawq = rawq "\""
+            mode = "raw"; i += rawn - 1
+          } else mode = verbatim ? "vstr" : "str"
           if (call != "") calltext = calltext "\"\""
           continue
         }
