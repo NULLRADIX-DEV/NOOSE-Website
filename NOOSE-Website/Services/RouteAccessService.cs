@@ -1,5 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using NOOSE_Website.Authorization;
+using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Navigation;
 
 namespace NOOSE_Website.Services;
@@ -13,7 +15,8 @@ public interface IRouteAccessService
 }
 
 /// <inheritdoc cref="IRouteAccessService" />
-public sealed class RouteAccessService(IAuthorizationService authorization, IAuthorizationPolicyProvider policies)
+public sealed class RouteAccessService(IAuthorizationService authorization, IAuthorizationPolicyProvider policies,
+    IPartnerAgencyProfileService partnerProfiles, IPartnerVisibilityPolicyService partnerPolicy)
     : IRouteAccessService
 {
     public async Task<IReadOnlySet<string>> OpenableAsync(ClaimsPrincipal user, IEnumerable<string?> routes,
@@ -22,6 +25,7 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
         var open = new HashSet<string>(StringComparer.Ordinal);
         // verdict cache
         var verdicts = new Dictionary<(Type Page, string? Section), bool>();
+        PartnerGate? partner = null;
         foreach (var route in routes.OfType<string>().Distinct(StringComparer.Ordinal))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -39,6 +43,14 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
                     && (sectionPolicy is null || (await authorization.AuthorizeAsync(user, sectionPolicy)).Succeeded);
                 verdicts[(page, sectionPolicy)] = allowed;
             }
+            if (allowed && user.IsPartner())
+            {
+                // once per call
+                partner ??= new PartnerGate(await partnerProfiles.GetFeaturesAsync(user, cancellationToken),
+                    await partnerPolicy.GetAllowedTypesAsync(user, cancellationToken));
+                // layout-relative path
+                allowed = !PartnerRoutes.IsBlocked(path.TrimStart('/'), partner.Features, partner.AllowedTypes);
+            }
             if (allowed)
             {
                 open.Add(route);
@@ -46,6 +58,8 @@ public sealed class RouteAccessService(IAuthorizationService authorization, IAut
         }
         return open;
     }
+
+    private sealed record PartnerGate(PartnerFeature Features, IReadOnlySet<string>? AllowedTypes);
 
     private async Task<bool> PageAllowsAsync(Type page, ClaimsPrincipal user)
     {

@@ -264,6 +264,23 @@ public class PartnerRoutesTests
     public void IsAllowed_InternalPages_StayClosedWithEveryFunction(string path)
         => Assert.False(PartnerRoutes.IsAllowed(path, AllFeatures));
 
+    [Theory]
+    [InlineData("personen/abc", "Person", false)]
+    [InlineData("personen/abc?tab=doks", "Faction", true)]
+    [InlineData("dokumente/abc", "Faction", false)]
+    [InlineData("dashboard", "Faction", false)]
+    [InlineData("fahndung?tab=observationen", "Person", true)]
+    public void IsBlocked_CombinesTheRouteListAndTheTypeList(string path, string allowedType, bool blocked)
+        => Assert.Equal(blocked, PartnerRoutes.IsBlocked(path, PartnerFeature.None, new HashSet<string> { allowedType }));
+
+    [Fact]
+    public void IsBlocked_WithoutATypeList_OnlyTheRouteListApplies()
+    {
+        Assert.False(PartnerRoutes.IsBlocked("personen/abc", PartnerFeature.None, null));
+        Assert.True(PartnerRoutes.IsBlocked("graph", PartnerFeature.None, null));
+        Assert.False(PartnerRoutes.IsBlocked("graph", PartnerFeature.Graph, null));
+    }
+
     private const PartnerFeature AllFeatures = PartnerFeature.Noosei | PartnerFeature.Graph | PartnerFeature.Radio
         | PartnerFeature.SituationReports | PartnerFeature.ShareRequests;
 }

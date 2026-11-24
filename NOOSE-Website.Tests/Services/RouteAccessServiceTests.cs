@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
+using NSubstitute;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Navigation;
@@ -94,8 +95,58 @@ public class RouteAccessServiceTests
     {
         Assert.False(await MayOpenAsync(Partner(), "/nachweis?tab=chronik"));
         Assert.False(await MayOpenAsync(Partner(), "/fahndung?tab=oeffentlich"));
-        Assert.True(await MayOpenAsync(Partner(), "/fahndung?tab=observationen"));
+        // layout blocks it
+        Assert.False(await MayOpenAsync(Partner(), "/fahndung?tab=observationen"));
         Assert.True(await MayOpenAsync(Trainee(), "/fahndung?tab=oeffentlich"));
+    }
+
+    [Fact]
+    public async Task AFunctionPageOpensForAPartnerOnlyWithTheAgencyFunction()
+    {
+        var with = RouteAccessTestHost.Create(PartnerFeature.Graph);
+        var without = RouteAccessTestHost.Create(PartnerFeature.Radio);
+
+        Assert.Contains("/graph", await with.OpenableAsync(Partner(), ["/graph"]));
+        Assert.DoesNotContain("/graph", await without.OpenableAsync(Partner(), ["/graph"]));
+    }
+
+    [Fact]
+    public async Task APartnerWhoseRankMayNotOpenTheRecordTypeOfAnOtherwiseAllowedPageIsRefused()
+    {
+        var onlyFactions = RouteAccessTestHost.Create(allowedTypes: new HashSet<string> { "Faction" });
+
+        Assert.False((await onlyFactions.OpenableAsync(Partner(), ["/personen/abc"])).Contains("/personen/abc"));
+        Assert.True((await onlyFactions.OpenableAsync(Partner(), ["/fraktionen/abc"])).Contains("/fraktionen/abc"));
+        // documents self-guard
+        Assert.True((await onlyFactions.OpenableAsync(Partner(), ["/dokumente/abc"])).Contains("/dokumente/abc"));
+    }
+
+    [Fact]
+    public async Task ThePartnerGateHangsOnThePathAndIsNotCarriedOverToAnotherPathOfTheSamePageAndSection()
+    {
+        var open = await RouteAccessTestHost.Create().OpenableAsync(Partner(),
+            ["/parlament/x", "/administration/parlament/x"]);
+
+        Assert.Equal(new[] { "/parlament/x" }, open.ToArray());
+        open = await RouteAccessTestHost.Create().OpenableAsync(Partner(),
+            ["/administration/parlament/x", "/parlament/x"]);
+        Assert.Equal(new[] { "/parlament/x" }, open.ToArray());
+    }
+
+    [Fact]
+    public async Task PartnerFunctionsAndTypesAreLoadedOncePerCallAndOnlyForAPartner()
+    {
+        var profiles = Substitute.For<IPartnerAgencyProfileService>();
+        var policy = Substitute.For<IPartnerVisibilityPolicyService>();
+        var access = RouteAccessTestHost.Create(profiles, policy);
+
+        await access.OpenableAsync(Director(), ["/personen/abc", "/graph"]);
+        await profiles.DidNotReceiveWithAnyArgs().GetFeaturesAsync(default!);
+        await policy.DidNotReceiveWithAnyArgs().GetAllowedTypesAsync(default!);
+
+        await access.OpenableAsync(Partner(), ["/personen/abc", "/personen/def", "/graph"]);
+        await profiles.ReceivedWithAnyArgs(1).GetFeaturesAsync(default!);
+        await policy.ReceivedWithAnyArgs(1).GetAllowedTypesAsync(default!);
     }
 
     [Fact]

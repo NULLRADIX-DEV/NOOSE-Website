@@ -1,4 +1,5 @@
 using NOOSE_Website.Models.Enums;
+using NOOSE_Website.Services;
 using NOOSE_Website.Services.Public;
 
 namespace NOOSE_Website.Authorization;
@@ -86,6 +87,22 @@ public static class PartnerRoutes
             return true;
         }
         return AllowedPrefixes.Any(p => path == p || path.StartsWith(p + "/"));
+    }
+
+    /// <summary>Partner gate shared by layouts and route access.</summary>
+    public static bool IsBlocked(string? relativePath, PartnerFeature features, IReadOnlySet<string>? allowedTypes)
+    {
+        if (!IsAllowed(relativePath, features))
+        {
+            return true;
+        }
+        // documents self-guard
+        if (PartnerTabCatalog.IsTypeGateExempt(relativePath))
+        {
+            return false;
+        }
+        var typeKey = PartnerTabCatalog.TypeKeyForPath(relativePath);
+        return typeKey is not null && allowedTypes is not null && !allowedTypes.Contains(typeKey);
     }
 
     /// <summary>Strips query/fragment, trims slashes, lowercases.</summary>
