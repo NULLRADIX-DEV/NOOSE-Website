@@ -1,0 +1,24 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "noose-check",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": [
+        "run",
+        "--project",
+        "NOOSE-Website/NOOSE-Website.csproj",
+        "--no-launch-profile",
+        "-e",
+        "ASPNETCORE_ENVIRONMENT=Development",
+        "-e",
+        "ASPNETCORE_URLS=http://localhost:5174",
+        "-e",
+        "ConnectionStrings__DefaultConnection=Server=localhost;Port=3306;Database=noose_check;User=root;Password=;",
+        "-e",
+        "Demo__AutoSetup=true"
+      ],
+      "port": 5174
+    }
+  ]
+}
