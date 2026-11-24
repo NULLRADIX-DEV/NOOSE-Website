@@ -27,10 +27,10 @@ public sealed class SectionPoliciesTests
     private static List<string> Templates(string markup)
         => PageDirective.Matches(markup).Select(m => m.Groups[1].Value).ToList();
 
-    // address a template opens, parameters filled in
+    // placeholder parameters
     private static string Concrete(string template) => Parameter.Replace(template, "x");
 
-    // pages with a rail, under each of their templates
+    // rail pages
     private static Dictionary<string, string> RailPages()
     {
         var pages = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -74,7 +74,6 @@ public sealed class SectionPoliciesTests
             }
             else
             {
-                // every form of the page
                 foreach (var template in templates)
                 {
                     pages[template] = files[template];
@@ -266,7 +265,7 @@ public sealed class SectionPoliciesTests
     [Fact]
     public void An_entry_covers_every_template_of_its_page()
     {
-        // RegulationEditor opens under two templates
+        // two templates
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> table =
             new Dictionary<string, IReadOnlyDictionary<string, string>>
             {

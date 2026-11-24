@@ -31,7 +31,7 @@ public static class SectionPolicies
             ["/statistik"] = Sections(
                 Group(Policies.LeadershipPage, "kasse", "finanzierung", "verpflegung", "dienststelle", "lageberichte"),
                 Group(Policies.Admin, "nutzung")),
-            // a page with several templates has one entry, keyed by any of them
+            // any template
             ["/dienstverordnung/absatz/{Id}"] = Sections(Group(Policies.LeadershipPage, "kenntnisnahme")),
         };
 
@@ -52,7 +52,6 @@ public static class SectionPolicies
             : null;
     }
 
-    // one entry per page, whichever of its templates the key names
     private static Dictionary<Type, IReadOnlyDictionary<string, string>> PagesOf(
         IReadOnlyDictionary<string, IReadOnlyDictionary<string, string>> byRoute)
     {
