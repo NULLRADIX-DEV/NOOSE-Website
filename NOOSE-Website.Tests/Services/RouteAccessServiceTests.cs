@@ -124,7 +124,6 @@ public class RouteAccessServiceTests
     [Fact]
     public async Task ThePartnerGateHangsOnThePathAndIsNotCarriedOverToAnotherPathOfTheSamePageAndSection()
     {
-        // same page, two paths
         var onlyPersons = RouteAccessTestHost.Create(allowedTypes: new HashSet<string> { "Person" });
         var open = await onlyPersons.OpenableAsync(Partner(), ["/personen/abc", "/vorgaenge/abc", "/personen/def"]);
 
