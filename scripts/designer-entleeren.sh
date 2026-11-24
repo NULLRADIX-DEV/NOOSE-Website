@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 # Run after every 'dotnet ef migrations add': empties old designers to cut build memory.
-# Designers that a migration still needs stay full, derived from the migration code (same rule as MigrationDesignerTests):
-# a call of InsertData/UpdateData/DeleteData without columnTypes:, RenameColumn, RenameIndex, or a use of TargetModel
-# needs the model. In Up() that is the own designer, in Down() the one of the previous migration.
-# 'designer-entleeren.sh --list' prints what is kept and why, and changes nothing.
+# designers a migration still needs stay full, see --list
 set -euo pipefail
 
 dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/NOOSE-Website/Data/Migrations"
@@ -11,7 +8,7 @@ keep_newest=3
 
 export LC_ALL=C
 
-# one line per hit: designer, migration, Up|Down, what
+# one line per hit
 derive_needed() {
   local migrations
   mapfile -t migrations < <(cd "$dir" && printf '%s\n' [0-9]*_*.cs | grep -v '\.Designer\.cs$' | sort)

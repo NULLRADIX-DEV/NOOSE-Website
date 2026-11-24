@@ -3,17 +3,13 @@ using System.Text.RegularExpressions;
 
 namespace NOOSE_Website.Tests.Infrastructure;
 
-/// <summary>A designer that has to keep its BuildTargetModel, with the migration and method that need it.</summary>
+/// <summary>A designer a migration still needs.</summary>
 public sealed record DesignerNeed(string Designer, string Migration, string Method, string What);
 
-/// <summary>
-/// Finds the designers that migrations still need a model from, by reading the migration code (same rule as
-/// scripts/designer-entleeren.sh): InsertData/UpdateData/DeleteData without columnTypes:, RenameColumn, RenameIndex and
-/// any use of TargetModel need the model. In Up() that is the own designer, in Down() the one of the previous migration.
-/// </summary>
+/// <summary>Finds the designers the migrations still need.</summary>
 public static partial class MigrationDesignerDerivation
 {
-    /// <param name="migrations">Migration id (file name without .cs) and code, sorted by id.</param>
+    /// <param name="migrations">Id and code per migration, sorted by id.</param>
     public static IReadOnlyList<DesignerNeed> Derive(IReadOnlyList<(string Id, string Code)> migrations)
     {
         var needs = new List<DesignerNeed>();
@@ -23,7 +19,7 @@ public static partial class MigrationDesignerDerivation
             var previous = i > 0 ? migrations[i - 1].Id : null;
             foreach (var (method, what) in FindHits(code))
             {
-                // the first migration has no predecessor, so a hit in its Down() needs nothing
+                // no predecessor
                 var owner = method == "Down" ? previous : id;
                 if (owner is not null)
                 {
@@ -101,7 +97,7 @@ public static partial class MigrationDesignerDerivation
         return masked.Length;
     }
 
-    /// <summary>Blanks out comments and the inside of string and char literals, so brackets in seed texts do not count.</summary>
+    /// <summary>Blanks comments and literals.</summary>
     private static string Mask(string code)
     {
         var chars = code.ToCharArray();
@@ -162,7 +158,7 @@ public static partial class MigrationDesignerDerivation
         return new string(chars);
     }
 
-    /// <summary>Blanks a literal from just after its opening quote and returns the index after the closing quote.</summary>
+    /// <summary>Blanks one literal.</summary>
     private static int SkipLiteral(string code, int i, char quote, bool verbatim, Action<int> blank)
     {
         while (i < code.Length)
@@ -185,7 +181,7 @@ public static partial class MigrationDesignerDerivation
             }
             else if (!verbatim && code[i] == '\n')
             {
-                // an unterminated literal ends at the line, like in the script
+                // unterminated literal
                 return i;
             }
             else

@@ -1,6 +1,6 @@
 namespace NOOSE_Website.Tests.Infrastructure;
 
-/// <summary>Keeps the old migration designers empty so the build does not carry ~200 copies of the model.</summary>
+/// <summary>Keeps old migration designers empty.</summary>
 public sealed class MigrationDesignerTests
 {
     private const int NewestKept = 5;
@@ -45,7 +45,6 @@ public sealed class MigrationDesignerTests
     {
         var needs = DeriveFromFolder(FindMigrationsDirectory());
 
-        // own designer for Up, the previous migration's designer for Down (migration-designer-down-model in NOOSE-Doc)
         AssertNeed(needs, "Phase109_FibTexte", "Up", "Phase109_FibTexte");
         AssertNeed(needs, "Oeffentlich08_HinweisUebernahme", "Up", "Oeffentlich08_HinweisUebernahme");
         AssertNeed(needs, "Oeffentlich08_HinweisUebernahme", "Down", "Oeffentlich08_HinweisTriage");
@@ -124,7 +123,7 @@ public sealed class MigrationDesignerTests
     [Fact]
     public void BracketsInStringLiteralsDoNotEndTheCallEarly()
     {
-        // the ")" in the seed text must not cut the call before columnTypes:, and the "(" must not keep it open
+        // brackets in strings
         var needs = Derive(
             ("20260101000000_First", Migration("First", up: """
                 migrationBuilder.InsertData(
