@@ -31,7 +31,7 @@ public static class SectionPolicies
             ["/statistik"] = Sections(
                 Group(Policies.LeadershipPage, "kasse", "finanzierung", "verpflegung", "dienststelle", "lageberichte"),
                 Group(Policies.Admin, "nutzung")),
-            // a detail page is keyed by its @page template; For matches the concrete address against it
+            // keyed by template
             ["/dienstverordnung/absatz/{Id}"] = Sections(Group(Policies.LeadershipPage, "kenntnisnahme")),
         };
 

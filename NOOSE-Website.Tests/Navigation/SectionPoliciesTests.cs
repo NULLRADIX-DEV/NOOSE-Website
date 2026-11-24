@@ -9,9 +9,7 @@ using NOOSE_Website.Services;
 
 namespace NOOSE_Website.Tests.Navigation;
 
-/// <summary>Every section a page guards with an AuthorizeView is in the policy map. The pages read are the rail
-/// pages of <see cref="MergedPageSections.ByRoute"/> and every page an address of
-/// <see cref="AuditEntityDisplay.Route"/> points at.</summary>
+/// <summary>Every section a page guards with an AuthorizeView is in the policy map.</summary>
 public sealed class SectionPoliciesTests
 {
     private static readonly Regex Wrapper = new(@"<AuthorizeView\b[^>]*?\bPolicy=""@Policies\.(\w+)""[^>]*>", RegexOptions.Compiled);
@@ -40,7 +38,7 @@ public sealed class SectionPoliciesTests
         return pages;
     }
 
-    // pages that an audit address opens, keyed by their @page template, plus the addresses that resolve to no file
+    // audit link pages
     private static (Dictionary<string, string> Pages, List<string> Unresolved) RoutePages()
     {
         var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -56,7 +54,7 @@ public sealed class SectionPoliciesTests
         var unresolved = new List<string>();
         foreach (var route in AuditRoutes())
         {
-            // follow legacy redirects like RouteAccessService
+            // legacy redirects
             var path = (LegacyRoutes.Target(route) ?? route).Split('?')[0];
             var template = PageRouteTable.Find(path)?.GetCustomAttributes(typeof(RouteAttribute), inherit: false)
                 .Cast<RouteAttribute>().Select(a => a.Template).FirstOrDefault(files.ContainsKey);
@@ -72,7 +70,7 @@ public sealed class SectionPoliciesTests
         return (pages, unresolved);
     }
 
-    // every address AuditEntityDisplay.Route hands out: all arms, all settings keys
+    // all audit addresses
     private static IEnumerable<string> AuditRoutes()
     {
         var source = File.ReadAllText(Path.Combine(SourceRoot(), "Services", "AuditEntityDisplay.cs"));
@@ -80,7 +78,7 @@ public sealed class SectionPoliciesTests
         var keys = typeof(SystemSettingKeys).GetFields(BindingFlags.Public | BindingFlags.Static)
             .Where(f => f is { IsLiteral: true } && f.FieldType == typeof(string))
             .Select(f => (string)f.GetRawConstantValue()!)
-            // keys of the config services, and one key per webhook and role category
+            // config service keys
             .Concat([
                 FinancingConfigService.SettingKey, FoodLimitConfigService.SettingKey, InactivityRadarService.SettingKey,
                 ProbationRules.SettingKey, LlmQuotaConfigService.SettingKey, NooseiPrompts.AddendumKey,
@@ -94,7 +92,7 @@ public sealed class SectionPoliciesTests
             .Distinct();
     }
 
-    // rail pages and the pages audit addresses open, keyed by route or @page template
+    // rail and audit pages
     private static Dictionary<string, string> ScannedPages()
     {
         var pages = RailPages();
@@ -160,7 +158,7 @@ public sealed class SectionPoliciesTests
         var (pages, unresolved) = RoutePages();
 
         Assert.Empty(unresolved);
-        // reached only through Route: no entry in MergedPageSections, but a guarded section of its own
+        // route-only pages
         foreach (var route in new[] { "/dienstverordnung/absatz/{Id}", "/personen/{Id}", "/einstellungen", "/bewerbungen" })
         {
             Assert.True(pages.ContainsKey(route), $"Seite für {route} nicht gefunden");
@@ -210,7 +208,7 @@ public sealed class SectionPoliciesTests
             var declared = Section.Matches(markup).Select(m => m.Groups[1].Value).ToHashSet();
             foreach (var slug in sections.Keys)
             {
-                // a page without an entry in MergedPageSections declares its sections itself
+                // unmerged pages own their sections
                 var known = MergedPageSections.ByRoute.TryGetValue(route, out var merged)
                     ? merged.Contains(slug)
                     : declared.Contains(slug);
