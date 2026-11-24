@@ -92,7 +92,6 @@ public sealed class SectionPoliciesTests
             .Distinct();
     }
 
-    // rail and audit pages
     private static Dictionary<string, string> ScannedPages()
     {
         var pages = RailPages();
@@ -208,7 +207,7 @@ public sealed class SectionPoliciesTests
             var declared = Section.Matches(markup).Select(m => m.Groups[1].Value).ToHashSet();
             foreach (var slug in sections.Keys)
             {
-                // unmerged pages own their sections
+                // no merged list
                 var known = MergedPageSections.ByRoute.TryGetValue(route, out var merged)
                     ? merged.Contains(slug)
                     : declared.Contains(slug);
