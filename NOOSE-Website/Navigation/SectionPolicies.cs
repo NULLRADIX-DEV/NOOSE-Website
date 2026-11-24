@@ -20,6 +20,14 @@ public static class SectionPolicies
             ["/fahndung"] = Sections(Group(Policies.InternalAgent, "oeffentlich", "organisationen", "einsprueche")),
             ["/personal"] = Sections(Group(Policies.InternalAgent, "bestenliste")),
             ["/abmeldungen"] = Sections(Group(Policies.LeadershipPage, "uebersicht", "papierkorb")),
+            ["/tests"] = Sections(Group(Policies.HrbOrLeadership, "korrektur", "katalog")),
+            ["/tickets"] = Sections(
+                Group(Policies.TicketDesk, "offen", "bearbeitung", "wartet", "geschlossen"),
+                Group(Policies.InternalAgent, "beteiligt")),
+            ["/dienstverordnung"] = Sections(Group(Policies.LeadershipPage, "papierkorb")),
+            ["/entfuehrungen"] = Sections(Group(Policies.LeadershipPage, "papierkorb")),
+            ["/asservatenkammer"] = Sections(Group(Policies.LeadershipPage, "papierkorb")),
+            ["/anordnungen"] = Sections(Group(Policies.LeadershipPage, "papierkorb")),
             ["/statistik"] = Sections(
                 Group(Policies.LeadershipPage, "kasse", "finanzierung", "verpflegung", "dienststelle", "lageberichte"),
                 Group(Policies.Admin, "nutzung")),
