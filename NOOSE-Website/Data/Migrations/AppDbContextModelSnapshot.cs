@@ -13570,6 +13570,10 @@ namespace NOOSE_Website.Data.Migrations
                         .HasColumnType("longtext")
                         .HasColumnName("ReferenzenJson");
 
+                    b.Property<string>("ReliabilityJson")
+                        .HasColumnType("longtext")
+                        .HasColumnName("ZuverlaessigkeitJson");
+
                     b.Property<bool?>("SecurityCheckPassed")
                         .HasColumnType("tinyint(1)")
                         .HasColumnName("SicherheitBestanden");

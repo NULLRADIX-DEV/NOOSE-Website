@@ -51,7 +51,8 @@ public sealed class BewerbungDiscordMembershipTests
     private static ClaimsPrincipal Applicant(string id = "u1")
         => ClaimsPrincipalBuilder.Agent(id).WithStatus(AgentStatus.Applicant).Build();
 
-    private static BewerbungSubmitModel Model() => new() { StreamConsent = true, Name = "Max Mustermann" };
+    private static BewerbungSubmitModel Model()
+        => new() { Reliability = ReliabilityAnswers.AllNo(), StreamConsent = true, Name = "Max Mustermann" };
 
     private static async Task<int> CountAsync(SqliteTestContext ctx)
     {

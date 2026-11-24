@@ -395,6 +395,8 @@ public static partial class DossierContextBuilder
         Line(sb, "Stream erlaubt", b.StreamConsent switch { true => "ja", false => "nein", null => null });
         var references = ApplicationReferences.Parse(b.ReferencesJson);
         Line(sb, "Referenzpersonen", references.Count == 0 ? null : string.Join("; ", references.Select(ApplicationReferences.Describe)));
+        var reliability = ReliabilityQuestions.Parse(b.ReliabilityJson);
+        Line(sb, "Zuverlässigkeit", reliability.Count == 0 ? null : string.Join("; ", reliability.Select(ReliabilityQuestions.Describe)));
         Line(sb, "Status", BewerbungStatusDisplay.Name(b.Status));
         Line(sb, "Eingereicht", Fmt(b.SubmittedAt));
         Line(sb, "Zuständig", b.AssignedAgentName);

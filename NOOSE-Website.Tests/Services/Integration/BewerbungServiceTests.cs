@@ -132,7 +132,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "  Max Mustermann  ", CoverLetter = "Mein Anschreiben" };
+        var model = new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =true, Name = "  Max Mustermann  ", CoverLetter = "Mein Anschreiben" };
 
         var created = await svc.SubmitAsync(model, null, null, null, Applicant("u1"));
 
@@ -156,6 +156,7 @@ public sealed class BewerbungServiceTests
 
         var model = new BewerbungSubmitModel
         {
+            Reliability = ReliabilityAnswers.AllNo(),
             StreamConsent = true,
             Name = "Max",
             References =
@@ -191,7 +192,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        await svc.SubmitAsync(new BewerbungSubmitModel { StreamConsent = true, Name = "Max" }, null, null, null, Applicant("u1"));
+        await svc.SubmitAsync(new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =true, Name = "Max" }, null, null, null, Applicant("u1"));
 
         using var db = ctx.NewContext();
         Assert.Null(Assert.Single(db.Bewerbungen.ToList()).ReferencesJson);
@@ -203,7 +204,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        await svc.SubmitAsync(new BewerbungSubmitModel { StreamConsent = false, Name = "Max" }, null, null, null, Applicant("u1"));
+        await svc.SubmitAsync(new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =false, Name = "Max" }, null, null, null, Applicant("u1"));
 
         using var db = ctx.NewContext();
         Assert.False(Assert.Single(db.Bewerbungen.ToList()).StreamConsent);
@@ -225,13 +226,67 @@ public sealed class BewerbungServiceTests
     }
 
     [Fact]
+    public async Task SubmitAsync_WithAnUnansweredReliabilityQuestion_Throws()
+    {
+        // the page enforces it too, but the hub path skips the page
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _, _, _) = Build(ctx);
+        var answers = ReliabilityAnswers.AllNo();
+        answers[2].Answer = null;
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => svc.SubmitAsync(
+            new BewerbungSubmitModel { Reliability = answers, StreamConsent = true, Name = "Max" }, null, null, null, Applicant("u1")));
+
+        Assert.Contains("Zuverlässigkeit", ex.Message);
+        using var db = ctx.NewContext();
+        Assert.Empty(db.Bewerbungen.ToList());
+    }
+
+    [Fact]
+    public async Task SubmitAsync_YesWithoutDetails_Throws()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _, _, _) = Build(ctx);
+        var answers = ReliabilityAnswers.AllNo();
+        answers[0].Answer = true;
+        answers[0].Details = "   ";
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => svc.SubmitAsync(
+            new BewerbungSubmitModel { Reliability = answers, StreamConsent = true, Name = "Max" }, null, null, null, Applicant("u1")));
+
+        using var db = ctx.NewContext();
+        Assert.Empty(db.Bewerbungen.ToList());
+    }
+
+    [Fact]
+    public async Task SubmitAsync_StoresReliabilityAnswers()
+    {
+        using var ctx = new SqliteTestContext();
+        var (svc, _, _, _, _, _) = Build(ctx);
+        var answers = ReliabilityAnswers.AllNo();
+        answers[2].Answer = true;
+        answers[2].Details = "  Kredit bei der Maze Bank ";
+
+        await svc.SubmitAsync(new BewerbungSubmitModel { Reliability = answers, StreamConsent = true, Name = "Max" },
+            null, null, null, Applicant("u1"));
+
+        using var db = ctx.NewContext();
+        var stored = ReliabilityQuestions.Parse(Assert.Single(db.Bewerbungen.ToList()).ReliabilityJson);
+        Assert.Equal(ReliabilityQuestions.All.Select(q => q.Key), stored.Select(a => a.Key));
+        var debts = stored[2];
+        Assert.True(debts.Answer);
+        Assert.Equal("Kredit bei der Maze Bank", debts.Details);
+        Assert.All(stored.Where(a => a != debts), a => Assert.False(a.Answer));
+    }
+
+    [Fact]
     public async Task SubmitAsync_Partner_CreatesApplication_AndLeavesTheAccountAlone()
     {
         // a partner applies without becoming an applicant: the row is the application, the account keeps its agency
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Trevor Ward", CoverLetter = "Wechsel zum FIB" };
+        var model = new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =true, Name = "Trevor Ward", CoverLetter = "Wechsel zum FIB" };
 
         var created = await svc.SubmitAsync(model, null, null, null, Partner("partner-1"));
 
@@ -247,7 +302,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Max" };
+        var model = new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =true, Name = "Max" };
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
             () => svc.SubmitAsync(model, null, null, null, Junior("me")));
@@ -262,7 +317,7 @@ public sealed class BewerbungServiceTests
         using var ctx = new SqliteTestContext();
         var (svc, _, _, _, _, _) = Build(ctx);
 
-        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "   " };
+        var model = new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =true, Name = "   " };
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.SubmitAsync(model, null, null, null, Applicant("u1")));
@@ -280,7 +335,7 @@ public sealed class BewerbungServiceTests
             db.SaveChanges();
         }
 
-        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Max" };
+        var model = new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =true, Name = "Max" };
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.SubmitAsync(model, null, null, null, Applicant("u1")));
@@ -293,7 +348,7 @@ public sealed class BewerbungServiceTests
         var (svc, _, sperren, _, _, _) = Build(ctx);
         sperren.GetActiveAsync("u1", Arg.Any<CancellationToken>()).Returns(Ban("u1", blacklist: true));
 
-        var model = new BewerbungSubmitModel { StreamConsent = true, Name = "Max" };
+        var model = new BewerbungSubmitModel { Reliability = ReliabilityAnswers.AllNo(), StreamConsent =true, Name = "Max" };
 
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => svc.SubmitAsync(model, null, null, null, Applicant("u1")));

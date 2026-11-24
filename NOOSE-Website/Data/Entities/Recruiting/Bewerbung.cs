@@ -43,6 +43,10 @@ public class Bewerbung : IAuditable, ISoftDelete
     [Column("ReferenzenJson")]
     public string? ReferencesJson { get; set; }
 
+    /// <summary>Reliability answers as JSON; read through <c>ReliabilityQuestions.Parse</c>, null on older applications.</summary>
+    [Column("ZuverlaessigkeitJson")]
+    public string? ReliabilityJson { get; set; }
+
     [Column("AnhangDateiname")]
     public string? AttachmentFileNameSaved { get; set; }
     [Column("AnhangOriginalname")]

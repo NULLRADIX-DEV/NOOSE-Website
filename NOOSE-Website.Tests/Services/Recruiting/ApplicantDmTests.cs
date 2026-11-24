@@ -306,7 +306,7 @@ public sealed class ApplicantDmTests
         using var ctx = new SqliteTestContext();
         var (svc, dm) = BuildApplications(ctx);
 
-        await svc.SubmitAsync(new BewerbungSubmitModel { Name = "Max Mustermann", StreamConsent = true },
+        await svc.SubmitAsync(new BewerbungSubmitModel { Name = "Max Mustermann", StreamConsent = true, Reliability = ReliabilityAnswers.AllNo() },
             null, null, null, ApplicantPrincipal());
 
         await AssertAskedOnlyFor(dm, ApplicantDmEvent.Received);
@@ -320,7 +320,7 @@ public sealed class ApplicantDmTests
         var (svc, dm) = BuildApplications(ctx);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => svc.SubmitAsync(
-            new BewerbungSubmitModel { Name = "Max Mustermann", StreamConsent = true }, null, null, null,
+            new BewerbungSubmitModel { Name = "Max Mustermann", StreamConsent = true, Reliability = ReliabilityAnswers.AllNo() }, null, null, null,
             ApplicantPrincipal()));
 
         AssertSilent(dm);
