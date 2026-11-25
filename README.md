@@ -61,6 +61,8 @@ dotnet ef migrations add PhaseNN_<Name> `
     --startup-project ../NOOSE-Website/NOOSE-Website.csproj
 ```
 
+Danach führst du aus dem Repo-Root `scripts/designer-entleeren.sh` aus (mit bash, unter Windows Git Bash) und committest das Ergebnis mit. Das Skript leert `BuildTargetModel` in den alten `*.Designer.cs`, weil der Build sonst über 8 GB Speicher braucht. Welche Designer voll bleiben, erkennt es selbst: die drei neuesten und die, die eine Migration noch braucht. Diese zeigt `--list`.
+
 Migrationen für den internen Bereich heißen `PhaseNN_<Name>`, die für den öffentlichen Bereich `OeffentlichNN_<Name>`. Die Nummer ist der Ausbauschritt, in dem die Migration entstand, nicht ihre Reihenfolge. Sortiert wird über den Zeitstempel im Dateinamen.
 
 ## Deployment

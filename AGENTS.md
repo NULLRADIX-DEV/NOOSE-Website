@@ -50,6 +50,8 @@ dotnet ef migrations add PhaseNN_<Name> `
     --startup-project ../NOOSE-Website/NOOSE-Website.csproj
 ```
 
+After every new migration, run `scripts/designer-entleeren.sh` from the repo root (bash; Git Bash on Windows) and commit the result. It empties `BuildTargetModel` in old `*.Designer.cs` files (the build needs over 8 GB otherwise); it keeps the newest three and works out the ones migrations still need itself (`--list` shows those), nothing to add by hand.
+
 Migrations are applied on app start (`db.Database.MigrateAsync()`), so `dotnet ef database update`
 is normally unnecessary. The design-time factory pins EF tools to the local connection — migrations
 can never hit production. Stop the dev server before adding a migration.
