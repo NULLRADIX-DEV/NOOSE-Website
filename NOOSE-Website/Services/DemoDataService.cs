@@ -26,6 +26,8 @@ public partial class DemoDataService(
 
         // identity rows first: UserManager writes on its own context and must be committed before a FK points at it
         var added = await EnsureDemoAgentAsync();
+        added += await EnsureColleaguesAsync();
+        added += await EnsureApplicantAccountsAsync();
         added += await EnsureCitizenAccountsAsync();
 
         await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
@@ -42,9 +44,12 @@ public partial class DemoDataService(
         var oAdded = SeedObservations(db, people, newPeople);
 
         added += fAdded + pAdded + mAdded + rAdded + lAdded + dAdded + oAdded;
+        added += await SeedFactionDetailsAsync(db, people, newPeople, factions, cancellationToken);
 
         // the audit interceptor stamps CreatedAt to now; rows whose order or age is visible get pushed back afterwards
         var stamps = new List<TimeStamp>();
+        var restamps = new List<Restamp>();
+        var records = new DemoRecords();
 
         added += await SeedPublicModulesAsync(db, cancellationToken);
         added += await SeedTreasuryAsync(db, cancellationToken);
@@ -86,8 +91,28 @@ public partial class DemoDataService(
         added += await SeedDecorationsAsync(db, cancellationToken);
         added += await SeedRegulationAsync(db, cancellationToken);
 
+        added += await SeedColleagueStampsAsync(db, cancellationToken);
+        added += await SeedRankHistoryAsync(db, cancellationToken);
+        added += await SeedPersonnelFilesAsync(db, restamps, cancellationToken);
+        added += await SeedTrainingAsync(db, cancellationToken);
+        added += await SeedFieldReportsAsync(db, cancellationToken);
+        added += await SeedColleagueAbsencesAsync(db, cancellationToken);
+        added += await SeedApplicationsAsync(db, restamps, cancellationToken);
+
+        added += await SeedCasesAsync(db, people, factions, records, restamps, cancellationToken);
+        added += await SeedOperationsAsync(db, factions, records, restamps, cancellationToken);
+        added += await SeedPartiesAndGroupsAsync(db, people, records, restamps, cancellationToken);
+        added += await SeedTaskforcesAsync(db, records, restamps, cancellationToken);
+        added += await SeedJobsAsync(db, records, restamps, cancellationToken);
+        added += await SeedAppointmentsAsync(db, restamps, cancellationToken);
+        added += await SeedAnnouncementsAsync(db, restamps, cancellationToken);
+        added += await SeedRecordNotesAsync(db, people, factions, records, restamps, cancellationToken);
+        added += await SeedLibraryAsync(db, records, restamps, cancellationToken);
+        added += await SeedNotificationsAsync(db, people, records, restamps, cancellationToken);
+
         await db.SaveChangesAsync(cancellationToken);
         await ApplyTimestampsAsync(db, stamps, cancellationToken);
+        await ApplyRestampsAsync(db, restamps, cancellationToken);
         await tx.CommitAsync(cancellationToken);
 
         // owns its own settings rows and cache, so it runs on its own context after the commit
