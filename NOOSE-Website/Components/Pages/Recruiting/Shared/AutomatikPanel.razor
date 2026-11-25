@@ -5,10 +5,9 @@
 
 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
     Weist sich ein Agent der Administration Division eine Bewerbung zu oder startet er die Sicherheitsüberprüfung,
-    werden automatisch ein Vorgang „Bewerbungsverfahren | Name“ und ein Dokument „Sicherheitsüberprüfung | Name“
-    aus der gewählten Vorlage erstellt. Das Dokument hängt am Vorgang und steht an der Bewerbung unter
-    „Quellen &amp; Anhänge“. Platzhalter im Dokument werden dabei ausgefüllt.
-    Beide werden unter Verschluss der Administration Division angelegt.
+    wird automatisch ein Dokument „Sicherheitsüberprüfung | Name“ aus der gewählten Vorlage erstellt. Es steht an
+    der Bewerbung unter „Quellen &amp; Anhänge“ und liegt unter Verschluss der Administration Division.
+    Platzhalter im Dokument werden dabei ausgefüllt, {{Name}} und {{Aktenzeichen}} mit denen der Bewerbung.
 </MudText>
 
 @if (_load)
@@ -19,7 +18,7 @@ else
 {
     <MudStack Spacing="4" Style="max-width: 640px;">
         <MudSwitch T="bool" @bind-Value="_enabled" Color="Color.Primary"
-                   Label="Vorgang + Dokument automatisch erstellen" />
+                   Label="Dokument automatisch erstellen" />
 
         <MudSelect T="string" @bind-Value="_templateId" Label="Vorlage für die Sicherheitsüberprüfung"
                    Disabled="@(!_enabled)" Dense="true" Variant="Variant.Outlined">

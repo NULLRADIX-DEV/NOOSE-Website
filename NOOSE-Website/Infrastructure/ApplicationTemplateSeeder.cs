@@ -15,10 +15,10 @@ public static class ApplicationTemplates
 
     public const string SecurityCheckName = "Sicherheitsüberprüfung";
 
-    /// <summary>Placeholder body ({{...}} tokens: {{Name}} is the case title "Bewerbungsverfahren | Name"); also the fallback when the template row was deleted.</summary>
+    /// <summary>Placeholder body ({{Name}} and {{Aktenzeichen}} are the application's); also the fallback when the template row was deleted.</summary>
     public const string SecurityCheckBody =
         "<p><strong>Federal Investigation Bureau</strong><br>Sicherheitsüberprüfung</p>" +
-        "<p>Vorgang: {{Name}}<br>Aktenzeichen: {{Aktenzeichen}}<br>Datum: {{Datum}}</p>" +
+        "<p>Bewerbung: {{Name}}<br>Aktenzeichen: {{Aktenzeichen}}<br>Datum: {{Datum}}</p>" +
         "<p><strong>Gegenstand der Sicherheitsüberprüfung</strong></p>" +
         "<p>Nachfolgend werden die im Rahmen dieses Bewerbungsverfahrens erhobenen Erkenntnisse, Prüfschritte " +
         "und Bewertungen zur bewerbenden Person dokumentiert.</p>" +

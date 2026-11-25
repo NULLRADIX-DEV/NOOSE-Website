@@ -841,6 +841,9 @@ public static class ChangelogContent
             Neu("3.1.13-bewerbung-zuverlaessigkeit", "Die Bewerbung fragt jetzt sechs Pflichtfragen zur Zuverlässigkeit ab, "
                 + "etwa zu Schulden oder Nebentätigkeiten. Wer mit Ja antwortet, gibt an, worum es geht.",
                 "Bewerbungen"),
+            Besser("3.1.14-sue-ohne-vorgang", "Für eine Bewerbung entsteht nur noch das Dokument zur "
+                + "Sicherheitsüberprüfung, kein eigener Vorgang mehr. Es steht an der Bewerbung unter Quellen & Anhänge.",
+                "Bewerbungen"),
         ]),
     ];
 }
