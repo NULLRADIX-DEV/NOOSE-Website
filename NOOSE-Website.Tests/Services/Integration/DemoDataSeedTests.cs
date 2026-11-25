@@ -80,14 +80,22 @@ public sealed class DemoDataSeedTests
 
         await using var db = factory.CreateDbContext();
         Assert.True(await db.Users.CountAsync(u => u.Rank != null && u.Status == AgentStatus.Active) >= 14);
-        Assert.Equal(4, await db.Cases.CountAsync());
-        Assert.Equal(3, await db.Operations.CountAsync());
-        Assert.Equal(3, await db.Taskforces.CountAsync());
+        Assert.Equal(9, await db.Cases.CountAsync());
+        Assert.Equal(7, await db.Operations.CountAsync());
+        Assert.Equal(4, await db.Taskforces.CountAsync());
         Assert.True(await db.Jobs.AnyAsync());
         Assert.True(await db.Appointments.AnyAsync());
         Assert.True(await db.Announcements.AnyAsync());
         Assert.True(await db.Documents.AnyAsync());
         Assert.True(await db.Bewerbungen.AnyAsync());
+        Assert.True(await db.Warrants.CountAsync() >= 4);
+        Assert.True(await db.Requests.AnyAsync());
+        Assert.True(await db.PresentationSlides.AnyAsync());
+        Assert.True(await db.DisciplinaryProceedings.AnyAsync());
+        Assert.True(await db.ParliamentaryInquiries.AnyAsync());
+        Assert.True(await db.ThreatScoreHistory.AnyAsync());
+        Assert.True(await db.ClassificationHistory.AnyAsync());
+        Assert.True(await db.MeetingMeasures.AnyAsync());
         Assert.True(await db.AgentRankHistories.AnyAsync(h => h.AgentId == "demo-agent-wolf"));
 
         // colleague as author

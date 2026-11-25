@@ -194,6 +194,13 @@ public partial class DemoDataService
             (Specht, AgentNoteKind.Training, 20, "Grundlehrgang Ermittlung begonnen, Ausbilderin ist Fuchs.", "Fuchs"),
             (Moewe, AgentNoteKind.Termination, 38, "Auf eigenen Wunsch ausgeschieden, Ausrüstung vollständig zurückgegeben.", "Falke"),
             (Eule, AgentNoteKind.Specialization, 50, "Schwerpunkt Finanzermittlungen, unterstützt die Taskforce Kartelle.", "Luchs"),
+            (Greif, AgentNoteKind.Commendation, 90, "Hat die Zusammenarbeit mit dem LSPD neu aufgestellt, die Absperrungen laufen seitdem reibungslos.", "Falke"),
+            (Luchs, AgentNoteKind.Training, 110, "Lehrgang verdeckte Ermittlung abgeschlossen.", "Greif"),
+            (Baer, AgentNoteKind.Disciplinary, 12, "Rüge wegen verspäteter Meldung eines Warnschusses.", "Kranich"),
+            (Habicht, AgentNoteKind.Information, 15, "Übernimmt die Ausbildung im Fach Vernehmung, solange Fuchs die Trainees betreut.", "Kranich"),
+            (Reiher, AgentNoteKind.Training, 8, "Grundlehrgang Ermittlung begonnen.", "Fuchs"),
+            (Kranich, AgentNoteKind.Department, 150, "Zusätzlich Leitung der Administration Division übernommen.", "Falke"),
+            (Wolf, AgentNoteKind.Training, 200, "Ausbilder für Zugriff und Festnahme.", "Falke"),
         ];
         var knownNotes = (await db.AgentNotes.IgnoreQueryFilters().Select(n => n.Text).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
         foreach (var (agent, kind, daysAgo, text, author) in notes)
@@ -225,6 +232,14 @@ public partial class DemoDataService
                 "Unzuverlässig bei Terminen, Berichte kommen verspätet. Gespräch geführt, Ziele vereinbart.", "Kranich"),
             (Dachs, "Halbjahresbeurteilung", EvaluationGrade.Good, 26,
                 "Sicher im Zugriff, gute Absprachen im Team. Schriftliche Berichte dürfen knapper werden.", "Wolf"),
+            (Fuchs, "Halbjahresbeurteilung", EvaluationGrade.VeryGood, 40,
+                "Führt Vernehmungen ruhig und strukturiert, bildet die Trainees mit viel Geduld aus.", "Kranich"),
+            (Habicht, "Halbjahresbeurteilung", EvaluationGrade.Good, 35,
+                "Die Taskforce Hafen läuft unter seiner Führung zielstrebig. Delegiert gelegentlich zu wenig.", "Kranich"),
+            (Baer, "Halbjahresbeurteilung", EvaluationGrade.Satisfactory, 33,
+                "Zuverlässig im Einsatz, bei der Dokumentation nachlässig. Die Rüge wegen der verspäteten Meldung ist berücksichtigt.", "Wolf"),
+            (Specht, "Erste Beurteilung", EvaluationGrade.Satisfactory, 17,
+                "Hat sich schnell eingefunden, muss bei der Aktenführung noch sorgfältiger werden.", "Fuchs"),
         ];
         var knownEvaluations = (await db.AgentEvaluations.IgnoreQueryFilters().Select(e => e.AgentId + "|" + e.Title).ToListAsync(ct))
             .ToHashSet(StringComparer.Ordinal);
@@ -354,6 +369,8 @@ public partial class DemoDataService
         [
             (Dachs, 6, "Schusswechsel beim Zugriff im Hafenviertel, der Täter hat zuerst geschossen."),
             (Baer, 18, "Warnschuss bei der Verfolgung auf der Route 68, Fahrzeug hat danach angehalten."),
+            (Wolf, 4, "Gezielter Schuss bei der Geiselnahme in der Pacific Standard Bank, Täter hatte auf eine Geisel angelegt."),
+            (Marder, 12, "Schuss auf einen Hund bei der Festnahme in Strawberry, das Tier griff an."),
         ];
         var knownFirearms = (await db.FirearmUses.IgnoreQueryFilters().Select(f => f.Reason).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
         foreach (var (agent, daysAgo, reason) in firearms)
