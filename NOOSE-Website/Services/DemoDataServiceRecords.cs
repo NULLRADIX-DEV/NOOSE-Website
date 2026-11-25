@@ -64,6 +64,31 @@ public partial class DemoDataService
             "Abgeschlossen mit Übergabe an das DoJ. Offene Fahndung läuft über die Personenakte weiter.",
             [(Habicht, true), (Baer, false)],
             ["Vinnie Moretti", "Terry Marsh"], ["The Lost MC"]),
+        new("Schutzgelderpressung in Little Seoul", "Ermittlungsverfahren", CaseStatus.InProcessing, Classification.SuspicionCase, false, 52,
+            "Mehrere Geschäfte in Little Seoul zahlen wöchentlich an zwei konkurrierende Gruppen. Wer nicht zahlt, dem wird das Schaufenster eingeworfen.",
+            "Vier Geschädigte haben ausgesagt, zwei davon nur anonym. Die Übergaben laufen immer freitags.",
+            null, [(Luchs, true), (Eule, false), (Reiher, false)],
+            ["Kenji Tanaka", "Haruto Sato", "Wei Cheng", "Lin Cheng"], ["Yakuza Kanto-kai", "Triaden Wah Ching"]),
+        new("Menschenhandel über Paleto Bay", "Ermittlungsverfahren", CaseStatus.Open, Classification.SecuredStateThreatening, true, 28,
+            "Hinweise auf Menschen, die nachts in Paleto Bay von Booten in Lieferwagen umgeladen werden. Mutmaßlich organisiert die Sinaloa Connection die Transporte.",
+            "Zwei Fahrzeuge identifiziert, die Halter sind Strohleute. Observation am Pier wird vorbereitet.",
+            null, [(Kranich, true), (Greif, false), (Eule, false)],
+            ["Joaquin Reyes", "Camila Reyes"], ["Sinaloa Connection"]),
+        new("Brandanschlag auf die Werkstatt in Sandy Shores", "Ermittlungsverfahren", CaseStatus.InProcessing, Classification.ReviewCase, false, 19,
+            "In der Nacht brannte die Werkstatt eines Zeugen aus dem Fleeca-Verfahren. Brandbeschleuniger nachgewiesen.",
+            "Zwei Mitglieder von The Lost MC wurden kurz vorher in der Nähe gesehen. Alibis werden geprüft.",
+            null, [(Wolf, true), (Baer, false)],
+            ["Johnny Klebitz", "Clay Simons"], ["The Lost MC", "Rotten Brotherhood MC"]),
+        new("Waffenlieferungen an Merryweather", "Vorermittlung", CaseStatus.Open, Classification.ReviewCase, false, 9,
+            "Ein Hafenarbeiter berichtet, dass Kisten mit Merryweather-Aufdruck in denselben Containern lagen wie die Waffen der Vagos.",
+            null, null, [(Greif, true), (Habicht, false)],
+            ["Don Percival"], ["Merryweather Security"]),
+        new("Tötungsdelikt Brad Snider", "Ermittlungsverfahren", CaseStatus.Completed, Classification.SuspicionCase, false, 160,
+            "Snider wurde in North Yankton tot aufgefunden. Spuren führten zu einem früheren Komplizen.",
+            "Tatverdächtiger ermittelt, Beweislage an das DoJ übergeben.",
+            "Abgeschlossen. Das Verfahren liegt beim DoJ, die Personenakte bleibt offen.",
+            [(Habicht, true), (Fuchs, false)],
+            ["Brad Snider", "Trevor Philips"], []),
     ];
 
     private async Task<int> SeedCasesAsync(
@@ -158,6 +183,37 @@ public partial class DemoDataService
             "Durchsuchungsbeschluss beantragt", "LSPD", null, null,
             [(Wolf, true), (Baer, false), (Dachs, false), (DemoIdentity.AgentId, false)],
             [], null, ["The Lost MC"]),
+        new("Zugriff Autowerkstatt Strawberry", "Zugriff", OperationStatus.Completed, -12, 3, "Autowerkstatt, Strawberry Ave",
+            "Haftbefehl gegen zwei Mitglieder der Ballas", "LSPD (Absperrung)",
+            "Zwei Festnahmen, ein gestohlenes Fahrzeug sichergestellt. Ein Täter flüchtete zu Fuß und wurde zwei Straßen weiter gestellt.",
+            "Fahrzeug an das LSPD übergeben.",
+            [(Wolf, true), (Dachs, false), (Baer, false), (Marder, false)],
+            [
+                (OperationLogKind.Situation, 0, "Wolf", "Zwei Teams an Vorder- und Hinterausgang."),
+                (OperationLogKind.Situation, 9, "Dachs", "Ein Täter flüchtet über den Hof Richtung Süden."),
+                (OperationLogKind.Result, 14, "Dachs", "Flüchtiger an der Ecke Davis Ave gestellt."),
+                (OperationLogKind.Result, 45, "Wolf", "Lage beendet, beide Festgenommenen auf dem Weg ins HQ."),
+            ], null, ["Ballas"]),
+        new("Verdeckte Ermittlung Club Bahama Mamas", "Verdeckte Ermittlung", OperationStatus.Running, -6, null, "Bahama Mamas, Del Perro",
+            "Anordnung der Führung", null, null, null,
+            [(Luchs, true), (Eule, false)],
+            [
+                (OperationLogKind.Situation, 0, "Luchs", "Eule ist als Gast im Club, Funkkontakt steht."),
+                (OperationLogKind.Situation, 1600, "Eule", "Der Geschäftsführer trifft sich jeden Abend mit zwei Männern aus dem Umfeld von Weston."),
+                (OperationLogKind.Request, 4400, "Luchs", "Bitte um Freigabe einer Kamera im Hinterzimmer."),
+            ], CaseLaundering, ["Vinewood Syndikat"]),
+        new("Festnahme Joaquin Reyes", "Festnahme", OperationStatus.Aborted, -30, 2, "Lagerhaus, Paleto Bay",
+            "Haftbefehl des Bezirksgerichts", "LSPD",
+            "Abgebrochen, die Zielperson war nicht vor Ort. Vermutlich wurde sie gewarnt.", null,
+            [(Wolf, true), (Dachs, false), (Kranich, false)],
+            [
+                (OperationLogKind.Situation, 0, "Wolf", "Lagerhaus umstellt, keine Bewegung im Gebäude."),
+                (OperationLogKind.Result, 35, "Wolf", "Gebäude leer. Einsatz abgebrochen, Spurensicherung angefordert."),
+            ], "Menschenhandel über Paleto Bay", ["Sinaloa Connection"]),
+        new("Sicherung der Hauptverhandlung Moretti", "Objektschutz", OperationStatus.Planned, 6, null, "Bezirksgericht Los Santos",
+            "Ersuchen des DoJ", "LSPD", null, null,
+            [(Baer, true), (Dachs, false), (Reiher, false)],
+            [], "Überfall auf die Fleeca-Bank an der Route 68", ["The Lost MC"]),
     ];
 
     private async Task<int> SeedOperationsAsync(
@@ -246,6 +302,10 @@ public partial class DemoDataService
                 "Lokale Liste für die Stadtratswahl, Spenden stammen zum Teil aus dem Umfeld des Vinewood Syndikats.",
                 "Lockerung der Auflagen für Clubs und Filmproduktionen.", Kranich,
                 [("Solomon Richards", "Spitzenkandidat", true), ("Patricia Madrazo", "Unterstützerin", false)]),
+            ("Bürgerliste Sandy Shores", Classification.ReviewCase, 14,
+                "Lokale Liste im Blaine County, mehrere Kandidaten stehen dem Umfeld der Bikergangs nahe.",
+                "Weniger Polizeipräsenz im Blaine County.", Wolf,
+                [("Terry Marsh", "Kandidat", false), ("Frank Doyle", "Vorsitzender", true)]),
         ];
         foreach (var (name, classification, daysAgo, description, targets, lead, members) in parties)
         {
@@ -286,6 +346,12 @@ public partial class DemoDataService
             ("Umfeld Lester Crest", GroupsKind.PersonOfInterest, Classification.ReviewCase, null, 17,
                 "Technischer Unterstützer mehrerer Gruppierungen, beschafft Pläne und Zugangsdaten.", Eule,
                 [("Lester Crest", "Zielperson", true), ("Michael De Santa", "Kontakt", false)]),
+            ("Familie Rodriguez", GroupsKind.Grouping, Classification.SuspicionCase, 6, 70,
+                "Die Familie hält die Führung der Los Santos Vagos. Geschäfte laufen über Verwandte und deren Konten.", Habicht,
+                [("Hector Rodriguez", "Bruder", true), ("Miguel Rodriguez", "Bruder", false), ("Maria Rodriguez", "Schwester", false), ("Sofia Rodriguez", "Cousine", false)]),
+            ("Fluchthelfer Sandy Shores", GroupsKind.Grouping, Classification.ReviewCase, 3, 21,
+                "Bringen Gesuchte über die Wüste nach Norden, gegen Bargeld.", Wolf,
+                [("Terry Marsh", "Fahrer", true), ("Clay Simons", "Unterkunft", false)]),
         ];
         foreach (var (name, kind, classification, estimated, daysAgo, description, lead, members) in groups)
         {
@@ -343,6 +409,13 @@ public partial class DemoDataService
                 (96, "Kranich", "Die Kontoauszüge aus der Sicherstellung sind da. Eule übernimmt die Auswertung."),
                 (40, "Eule", "Drei Zahlungen laufen über dieselbe Briefkastenfirma, Bericht folgt bis Freitag."),
                 (5, "Luchs", "Bin ab morgen eine Woche weg, Greif vertritt mich."),
+            ]),
+        new("Taskforce Biker", "Gewalt und Waffenhandel von The Lost MC im Blaine County beenden.",
+            TaskforceStatus.Resolved, false, 140,
+            [(Wolf, TaskforceRole.LeadInvestigator), (Baer, TaskforceRole.TruLead), (Habicht, TaskforceRole.CidLead), (Dachs, TaskforceRole.Member)],
+            [
+                (2100, "Wolf", "Die Führungsebene des Clubs sitzt in Haft. Wir lösen die Taskforce zum Monatsende auf."),
+                (2050, "Habicht", "Abschlussbericht ist im Dokument der Taskforce, bitte bis Freitag gegenlesen."),
             ]),
         new("Taskforce Nachtleben", "Drogenhandel in den Clubs von Vinewood und Del Perro.",
             TaskforceStatus.Requested, false, 1,

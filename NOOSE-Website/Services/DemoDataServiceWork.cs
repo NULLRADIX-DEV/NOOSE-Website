@@ -39,6 +39,20 @@ public partial class DemoDataService
                 JobStatus.Open, JobPriority.Normal, 4, true, "Kranich", [Kranich, DemoIdentity.AgentId], null),
             ("Kontobewegungen Briefkastenfirma auswerten", "Zahlungen an die Filmproduktion mit den Kontoauszügen abgleichen.",
                 JobStatus.InProcessing, JobPriority.Normal, 5, false, "Kranich", [Eule], CaseLaundering),
+            ("Geschädigte in Little Seoul erneut befragen", "Termine mit den vier Ladenbesitzern abstimmen, zwei wollen nur anonym aussagen.",
+                JobStatus.Open, JobPriority.Normal, 6, false, "Luchs", [Reiher, Eule], "Schutzgelderpressung in Little Seoul"),
+            ("Halter der Lieferwagen in Paleto Bay ermitteln", "Kennzeichen 7RJT402 und 2HXA911 beim LSPD abfragen.",
+                JobStatus.Done, JobPriority.High, -3, false, "Kranich", [Eule], "Menschenhandel über Paleto Bay"),
+            ("Brandgutachten anfordern", "Gutachten der Feuerwehr zum Brand in Sandy Shores anfordern und in die Akte übernehmen.",
+                JobStatus.InProcessing, JobPriority.Normal, 2, false, "Wolf", [Baer], "Brandanschlag auf die Werkstatt in Sandy Shores"),
+            ("Abschlussbericht Taskforce Biker gegenlesen", "Bericht auf Vollständigkeit prüfen, Anmerkungen direkt im Dokument.",
+                JobStatus.Done, JobPriority.Low, -20, false, "Wolf", [Habicht], null),
+            ("Antwort auf die Parlamentsanfrage zum Wahrheitsserum", "Zahlen aus den Doks des letzten Quartals zusammenstellen.",
+                JobStatus.InProcessing, JobPriority.High, 4, false, "Falke", [Fuchs, DemoIdentity.AgentId], null),
+            ("Funkgeräte für die neuen Trainees ausgeben", "Zwei Geräte aus dem Bestand, Seriennummern in die Personalakte.",
+                JobStatus.Open, JobPriority.Low, 7, false, "Fuchs", [Specht], null),
+            ("Kamera im Hinterzimmer des Bahama Mamas beantragen", "Antrag mit den Beobachtungen aus der verdeckten Ermittlung begründen.",
+                JobStatus.Aborted, JobPriority.Normal, -2, false, "Luchs", [Luchs], CaseLaundering),
         ];
         var known = (await db.Jobs.IgnoreQueryFilters().Select(j => j.Title).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var added = 0;
@@ -111,6 +125,22 @@ public partial class DemoDataService
             ("Personalgespräch Marder", AppointmentCategory.Meeting, AppointmentStatus.Postponed, 2, 16, 1, false,
                 "Büro Section Chief CID", "Nur für die Beteiligten.",
                 AppointmentVisibilityLevel.Private, "Kranich", [Kranich, DemoIdentity.AgentId]),
+            ("Vernehmung Zeuge Hafenarbeiter", AppointmentCategory.Meeting, AppointmentStatus.Planned, 3, 14, 2, false,
+                "Vernehmungsraum 2, FIB HQ", "Fuchs führt, Specht protokolliert.",
+                AppointmentVisibilityLevel.Restricted, "Fuchs", [Fuchs, Specht]),
+            ("Führungsrunde", AppointmentCategory.Meeting, AppointmentStatus.Planned, 5, 19, 1, false,
+                "Besprechungsraum Board", "Personalplanung, Parlamentsanfragen, Lage.",
+                AppointmentVisibilityLevel.Public, "Falke", [Falke, Greif, Kranich, Wolf, Luchs, DemoIdentity.AgentId]),
+            ("Frist: Antwort Parlamentsanfrage Wahrheitsserum", AppointmentCategory.Deadline, AppointmentStatus.Planned, 6, 0, null, true,
+                null, "Antwort an das Parlament.", AppointmentVisibilityLevel.Public, "Falke", [Fuchs, Falke]),
+            ("Übergabe Abschlussbericht Biker an das DoJ", AppointmentCategory.CourtDate, AppointmentStatus.Perceived, -15, 11, 1, false,
+                "Department of Justice", "Übergabe mit kurzer Erläuterung.", AppointmentVisibilityLevel.Public, "Wolf", [Wolf, Habicht]),
+            ("Erste-Hilfe-Auffrischung", AppointmentCategory.Misc, AppointmentStatus.Canceled, -1, 16, 2, false,
+                "Pillbox Medical Center", "Abgesagt, das LSMD hat keinen Ausbilder frei. Neuer Termin folgt.",
+                AppointmentVisibilityLevel.Public, "Kranich", [Specht, Reiher, Eule]),
+            ("Lagebesprechung Taskforce Hafen", AppointmentCategory.Meeting, AppointmentStatus.Planned, 1, 19, 1, false,
+                "Lagezentrum, FIB HQ", "Stand Observation, dritte Lieferung, Zugriff.",
+                AppointmentVisibilityLevel.Restricted, "Habicht", [Habicht, Fuchs, Wolf, Dachs, Specht, DemoIdentity.AgentId]),
         ];
         var known = (await db.Appointments.IgnoreQueryFilters().Select(a => a.Title).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var added = 0;
@@ -167,6 +197,16 @@ public partial class DemoDataService
             ("Willkommen an Specht und Reiher",
                 "Wir begrüßen zwei neue Trainees in der CID. Fuchs übernimmt die Einarbeitung, Fragen gern direkt an sie.",
                 false, AnnouncementAudience.AllActive, null, 11, null, "Kranich", []),
+            ("Neue Funkgeräte ab Montag",
+                "Ab Montag gibt die Asservatenkammer die neuen Funkgeräte aus. Bitte die alten Geräte bis Freitag zurückgeben, sonst wird ein Ersatz berechnet.",
+                false, AnnouncementAudience.AllActive, null, 6, 4, "Greif",
+                [Falke, Greif, Kranich, Wolf, Luchs, Habicht, Fuchs, Baer, Eule, Dachs, Specht, Reiher, DemoIdentity.AgentId]),
+            ("Erfolgreicher Zugriff in Strawberry",
+                "Danke an das HRT und Marder für den sauberen Zugriff in der Autowerkstatt. Beide Täter sitzen, niemand wurde verletzt.",
+                false, AnnouncementAudience.AllActive, null, 12, null, "Wolf", []),
+            ("Parkplatz am HQ gesperrt",
+                "Wegen Bauarbeiten ist der Parkplatz am HQ bis Ende nächster Woche gesperrt. Dienstfahrzeuge stehen in der Tiefgarage an der Mission Row.",
+                false, AnnouncementAudience.AllActive, null, 2, null, "Greif", []),
         ];
         var known = (await db.Announcements.IgnoreQueryFilters().Select(a => a.Title).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var added = 0;
@@ -228,6 +268,11 @@ public partial class DemoDataService
             (nameof(Case), CaseId(CaseHarbour), 5, "Stand der Observation für die Taskforce zusammenfassen.", Habicht),
             (nameof(Person), PersonId("Vinnie Moretti"), 1, "Fahndungsstand vor der Hauptverhandlung prüfen.", DemoIdentity.AgentId),
             (nameof(Faction), FactionId("Bratva Los Santos"), 9, "Neue Mitglieder aus der Funkaufklärung eintragen.", Luchs),
+            (nameof(Person), PersonId("Kenji Tanaka"), 4, "Aussagen der Geschädigten mit seinem Bewegungsprofil abgleichen.", Luchs),
+            (nameof(Case), CaseId("Menschenhandel über Paleto Bay"), 3, "Observation am Pier planen und Kräfte anfordern.", Kranich),
+            (nameof(Person), PersonId("Johnny Klebitz"), -2, "Alibi für die Brandnacht überprüfen.", Baer),
+            (nameof(Faction), FactionId("Merryweather Security"), 14, "Lieferpapiere der Container mit dem Zoll abgleichen.", Greif),
+            (nameof(Person), PersonId("Lester Crest"), 6, "Neue Telefonnummer aus der Funkaufklärung eintragen.", Eule),
         ];
         var knownFollowups = (await db.Followups.IgnoreQueryFilters().Select(f => f.Note).ToListAsync(ct))
             .Where(n => n is not null).ToHashSet(StringComparer.Ordinal);
@@ -264,6 +309,20 @@ public partial class DemoDataService
             (nameof(Case), CaseId(CaseHarbour), 8, "Habicht", "Dann planen wir den Zugriff für Dienstag Nacht. HRT ist informiert."),
             (nameof(Case), CaseId(CaseLaundering), 60, "Eule", "Die Briefkastenfirma sitzt in Del Perro, Geschäftsführer ist ein Strohmann."),
             (nameof(Operation), OperationId(OperationRaid), 500, "Wolf", "Nachbesprechung: Zugriff über den Nordeingang hat gut funktioniert, beim nächsten Mal früher absperren."),
+            (nameof(Operation), OperationId(OperationRaid), 480, "Bär", "Die Kisten im hinteren Lager waren mit Sprengfallen gesichert, zum Glück nicht scharf. Beim nächsten Mal Entschärfer mitnehmen."),
+            (nameof(Person), PersonId("Kenji Tanaka"), 90, "Luchs", "Tanaka fährt einen schwarzen Sultan RS, Kennzeichen beginnt mit 5K."),
+            (nameof(Person), PersonId("Kenji Tanaka"), 40, "Eule", "Zwei Geschädigte haben ihn auf Fotos erkannt."),
+            (nameof(Person), PersonId("Devin Weston"), 120, "Kranich", "Weston hat einen neuen Anwalt, die Kanzlei vertritt auch das Cartel Madrazo."),
+            (nameof(Person), PersonId("Johnny Klebitz"), 30, "Wolf", "Klebitz behauptet, in der Brandnacht im Clubhaus gewesen zu sein. Drei Zeugen, alle Clubmitglieder."),
+            (nameof(Person), PersonId("Vinnie Moretti"), 200, "Habicht", "Letzter bekannter Aufenthalt: Motel in Harmony. Die Fahndung ist öffentlich."),
+            (nameof(Person), PersonId("Dimitri Volkov"), 70, "Luchs", "Volkov trifft sich jeden Dienstag mit einem Mann aus der Hafenverwaltung."),
+            (nameof(Faction), FactionId("Cartel Madrazo"), 55, "Kranich", "Die Route über Paleto Bay wird jetzt gemeinsam mit der Sinaloa Connection genutzt."),
+            (nameof(Faction), FactionId("Cartel Madrazo"), 12, "Eule", "Neue Briefkastenfirma in Vespucci aufgetaucht, gleiche Geschäftsführerin wie in Del Perro."),
+            (nameof(Faction), FactionId("The Lost MC"), 26, "Bär", "Nach dem Brand sind drei Mitglieder untergetaucht."),
+            (nameof(Faction), FactionId("Yakuza Kanto-kai"), 66, "Luchs", "Revierstreit mit den Triaden um zwei Straßenzüge in Little Seoul."),
+            (nameof(Case), CaseId("Schutzgelderpressung in Little Seoul"), 18, "Reiher", "Der Blumenladen an der Ecke zahlt seit dieser Woche nicht mehr. Wir sollten den Laden im Blick behalten."),
+            (nameof(Case), CaseId("Brandanschlag auf die Werkstatt in Sandy Shores"), 44, "Bär", "Brandbeschleuniger war Benzin aus Kanistern, wie sie im Clubhaus lagern."),
+            (nameof(Case), CaseId(CaseLaundering), 14, "Kranich", "Die Kontenbeschlagnahme ist erlassen, die Bank hat die Konten eingefroren."),
         ];
         var knownComments = (await db.Comments.IgnoreQueryFilters().Select(c => c.Text).ToListAsync(ct)).ToHashSet(StringComparer.Ordinal);
         foreach (var (type, id, hoursAgo, author, text) in comments)
@@ -359,6 +418,20 @@ public partial class DemoDataService
             ("Arbeitsstand Taskforce Hafen", "Arbeitsstand", false, false, TaskforceHarbour, 7, "Habicht",
                 "<p><strong>Erledigt:</strong> Zugriff Lagerhalle, Handyauswertung begonnen.</p>"
                 + "<p><strong>Offen:</strong> Zeugenvernehmung, Durchsuchungsbeschluss Clubhaus, dritte Lieferung.</p>"),
+            ("Abschlussbericht Taskforce Biker", "Berichte", false, false, "Taskforce Biker", 25, "Habicht",
+                "<h2>Ergebnis</h2><p>Die Führungsebene von The Lost MC sitzt in Haft, der Waffenhandel im Blaine County ist deutlich zurückgegangen.</p>"
+                + "<h2>Maßnahmen</h2><ul><li>Elf Festnahmen</li><li>Drei Durchsuchungen</li><li>Zwei Haftbefehle vollstreckt</li></ul>"
+                + "<h2>Offen</h2><p>Der Brandanschlag in Sandy Shores wird als eigener Vorgang weitergeführt.</p>"),
+            ("Leitfaden Observation", "Leitfäden", false, false, null, 75, "Fuchs",
+                "<p>Eine Observation dokumentiert Ort, Zeit und was gesehen wurde, nicht was vermutet wird.</p>"
+                + "<ul><li>Ablösung spätestens nach sechs Stunden</li><li>Fotos sofort ins Einsatztagebuch</li><li>Keine Annäherung an die Zielperson</li></ul>"),
+            ("Telefonliste Partnerbehörden", "Organisation", true, false, null, 100, "Greif",
+                "<table><tbody><tr><td><p><strong>LSPD Leitstelle</strong></p></td><td><p>555-0911</p></td></tr>"
+                + "<tr><td><p><strong>LSMD Bereitschaft</strong></p></td><td><p>555-0912</p></td></tr>"
+                + "<tr><td><p><strong>DoJ Bereitschaftsrichter</strong></p></td><td><p>555-0913</p></td></tr></tbody></table>"),
+            ("Muster: Antrag auf Durchsuchung", "Vorlagen", false, false, null, 50, "Kranich",
+                "<p><strong>Betroffene Person:</strong> …</p><p><strong>Objekt:</strong> …</p>"
+                + "<p><strong>Tatvorwurf:</strong> …</p><p><strong>Begründung:</strong> Welche Beweise werden erwartet, und warum dort?</p>"),
         ];
         var known = (await db.Documents.IgnoreQueryFilters().Select(d => d.Title).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var added = 0;
@@ -400,6 +473,12 @@ public partial class DemoDataService
             (NotificationType.AppointmentAssigned, "Du bist Teilnehmer: Hauptverhandlung gegen Vinnie Moretti", "/kalender", 60, true),
             (NotificationType.Announcement, "Neue Fassung der Dienstverordnung", "/brett", 72, true),
             (NotificationType.FirearmUseReported, "Schusswaffengebrauch gemeldet: Dachs", "/personal", 144, true),
+            (NotificationType.RequestDecided, "Neue Anfrage zur Einstufung: Ricardo Mendez", "/anfragen", 24, false),
+            (NotificationType.Followup, "Wiedervorlage fällig: Vinnie Moretti",
+                people.GetValueOrDefault("Vinnie Moretti") is { } vm ? $"/personen/{vm.Id}" : null, 10, false),
+            (NotificationType.ParliamentInquiryReceived, "Neue Parlamentsanfrage: Personalstärke des FIB", "/administration", 26, true),
+            (NotificationType.TransferRequested, "Versetzungsantrag: Eule möchte in die CID", "/administration", 70, true),
+            (NotificationType.Announcement, "Neue Funkgeräte ab Montag", "/brett", 140, true),
         ];
         var known = (await db.Notifications.Where(n => n.RecipientId == DemoIdentity.AgentId).Select(n => n.Title).ToListAsync(ct))
             .ToHashSet(StringComparer.Ordinal);

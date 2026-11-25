@@ -109,6 +109,12 @@ public partial class DemoDataService(
         added += await SeedRecordNotesAsync(db, people, factions, records, restamps, cancellationToken);
         added += await SeedLibraryAsync(db, records, restamps, cancellationToken);
         added += await SeedNotificationsAsync(db, people, records, restamps, cancellationToken);
+        added += await SeedWarrantsAsync(db, people, records, restamps, cancellationToken);
+        added += await SeedRequestsAsync(db, people, factions, restamps, cancellationToken);
+        added += await SeedPresentationsAsync(db, restamps, cancellationToken);
+        added += await SeedAdministrationAsync(db, restamps, cancellationToken);
+        added += await SeedRecordHistoryAsync(db, people, factions, cancellationToken);
+        added += await SeedMeetingMeasuresAsync(db, cancellationToken);
 
         await db.SaveChangesAsync(cancellationToken);
         await ApplyTimestampsAsync(db, stamps, cancellationToken);
