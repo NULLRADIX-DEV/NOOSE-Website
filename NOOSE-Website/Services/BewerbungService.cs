@@ -207,11 +207,11 @@ public class BewerbungService(
         broadcaster.Report(id);
     }
 
-    // auto-create the Bewerbungsverfahren case + Sicherheitsüberprüfung document; the triggering change stands regardless
+    // auto-create the Sicherheitsüberprüfung document; the triggering change stands regardless
     private async Task EnsureSecurityCheckAsync(string id, ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         try { await applicationCases.EnsureSecurityCheckCaseAsync(id, actor, cancellationToken); }
-        catch (Exception ex) { logger.LogError(ex, "Auto case/document provisioning for application {Id} failed.", id); }
+        catch (Exception ex) { logger.LogError(ex, "Auto security check provisioning for application {Id} failed.", id); }
     }
 
     public async Task SetStatusAsync(string id, BewerbungStatus target, string? note, ClaimsPrincipal actor, CancellationToken cancellationToken = default)

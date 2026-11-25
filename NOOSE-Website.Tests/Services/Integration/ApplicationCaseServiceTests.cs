@@ -1,11 +1,9 @@
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Infrastructure;
-using NOOSE_Website.Models.Cases;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 using NOOSE_Website.Services;
@@ -14,13 +12,12 @@ using NSubstitute;
 
 namespace NOOSE_Website.Tests.Services.Integration;
 
-/// <summary>Tests for the auto-provisioning of a case + security-check document on HRB assignment.</summary>
+/// <summary>Tests for the auto-provisioning of the security-check document on HRB assignment.</summary>
 public sealed class ApplicationCaseServiceTests
 {
     private sealed class Collaborators
     {
         public IRecruitingAutomationService Automation { get; } = Substitute.For<IRecruitingAutomationService>();
-        public ICaseService Cases { get; } = Substitute.For<ICaseService>();
         public IDocumentService Documents { get; } = Substitute.For<IDocumentService>();
         public IDocumentTemplateService Templates { get; } = Substitute.For<IDocumentTemplateService>();
         public ISourceService Sources { get; } = Substitute.For<ISourceService>();
@@ -28,7 +25,7 @@ public sealed class ApplicationCaseServiceTests
     }
 
     private static ApplicationCaseService Build(SqliteTestContext ctx, Collaborators c)
-        => new(ctx.Factory, c.Automation, c.Cases, c.Documents, c.Templates, c.Sources, c.Placeholders,
+        => new(ctx.Factory, c.Automation, c.Documents, c.Templates, c.Sources, c.Placeholders,
                Substitute.For<ILogger<ApplicationCaseService>>());
 
     private static Task FiledOnApplication(Collaborators c, int times, string documentId)
@@ -39,7 +36,9 @@ public sealed class ApplicationCaseServiceTests
                 && i.Title == "Sicherheitsüberprüfung | Max Mustermann"),
             Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
 
-    // the SÜ of an application provisioned before it was filed on the application, filed under its case
+    private static Task NoDocumentCreated(Collaborators c)
+        => c.Documents.DidNotReceive().CreateAsync(Arg.Any<DocumentInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+
     private static void SeedFiledSecurityCheck(SqliteTestContext ctx, string entityId = "existing", string documentId = "old-doc",
         string entityType = nameof(Case))
     {
@@ -79,11 +78,9 @@ public sealed class ApplicationCaseServiceTests
     {
         var c = new Collaborators();
         c.Automation.GetAsync(Arg.Any<CancellationToken>()).Returns(new RecruitingAutomationConfig(true, "tmpl-1"));
-        c.Cases.CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
-            .Returns(ci => new Case { Id = "case1", Title = ((CaseInput)ci[0]).Title });
         c.Templates.GetAsync("tmpl-1", Arg.Any<CancellationToken>())
-            .Returns(new DocumentTemplate { Id = "tmpl-1", ContentHtml = "<p>{{Name}}</p>" });
-        c.Placeholders.ApplyAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(new DocumentTemplate { Id = "tmpl-1", ContentHtml = "<p>{{Name}} {{aktenzeichen}} {{Datum}}</p>" });
+        c.Placeholders.ApplyAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
             .Returns("<p>expanded</p>");
         c.Documents.CreateAsync(Arg.Any<DocumentInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
             .Returns(di => new Document { Id = "doc1", Title = ((DocumentInput)di[0]).Title });
@@ -91,7 +88,7 @@ public sealed class ApplicationCaseServiceTests
     }
 
     [Fact]
-    public async Task Creates_case_document_and_attachment_with_applicant_name()
+    public async Task Creates_only_the_document_and_files_it_on_the_application()
     {
         using var ctx = new SqliteTestContext();
         SeedBewerbung(ctx);
@@ -99,13 +96,8 @@ public sealed class ApplicationCaseServiceTests
 
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
-        await c.Cases.Received(1).CreateAsync(
-            Arg.Is<CaseInput>(i => i.Title == "Bewerbungsverfahren | Max Mustermann"
-                && i.Classification == Classification.Unknown
-                && i.SecrecyLevel == DocumentClassification.Hrb),
-            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
-
-        await c.Placeholders.Received(1).ApplyAsync("<p>{{Name}}</p>", nameof(Case), "case1",
+        // the application fills name and case number, the placeholder service the rest
+        await c.Placeholders.Received(1).ApplyAsync("<p>Max Mustermann FIB-B-2026-0001 {{Datum}}</p>", null, null,
             Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
 
         await c.Documents.Received(1).CreateAsync(
@@ -114,30 +106,60 @@ public sealed class ApplicationCaseServiceTests
                 && i.Classification == DocumentClassification.Hrb),
             Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
 
-        await c.Sources.Received(1).CreateAsync(nameof(Case), "case1",
-            Arg.Is<SourceInput>(i => i.Type == SourceType.Document
-                && i.TargetType == nameof(Document)
-                && i.TargetId == "doc1"
-                && i.Title == "Sicherheitsüberprüfung | Max Mustermann"),
+        await FiledOnApplication(c, 1, "doc1");
+        await c.Sources.DidNotReceive().CreateAsync(nameof(Case), Arg.Any<string>(), Arg.Any<SourceInput>(),
             Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
 
-        await FiledOnApplication(c, 1, "doc1");
-
         using var db = ctx.NewContext();
-        var b = await db.Bewerbungen.FirstAsync(x => x.Id == "b1");
-        Assert.Equal("case1", b.LinkedCaseId);
+        Assert.Empty(db.Cases);
+        Assert.Null(db.Bewerbungen.Single(x => x.Id == "b1").LinkedCaseId);
     }
 
     [Fact]
-    public async Task Idempotent_when_already_linked()
+    public async Task Encodes_the_applicant_name_in_the_body()
     {
         using var ctx = new SqliteTestContext();
-        SeedBewerbung(ctx, linkedCaseId: "existing");
+        SeedBewerbung(ctx, name: "<b>Max</b>");
         var c = EnabledCollaborators();
 
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
-        await c.Cases.DidNotReceive().CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+        await c.Placeholders.Received(1).ApplyAsync("<p>&lt;b&gt;Max&lt;/b&gt; FIB-B-2026-0001 {{Datum}}</p>", null, null,
+            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Idempotent_when_the_document_is_already_on_the_application()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedBewerbung(ctx);
+        SeedFiledSecurityCheck(ctx, entityId: "b1", entityType: nameof(Bewerbung));
+        var c = EnabledCollaborators();
+
+        await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
+
+        await NoDocumentCreated(c);
+        await FiledOnApplication(c, 0, "old-doc");
+    }
+
+    [Fact]
+    public async Task A_second_trigger_does_not_create_a_second_document()
+    {
+        using var ctx = new SqliteTestContext();
+        SeedBewerbung(ctx);
+        var c = EnabledCollaborators();
+        // the source service is a fake, so persist what it was asked to file
+        c.Sources.CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<SourceInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
+            .Returns(ci =>
+            {
+                SeedFiledSecurityCheck(ctx, entityId: (string)ci[1], entityType: (string)ci[0], documentId: ((SourceInput)ci[2]).TargetId!);
+                return new Source();
+            });
+        var service = Build(ctx, c);
+
+        await Task.WhenAll(service.EnsureSecurityCheckCaseAsync("b1", Hrb()), service.EnsureSecurityCheckCaseAsync("b1", Hrb()));
+
+        await c.Documents.Received(1).CreateAsync(Arg.Any<DocumentInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -150,7 +172,7 @@ public sealed class ApplicationCaseServiceTests
 
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
-        await c.Cases.DidNotReceive().CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+        await NoDocumentCreated(c);
         await FiledOnApplication(c, 1, "old-doc");
     }
 
@@ -165,38 +187,20 @@ public sealed class ApplicationCaseServiceTests
 
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
+        await NoDocumentCreated(c);
         await FiledOnApplication(c, 0, "old-doc");
     }
 
     [Fact]
-    public async Task Discards_duplicate_case_when_claim_is_lost()
+    public async Task Creates_the_document_when_an_older_case_has_none()
     {
         using var ctx = new SqliteTestContext();
-        SeedBewerbung(ctx);
+        SeedBewerbung(ctx, linkedCaseId: "existing");
         var c = EnabledCollaborators();
-        // simulate a concurrent assignment winning between the fast-path read and the atomic claim:
-        // a rival stamps LinkedCaseId first, and this call still persisted its own (now-duplicate) case
-        c.Cases.CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>())
-            .Returns(ci =>
-            {
-                using var db = ctx.NewContext();
-                db.Bewerbungen.Single(x => x.Id == "b1").LinkedCaseId = "winner";
-                db.Cases.Add(new Case { Id = "case1", CaseNumber = "FIB-V-2026-0002", Title = ((CaseInput)ci[0]).Title });
-                db.CaseAgents.Add(new CaseAgent { CaseId = "case1", AgentId = "hrb", IsCaseLead = true });
-                db.SaveChanges();
-                return new Case { Id = "case1", Title = ((CaseInput)ci[0]).Title };
-            });
 
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
-        await c.Documents.DidNotReceive().CreateAsync(Arg.Any<DocumentInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
-        await c.Sources.DidNotReceive().CreateAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<SourceInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
-
-        using var check = ctx.NewContext();
-        Assert.Equal("winner", check.Bewerbungen.Single(x => x.Id == "b1").LinkedCaseId);
-        Assert.True(check.Cases.IgnoreQueryFilters().Single(v => v.Id == "case1").IsDeleted);
-        Assert.Empty(check.CaseAgents.Where(a => a.CaseId == "case1"));
-        Assert.Contains(check.AuditLogs, l => l.EntityType == nameof(Case) && l.EntityId == "case1" && l.Action == AuditAction.Deleted);
+        await FiledOnApplication(c, 1, "doc1");
     }
 
     [Fact]
@@ -209,7 +213,7 @@ public sealed class ApplicationCaseServiceTests
 
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
-        await c.Cases.DidNotReceive().CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+        await NoDocumentCreated(c);
     }
 
     [Fact]
@@ -223,7 +227,7 @@ public sealed class ApplicationCaseServiceTests
         var reader = ClaimsPrincipalBuilder.Agent("tl").AsTeamLead().WithRank(Rank.Director).Build();
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", reader);
 
-        await c.Cases.DidNotReceive().CreateAsync(Arg.Any<CaseInput>(), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+        await NoDocumentCreated(c);
         await c.Automation.DidNotReceive().GetAsync(Arg.Any<CancellationToken>());
     }
 
@@ -237,7 +241,8 @@ public sealed class ApplicationCaseServiceTests
 
         await Build(ctx, c).EnsureSecurityCheckCaseAsync("b1", Hrb());
 
-        await c.Placeholders.Received(1).ApplyAsync(ApplicationTemplates.SecurityCheckBody, nameof(Case), "case1",
-            Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
+        await c.Placeholders.Received(1).ApplyAsync(
+            Arg.Is<string>(s => s.Contains("Bewerbung: Max Mustermann") && s.Contains("Aktenzeichen: FIB-B-2026-0001")),
+            Arg.Is<string?>(t => t == null), Arg.Is<string?>(i => i == null), Arg.Any<ClaimsPrincipal>(), Arg.Any<CancellationToken>());
     }
 }

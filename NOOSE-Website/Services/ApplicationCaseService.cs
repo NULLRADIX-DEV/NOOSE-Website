@@ -1,3 +1,4 @@
+using System.Net;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,6 @@ using NOOSE_Website.Data.Entities.Cases;
 using NOOSE_Website.Data.Entities.Common;
 using NOOSE_Website.Data.Entities.Recruiting;
 using NOOSE_Website.Infrastructure;
-using NOOSE_Website.Models.Cases;
 using NOOSE_Website.Models.Common;
 using NOOSE_Website.Models.Enums;
 
@@ -17,7 +17,6 @@ namespace NOOSE_Website.Services;
 public class ApplicationCaseService(
     IDbContextFactory<AppDbContext> dbFactory,
     IRecruitingAutomationService automation,
-    ICaseService cases,
     IDocumentService documents,
     IDocumentTemplateService templates,
     ISourceService sources,
@@ -25,6 +24,9 @@ public class ApplicationCaseService(
     ILogger<ApplicationCaseService> logger) : IApplicationCaseService
 {
     private const string SecurityCheckTitlePrefix = "Sicherheitsüberprüfung | ";
+
+    // assigning and starting the check can fire close together; one app instance, so a process gate keeps it to one SÜ
+    private static readonly SemaphoreSlim Gate = new(1, 1);
 
     public async Task EnsureSecurityCheckCaseAsync(string bewerbungId, ClaimsPrincipal actor, CancellationToken cancellationToken = default)
     {
@@ -40,71 +42,55 @@ public class ApplicationCaseService(
             return;
         }
 
-        await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
-        var bewerbung = await db.Bewerbungen.AsNoTracking()
-            .FirstOrDefaultAsync(b => b.Id == bewerbungId, cancellationToken);
-        if (bewerbung is null)
+        await Gate.WaitAsync(cancellationToken);
+        try
         {
-            return;
+            await using var db = await dbFactory.CreateDbContextAsync(cancellationToken);
+            var bewerbung = await db.Bewerbungen.AsNoTracking()
+                .FirstOrDefaultAsync(b => b.Id == bewerbungId, cancellationToken);
+            if (bewerbung is null || await HasSecurityCheckAsync(db, bewerbungId, cancellationToken))
+            {
+                return;
+            }
+            // older applications got a case with the SÜ under it: file that one instead of making a second
+            if (bewerbung.LinkedCaseId is { } existingCaseId
+                && await FileExistingSecurityCheckAsync(db, bewerbungId, existingCaseId, actor, cancellationToken))
+            {
+                return;
+            }
+
+            var template = await templates.GetAsync(config.TemplateId, cancellationToken);
+            var body = template?.ContentHtml ?? ApplicationTemplates.SecurityCheckBody;
+            var html = await placeholders.ApplyAsync(FillApplicationTokens(body, bewerbung), null, null, actor, cancellationToken);
+            var docTitle = $"{SecurityCheckTitlePrefix}{bewerbung.Name}";
+            var document = await documents.CreateAsync(new DocumentInput
+            {
+                Title = docTitle,
+                ContentHtml = html,
+                Classification = DocumentClassification.Hrb,
+            }, actor, cancellationToken);
+
+            await sources.CreateAsync(nameof(Bewerbung), bewerbungId, SecurityCheckSource(docTitle, document.Id), actor,
+                cancellationToken);
+
+            logger.LogInformation("Auto-provisioned security check document {DocId} for application {AppId}.",
+                document.Id, bewerbungId);
         }
-        if (bewerbung.LinkedCaseId is { } existingCaseId)
+        finally
         {
-            // provisioned before the SÜ was filed on the application: file it now
-            await FileExistingSecurityCheckAsync(db, bewerbungId, existingCaseId, actor, cancellationToken);
-            return;
+            Gate.Release();
         }
-
-        var name = bewerbung.Name;
-
-        var @case = await cases.CreateAsync(new CaseInput
-        {
-            Title = $"Bewerbungsverfahren | {name}",
-            Status = CaseStatus.Open,
-            Classification = Classification.Unknown,
-            // recruiting files stay inside HRB
-            SecrecyLevel = DocumentClassification.Hrb,
-        }, actor, cancellationToken);
-
-        // claim the application atomically: a concurrent assignment (or double-click) that already
-        // linked its own case updates 0 rows here, so it discards this duplicate and exactly one wins
-        var claimed = await db.Bewerbungen
-            .Where(b => b.Id == bewerbungId && b.LinkedCaseId == null)
-            .ExecuteUpdateAsync(s => s.SetProperty(b => b.LinkedCaseId, @case.Id), cancellationToken);
-        if (claimed == 0)
-        {
-            // lost the race: soft-delete this duplicate case + its auto-added lead row, and log the discard
-            // (CaseService.DeleteAsync is leadership-gated, but a plain HRB writer created it here; MayWrite enforced above)
-            await db.Cases.Where(v => v.Id == @case.Id)
-                .ExecuteUpdateAsync(s => s
-                    .SetProperty(v => v.IsDeleted, true)
-                    .SetProperty(v => v.DeletedAt, DateTime.UtcNow)
-                    .SetProperty(v => v.DeletedById, actor.GetAgentId()), cancellationToken);
-            await db.CaseAgents.Where(a => a.CaseId == @case.Id).ExecuteDeleteAsync(cancellationToken);
-            db.AuditLogs.Add(ManualAudit.Row(nameof(Case), @case.Id, AuditAction.Deleted, actor));
-            await db.SaveChangesAsync(cancellationToken);
-            return;
-        }
-
-        // 2) document from the configured template (built-in body as fallback if it was deleted)
-        var template = await templates.GetAsync(config.TemplateId, cancellationToken);
-        var body = template?.ContentHtml ?? ApplicationTemplates.SecurityCheckBody;
-        var html = await placeholders.ApplyAsync(body, nameof(Case), @case.Id, actor, cancellationToken);
-        var docTitle = $"{SecurityCheckTitlePrefix}{name}";
-        var document = await documents.CreateAsync(new DocumentInput
-        {
-            Title = docTitle,
-            ContentHtml = html,
-            Classification = DocumentClassification.Hrb,
-        }, actor, cancellationToken);
-
-        // 3) file the document under the case and under the application's sources & attachments
-        await sources.CreateAsync(nameof(Case), @case.Id, SecurityCheckSource(docTitle, document.Id), actor, cancellationToken);
-        await sources.CreateAsync(nameof(Bewerbung), bewerbungId, SecurityCheckSource(docTitle, document.Id), actor,
-            cancellationToken);
-
-        logger.LogInformation("Auto-provisioned case {CaseId} + document {DocId} for application {AppId}.",
-            @case.Id, document.Id, bewerbungId);
     }
+
+    // the placeholder service only knows record types; an application answers {{Name}} and {{Aktenzeichen}} itself
+    private static string FillApplicationTokens(string body, Bewerbung bewerbung) => body
+        .Replace("{{Name}}", WebUtility.HtmlEncode(bewerbung.Name), StringComparison.OrdinalIgnoreCase)
+        .Replace("{{Aktenzeichen}}", WebUtility.HtmlEncode(bewerbung.CaseNumber), StringComparison.OrdinalIgnoreCase);
+
+    private static Task<bool> HasSecurityCheckAsync(AppDbContext db, string bewerbungId, CancellationToken cancellationToken)
+        => db.Sources.AsNoTracking().AnyAsync(s => s.EntityType == nameof(Bewerbung) && s.EntityId == bewerbungId
+            && s.Type == SourceType.Document && s.TargetType == nameof(Document)
+            && s.Title.StartsWith(SecurityCheckTitlePrefix), cancellationToken);
 
     private static SourceInput SecurityCheckSource(string title, string documentId) => new()
     {
@@ -114,7 +100,7 @@ public class ApplicationCaseService(
         TargetId = documentId,
     };
 
-    private async Task FileExistingSecurityCheckAsync(AppDbContext db, string bewerbungId, string caseId,
+    private async Task<bool> FileExistingSecurityCheckAsync(AppDbContext db, string bewerbungId, string caseId,
         ClaimsPrincipal actor, CancellationToken cancellationToken)
     {
         var filed = await db.Sources.AsNoTracking()
@@ -126,15 +112,11 @@ public class ApplicationCaseService(
             .FirstOrDefaultAsync(cancellationToken);
         if (filed?.TargetId is null)
         {
-            return;
+            return false;
         }
 
-        var onApplication = await db.Sources.AnyAsync(s => s.EntityType == nameof(Bewerbung) && s.EntityId == bewerbungId
-            && s.TargetType == nameof(Document) && s.TargetId == filed.TargetId, cancellationToken);
-        if (!onApplication)
-        {
-            await sources.CreateAsync(nameof(Bewerbung), bewerbungId, SecurityCheckSource(filed.Title, filed.TargetId),
-                actor, cancellationToken);
-        }
+        await sources.CreateAsync(nameof(Bewerbung), bewerbungId, SecurityCheckSource(filed.Title, filed.TargetId),
+            actor, cancellationToken);
+        return true;
     }
 }

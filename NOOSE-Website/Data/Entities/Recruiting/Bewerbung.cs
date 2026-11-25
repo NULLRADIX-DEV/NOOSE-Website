@@ -65,7 +65,7 @@ public class Bewerbung : IAuditable, ISoftDelete
     [Column("PersonId")]
     public string? LinkedPersonId { get; set; }
 
-    /// <summary>Auto-created "Bewerbungsverfahren" case; doubles as the auto-provisioning idempotency key.</summary>
+    /// <summary>"Bewerbungsverfahren" case older applications got automatically; no longer created.</summary>
     [Column("VorgangId")]
     public string? LinkedCaseId { get; set; }
 
